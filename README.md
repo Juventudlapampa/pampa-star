@@ -10,15 +10,17 @@ Juego de **carrera futbolística pampeana** por comandos. Un pibe que arranca en
 - **Local:** abrí `index.html` con doble clic. Es un único archivo autónomo (HTML + CSS + JS). Solo usa internet para las tipografías de Google.
 - **Con servidor (para desarrollar):** `node server.js` y abrí `http://localhost:8123`.
 
-## Estado: rebanada vertical
+## Estado: rebanada vertical (jugabilidad retro estilo Captain Tsubasa)
 
-Un **partido completo por comandos**, jugable y mobile-first:
+Una jugada de ataque completa, jugable y mobile-first, en una **cancha pixel-art con scroll**:
 
-- Comandos contextuales según la zona: **Pase / Gambeta / Pared / Tiro**.
-- **Barra de poder con timing**: frená el cursor en la zona verde para pegarle justo.
-- **Duelos**: tu estadística vs la del defensor o arquero + el timing + algo de azar.
-- **Energía** que baja con cada acción y penaliza las stats sobre el final.
+- **Movés tu sprite** por la cancha con el **d-pad táctil** (o flechas/WASD). La pelota avanza al arco rival con vos.
+- Cuando un defensor te sale al cruce, la acción **se congela** y aparece un **menú de comandos tipo combate de Pokémon**: Gambeta / Pase / Pared / Tiro, cada uno con su **chance %** en ese momento.
+- Elegís y se resuelve como **duelo de estadísticas**: tu stat vs la del rival, modulado por tus **Guts** (energía que baja con cada acción). **Sin barra de timing** — es elegir y ver el resultado.
+- Ganás el duelo: seguís avanzando. Perdés: perdés la pelota.
+- En el área, **Tiro abre el duelo contra el arquero** (que también tiene Guts). Si gana tu tiro: **gol**.
 - **Gol → sube una estadística**. La carrera se guarda en el navegador (`localStorage`).
+- Sprites originales generados por código (jugadores, pelota, arco, cancha). Sin assets de terceros.
 - Tiro especial *Disparo del Caldén* bloqueado, como adelanto de la progresión.
 
 ## Próximos pasos
