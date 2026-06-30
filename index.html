@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PAMPA STAR · Tu carrera en la Liga Cultural</title>
+<meta name="description" content="Sos un pibe pampeano que arranca en Primera B de la Liga Cultural y sueña con el Mundial. Partido por comandos, estilo Captain Tsubasa + New Star Soccer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* ===================== PAMPA STAR — identidad visual propia =====================
+     Verde de cancha permitido (es un juego de fútbol). Sol pampeano + cielo + crema.   */
+  :root{
+    --pasto:#1c7a42;
+    --pasto-2:#125e31;
+    --pasto-osc:#0c4322;
+    --raya:rgba(255,255,255,0.85);
+    --sol:#f6c11d;       /* sol / dorado pampeano */
+    --sol-2:#ffd84d;
+    --cielo:#5bb8e8;     /* cielo */
+    --tierra:#c97c3a;    /* tierra ocre */
+    --crema:#f6efdc;
+    --tinta:#0a1f13;
+    --rojo:#e3503e;
+    --ok:#7ee08a;
+    --night:#08160d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:'DM Sans',system-ui,sans-serif;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #12361f 0%, var(--night) 60%);
+    color:var(--crema);
+    min-height:100dvh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:0.7rem 0.7rem 1rem;}
+  .screen{display:none;flex:1;flex-direction:column;}
+  .screen.active{display:flex;animation:fade .35s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  h1,h2,h3,.anton{font-family:'Anton',sans-serif;letter-spacing:0.02em;font-weight:400;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- INTRO ---------- */
+  .brand{text-align:center;padding:1.4rem 0 0.6rem;}
+  .brand .kicker{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.42em;color:var(--sol);text-transform:uppercase;}
+  .brand h1{font-size:clamp(2.8rem,15vw,4.4rem);line-height:.82;text-transform:uppercase;margin-top:.35rem;
+    background:linear-gradient(180deg,#fff 0%,var(--sol-2) 55%,var(--sol) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 3px 0 rgba(0,0,0,.35));}
+  .brand .sub{font-size:.82rem;opacity:.82;margin-top:.45rem;line-height:1.45;}
+  .brand .ball{font-size:2.6rem;line-height:1;animation:bob 1.8s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-9px) rotate(6deg)}}
+
+  .panel{background:linear-gradient(180deg,rgba(10,40,22,.72),rgba(6,22,13,.86));
+    border:1px solid rgba(246,193,29,.22);border-radius:18px;padding:1.1rem;backdrop-filter:blur(4px);}
+  .panel + .panel{margin-top:.7rem;}
+
+  label.fld{display:block;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--sol);margin:.2rem 0 .35rem;}
+  input.txt,select.sel{width:100%;background:rgba(0,0,0,.4);border:1.5px solid rgba(246,239,220,.22);color:var(--crema);
+    padding:.85rem .9rem;border-radius:11px;font-family:inherit;font-size:1.02rem;}
+  input.txt:focus,select.sel:focus{outline:none;border-color:var(--sol);}
+  .pos-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(246,193,29,.14);border:1px solid var(--sol);
+    color:var(--sol-2);padding:.5rem .8rem;border-radius:10px;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;}
+
+  .btn{display:block;width:100%;border:none;border-radius:13px;cursor:pointer;font-family:'Anton',sans-serif;
+    letter-spacing:.1em;text-transform:uppercase;font-size:1.18rem;padding:1.05rem;margin-top:.7rem;color:var(--tinta);
+    background:linear-gradient(135deg,var(--sol-2),var(--sol));box-shadow:0 5px 0 #b8900f,0 8px 18px rgba(0,0,0,.4);
+    transition:transform .08s, box-shadow .08s;}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #b8900f,0 4px 10px rgba(0,0,0,.4);}
+  .btn.ghost{background:rgba(0,0,0,.35);color:var(--crema);border:1.5px solid rgba(246,239,220,.3);box-shadow:none;}
+  .btn.ghost:active{transform:translateY(2px);}
+
+  .career-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-top:.7rem;}
+  .career-cell{background:rgba(0,0,0,.35);border:1px solid rgba(91,184,232,.25);border-radius:11px;padding:.6rem .3rem;text-align:center;}
+  .career-cell .n{font-family:'Anton',sans-serif;font-size:1.5rem;color:var(--sol-2);line-height:1;}
+  .career-cell .l{font-family:'JetBrains Mono',monospace;font-size:.5rem;letter-spacing:.13em;opacity:.6;text-transform:uppercase;margin-top:.25rem;}
+
+  /* ---------- HUD partido ---------- */
+  .hud{display:flex;align-items:center;gap:.6rem;margin-bottom:.55rem;}
+  .scorebox{display:flex;align-items:center;gap:.55rem;background:rgba(0,0,0,.5);border:1px solid rgba(246,239,220,.18);
+    border-radius:12px;padding:.45rem .7rem;flex:1;}
+  .scorebox .team{flex:1;min-width:0;}
+  .scorebox .team .nm{font-size:.66rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.92;}
+  .scorebox .team.me .nm{color:var(--sol-2);}
+  .scorebox .gg{font-family:'Anton',sans-serif;font-size:1.7rem;line-height:1;}
+  .scorebox .vs{font-family:'JetBrains Mono',monospace;font-size:.6rem;opacity:.5;}
+  .clock{font-family:'Anton',sans-serif;font-size:1.5rem;color:var(--crema);min-width:3.4rem;text-align:center;
+    background:rgba(0,0,0,.5);border:1px solid rgba(246,239,220,.18);border-radius:12px;padding:.3rem .2rem;}
+  .clock small{display:block;font-family:'JetBrains Mono',monospace;font-size:.42rem;letter-spacing:.2em;opacity:.55;margin-top:-2px;}
+
+  .energy-wrap{display:flex;align-items:center;gap:.5rem;margin-bottom:.55rem;}
+  .energy-ico{font-size:1rem;}
+  .energy-bar{flex:1;height:11px;background:rgba(0,0,0,.55);border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,.1);}
+  .energy-fill{height:100%;width:100%;border-radius:7px;transition:width .4s ease, background .4s;}
+  .energy-num{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--crema);min-width:2.6rem;text-align:right;}
+
+  /* ---------- Pizarra / cancha vertical ---------- */
+  .pitch{position:relative;height:148px;border-radius:14px;overflow:hidden;margin-bottom:.6rem;
+    background:repeating-linear-gradient(0deg,var(--pasto) 0 18px,var(--pasto-2) 18px 36px);
+    border:2px solid rgba(255,255,255,.18);box-shadow:inset 0 0 40px rgba(0,0,0,.45);}
+  .pitch .line{position:absolute;left:0;right:0;height:2px;background:var(--raya);opacity:.55;}
+  .pitch .midline{top:50%;}
+  .pitch .circle{position:absolute;left:50%;top:50%;width:46px;height:46px;border:2px solid var(--raya);opacity:.5;border-radius:50%;transform:translate(-50%,-50%);}
+  .goal{position:absolute;left:50%;transform:translateX(-50%);width:64px;height:13px;border:2px solid var(--raya);opacity:.85;}
+  .goal.rival{top:3px;border-bottom:none;background:rgba(227,80,62,.25);}
+  .goal.mine{bottom:3px;border-top:none;background:rgba(91,184,232,.22);}
+  .goal-lbl{position:absolute;left:50%;transform:translateX(-50%);font-family:'JetBrains Mono',monospace;font-size:.5rem;letter-spacing:.18em;opacity:.7;text-transform:uppercase;}
+  .ball-dot{position:absolute;left:50%;width:18px;height:18px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,#cfcfcf 60%,#9a9a9a);
+    border:1px solid rgba(0,0,0,.4);box-shadow:0 2px 5px rgba(0,0,0,.5);transform:translate(-50%,-50%);
+    transition:top .55s cubic-bezier(.34,1.4,.5,1), left .45s ease;z-index:3;}
+  .ball-dot.shoot{animation:shoot .5s ease;}
+  @keyframes shoot{0%{transform:translate(-50%,-50%) scale(1)}40%{transform:translate(-50%,-50%) scale(1.5)}100%{transform:translate(-50%,-50%) scale(1)}}
+  .zone-tag{position:absolute;top:6px;left:8px;font-family:'JetBrains Mono',monospace;font-size:.55rem;letter-spacing:.16em;
+    text-transform:uppercase;background:rgba(0,0,0,.5);padding:.2rem .5rem;border-radius:6px;color:var(--sol-2);z-index:4;}
+
+  /* ---------- Momento / situación ---------- */
+  .momento{background:rgba(0,0,0,.55);border-left:4px solid var(--sol);border-radius:11px;padding:.85rem .9rem;margin-bottom:.6rem;min-height:74px;}
+  .momento .rel{font-family:'JetBrains Mono',monospace;font-size:.56rem;letter-spacing:.16em;color:var(--cielo);text-transform:uppercase;margin-bottom:.35rem;}
+  .momento .txt{font-size:.98rem;line-height:1.45;}
+  .momento .txt b{color:var(--sol-2);}
+
+  .cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;}
+  .cmd{position:relative;background:linear-gradient(180deg,rgba(20,70,38,.9),rgba(10,42,23,.92));
+    border:1.5px solid rgba(246,239,220,.18);border-radius:12px;padding:.8rem .7rem;cursor:pointer;text-align:left;
+    color:var(--crema);transition:transform .08s,border-color .12s,background .12s;}
+  .cmd:active{transform:scale(.97);}
+  .cmd:not(.lock):hover{border-color:var(--sol);}
+  .cmd .ci{font-size:1.35rem;line-height:1;}
+  .cmd .cn{font-family:'Anton',sans-serif;font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;margin-top:.25rem;}
+  .cmd .cd{font-family:'JetBrains Mono',monospace;font-size:.56rem;letter-spacing:.05em;opacity:.7;margin-top:.18rem;line-height:1.3;}
+  .cmd .cost{position:absolute;top:.5rem;right:.55rem;font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--cielo);opacity:.9;}
+  .cmd.lock{opacity:.45;cursor:not-allowed;border-style:dashed;}
+  .cmd.special{border-color:var(--rojo);background:linear-gradient(180deg,rgba(90,30,24,.9),rgba(50,16,12,.92));}
+  .cmd.special .cn{color:#ff9c8c;}
+
+  /* ---------- Barra de poder ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(4,12,7,.92);display:none;align-items:center;justify-content:center;z-index:50;padding:1.1rem;}
+  .overlay.show{display:flex;animation:fade .18s ease;}
+  .power-box{width:100%;max-width:420px;text-align:center;}
+  .power-box .pq{font-family:'Anton',sans-serif;font-size:1.35rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.2rem;}
+  .power-box .ph{font-family:'JetBrains Mono',monospace;font-size:.66rem;opacity:.75;margin-bottom:1.1rem;}
+  .power-track{position:relative;height:42px;background:rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.18);border-radius:12px;overflow:hidden;}
+  .power-sweet{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,rgba(126,224,138,.35),rgba(126,224,138,.6),rgba(126,224,138,.35));border-left:2px solid var(--ok);border-right:2px solid var(--ok);}
+  .power-cursor{position:absolute;top:-3px;bottom:-3px;width:6px;background:var(--sol-2);box-shadow:0 0 12px var(--sol);border-radius:3px;z-index:2;}
+  .power-tip{font-family:'JetBrains Mono',monospace;font-size:.6rem;opacity:.6;margin-top:.7rem;letter-spacing:.1em;text-transform:uppercase;}
+  .hit-btn{margin-top:1.1rem;background:linear-gradient(135deg,var(--rojo),#ff7a5e);color:#fff;box-shadow:0 5px 0 #9c2b1d,0 8px 18px rgba(0,0,0,.4);}
+  .hit-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #9c2b1d;}
+
+  /* resultado de la jugada (flash) */
+  .flash{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:60;pointer-events:none;}
+  .flash.show{display:flex;}
+  .flash .big{font-family:'Anton',sans-serif;font-size:clamp(3rem,18vw,6rem);text-transform:uppercase;letter-spacing:.04em;
+    text-shadow:0 4px 0 rgba(0,0,0,.4);animation:pop .7s ease;}
+  @keyframes pop{0%{transform:scale(.3);opacity:0}30%{transform:scale(1.15);opacity:1}80%{transform:scale(1)}100%{transform:scale(1.05);opacity:0}}
+  .flash.gol .big{color:var(--sol-2);}
+  .flash.bad .big{color:#9fb2c4;font-size:clamp(2rem,12vw,4rem);}
+
+  /* ---------- Resultado final ---------- */
+  .final-hero{text-align:center;padding:1.2rem 0 .6rem;}
+  .final-hero .res{font-family:'Anton',sans-serif;font-size:3.4rem;line-height:1;}
+  .final-hero .res.win{color:var(--ok);}
+  .final-hero .res.draw{color:var(--cielo);}
+  .final-hero .res.lose{color:var(--rojo);}
+  .final-hero .tag{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;opacity:.8;margin-top:.4rem;}
+  .level-up{background:linear-gradient(135deg,rgba(246,193,29,.2),rgba(246,193,29,.06));border:1px solid var(--sol);
+    border-radius:13px;padding:.9rem;margin-top:.7rem;text-align:center;}
+  .level-up .lu-t{font-family:'Anton',sans-serif;color:var(--sol-2);font-size:1.1rem;text-transform:uppercase;letter-spacing:.05em;}
+  .level-up .lu-s{font-family:'JetBrains Mono',monospace;font-size:.78rem;margin-top:.3rem;}
+  .ratings{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.6rem;}
+  .rate-row{display:flex;justify-content:space-between;background:rgba(0,0,0,.35);border-radius:8px;padding:.45rem .6rem;
+    font-family:'JetBrains Mono',monospace;font-size:.74rem;}
+  .rate-row .v{color:var(--sol-2);}
+
+  .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:rgba(0,0,0,.85);border:1px solid var(--sol);
+    color:var(--crema);padding:.55rem .9rem;border-radius:10px;font-size:.78rem;z-index:70;opacity:0;transition:opacity .3s;max-width:90%;text-align:center;}
+  .toast.show{opacity:1;}
+  .foot{text-align:center;font-family:'JetBrains Mono',monospace;font-size:.52rem;letter-spacing:.14em;opacity:.4;margin-top:.8rem;text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ INTRO ============ -->
+  <section class="screen active" id="screen-intro">
+    <div class="brand">
+      <div class="kicker">Liga Cultural de Fútbol · La Pampa</div>
+      <h1>Pampa<br>Star</h1>
+      <div class="ball">⚽</div>
+      <div class="sub">Sos un pibe de pueblo que arranca en <b style="color:var(--sol-2)">Primera B</b>.<br>El sueño es la Selección y el Mundial. Empezá pateando.</div>
+    </div>
+
+    <div class="panel">
+      <label class="fld">Tu nombre</label>
+      <input type="text" class="txt" id="in-name" placeholder="Cómo te grita la hinchada" maxlength="18">
+      <div style="margin-top:.7rem"></div>
+      <label class="fld">Tu club (Primera B)</label>
+      <select class="sel" id="in-club"></select>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.8rem">
+        <span class="pos-badge">⚡ Delantero</span>
+        <span class="mono" style="font-size:.6rem;opacity:.6">posición fija · v1</span>
+      </div>
+      <button class="btn" id="btn-start">Salir a la cancha</button>
+    </div>
+
+    <div id="career-box" style="display:none">
+      <div class="panel" style="margin-top:.7rem">
+        <div class="mono" style="font-size:.6rem;letter-spacing:.2em;color:var(--sol);text-transform:uppercase">Tu carrera</div>
+        <div class="career-strip">
+          <div class="career-cell"><div class="n" id="c-partidos">0</div><div class="l">Partidos</div></div>
+          <div class="career-cell"><div class="n" id="c-goles">0</div><div class="l">Goles</div></div>
+          <div class="career-cell"><div class="n" id="c-victorias">0</div><div class="l">Ganados</div></div>
+        </div>
+        <button class="btn ghost" id="btn-reset" style="font-size:.8rem;margin-top:.6rem">Borrar carrera</button>
+      </div>
+    </div>
+    <div class="foot">Prototipo · rebanada vertical · un partido por comandos</div>
+  </section>
+
+  <!-- ============ PARTIDO ============ -->
+  <section class="screen" id="screen-match">
+    <div class="hud">
+      <div class="scorebox">
+        <div class="team me"><div class="nm" id="hud-me">Vos</div></div>
+        <div class="gg" id="hud-gme">0</div>
+        <div class="vs">–</div>
+        <div class="gg" id="hud-grv">0</div>
+        <div class="team" style="text-align:right"><div class="nm" id="hud-rv">Rival</div></div>
+      </div>
+      <div class="clock"><span id="hud-min">0'</span><small>minuto</small></div>
+    </div>
+
+    <div class="energy-wrap">
+      <span class="energy-ico">🔋</span>
+      <div class="energy-bar"><div class="energy-fill" id="energy-fill"></div></div>
+      <span class="energy-num" id="energy-num">100</span>
+    </div>
+
+    <div class="pitch" id="pitch">
+      <div class="goal rival"></div>
+      <div class="goal-lbl" id="lbl-rival" style="top:18px">Arco rival</div>
+      <div class="line midline"></div>
+      <div class="circle"></div>
+      <div class="goal mine"></div>
+      <div class="goal-lbl" style="bottom:18px">Tu arco</div>
+      <div class="ball-dot" id="ball"></div>
+      <div class="zone-tag" id="zone-tag">Mediocampo</div>
+    </div>
+
+    <div class="momento">
+      <div class="rel" id="mom-rel">Relator</div>
+      <div class="txt" id="mom-txt">…</div>
+    </div>
+
+    <div class="cmd-grid" id="cmd-grid"></div>
+  </section>
+
+  <!-- ============ FINAL ============ -->
+  <section class="screen" id="screen-final">
+    <div class="final-hero">
+      <div class="tag" id="f-tag">Final del partido</div>
+      <div class="res" id="f-res">0 – 0</div>
+      <div class="tag" id="f-sub">…</div>
+    </div>
+    <div class="panel">
+      <div class="momento" style="border-color:var(--cielo);margin:0">
+        <div class="rel">Crónica</div>
+        <div class="txt" id="f-cronica">…</div>
+      </div>
+      <div id="f-levelup"></div>
+      <div class="ratings" id="f-ratings"></div>
+    </div>
+    <button class="btn" id="btn-again">Jugar otro partido</button>
+    <button class="btn ghost" id="btn-home">Volver al inicio</button>
+    <div class="foot">Próximo paso: temporada, escalera de carrera y tiros especiales</div>
+  </section>
+
+</div>
+
+<!-- Barra de poder -->
+<div class="overlay" id="overlay">
+  <div class="power-box">
+    <div class="pq" id="pw-q">¡Pegale!</div>
+    <div class="ph" id="pw-h">Frenala en la zona verde para pegarle justo</div>
+    <div class="power-track" id="pw-track">
+      <div class="power-sweet" id="pw-sweet"></div>
+      <div class="power-cursor" id="pw-cursor"></div>
+    </div>
+    <div class="power-tip">cuanto más cerca del centro, mejor</div>
+    <button class="btn hit-btn" id="pw-hit">¡Ahora!</button>
+  </div>
+</div>
+
+<div class="flash" id="flash"><div class="big" id="flash-big">¡GOL!</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================================
+   PAMPA STAR — Motor de partido (rebanada vertical)
+   - Partido por comandos (Captain Tsubasa): se elige Pase/Gambeta/Pared/Tiro.
+   - Duelo: stat propia vs stat rival + barra de poder (timing) + azar.
+   - Energía baja con cada acción y penaliza las stats al final.
+   - Gol => sube una estadística. Carrera guardada en localStorage.
+   ========================================================================== */
+
+/* ---------- Datos: clubes Primera B Liga Cultural (públicos) ---------- */
+const CLUBES = [
+  {n:"Deportivo Winifreda", loc:"Winifreda", f:50},
+  {n:"El Pampero",          loc:"Guatraché", f:53},
+  {n:"Centro Oeste",        loc:"Telén",     f:49},
+  {n:"Atlético Carro Quemado", loc:"Carro Quemado", f:46},
+  {n:"Deportivo Luan Toro", loc:"Luan Toro", f:47},
+  {n:"Cochico FC",          loc:"Cochico",   f:48},
+  {n:"Deportivo Telén",     loc:"Telén",     f:51},
+  {n:"Atlético Caleufú",    loc:"Caleufú",   f:52},
+  {n:"Cultural Argentino",  loc:"General Pico", f:55},
+];
+
+/* ---------- Estado ---------- */
+const STORE = "pampa_star_v1";
+let career = loadCareer();
+let G = null; // estado del partido actual
+
+const $ = id => document.getElementById(id);
+const rnd = (a,b)=> a + Math.random()*(b-a);
+const clamp = (v,a,b)=> Math.max(a,Math.min(b,v));
+
+/* ---------- Carrera (localStorage) ---------- */
+function loadCareer(){
+  try{
+    const raw = localStorage.getItem(STORE);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return null;
+}
+function saveCareer(){ try{ localStorage.setItem(STORE, JSON.stringify(career)); }catch(e){} }
+function freshStats(){
+  // Nivel Primera B: prometedor pero crudo
+  return {pase:52, tiro:58, gambeta:55, velocidad:60, resistencia:54, fisico:50, aereo:47, caracter:51};
+}
+function ensureCareer(name, club){
+  if(!career || career.club !== club || career.name !== name){
+    career = career || {};
+    career.name = name; career.club = club;
+    if(!career.stats) career.stats = freshStats();
+    if(career.partidos==null){ career.partidos=0; career.goles=0; career.victorias=0; }
+  }
+  saveCareer();
+}
+
+/* ---------- Intro ---------- */
+function initIntro(){
+  const sel = $("in-club");
+  sel.innerHTML = CLUBES.map((c,i)=>`<option value="${i}">${c.n} · ${c.loc}</option>`).join("");
+  if(career){
+    $("in-name").value = career.name || "";
+    const idx = CLUBES.findIndex(c=>c.n===career.club);
+    if(idx>=0) sel.value = idx;
+    $("career-box").style.display = "block";
+    $("c-partidos").textContent = career.partidos||0;
+    $("c-goles").textContent = career.goles||0;
+    $("c-victorias").textContent = career.victorias||0;
+  }
+}
+
+$("btn-start").addEventListener("click", ()=>{
+  const name = ($("in-name").value || "").trim() || "El Pibe";
+  const club = CLUBES[+$("in-club").value];
+  ensureCareer(name, club.n);
+  startMatch(club);
+});
+$("btn-reset").addEventListener("click", ()=>{
+  if(confirm("¿Borrar toda la carrera? No se puede deshacer.")){
+    localStorage.removeItem(STORE); career=null; location.reload();
+  }
+});
+
+/* ---------- Iniciar partido ---------- */
+function startMatch(club){
+  // Rival: otro club de la B, distinto
+  let rival;
+  do{ rival = CLUBES[Math.floor(rnd(0,CLUBES.length))]; } while(rival.n===club.n);
+
+  G = {
+    club, rival,
+    stats: JSON.parse(JSON.stringify(career.stats)),
+    energia: 100,
+    minuto: 0,
+    gMe: 0, gRv: 0,
+    ballPos: 35,         // 0 = tu arco, 100 = arco rival
+    golesEnPartido: 0,
+    statSubida: null,
+    eventos: [],
+    busy:false,
+  };
+  $("hud-me").textContent = club.n;
+  $("hud-rv").textContent = rival.n;
+  $("lbl-rival").textContent = rival.n;
+  show("screen-match");
+  renderHUD();
+  nextMomento(true);
+}
+
+/* ---------- Render HUD ---------- */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+function renderHUD(){
+  $("hud-gme").textContent = G.gMe;
+  $("hud-grv").textContent = G.gRv;
+  $("hud-min").textContent = Math.min(90,Math.round(G.minuto))+"'";
+  const e = clamp(G.energia,0,100);
+  $("energy-fill").style.width = e+"%";
+  $("energy-num").textContent = Math.round(e);
+  const col = e>55 ? "linear-gradient(90deg,#7ee08a,#3fbf63)" : e>25 ? "linear-gradient(90deg,#f6c11d,#ffaf3a)" : "linear-gradient(90deg,#e3503e,#ff7a5e)";
+  $("energy-fill").style.background = col;
+  // pelota: pos 0 (abajo) -> 100 (arriba). top% va de 88 a 12
+  const top = 88 - (G.ballPos/100)*76;
+  $("ball").style.top = top+"%";
+  $("zone-tag").textContent = zoneName(G.ballPos);
+}
+function zoneName(p){
+  if(p<45) return "Mediocampo";
+  if(p<72) return "Tres cuartos";
+  return "Área rival";
+}
+function effStat(key){
+  // energía penaliza: a 100 = 100%, a 0 = 55%
+  const f = 0.55 + 0.45*(clamp(G.energia,0,100)/100);
+  return G.stats[key]*f;
+}
+
+/* ---------- Generación de momentos ---------- */
+const SIT_MID = [
+  "Recibís de espaldas en el círculo central. Te sale a cerrar un volante.",
+  "La tenés en la mitad de la cancha. Hay <b>espacio</b> para arrancar.",
+  "Cortaste un pase y quedás de cara al área, pero lejos todavía.",
+  "Te bajan un pelotazo en mediocampo. Un marca te respira en la nuca.",
+];
+const SIT_THREEQ = [
+  "Entrás a los tres cuartos. El <b>último defensor</b> te espera de frente.",
+  "Quedás perfilado al borde del área grande. Hay para <b>probar de afuera</b>.",
+  "Tirás la diagonal y te encontrás solo en tres cuartos, pero achican rápido.",
+  "Pelota dividida en la puerta del área. El central va fuerte.",
+];
+const SIT_BOX = [
+  "¡La tenés en el <b>área</b>! El arquero achica, definí.",
+  "Quedaste mano a mano con el <b>arquero</b>. Es ahora.",
+  "Te la dejan picando en el punto del penal. <b>¡A reventarla!</b>",
+  "Pelota suelta en el área chica, el arquero todavía está saliendo.",
+];
+
+function nextMomento(opening){
+  if(G.minuto >= 90){ return endMatch(); }
+  G.busy = false;
+  renderHUD();
+  const p = G.ballPos;
+  const pool = p<45 ? SIT_MID : p<72 ? SIT_THREEQ : SIT_BOX;
+  const txt = opening
+    ? `Arranca el partido en <b>${G.rival.loc}</b>. ${pool[0]}`
+    : pool[Math.floor(rnd(0,pool.length))];
+  $("mom-rel").textContent = relatorTag();
+  $("mom-txt").innerHTML = txt;
+  renderCommands();
+}
+function relatorTag(){
+  const t=["Relator","Transmisión LU","Cancha de "+G.rival.loc,"Minuto "+Math.round(G.minuto)];
+  return t[Math.floor(rnd(0,t.length))];
+}
+
+/* ---------- Comandos contextuales ---------- */
+function renderCommands(){
+  const p = G.ballPos;
+  const cmds = [];
+  // Pase: siempre, barato, seguro, avanza poco
+  cmds.push({k:"pase",  ico:"➡️", nm:"Pase",   d:"Seguro. Avanza poco.", cost:4});
+  // Gambeta: siempre, encara
+  cmds.push({k:"gambeta",ico:"🌀", nm:"Gambeta",d:"Encarás. Riesgo/premio.", cost:8});
+  // Pared: siempre, buena para superar líneas
+  cmds.push({k:"pared", ico:"🔁", nm:"Pared",  d:"Pared y picás. Gana metros.", cost:6});
+  // Tiro: contexto
+  if(p>=45){
+    const calidad = p>=72 ? "Alta chance" : "Media · golazo si entra";
+    cmds.push({k:"tiro", ico:"🎯", nm:"Tiro",   d:calidad, cost:10});
+  } else {
+    cmds.push({k:"tiro", ico:"🎯", nm:"Tiro lejano", d:"Muy difícil de afuera.", cost:10});
+  }
+  let html = cmds.map(c=>`
+    <button class="cmd" data-k="${c.k}">
+      <span class="cost">-${c.cost}🔋</span>
+      <div class="ci">${c.ico}</div>
+      <div class="cn">${c.nm}</div>
+      <div class="cd">${c.d}</div>
+    </button>`).join("");
+  // Tiro especial bloqueado (teaser de progresión)
+  html += `
+    <button class="cmd special lock" disabled>
+      <span class="cost">Nivel 3</span>
+      <div class="ci">🔥</div>
+      <div class="cn">Disparo del Caldén</div>
+      <div class="cd">Tiro especial · se desbloquea subiendo</div>
+    </button>`;
+  $("cmd-grid").innerHTML = html;
+  $("cmd-grid").querySelectorAll(".cmd:not(.lock)").forEach(b=>{
+    b.addEventListener("click", ()=> onCommand(b.dataset.k), {once:true});
+  });
+}
+
+/* ---------- Barra de poder ---------- */
+let pw = {raf:0, x:0, dir:1, sweetL:0, sweetW:0, done:false, cb:null};
+function powerBar(question, hint, cb){
+  $("pw-q").textContent = question;
+  $("pw-h").textContent = hint;
+  // zona dulce aleatoria
+  pw.sweetW = rnd(16,24);
+  pw.sweetL = rnd(8, 92-pw.sweetW);
+  $("pw-sweet").style.left = pw.sweetL+"%";
+  $("pw-sweet").style.width = pw.sweetW+"%";
+  pw.x = 0; pw.dir = 1; pw.done = false; pw.cb = cb;
+  $("overlay").classList.add("show");
+  const speed = 1.55; // % por frame aprox
+  const tick = ()=>{
+    if(pw.done) return;
+    pw.x += pw.dir*speed;
+    if(pw.x>=100){ pw.x=100; pw.dir=-1; }
+    if(pw.x<=0){ pw.x=0; pw.dir=1; }
+    $("pw-cursor").style.left = pw.x+"%";
+    pw.raf = requestAnimationFrame(tick);
+  };
+  pw.raf = requestAnimationFrame(tick);
+}
+function powerStop(){
+  if(pw.done) return 0;
+  pw.done = true;
+  cancelAnimationFrame(pw.raf);
+  $("overlay").classList.remove("show");
+  // timing 0..1 según cercanía al centro de la zona dulce
+  const center = pw.sweetL + pw.sweetW/2;
+  const dist = Math.abs(pw.x - center);
+  const maxd = 50;
+  const timing = clamp(1 - dist/maxd, 0, 1);
+  return timing;
+}
+$("pw-hit").addEventListener("click", ()=>{
+  const timing = powerStop();
+  if(pw.cb) pw.cb(timing);
+});
+// tocar la barra también frena
+$("pw-track").addEventListener("click", ()=>{
+  const timing = powerStop();
+  if(pw.cb) pw.cb(timing);
+});
+
+/* ---------- Resolución de comandos ---------- */
+function onCommand(k){
+  if(G.busy) return;
+  G.busy = true;
+  const costs = {pase:4, gambeta:8, pared:6, tiro:10};
+  G.energia = clamp(G.energia - (costs[k]||5), 0, 100);
+
+  if(k==="tiro"){
+    powerBar("¡Pegale!","Frená en la zona verde para pegarle justo", (timing)=> resolveTiro(timing));
+  } else {
+    const q = k==="gambeta" ? "¡Encarala!" : k==="pared" ? "¡Dale y va!" : "¡Tocala justa!";
+    powerBar(q, "Timing: frená cerca del centro", (timing)=> resolveAvance(k, timing));
+  }
+}
+
+function resolveAvance(k, timing){
+  // duelo: stat propia vs marca rival
+  const map = {pase:"pase", gambeta:"gambeta", pared:"pase"};
+  const myKey = map[k];
+  const mine = effStat(myKey)*(0.6 + 0.6*timing) + rnd(0,14);
+  const defenderBase = G.rival.f + (G.ballPos*0.22); // más difícil cerca del arco
+  const def = defenderBase + rnd(0,16);
+  const gain = {pase:[10,17], gambeta:[18,28], pared:[20,30]}[k];
+
+  advanceClock();
+  if(mine > def){
+    const adv = rnd(gain[0], gain[1]) * (0.7+0.6*timing);
+    G.ballPos = clamp(G.ballPos + adv, 0, 99);
+    const msg = {
+      pase:["Pase preciso, la jugada sigue.","La tocás y el equipo avanza.","Buena descarga, ganás metros."],
+      gambeta:["¡Gambeta! Te sacás al marcador de encima.","Amague y perfil, lo dejás pagando.","¡Qué caño! La hinchada se levanta."],
+      pared:["¡Pared bárbara, te metés entre líneas!","Dale y va, rompés la línea de fondo.","Pared y picás al espacio."]
+    }[k];
+    G.eventos.push("✓ "+pick(msg));
+    feedAfterAdvance(pick(msg));
+  } else {
+    // pérdida -> contra rival
+    const msg = {
+      pase:["Te la cortan en el camino.","Pase flojo, lo lee el rival."],
+      gambeta:["¡Te la sacan en la gambeta!","Encaraste y te clavaron el pie."],
+      pared:["Interceptan la pared.","No llega el compañero, perdés la pelota."]
+    }[k];
+    G.eventos.push("✗ "+pick(msg));
+    turnover(pick(msg));
+  }
+}
+
+function resolveTiro(timing){
+  advanceClock();
+  const p = G.ballPos;
+  const dist = 100 - p; // 0 = pegado al arco
+  // ataque
+  const atk = effStat("tiro")*(0.5 + 0.75*timing) + rnd(0,14);
+  // defensa del arquero crece con la distancia
+  const keeper = (G.rival.f*0.9) + dist*0.42 + rnd(0,16);
+  $("ball").classList.add("shoot");
+  setTimeout(()=>$("ball").classList.remove("shoot"), 500);
+
+  if(atk > keeper){
+    // GOL
+    G.gMe++; G.golesEnPartido++;
+    const golazo = dist>40;
+    G.ballPos = 35; // saca el rival
+    flash("gol", golazo ? "¡GOLAZO!" : "¡GOL!");
+    const m = golazo
+      ? `<b>¡GOLAZO desde lejos!</b> La clavás donde duerme la araña. El relator se queda sin voz.`
+      : `<b>¡GOL!</b> Definís con clase, el arquero no llegó. Tu pueblo lo grita.`;
+    G.eventos.push("⚽ GOL"+(golazo?" (golazo)":""));
+    setTimeout(()=> feedGoal(m), 720);
+  } else {
+    const tapadon = atk > keeper-8;
+    const m = tapadon
+      ? `¡Tapadón del arquero! La sacó de un manotazo. Te agarrás la cabeza.`
+      : (dist>40 ? `El remate se va a las nubes, era difícil de tan lejos.` : `El arquero adivinó el palo y la mandó al córner.`);
+    G.eventos.push("✗ tiro atajado");
+    G.ballPos = clamp(G.ballPos - rnd(20,38), 0, 99);
+    flash("bad", tapadon ? "¡UH!" : "AFUERA");
+    setTimeout(()=> feedAfterAdvance(m), 620);
+  }
+}
+
+/* ---------- Flujo entre momentos ---------- */
+function advanceClock(){
+  G.minuto += rnd(6,9.5);
+}
+function feedAfterAdvance(msg){
+  $("mom-rel").textContent = relatorTag();
+  $("mom-txt").innerHTML = msg;
+  renderHUD();
+  if(G.minuto>=90){ return setTimeout(endMatch, 700); }
+  // breve pausa y siguiente momento
+  setTimeout(()=> nextMomento(false), 750);
+}
+function feedGoal(msg){
+  // gol => sube una stat (sobre todo Tiro, a veces otra)
+  renderHUD();
+  setTimeout(()=> feedAfterAdvance(msg+" El equipo saca del medio."), 200);
+}
+function turnover(msg){
+  renderHUD();
+  // el rival contraataca: chance de gol según fuerza y tu caracter/fisico
+  const def = (effStat("caracter")+effStat("fisico"))/2 + rnd(0,18);
+  const atk = G.rival.f + rnd(0,22) + (G.minuto>70?6:0);
+  if(atk > def + 14){
+    G.gRv++;
+    G.eventos.push("● gol rival");
+    flash("bad","GOL RIVAL");
+    setTimeout(()=>{
+      G.ballPos = 35;
+      feedAfterAdvance(`<b>Contra letal del rival.</b> ${msg.split(".")[0]}... y te la clavan en la contra. ${G.gMe}-${G.gRv}.`);
+    }, 720);
+  } else {
+    G.ballPos = clamp(G.ballPos - rnd(15,30), 0, 99);
+    setTimeout(()=> feedAfterAdvance(msg+" El equipo recompone y recupera."), 250);
+  }
+}
+
+/* ---------- Flash visual ---------- */
+function flash(kind, text){
+  const f = $("flash");
+  $("flash-big").textContent = text;
+  f.className = "flash show "+kind;
+  setTimeout(()=> f.classList.remove("show"), 850);
+}
+
+/* ---------- Fin del partido ---------- */
+function endMatch(){
+  // subir stat por goles
+  let lvlMsg = "";
+  if(G.golesEnPartido>0){
+    // mayormente Tiro, a veces gambeta/caracter
+    const opts = ["tiro","tiro","gambeta","caracter"];
+    const key = opts[Math.floor(rnd(0,opts.length))];
+    const inc = G.golesEnPartido>=2 ? 2 : 1;
+    career.stats[key] = clamp((career.stats[key]||50)+inc, 1, 99);
+    G.statSubida = {key, inc};
+    lvlMsg = `+${inc} ${statLabel(key)}`;
+  }
+  // bonus por ganar: +1 carácter
+  const win = G.gMe>G.gRv, draw=G.gMe===G.gRv;
+  if(win){ career.stats.caracter = clamp(career.stats.caracter+1,1,99); }
+
+  career.partidos = (career.partidos||0)+1;
+  career.goles = (career.goles||0)+G.golesEnPartido;
+  if(win) career.victorias = (career.victorias||0)+1;
+  saveCareer();
+
+  // render final
+  $("f-res").textContent = `${G.gMe} – ${G.gRv}`;
+  $("f-res").className = "res "+(win?"win":draw?"draw":"lose");
+  $("f-tag").textContent = `${G.club.n}  vs  ${G.rival.n}`;
+  $("f-sub").textContent = win ? "¡Lo ganaste! 💪" : draw ? "Empate luchado" : "Esta vez no se dio";
+
+  // crónica
+  const goles = G.eventos.filter(e=>e.startsWith("⚽")).length;
+  let cronica = `Jugaste ${career.partidos===1?"tu debut":"un partido"} con la <b>${G.club.n}</b> de ${G.club.loc}. `;
+  cronica += G.golesEnPartido>0 ? `Metiste <b>${G.golesEnPartido} gol${G.golesEnPartido>1?"es":""}</b>. ` : `No la pudiste mandar a guardar hoy. `;
+  cronica += win ? `Te vas con los tres puntos y el aplauso del pueblo.` : draw ? `Repartieron puntos en una tarde pareja.` : `A laburar para la próxima, esto recién empieza.`;
+  $("f-cronica").innerHTML = cronica;
+
+  // level up box
+  if(G.statSubida){
+    $("f-levelup").innerHTML = `<div class="level-up"><div class="lu-t">⬆ Subiste de nivel</div><div class="lu-s">${lvlMsg} por tus goles</div></div>`;
+  } else {
+    $("f-levelup").innerHTML = "";
+  }
+
+  // ratings (stats actuales)
+  const s = career.stats;
+  const order = [["tiro","Tiro"],["pase","Pase"],["gambeta","Gambeta"],["velocidad","Velocidad"],["fisico","Físico"],["caracter","Carácter"]];
+  $("f-ratings").innerHTML = order.map(([k,l])=>`<div class="rate-row"><span>${l}</span><span class="v">${s[k]}</span></div>`).join("");
+
+  show("screen-final");
+}
+function statLabel(k){
+  return {pase:"Pase",tiro:"Tiro",gambeta:"Gambeta",velocidad:"Velocidad",resistencia:"Resistencia",fisico:"Físico",aereo:"Juego aéreo",caracter:"Carácter"}[k]||k;
+}
+function pick(arr){ return arr[Math.floor(rnd(0,arr.length))]; }
+
+/* ---------- Botones final ---------- */
+$("btn-again").addEventListener("click", ()=>{
+  const club = CLUBES.find(c=>c.n===career.club) || CLUBES[0];
+  startMatch(club);
+});
+$("btn-home").addEventListener("click", ()=>{ initIntro(); show("screen-intro"); });
+
+/* ---------- Toast ---------- */
+function toast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------- Arranque ---------- */
+initIntro();
+</script>
+</body>
+</html>
