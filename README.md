@@ -14,7 +14,8 @@ Juego de **carrera futbolística pampeana** por comandos. Un pibe que arranca en
 
 Una jugada de ataque completa, jugable y mobile-first, en una **cancha pixel-art con scroll**:
 
-- **Movés tu sprite** por la cancha con el **d-pad táctil** (o flechas/WASD). La pelota avanza al arco rival con vos.
+- Cancha **apaisada con scroll horizontal** (estilo Captain Tsubasa), usable con el celu en vertical: campo arriba, controles abajo.
+- **Movés tu sprite** hacia el arco rival (a la derecha) con el **d-pad táctil** (o flechas/WASD). La pelota avanza con vos. Velocidad afinable con la constante `VELOCIDAD_JUGADOR` arriba del script.
 - Cuando un defensor te sale al cruce, la acción **se congela** y aparece un **menú de comandos tipo combate de Pokémon**: Gambeta / Pase / Pared / Tiro, cada uno con su **chance %** en ese momento.
 - Elegís y se resuelve como **duelo de estadísticas**: tu stat vs la del rival, modulado por tus **Guts** (energía que baja con cada acción). **Sin barra de timing** — es elegir y ver el resultado.
 - Ganás el duelo: seguís avanzando. Perdés: perdés la pelota.
