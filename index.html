@@ -333,6 +333,8 @@
 
 </div>
 
+<script src="pampa-star-sprites.js"></script>
+<script src="pampa-star-audio.js"></script>
 <script>
 "use strict";
 /* ============================================================================
@@ -402,26 +404,9 @@ const JUNTADAS = [
   "Se quedaron cebando mates y armando el equipo soñado.",
   "Fueron a la cancha a ver a las inferiores del club.",
 ];
-/* Variantes de pinta ETIQUETADAS: cada una tiene NOMBRE y (pelo/camiseta) FORMA propia,
-   nunca se distinguen solo por color (regla dura: el dueño del proyecto es daltónico).
-   Colores siempre en HEX. */
-const PIELES = [
-  {n:"Piel clara",    hex:"#e9b58c"},
-  {n:"Piel trigueña", hex:"#c68e5f"},
-  {n:"Piel morena",   hex:"#8d5a3a"},
-];
-const PELOS = [
-  {n:"Rapado",         estilo:"rapado", hex:"#2a2a2a"},
-  {n:"Corto oscuro",   estilo:"corto",  hex:"#3a2a1a"},
-  {n:"Corto claro",    estilo:"corto",  hex:"#c9a227"},
-  {n:"Largo oscuro",   estilo:"largo",  hex:"#241a10"},
-  {n:"Largo colorado", estilo:"largo",  hex:"#a53f1f"},
-];
-const CAMISETAS = [
-  {n:"Lisa",      estilo:"lisa"},
-  {n:"A franjas", estilo:"franjas"},
-  {n:"Con banda", estilo:"banda"},
-];
+/* Variantes de pinta ETIQUETADAS (catálogo en pampa-star-sprites.js, ver ARTE.md):
+   cada una tiene NOMBRE y (pelo/camiseta) FORMA propia, nunca solo color. HEX siempre. */
+const PIELES = PSART.PIELES, PELOS = PSART.PELOS, CAMISETAS = PSART.CAMISETAS;
 function lookAleatorio(){ return {piel:Math.floor(rnd(0,PIELES.length)), pelo:Math.floor(rnd(0,PELOS.length)), camiseta:Math.floor(rnd(0,CAMISETAS.length))}; }
 function lookLabel(look){
   const l=look||{piel:0,pelo:1,camiseta:0};
@@ -911,6 +896,11 @@ const AREA_X=GOAL_X-96;        // frente del área rival
 const MY_AREA_X=104;           // frente de TU área (izquierda)
 const MIDY=CH/2;
 
+/* ---------- Arte: módulo PSART (pampa-star-sprites.js, ver ARTE.md) ---------- */
+PSART.config({CW,CH,TOP,BOT,WORLD_W,GOAL_X,AREA_X,MY_AREA_X,MIDY});
+const px=PSART.px, drawKit=PSART.drawKit, drawBall=PSART.drawBall,
+      drawMarker=PSART.drawMarker, lookResolved=PSART.lookResolved;
+
 /* ---------- Estado del partido ---------- */
 let PS = null;
 function newState(club, rival){
@@ -1047,19 +1037,10 @@ function update(){
   PS.camX = clamp(((p.x+PS.ball.x)/2) - 140, 0, WORLD_W-CW);
 }
 
-/* ============================ RENDER (pixel-art) ============================ */
-function px(c,x,y,w,h,col){ c.fillStyle=col; c.fillRect(x|0,y|0,w|0,h|0); }
-function ring(c,sx,sy,r){ if(sx<-r||sx>CW+r) return; c.strokeStyle="#eafff0"; c.lineWidth=2; c.beginPath(); c.arc(sx,sy,r,0,Math.PI*2); c.stroke(); }
+/* ============================ RENDER (arte en pampa-star-sprites.js) ============================ */
 function draw(){
   const c=PS.ctx, cam=PS.camX;
-  px(c,0,0,CW,CH,"#2a9d4f");
-  const first=Math.floor(cam/18)*18;
-  for(let wx=first; wx<cam+CW; wx+=18){ if(((wx/18)|0)%2===0) px(c, wx-cam, 0, 18, CH, "#259247"); }
-  px(c,0,TOP,CW,2,"#eafff0"); px(c,0,BOT,CW,2,"#eafff0");
-  px(c, WORLD_W/2 - cam, TOP, 2, BOT-TOP, "#eafff0");
-  ring(c, WORLD_W/2 - cam, MIDY, 24);
-  drawGoalRight(c, cam);
-  drawGoalLeft(c, cam);
+  PSART.drawPitch(c, cam);
   for(const df of PS.defenders){ if(!df.passed && PS.posesion==="mia") drawKit(c, df.x-cam, df.y, PS.rival.c1, PS.rival.c2, false); }
   if(PS.carrier.active) drawKit(c, PS.carrier.x-cam, PS.carrier.y, PS.rival.c1, PS.rival.c2, false, PS.carrier.x*0.25);
   drawKit(c, PS.keeper.x-cam, PS.keeper.y, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
@@ -1067,71 +1048,6 @@ function draw(){
   drawBall(c, PS.ball.x-cam, PS.ball.y);
   drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
   drawMarker(c, PS.player.x-cam, PS.player.y);   // TU jugador se marca por FORMA, no solo color
-}
-/* Flechita ▼ blanca con borde oscuro sobre el jugador controlado (apto daltonismo:
-   con camisetas parecidas —dos rojas— igual sabés cuál sos por la forma). */
-function drawMarker(c, cx, cy){
-  if(cx<-8 || cx>CW+8) return;
-  const x=Math.round(cx), y=Math.round(cy)-21;
-  px(c,x-3,y,7,1,"#0a1f13");
-  px(c,x-3,y+1,1,1,"#0a1f13"); px(c,x-2,y+1,5,1,"#ffffff"); px(c,x+3,y+1,1,1,"#0a1f13");
-  px(c,x-2,y+2,1,1,"#0a1f13"); px(c,x-1,y+2,3,1,"#ffffff"); px(c,x+2,y+2,1,1,"#0a1f13");
-  px(c,x-1,y+3,1,1,"#0a1f13"); px(c,x,y+3,1,1,"#ffffff"); px(c,x+1,y+3,1,1,"#0a1f13");
-  px(c,x,y+4,1,1,"#0a1f13");
-}
-function drawGoalRight(c, cam){
-  const gx=GOAL_X-cam, ax=AREA_X-cam, y1=MIDY-46, y2=MIDY+46;
-  px(c, ax, y1, 2, y2-y1, "#eafff0"); px(c, ax, y1, gx-ax, 2, "#eafff0"); px(c, ax, y2, gx-ax, 2, "#eafff0");
-  const bx=GOAL_X-30-cam, z1=MIDY-24, z2=MIDY+24;
-  px(c, bx, z1, 2, z2-z1, "#eafff0"); px(c, bx, z1, gx-bx, 2, "#eafff0"); px(c, bx, z2, gx-bx, 2, "#eafff0");
-  const ny=MIDY-20, nh=40;
-  px(c, gx, ny, 8, nh, "#d9e6ee");
-  for(let y=ny;y<ny+nh;y+=4) px(c, gx, y, 8, 1, "#9fb6c4");
-  for(let x=gx;x<gx+8;x+=3) px(c, x, ny, 1, nh, "#9fb6c4");
-  px(c, gx-2, ny, 2, 2, "#ffffff"); px(c, gx-2, ny+nh-2, 2, 2, "#ffffff");
-}
-function drawGoalLeft(c, cam){
-  const gx=8-cam, ax=MY_AREA_X-cam, y1=MIDY-46, y2=MIDY+46;
-  px(c, ax, y1, 2, y2-y1, "#eafff0"); px(c, gx, y1, ax-gx, 2, "#eafff0"); px(c, gx, y2, ax-gx, 2, "#eafff0");
-  const bx=38-cam, z1=MIDY-24, z2=MIDY+24;
-  px(c, bx, z1, 2, z2-z1, "#eafff0"); px(c, gx, z1, bx-gx, 2, "#eafff0"); px(c, gx, z2, bx-gx, 2, "#eafff0");
-  const ny=MIDY-20, nh=40;
-  px(c, gx-8, ny, 8, nh, "#d9e6ee");
-  for(let y=ny;y<ny+nh;y+=4) px(c, gx-8, y, 8, 1, "#9fb6c4");
-  for(let x=gx-8;x<gx;x+=3) px(c, x, ny, 1, nh, "#9fb6c4");
-  px(c, gx, ny, 2, 2, "#ffffff"); px(c, gx, ny+nh-2, 2, 2, "#ffffff");
-}
-/* resuelve los índices de variantes a colores HEX y estilos de FORMA */
-function lookResolved(l){
-  const k=l||{piel:0,pelo:1,camiseta:0};
-  const piel=PIELES[(k.piel||0)%PIELES.length], pelo=PELOS[(k.pelo||0)%PELOS.length], cam=CAMISETAS[(k.camiseta||0)%CAMISETAS.length];
-  return {pielHex:piel.hex, peloHex:pelo.hex, peloEstilo:pelo.estilo, camEstilo:cam.estilo};
-}
-function drawKit(c, cx, cy, shirt, shorts, gloves, anim, look){
-  if(cx<-12 || cx>CW+12 || cy<-16 || cy>CH+12) return;
-  const x=Math.round(cx-4), y=Math.round(cy-13);
-  const piel=(look&&look.pielHex)||"#e9b58c";
-  const peloHex=(look&&look.peloHex)||"#3a2a1a";
-  const peloEstilo=(look&&look.peloEstilo)||"corto";
-  const camEstilo=(look&&look.camEstilo)||"lisa";
-  c.fillStyle="rgba(0,0,0,0.22)"; c.fillRect(x,y+15,8,2);
-  px(c,x+2,y,4,4,piel);                                   // cabeza
-  if(peloEstilo==="rapado"){ px(c,x+2,y,4,1,"rgba(0,0,0,.28)"); }             // al ras (sombra)
-  else px(c,x+2,y,4,1,peloHex);                                                // corto
-  if(peloEstilo==="largo"){ px(c,x+1,y,1,4,peloHex); px(c,x+6,y,1,4,peloHex); } // melena a los costados
-  if(camEstilo==="franjas"){ for(let i=0;i<8;i+=2){ px(c,x+i,y+4,1,6,shirt); px(c,x+i+1,y+4,1,6,shorts); } }
-  else px(c,x,y+4,8,6,shirt);                              // lisa
-  if(camEstilo==="banda"){ px(c,x,y+7,8,2,shorts); }       // banda horizontal cruzada
-  px(c,x,y+5,8,1,"rgba(255,255,255,.18)");
-  px(c,x+1,y+10,6,3,shorts);
-  px(c,x+1,y+13,2,3,"#2a2a2a"); px(c,x+5,y+13,2,3,"#2a2a2a");
-  if(anim){ if(Math.floor(anim)%2){ px(c,x+1,y+15,2,1,"#000"); } else { px(c,x+5,y+15,2,1,"#000"); } }
-  if(gloves){ px(c,x-1,y+6,2,2,"#fff"); px(c,x+7,y+6,2,2,"#fff"); }
-}
-function drawBall(c, cx, cy){
-  if(cx<-6||cx>CW+6||cy<-6||cy>CH+6) return;
-  const x=Math.round(cx-2), y=Math.round(cy-2);
-  px(c,x,y,4,4,"#ffffff"); px(c,x+1,y+1,2,2,"#1d1d1d"); px(c,x,y,1,1,"#cfcfcf");
 }
 
 /* ============================ COMBATE (menú tipo Pokémon) ============================ */
