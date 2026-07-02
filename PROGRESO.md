@@ -59,6 +59,15 @@
 6. Pelos con FORMA propia: "Corto claro (flequillo)" y "Largo colorado (vincha #0a1f13)" — ningún par se distingue solo por color.
 7. `renderPinta` e `initIntro` normalizan índices de look fuera de rango (no rompe el arranque).
 
+### Partido V2 "Con equipo se juega mejor" ✅ (spec: DISENO_PARTIDO_V2.md)
+- **A — Equipo 5v5:** vos + amigos SIEMPRE en su posición + canteranos de relleno (1-1-2-1); movimiento por anclas con elasticidad por rol; Guts POR JUGADOR (HUD: GUTS·NOMBRE); rival espejado.
+- **B — Minimapa:** plano completo entre marcador y campo; míos ● / rivales ▲ / controlado ▼ / pelota ◎ / arcos [ ] — FORMA antes que color; tooltip al tocar (nombre·pos·vínculo).
+- **C — Pase real:** submenú de hasta 3 receptores (%, dirección con flechas, ★dupla, intercepción por línea de pase); éxito = control PASA al receptor ("AHORA JUGÁS: X"); PARED 1-2 (+1 vínculo, automática con ≥70); JUGADA ARMADA (3 pases → +10% y el equipo sube); pase 2 Guts / 1-2 min. Especiales solo si llegás VOS. Gol de amigo: para el equipo + su vínculo + goleadores con su nombre.
+- **D — Roles:** tabla PESOS_POS afinable; VOL: P. FILTRADO ▸ (sin presión, pase×0.8+carácter×0.3); DEF: SUBIDA (−10%) y DESPEJE (100% seguro → dividida lejos); defensa con CIERRE del amigo DEF; **ARQUERO JUGABLE**: ATAJAR / DESPEJAR (+seguro, dividida) / ATAJADA ESPECIAL (amigo ARQ vínculo≥50, −20 Guts, +25%); con cantera solo ATAJAR.
+- **E — Química visible:** ★dupla en pases, doble borde ◉ en minimapa, pizarra de duplas en la semana (pase/pared por vínculo), DUPLA DE LA TARDE (+1 vínculo post-partido).
+- **F — Ritmo:** MINUTOS_POR_ACCION [3,5]; pase casi no quema reloj; marcaje selectivo POR TERCIO (radio 26, correr libre ES libre); **pelota dividida** (45% contra / 35% disputa automática / 20% lateral con pase tuyo).
+- **Desvíos documentados de la spec:** CAMBIO DE FRENTE del VOL y el avance rival por fases (F3) quedan para el tuning v2.1; la retención >4s tampoco entró. La simulación de sanidad de 500 partidos (F5) queda pendiente para la pasada de balance.
+
 ### 🗺 HOJA DE RUTA ACORDADA (jul 2026, orden de Rodri)
 1. **Partido v2** según `DISENO_PARTIDO_V2.md` (spec de Cowork, en el repo): 5v5 con amigos reales, minimapa, pase real, roles, química visible, ritmo. VA PRIMERO.
 2. Tanda de integración: arte/sonido/controles/inicio/avatar (sobre el partido v2). NOTA: los módulos `pampa-star-sprites.js`, `pampa-star-audio.js` y `ARTE.md` actuales son ORIGINALES creados en sesión (el material de Cowork nunca llegó a la carpeta); la dirección de arte/sonido se está reconsiderando aparte y habrá un pase dedicado de assets cuando se defina.
