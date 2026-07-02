@@ -50,6 +50,27 @@
   .career-cell .n{font-family:'Press Start 2P',monospace;font-size:1rem;color:var(--sol-2);}
   .career-cell .l{font-family:'JetBrains Mono',monospace;font-size:.48rem;letter-spacing:.1em;opacity:.6;text-transform:uppercase;margin-top:.4rem;}
 
+  /* ---------- TEMPORADA ---------- */
+  .se-scroll{overflow-y:auto;flex:1;min-height:0;padding-bottom:.5rem;}
+  .se-head{text-align:center;padding:.6rem 0 .4rem;}
+  .se-fecha{font-family:'Press Start 2P',monospace;font-size:.95rem;color:var(--sol-2);margin-top:.4rem;}
+  .se-title{font-family:'Press Start 2P',monospace;font-size:.58rem;color:var(--sol);margin-bottom:.5rem;}
+  .se-next .vs{font-family:'Press Start 2P',monospace;font-size:.7rem;line-height:1.7;text-align:center;}
+  .se-next .vs b{color:var(--sol-2);}
+  .se-next .subl{font-family:'JetBrains Mono',monospace;font-size:.64rem;text-align:center;opacity:.8;margin-top:.35rem;line-height:1.5;}
+  table.se-tabla{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.58rem;}
+  .se-tabla th{color:var(--sol);font-size:.5rem;text-align:right;padding:.15rem .14rem;border-bottom:1px solid rgba(246,239,220,.2);}
+  .se-tabla th.cl, .se-tabla td.cl{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:104px;}
+  .se-tabla td{padding:.22rem .14rem;text-align:right;border-bottom:1px solid rgba(246,239,220,.08);}
+  .se-tabla tr.yo td{background:rgba(246,193,29,.16);color:var(--sol-2);font-weight:700;}
+  .se-gol{display:flex;justify-content:space-between;gap:.4rem;font-family:'JetBrains Mono',monospace;font-size:.64rem;padding:.22rem 0;border-bottom:1px solid rgba(246,239,220,.08);}
+  .se-gol.yo{color:var(--sol-2);font-weight:700;}
+  .se-res{display:flex;justify-content:space-between;gap:.4rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;padding:.18rem 0;}
+  .se-res b{color:var(--sol-2);font-weight:700;}
+  .se-campeon{background:linear-gradient(135deg,rgba(246,193,29,.25),rgba(246,193,29,.06));border:2px solid var(--sol);border-radius:12px;padding:.9rem;margin:.4rem 0;text-align:center;}
+  .se-campeon .t{font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--sol-2);line-height:1.6;}
+  .se-campeon .s{font-family:'JetBrains Mono',monospace;font-size:.68rem;margin-top:.45rem;line-height:1.55;}
+
   /* ---------- PARTIDO ---------- */
   #screen-match{gap:.4rem;}
   .matchbar{display:flex;align-items:center;gap:.4rem;}
@@ -164,6 +185,33 @@
     </div>
   </section>
 
+  <!-- ============ TEMPORADA ============ -->
+  <section class="screen" id="screen-season">
+    <div class="se-scroll">
+      <div class="se-head">
+        <div class="kicker" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase">Primera B · Liga Cultural</div>
+        <div class="se-fecha" id="se-fecha">FECHA 1 / 18</div>
+      </div>
+      <div id="se-campeon"></div>
+      <div class="panel se-next" id="se-next"></div>
+      <button class="btn" id="btn-jugar">JUGAR FECHA</button>
+      <div class="panel" style="margin-top:.6rem">
+        <div class="se-title">📊 TABLA DE POSICIONES</div>
+        <table class="se-tabla" id="se-tabla"></table>
+      </div>
+      <div class="panel" style="margin-top:.6rem">
+        <div class="se-title">⚽ GOLEADORES</div>
+        <div id="se-goleadores"></div>
+      </div>
+      <div class="panel" style="margin-top:.6rem" id="se-resultados-wrap">
+        <div class="se-title">📋 ÚLTIMA FECHA</div>
+        <div id="se-resultados"></div>
+      </div>
+      <button class="btn ghost" id="btn-se-home">Inicio</button>
+      <div class="foot">Ida y vuelta · 18 fechas · un equipo libre por fecha</div>
+    </div>
+  </section>
+
   <!-- ============ PARTIDO ============ -->
   <section class="screen" id="screen-match">
     <div class="matchbar">
@@ -205,10 +253,10 @@
     <div id="f-levelup"></div>
     <div class="ratings" id="f-ratings"></div>
     <div class="btn-row">
-      <button class="btn" id="btn-again" style="flex:2">OTRO PARTIDO</button>
+      <button class="btn" id="btn-again" style="flex:2">CONTINUAR ▶</button>
       <button class="btn ghost" id="btn-home" style="flex:1">Inicio</button>
     </div>
-    <div class="foot">Sigue: temporada · ascensos · tiros especiales</div>
+    <div class="foot">Sigue: ascensos · tiros especiales</div>
   </section>
 
 </div>
@@ -288,12 +336,167 @@ $("btn-start").addEventListener("click", ()=>{
   const name = ($("in-name").value||"").trim() || "El Pibe";
   const club = CLUBES[+$("in-club").value];
   ensureCareer(name, club.n);
-  let rival; do{ rival = pick(CLUBES); } while(rival.n===club.n);
-  startPlay(club, rival);
+  ensureSeason();
+  renderSeason();
 });
 $("btn-reset").addEventListener("click", ()=>{
   if(confirm("¿Borrar toda la carrera?")){ localStorage.removeItem(STORE); career=null; location.reload(); }
 });
+
+/* ============================ TEMPORADA (Primera B, Liga Cultural) ============================
+   Fixture ida y vuelta con 9 clubes: método del círculo con comodín "libre" (número impar,
+   un equipo descansa por fecha). Mi partido se juega con el motor; los otros se simulan
+   con la MISMA escala de goles (0–4 por equipo, sin goleadas raras).
+   Goleadores rivales: genéricos por camiseta ("El 9 de ..."), NUNCA nombres con apariencia real. */
+const FECHAS_TOTAL = 18;
+const SLOTS_GOL = ["El 9","El 10","El 7"];
+
+function genFixture(){
+  const ids=[...CLUBES.keys()];
+  for(let i=ids.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ids[i],ids[j]]=[ids[j],ids[i]]; }
+  const teams=[...ids,-1];           // -1 = fecha libre
+  const m=teams.length, ida=[];
+  for(let r=0;r<m-1;r++){
+    const matches=[]; let libre=null;
+    for(let i=0;i<m/2;i++){
+      const a=teams[i], b=teams[m-1-i];
+      if(a===-1){ libre=b; continue; }
+      if(b===-1){ libre=a; continue; }
+      matches.push(r%2 ? {h:b,a:a} : {h:a,a:b});
+    }
+    ida.push({matches, libre});
+    teams.splice(1,0,teams.pop());   // rotación del círculo (fijo teams[0])
+  }
+  const vuelta=ida.map(f=>({matches:f.matches.map(x=>({h:x.a,a:x.h})), libre:f.libre}));
+  return ida.concat(vuelta);
+}
+function nuevaTemporada(){
+  return {
+    fixture: genFixture(), fecha: 0,
+    tabla: CLUBES.map(()=>({pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0})),
+    goleadores: {}, ultimaFecha: null,
+    golesMios: 0, campeon: null, terminada: false,
+  };
+}
+function ensureSeason(){
+  if(!career.temporada || !career.temporada.fixture) career.temporada = nuevaTemporada();
+  saveCareer();
+}
+function myClubIdx(){ const i=CLUBES.findIndex(c=>c.n===career.club); return i>=0?i:0; }
+function simGoals(fA,fB){
+  const p=clamp(0.26+(fA-fB)*0.012, 0.06, 0.46);
+  let g=0; for(let i=0;i<5;i++) if(Math.random()<p) g++;
+  return Math.min(g,4);
+}
+function sumarGol(clave,n){ const t=career.temporada; t.goleadores[clave]=(t.goleadores[clave]||0)+n; }
+function aplicarEnTabla(h,a,gh,ga){
+  const t=career.temporada.tabla;
+  t[h].pj++; t[a].pj++; t[h].gf+=gh; t[h].gc+=ga; t[a].gf+=ga; t[a].gc+=gh;
+  if(gh>ga){ t[h].g++; t[a].p++; t[h].pts+=3; }
+  else if(gh<ga){ t[a].g++; t[h].p++; t[a].pts+=3; }
+  else { t[h].e++; t[a].e++; t[h].pts++; t[a].pts++; }
+}
+/* Cierra la fecha actual. miGoles/rivalGoles = resultado de MI partido (null si estoy libre). */
+function aplicarFecha(miGoles, rivalGoles){
+  const t=career.temporada;
+  if(t.terminada || t.fecha>=FECHAS_TOTAL) return;
+  const f=t.fixture[t.fecha], yo=myClubIdx(), resultados=[];
+  for(const m of f.matches){
+    let gh,ga;
+    if(miGoles!=null && (m.h===yo||m.a===yo)){
+      if(m.h===yo){ gh=miGoles; ga=rivalGoles; } else { gh=rivalGoles; ga=miGoles; }
+      if(miGoles>0){ sumarGol("yo", miGoles); t.golesMios+=miGoles; }
+      const riv=(m.h===yo?m.a:m.h);
+      if(rivalGoles>0) sumarGol(riv+"-"+Math.floor(Math.random()*SLOTS_GOL.length), rivalGoles);
+    } else {
+      gh=simGoals(CLUBES[m.h].f+2, CLUBES[m.a].f);   // localía leve
+      ga=simGoals(CLUBES[m.a].f, CLUBES[m.h].f+2);
+      if(gh>0) sumarGol(m.h+"-"+Math.floor(Math.random()*SLOTS_GOL.length), gh);
+      if(ga>0) sumarGol(m.a+"-"+Math.floor(Math.random()*SLOTS_GOL.length), ga);
+    }
+    aplicarEnTabla(m.h,m.a,gh,ga);
+    resultados.push({h:m.h,a:m.a,gh,ga});
+  }
+  t.ultimaFecha={n:t.fecha+1, resultados, libre:f.libre};
+  t.fecha++;
+  if(t.fecha>=FECHAS_TOTAL){ t.terminada=true; t.campeon=ordenTabla()[0]; }
+  saveCareer();
+}
+function ordenTabla(){
+  const t=career.temporada.tabla;
+  return [...CLUBES.keys()].sort((a,b)=>
+    (t[b].pts-t[a].pts) || ((t[b].gf-t[b].gc)-(t[a].gf-t[a].gc)) || (t[b].gf-t[a].gf) || CLUBES[a].n.localeCompare(CLUBES[b].n));
+}
+function miPosicion(){ return ordenTabla().indexOf(myClubIdx())+1; }
+function golLabel(clave){
+  if(clave==="yo") return `► ${career.name} (VOS) · ${abbr(career.club)}`;
+  const [ci,si]=clave.split("-").map(Number);
+  return `${SLOTS_GOL[si]} de ${CLUBES[ci].n}`;
+}
+function renderSeason(){
+  const t=career.temporada, yo=myClubIdx();
+  $("se-fecha").textContent = t.terminada ? "TEMPORADA TERMINADA" : `FECHA ${t.fecha+1} / ${FECHAS_TOTAL}`;
+  /* campeón / próximo partido */
+  if(t.terminada){
+    const pos=miPosicion();
+    $("se-campeon").innerHTML = `<div class="se-campeon">
+      <div class="t">🏆 CAMPEÓN:<br>${CLUBES[t.campeon].n.toUpperCase()}</div>
+      <div class="s">Terminaste <b>Nº ${pos}</b> con la ${career.club}.<br>Metiste <b>${t.golesMios} gol${t.golesMios===1?"":"es"}</b> en la temporada.</div>
+    </div>`;
+    $("se-next").style.display="none";
+    $("btn-jugar").textContent="NUEVA TEMPORADA ▶";
+  } else {
+    $("se-campeon").innerHTML="";
+    $("se-next").style.display="block";
+    const f=t.fixture[t.fecha];
+    const mio=f.matches.find(m=>m.h===yo||m.a===yo);
+    if(mio){
+      const soyLocal = mio.h===yo;
+      const riv=CLUBES[soyLocal?mio.a:mio.h];
+      $("se-next").innerHTML = `<div class="vs">TU PARTIDO<br><b>${abbr(career.club)}</b> vs ${abbr(riv.n)}</div>
+        <div class="subl">${soyLocal?"De local":"De visitante, en "+riv.loc} · Estás <b>Nº ${miPosicion()}</b>${f.libre!=null?` · Libre: ${abbr(CLUBES[f.libre].n)}`:""}</div>`;
+      $("btn-jugar").textContent="JUGAR FECHA ▶";
+    } else {
+      $("se-next").innerHTML = `<div class="vs">FECHA LIBRE 😴</div>
+        <div class="subl">Te toca descansar: mirás la fecha desde la tribuna. Estás <b>Nº ${miPosicion()}</b>.</div>`;
+      $("btn-jugar").textContent="SIMULAR FECHA ▶";
+    }
+  }
+  /* tabla */
+  const orden=ordenTabla(), tb=t.tabla;
+  let html=`<tr><th class="cl">CLUB</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr>`;
+  orden.forEach((ci,i)=>{
+    const r=tb[ci], dg=r.gf-r.gc;
+    html+=`<tr class="${ci===yo?"yo":""}"><td class="cl">${i+1}. ${ci===yo?"► ":""}${abbr(CLUBES[ci].n)}</td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.gf}</td><td>${r.gc}</td><td>${dg>0?"+":""}${dg}</td><td><b>${r.pts}</b></td></tr>`;
+  });
+  $("se-tabla").innerHTML=html;
+  /* goleadores (top 6) */
+  const gs=Object.entries(t.goleadores).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  $("se-goleadores").innerHTML = gs.length
+    ? gs.map(([k,v])=>`<div class="se-gol ${k==="yo"?"yo":""}"><span>${golLabel(k)}</span><span>${v}</span></div>`).join("")
+    : `<div class="se-gol"><span>Todavía no hay goles.</span></div>`;
+  /* última fecha */
+  const u=t.ultimaFecha;
+  $("se-resultados-wrap").style.display = u?"block":"none";
+  if(u){
+    $("se-resultados").innerHTML =
+      `<div class="se-res" style="opacity:.7"><span>Fecha ${u.n}</span><span>${u.libre!=null?"Libre: "+abbr(CLUBES[u.libre].n):""}</span></div>` +
+      u.resultados.map(r=>{
+        const esMio = r.h===yo||r.a===yo;
+        return `<div class="se-res">${esMio?"<b>":""}<span>${abbr(CLUBES[r.h].n)} ${r.gh} - ${r.ga} ${abbr(CLUBES[r.a].n)}</span>${esMio?"</b>":""}</div>`;
+      }).join("");
+  }
+  showScreen("screen-season");
+}
+$("btn-jugar").addEventListener("click", ()=>{
+  const t=career.temporada;
+  if(t.terminada){ career.temporada=nuevaTemporada(); saveCareer(); renderSeason(); return; }
+  const yo=myClubIdx(), f=t.fixture[t.fecha];
+  const mio=f.matches.find(m=>m.h===yo||m.a===yo);
+  if(mio){ startPlay(CLUBES[yo], CLUBES[mio.h===yo?mio.a:mio.h]); }
+  else { aplicarFecha(null,null); renderSeason(); }
+});
+$("btn-se-home").addEventListener("click", ()=>{ initIntro(); showScreen("screen-intro"); });
 
 /* ---------- Geometría del mundo (pixel, cancha APAISADA) ----------
    X = largo de cancha (scroll horizontal). Tu arco a la IZQUIERDA, el rival a la DERECHA. */
@@ -763,13 +966,16 @@ function setHint(){
     : `🛡 DEFENDÉS<br>¡Cruzalo antes de que<br>llegue a tu arco <b>◀</b>!`;
 }
 
-/* ---------- Botones final ---------- */
-$("btn-again").addEventListener("click", ()=>{
-  const club=CLUBES.find(c=>c.n===career.club)||CLUBES[0];
-  let rival; do{ rival = pick(CLUBES); } while(rival.n===club.n);
-  startPlay(club, rival);
+/* ---------- Botones final: aplicar mi resultado a la fecha y volver a la temporada ---------- */
+function aplicarResultadoPartido(){
+  if(PS && !PS.fechaAplicada){ PS.fechaAplicada=true; aplicarFecha(PS.gMe, PS.gRv); }
+}
+$("btn-again").addEventListener("click", ()=>{ aplicarResultadoPartido(); renderSeason(); });
+$("btn-home").addEventListener("click", ()=>{
+  if(PS){ PS.running=false; cancelAnimationFrame(PS.raf); }
+  aplicarResultadoPartido();
+  initIntro(); showScreen("screen-intro");
 });
-$("btn-home").addEventListener("click", ()=>{ if(PS){PS.running=false; cancelAnimationFrame(PS.raf);} initIntro(); showScreen("screen-intro"); });
 
 /* ---------- Input: d-pad (touch + mouse + teclado) ---------- */
 function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.querySelector('.dbtn.'+dir); if(el) el.classList.toggle('on',on); }
