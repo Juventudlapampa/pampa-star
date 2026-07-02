@@ -24,10 +24,20 @@
 - **Guardado único retrocompatible** en `pampa_star_v1`: a un guardado viejo se le agrega `temporada` sin pisar nada (verificado con un save pre-temporada).
 - Guard anti doble-aplicación del resultado (CONTINUAR + Inicio no duplican la fecha).
 
-## 🔜 Sigue
+### Bloque 3 — Tiros especiales ✅
+- **Sistema de niveles:** subís de nivel cada 3 goles de carrera (`GOLES_POR_NIVEL`). Nivel visible en la ficha de la intro; al cruzar un nivel, banner "🌟 ¡NIVEL X!" en la pantalla final con lo que desbloquea.
+- **Disparo del Caldén (funcional, nivel 3):** aparece en el mano a mano; cuesta **25 Guts**, mejor chance (Tiro ×1.30 + Carácter), botón con estilo especial mostrando % y costo. **Animación dramática**: grito en pantalla, pelota disparada con estela de fuego (#ff8c3a/#f6c11d) y textos propios de gol/atajada.
+- Estados del especial siempre etiquetados con TEXTO (accesible daltonismo): activo con "% · -25 GUTS", bloqueado "NIVEL 3", sin energía "GUTS 25", futuro "PRÓXIMAMENTE".
+- **Definidos pero bloqueados (desbloqueos futuros):**
+  - 🌊 **TIRO ATUEL** (nivel 5, 30 Guts, ×1.45): rasante y serpenteante como el río, entra pegado al pasto.
+  - 🌪️ **TORNADO PAMPEANO** (nivel 7, 40 Guts, ×1.60): chilena con el viento del oeste, casi imposible de atajar.
 
-### Bloque 3 — Tiros especiales
-- Desbloqueo por nivel. Disparo del Caldén funcional (mucho Guts, mejor chance, animación dramática). 1–2 especiales más definidos pero bloqueados.
+## ⏹ FRENADO ACÁ (a pedido de Rodri)
 
-### DESPUÉS (no arrancar sin Rodri)
-- Capa 3 (vida, amigos, planteles reales) — ver DISENO_PAMPA_STAR_ADDENDUM.md.
+### Lo que sigue — NO arrancar sin Rodri
+- **Capa 3 (vida, amigos, planteles reales)** — ver DISENO_PAMPA_STAR_ADDENDUM.md. Necesita definiciones suyas.
+- Escalera de ascensos (Primera A → Regional → AFA → Primera → Europa → Selección).
+
+### Para afinar jugándolo
+- Balance: chances de los duelos, costo de Guts, fuerza del arquero propio (`myKeeperSkill`), escala de goles simulados (`simGoals`).
+- Constantes a mano arriba del script: `VELOCIDAD_JUGADOR`, `VELOCIDAD_RIVAL`, `MINUTOS_POR_ACCION`, `GUTS_ENTRETIEMPO`, `GOLES_POR_NIVEL`.

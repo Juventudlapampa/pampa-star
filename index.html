@@ -176,7 +176,7 @@
           <div class="career-strip">
             <div class="career-cell"><div class="n" id="c-partidos">0</div><div class="l">Partidos</div></div>
             <div class="career-cell"><div class="n" id="c-goles">0</div><div class="l">Goles</div></div>
-            <div class="career-cell"><div class="n" id="c-tiro">0</div><div class="l">Tiro</div></div>
+            <div class="career-cell"><div class="n" id="c-nivel">1</div><div class="l">Nivel</div></div>
           </div>
           <button class="btn ghost" id="btn-reset">Borrar carrera</button>
         </div>
@@ -282,6 +282,22 @@ const MINUTOS_POR_ACCION = [5,9]; // cuánto salta el reloj por cada acción res
 const GUTS_ENTRETIEMPO   = 20;    // Guts que recuperás en el entretiempo
 /* =========================================================================== */
 
+/* ====== TIROS ESPECIALES PAMPEANOS ======
+   Subís de NIVEL cada GOLES_POR_NIVEL goles de carrera. Los especiales se desbloquean
+   por nivel, cuestan mucho Guts y tienen mejor chance + animación dramática.
+   Solo el Disparo del Caldén está cableado; Atuel y Tornado quedan definidos pero
+   bloqueados (PRÓXIMAMENTE) como desbloqueos futuros. */
+const GOLES_POR_NIVEL = 3;
+const TIROS_ESPECIALES = [
+  {id:"calden",  cn:"DISPARO DEL CALDÉN", ico:"🔥", nivel:3, guts:25, mult:1.30, funcional:true,
+   desc:"Remate con toda la fuerza del árbol eterno de la pampa."},
+  {id:"atuel",   cn:"TIRO ATUEL",         ico:"🌊", nivel:5, guts:30, mult:1.45, funcional:false,
+   desc:"Rasante y serpenteante como el río: entra pegado al pasto."},
+  {id:"tornado", cn:"TORNADO PAMPEANO",   ico:"🌪️", nivel:7, guts:40, mult:1.60, funcional:false,
+   desc:"Chilena con el viento del oeste: casi imposible de atajar."},
+];
+function nivelJugador(){ return 1 + Math.floor(((career&&career.goles)||0)/GOLES_POR_NIVEL); }
+
 /* ---------- Clubes Primera B Liga Cultural (públicos) + colores de camiseta (HEX) ---------- */
 const CLUBES = [
   {n:"Deportivo Winifreda",    loc:"Winifreda",    f:50, c1:"#d23b2e", c2:"#ffffff"},
@@ -329,7 +345,7 @@ function initIntro(){
     $("career-box").style.display = "block";
     $("c-partidos").textContent = career.partidos||0;
     $("c-goles").textContent = career.goles||0;
-    $("c-tiro").textContent = (career.stats&&career.stats.tiro)||0;
+    $("c-nivel").textContent = nivelJugador();
   }
 }
 $("btn-start").addEventListener("click", ()=>{
@@ -724,12 +740,19 @@ function buildCommands(type){
     ];
   }
   if(type==="gk"){
-    return [
+    const base = [
       {k:"tiro",    cn:"TIRO",     ico:"🎯", cost:10, my:effStat("tiro"),    def:g+8,  on:"tiroGol"},
       {k:"colocado",cn:"COLOCADO", ico:"🎽", cost:8,  my:effStat("tiro")*0.92+effStat("caracter")*0.12, def:g+5, on:"tiroGol"},
       {k:"gambeta", cn:"GAMBETEAR",ico:"🌀", cost:9,  my:effStat("gambeta"), def:g+2,  on:"gambetaGk"},
-      {k:"_esp",    cn:"DISPARO DEL CALDÉN", ico:"🔥", locked:true, lockTxt:"Nivel 3"},
     ];
+    const nv = nivelJugador();
+    for(const e of TIROS_ESPECIALES){
+      if(nv < e.nivel)        base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"NIVEL "+e.nivel});
+      else if(!e.funcional)   base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"PRÓXIMAMENTE"});
+      else if(PS.guts<e.guts) base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"GUTS "+e.guts});
+      else base.push({k:e.id, cn:e.cn, ico:e.ico, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:g+8, on:"tiroGol", especial:e});
+    }
+    return base;
   }
   /* DEFENSA: tus stats contra el atacante rival */
   return [
@@ -749,8 +772,8 @@ function renderCombat(txt, cmds, tag){
     else{
       const ch = Math.round(duelChance(cm.my, cm.def)*100);
       const cls = ch>=66?"hi":ch>=40?"mid":"lo";
-      b.className="cmd";
-      b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch ${cls}">${ch}%</div>`;
+      b.className = cm.especial ? "cmd special" : "cmd";
+      b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch ${cls}">${ch}%${cm.especial?" · -"+cm.cost+" GUTS":""}</div>`;
       b.addEventListener("click", ()=> chooseCommand(cm), {once:true});
     }
     grid.appendChild(b);
@@ -770,8 +793,30 @@ function chooseCommand(cm){
   PS.guts = clamp(PS.guts - cm.cost, 0, 100); setGuts();
   const win = Math.random() < duelChance(cm.my, cm.def);
   $("cmd-grid").innerHTML = "";
+  if(cm.especial) return especialSequence(cm, win);
   $("combat-txt").innerHTML = duelIntro(cm.k);
   setTimeout(()=> applyOutcome(cm, win), 850);
+}
+/* Animación dramática de tiro especial: pausa, grito, pelota con estela de fuego */
+function especialSequence(cm, win){
+  const e = cm.especial;
+  $("combat-txt").innerHTML = `¡¡<b>${e.cn}</b>!!<br>${e.desc}`;
+  flash("gol", e.ico+" ¡"+e.cn+"!");
+  const sx=PS.ball.x, sy=PS.ball.y;
+  let step=0;
+  const iv=setInterval(()=>{
+    step++;
+    const t=step/9;
+    PS.ball.x = sx + (GOAL_X-6-sx)*t;
+    PS.ball.y = sy + (MIDY-sy)*t + Math.sin(step*1.4)*5;
+    PS.camX = clamp(((PS.player.x+PS.ball.x)/2)-140, 0, WORLD_W-CW);
+    draw();
+    const c=PS.ctx; // estela de fuego detrás de la pelota (#ff8c3a / #f6c11d)
+    for(let k=1;k<=4;k++){
+      px(c, PS.ball.x - k*7 - PS.camX, PS.ball.y - 1 + Math.sin((step-k)*1.4)*3, 5, 3, k<3?"#ff8c3a":"#f6c11d");
+    }
+    if(step>=9){ clearInterval(iv); applyOutcome(cm, win); }
+  }, 95);
 }
 function duelIntro(k){
   return ({
@@ -818,8 +863,9 @@ function applyOutcome(cm, win){
   const enc = PS.encounter;
   /* --- duelo con el arquero rival --- */
   if(cm.on==="tiroGol" || cm.on==="gambetaGk"){
-    if(win) return goalSequence(cm.on==="gambetaGk", false);
-    endLine(cm.on==="gambetaGk" ? "El arquero se queda con tus pies. ¡Te la sacó!" : "¡Tapadón del arquero! Saca rápido…", false);
+    if(win) return goalSequence(cm.on==="gambetaGk", false, cm.especial);
+    endLine(cm.especial ? "¡Voló el arquero y la manoteó al córner! Casi la rompés." :
+      cm.on==="gambetaGk" ? "El arquero se queda con tus pies. ¡Te la sacó!" : "¡Tapadón del arquero! Saca rápido…", false);
     advanceClock();
     setTimeout(()=>{ if(checkTime()) return; hideCombat(); rivalCounter(GOAL_X-140, PS.player.y); PS.state="run"; }, 1100);
     return;
@@ -900,12 +946,13 @@ function rivalShot(){
 }
 
 /* ---------- Gol tuyo ---------- */
-function goalSequence(dribble, lejano){
+function goalSequence(dribble, lejano, especial){
   PS.gMe++; PS.golesEnPartido++;
   $("hud-gme").textContent = PS.gMe;
   PS.ball.x = GOAL_X; PS.ball.y = MIDY; draw();
-  flash("gol", lejano ? "¡GOLAZO!" : "¡GOL!");
-  endLine(dribble ? "¡Gambeteaste al arquero y la empujaste al arco vacío!"
+  flash("gol", (lejano||especial) ? "¡GOLAZO!" : "¡GOL!");
+  endLine(especial ? `¡El ${especial.cn} rompió la red! El arquero ni la vio.`
+        : dribble ? "¡Gambeteaste al arquero y la empujaste al arco vacío!"
         : lejano  ? "¡Golazo desde lejos, la clavaste en un ángulo!"
         : "¡Definiste de primera, el arquero no llegó!", true);
   advanceClock();
@@ -922,6 +969,7 @@ function fullTime(){
   else if(draw_) career.empates=(career.empates||0)+1;
   else career.derrotas=(career.derrotas||0)+1;
   let lvl = "";
+  const nivelAntes = nivelJugador();
   if(PS.golesEnPartido>0){
     const key = pick(["tiro","tiro","gambeta","caracter"]);
     const inc = Math.min(2, PS.golesEnPartido);
@@ -930,10 +978,11 @@ function fullTime(){
     career.goles = (career.goles||0)+PS.golesEnPartido;
   }
   if(win){ career.stats.caracter = clamp(career.stats.caracter+1,1,99); }
+  const nivelNuevo = nivelJugador()>nivelAntes ? nivelJugador() : 0;
   saveCareer();
-  setTimeout(()=> renderFinal(win, draw_, lvl), 900);
+  setTimeout(()=> renderFinal(win, draw_, lvl, nivelNuevo), 900);
 }
-function renderFinal(win, draw_, lvl){
+function renderFinal(win, draw_, lvl, nivelNuevo){
   PS.running = false; cancelAnimationFrame(PS.raf);
   hideCombat();
   $("f-veredicto").textContent = win ? "¡GANASTE!" : draw_ ? "EMPATE" : "PERDISTE";
@@ -944,7 +993,16 @@ function renderFinal(win, draw_, lvl){
   let cr = PS.golesEnPartido>0 ? `Metiste <b>${PS.golesEnPartido} gol${PS.golesEnPartido>1?"es":""}</b>. ` : `Hoy no la pudiste mandar a guardar. `;
   cr += win ? `Tres puntos para la <b>${PS.club.n}</b> y aplausos del pueblo.` : draw_ ? `Punto luchado en una tarde pareja.` : `Golpe duro, pero esto recién arranca.`;
   $("f-cronica").innerHTML = cr;
-  $("f-levelup").innerHTML = lvl ? `<div class="level-up"><div class="t">⬆ SUBISTE NIVEL</div><div class="s">${lvl} por tus goles</div></div>` : "";
+  let lu = lvl ? `<div class="level-up"><div class="t">⬆ MEJORASTE</div><div class="s">${lvl} por tus goles</div></div>` : "";
+  if(nivelNuevo){
+    const desbloqueados = TIROS_ESPECIALES.filter(e=>e.nivel===nivelNuevo);
+    lu += `<div class="level-up"><div class="t">🌟 ¡NIVEL ${nivelNuevo}!</div><div class="s">${
+      desbloqueados.length
+        ? desbloqueados.map(e=>`${e.ico} Desbloqueaste: <b>${e.cn}</b>${e.funcional?"":" (próximamente)"}`).join("<br>")
+        : "Seguí metiendo goles para desbloquear tiros especiales."
+    }</div></div>`;
+  }
+  $("f-levelup").innerHTML = lu;
   const s=career.stats;
   const order=[["tiro","Tiro"],["gambeta","Gambeta"],["pase","Pase"],["velocidad","Veloc."],["fisico","Físico"],["caracter","Carácter"]];
   $("f-ratings").innerHTML = order.map(([k,l])=>`<div class="rate">${l}<span class="v">${s[k]}</span></div>`).join("");
