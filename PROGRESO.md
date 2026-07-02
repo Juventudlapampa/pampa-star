@@ -43,11 +43,22 @@
 7. El nombre del jugador se inyectaba como HTML en goleadores → escapado.
 8. Guardados viejos con stats incompletas daban NaN% → merge con defaults + validación del JSON.
 
-## ⏹ FRENADO ACÁ (a pedido de Rodri)
+### Capa 3 — Vida y amigos ✅ (jul 2026)
+- **Semana entre fechas** (3 puntos por semana): ENTRENAR (+1 stat, tuya o del grupo), DESCANSAR (+15 Guts para la fecha), JUNTARSE (+vínculo), VIVIR (eventos pampeanos: changa, asado, mandar plata a la familia, río, pensión → plata o ánimo), RECLUTAR.
+- **El Guts se arrastra entre partidos** (queda en 75 tras cada fecha; descansar lo recupera). El ánimo pesa un poquito en las stats. **Sueldo modesto** por fecha + premios por gol/victoria.
+- **Los 4 amigos:** personajes inventados, **el nombre lo pone quien juega** (nunca personas reales); posición neutra (Arco/Defensa/Volante/Ataque), stats propias sesgadas al puesto, se entrenan y mejoran con la semana. Lista con mini-sprite, pinta etiquetada, stats y barra de vínculo CON número.
+- **El vínculo pega en la cancha:** PASE y PARED se juegan CON un compañero del grupo; el vínculo suma chance real (el botón muestra "con X · vínculo N" y el % ya lo incluye; la pared pondera más). Ganar la jugada juntos da +1 vínculo. Círculo cerrado: vivís → vínculo → jugás mejor → más vida.
+- **Modelo género neutro:** sin campo de género, textos sin él/ella (a futuro se puede jugar con chicas o chicos; la Liga Cultural tiene Primera Femenina real).
+- **Variantes pixel etiquetadas** (regla dura daltonismo): piel (3), pelo (5, con FORMA: rapado/corto/largo) y camiseta (3, con FORMA: lisa/franjas/banda). Cada variante tiene NOMBRE visible; nada se distingue solo por color; HEX en el código. Personalización "Tu pinta" en la intro con preview, y mini-sprites de los amigos con su pinta.
+- Guardado único retrocompatible (`vida` y `look` se agregan a saves viejos sin pisar nada).
 
-### Lo que sigue — NO arrancar sin Rodri
-- **Capa 3 (vida, amigos, planteles reales)** — ver DISENO_PAMPA_STAR_ADDENDUM.md. Necesita definiciones suyas.
+### NO hecho a propósito (etapas aparte, definidas en el addendum)
+- Rotación de plantel (amigos que van con vos o se venden cuando cambiás de club).
+- Planteles reales rivales (harvest de formaciones publicadas).
+
+## ⏹ Lo que sigue
 - Escalera de ascensos (Primera A → Regional → AFA → Primera → Europa → Selección).
+- Rotación de plantel y planteles reales (guardas de la sección 15 del addendum).
 
 ### Para afinar jugándolo
 - Balance: chances de los duelos, costo de Guts, fuerza del arquero propio (`myKeeperSkill`), escala de goles simulados (`simGoals`).

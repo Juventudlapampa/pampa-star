@@ -20,7 +20,9 @@ Juego de **carrera futbolística pampeana** por comandos. Un pibe que arranca en
 - **La posesión alterna naturalmente** (pérdida → contra; recupero → seguís atacando; tras gol saca el otro).
 - **Temporada de Primera B:** fixture ida y vuelta (18 fechas, equipo libre por fecha), tu partido con el motor real y el resto simulado con la misma escala de goles, **tabla de posiciones** (PJ G E P GF GC DG PTS) con tu equipo marcado, **goleadores**, campeón y resumen final.
 - **Niveles y tiros especiales:** subís de nivel cada 3 goles. 🔥 **Disparo del Caldén** (nivel 3) funcional: 25 Guts, mejor chance, animación con estela de fuego. 🌊 *Tiro Atuel* (nivel 5) y 🌪️ *Tornado Pampeano* (nivel 7) definidos, próximamente.
-- **Guardado único retrocompatible** en `localStorage` (carrera + temporada). Sprites originales por código, sin assets de terceros.
+- **Capa de vida:** entre fecha y fecha vivís una **semana** con puntos para repartir (entrenar, descansar, juntarte, vivir la textura pampeana). Reclutás hasta **4 amigos** (les ponés vos el nombre — personajes inventados), los entrenás, y **el vínculo pega en la cancha**: pases y paredes con tu grupo salen mejor cuanto más alto el vínculo.
+- **Personalización accesible:** variantes de piel/pelo/camiseta con **nombre y forma** (rapado/corto/largo, lisa/franjas/banda) — nunca solo color. Modelo de datos género neutro.
+- **Guardado único retrocompatible** en `localStorage` (carrera + temporada + vida). Sprites originales por código, sin assets de terceros.
 - Afinado rápido con constantes arriba del script: `VELOCIDAD_JUGADOR`, `MINUTOS_POR_ACCION`, `GUTS_ENTRETIEMPO`, `GOLES_POR_NIVEL`.
 
 Ver [PROGRESO.md](PROGRESO.md) para el detalle de lo hecho y lo que sigue.

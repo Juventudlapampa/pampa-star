@@ -99,6 +99,14 @@
   .vinc-wrap{display:flex;align-items:center;gap:.35rem;margin-top:.2rem;}
   .vinc-bar{flex:1;height:7px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);border-radius:3px;overflow:hidden;max-width:110px;}
   .vinc-fill{height:100%;background:linear-gradient(90deg,#5bb8e8,#7ee08a);}
+  /* personalización (tu pinta) */
+  .pinta-row{display:flex;gap:.7rem;align-items:center;margin-top:.1rem;}
+  .pv-canvas{width:48px;height:72px;image-rendering:pixelated;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(246,239,220,.2);flex:0 0 auto;}
+  .pinta-cycles{flex:1;display:flex;flex-direction:column;gap:.35rem;min-width:0;}
+  .cyc{display:flex;align-items:center;gap:.4rem;}
+  .cycb{width:30px;height:30px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.75rem;flex:0 0 auto;}
+  .cycb:active{background:rgba(246,193,29,.7);color:#000;}
+  .cyclbl{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--sol-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
   /* ---------- PARTIDO ---------- */
   #screen-match{gap:.4rem;}
@@ -194,6 +202,16 @@
         <div style="height:.6rem"></div>
         <label class="fld">Tu club (Primera B)</label>
         <select class="sel" id="in-club"></select>
+        <div style="height:.6rem"></div>
+        <label class="fld">Tu pinta</label>
+        <div class="pinta-row">
+          <canvas id="pv-canvas" width="12" height="18" class="pv-canvas"></canvas>
+          <div class="pinta-cycles">
+            <div class="cyc"><button class="cycb" data-c="piel" data-d="-1">◀</button><span class="cyclbl" id="lbl-piel">Piel clara</span><button class="cycb" data-c="piel" data-d="1">▶</button></div>
+            <div class="cyc"><button class="cycb" data-c="pelo" data-d="-1">◀</button><span class="cyclbl" id="lbl-pelo">Corto oscuro</span><button class="cycb" data-c="pelo" data-d="1">▶</button></div>
+            <div class="cyc"><button class="cycb" data-c="camiseta" data-d="-1">◀</button><span class="cyclbl" id="lbl-camiseta">Lisa</span><button class="cycb" data-c="camiseta" data-d="1">▶</button></div>
+          </div>
+        </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.7rem">
           <span class="pos-badge">⚡ Delantero</span>
           <span class="mono" style="font-size:.56rem;opacity:.6">posición fija</span>
@@ -451,6 +469,7 @@ function ensureCareer(name, club){
   if(career.victorias==null) career.victorias = 0;
   if(career.empates==null)   career.empates = 0;
   if(career.derrotas==null)  career.derrotas = 0;
+  if(!career.look || typeof career.look!=="object") career.look={piel:0,pelo:1,camiseta:0};
   ensureVida();
   saveCareer();
 }
@@ -480,8 +499,28 @@ function initIntro(){
     $("c-partidos").textContent = career.partidos||0;
     $("c-goles").textContent = career.goles||0;
     $("c-nivel").textContent = nivelJugador();
+    if(career.look) lookSel = {piel:career.look.piel||0, pelo:career.look.pelo!=null?career.look.pelo:1, camiseta:career.look.camiseta||0};
   }
+  renderPinta();
 }
+/* ---------- Tu pinta (variantes etiquetadas: nombre + forma, nunca solo color) ---------- */
+let lookSel = {piel:0, pelo:1, camiseta:0};
+const LOOK_CATS = {piel:PIELES, pelo:PELOS, camiseta:CAMISETAS};
+function renderPinta(){
+  $("lbl-piel").textContent = PIELES[lookSel.piel].n;
+  $("lbl-pelo").textContent = PELOS[lookSel.pelo].n;
+  $("lbl-camiseta").textContent = CAMISETAS[lookSel.camiseta].n;
+  const club = CLUBES[+$("in-club").value||0];
+  const cv=$("pv-canvas"), ctx=cv.getContext("2d");
+  ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height);
+  drawKit(ctx, 6, 14, club.c1, club.c2, false, 0, lookResolved(lookSel));
+}
+document.querySelectorAll(".cycb").forEach(b=>b.addEventListener("click",()=>{
+  const c=b.dataset.c, cat=LOOK_CATS[c];
+  lookSel[c]=(lookSel[c] + (+b.dataset.d) + cat.length)%cat.length;
+  renderPinta();
+}));
+$("in-club").addEventListener("change", renderPinta);
 $("btn-start").addEventListener("click", ()=>{
   const name = ($("in-name").value||"").trim() || "El Pibe";
   const club = CLUBES[+$("in-club").value];
@@ -491,6 +530,7 @@ $("btn-start").addEventListener("click", ()=>{
     if(!confirm(`Cambiar de club (${career.club} → ${club.n}) arranca una TEMPORADA NUEVA desde cero. ¿Dale?`)) return;
   }
   ensureCareer(name, club.n);
+  career.look = {piel:lookSel.piel, pelo:lookSel.pelo, camiseta:lookSel.camiseta};
   if(cambioClub) career.temporada = nuevaTemporada();
   ensureSeason();
   saveCareer();
@@ -844,13 +884,15 @@ function renderAmigosList(){
   }).join("");
   pintarAmigos();
 }
-/* dibuja el mini-sprite de cada amigo con los colores del club (el look pixel llega en la parte de variantes) */
+/* dibuja el mini-sprite de cada amigo con su pinta (piel/pelo/camiseta) y los colores del club */
 function pintarAmigos(){
+  const v=ensureVida();
   const club = CLUBES.find(c=>c.n===career.club)||CLUBES[0];
   document.querySelectorAll("#wk-amigos .am-canvas").forEach(cv=>{
+    const a=v.amigos[+cv.dataset.i]; if(!a) return;
     const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false;
     ctx.clearRect(0,0,cv.width,cv.height);
-    drawKit(ctx, 6, 14, club.c1, club.c2, false, 0);
+    drawKit(ctx, 6, 14, club.c1, club.c2, false, 0, lookResolved(a.look));
   });
 }
 $("btn-terminar-semana").addEventListener("click", ()=>{
@@ -1023,7 +1065,7 @@ function draw(){
   drawKit(c, PS.keeper.x-cam, PS.keeper.y, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
   drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
   drawBall(c, PS.ball.x-cam, PS.ball.y);
-  drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim);
+  drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
   drawMarker(c, PS.player.x-cam, PS.player.y);   // TU jugador se marca por FORMA, no solo color
 }
 /* Flechita ▼ blanca con borde oscuro sobre el jugador controlado (apto daltonismo:
@@ -1059,13 +1101,27 @@ function drawGoalLeft(c, cam){
   for(let x=gx-8;x<gx;x+=3) px(c, x, ny, 1, nh, "#9fb6c4");
   px(c, gx, ny, 2, 2, "#ffffff"); px(c, gx, ny+nh-2, 2, 2, "#ffffff");
 }
-function drawKit(c, cx, cy, shirt, shorts, gloves, anim){
+/* resuelve los índices de variantes a colores HEX y estilos de FORMA */
+function lookResolved(l){
+  const k=l||{piel:0,pelo:1,camiseta:0};
+  const piel=PIELES[(k.piel||0)%PIELES.length], pelo=PELOS[(k.pelo||0)%PELOS.length], cam=CAMISETAS[(k.camiseta||0)%CAMISETAS.length];
+  return {pielHex:piel.hex, peloHex:pelo.hex, peloEstilo:pelo.estilo, camEstilo:cam.estilo};
+}
+function drawKit(c, cx, cy, shirt, shorts, gloves, anim, look){
   if(cx<-12 || cx>CW+12 || cy<-16 || cy>CH+12) return;
   const x=Math.round(cx-4), y=Math.round(cy-13);
+  const piel=(look&&look.pielHex)||"#e9b58c";
+  const peloHex=(look&&look.peloHex)||"#3a2a1a";
+  const peloEstilo=(look&&look.peloEstilo)||"corto";
+  const camEstilo=(look&&look.camEstilo)||"lisa";
   c.fillStyle="rgba(0,0,0,0.22)"; c.fillRect(x,y+15,8,2);
-  px(c,x+2,y,4,4,"#e9b58c");
-  px(c,x+2,y,4,1,"#3a2a1a");
-  px(c,x,y+4,8,6,shirt);
+  px(c,x+2,y,4,4,piel);                                   // cabeza
+  if(peloEstilo==="rapado"){ px(c,x+2,y,4,1,"rgba(0,0,0,.28)"); }             // al ras (sombra)
+  else px(c,x+2,y,4,1,peloHex);                                                // corto
+  if(peloEstilo==="largo"){ px(c,x+1,y,1,4,peloHex); px(c,x+6,y,1,4,peloHex); } // melena a los costados
+  if(camEstilo==="franjas"){ for(let i=0;i<8;i+=2){ px(c,x+i,y+4,1,6,shirt); px(c,x+i+1,y+4,1,6,shorts); } }
+  else px(c,x,y+4,8,6,shirt);                              // lisa
+  if(camEstilo==="banda"){ px(c,x,y+7,8,2,shorts); }       // banda horizontal cruzada
   px(c,x,y+5,8,1,"rgba(255,255,255,.18)");
   px(c,x+1,y+10,6,3,shorts);
   px(c,x+1,y+13,2,3,"#2a2a2a"); px(c,x+5,y+13,2,3,"#2a2a2a");
