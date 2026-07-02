@@ -138,8 +138,17 @@
   .dbtn{position:absolute;width:42px;height:42px;background:rgba(8,20,12,.7);border:2px solid rgba(246,239,220,.45);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--crema);font-size:1.05rem;}
   .dbtn:active,.dbtn.on{background:rgba(246,193,29,.85);color:#000;border-color:var(--sol-2);}
   .dbtn.up{left:41px;top:0;} .dbtn.down{left:41px;top:82px;} .dbtn.left{left:0;top:41px;} .dbtn.right{left:82px;top:41px;}
-  .hint{flex:1;text-align:right;font-family:'JetBrains Mono',monospace;font-size:.66rem;line-height:1.55;color:var(--crema);opacity:.92;padding-right:.3rem;}
+  .hint{position:absolute;top:6px;left:8px;z-index:6;font-family:'JetBrains Mono',monospace;font-size:.58rem;line-height:1.45;color:var(--crema);background:rgba(8,20,12,.62);border:1px solid rgba(246,239,220,.25);border-radius:7px;padding:.28rem .5rem;text-align:left;}
   .hint b{color:var(--sol-2);}
+  /* botones de acción (celu): grandes, con ícono Y texto */
+  .abtns{flex:1;display:flex;flex-direction:column;gap:.5rem;max-width:170px;margin-left:auto;}
+  .abtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;min-height:56px;background:linear-gradient(180deg,#13502c,#0c3a20);border:2px solid rgba(246,239,220,.35);border-radius:12px;color:var(--crema);cursor:pointer;padding:.4rem;}
+  .abtn:active{transform:scale(.96);}
+  .abtn .abi{font-size:1.15rem;line-height:1;}
+  .abtn .abt{font-family:'Press Start 2P',monospace;font-size:.6rem;}
+  .abtn .abs{font-family:'JetBrains Mono',monospace;font-size:.5rem;opacity:.75;text-align:center;line-height:1.3;}
+  .abtn.special{border-color:var(--rojo);background:linear-gradient(180deg,#5a1e18,#33100c);}
+  .abtn.off{opacity:.45;border-style:dashed;cursor:not-allowed;}
 
   /* menú de combate tipo Pokémon (sube desde abajo, sobre los controles) */
   .combat{position:absolute;left:0;right:0;bottom:0;z-index:8;display:none;background:linear-gradient(180deg,rgba(6,18,11,.94),rgba(4,12,7,.98));border-top:3px solid var(--sol);border-radius:0 0 10px 10px;padding:.85rem .6rem .7rem;}
@@ -306,6 +315,7 @@
     <div class="field" id="field">
       <div class="stage" id="stage">
         <canvas id="pitch" width="280" height="156"></canvas>
+        <div class="hint" id="hint">Al arco rival <b>▶</b></div>
         <div class="flash" id="flash"><div class="big" id="flash-big">¡GOL!</div></div>
       </div>
 
@@ -316,7 +326,10 @@
           <div class="dbtn left"  data-dir="left">◀</div>
           <div class="dbtn right" data-dir="right">▶</div>
         </div>
-        <div class="hint" id="hint">Llevá la pelota al<br>arco rival <b>▶</b></div>
+        <div class="abtns">
+          <button class="abtn" id="btn-patear"><span class="abi">🎯</span><span class="abt">PATEAR</span><span class="abs" id="patear-sub">o BARRA espaciadora</span></button>
+          <button class="abtn special" id="btn-especial"><span class="abi">🔥</span><span class="abt">CALDÉN</span><span class="abs" id="especial-sub">NIVEL 3</span></button>
+        </div>
       </div>
 
       <div class="combat" id="combat">
@@ -1878,15 +1891,60 @@ function setGuts(){
   $("guts-fill").style.width=g+"%";
   $("guts-fill").style.background = g>55?"linear-gradient(90deg,#7ee08a,#3fbf63)":g>25?"linear-gradient(90deg,#f6c11d,#ffaf3a)":"linear-gradient(90deg,#e3503e,#ff7a5e)";
   if(nom) $("guts-lab").textContent="GUTS·"+String(nom).toUpperCase().slice(0,7);   // el HUD dice de QUIÉN es el Guts
+  if(typeof refreshActionBtns==="function") refreshActionBtns();
 }
 function showScreen(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $(id).classList.add("active"); }
 function setHint(){
   const h=$("hint"); h.style.display="block";
   const nom = PS.equipo ? esc(nombreDe(ctrlEnt())).toUpperCase().slice(0,9) : "";
   h.innerHTML = PS.posesion==="mia"
-    ? `⚔ JUGÁS: <b>${nom}</b><br>al arco rival <b>▶</b>`
-    : `🛡 DEFENDÉS<br>¡Cruzalo antes de que<br>llegue a tu arco <b>◀</b>!`;
+    ? `⚔ JUGÁS: <b>${nom}</b> ▶`
+    : `🛡 DEFENDÉS ◀ ¡al cruce!`;
+  refreshActionBtns();
 }
+/* ====== Integración 2: PATEAR y ESPECIAL desde el juego (botón o tecla) ====== */
+function accionPatear(){
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia") return;
+  const g=PS.rival.f, p=ctrlPos(), dist=GOAL_X-p.x;
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"shot", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  if(dist<=150) PS.keeper.faced=true;
+  const cm = dist<=150
+    ? {k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*pesoCtrl("tiro"),      def:g+8,  on:"tiroGol"}
+    : {k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"};
+  chooseCommand(cm);
+}
+function accionEspecial(){
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia") return;
+  if(PS.equipo && (PS.controlIdx||0)!==0) return;            // el especial es TUYO: llegá vos
+  const e=TIROS_ESPECIALES[0];
+  if(!e.funcional || nivelJugador()<e.nivel || PS.guts<e.guts) return;
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"shot", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  PS.keeper.faced=true;
+  chooseCommand({k:e.id, cn:e.cn, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:PS.rival.f+8, on:"tiroGol", especial:e});
+}
+function refreshActionBtns(){
+  const bp=$("btn-patear"), be=$("btn-especial");
+  if(!bp || !PS) return;
+  const puedo = PS.posesion==="mia";
+  bp.classList.toggle("off", !puedo);
+  $("patear-sub").textContent = puedo ? "o BARRA espaciadora" : "sin pelota";
+  const e=TIROS_ESPECIALES[0];
+  const yoCtrl = !PS.equipo || (PS.controlIdx||0)===0;
+  let sub, off=true;
+  if(nivelJugador()<e.nivel) sub="NIVEL "+e.nivel;
+  else if(!puedo) sub="sin pelota";
+  else if(!yoCtrl) sub="si llegás VOS";
+  else if(PS.guts<e.guts) sub="GUTS "+e.guts;
+  else { sub="-"+e.guts+" GUTS · tecla E"; off=false; }
+  be.classList.toggle("off", off);
+  $("especial-sub").textContent=sub;
+}
+$("btn-patear").addEventListener("click", accionPatear);
+$("btn-especial").addEventListener("click", accionEspecial);
 
 /* ---------- Botones final: aplicar mi resultado a la fecha y volver a la temporada ---------- */
 function aplicarResultadoPartido(){
@@ -1916,7 +1974,12 @@ function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.quer
   // nunca robar teclas cuando el foco está en un formulario (nombre, club)
   const enFormulario = e => { const t=e.target&&e.target.tagName; return t==="INPUT"||t==="SELECT"||t==="TEXTAREA"; };
   const keyDir = e => KMAP[e.key] || KMAP[e.key.toLowerCase()]; // toLowerCase: que Shift/CapsLock no deje la tecla pegada
-  addEventListener("keydown",e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,true); e.preventDefault(); } });
+  addEventListener("keydown",e=>{
+    if(enFormulario(e)) return;
+    if(e.key===" "||e.code==="Space"){ accionPatear(); e.preventDefault(); return; }   // patear
+    if(e.key.toLowerCase()==="e"){ accionEspecial(); e.preventDefault(); return; }      // tiro especial
+    const k=keyDir(e); if(k){ setDir(k,true); e.preventDefault(); }
+  });
   addEventListener("keyup",  e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,false); e.preventDefault(); } });
 })();
 
