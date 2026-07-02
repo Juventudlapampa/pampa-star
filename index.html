@@ -289,7 +289,7 @@
     <div class="matchbar">
       <div class="score"><span class="me" id="hud-me">VOS</span><span class="nm" id="hud-me-n"></span> <span id="hud-gme">0</span>-<span id="hud-grv">0</span> <span class="nm" id="hud-rv">RIVAL</span></div>
       <div class="clockchip"><span id="hud-min">0'</span><span class="hf" id="hud-half">1T</span></div>
-      <div class="guts"><span class="lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
+      <div class="guts"><span class="lab" id="guts-lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
     </div>
 
     <div class="field" id="field">
@@ -923,6 +923,15 @@ PSART.config({CW,CH,TOP,BOT,WORLD_W,GOAL_X,AREA_X,MY_AREA_X,MIDY});
 const px=PSART.px, drawKit=PSART.drawKit, drawBall=PSART.drawBall,
       drawMarker=PSART.drawMarker, lookResolved=PSART.lookResolved;
 
+/* ====== V2 · ETAPA A — EQUIPO EN LA CANCHA (DISENO_PARTIDO_V2.md) ======
+   5v5: vos + tus amigos en su posición + canteranos genéricos de relleno.
+   Los compañeros se mueven por ANCLAS: x proporcional a la pelota, banda
+   vertical propia. Nada de pathfinding. El rival usa el mismo sistema. */
+const ELASTICIDAD = {ARQ:0.05, DEF:0.35, VOL:0.55, ATA:0.75};   // cuánto acompaña cada rol a la pelota
+const ANCLA_MIA   = {ARQ:26,        DEF:170, VOL:300, ATA:430}; // ataco hacia la derecha
+const ANCLA_RIVAL = {ARQ:GOAL_X-14, DEF:470, VOL:340, ATA:210}; // el rival ataca hacia la izquierda
+const STATS_CANTERA = {pase:40,tiro:38,gambeta:38,velocidad:42,fisico:40};
+
 /* ---------- Estado del partido ---------- */
 let PS = null;
 function newState(club, rival){
@@ -945,6 +954,61 @@ function newState(club, rival){
     golesEnPartido:0,
   };
 }
+/* ---------- V2: armar los equipos de 5 ---------- */
+function bandaPara(pos, volBand){
+  if(pos==="VOL") return volBand===0 ? [TOP+10,MIDY-4] : [MIDY+4,BOT-10];
+  return [TOP+10,BOT-10];
+}
+function buildEquipo(){
+  const v=ensureVida();
+  const equipo=[{ref:"yo", pos:"ATA", nombre:career.name, stats:career.stats, vinculo:null, guts:null, look:career.look}];
+  v.amigos.forEach((a,i)=> equipo.push({ref:i, pos:a.pos, nombre:a.nombre, stats:a.stats, vinculo:a.vinculo,
+    guts: clamp(Math.round(55 + a.stats.fisico*0.5), 30, 100), look:a.look}));
+  // canteranos genéricos (nombre procedural NO-humano) completan la formación 1-1-2-1
+  const need={ARQ:1, DEF:1, VOL:2};
+  for(const e of equipo){ if(need[e.pos]>0) need[e.pos]--; }
+  let n=1;
+  for(const pos of ["ARQ","DEF","VOL","VOL"]){
+    if(equipo.length>=5) break;
+    if(need[pos]>0){ need[pos]--; equipo.push({ref:"cantera", pos, nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}}); }
+  }
+  while(equipo.length<5) equipo.push({ref:"cantera", pos:"VOL", nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}});
+  let volBand=0;
+  for(const e of equipo){
+    if(e.ref==="yo") continue;
+    e.elast=ELASTICIDAD[e.pos]; e.ancla=ANCLA_MIA[e.pos];
+    e.banda=bandaPara(e.pos, e.pos==="VOL"?volBand++:0);
+    e.x=e.ancla; e.y=(e.banda[0]+e.banda[1])/2;
+  }
+  return equipo;
+}
+function buildRivales(){
+  const rs=[]; let volBand=0;
+  for(const pos of ["ARQ","DEF","VOL","VOL","ATA"]){
+    const e={pos, elast:ELASTICIDAD[pos], ancla:ANCLA_RIVAL[pos]};
+    e.banda=bandaPara(pos, pos==="VOL"?volBand++:0);
+    e.x=e.ancla; e.y=(e.banda[0]+e.banda[1])/2;
+    rs.push(e);
+  }
+  return rs;
+}
+/* los que NO maneja la mecánica de encuentros acompañan la jugada por anclas */
+function rivalesActivos(){ return PS.posesion==="mia" ? [1,2] : [4]; }
+function updateAnclas(){
+  const bx=PS.ball.x;
+  for(const e of PS.equipo){
+    if(e.ref==="yo" || e.pos==="ARQ") continue;
+    e.x = clamp(e.ancla + (bx - WORLD_W/2)*e.elast, 30, GOAL_X-16);
+    e.y += clamp(clamp(PS.ball.y, e.banda[0], e.banda[1]) - e.y, -0.35, 0.35);
+  }
+  const act=rivalesActivos();
+  PS.rivales.forEach((e,i)=>{
+    if(i===0 || act.includes(i)) return;
+    e.x = clamp(e.ancla + (bx - WORLD_W/2)*e.elast, 30, GOAL_X-16);
+    e.y += clamp(clamp(PS.ball.y, e.banda[0], e.banda[1]) - e.y, -0.35, 0.35);
+  });
+}
+
 function spawnDefenders(fromX){
   PS.defenders = [
     {x:clamp(fromX+110, 140, AREA_X-60), y:rnd(TOP+18,BOT-18), passed:false},
@@ -1005,6 +1069,9 @@ function startPlay(club, rival){
   hideCombat();
   showScreen("screen-match");
   const cv = $("pitch"); PS.ctx = cv.getContext("2d"); PS.ctx.imageSmoothingEnabled=false;
+  PS.equipo = buildEquipo();            // V2: 5v5 con amigos reales + canteranos
+  PS.rivales = buildRivales();
+  $("guts-lab").textContent = "GUTS·"+String(career.name).toUpperCase().slice(0,7);  // el HUD dice de QUIÉN es el Guts
   kickoff("mia");
   PS.state="run";
   loop();
@@ -1021,6 +1088,7 @@ function loop(){
 }
 function update(){
   if(PS.encCooldown>0) PS.encCooldown--;
+  if(PS.equipo) updateAnclas();          // V2: los equipos acompañan la jugada
   const p=PS.player, d=PS.dirs, SP=VELOCIDAD_JUGADOR;
   let vx=0, vy=0;
   if(d.left) vx-=1; if(d.right) vx+=1; if(d.up) vy-=1; if(d.down) vy+=1;
@@ -1063,6 +1131,15 @@ function update(){
 function draw(){
   const c=PS.ctx, cam=PS.camX;
   PSART.drawPitch(c, cam);
+  /* V2: compañeros con su pinta y rivales pasivos acompañando por anclas */
+  if(PS.equipo){
+    for(const e of PS.equipo){
+      if(e.ref==="yo" || e.pos==="ARQ") continue;
+      drawKit(c, e.x-cam, e.y, PS.club.c1, PS.club.c2, false, e.x*0.22, lookResolved(e.look));
+    }
+    const act=rivalesActivos();
+    PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; drawKit(c, e.x-cam, e.y, PS.rival.c1, PS.rival.c2, false, e.x*0.22); });
+  }
   for(const df of PS.defenders){ if(!df.passed && PS.posesion==="mia") drawKit(c, df.x-cam, df.y, PS.rival.c1, PS.rival.c2, false); }
   if(PS.carrier.active) drawKit(c, PS.carrier.x-cam, PS.carrier.y, PS.rival.c1, PS.rival.c2, false, PS.carrier.x*0.25);
   drawKit(c, PS.keeper.x-cam, PS.keeper.y, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
@@ -1207,6 +1284,7 @@ function halftime(){
   PS.state="halftime";
   PS.minuto=45; renderClock();
   PS.guts = clamp(PS.guts + GUTS_ENTRETIEMPO, 0, 100); setGuts();
+  if(PS.equipo) PS.equipo.forEach(e=>{ if(e.guts!=null) e.guts=clamp(e.guts+GUTS_ENTRETIEMPO,0,100); }); // el descanso es para todo el equipo
   setTag("ht");
   $("combat-txt").innerHTML = `Final del primer tiempo: <b>${PS.gMe}-${PS.gRv}</b>. Naranjas, charla del técnico y recuperás <b>Guts</b>.`;
   const grid=$("cmd-grid"); grid.innerHTML="";
