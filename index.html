@@ -319,13 +319,21 @@ const pick = arr => arr[Math.floor(rnd(0,arr.length))];
 
 /* ---------- Carrera (guardado retrocompatible: nunca borra campos viejos) ---------- */
 let career = loadCareer();
-function loadCareer(){ try{ const r=localStorage.getItem(STORE); if(r) return JSON.parse(r); }catch(e){} return null; }
+function loadCareer(){
+  try{
+    const r=localStorage.getItem(STORE);
+    if(r){ const o=JSON.parse(r); if(o && typeof o==="object" && !Array.isArray(o)) return o; }
+  }catch(e){}
+  return null;
+}
 function saveCareer(){ try{ localStorage.setItem(STORE, JSON.stringify(career)); }catch(e){} }
 function freshStats(){ return {pase:52, tiro:58, gambeta:55, velocidad:60, resistencia:54, fisico:50, aereo:47, caracter:51}; }
+function esc(s){ return String(s).replace(/[&<>"']/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch])); }
 function ensureCareer(name, club){
   if(!career){ career = {}; }
   career.name = name; career.club = club;
-  if(!career.stats) career.stats = freshStats();
+  // mergear con defaults: un guardado viejo sin alguna stat no puede dejar duelos en NaN
+  career.stats = Object.assign(freshStats(), (career.stats && typeof career.stats==="object") ? career.stats : {});
   if(career.goles==null)     career.goles = 0;
   if(career.partidos==null)  career.partidos = 0;
   if(career.victorias==null) career.victorias = 0;
@@ -351,8 +359,15 @@ function initIntro(){
 $("btn-start").addEventListener("click", ()=>{
   const name = ($("in-name").value||"").trim() || "El Pibe";
   const club = CLUBES[+$("in-club").value];
+  // cambiar de club a mitad de temporada arranca una temporada nueva (con aviso)
+  const cambioClub = !!(career && career.club && career.club !== club.n);
+  if(cambioClub && career.temporada && !career.temporada.terminada && career.temporada.fecha>0){
+    if(!confirm(`Cambiar de club (${career.club} → ${club.n}) arranca una TEMPORADA NUEVA desde cero. ¿Dale?`)) return;
+  }
   ensureCareer(name, club.n);
+  if(cambioClub) career.temporada = nuevaTemporada();
   ensureSeason();
+  saveCareer();
   renderSeason();
 });
 $("btn-reset").addEventListener("click", ()=>{
@@ -445,7 +460,7 @@ function ordenTabla(){
 }
 function miPosicion(){ return ordenTabla().indexOf(myClubIdx())+1; }
 function golLabel(clave){
-  if(clave==="yo") return `► ${career.name} (VOS) · ${abbr(career.club)}`;
+  if(clave==="yo") return `► ${esc(career.name)} (VOS) · ${abbr(career.club)}`;
   const [ci,si]=clave.split("-").map(Number);
   return `${SLOTS_GOL[si]} de ${CLUBES[ci].n}`;
 }
@@ -675,6 +690,18 @@ function draw(){
   drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
   drawBall(c, PS.ball.x-cam, PS.ball.y);
   drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim);
+  drawMarker(c, PS.player.x-cam, PS.player.y);   // TU jugador se marca por FORMA, no solo color
+}
+/* Flechita ▼ blanca con borde oscuro sobre el jugador controlado (apto daltonismo:
+   con camisetas parecidas —dos rojas— igual sabés cuál sos por la forma). */
+function drawMarker(c, cx, cy){
+  if(cx<-8 || cx>CW+8) return;
+  const x=Math.round(cx), y=Math.round(cy)-21;
+  px(c,x-3,y,7,1,"#0a1f13");
+  px(c,x-3,y+1,1,1,"#0a1f13"); px(c,x-2,y+1,5,1,"#ffffff"); px(c,x+3,y+1,1,1,"#0a1f13");
+  px(c,x-2,y+2,1,1,"#0a1f13"); px(c,x-1,y+2,3,1,"#ffffff"); px(c,x+2,y+2,1,1,"#0a1f13");
+  px(c,x-1,y+3,1,1,"#0a1f13"); px(c,x,y+3,1,1,"#ffffff"); px(c,x+1,y+3,1,1,"#0a1f13");
+  px(c,x,y+4,1,1,"#0a1f13");
 }
 function drawGoalRight(c, cam){
   const gx=GOAL_X-cam, ax=AREA_X-cam, y1=MIDY-46, y2=MIDY+46;
@@ -718,9 +745,11 @@ function drawBall(c, cx, cy){
 }
 
 /* ============================ COMBATE (menú tipo Pokémon) ============================ */
+function clearDirs(){ ["up","down","left","right"].forEach(d=>setDir(d,false)); }
 function startEncounter(type, ref){
   PS.state = "menu";
   PS.encounter = {type, ref};
+  clearDirs();
   $("hint").style.display = "none";
   const cmds = buildCommands(type);
   let txt, tag;
@@ -980,6 +1009,7 @@ function fullTime(){
   if(win){ career.stats.caracter = clamp(career.stats.caracter+1,1,99); }
   const nivelNuevo = nivelJugador()>nivelAntes ? nivelJugador() : 0;
   saveCareer();
+  aplicarResultadoPartido();  // la fecha se consume en el MISMO guardado: recargar acá no la deja rejugar
   setTimeout(()=> renderFinal(win, draw_, lvl, nivelNuevo), 900);
 }
 function renderFinal(win, draw_, lvl, nivelNuevo){
@@ -1011,7 +1041,15 @@ function renderFinal(win, draw_, lvl, nivelNuevo){
 function statLabel(k){ return {pase:"Pase",tiro:"Tiro",gambeta:"Gambeta",velocidad:"Velocidad",resistencia:"Resistencia",fisico:"Físico",aereo:"Juego aéreo",caracter:"Carácter"}[k]||k; }
 
 /* ---------- Flash / Guts / pantallas / hint ---------- */
-function flash(kind, text){ const f=$("flash"); $("flash-big").textContent=text; f.className="flash show "+kind; setTimeout(()=> f.classList.remove("show"), 900); }
+let flashTO=0;
+function flash(kind, text){
+  const f=$("flash");
+  clearTimeout(flashTO);            // que el flash anterior no apague a este
+  f.className="flash"; void f.offsetWidth;  // reinicia la animación CSS
+  $("flash-big").textContent=text;
+  f.className="flash show "+kind;
+  flashTO=setTimeout(()=> f.classList.remove("show"), 900);
+}
 function setGuts(){
   const g=clamp(PS?PS.guts:100,0,100); $("guts-fill").style.width=g+"%";
   $("guts-fill").style.background = g>55?"linear-gradient(90deg,#7ee08a,#3fbf63)":g>25?"linear-gradient(90deg,#f6c11d,#ffaf3a)":"linear-gradient(90deg,#e3503e,#ff7a5e)";
@@ -1040,7 +1078,8 @@ function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.quer
 (function bindDpad(){
   document.querySelectorAll(".dbtn").forEach(btn=>{
     const dir=btn.dataset.dir;
-    const down=e=>{ e.preventDefault(); setDir(dir,true); };
+    // pointer capture: aunque el overlay de combate tape el botón, el pointerup llega igual
+    const down=e=>{ e.preventDefault(); if(e.pointerId!=null && btn.setPointerCapture){ try{ btn.setPointerCapture(e.pointerId); }catch(_){}} setDir(dir,true); };
     const up=e=>{ e.preventDefault(); setDir(dir,false); };
     btn.addEventListener("pointerdown",down);
     btn.addEventListener("pointerup",up);
@@ -1048,8 +1087,11 @@ function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.quer
     btn.addEventListener("pointercancel",up);
   });
   const KMAP={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right",w:"up",s:"down",a:"left",d:"right"};
-  addEventListener("keydown",e=>{ const k=KMAP[e.key]; if(k){ setDir(k,true); e.preventDefault(); } });
-  addEventListener("keyup",  e=>{ const k=KMAP[e.key]; if(k){ setDir(k,false); e.preventDefault(); } });
+  // nunca robar teclas cuando el foco está en un formulario (nombre, club)
+  const enFormulario = e => { const t=e.target&&e.target.tagName; return t==="INPUT"||t==="SELECT"||t==="TEXTAREA"; };
+  const keyDir = e => KMAP[e.key] || KMAP[e.key.toLowerCase()]; // toLowerCase: que Shift/CapsLock no deje la tecla pegada
+  addEventListener("keydown",e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,true); e.preventDefault(); } });
+  addEventListener("keyup",  e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,false); e.preventDefault(); } });
 })();
 
 /* ---------- Arranque ---------- */

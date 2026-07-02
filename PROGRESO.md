@@ -32,6 +32,17 @@
   - 🌊 **TIRO ATUEL** (nivel 5, 30 Guts, ×1.45): rasante y serpenteante como el río, entra pegado al pasto.
   - 🌪️ **TORNADO PAMPEANO** (nivel 7, 40 Guts, ×1.60): chilena con el viento del oeste, casi imposible de atajar.
 
+### Revisión adversarial post-bloques ✅
+3 agentes revisores (máquina de estados / datos-guardado / UI móvil) sobre el archivo final: 14 hallazgos → 8 problemas únicos, **todos arreglados y verificados**:
+1. El teclado global se tragaba a/s/d/w y flechas al escribir el nombre (alta).
+2. Tu sprite se distinguía de los rivales solo por color de camiseta → ahora tiene **flechita ▼ blanca con borde** (forma, apto daltonismo) (alta).
+3. Recargar en la pantalla final permitía rejugar la fecha inflando la carrera → la fecha se consume en el mismo guardado del final.
+4. Cambiar de club a mitad de temporada corrompía la temporada → ahora avisa y arranca temporada nueva.
+5. D-pad con mouse quedaba trabado si el combate tapaba el botón → pointer capture + direcciones apagadas al congelar.
+6. El ¡GOLAZO! del tiro especial se borraba por una carrera de timeouts en flash().
+7. El nombre del jugador se inyectaba como HTML en goleadores → escapado.
+8. Guardados viejos con stats incompletas daban NaN% → merge con defaults + validación del JSON.
+
 ## ⏹ FRENADO ACÁ (a pedido de Rodri)
 
 ### Lo que sigue — NO arrancar sin Rodri
