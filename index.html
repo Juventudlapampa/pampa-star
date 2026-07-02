@@ -616,7 +616,11 @@ function aplicarFecha(miGoles, rivalGoles){
     let gh,ga;
     if(miGoles!=null && (m.h===yo||m.a===yo)){
       if(m.h===yo){ gh=miGoles; ga=rivalGoles; } else { gh=rivalGoles; ga=miGoles; }
-      if(miGoles>0){ sumarGol("yo", miGoles); t.golesMios+=miGoles; }
+      /* V2: goleadores con nombre real de tu equipo (vos o tus amigos) */
+      const gPersonales = (PS && typeof PS.golesEnPartido==="number") ? PS.golesEnPartido : miGoles;
+      if(gPersonales>0) sumarGol("yo", gPersonales);
+      if(PS && PS.golesAmigos) for(const k in PS.golesAmigos) sumarGol("mio-"+k, PS.golesAmigos[k]);
+      if(miGoles>0) t.golesMios+=miGoles;
       const riv=(m.h===yo?m.a:m.h);
       if(rivalGoles>0) sumarGol(riv+"-"+Math.floor(Math.random()*SLOTS_GOL.length), rivalGoles);
     } else {
@@ -643,6 +647,11 @@ function ordenTabla(){
 function miPosicion(){ return ordenTabla().indexOf(myClubIdx())+1; }
 function golLabel(clave){
   if(clave==="yo") return `► ${esc(career.name)} (VOS) · ${abbr(career.club)}`;
+  if(clave.startsWith("mio-")){
+    const r=clave.slice(4);
+    const a=(career.vida&&career.vida.amigos)?career.vida.amigos[+r]:null;
+    return `${a?esc(a.nombre):"Cantera"} · ${abbr(career.club)}`;
+  }
   const [ci,si]=clave.split("-").map(Number);
   return `${SLOTS_GOL[si]} de ${CLUBES[ci].n}`;
 }
@@ -959,6 +968,8 @@ function newState(club, rival){
     camX:0, dirs:{up:false,down:false,left:false,right:false},
     encounter:null, encCooldown:0,
     golesEnPartido:0,
+    controlIdx:0, pasesSeguidos:0, empuje:0, bonusJugada:false,   // V2·C
+    paredAutoUsada:false, vincParedes:0, golesAmigos:{},
   };
 }
 /* ---------- V2: armar los equipos de 5 ---------- */
@@ -982,10 +993,10 @@ function buildEquipo(){
   while(equipo.length<5) equipo.push({ref:"cantera", pos:"VOL", nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}});
   let volBand=0;
   for(const e of equipo){
-    if(e.ref==="yo") continue;
     e.elast=ELASTICIDAD[e.pos]; e.ancla=ANCLA_MIA[e.pos];
     e.banda=bandaPara(e.pos, e.pos==="VOL"?volBand++:0);
-    e.x=e.ancla; e.y=(e.banda[0]+e.banda[1])/2;
+    e.anim=0; e.face=1;
+    if(e.ref!=="yo"){ e.x=e.ancla; e.y=(e.banda[0]+e.banda[1])/2; }
   }
   return equipo;
 }
@@ -1001,6 +1012,145 @@ function buildRivales(){
 }
 /* los que NO maneja la mecánica de encuentros acompañan la jugada por anclas */
 function rivalesActivos(){ return PS.posesion==="mia" ? [1,2] : [4]; }
+
+/* ====== V2 · ETAPA C — PASE REAL Y CONTROL QUE CAMBIA ======
+   El pase deja de ser un duelo: la pelota viaja a un compañero REAL y pasás
+   a controlarlo. Un solo jugador por vez; todo por menú. */
+function ctrlEnt(){ return PS.equipo[PS.controlIdx||0]; }
+function ctrlPos(){ const e=ctrlEnt(); return e.ref==="yo" ? PS.player : (e.pos==="ARQ" ? PS.myKeeper : e); }
+function ctrlGastarGuts(n){
+  const e=ctrlEnt();
+  if(e.ref==="yo") PS.guts=clamp(PS.guts-n,0,100);
+  else e.guts=clamp(e.guts-n,0,100);
+  setGuts();
+}
+function statDe(e,k){ const s=e.ref==="yo"?career.stats:e.stats; return (s&&s[k]!=null)?s[k]:45; }
+function nombreDe(e){ return e.ref==="yo" ? career.name : e.nombre; }
+function paseParVinculo(a,b){
+  if(a.ref==="cantera"||b.ref==="cantera") return 0;
+  if(a.ref==="yo") return b.vinculo||0;
+  if(b.ref==="yo") return a.vinculo||0;
+  return ((a.vinculo+b.vinculo)/2)*0.6;   // par amigo-amigo: promedio de vínculos con vos ×0.6
+}
+function distSeg(x1,y1,x2,y2,qx,qy){
+  const dx=x2-x1, dy=y2-y1, L2=dx*dx+dy*dy||1;
+  const t=clamp(((qx-x1)*dx+(qy-y1)*dy)/L2,0,1);
+  return Math.hypot(qx-(x1+dx*t), qy-(y1+dy*t));
+}
+function posDe(e){ return e.ref==="yo" ? PS.player : (e.pos==="ARQ" ? PS.myKeeper : e); }
+/* hasta 3 receptores ordenados por conveniencia, con dirección por FORMA (flechas) */
+function receptoresPase(){
+  const ci=PS.controlIdx||0, cp=ctrlPos();
+  const cands=[];
+  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return; const p=posDe(e); cands.push({i,e,x:p.x,y:p.y}); });
+  cands.sort((a,b)=> b.x-a.x);
+  return cands.slice(0,3).map(c=>{
+    const dx=c.x-cp.x;
+    const dir= dx>20?"▲ adelante" : dx<-20?"▼ atrás" : "◀▶ lateral";
+    const espacio = dx>120;
+    let dmin=999; rivalPuntos().forEach((r,ri)=>{ if(ri===0) return; dmin=Math.min(dmin, distSeg(cp.x,cp.y,c.x,c.y,r.x,r.y)); });
+    const vinc=paseParVinculo(ctrlEnt(), c.e);
+    let pct = 68 + (effStat("pase")-50)*0.5 + (statDe(c.e,"pase")-50)*0.2 + vinc*0.12 - 12; // presión del marcador
+    if(dmin<55) pct -= (55-dmin)*0.4;
+    if(espacio) pct -= 10;
+    if(c.e.pos==="VOL" && c.x>WORLD_W/3 && c.x<WORLD_W*2/3) pct += 8;   // juego por el medio
+    return {idx:c.i, e:c.e, x:c.x, y:c.y, dir, espacio, pct:clamp(Math.round(pct),25,96), vinc, dupla:vinc>=60};
+  });
+}
+function renderPaseMenu(){
+  const rs=receptoresPase();
+  $("combat-txt").innerHTML = "➡️ ¿A quién se la das?";
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  rs.forEach(r=>{
+    const b=document.createElement("button");
+    const cls=r.pct>=66?"hi":r.pct>=40?"mid":"lo";
+    b.className="cmd";
+    b.innerHTML=`<span class="ico">➡️</span><div class="cn">${esc(nombreDe(r.e)).toUpperCase()}</div>
+      <div class="ch ${cls}">${r.pct}%${r.dupla?" ★dupla":""}</div>
+      <div class="csub">${r.e.pos} · ${r.dir}${r.espacio?" (al espacio)":""}</div>`;
+    b.addEventListener("click", ()=>resolvePase(r), {once:true});
+    grid.appendChild(b);
+  });
+  const back=document.createElement("button");
+  back.className="cmd wide"; back.innerHTML=`<div class="cn">◀ VOLVER</div>`;
+  back.addEventListener("click", ()=>{ const cmds=buildCommands("def"); renderCombat(`Te marcan de cerca. ¿Qué hacés?`, cmds, "atk"); }, {once:true});
+  grid.appendChild(back);
+}
+function resolvePase(r){
+  if(PS.state!=="menu") return;
+  PS.state="resolving";
+  ctrlGastarGuts(2);                              // construir es barato
+  $("cmd-grid").innerHTML="";
+  $("combat-txt").innerHTML=`La soltás para <b>${esc(nombreDe(r.e))}</b>… ➡️`;
+  const win = Math.random()*100 < r.pct;
+  PS.minuto += rnd(1,2); renderClock();           // pasar casi no quema reloj
+  setTimeout(()=>{
+    if(win){
+      PS.pasesSeguidos=(PS.pasesSeguidos||0)+1;
+      let extra="";
+      if(PS.pasesSeguidos===3){ PS.bonusJugada=true; PS.empuje=40; extra=" <b>¡JUGADA ARMADA!</b> Próximo tiro o gambeta +10%."; }
+      animarPase(r, ()=>{
+        if(PS.encounter && PS.encounter.ref) PS.encounter.ref.passed=true;  // tu marcador quedó atrás
+        PS.controlIdx=r.idx;
+        const e=ctrlEnt(); if(e.anim==null){ e.anim=0; e.face=1; }
+        setGuts();
+        endLine(`AHORA JUGÁS: <b>${esc(nombreDe(r.e))}</b> (${r.e.pos}).${extra}`, true);
+        setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.encCooldown=45; PS.state="run"; setHint(); }, 900);
+      });
+    } else {
+      PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
+      endLine("¡Interceptado! Leyeron la línea de pase.", false);
+      const cp=ctrlPos(), ix=(cp.x+r.x)/2, iy=(cp.y+r.y)/2;
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; rivalCounter(ix, iy); PS.state="run"; }, 950);
+    }
+  }, 500);
+}
+function animarPase(r, cb){
+  const sx=PS.ball.x, sy=PS.ball.y, dest=posDe(r.e);
+  let s=0; const iv=setInterval(()=>{
+    s++; const t=s/6;
+    PS.ball.x=sx+(dest.x-sx)*t; PS.ball.y=sy+(dest.y-sy)*t;
+    PS.camX=clamp(PS.ball.x-140,0,WORLD_W-CW);
+    draw(); drawMinimap();
+    if(s>=6){ clearInterval(iv); cb(); }
+  },50);
+}
+/* PARED 1-2: zafás de la presión SIN perder el control. Con vínculo ≥70, la
+   primera del partido con esa dupla sale sola ("se conocen de memoria"). */
+function mejorParedPar(){
+  const ci=PS.controlIdx||0, cp=ctrlPos();
+  let mejor=null, md=999;
+  PS.equipo.forEach((e,i)=>{
+    if(i===ci || e.pos==="ARQ") return;
+    const p=posDe(e), d=Math.hypot(p.x-cp.x, p.y-cp.y);
+    if(p.x>cp.x-15 && d<md){ md=d; mejor=e; }
+  });
+  return mejor;
+}
+function resolvePared(cm){
+  const par=cm.par, vinc=paseParVinculo(ctrlEnt(), par);
+  const auto = vinc>=70 && !PS.paredAutoUsada;
+  const pct = clamp(Math.round(55 + effStat("pase")*0.35 + vinc*0.20 - PS.rival.f*0.3), 20, 95);
+  const win = auto || (Math.random()*100 < pct);
+  if(auto) PS.paredAutoUsada=true;
+  advanceClock();
+  if(win){
+    if(PS.encounter && PS.encounter.ref) PS.encounter.ref.passed=true;
+    const cp=ctrlPos(); cp.x=clamp(cp.x+34, 16, GOAL_X-2);
+    if(par.ref!=="cantera" && par.vinculo!=null && (PS.vincParedes||0)<3){
+      par.vinculo=Math.min(100,par.vinculo+1); PS.vincParedes=(PS.vincParedes||0)+1;
+      const a=career.vida.amigos[par.ref]; if(a) a.vinculo=par.vinculo;
+    }
+    endLine(auto ? `★★ ¡Se conocen de memoria! Pared automática con <b>${esc(par.nombre)}</b>. (+1 vínculo)`
+                 : `¡Pared con <b>${esc(par.nombre)}</b> y seguís vos! (+1 vínculo)`, true);
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.encCooldown=40; PS.state="run"; setHint(); }, 950);
+  } else {
+    PS.pasesSeguidos=0; PS.empuje=0;
+    endLine(`La pared con <b>${esc(par.nombre)}</b> no salió. ¡A recuperarla!`, false);
+    const cp=ctrlPos(), ex=cp.x, ey=cp.y;
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; rivalCounter(ex, ey); PS.state="run"; }, 1000);
+  }
+}
 
 /* ====== V2 · ETAPA B — MINIMAPA (plano completo, accesible por FORMA) ======
    Míos = círculos ● · rivales = triángulos ▲ · controlado = flecha ▼ ·
@@ -1066,12 +1216,15 @@ $("minimap").addEventListener("pointerdown", e=>{
   clearTimeout(mmTipTO); mmTipTO=setTimeout(()=>t.classList.remove("show"), 2000);
 });
 function updateAnclas(){
-  const bx=PS.ball.x;
-  for(const e of PS.equipo){
-    if(e.ref==="yo" || e.pos==="ARQ") continue;
-    e.x = clamp(e.ancla + (bx - WORLD_W/2)*e.elast, 30, GOAL_X-16);
-    e.y += clamp(clamp(PS.ball.y, e.banda[0], e.banda[1]) - e.y, -0.35, 0.35);
-  }
+  const bx=PS.ball.x, ci=(PS.posesion==="mia")?(PS.controlIdx||0):0;
+  PS.equipo.forEach((e,i)=>{
+    if(e.pos==="ARQ") return;
+    if(PS.posesion==="mia" && i===ci) return;          // al controlado lo movés vos
+    const obj = e.ref==="yo" ? PS.player : e;          // vos también acompañás cuando no te controlan
+    const ancla = e.ancla + (PS.empuje||0);            // "jugada armada": el equipo sube
+    obj.x = clamp(ancla + (bx - WORLD_W/2)*e.elast, 30, GOAL_X-16);
+    obj.y += clamp(clamp(PS.ball.y, e.banda[0], e.banda[1]) - obj.y, -0.35, 0.35);
+  });
   const act=rivalesActivos();
   PS.rivales.forEach((e,i)=>{
     if(i===0 || act.includes(i)) return;
@@ -1090,6 +1243,7 @@ function spawnDefenders(fromX){
 function kickoff(quien){
   PS.posesion = quien;
   PS.encounter = null; PS.encCooldown = 40;
+  PS.controlIdx = 0; PS.pasesSeguidos = 0; PS.empuje = 0; setGuts();   // volvés a jugar VOS
   if(quien==="mia"){
     PS.player.x=300; PS.player.y=MIDY;
     PS.ball.x=308; PS.ball.y=MIDY;
@@ -1105,6 +1259,7 @@ function kickoff(quien){
 /* posesión rival arrancando desde su campo (contragolpe / saque del arquero) */
 function rivalCounter(fromX, fromY){
   PS.posesion="rival";
+  PS.controlIdx=0; PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; setGuts();  // defendés VOS
   PS.carrier={x:clamp(fromX, 180, GOAL_X-120), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
   PS.player.x = clamp(PS.carrier.x-60, 20, GOAL_X-40);
   PS.player.y = clamp(PS.carrier.y+14, TOP+6, BOT-6);
@@ -1114,6 +1269,7 @@ function rivalCounter(fromX, fromY){
 /* recuperás: pasás a atacar desde donde estás */
 function recoverBall(){
   PS.posesion="mia";
+  PS.controlIdx=0; PS.pasesSeguidos=0; setGuts();   // la recuperaste vos
   PS.carrier.active=false;
   PS.ball.x=PS.player.x+7; PS.ball.y=PS.player.y;
   spawnDefenders(PS.player.x);
@@ -1121,10 +1277,13 @@ function recoverBall(){
   setHint();
 }
 
-/* ---------- Stats efectivas (Guts modula; el ánimo de la semana suma o resta un poquito) ---------- */
+/* ---------- Stats efectivas DEL JUGADOR CONTROLADO (su stat, su Guts; el ánimo suma un poquito) ---------- */
 function effStat(key){
   const animo=(career&&career.vida&&career.vida.animo!=null)?career.vida.animo:70;
-  return PS.stats[key]*(0.55 + 0.45*(clamp(PS.guts,0,100)/100))*(0.97 + 0.06*(clamp(animo,0,100)/100));
+  let base, g;
+  if(PS.equipo && (PS.controlIdx||0)!==0){ const e=ctrlEnt(); base=(e.stats[key]!=null?e.stats[key]:45); g=e.guts; }
+  else { base=PS.stats[key]; g=PS.guts; }
+  return base*(0.55 + 0.45*(clamp(g,0,100)/100))*(0.97 + 0.06*(clamp(animo,0,100)/100));
 }
 function duelChance(my, def){ return clamp(0.5 + (my-def)/58, 0.07, 0.95); }
 function myKeeperSkill(){ return 54 + (PS.stats.caracter-50)*0.25; }
@@ -1161,7 +1320,8 @@ function loop(){
 function update(){
   if(PS.encCooldown>0) PS.encCooldown--;
   if(PS.equipo) updateAnclas();          // V2: los equipos acompañan la jugada
-  const p=PS.player, d=PS.dirs, SP=VELOCIDAD_JUGADOR;
+  const p=(PS.posesion==="mia" && PS.equipo) ? ctrlPos() : PS.player;  // movés al que controlás
+  const d=PS.dirs, SP=VELOCIDAD_JUGADOR;
   let vx=0, vy=0;
   if(d.left) vx-=1; if(d.right) vx+=1; if(d.up) vy-=1; if(d.down) vy+=1;
   if(vx) p.face = vx>0?1:-1;
@@ -1218,7 +1378,8 @@ function draw(){
   drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
   drawBall(c, PS.ball.x-cam, PS.ball.y);
   drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
-  drawMarker(c, PS.player.x-cam, PS.player.y);   // TU jugador se marca por FORMA, no solo color
+  const cp=(PS.posesion==="mia" && PS.equipo)?ctrlPos():PS.player;
+  drawMarker(c, cp.x-cam, cp.y);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
 }
 
 /* ============================ COMBATE (menú tipo Pokémon) ============================ */
@@ -1243,14 +1404,19 @@ function startEncounter(type, ref){
 function buildCommands(type){
   const g = PS.rival.f;
   if(type==="def"){
-    const compa=PS.compa, vb=vinculoBonus(compa);
-    const sub = compa ? `con ${esc(compa.nombre)} · vínculo ${compa.vinculo}` : null;
-    return [
-      {k:"gambeta", cn:"GAMBETA", ico:"🌀", cost:8, my:effStat("gambeta"),          def:g+6,  on:"gambeta"},
-      {k:"pase",    cn:"PASE",    ico:"➡️", cost:4, my:effStat("pase")+vb,          def:g-2,  on:"pase",  sub},
-      {k:"pared",   cn:"PARED",   ico:"🔁", cost:6, my:effStat("pase")+vb*1.25,     def:g+3,  on:"pared", sub},
-      {k:"tiro",    cn:"TIRO",    ico:"🎯", cost:10,my:effStat("tiro")*0.7,         def:g+34, on:"tiroLejano"},
+    /* V2: PASE abre submenú de receptores reales; PARED es 1-2 con un compañero */
+    const par=mejorParedPar();
+    const nRec=receptoresPase().length;
+    const cmds=[
+      {k:"gambeta", cn:"GAMBETA", ico:"🌀", cost:8, my:effStat("gambeta"),  def:g+6,  on:"gambeta"},
+      {k:"paseMenu",cn:"PASE ▸",  ico:"➡️", cost:2, submenu:true, sub:`${nRec} opciones · barato`},
     ];
+    if(par) cmds.push({k:"pared", cn:"PARED (1-2)", ico:"🔁", cost:4, on:"pared2", par,
+      my:0, def:0, pctFijo:clamp(Math.round(55 + effStat("pase")*0.35 + paseParVinculo(ctrlEnt(),par)*0.20 - g*0.3),20,95),
+      sub:`con ${esc(par.nombre)}${paseParVinculo(ctrlEnt(),par)>=70?" ★★":""}`});
+    else cmds.push({k:"pared", cn:"PARED (1-2)", ico:"🔁", locked:true, lockTxt:"SIN COMPAÑERO"});
+    cmds.push({k:"tiro", cn:"TIRO", ico:"🎯", cost:10, my:effStat("tiro")*0.7, def:g+34, on:"tiroLejano"});
+    return cmds;
   }
   if(type==="gk"){
     const base = [
@@ -1259,6 +1425,7 @@ function buildCommands(type){
       {k:"gambeta", cn:"GAMBETEAR",ico:"🌀", cost:9,  my:effStat("gambeta"), def:g+2,  on:"gambetaGk"},
     ];
     const nv = nivelJugador();
+    if(PS.equipo && (PS.controlIdx||0)!==0) return base;   // los especiales son TUYOS: llegá vos al área
     for(const e of TIROS_ESPECIALES){
       if(nv < e.nivel)        base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"NIVEL "+e.nivel});
       else if(!e.funcional)   base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"PRÓXIMAMENTE"});
@@ -1283,10 +1450,10 @@ function renderCombat(txt, cmds, tag){
     const b=document.createElement("button");
     if(cm.locked){ b.className="cmd special lock"; b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch lo">${cm.lockTxt||"Bloqueado"}</div>`; }
     else{
-      const ch = Math.round(duelChance(cm.my, cm.def)*100);
-      const cls = ch>=66?"hi":ch>=40?"mid":"lo";
+      const ch = cm.submenu ? null : (cm.pctFijo!=null ? cm.pctFijo : Math.round(duelChance(cm.my, cm.def)*100));
+      const cls = ch==null?"mid":ch>=66?"hi":ch>=40?"mid":"lo";
       b.className = cm.especial ? "cmd special" : "cmd";
-      b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch ${cls}">${ch}%${cm.especial?" · -"+cm.cost+" GUTS":""}</div>${cm.sub?`<div class="csub">${cm.sub}</div>`:""}`;
+      b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch ${cls}">${ch==null?"elegir receptor":ch+"%"}${cm.especial?" · -"+cm.cost+" GUTS":""}</div>${cm.sub?`<div class="csub">${cm.sub}</div>`:""}`;
       b.addEventListener("click", ()=> chooseCommand(cm), {once:true});
     }
     grid.appendChild(b);
@@ -1302,8 +1469,14 @@ function setTag(tag){
 function hideCombat(){ $("combat").classList.remove("show"); }
 function chooseCommand(cm){
   if(PS.state!=="menu") return;
+  if(cm.submenu){ renderPaseMenu(); return; }              // V2: PASE abre receptores, sigue en menú
   PS.state = "resolving";
-  PS.guts = clamp(PS.guts - cm.cost, 0, 100); setGuts();
+  ctrlGastarGuts(cm.cost);                                  // V2: el Guts es del jugador controlado
+  if(cm.on==="pared2"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML=duelIntro("pared"); return setTimeout(()=>resolvePared(cm), 700); }
+  if(PS.bonusJugada && ["gambeta","tiroGol","tiroLejano","gambetaGk"].includes(cm.on)){
+    cm = Object.assign({}, cm, {my: cm.my+6});              // ¡jugada armada! +10% aprox
+    PS.bonusJugada=false; PS.empuje=0;
+  }
   const win = Math.random() < duelChance(cm.my, cm.def);
   $("cmd-grid").innerHTML = "";
   if(cm.especial) return especialSequence(cm, win);
@@ -1468,13 +1641,26 @@ function rivalShot(){
   }, 1000);
 }
 
-/* ---------- Gol tuyo ---------- */
+/* ---------- Gol de tu equipo (tuyo o de un amigo con la pelota) ---------- */
 function goalSequence(dribble, lejano, especial){
-  PS.gMe++; PS.golesEnPartido++;
+  PS.gMe++;
+  const amigoAnota = PS.equipo && (PS.controlIdx||0)!==0;
+  let quien=null;
+  if(amigoAnota){
+    const e=ctrlEnt(); quien=e;
+    PS.golesAmigos[e.ref]=(PS.golesAmigos[e.ref]||0)+1;
+    if(e.ref!=="cantera" && e.vinculo!=null){                       // el gol compartido une
+      e.vinculo=Math.min(100,e.vinculo+1);
+      const a=career.vida.amigos[e.ref]; if(a) a.vinculo=e.vinculo;
+    }
+  } else {
+    PS.golesEnPartido++;                                            // gol PERSONAL: sube stats y nivel
+  }
   $("hud-gme").textContent = PS.gMe;
   PS.ball.x = GOAL_X; PS.ball.y = MIDY; draw();
   flash("gol", (lejano||especial) ? "¡GOLAZO!" : "¡GOL!");
-  endLine(especial ? `¡El ${especial.cn} rompió la red! El arquero ni la vio.`
+  endLine(quien ? `¡GOL de <b>${esc(quien.nombre)}</b>! La jugada la armaron entre todos. (+1 vínculo)`
+        : especial ? `¡El ${especial.cn} rompió la red! El arquero ni la vio.`
         : dribble ? "¡Gambeteaste al arquero y la empujaste al arco vacío!"
         : lejano  ? "¡Golazo desde lejos, la clavaste en un ángulo!"
         : "¡Definiste de primera, el arquero no llegó!", true);
@@ -1550,14 +1736,22 @@ function flash(kind, text){
   flashTO=setTimeout(()=> f.classList.remove("show"), 900);
 }
 function setGuts(){
-  const g=clamp(PS?PS.guts:100,0,100); $("guts-fill").style.width=g+"%";
+  let g=100, nom=null;
+  if(PS){
+    if(PS.equipo && (PS.controlIdx||0)!==0){ const e=ctrlEnt(); g=e.guts; nom=e.nombre; }
+    else { g=PS.guts; nom=career?career.name:null; }
+  }
+  g=clamp(g,0,100);
+  $("guts-fill").style.width=g+"%";
   $("guts-fill").style.background = g>55?"linear-gradient(90deg,#7ee08a,#3fbf63)":g>25?"linear-gradient(90deg,#f6c11d,#ffaf3a)":"linear-gradient(90deg,#e3503e,#ff7a5e)";
+  if(nom) $("guts-lab").textContent="GUTS·"+String(nom).toUpperCase().slice(0,7);   // el HUD dice de QUIÉN es el Guts
 }
 function showScreen(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $(id).classList.add("active"); }
 function setHint(){
   const h=$("hint"); h.style.display="block";
+  const nom = PS.equipo ? esc(nombreDe(ctrlEnt())).toUpperCase().slice(0,9) : "";
   h.innerHTML = PS.posesion==="mia"
-    ? `⚔ ATACÁS<br>Llevá la pelota al<br>arco rival <b>▶</b>`
+    ? `⚔ JUGÁS: <b>${nom}</b><br>al arco rival <b>▶</b>`
     : `🛡 DEFENDÉS<br>¡Cruzalo antes de que<br>llegue a tu arco <b>◀</b>!`;
 }
 
