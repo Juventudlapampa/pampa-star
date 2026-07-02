@@ -50,6 +50,20 @@
   .career-cell .n{font-family:'Press Start 2P',monospace;font-size:1rem;color:var(--sol-2);}
   .career-cell .l{font-family:'JetBrains Mono',monospace;font-size:.48rem;letter-spacing:.1em;opacity:.6;text-transform:uppercase;margin-top:.4rem;}
 
+  /* ---------- creación de avatar: tarjetas y puntos ---------- */
+  .selcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin-top:.2rem;}
+  .selcard{background:rgba(0,0,0,.4);border:2px solid rgba(246,239,220,.25);border-radius:10px;padding:.5rem .35rem;cursor:pointer;text-align:center;color:var(--crema);}
+  .selcard.sel{border-color:var(--sol);background:rgba(246,193,29,.15);}
+  .selcard.sel .sn::before{content:"✔ ";color:var(--sol-2);}   /* marca por FORMA, no solo color */
+  .selcard .sn{font-family:'Press Start 2P',monospace;font-size:.5rem;line-height:1.45;}
+  .selcard .sd{font-family:'JetBrains Mono',monospace;font-size:.5rem;opacity:.85;margin-top:.3rem;line-height:1.35;}
+  .pts-row{display:flex;align-items:center;gap:.4rem;margin-top:.35rem;font-family:'JetBrains Mono',monospace;font-size:.66rem;}
+  .pts-row .pn{flex:1;}
+  .pts-btn{width:32px;height:32px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.8rem;}
+  .pts-btn:active{background:rgba(246,193,29,.7);color:#000;}
+  .pts-val{min-width:46px;text-align:center;color:var(--sol-2);font-weight:700;}
+  #lore-txt b{color:var(--sol-2);}
+
   /* ---------- TEMPORADA ---------- */
   .se-scroll{overflow-y:auto;flex:1;min-height:0;padding-bottom:.5rem;}
   .se-head{text-align:center;padding:.6rem 0 .4rem;}
@@ -203,21 +217,63 @@
 <body>
 <div class="wrap">
 
-  <!-- ============ INTRO ============ -->
-  <section class="screen active" id="screen-intro">
-    <div class="intro-scroll">
+  <!-- ============ TÍTULO ============ -->
+  <section class="screen active" id="screen-title">
+    <div class="intro-scroll" style="display:flex;flex-direction:column;justify-content:center;">
       <div class="brand">
         <div class="kicker">Liga Cultural de Fútbol · La Pampa</div>
         <h1>PAMPA<br>STAR</h1>
         <div class="ball">⚽</div>
-        <div class="sub">De un pueblo pampeano a la <b style="color:var(--sol-2)">Primera B</b>. Movés, te cruzan, <b style="color:var(--sol-2)">elegís el comando</b> y se define por estadísticas. Como en los fierros viejos.</div>
+        <div class="sub">Del potrero al Mundial. Retro, pampeano y por comandos.</div>
+      </div>
+      <div class="panel">
+        <button class="btn" id="btn-continuar" style="display:none">▶ CONTINUAR</button>
+        <div class="mono" id="continuar-info" style="display:none;text-align:center;font-size:.62rem;opacity:.8;margin-top:.45rem;line-height:1.5"></div>
+        <button class="btn ghost" id="btn-nuevo" style="margin-top:.7rem;font-size:.8rem">✚ NUEVO JUEGO</button>
+        <button class="btn ghost" id="btn-mute-title" style="margin-top:.7rem">🔊 SONIDO: ON</button>
+      </div>
+      <div class="foot">Todo original · hecho en La Pampa</div>
+    </div>
+  </section>
+
+  <!-- ============ LORE ============ -->
+  <section class="screen" id="screen-lore">
+    <div class="intro-scroll" style="display:flex;flex-direction:column;justify-content:center;">
+      <div class="panel">
+        <div class="se-title">📜 TU HISTORIA</div>
+        <div id="lore-txt" style="line-height:1.75;font-size:.92rem"></div>
+      </div>
+      <button class="btn" id="btn-lore-go">⚽ PATEAR LA PRIMERA PELOTA</button>
+    </div>
+  </section>
+
+  <!-- ============ CREACIÓN DE AVATAR ============ -->
+  <section class="screen" id="screen-intro">
+    <div class="intro-scroll">
+      <div class="brand" style="padding-bottom:.2rem">
+        <div class="kicker">Carrera nueva</div>
+        <h1 style="font-size:clamp(1rem,5vw,1.5rem)">CREÁ TU JUGADOR</h1>
       </div>
       <div class="panel">
         <label class="fld">Tu nombre</label>
         <input type="text" class="txt" id="in-name" placeholder="Cómo te grita la hinchada" maxlength="16">
         <div style="height:.6rem"></div>
-        <label class="fld">Tu club (Primera B)</label>
+        <label class="fld">¿De dónde sos? (tu localidad marca tu historia)</label>
+        <select class="sel" id="in-localidad"></select>
+        <div class="mono" id="localidad-fx" style="font-size:.56rem;opacity:.8;margin-top:.3rem"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">¿Cuánto jugaste de chico? (rasgo permanente)</label>
+        <div class="selcards" id="sel-rasgo"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Tu estilo de delantero</label>
+        <div class="selcards" id="sel-estilo"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Repartí 5 puntos (<span id="pts-libres">5</span> libres)</label>
+        <div id="pts-rows"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Tu club (Primera B) — empezás desde abajo</label>
         <select class="sel" id="in-club"></select>
+        <div class="mono" style="font-size:.56rem;opacity:.8;margin-top:.3rem">Los que pelean abajo: más difícil y más épico.</div>
         <div style="height:.6rem"></div>
         <label class="fld">Tu pinta</label>
         <div class="pinta-row">
@@ -232,20 +288,10 @@
           <span class="pos-badge">⚡ Delantero</span>
           <span class="mono" style="font-size:.56rem;opacity:.6">posición fija</span>
         </div>
-        <button class="btn" id="btn-start">SALIR A LA CANCHA</button>
+        <button class="btn" id="btn-start">EMPEZAR CARRERA ▶</button>
+        <button class="btn ghost" id="btn-intro-volver" style="font-size:.7rem">◀ Volver al inicio</button>
       </div>
-      <div id="career-box" style="display:none">
-        <div class="panel" style="margin-top:.6rem">
-          <div class="mono" style="font-size:.56rem;letter-spacing:.18em;color:var(--sol);text-transform:uppercase">Tu carrera</div>
-          <div class="career-strip">
-            <div class="career-cell"><div class="n" id="c-partidos">0</div><div class="l">Partidos</div></div>
-            <div class="career-cell"><div class="n" id="c-goles">0</div><div class="l">Goles</div></div>
-            <div class="career-cell"><div class="n" id="c-nivel">1</div><div class="l">Nivel</div></div>
-          </div>
-          <button class="btn ghost" id="btn-reset">Borrar carrera</button>
-        </div>
-      </div>
-      <div class="foot">Partido completo · dos tiempos · ataque y defensa</div>
+      <div class="foot">Tu origen condiciona toda la carrera</div>
     </div>
   </section>
 
@@ -512,24 +558,114 @@ function ensureVida(){
 }
 
 /* ---------- Intro ---------- */
+/* ---------- Origen: localidad, rasgo y estilo (condicionan la carrera) ---------- */
+const LOCALIDADES = ["Abramo","Adolfo Van Praet","Agustoni","Algarrobo del Águila","Alpachiri","Alta Italia","Anguil","Anzoátegui","Arata","Ataliva Roca","Bernardo Larroudé","Bernasconi","Caleufú","Carro Quemado","Catriló","Ceballos","Chacharramendi","Colonia 25 de Mayo","Colonia Barón","Colonia Santa María","Conhelo","Coronel Hilario Lagos","Cuchillo-Có","Doblas","Eduardo Castex","Embajador Martini","Falucho","General Acha","General Pico","General San Martín","Gobernador Duval","Guatraché","Hucal","Ingeniero Luiggi","Intendente Alvear","Jacinto Arauz","La Adela","La Humada","La Maruja","La Reforma","Limay Mahuida","Lonquimay","Loventué","Luan Toro","Macachín","Maisonnave","Mariano Miró","Mauricio Mayer","Metileo","Miguel Riglos","Monte Nievas","Naicó","Parera","Pichi Huinca","Puelches","Puelén","Quehué","Quemú Quemú","Rancul","Realicó","Rolón","Santa Isabel","Santa Rosa","Sarah","Speluzzi","Telén","Toay","Tomás M. de Anchorena","Trenel","Unanue","Uriburu","Vértiz","Victorica","Villa Mirasol","Winifreda"];
+const CIUDADES_GRANDES = ["Santa Rosa","General Pico"];
+const RASGOS = [
+  {k:"potrerista", n:"POTRERISTA", d:"+3 Gambeta · −2 Físico. Gambeta y pases suben más rápido al entrenar."},
+  {k:"club",       n:"DE CLUB",    d:"+2 Pase. Vínculo inicial más alto al reclutar y mejores paredes."},
+  {k:"tardio",     n:"TARDÍO",     d:"Arrancás más abajo (−2 Tiro/Gambeta/Pase) pero TODO entrenamiento rinde más."},
+];
+const ESTILOS = [
+  {k:"encarador", n:"EL QUE ENCARA",    d:"+2 Gambeta · +2 Velocidad."},
+  {k:"definidor", n:"EL QUE LA CLAVA",  d:"+3 Tiro."},
+  {k:"equipo",    n:"JUEGA PARA TODOS", d:"+2 Pase y el vínculo pesa MÁS en pases y paredes."},
+];
+let rasgoSel=null, estiloSel=null;
+let puntosSel={tiro:0,gambeta:0,pase:0,velocidad:0,fisico:0,caracter:0};
+function puntosLibres(){ return 5 - Object.values(puntosSel).reduce((a,b)=>a+b,0); }
+function renderSelCards(contId, lista, val, setter){
+  const cont=$(contId); cont.innerHTML="";
+  lista.forEach(o=>{
+    const b=document.createElement("button");
+    b.className="selcard"+(val===o.k?" sel":"");
+    b.innerHTML=`<div class="sn">${o.n}</div><div class="sd">${o.d}</div>`;
+    b.addEventListener("click",()=>{ SFX("menu"); setter(o.k); });
+    cont.appendChild(b);
+  });
+}
+function renderOrigen(){
+  renderSelCards("sel-rasgo", RASGOS, rasgoSel, k=>{ rasgoSel=k; renderOrigen(); });
+  renderSelCards("sel-estilo", ESTILOS, estiloSel, k=>{ estiloSel=k; renderOrigen(); });
+  $("pts-libres").textContent=puntosLibres();
+  const rows=$("pts-rows"); rows.innerHTML="";
+  [["tiro","Tiro"],["gambeta","Gambeta"],["pase","Pase"],["velocidad","Velocidad"],["fisico","Físico"],["caracter","Carácter"]].forEach(([k,l])=>{
+    const r=document.createElement("div"); r.className="pts-row";
+    r.innerHTML=`<span class="pn">${l}</span><button class="pts-btn" data-k="${k}" data-d="-1">−</button><span class="pts-val">+${puntosSel[k]}</span><button class="pts-btn" data-k="${k}" data-d="1">＋</button>`;
+    rows.appendChild(r);
+  });
+  rows.querySelectorAll(".pts-btn").forEach(b=>b.addEventListener("click",()=>{
+    const k=b.dataset.k, d=+b.dataset.d;
+    if(d>0 && puntosLibres()<=0) return;
+    puntosSel[k]=clamp(puntosSel[k]+d,0,5);
+    renderOrigen();
+  }));
+  const loc=$("in-localidad").value;
+  $("localidad-fx").textContent = CIUDADES_GRANDES.includes(loc)
+    ? "Ciudad grande: +1 Pase y +1 Tiro (formación técnica)."
+    : "Pueblo: +2 Carácter (jugar contra el viento forja).";
+}
 function initIntro(){
   const sel = $("in-club");
-  sel.innerHTML = CLUBES.map((c,i)=>`<option value="${i}">${c.n} · ${c.loc}</option>`).join("");
+  sel.innerHTML = CLUBES.map((c,i)=>`<option value="${i}">${c.n} · ${c.loc}${c.f<=48?" · la pelea abajo":""}</option>`).join("");
+  const sloc=$("in-localidad");
+  if(!sloc.options.length){
+    sloc.innerHTML = LOCALIDADES.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
+    sloc.value="Santa Rosa";
+    sloc.addEventListener("change", renderOrigen);
+  }
   if(career){
     $("in-name").value = career.name || "";
     const idx = CLUBES.findIndex(c=>c.n===career.club);
     if(idx>=0) sel.value = idx;
-    $("career-box").style.display = "block";
-    $("c-partidos").textContent = career.partidos||0;
-    $("c-goles").textContent = career.goles||0;
-    $("c-nivel").textContent = nivelJugador();
     if(career.look) lookSel = {                             // normaliza índices fuera de rango
       piel: Math.abs(numOr(career.look.piel,0)|0)%PIELES.length,
       pelo: Math.abs(numOr(career.look.pelo,1)|0)%PELOS.length,
       camiseta: Math.abs(numOr(career.look.camiseta,0)|0)%CAMISETAS.length };
   }
+  renderOrigen();
   renderPinta();
 }
+/* ---------- Título ---------- */
+function renderTitle(){
+  const hay = !!(career && career.club);
+  $("btn-continuar").style.display = hay?"block":"none";
+  $("continuar-info").style.display = hay?"block":"none";
+  if(hay){
+    const f = career.temporada ? (career.temporada.terminada?"temporada terminada":`Fecha ${(career.temporada.fecha||0)+1}`) : "arrancando";
+    $("continuar-info").textContent = `${career.name} · ${career.club} · ${f} · Nivel ${nivelJugador()}`;
+  }
+  refreshMute();
+  showScreen("screen-title");
+}
+$("btn-continuar").addEventListener("click", ()=>{
+  ensureCareer(career.name, career.club);
+  ensureSeason(); renderSeason();
+});
+$("btn-nuevo").addEventListener("click", ()=>{
+  if(career && !confirm("Arrancar de cero BORRA la carrera actual. ¿Dale?")) return;
+  localStorage.removeItem(STORE); career=null;
+  rasgoSel=null; estiloSel=null; puntosSel={tiro:0,gambeta:0,pase:0,velocidad:0,fisico:0,caracter:0};
+  lookSel={piel:0,pelo:1,camiseta:0};
+  $("in-name").value="";
+  initIntro(); showScreen("screen-intro");
+});
+$("btn-mute-title").addEventListener("click", ()=>{ PSAUDIO.toggleMute(); refreshMute(); });
+$("btn-intro-volver").addEventListener("click", ()=>renderTitle());
+/* ---------- Lore de intro (adaptativo al origen) ---------- */
+function mostrarLore(){
+  const club=CLUBES.find(c=>c.n===career.club)||CLUBES[0];
+  const loc=(career.origen&&career.origen.localidad)||"tu pueblo";
+  $("lore-txt").innerHTML =
+    `En La Pampa el viento no para nunca, y hay pibes que aprenden a jugar contra él antes que a favor. Vos sos de esa gente. `+
+    `Naciste en <b>${esc(loc)}</b>, donde la pelota era lo único que sobraba. Jugaste donde se pudo, con lo que había, `+
+    `hasta que armaste el bolso y te mudaste a <b>${esc(club.loc)}</b> para probarte en <b>${esc(club.n)}</b>, `+
+    `un equipo que la pelea abajo y al que no le sobra nada. Nadie te está esperando. No hay cámaras, no hay contrato, no hay nada firmado. `+
+    `Hay una cancha, un vestuario que huele a Reflex, y noventa minutos por delante para empezar a demostrar. `+
+    `De acá al Mundial hay un camino largo. <b>Se empieza pateando la primera pelota.</b>`;
+  showScreen("screen-lore");
+}
+$("btn-lore-go").addEventListener("click", ()=>{ SFX("whistle",1); renderSeason(); });
 /* ---------- Tu pinta (variantes etiquetadas: nombre + forma, nunca solo color) ---------- */
 let lookSel = {piel:0, pelo:1, camiseta:0};
 const LOOK_CATS = {piel:PIELES, pelo:PELOS, camiseta:CAMISETAS};
@@ -551,24 +687,23 @@ $("in-club").addEventListener("change", renderPinta);
 $("btn-start").addEventListener("click", ()=>{
   const name = ($("in-name").value||"").trim() || "Promesa";
   const club = CLUBES[+$("in-club").value];
-  // cambiar de club a mitad de temporada arranca una temporada nueva (con aviso)
-  const cambioClub = !!(career && career.club && career.club !== club.n);
-  if(cambioClub && career.temporada && !career.temporada.terminada && career.temporada.fecha>0){
-    if(!confirm(`Cambiar de club (${career.club} → ${club.n}) arranca una TEMPORADA NUEVA desde cero. ¿Dale?`)) return;
-  }
-  ensureCareer(name, club.n);
+  ensureCareer(name, club.n);                       // llega siempre desde NUEVO JUEGO: carrera fresca
   career.look = {piel:lookSel.piel, pelo:lookSel.pelo, camiseta:lookSel.camiseta};
-  if(cambioClub){
-    career.temporada = nuevaTemporada();
-    const v=ensureVida();                                        // pretemporada de verdad:
-    if(v){ v.semanaPendiente=false; v.puntosSemana=0; v.gutsProximo=100; }  // sin semana fantasma, energía a full
-  }
+  /* ORIGEN: condiciona toda la carrera (localidad = identidad; rasgo y estilo = juego) */
+  const localidad=$("in-localidad").value;
+  career.origen = {localidad, rasgo:rasgoSel, estilo:estiloSel};
+  const s=career.stats;
+  if(CIUDADES_GRANDES.includes(localidad)){ s.pase+=1; s.tiro+=1; } else { s.caracter+=2; }
+  if(rasgoSel==="potrerista"){ s.gambeta+=3; s.fisico-=2; }
+  if(rasgoSel==="club"){ s.pase+=2; }
+  if(rasgoSel==="tardio"){ s.tiro-=2; s.gambeta-=2; s.pase-=2; }
+  if(estiloSel==="encarador"){ s.gambeta+=2; s.velocidad+=2; }
+  if(estiloSel==="definidor"){ s.tiro+=3; }
+  if(estiloSel==="equipo"){ s.pase+=2; }
+  for(const k in puntosSel) s[k]=clamp((s[k]||45)+puntosSel[k],1,99);
   ensureSeason();
   saveCareer();
-  renderSeason();
-});
-$("btn-reset").addEventListener("click", ()=>{
-  if(confirm("¿Borrar toda la carrera?")){ localStorage.removeItem(STORE); career=null; location.reload(); }
+  mostrarLore();
 });
 
 /* ============================ TEMPORADA (Primera B, Liga Cultural) ============================
@@ -746,7 +881,7 @@ $("btn-jugar").addEventListener("click", ()=>{
   if(mio){ startPlay(CLUBES[yo], CLUBES[mio.h===yo?mio.a:mio.h]); }
   else { aplicarFecha(null,null); renderSeason(); }
 });
-$("btn-se-home").addEventListener("click", ()=>{ initIntro(); showScreen("screen-intro"); });
+$("btn-se-home").addEventListener("click", ()=>{ renderTitle(); });
 
 /* ============================ SEMANA (vida entre fechas) ============================ */
 function wkAcciones(){
@@ -809,7 +944,10 @@ const WK_HANDLERS = {
       `</div>`;
     $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
       if(!gastarPunto()) return;
-      const k=b.dataset.k, perfecto=Math.random()<0.2, inc=perfecto?2:1;
+      const k=b.dataset.k;
+      const rasgo=career.origen&&career.origen.rasgo;   // el rasgo condiciona cómo rinde la semana
+      const pPerf = rasgo==="tardio" ? 0.5 : (rasgo==="potrerista"&&(k==="gambeta"||k==="pase")) ? 0.6 : 0.2;
+      const perfecto=Math.random()<pPerf, inc=perfecto?2:1;
       career.stats[k]=clamp(career.stats[k]+inc,1,99); saveCareer();
       $("wk-detail").innerHTML=`✔ Semana de entrenamiento${perfecto?" <b>PERFECTA</b>":""}: <b>+${inc} ${statLabel(k)}</b> (ahora ${career.stats[k]}).`;
       renderWeekChips();
@@ -879,7 +1017,8 @@ function nuevoCandidato(){
   const st={pase:0,tiro:0,gambeta:0,velocidad:0,fisico:0};
   for(const k in st) st[k]=Math.round(rnd(42,56));
   st[pos.main]=clamp(st[pos.main]+8,1,99);
-  return {pos:pos.k, stats:st, look:lookAleatorio(), vinculo:25};
+  const vincIni = (career.origen&&career.origen.rasgo==="club") ? 35 : 25;   // DE CLUB: caés bien de entrada
+  return {pos:pos.k, stats:st, look:lookAleatorio(), vinculo:vincIni};
 }
 function renderCandidato(){
   const c=wkCandidato; if(!c) return;
@@ -1059,9 +1198,10 @@ function ctrlGastarGuts(n){
 function statDe(e,k){ const s=e.ref==="yo"?career.stats:e.stats; return (s&&s[k]!=null)?s[k]:45; }
 function nombreDe(e){ return e.ref==="yo" ? career.name : e.nombre; }
 function paseParVinculo(a,b){
+  const estiloEq = (career.origen&&career.origen.estilo==="equipo") ? 1.25 : 1;  // JUEGA PARA TODOS: el vínculo pesa más
   if(a.ref==="cantera"||b.ref==="cantera") return 0;
-  if(a.ref==="yo") return b.vinculo||0;
-  if(b.ref==="yo") return a.vinculo||0;
+  if(a.ref==="yo") return (b.vinculo||0)*estiloEq;
+  if(b.ref==="yo") return (a.vinculo||0)*estiloEq;
   return ((a.vinculo+b.vinculo)/2)*0.6;   // par amigo-amigo: promedio de vínculos con vos ×0.6
 }
 function distSeg(x1,y1,x2,y2,qx,qy){
@@ -1166,7 +1306,7 @@ function mejorParedPar(){
 function resolvePared(cm){
   const par=cm.par, vinc=paseParVinculo(ctrlEnt(), par);
   const auto = vinc>=70 && !PS.paredAutoUsada;
-  const pct = clamp(Math.round(55 + effStat("pase")*0.35 + vinc*0.20 - PS.rival.f*0.3), 20, 95);
+  const pct = clamp(Math.round(55 + effStat("pase")*0.35 + vinc*0.20 - PS.rival.f*0.3 + ((career.origen&&career.origen.rasgo==="club")?5:0)), 20, 95);
   const win = auto || (Math.random()*100 < pct);
   if(auto) PS.paredAutoUsada=true;
   advanceClock();
@@ -1954,7 +2094,7 @@ $("btn-again").addEventListener("click", ()=>{ aplicarResultadoPartido(); render
 $("btn-home").addEventListener("click", ()=>{
   if(PS){ PS.running=false; cancelAnimationFrame(PS.raf); }
   aplicarResultadoPartido();
-  initIntro(); showScreen("screen-intro");
+  renderTitle();
 });
 
 /* ---------- Input: d-pad (touch + mouse + teclado) ---------- */
@@ -1996,8 +2136,9 @@ addEventListener("keydown", ()=>PSAUDIO.unlock(), {once:true});
 $("btn-mute").addEventListener("click", ()=>{ PSAUDIO.toggleMute(); refreshMute(); });
 refreshMute();
 
-/* ---------- Arranque ---------- */
+/* ---------- Arranque: título con Continuar/Nuevo ---------- */
 initIntro();
+renderTitle();
 </script>
 </body>
 </html>
