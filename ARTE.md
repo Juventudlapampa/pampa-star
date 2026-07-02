@@ -33,7 +33,7 @@
 | Tipo | Variante | Distinción |
 |---|---|---|
 | Piel | Piel clara `#e9b58c` / Piel trigueña `#c68e5f` / Piel morena `#8d5a3a` | etiqueta con nombre |
-| Pelo | Rapado (al ras, FORMA) / Corto oscuro `#3a2a1a` / Corto claro `#c9a227` / Largo oscuro `#241a10` (melena, FORMA) / Largo colorado `#a53f1f` (melena, FORMA) | forma + etiqueta |
+| Pelo | Rapado (al ras) / Corto oscuro `#3a2a1a` / Corto claro `#c9a227` (+flequillo) / Largo oscuro `#241a10` (melena) / Largo colorado `#a53f1f` (melena + vincha `#0a1f13`) | **cada uno con FORMA propia** + etiqueta |
 | Camiseta | Lisa / A franjas (verticales, FORMA) / Con banda (horizontal, FORMA) | forma + etiqueta |
 
 Las camisetas usan los colores del club (c1/c2 en HEX, definidos por club en el código).

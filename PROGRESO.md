@@ -52,6 +52,18 @@
 - **Variantes pixel etiquetadas** (regla dura daltonismo): piel (3), pelo (5, con FORMA: rapado/corto/largo) y camiseta (3, con FORMA: lisa/franjas/banda). Cada variante tiene NOMBRE visible; nada se distingue solo por color; HEX en el código. Personalización "Tu pinta" en la intro con preview, y mini-sprites de los amigos con su pinta.
 - Guardado único retrocompatible (`vida` y `look` se agregan a saves viejos sin pisar nada).
 
+### Revisión adversarial de la Capa 3 ✅ (7 hallazgos únicos, todos arreglados)
+1. Saneo profundo del guardado en `ensureVida`: `puntosSemana`/amigos corruptos ya no regalan puntos infinitos ni congelan el partido (reparación EN el objeto, sin romper referencias vivas).
+2–4. Textos género-neutros: meta description e intro sin "pibe", default "Promesa" (antes "El Pibe"), "a jugar en equipo" (antes "juntos"), "Aguantás firme" (antes "Lo esperás parado").
+5. Cambiar de club ahora resetea la vida como NUEVA TEMPORADA (sin semana fantasma, Guts 100).
+6. Pelos con FORMA propia: "Corto claro (flequillo)" y "Largo colorado (vincha #0a1f13)" — ningún par se distingue solo por color.
+7. `renderPinta` e `initIntro` normalizan índices de look fuera de rango (no rompe el arranque).
+
+### 🗺 HOJA DE RUTA ACORDADA (jul 2026, orden de Rodri)
+1. **Partido v2** según `DISENO_PARTIDO_V2.md` (spec de Cowork, en el repo): 5v5 con amigos reales, minimapa, pase real, roles, química visible, ritmo. VA PRIMERO.
+2. Tanda de integración: arte/sonido/controles/inicio/avatar (sobre el partido v2). NOTA: los módulos `pampa-star-sprites.js`, `pampa-star-audio.js` y `ARTE.md` actuales son ORIGINALES creados en sesión (el material de Cowork nunca llegó a la carpeta); la dirección de arte/sonido se está reconsiderando aparte y habrá un pase dedicado de assets cuando se defina.
+3. Escalera de ascensos y fichajes.
+
 ### NO hecho a propósito (etapas aparte, definidas en el addendum)
 - Rotación de plantel (amigos que van con vos o se venden cuando cambiás de club).
 - Planteles reales rivales (harvest de formaciones publicadas).

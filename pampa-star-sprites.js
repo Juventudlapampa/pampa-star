@@ -12,12 +12,14 @@ var PSART = (function(){
     {n:"Piel trigueña", hex:"#c68e5f"},
     {n:"Piel morena",   hex:"#8d5a3a"},
   ];
+  /* cada pelo tiene FORMA propia (rapado / corto / corto+flequillo / largo / largo+vincha),
+     no solo color: dos variantes nunca se distinguen únicamente por el hex */
   const PELOS = [
-    {n:"Rapado",         estilo:"rapado", hex:"#2a2a2a"},
-    {n:"Corto oscuro",   estilo:"corto",  hex:"#3a2a1a"},
-    {n:"Corto claro",    estilo:"corto",  hex:"#c9a227"},
-    {n:"Largo oscuro",   estilo:"largo",  hex:"#241a10"},
-    {n:"Largo colorado", estilo:"largo",  hex:"#a53f1f"},
+    {n:"Rapado",                estilo:"rapado", rasgo:null,        hex:"#2a2a2a"},
+    {n:"Corto oscuro",          estilo:"corto",  rasgo:null,        hex:"#3a2a1a"},
+    {n:"Corto claro (flequillo)",estilo:"corto", rasgo:"flequillo", hex:"#c9a227"},
+    {n:"Largo oscuro",          estilo:"largo",  rasgo:null,        hex:"#241a10"},
+    {n:"Largo colorado (vincha)",estilo:"largo", rasgo:"vincha",    hex:"#a53f1f"},
   ];
   const CAMISETAS = [
     {n:"Lisa",      estilo:"lisa"},
@@ -34,7 +36,7 @@ var PSART = (function(){
   function lookResolved(l){
     const k=l||{piel:0,pelo:1,camiseta:0};
     const piel=PIELES[(k.piel||0)%PIELES.length], pelo=PELOS[(k.pelo||0)%PELOS.length], cam=CAMISETAS[(k.camiseta||0)%CAMISETAS.length];
-    return {pielHex:piel.hex, peloHex:pelo.hex, peloEstilo:pelo.estilo, camEstilo:cam.estilo};
+    return {pielHex:piel.hex, peloHex:pelo.hex, peloEstilo:pelo.estilo, peloRasgo:pelo.rasgo, camEstilo:cam.estilo};
   }
 
   /* ---------- cancha completa (pasto, líneas, arcos, banderines) ---------- */
@@ -95,6 +97,9 @@ var PSART = (function(){
     if(peloEstilo==="rapado"){ px(c,x+2,y,4,1,"rgba(0,0,0,.28)"); }
     else px(c,x+2,y,4,1,peloHex);
     if(peloEstilo==="largo"){ px(c,x+1,y,1,4,peloHex); px(c,x+6,y,1,4,peloHex); }
+    const rasgo=(look&&look.peloRasgo)||null;
+    if(rasgo==="flequillo"){ px(c,x+2,y+1,1,1,peloHex); px(c,x+5,y+1,1,1,peloHex); } // mechones sobre la frente (FORMA)
+    if(rasgo==="vincha"){ px(c,x+2,y+1,4,1,"#0a1f13"); }                              // vincha oscura (FORMA)
     if(camEstilo==="franjas"){ for(let i=0;i<8;i+=2){ px(c,x+i,y+4,1,6,shirt); px(c,x+i+1,y+4,1,6,shorts); } }
     else px(c,x,y+4,8,6,shirt);
     if(camEstilo==="banda"){ px(c,x,y+7,8,2,shorts); }

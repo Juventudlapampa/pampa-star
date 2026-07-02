@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PAMPA STAR · Tu carrera en la Liga Cultural</title>
-<meta name="description" content="Sos un pibe pampeano que arranca en Primera B de la Liga Cultural y sueña con el Mundial. Partido retro por comandos, jugabilidad estilo Captain Tsubasa.">
+<meta name="description" content="Arrancás en un club de pueblo de la Primera B de la Liga Cultural y soñás con el Mundial. Partido retro por comandos, jugabilidad estilo Captain Tsubasa.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -194,7 +194,7 @@
         <div class="kicker">Liga Cultural de Fútbol · La Pampa</div>
         <h1>PAMPA<br>STAR</h1>
         <div class="ball">⚽</div>
-        <div class="sub">Pibe de pueblo en <b style="color:var(--sol-2)">Primera B</b>. Movés, te cruzan, <b style="color:var(--sol-2)">elegís el comando</b> y se define por estadísticas. Como en los fierros viejos.</div>
+        <div class="sub">De un pueblo pampeano a la <b style="color:var(--sol-2)">Primera B</b>. Movés, te cruzan, <b style="color:var(--sol-2)">elegís el comando</b> y se define por estadísticas. Como en los fierros viejos.</div>
       </div>
       <div class="panel">
         <label class="fld">Tu nombre</label>
@@ -458,17 +458,32 @@ function ensureCareer(name, club){
   ensureVida();
   saveCareer();
 }
-/* Vida retrocompatible: a un guardado viejo se le agrega sin pisar nada */
+/* Vida retrocompatible: a un guardado viejo se le agrega sin pisar nada.
+   Sanea TODO (números reales, amigos bien formados): un save corrupto no puede
+   regalar puntos infinitos ni congelar el partido. Repara EN el objeto (sin
+   recrear amigos, para no romper referencias vivas como PS.compa). */
+function numOr(x,d){ return (typeof x==="number" && !isNaN(x)) ? x : d; }
 function ensureVida(){
   if(!career) return null;
   if(!career.vida || typeof career.vida!=="object") career.vida = {};
   const v=career.vida;
-  if(v.plata==null || isNaN(v.plata)) v.plata=0;
-  if(v.animo==null || isNaN(v.animo)) v.animo=70;
-  if(v.gutsProximo==null || isNaN(v.gutsProximo)) v.gutsProximo=100;
+  v.plata = Math.max(0, numOr(v.plata,0));
+  v.animo = clamp(numOr(v.animo,70),0,100);
+  v.gutsProximo = clamp(numOr(v.gutsProximo,100),0,100);
   if(!Array.isArray(v.amigos)) v.amigos=[];
-  if(v.semanaPendiente==null) v.semanaPendiente=false;
-  if(v.puntosSemana==null) v.puntosSemana=0;
+  for(let i=v.amigos.length-1;i>=0;i--){
+    const a=v.amigos[i];
+    if(!a || typeof a!=="object"){ v.amigos.splice(i,1); continue; }
+    if(typeof a.nombre!=="string" || !a.nombre.trim()) a.nombre="Cantera";
+    if(!POSICIONES.some(p=>p.k===a.pos)) a.pos="VOL";
+    if(!a.stats || typeof a.stats!=="object") a.stats={};
+    for(const k of ["pase","tiro","gambeta","velocidad","fisico"]) a.stats[k]=clamp(numOr(a.stats[k],45),1,99);
+    a.vinculo = clamp(numOr(a.vinculo,25),0,100);
+    if(!a.look || typeof a.look!=="object") a.look={piel:0,pelo:1,camiseta:0};
+  }
+  if(v.amigos.length>4) v.amigos.length=4;
+  v.semanaPendiente = !!v.semanaPendiente;
+  v.puntosSemana = clamp(numOr(v.puntosSemana,0),0,PUNTOS_SEMANA);
   return v;
 }
 
@@ -484,7 +499,10 @@ function initIntro(){
     $("c-partidos").textContent = career.partidos||0;
     $("c-goles").textContent = career.goles||0;
     $("c-nivel").textContent = nivelJugador();
-    if(career.look) lookSel = {piel:career.look.piel||0, pelo:career.look.pelo!=null?career.look.pelo:1, camiseta:career.look.camiseta||0};
+    if(career.look) lookSel = {                             // normaliza índices fuera de rango
+      piel: Math.abs(numOr(career.look.piel,0)|0)%PIELES.length,
+      pelo: Math.abs(numOr(career.look.pelo,1)|0)%PELOS.length,
+      camiseta: Math.abs(numOr(career.look.camiseta,0)|0)%CAMISETAS.length };
   }
   renderPinta();
 }
@@ -492,9 +510,9 @@ function initIntro(){
 let lookSel = {piel:0, pelo:1, camiseta:0};
 const LOOK_CATS = {piel:PIELES, pelo:PELOS, camiseta:CAMISETAS};
 function renderPinta(){
-  $("lbl-piel").textContent = PIELES[lookSel.piel].n;
-  $("lbl-pelo").textContent = PELOS[lookSel.pelo].n;
-  $("lbl-camiseta").textContent = CAMISETAS[lookSel.camiseta].n;
+  $("lbl-piel").textContent = PIELES[lookSel.piel%PIELES.length].n;
+  $("lbl-pelo").textContent = PELOS[lookSel.pelo%PELOS.length].n;
+  $("lbl-camiseta").textContent = CAMISETAS[lookSel.camiseta%CAMISETAS.length].n;
   const club = CLUBES[+$("in-club").value||0];
   const cv=$("pv-canvas"), ctx=cv.getContext("2d");
   ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height);
@@ -507,7 +525,7 @@ document.querySelectorAll(".cycb").forEach(b=>b.addEventListener("click",()=>{
 }));
 $("in-club").addEventListener("change", renderPinta);
 $("btn-start").addEventListener("click", ()=>{
-  const name = ($("in-name").value||"").trim() || "El Pibe";
+  const name = ($("in-name").value||"").trim() || "Promesa";
   const club = CLUBES[+$("in-club").value];
   // cambiar de club a mitad de temporada arranca una temporada nueva (con aviso)
   const cambioClub = !!(career && career.club && career.club !== club.n);
@@ -516,7 +534,11 @@ $("btn-start").addEventListener("click", ()=>{
   }
   ensureCareer(name, club.n);
   career.look = {piel:lookSel.piel, pelo:lookSel.pelo, camiseta:lookSel.camiseta};
-  if(cambioClub) career.temporada = nuevaTemporada();
+  if(cambioClub){
+    career.temporada = nuevaTemporada();
+    const v=ensureVida();                                        // pretemporada de verdad:
+    if(v){ v.semanaPendiente=false; v.puntosSemana=0; v.gutsProximo=100; }  // sin semana fantasma, energía a full
+  }
   ensureSeason();
   saveCareer();
   renderSeason();
@@ -844,7 +866,7 @@ function renderCandidato(){
     if(v.amigos.length>=4 || !gastarPunto()) return;
     v.amigos.push({nombre:nom, pos:wkCandidato.pos, stats:wkCandidato.stats, look:wkCandidato.look, vinculo:wkCandidato.vinculo});
     wkCandidato=null; saveCareer();
-    $("wk-detail").innerHTML=`✔ <b>${esc(nom)}</b> se suma al grupo. ¡A entrenar y a jugar juntos!`;
+    $("wk-detail").innerHTML=`✔ <b>${esc(nom)}</b> se suma al grupo. ¡A entrenar y a jugar en equipo!`;
     renderWeekChips(); renderAmigosList();
   });
   $("wk-otro").addEventListener("click", ()=>{ wkCandidato=nuevoCandidato(); renderCandidato(); });
@@ -1165,7 +1187,7 @@ function duelIntro(k){
     gambeta:"Amagás y encarás… 🌀", pase:"La tocás al compañero… ➡️", pared:"Pared y a picar al espacio… 🔁",
     tiro:"¡Sacás el remate! 🎯", colocado:"Buscás el palo con un zurdazo colocado… 🎽",
     quitar:"Vas al piso con todo… 🦵", cortar:"Leés el pase y saltás a la línea… ✂️",
-    bloquear:"Ponés el cuerpo… 🧱", marcar:"Lo esperás parado, sin comerte el amague… 👁️",
+    bloquear:"Ponés el cuerpo… 🧱", marcar:"Aguantás firme, sin comerte el amague… 👁️",
   })[k] || "…";
 }
 
