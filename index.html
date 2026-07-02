@@ -71,6 +71,35 @@
   .se-campeon .t{font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--sol-2);line-height:1.6;}
   .se-campeon .s{font-family:'JetBrains Mono',monospace;font-size:.68rem;margin-top:.45rem;line-height:1.55;}
 
+  /* ---------- SEMANA (capa de vida) ---------- */
+  .wk-chips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.4rem 0 .6rem;}
+  .chip{display:flex;align-items:center;gap:.3rem;background:rgba(0,0,0,.5);border:1.5px solid rgba(246,239,220,.25);border-radius:8px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;}
+  .chip b{color:var(--sol-2);}
+  .wk-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+  .wk-card{background:linear-gradient(180deg,#13502c,#0c3a20);border:2px solid rgba(246,239,220,.25);border-radius:10px;padding:.6rem .55rem;cursor:pointer;color:var(--crema);text-align:left;transition:transform .06s,border-color .1s;}
+  .wk-card:active{transform:scale(.97);}
+  .wk-card:not(.off):hover{border-color:var(--sol);}
+  .wk-card .wi{font-size:1.1rem;}
+  .wk-card .wn{font-family:'Press Start 2P',monospace;font-size:.6rem;margin-top:.3rem;line-height:1.35;}
+  .wk-card .wd{font-family:'JetBrains Mono',monospace;font-size:.56rem;opacity:.75;margin-top:.25rem;line-height:1.4;}
+  .wk-card.off{opacity:.4;cursor:not-allowed;border-style:dashed;}
+  .wk-detail{background:rgba(0,0,0,.5);border-left:4px solid var(--sol);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.55;min-height:2.4em;}
+  .wk-detail b{color:var(--sol-2);}
+  .wk-opts{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;}
+  .wk-opt{background:rgba(20,70,38,.9);border:1.5px solid rgba(246,239,220,.3);border-radius:8px;color:var(--crema);padding:.45rem .6rem;font-family:'JetBrains Mono',monospace;font-size:.64rem;cursor:pointer;}
+  .wk-opt:active{transform:scale(.96);}
+  .wk-opt.warn{border-color:var(--rojo);}
+  .wk-input{width:100%;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.3);color:var(--crema);padding:.5rem .6rem;border-radius:8px;font-family:inherit;font-size:.9rem;margin-top:.45rem;}
+  .wk-input:focus{outline:none;border-color:var(--sol);}
+  /* amigos */
+  .am-row{display:flex;gap:.55rem;align-items:center;background:rgba(0,0,0,.35);border:1px solid rgba(91,184,232,.25);border-radius:10px;padding:.5rem .55rem;margin-top:.45rem;}
+  .am-canvas{width:36px;height:54px;image-rendering:pixelated;flex:0 0 auto;background:rgba(0,0,0,.25);border-radius:6px;}
+  .am-info{flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:.6rem;line-height:1.5;}
+  .am-info .nm{font-family:'Press Start 2P',monospace;font-size:.58rem;color:var(--sol-2);}
+  .vinc-wrap{display:flex;align-items:center;gap:.35rem;margin-top:.2rem;}
+  .vinc-bar{flex:1;height:7px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);border-radius:3px;overflow:hidden;max-width:110px;}
+  .vinc-fill{height:100%;background:linear-gradient(90deg,#5bb8e8,#7ee08a);}
+
   /* ---------- PARTIDO ---------- */
   #screen-match{gap:.4rem;}
   .matchbar{display:flex;align-items:center;gap:.4rem;}
@@ -212,6 +241,30 @@
     </div>
   </section>
 
+  <!-- ============ SEMANA (vida entre fechas) ============ -->
+  <section class="screen" id="screen-week">
+    <div class="se-scroll">
+      <div class="se-head">
+        <div class="kicker" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase">Tu semana · La Pampa</div>
+        <div class="se-fecha" id="wk-fecha">TU SEMANA</div>
+      </div>
+      <div class="wk-chips">
+        <span class="chip">● PUNTOS <b id="wk-puntos">0</b></span>
+        <span class="chip">💰 <b id="wk-plata">$0</b></span>
+        <span class="chip">🧉 ÁNIMO <b id="wk-animo">70</b></span>
+        <span class="chip">🔋 GUTS PRÓX. <b id="wk-guts">100</b></span>
+      </div>
+      <div class="wk-grid" id="wk-grid"></div>
+      <div class="wk-detail" id="wk-detail">Repartí tus puntos de la semana y cerrala cuando estés.</div>
+      <div class="panel" style="margin-top:.6rem" id="wk-amigos-wrap">
+        <div class="se-title">🤝 TU GRUPO (<span id="wk-namigos">0</span>/4)</div>
+        <div id="wk-amigos"></div>
+      </div>
+      <button class="btn" id="btn-terminar-semana">TERMINAR SEMANA ▶</button>
+      <div class="foot">Entrená, descansá y viví: la semana también juega</div>
+    </div>
+  </section>
+
   <!-- ============ PARTIDO ============ -->
   <section class="screen" id="screen-match">
     <div class="matchbar">
@@ -298,6 +351,23 @@ const TIROS_ESPECIALES = [
 ];
 function nivelJugador(){ return 1 + Math.floor(((career&&career.goles)||0)/GOLES_POR_NIVEL); }
 
+/* ====== CAPA DE VIDA (semana entre fechas) ======
+   Pocos puntos por semana para repartir: entrenar, descansar, juntarte, vivir.
+   El modelo de datos nace GÉNERO NEUTRO: ningún personaje tiene género cargado
+   y los textos evitan él/ella (se usa el nombre o frases neutras). */
+const PUNTOS_SEMANA = 3;          // puntos de energía/tiempo por semana
+const GUTS_BASE_POSPARTIDO = 75;  // con cuánto Guts quedás después de un partido (descansar lo sube)
+const VIVIR_EVENTOS = [
+  {t:"Changa de fin de semana: descargaste bolsas en el acopio.", plata:60, animo:-2},
+  {t:"Asado en la pensión con todo el equipo. Se quedó hablando de fútbol hasta cualquier hora.", plata:-15, animo:8},
+  {t:"Le mandaste plata a tu familia en el pueblo. Te llamaron para agradecerte.", plata:-40, animo:10},
+  {t:"Viaje en micro a ver a tu familia: mates, tortas fritas y vuelta con tuppers.", plata:-10, animo:9},
+  {t:"Cortaste el pasto de tres patios del barrio.", plata:45, animo:0},
+  {t:"Tarde de río con la gente de la pensión. Volviste con la cabeza limpia.", plata:0, animo:7},
+  {t:"En la pensión te guardaron guiso: noche tranquila y a dormir temprano.", plata:0, animo:5},
+  {t:"Ayudaste en la escuelita de fútbol del barrio. Te pagaron algo y te fuiste con una sonrisa.", plata:20, animo:6},
+];
+
 /* ---------- Clubes Primera B Liga Cultural (públicos) + colores de camiseta (HEX) ---------- */
 const CLUBES = [
   {n:"Deportivo Winifreda",    loc:"Winifreda",    f:50, c1:"#d23b2e", c2:"#ffffff"},
@@ -339,7 +409,21 @@ function ensureCareer(name, club){
   if(career.victorias==null) career.victorias = 0;
   if(career.empates==null)   career.empates = 0;
   if(career.derrotas==null)  career.derrotas = 0;
+  ensureVida();
   saveCareer();
+}
+/* Vida retrocompatible: a un guardado viejo se le agrega sin pisar nada */
+function ensureVida(){
+  if(!career) return null;
+  if(!career.vida || typeof career.vida!=="object") career.vida = {};
+  const v=career.vida;
+  if(v.plata==null || isNaN(v.plata)) v.plata=0;
+  if(v.animo==null || isNaN(v.animo)) v.animo=70;
+  if(v.gutsProximo==null || isNaN(v.gutsProximo)) v.gutsProximo=100;
+  if(!Array.isArray(v.amigos)) v.amigos=[];
+  if(v.semanaPendiente==null) v.semanaPendiente=false;
+  if(v.puntosSemana==null) v.puntosSemana=0;
+  return v;
 }
 
 /* ---------- Intro ---------- */
@@ -451,6 +535,8 @@ function aplicarFecha(miGoles, rivalGoles){
   t.ultimaFecha={n:t.fecha+1, resultados, libre:f.libre};
   t.fecha++;
   if(t.fecha>=FECHAS_TOTAL){ t.terminada=true; t.campeon=ordenTabla()[0]; }
+  const v=ensureVida();
+  if(v && !t.terminada){ v.semanaPendiente=true; v.puntosSemana=PUNTOS_SEMANA; }  // la semana vive entre fechas
   saveCareer();
 }
 function ordenTabla(){
@@ -492,6 +578,11 @@ function renderSeason(){
         <div class="subl">Te toca descansar: mirás la fecha desde la tribuna. Estás <b>Nº ${miPosicion()}</b>.</div>`;
       $("btn-jugar").textContent="SIMULAR FECHA ▶";
     }
+    const v=ensureVida();
+    if(v){
+      $("se-next").insertAdjacentHTML("beforeend", `<div class="subl">🔋 Guts ${v.gutsProximo} · 💰 $${v.plata} · 🧉 Ánimo ${v.animo}</div>`);
+      if(v.semanaPendiente) $("btn-jugar").textContent="VIVIR LA SEMANA ▶";
+    }
   }
   /* tabla */
   const orden=ordenTabla(), tb=t.tabla;
@@ -521,13 +612,107 @@ function renderSeason(){
 }
 $("btn-jugar").addEventListener("click", ()=>{
   const t=career.temporada;
-  if(t.terminada){ career.temporada=nuevaTemporada(); saveCareer(); renderSeason(); return; }
+  if(t.terminada){
+    career.temporada=nuevaTemporada();
+    const v=ensureVida(); if(v){ v.semanaPendiente=false; v.puntosSemana=0; v.gutsProximo=100; }  // pretemporada: energía a full
+    saveCareer(); renderSeason(); return;
+  }
+  const v=ensureVida();
+  if(v && v.semanaPendiente){ renderWeek(); return; }  // primero se vive la semana
   const yo=myClubIdx(), f=t.fixture[t.fecha];
   const mio=f.matches.find(m=>m.h===yo||m.a===yo);
   if(mio){ startPlay(CLUBES[yo], CLUBES[mio.h===yo?mio.a:mio.h]); }
   else { aplicarFecha(null,null); renderSeason(); }
 });
 $("btn-se-home").addEventListener("click", ()=>{ initIntro(); showScreen("screen-intro"); });
+
+/* ============================ SEMANA (vida entre fechas) ============================ */
+function wkAcciones(){
+  const v=ensureVida();
+  return [
+    {k:"entrenar",  ico:"🏋️", n:"ENTRENAR",  d:"+1 a una estadística"},
+    {k:"descansar", ico:"😴", n:"DESCANSAR", d:`+15 Guts para la fecha (hoy ${v.gutsProximo})`},
+    {k:"vivir",     ico:"🧉", n:"VIVIR",     d:"La familia, la changa, el asado"},
+  ];
+}
+function renderWeek(){
+  const v=ensureVida();
+  $("wk-fecha").textContent = `ANTES DE LA FECHA ${career.temporada.fecha+1}`;
+  renderWeekChips();
+  $("wk-detail").innerHTML = "Repartí tus puntos de la semana y cerrala cuando estés.";
+  renderAmigosList();
+  showScreen("screen-week");
+}
+function renderWeekChips(){
+  const v=ensureVida();
+  $("wk-puntos").textContent = "●".repeat(v.puntosSemana)+"○".repeat(Math.max(0,PUNTOS_SEMANA-v.puntosSemana))+" "+v.puntosSemana;
+  $("wk-plata").textContent = "$"+v.plata;
+  $("wk-animo").textContent = v.animo;
+  $("wk-guts").textContent = v.gutsProximo;
+  const grid=$("wk-grid"); grid.innerHTML="";
+  for(const a of wkAcciones()){
+    const b=document.createElement("button");
+    const off = v.puntosSemana<=0 || a.off;
+    b.className="wk-card"+(off?" off":"");
+    b.innerHTML=`<div class="wi">${a.ico}</div><div class="wn">${a.n}</div><div class="wd">${a.d}</div>`;
+    if(!off) b.addEventListener("click", ()=> WK_HANDLERS[a.k]());
+    grid.appendChild(b);
+  }
+}
+function gastarPunto(){
+  const v=ensureVida();
+  if(v.puntosSemana<=0){ $("wk-detail").innerHTML="No te quedan puntos esta semana. Tocá <b>TERMINAR SEMANA</b>."; return false; }
+  v.puntosSemana--; saveCareer();
+  return true;
+}
+const WK_HANDLERS = {
+  entrenar(){
+    const v=ensureVida();
+    if(v.puntosSemana<=0) return gastarPunto();
+    const opts=Object.keys(career.stats).sort(()=>Math.random()-.5).slice(0,3);
+    $("wk-detail").innerHTML = `🏋️ ¿Qué entrenás esta semana?<div class="wk-opts">`+
+      opts.map(k=>`<button class="wk-opt" data-k="${k}">${statLabel(k)} ${career.stats[k]} → +1</button>`).join("")+
+      `</div>`;
+    $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
+      if(!gastarPunto()) return;
+      const k=b.dataset.k, perfecto=Math.random()<0.2, inc=perfecto?2:1;
+      career.stats[k]=clamp(career.stats[k]+inc,1,99); saveCareer();
+      $("wk-detail").innerHTML=`✔ Semana de entrenamiento${perfecto?" <b>PERFECTA</b>":""}: <b>+${inc} ${statLabel(k)}</b> (ahora ${career.stats[k]}).`;
+      renderWeekChips();
+    },{once:true}));
+  },
+  descansar(){
+    const v=ensureVida();
+    if(!gastarPunto()) return;
+    v.gutsProximo=Math.min(100,v.gutsProximo+15);
+    v.animo=clamp(v.animo+4,0,100); saveCareer();
+    $("wk-detail").innerHTML=`😴 Siesta larga, mate y tele: <b>+15 Guts</b> para la fecha (🔋 ${v.gutsProximo}) y <b>+4 ánimo</b> (🧉 ${v.animo}).`;
+    renderWeekChips();
+  },
+  vivir(){
+    const v=ensureVida();
+    if(!gastarPunto()) return;
+    const e=pick(VIVIR_EVENTOS);
+    v.plata=Math.max(0, v.plata+(e.plata||0));
+    v.animo=clamp(v.animo+(e.animo||0),0,100); saveCareer();
+    const fx=[];
+    if(e.plata) fx.push(`<b>${e.plata>0?"+":""}$${Math.abs(e.plata)}</b>${e.plata<0?" menos":""} (💰 $${v.plata})`);
+    if(e.animo) fx.push(`<b>${e.animo>0?"+":""}${e.animo} ánimo</b> (🧉 ${v.animo})`);
+    $("wk-detail").innerHTML=`🧉 ${e.t}<br>${fx.join(" · ")||"Una semana tranquila."}`;
+    renderWeekChips();
+  },
+};
+function renderAmigosList(){
+  const v=ensureVida();
+  $("wk-namigos").textContent = v.amigos.length;
+  $("wk-amigos").innerHTML = v.amigos.length ? "" :
+    `<div class="am-info" style="opacity:.7;padding:.3rem 0">Todavía no reclutaste a nadie. Pronto vas a poder armar tu grupo.</div>`;
+}
+$("btn-terminar-semana").addEventListener("click", ()=>{
+  const v=ensureVida();
+  v.semanaPendiente=false; v.puntosSemana=0; saveCareer();
+  renderSeason();
+});
 
 /* ---------- Geometría del mundo (pixel, cancha APAISADA) ----------
    X = largo de cancha (scroll horizontal). Tu arco a la IZQUIERDA, el rival a la DERECHA. */
@@ -545,7 +730,8 @@ function newState(club, rival){
   return {
     club, rival,
     stats: JSON.parse(JSON.stringify(career.stats)),
-    guts:100, gMe:0, gRv:0,
+    guts: clamp((career.vida && career.vida.gutsProximo!=null) ? career.vida.gutsProximo : 100, 40, 100),
+    gMe:0, gRv:0,
     minuto:0, half:1,
     state:"run", running:true, raf:0,
     posesion:"mia",
@@ -601,8 +787,11 @@ function recoverBall(){
   setHint();
 }
 
-/* ---------- Stats efectivas (Guts modula) ---------- */
-function effStat(key){ return PS.stats[key]*(0.55 + 0.45*(clamp(PS.guts,0,100)/100)); }
+/* ---------- Stats efectivas (Guts modula; el ánimo de la semana suma o resta un poquito) ---------- */
+function effStat(key){
+  const animo=(career&&career.vida&&career.vida.animo!=null)?career.vida.animo:70;
+  return PS.stats[key]*(0.55 + 0.45*(clamp(PS.guts,0,100)/100))*(0.97 + 0.06*(clamp(animo,0,100)/100));
+}
 function duelChance(my, def){ return clamp(0.5 + (my-def)/58, 0.07, 0.95); }
 function myKeeperSkill(){ return 54 + (PS.stats.caracter-50)*0.25; }
 
@@ -1008,6 +1197,11 @@ function fullTime(){
   }
   if(win){ career.stats.caracter = clamp(career.stats.caracter+1,1,99); }
   const nivelNuevo = nivelJugador()>nivelAntes ? nivelJugador() : 0;
+  const v=ensureVida();
+  if(v){
+    v.plata += 40 + 10*PS.golesEnPartido + (win?15:0);  // sueldo modesto + premios
+    v.gutsProximo = GUTS_BASE_POSPARTIDO;                // el partido te vacía: la semana recupera
+  }
   saveCareer();
   aplicarResultadoPartido();  // la fecha se consume en el MISMO guardado: recargar acá no la deja rejugar
   setTimeout(()=> renderFinal(win, draw_, lvl, nivelNuevo), 900);
