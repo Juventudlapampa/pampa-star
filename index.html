@@ -120,6 +120,10 @@
   .guts .lab{font-family:'Press Start 2P',monospace;font-size:.48rem;color:var(--ok);}
   .guts-bar{width:52px;height:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.18);border-radius:2px;overflow:hidden;}
   .guts-fill{height:100%;width:100%;background:linear-gradient(90deg,#7ee08a,#3fbf63);transition:width .25s, background .25s;}
+  /* minimapa (V2): plano de la cancha completa, FORMA antes que color */
+  .minimap{display:block;width:100%;height:auto;image-rendering:pixelated;background:#0d2a18;border:2px solid rgba(246,239,220,.18);border-radius:8px;touch-action:manipulation;}
+  .mm-tip{display:none;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--sol-2);background:rgba(0,0,0,.75);border:1px solid var(--sol);border-radius:6px;padding:.25rem .5rem;text-align:center;}
+  .mm-tip.show{display:block;}
 
   /* campo apaisado arriba + controles abajo, todo en pantalla vertical */
   .field{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -291,6 +295,9 @@
       <div class="clockchip"><span id="hud-min">0'</span><span class="hf" id="hud-half">1T</span></div>
       <div class="guts"><span class="lab" id="guts-lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
     </div>
+
+    <canvas id="minimap" class="minimap" width="280" height="36"></canvas>
+    <div class="mm-tip" id="mm-tip"></div>
 
     <div class="field" id="field">
       <div class="stage" id="stage">
@@ -994,6 +1001,70 @@ function buildRivales(){
 }
 /* los que NO maneja la mecánica de encuentros acompañan la jugada por anclas */
 function rivalesActivos(){ return PS.posesion==="mia" ? [1,2] : [4]; }
+
+/* ====== V2 · ETAPA B — MINIMAPA (plano completo, accesible por FORMA) ======
+   Míos = círculos ● · rivales = triángulos ▲ · controlado = flecha ▼ ·
+   pelota = ◎ · arcos = corchetes. Aunque los colores se confundan, la forma resuelve. */
+function equipoPuntos(){
+  return PS.equipo.map(e=>{
+    if(e.ref==="yo") return {x:PS.player.x, y:PS.player.y, e};
+    if(e.pos==="ARQ") return {x:PS.myKeeper.x, y:PS.myKeeper.y, e};
+    return {x:e.x, y:e.y, e};
+  });
+}
+function rivalPuntos(){
+  return PS.rivales.map((r,i)=>{
+    if(i===0) return {x:PS.keeper.x, y:PS.keeper.y};
+    if(PS.posesion==="mia" && (i===1||i===2)){ const df=PS.defenders[i-1]; if(df && !df.passed) return {x:df.x, y:df.y}; }
+    if(PS.posesion==="rival" && i===4 && PS.carrier.active) return {x:PS.carrier.x, y:PS.carrier.y};
+    return {x:r.x, y:r.y};
+  });
+}
+function drawMinimap(){
+  const cv=$("minimap"); if(!cv || !PS || !PS.equipo) return;
+  const c=cv.getContext("2d"); c.imageSmoothingEnabled=false;
+  const Wm=cv.width, Hm=cv.height;
+  const mX=x=> x/WORLD_W*Wm, mY=y=> 4+(y-TOP)/(BOT-TOP)*(Hm-8);
+  c.fillStyle="#0d2a18"; c.fillRect(0,0,Wm,Hm);
+  c.fillStyle="rgba(246,239,220,.25)"; c.fillRect(Wm/2,2,1,Hm-4);       // línea media
+  c.fillStyle="#f6efdc";                                                 // corchetes de arcos [ ]
+  c.fillRect(1,Hm/2-7,1,14); c.fillRect(1,Hm/2-7,3,1); c.fillRect(1,Hm/2+6,3,1);
+  c.fillRect(Wm-2,Hm/2-7,1,14); c.fillRect(Wm-4,Hm/2-7,3,1); c.fillRect(Wm-4,Hm/2+6,3,1);
+  for(const p of rivalPuntos()){                                         // rivales ▲
+    const x=mX(p.x), y=mY(p.y);
+    c.fillStyle="#0a1f13"; c.strokeStyle="#f6efdc"; c.lineWidth=1;
+    c.beginPath(); c.moveTo(x,y-3.2); c.lineTo(x+3,y+2.6); c.lineTo(x-3,y+2.6); c.closePath(); c.fill(); c.stroke();
+  }
+  const mios=equipoPuntos();
+  mios.forEach((p,i)=>{                                                  // míos ●
+    const x=mX(p.x), y=mY(p.y);
+    c.fillStyle="#f6efdc"; c.strokeStyle="#0a1f13"; c.lineWidth=1;
+    c.beginPath(); c.arc(x,y,2.5,0,Math.PI*2); c.fill(); c.stroke();
+  });
+  const ci=(PS.controlIdx!=null?PS.controlIdx:0), cp=mios[ci];           // flecha ▼ sobre el controlado
+  if(cp){ const x=mX(cp.x), y=mY(cp.y)-5;
+    c.fillStyle="#ffffff"; c.strokeStyle="#0a1f13";
+    c.beginPath(); c.moveTo(x-3,y-3); c.lineTo(x+3,y-3); c.lineTo(x,y+1); c.closePath(); c.fill(); c.stroke(); }
+  const bx=mX(PS.ball.x), by=mY(PS.ball.y);                              // pelota ◎
+  c.fillStyle="#ffffff"; c.beginPath(); c.arc(bx,by,1.3,0,Math.PI*2); c.fill();
+  c.strokeStyle="#ffffff"; c.beginPath(); c.arc(bx,by,3.2,0,Math.PI*2); c.stroke();
+}
+/* tooltip 2s al tocar un punto propio: NOMBRE · POS · vínculo */
+let mmTipTO=0;
+$("minimap").addEventListener("pointerdown", e=>{
+  if(!PS || !PS.equipo) return;
+  const cv=$("minimap"), r=cv.getBoundingClientRect();
+  const px_=(e.clientX-r.left)/r.width*cv.width, py_=(e.clientY-r.top)/r.height*cv.height;
+  const mX=x=> x/WORLD_W*cv.width, mY=y=> 4+(y-TOP)/(BOT-TOP)*(cv.height-8);
+  let mejor=null, md=99;
+  equipoPuntos().forEach(p=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<9){ md=d; mejor=p; } });
+  if(!mejor) return;
+  const t=$("mm-tip"), eq=mejor.e;
+  t.textContent = eq.ref==="yo" ? `${career.name} (VOS) · ATA` :
+    `${eq.nombre} · ${eq.pos} · vínculo ${eq.vinculo!=null?eq.vinculo:"—"}`;
+  t.classList.add("show");
+  clearTimeout(mmTipTO); mmTipTO=setTimeout(()=>t.classList.remove("show"), 2000);
+});
 function updateAnclas(){
   const bx=PS.ball.x;
   for(const e of PS.equipo){
@@ -1083,6 +1154,7 @@ function loop(){
   if(PS && PS.running){
     if(PS.state==="run") update();
     draw();
+    drawMinimap();
   }
   if(PS) PS.raf = requestAnimationFrame(loop);
 }
