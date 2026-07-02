@@ -367,6 +367,47 @@ const VIVIR_EVENTOS = [
   {t:"En la pensión te guardaron guiso: noche tranquila y a dormir temprano.", plata:0, animo:5},
   {t:"Ayudaste en la escuelita de fútbol del barrio. Te pagaron algo y te fuiste con una sonrisa.", plata:20, animo:6},
 ];
+/* Amigos: los nombres los pone quien juega (personajes inventados, NUNCA personas reales).
+   Posiciones con nombre neutro. Sin género en el modelo. */
+const POSICIONES = [
+  {k:"ARQ", n:"Arco",     main:"fisico"},
+  {k:"DEF", n:"Defensa",  main:"fisico"},
+  {k:"VOL", n:"Volante",  main:"pase"},
+  {k:"ATA", n:"Ataque",   main:"tiro"},
+];
+const JUNTADAS = [
+  "Mates en la plaza y charla hasta que bajó el sol.",
+  "Peloteada en el potrero de siempre.",
+  "Vueltas en bici por el pueblo, sin apuro.",
+  "Tarde de río: no picó nada, pero qué risa.",
+  "Se quedaron cebando mates y armando el equipo soñado.",
+  "Fueron a la cancha a ver a las inferiores del club.",
+];
+/* Variantes de pinta ETIQUETADAS: cada una tiene NOMBRE y (pelo/camiseta) FORMA propia,
+   nunca se distinguen solo por color (regla dura: el dueño del proyecto es daltónico).
+   Colores siempre en HEX. */
+const PIELES = [
+  {n:"Piel clara",    hex:"#e9b58c"},
+  {n:"Piel trigueña", hex:"#c68e5f"},
+  {n:"Piel morena",   hex:"#8d5a3a"},
+];
+const PELOS = [
+  {n:"Rapado",         estilo:"rapado", hex:"#2a2a2a"},
+  {n:"Corto oscuro",   estilo:"corto",  hex:"#3a2a1a"},
+  {n:"Corto claro",    estilo:"corto",  hex:"#c9a227"},
+  {n:"Largo oscuro",   estilo:"largo",  hex:"#241a10"},
+  {n:"Largo colorado", estilo:"largo",  hex:"#a53f1f"},
+];
+const CAMISETAS = [
+  {n:"Lisa",      estilo:"lisa"},
+  {n:"A franjas", estilo:"franjas"},
+  {n:"Con banda", estilo:"banda"},
+];
+function lookAleatorio(){ return {piel:Math.floor(rnd(0,PIELES.length)), pelo:Math.floor(rnd(0,PELOS.length)), camiseta:Math.floor(rnd(0,CAMISETAS.length))}; }
+function lookLabel(look){
+  const l=look||{piel:0,pelo:1,camiseta:0};
+  return `${PIELES[l.piel%PIELES.length].n} · ${PELOS[l.pelo%PELOS.length].n} · ${CAMISETAS[l.camiseta%CAMISETAS.length].n}`;
+}
 
 /* ---------- Clubes Primera B Liga Cultural (públicos) + colores de camiseta (HEX) ---------- */
 const CLUBES = [
@@ -629,10 +670,13 @@ $("btn-se-home").addEventListener("click", ()=>{ initIntro(); showScreen("screen
 /* ============================ SEMANA (vida entre fechas) ============================ */
 function wkAcciones(){
   const v=ensureVida();
+  const lleno = v.amigos.length>=4;
   return [
-    {k:"entrenar",  ico:"🏋️", n:"ENTRENAR",  d:"+1 a una estadística"},
+    {k:"entrenar",  ico:"🏋️", n:"ENTRENAR",  d:"+1 stat (tuya o del grupo)"},
     {k:"descansar", ico:"😴", n:"DESCANSAR", d:`+15 Guts para la fecha (hoy ${v.gutsProximo})`},
+    {k:"juntarse",  ico:"🤝", n:"JUNTARSE",  d: v.amigos.length? "Subí el vínculo con tu grupo" : "Primero reclutá a alguien"},
     {k:"vivir",     ico:"🧉", n:"VIVIR",     d:"La familia, la changa, el asado"},
+    {k:"reclutar",  ico:"➕", n:"RECLUTAR",  d: lleno? "Grupo completo (4/4)" : "Sumá a alguien al grupo", off: lleno},
   ];
 }
 function renderWeek(){
@@ -669,8 +713,17 @@ const WK_HANDLERS = {
   entrenar(){
     const v=ensureVida();
     if(v.puntosSemana<=0) return gastarPunto();
+    let html=`🏋️ ¿Quién entrena esta semana?<div class="wk-opts"><button class="wk-opt" data-t="yo">VOS</button>`;
+    html += v.amigos.map((a,i)=>`<button class="wk-opt" data-t="${i}">${esc(a.nombre)}</button>`).join("")+`</div>`;
+    $("wk-detail").innerHTML = html;
+    $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
+      if(b.dataset.t==="yo") return WK_HANDLERS._entrenarYo();
+      WK_HANDLERS._entrenarAmigo(+b.dataset.t);
+    },{once:true}));
+  },
+  _entrenarYo(){
     const opts=Object.keys(career.stats).sort(()=>Math.random()-.5).slice(0,3);
-    $("wk-detail").innerHTML = `🏋️ ¿Qué entrenás esta semana?<div class="wk-opts">`+
+    $("wk-detail").innerHTML = `🏋️ ¿Qué entrenás?<div class="wk-opts">`+
       opts.map(k=>`<button class="wk-opt" data-k="${k}">${statLabel(k)} ${career.stats[k]} → +1</button>`).join("")+
       `</div>`;
     $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
@@ -680,6 +733,42 @@ const WK_HANDLERS = {
       $("wk-detail").innerHTML=`✔ Semana de entrenamiento${perfecto?" <b>PERFECTA</b>":""}: <b>+${inc} ${statLabel(k)}</b> (ahora ${career.stats[k]}).`;
       renderWeekChips();
     },{once:true}));
+  },
+  _entrenarAmigo(i){
+    const v=ensureVida(), a=v.amigos[i];
+    if(!a) return;
+    if(!gastarPunto()) return;
+    const pos=POSICIONES.find(p=>p.k===a.pos);
+    const key = Math.random()<0.6 && pos ? pos.main : pick(Object.keys(a.stats));
+    const inc = Math.random()<0.2 ? 2 : 1;
+    a.stats[key]=clamp(a.stats[key]+inc,1,99);
+    a.vinculo=Math.min(100,a.vinculo+2);   // entrenar juntos también une
+    saveCareer();
+    $("wk-detail").innerHTML=`✔ Entrenaste con <b>${esc(a.nombre)}</b>: <b>+${inc} ${statLabel(key)}</b> (ahora ${a.stats[key]}) y <b>+2 vínculo</b> (${a.vinculo}).`;
+    renderWeekChips(); renderAmigosList();
+  },
+  juntarse(){
+    const v=ensureVida();
+    if(!v.amigos.length){ $("wk-detail").innerHTML="🤝 Todavía no tenés grupo: usá <b>RECLUTAR</b> para sumar a alguien."; return; }
+    if(v.puntosSemana<=0) return gastarPunto();
+    $("wk-detail").innerHTML=`🤝 ¿Con quién te juntás?<div class="wk-opts">`+
+      v.amigos.map((a,i)=>`<button class="wk-opt" data-i="${i}">${esc(a.nombre)} (vínculo ${a.vinculo})</button>`).join("")+`</div>`;
+    $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
+      if(!gastarPunto()) return;
+      const a=v.amigos[+b.dataset.i];
+      const inc=Math.round(rnd(7,12));
+      a.vinculo=Math.min(100,a.vinculo+inc);
+      v.animo=clamp(v.animo+3,0,100); saveCareer();
+      $("wk-detail").innerHTML=`🤝 ${pick(JUNTADAS)}<br>Vínculo con <b>${esc(a.nombre)}</b>: <b>+${inc}</b> (ahora ${a.vinculo}) · <b>+3 ánimo</b>.`;
+      renderWeekChips(); renderAmigosList();
+    },{once:true}));
+  },
+  reclutar(){
+    const v=ensureVida();
+    if(v.amigos.length>=4){ $("wk-detail").innerHTML="➕ Tu grupo ya está completo (4/4)."; return; }
+    if(v.puntosSemana<=0) return gastarPunto();
+    wkCandidato = nuevoCandidato();
+    renderCandidato();
   },
   descansar(){
     const v=ensureVida();
@@ -702,11 +791,66 @@ const WK_HANDLERS = {
     renderWeekChips();
   },
 };
+/* ---------- Reclutar: personaje inventado, nombre puesto por quien juega ---------- */
+let wkCandidato = null;
+function nuevoCandidato(){
+  const pos=pick(POSICIONES);
+  const st={pase:0,tiro:0,gambeta:0,velocidad:0,fisico:0};
+  for(const k in st) st[k]=Math.round(rnd(42,56));
+  st[pos.main]=clamp(st[pos.main]+8,1,99);
+  return {pos:pos.k, stats:st, look:lookAleatorio(), vinculo:25};
+}
+function renderCandidato(){
+  const c=wkCandidato; if(!c) return;
+  const pos=POSICIONES.find(p=>p.k===c.pos)||{n:c.pos};
+  $("wk-detail").innerHTML = `➕ Alguien del barrio quiere sumarse al grupo:<br>
+    <b>${pos.n}</b> · PAS ${c.stats.pase} · TIR ${c.stats.tiro} · GAM ${c.stats.gambeta} · VEL ${c.stats.velocidad} · FIS ${c.stats.fisico}<br>
+    Pinta: <b>${lookLabel(c.look)}</b>
+    <input class="wk-input" id="wk-nombre" maxlength="12" placeholder="Nombre inventado (no de una persona real)">
+    <div class="wk-opts">
+      <button class="wk-opt" id="wk-confirmar">✔ SUMAR (1 punto)</button>
+      <button class="wk-opt" id="wk-otro">↻ OTRA PERSONA</button>
+    </div>`;
+  $("wk-confirmar").addEventListener("click", ()=>{
+    const v=ensureVida();
+    const nom=($("wk-nombre").value||"").trim();
+    if(!nom){ $("wk-nombre").placeholder="¡Ponele un nombre primero!"; $("wk-nombre").focus(); return; }
+    if(v.amigos.length>=4 || !gastarPunto()) return;
+    v.amigos.push({nombre:nom, pos:wkCandidato.pos, stats:wkCandidato.stats, look:wkCandidato.look, vinculo:wkCandidato.vinculo});
+    wkCandidato=null; saveCareer();
+    $("wk-detail").innerHTML=`✔ <b>${esc(nom)}</b> se suma al grupo. ¡A entrenar y a jugar juntos!`;
+    renderWeekChips(); renderAmigosList();
+  });
+  $("wk-otro").addEventListener("click", ()=>{ wkCandidato=nuevoCandidato(); renderCandidato(); });
+}
 function renderAmigosList(){
   const v=ensureVida();
   $("wk-namigos").textContent = v.amigos.length;
-  $("wk-amigos").innerHTML = v.amigos.length ? "" :
-    `<div class="am-info" style="opacity:.7;padding:.3rem 0">Todavía no reclutaste a nadie. Pronto vas a poder armar tu grupo.</div>`;
+  if(!v.amigos.length){
+    $("wk-amigos").innerHTML = `<div class="am-info" style="opacity:.7;padding:.3rem 0">Todavía no reclutaste a nadie. Usá ➕ RECLUTAR para armar tu grupo (le ponés vos el nombre).</div>`;
+    return;
+  }
+  $("wk-amigos").innerHTML = v.amigos.map((a,i)=>{
+    const pos=POSICIONES.find(p=>p.k===a.pos)||{n:a.pos};
+    return `<div class="am-row">
+      <canvas class="am-canvas" width="12" height="18" data-i="${i}"></canvas>
+      <div class="am-info">
+        <div class="nm">${esc(a.nombre)}</div>
+        <div>${pos.n} · ${lookLabel(a.look)}</div>
+        <div>PAS ${a.stats.pase} · TIR ${a.stats.tiro} · GAM ${a.stats.gambeta} · VEL ${a.stats.velocidad} · FIS ${a.stats.fisico}</div>
+        <div class="vinc-wrap"><span>VÍNCULO</span><div class="vinc-bar"><div class="vinc-fill" style="width:${a.vinculo}%"></div></div><b>${a.vinculo}</b></div>
+      </div></div>`;
+  }).join("");
+  pintarAmigos();
+}
+/* dibuja el mini-sprite de cada amigo con los colores del club (el look pixel llega en la parte de variantes) */
+function pintarAmigos(){
+  const club = CLUBES.find(c=>c.n===career.club)||CLUBES[0];
+  document.querySelectorAll("#wk-amigos .am-canvas").forEach(cv=>{
+    const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    drawKit(ctx, 6, 14, club.c1, club.c2, false, 0);
+  });
 }
 $("btn-terminar-semana").addEventListener("click", ()=>{
   const v=ensureVida();
