@@ -118,6 +118,9 @@
   .clockchip .hf{color:var(--cielo);font-size:.48rem;}
   .guts{display:flex;align-items:center;gap:.35rem;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;padding:.4rem .45rem;}
   .guts .lab{font-family:'Press Start 2P',monospace;font-size:.48rem;color:var(--ok);}
+  .mutebtn{background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;color:var(--crema);
+    font-family:'JetBrains Mono',monospace;font-size:.6rem;padding:.4rem .45rem;cursor:pointer;min-width:52px;}
+  .mutebtn:active{background:rgba(246,193,29,.6);color:#000;}
   .guts-bar{width:52px;height:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.18);border-radius:2px;overflow:hidden;}
   .guts-fill{height:100%;width:100%;background:linear-gradient(90deg,#7ee08a,#3fbf63);transition:width .25s, background .25s;}
   /* minimapa (V2): plano de la cancha completa, FORMA antes que color */
@@ -293,6 +296,7 @@
     <div class="matchbar">
       <div class="score"><span class="me" id="hud-me">VOS</span><span class="nm" id="hud-me-n"></span> <span id="hud-gme">0</span>-<span id="hud-grv">0</span> <span class="nm" id="hud-rv">RIVAL</span></div>
       <div class="clockchip"><span id="hud-min">0'</span><span class="hf" id="hud-half">1T</span></div>
+      <button class="mutebtn" id="btn-mute">🔊 ON</button>
       <div class="guts"><span class="lab" id="guts-lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
     </div>
 
@@ -1096,6 +1100,7 @@ function renderPaseMenu(filtrado){
 function resolvePase(r){
   if(PS.state!=="menu") return;
   PS.state="resolving";
+  SFX("menu"); SFX("kick");
   ctrlGastarGuts(2);                              // construir es barato
   $("cmd-grid").innerHTML="";
   $("combat-txt").innerHTML=`La soltás para <b>${esc(nombreDe(r.e))}</b>… ➡️`;
@@ -1365,6 +1370,7 @@ function startPlay(club, rival){
   $("guts-lab").textContent = "GUTS·"+String(career.name).toUpperCase().slice(0,7);  // el HUD dice de QUIÉN es el Guts
   kickoff("mia");
   PS.state="run";
+  SFX("whistle",1); MUSICA("posesion");
   loop();
 }
 function abbr(n){ return n.replace("Deportivo","Dep.").replace("Atlético","Atl.").toUpperCase().slice(0,12); }
@@ -1386,7 +1392,10 @@ function update(){
   let vx=0, vy=0;
   if(d.left) vx-=1; if(d.right) vx+=1; if(d.up) vy-=1; if(d.down) vy+=1;
   if(vx) p.face = vx>0?1:-1;
-  if(vx||vy){ const m=Math.hypot(vx,vy)||1; p.x=clamp(p.x+vx/m*SP*1.15, 16, GOAL_X-2); p.y=clamp(p.y+vy/m*SP, TOP+5, BOT-5); p.anim+=0.25; }
+  if(vx||vy){
+    const m=Math.hypot(vx,vy)||1; p.x=clamp(p.x+vx/m*SP*1.15, 16, GOAL_X-2); p.y=clamp(p.y+vy/m*SP, TOP+5, BOT-5); p.anim+=0.25;
+    PS._pasoT=(PS._pasoT||0)+1; if(PS._pasoT%26===0) SFX("paso");   // pasitos al correr, muy suaves
+  }
 
   if(PS.posesion==="mia"){
     // la pelota va con vos
@@ -1452,6 +1461,7 @@ function vinculoBonus(compa){ return compa ? compa.vinculo*0.12 + (compa.stats.p
 function startEncounter(type, ref){
   PS.state = "menu";
   PS.encounter = {type, ref};
+  SFX("sting");
   const amigos=(career.vida&&career.vida.amigos)||[];
   PS.compa = (type==="def" && amigos.length) ? pick(amigos) : null;  // quién te acompaña la jugada
   clearDirs();
@@ -1542,8 +1552,10 @@ function setTag(tag){
 function hideCombat(){ $("combat").classList.remove("show"); }
 function chooseCommand(cm){
   if(PS.state!=="menu") return;
-  if(cm.submenu){ renderPaseMenu(cm.submenu==="filtrado"); return; }   // V2: PASE abre receptores, sigue en menú
+  if(cm.submenu){ SFX("menu"); renderPaseMenu(cm.submenu==="filtrado"); return; }   // V2: PASE abre receptores, sigue en menú
   PS.state = "resolving";
+  SFX("menu");
+  if(cm.on==="tiroGol"||cm.on==="tiroLejano") SFX("kick");
   ctrlGastarGuts(cm.cost);                                  // V2: el Guts es del jugador controlado
   if(cm.on==="pared2"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML=duelIntro("pared"); return setTimeout(()=>resolvePared(cm), 700); }
   if(PS.bonusJugada && ["gambeta","tiroGol","tiroLejano","gambetaGk"].includes(cm.on)){
@@ -1559,6 +1571,7 @@ function chooseCommand(cm){
 /* Animación dramática de tiro especial: pausa, grito, pelota con estela de fuego */
 function especialSequence(cm, win){
   const e = cm.especial;
+  SFX("especial");
   $("combat-txt").innerHTML = `¡¡<b>${e.cn}</b>!!<br>${e.desc}`;
   flash("gol", e.ico+" ¡"+e.cn+"!");
   const sx=PS.ball.x, sy=PS.ball.y;
@@ -1593,6 +1606,7 @@ function advanceClock(){ PS.minuto += rnd(MINUTOS_POR_ACCION[0], MINUTOS_POR_ACC
 function renderClock(){
   $("hud-min").textContent = Math.min(90,Math.round(PS.minuto))+"'";
   $("hud-half").textContent = PS.half===1?"1T":"2T";
+  if(PS.half===2 && PS.minuto>=80) MUSICA("final");   // últimos minutos: música urgente
 }
 /* devuelve true si interceptó el flujo (entretiempo o final) */
 function checkTime(){
@@ -1602,6 +1616,7 @@ function checkTime(){
 }
 function halftime(){
   PS.state="halftime";
+  SFX("whistle",2); MUSICA(null);
   PS.minuto=45; renderClock();
   PS.guts = clamp(PS.guts + GUTS_ENTRETIEMPO, 0, 100); setGuts();
   if(PS.equipo) PS.equipo.forEach(e=>{ if(e.guts!=null) e.guts=clamp(e.guts+GUTS_ENTRETIEMPO,0,100); }); // el descanso es para todo el equipo
@@ -1613,6 +1628,7 @@ function halftime(){
   b.addEventListener("click", ()=>{
     PS.half=2; PS.minuto=45; renderClock();
     hideCombat();
+    SFX("whistle",1); MUSICA("posesion");
     kickoff("rival");           // el segundo tiempo lo saca el rival
     PS.state="run";
   }, {once:true});
@@ -1716,7 +1732,10 @@ function applyOutcome(cm, win){
     setTimeout(()=>{ if(checkTime()) return; perderPelota(ex, ey); }, 1000);   // F2: no siempre es contra
   }
 }
-function endLine(txt, good){ $("combat-txt").innerHTML = (good?"✔ ":"✖ ") + txt; }
+function endLine(txt, good){
+  if(!/GOL|SACÓ|ATAJADÓN/.test(txt)) SFX(good?"win":"lose");   // los momentos grandes ya suenan solos
+  $("combat-txt").innerHTML = (good?"✔ ":"✖ ") + txt;
+}
 
 /* ---------- V2·D: el remate rival se JUEGA con tu arquero (menú de 3) ---------- */
 function rivalShot(){
@@ -1735,6 +1754,7 @@ function rivalShot(){
         especialArq:arq, sub:`-20 Guts de ${esc(arq.nombre)} · vínculo ${arq.vinculo}`});
   }
   PS.encounter={type:"arq", ref:arq};
+  SFX("sting"); SFX("kick");
   renderCombat(`¡El ataque de <b>${PS.rival.n}</b> remata! <b>${esc(nombreDe(arq))}</b> bajo los tres palos…`, cmds, "def");
 }
 
@@ -1768,6 +1788,7 @@ function goalSequence(dribble, lejano, especial){
 /* ---------- Final del partido ---------- */
 function fullTime(){
   PS.state="end";
+  SFX("whistle",3); MUSICA(null);
   PS.minuto=90; renderClock();
   const win = PS.gMe>PS.gRv, draw_ = PS.gMe===PS.gRv;
   career.partidos = (career.partidos||0)+1;
@@ -1836,6 +1857,10 @@ function statLabel(k){ return {pase:"Pase",tiro:"Tiro",gambeta:"Gambeta",velocid
 /* ---------- Flash / Guts / pantallas / hint ---------- */
 let flashTO=0;
 function flash(kind, text){
+  /* sonido según el momento (goles, atajadas, gol rival) */
+  if(/GOLAZO|¡GOL!|¡GOOOL/.test(text)) SFX("goal");
+  else if(/GOL RIVAL/.test(text)) SFX("golRival");
+  else if(/SACÓ|ATAJADÓN/.test(text)) SFX("save");
   const f=$("flash");
   clearTimeout(flashTO);            // que el flash anterior no apague a este
   f.className="flash"; void f.offsetWidth;  // reinicia la animación CSS
@@ -1894,6 +1919,19 @@ function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.quer
   addEventListener("keydown",e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,true); e.preventDefault(); } });
   addEventListener("keyup",  e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,false); e.preventDefault(); } });
 })();
+
+/* ---------- Audio: desbloqueo al primer toque + mute persistido ---------- */
+function SFX(n,a){ try{ if(PSAUDIO&&PSAUDIO.sfx[n]) PSAUDIO.sfx[n](a); }catch(e){} }
+function MUSICA(cual){ try{ if(cual) PSAUDIO.music.play(cual); else PSAUDIO.music.stop(); }catch(e){} }
+function refreshMute(){
+  const m=PSAUDIO.isMuted();
+  $("btn-mute").textContent = m ? "🔇 OFF" : "🔊 ON";
+  const t=$("btn-mute-title"); if(t) t.textContent = m ? "🔇 SONIDO: OFF" : "🔊 SONIDO: ON";
+}
+addEventListener("pointerdown", ()=>PSAUDIO.unlock(), {once:true});
+addEventListener("keydown", ()=>PSAUDIO.unlock(), {once:true});
+$("btn-mute").addEventListener("click", ()=>{ PSAUDIO.toggleMute(); refreshMute(); });
+refreshMute();
 
 /* ---------- Arranque ---------- */
 initIntro();
