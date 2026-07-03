@@ -199,6 +199,12 @@
     font-family:'Press Start 2P',monospace;font-size:.72rem;line-height:1.5;color:var(--sol-2);text-align:center;
     background:rgba(6,18,11,.82);border:2px solid var(--sol);border-radius:9px;padding:.5rem .7rem;display:none;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
   .banner.show{display:block;animation:pop .5s ease;}
+  /* V3·4: cut-in dramático del tiro especial (retrato + líneas de velocidad) */
+  .cutin{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:repeating-linear-gradient(115deg, rgba(227,80,62,.30) 0 7px, rgba(6,18,11,.86) 7px 18px);}
+  .cutin.show{display:flex;animation:pop .3s ease;}
+  .cutin .cara{font-size:3.6rem;filter:drop-shadow(0 3px 0 rgba(0,0,0,.55));}
+  .cutin .nom{font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--sol-2);margin-top:.55rem;text-shadow:2px 2px 0 #9c2b1d;text-align:center;}
 
   /* ---------- FINAL ---------- */
   #screen-final{justify-content:center;text-align:center;gap:.2rem;padding:.6rem;}
@@ -369,6 +375,7 @@
         <canvas id="pitch" width="280" height="156"></canvas>
         <div class="hint" id="hint">Al arco rival <b>▶</b></div>
         <div class="cut" id="cut"></div>
+        <div class="cutin" id="cutin"><div class="cara" id="cutin-cara">🔥</div><div class="nom" id="cutin-nom"></div></div>
         <div class="banner" id="banner"></div>
         <div class="flash" id="flash"><div class="big" id="flash-big">¡GOL!</div></div>
       </div>
@@ -443,7 +450,7 @@ const GOLES_POR_NIVEL = 3;
 const TIROS_ESPECIALES = [
   {id:"calden",  cn:"DISPARO DEL CALDÉN", ico:"🔥", nivel:3, guts:25, mult:1.30, funcional:true,
    desc:"Remate con toda la fuerza del árbol eterno de la pampa."},
-  {id:"atuel",   cn:"TIRO ATUEL",         ico:"🌊", nivel:5, guts:30, mult:1.45, funcional:false,
+  {id:"atuel",   cn:"TIRO ATUEL",         ico:"🌊", nivel:5, guts:30, mult:1.45, funcional:true, rasante:true,
    desc:"Rasante y serpenteante como el río: entra pegado al pasto."},
   {id:"tornado", cn:"TORNADO PAMPEANO",   ico:"🌪️", nivel:7, guts:40, mult:1.60, funcional:false,
    desc:"Chilena con el viento del oeste: casi imposible de atajar."},
@@ -1656,7 +1663,11 @@ function update(){
         if(Math.hypot(p.x-df.x, p.y-df.y) < PRESION_RADIO){ startEncounter("def", df); return; }
       }
     }
-    if(!PS.keeper.faced && p.x > AREA_X){ PS.keeper.faced=true; startEncounter("gk", PS.keeper); return; }
+    if(!PS.keeper.faced && p.x > AREA_X){
+      PS.keeper.faced=true;
+      if(PS.pasesSeguidos>=3){ ctrlGastarGuts(-5); PS._subidon=true; }   // V3·4: jugada armada al área = +5 Guts (subidón)
+      startEncounter("gk", PS.keeper); return;
+    }
   } else {
     // DEFENSA: el rival avanza hacia tu arco (izquierda)
     const cr=PS.carrier;
@@ -1715,7 +1726,8 @@ function startEncounter(type, ref){
   const cmds = buildCommands(type);
   let txt, tag;
   if(type==="def"){ txt=`Te sale al cruce un <b>defensor de ${PS.rival.n}</b>. ¿Qué hacés?`; tag="atk"; }
-  else if(type==="gk"){ txt=`¡Quedaste <b>mano a mano con el arquero</b>! Es ahora.`; tag="atk"; }
+  else if(type==="gk"){ txt=`¡Quedaste <b>mano a mano con el arquero</b>! Es ahora.`; tag="atk";
+    if(PS._subidon){ PS._subidon=false; setGuts(); banner('⚡ ¡SUBIDÓN!<br><span style="font-size:.55rem;color:var(--ok)">+5 GUTS por la jugada armada</span>'); } }
   else { txt=`¡<b>${PS.rival.n}</b> avanza con la pelota! Te toca defender.`; tag="def"; }
   renderCombat(txt, cmds, tag);
 }
@@ -1810,31 +1822,35 @@ function chooseCommand(cm){
   }
   const win = Math.random() < duelChance(cm.my, cm.def);
   $("cmd-grid").innerHTML = "";
-  if(cm.especial) return especialSequence(cm, win);
+  if(cm.on==="tiroGol"||cm.on==="gambetaGk"||cm.on==="tiroLejano") return escenaTiro(cm, win);   // V3·4: E4/E5
   $("combat-txt").innerHTML = duelIntro(cm.k);
   setTimeout(()=> applyOutcome(cm, win), 850);
 }
-/* Animación dramática de tiro especial: pausa, grito, pelota con estela de fuego */
-function especialSequence(cm, win){
-  const e = cm.especial;
-  SFX("especial");
-  $("combat-txt").innerHTML = `¡¡<b>${e.cn}</b>!!<br>${e.desc}`;
-  flash("gol", e.ico+" ¡"+e.cn+"!");
-  const sx=PS.ball.x, sy=PS.ball.y;
-  let step=0;
-  const iv=setInterval(()=>{
-    step++;
-    const t=step/9;
-    PS.ball.x = sx + (GOAL_X-6-sx)*t;
-    PS.ball.y = sy + (MIDY-sy)*t + Math.sin(step*1.4)*5;
-    PS.camX = clamp(((PS.player.x+PS.ball.x)/2)-140, 0, WORLD_W-CW);
-    draw();
-    const c=PS.ctx; // estela de fuego detrás de la pelota (#ff8c3a / #f6c11d)
-    for(let k=1;k<=4;k++){
-      px(c, PS.ball.x - k*7 - PS.camX, PS.ball.y - 1 + Math.sin((step-k)*1.4)*3, 5, 3, k<3?"#ff8c3a":"#f6c11d");
-    }
-    if(step>=9){ clearInterval(iv); applyOutcome(cm, win); }
-  }, 95);
+/* ====== V3·4 — E4/E5: el remate como escena (pelota al arco + hit-stop + desenlace, texto DESPUÉS) ====== */
+function mostrarCutin(e){ $("cutin-cara").textContent=e.ico; $("cutin-nom").textContent=e.cn; $("cutin").className="cutin show"; }
+function ocultarCutin(){ $("cutin").classList.remove("show"); }
+function escenaTiro(cm, win){
+  const esp=cm.especial, cp=ctrlPos(), sx=cp.x, sy=cp.y;
+  const gy = (esp&&esp.rasante) ? BOT-16 : MIDY;                 // Atuel entra rasante, pegado al pasto
+  const seq=[];
+  if(esp){
+    seq.push({tipo:"cutin", dur:650, t:0, inicio:()=>{ SFX("especial"); mostrarCutin(esp); }});
+    seq.push({tipo:"silencio", dur:400, t:0, inicio:()=>{ MUSICA(null); }});   // silencio dramático antes del disparo
+  }
+  const dist=Math.hypot((GOAL_X-8)-sx, gy-sy), dur=Math.max(220, dist/(esp?0.17:0.13));
+  seq.push({tipo:"tiro", dur, t:0, inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); },
+    tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0); camSeguir(PS.ball.x);
+      if(esp){ const c=PS.ctx; for(let m=1;m<=4;m++) px(c, PS.ball.x-m*7-PS.camX, PS.ball.y-1, 5,3, m<3?"#ff8c3a":"#f6c11d"); } }});
+  seq.push({tipo:"hitstop", dur:400, t:0, inicio:()=>{ PS.ball.x=GOAL_X-8; PS.ball.y=gy; SFX("sting"); }});  // arquero en el aire: ¿gol o atajada?
+  seq[seq.length-1].fin = ()=>{ if(win) goalSequence(cm.on==="gambetaGk", cm.on==="tiroLejano", esp); else tiroAtajado(cm); };
+  seq.forEach(encolarEscena);
+}
+function tiroAtajado(cm){
+  SFX("save"); flash("bad","¡LA SACÓ!");
+  banner(cm.especial ? "¡VOLÓ Y LA MANOTEÓ!" : "¡ATAJÓ EL ARQUERO!");
+  hideCombat(); advanceClock();
+  if(checkTime()) return;
+  rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run";
 }
 function duelIntro(k){
   return ({
@@ -2141,16 +2157,15 @@ function setHint(){
 }
 /* ====== Integración 2: PATEAR y ESPECIAL desde el juego (botón o tecla) ====== */
 function accionPatear(){
-  if(!PS || PS.state!=="run" || PS.posesion!=="mia") return;
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
   const g=PS.rival.f, p=ctrlPos(), dist=GOAL_X-p.x;
-  clearDirs();
+  if(dist<=150){                                   // en zona de remate: abre el menú de arquero (con especiales)
+    PS.keeper.faced=true; startEncounter("gk", PS.keeper); return;
+  }
+  clearDirs();                                     // de lejos: tiro directo etiquetado "DESDE LEJOS"
   PS.state="menu"; PS.encounter={type:"shot", ref:null};
   $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
-  if(dist<=150) PS.keeper.faced=true;
-  const cm = dist<=150
-    ? {k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*pesoCtrl("tiro"),      def:g+8,  on:"tiroGol"}
-    : {k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"};
-  chooseCommand(cm);
+  chooseCommand({k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"});
 }
 function accionEspecial(){
   if(!PS || PS.state!=="run" || PS.posesion!=="mia") return;
