@@ -1201,7 +1201,9 @@ function buildEquipo(){
     if(si<0) break;
     usados[si]=true;
     const guts=clamp(Math.round(55+a.stats.fisico*0.5),30,100);
-    equipo.push(mkEnt(ai, a.pos, a.nombre, a.stats, a.vinculo, guts, a.look, slots[si], ai*1.3));
+    // el ROL es el del SLOT físico (si no hay lugar en su puesto, juega fuera de posición con sus stats):
+    // así el 7v7 siempre tiene EXACTAMENTE 1 ARQ y nadie queda fantasma (sin dibujar/mover/recibir)
+    equipo.push(mkEnt(ai, slots[si].pos, a.nombre, a.stats, a.vinculo, guts, a.look, slots[si], ai*1.3));
   }
   for(let i=0;i<slots.length;i++){ if(!usados[i]){ usados[i]=true;   // canteranos completan
     equipo.push(mkEnt("cantera", slots[i].pos, "Cantera "+(cN), Object.assign({},STATS_CANTERA), 0, 50, {piel:cN%3,pelo:0,camiseta:0}, slots[i], cN*0.9)); cN++; } }
@@ -1527,8 +1529,10 @@ function spawnDefenders(fromX){
   ];
   PS.keeper.faced = false;
 }
+function musicaDeJuego(){ MUSICA((PS.half===2 && PS.minuto>=80) ? "final" : "posesion"); }  // reanuda el loop correcto (el silencio del especial no es para siempre)
 function kickoff(quien){
   corteNegro(120);   // E3: saque desde el medio -> corte de cámara
+  musicaDeJuego();
   PS.posesion = quien;
   PS.encounter = null; PS.encCooldown = 40;
   PS.controlIdx = 0; PS.pasesSeguidos = 0; PS.empuje = 0; setGuts();   // volvés a jugar VOS
@@ -1560,6 +1564,7 @@ function marcarCon(idx, avisar){
 }
 function rivalCounter(fromX, fromY){
   corteNegro(120);   // E3: la cámara salta al contragolpe -> corte seco
+  musicaDeJuego();
   PS.posesion="rival";
   PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
   PS.carrier={x:clamp(fromX, 180, GOAL_X-120), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
@@ -1727,6 +1732,10 @@ function draw(){
   if(PS.carrier.active) drawKit(c, PS.carrier.x-cam, PS.carrier.y, PS.rival.c1, PS.rival.c2, false, PS.carrier.x*0.25);
   drawKit(c, PS.keeper.x-cam, PS.keeper.y, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
   drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
+  /* V3·4: estela de fuego del megatiro (post-pitch, así no la pisa el repintado del frame) */
+  if(PS.escena && PS.escena.tipo==="tiro" && PS.escena.esp){
+    for(let m=1;m<=4;m++) px(c, PS.ball.x-m*7-cam, PS.ball.y-1, 5, 3, m<3?"#ff8c3a":"#f6c11d");
+  }
   drawBall(c, PS.ball.x-cam, PS.ball.y);
   drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
   const cp=(PS.posesion==="mia" && PS.equipo)?ctrlPos():PS.player;
@@ -1861,9 +1870,8 @@ function escenaTiro(cm, win){
     seq.push({tipo:"silencio", dur:400, t:0, inicio:()=>{ MUSICA(null); }});   // silencio dramático antes del disparo
   }
   const dist=Math.hypot((GOAL_X-8)-sx, gy-sy), dur=Math.max(220, dist/(esp?0.17:0.13));
-  seq.push({tipo:"tiro", dur, t:0, inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); },
-    tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0); camSeguir(PS.ball.x);
-      if(esp){ const c=PS.ctx; for(let m=1;m<=4;m++) px(c, PS.ball.x-m*7-PS.camX, PS.ball.y-1, 5,3, m<3?"#ff8c3a":"#f6c11d"); } }});
+  seq.push({tipo:"tiro", esp, dur, t:0, inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); },
+    tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0); camSeguir(PS.ball.x); }});
   seq.push({tipo:"hitstop", dur:400, t:0, inicio:()=>{ PS.ball.x=GOAL_X-8; PS.ball.y=gy; SFX("sting"); }});  // arquero en el aire: ¿gol o atajada?
   seq[seq.length-1].fin = ()=>{ if(win) goalSequence(cm.on==="gambetaGk", cm.on==="tiroLejano", esp); else tiroAtajado(cm); };
   seq.forEach(encolarEscena);
@@ -1986,7 +1994,7 @@ function applyOutcome(cm, win){
       setTimeout(()=>{ if(checkTime()) return; hideCombat(); recoverBall(); PS.state="run"; }, 950);
     } else {
       PS.carrier.x = clamp(PS.carrier.x - cm.adv, MY_AREA_X-2, GOAL_X);
-      PS.player.x = clamp(PS.carrier.x + 34, 16, GOAL_X-2);   // te dejó atrás: a correrlo
+      const cpd=ctrlPos(); cpd.x = clamp(PS.carrier.x + 34, 16, GOAL_X-2); cpd.y = clamp(PS.carrier.y+10, TOP+6, BOT-6);   // te dejó atrás EL CONTROLADO: a correrlo
       PS.encCooldown = 45;
       endLine(({quitar:"Te tiraste y le pifiaste: te dejó pagando.", cortar:"Amagó el pase y siguió: te comió el mediocampo.",
         bloquear:"Te hizo pasar de largo con un enganche.", marcar:"Aceleró de golpe y te sacó medio metro."})[cm.k], false);
@@ -2191,7 +2199,7 @@ function accionPatear(){
   chooseCommand({k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"});
 }
 function accionEspecial(){
-  if(!PS || PS.state!=="run" || PS.posesion!=="mia") return;
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
   if(PS.equipo && (PS.controlIdx||0)!==0) return;            // el especial es TUYO: llegá vos
   const e=TIROS_ESPECIALES[0];
   if(!e.funcional || nivelJugador()<e.nivel || PS.guts<e.guts) return;

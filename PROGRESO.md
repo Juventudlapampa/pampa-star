@@ -8,6 +8,16 @@ Capa de presentación sobre el motor v2; el guardado no cambia. Un commit por et
 - **Etapa 3 — defensa:** control automático al propio más cercano ("AHORA MARCÁS CON: X") + override tocando el minimapa; persecución 0.55 vs 0.34 (alcanzás con buen ángulo); recuperación con corte + "¡LA RECUPERASTE!".
 - **Etapa 5 — constantes de ritmo:** VEL_PORTADOR_MIO 0.50, VEL_PERSECUCION 0.55, VEL_RIVAL_CON_PELOTA 0.34, VEL_POSICIONALES 0.15, VEL_PELOTA ~2px/f, hit-stops 250/400, corte 120. Lo lento son los cuerpos, lo rápido la pelota y los cortes.
 - **Parcial (documentado, para tuning):** marca pasiva del tercio (−15%) y escenas de los pases DEL rival; migración a escenas de los duelos def/defensa/despeje/arquero (aún en setTimeout, sin carreras observadas). Cut-in dibujado como overlay HTML (no canvas).
+### Revisión adversarial del V3 ✅ (5 hallazgos únicos, todos arreglados y verificados)
+1. **[ALTA]** `buildEquipo` daba al amigo su posición propia en vez de la del slot: planteles con 0 o varios ARQ y "fantasmas" (sin dibujar/mover/recibir). Ahora el ROL es el del slot físico → siempre exactamente 1 ARQ, 7 en cancha, 3 receptores (verificado con el plantel patológico 2×ATA+2×ARQ).
+2. El silencio dramático del especial apagaba la música hasta el entretiempo → `musicaDeJuego()` la reanuda en cada kickoff/contra (respetando el loop urgente de los últimos minutos).
+3. Perder el duelo defensivo teletransportaba a TU sprite en vez del controlado (7v7) → ahora corre el controlado.
+4. `accionEspecial` sin guard de `PS.escena` (latente) → agregado.
+5. La estela del megatiro se pintaba antes del repintado del frame (invisible) → ahora se dibuja dentro de `draw()` leyendo la escena activa (verificado a nivel píxel).
+
+### Deploy de Pages
+Las fallas del deploy eran arrastre del incidente de latencia de GitHub (2-3/7); se destrabó con un redeploy forzado y hoy todos los runs están en verde con el sitio al día. Blindado con `.nojekyll`.
+
 - **⛔ CONTROL 1 (playtest de Rodri) pendiente** antes del PROMPT 2 (presentación). No arrancar el 2 sin su feedback.
 
 ## ✅ Tanda de integración + pase de calidad (jul 2026)
