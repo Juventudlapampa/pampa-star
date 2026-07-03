@@ -1110,10 +1110,22 @@ const px=PSART.px, drawKit=PSART.drawKit, drawBall=PSART.drawBall,
    5v5: vos + tus amigos en su posición + canteranos genéricos de relleno.
    Los compañeros se mueven por ANCLAS: x proporcional a la pelota, banda
    vertical propia. Nada de pathfinding. El rival usa el mismo sistema. */
-const ELASTICIDAD = {ARQ:0.05, DEF:0.35, VOL:0.55, ATA:0.75};   // cuánto acompaña cada rol a la pelota
-const ANCLA_MIA   = {ARQ:26,        DEF:170, VOL:300, ATA:430}; // ataco hacia la derecha
-const ANCLA_RIVAL = {ARQ:GOAL_X-14, DEF:470, VOL:340, ATA:210}; // el rival ataca hacia la izquierda
+const ELASTICIDAD = {ARQ:0.05, DEF:0.30, VOL:0.50, ATA:0.72};   // cuánto acompaña cada rol a la pelota
 const STATS_CANTERA = {pase:40,tiro:38,gambeta:38,velocidad:42,fisico:40};
+/* V3·1: formación 7v7 = ARQ – 2 DEF – 3 VOL – 1 ATA. Cada slot: ancla X + banda Y.
+   "mia" ataca a la derecha; "rival" es el espejo (WORLD_W - x). */
+function formacion(side){
+  const mir = side==="rival", ax = x => mir ? (WORLD_W - x) : x;
+  return [
+    {pos:"ARQ", ax:ax(26),  by:[TOP+10, BOT-10]},
+    {pos:"DEF", ax:ax(152), by:[TOP+6, 74]},
+    {pos:"DEF", ax:ax(152), by:[82, BOT-6]},
+    {pos:"VOL", ax:ax(300), by:[TOP+6, 56]},
+    {pos:"VOL", ax:ax(300), by:[62, 94]},
+    {pos:"VOL", ax:ax(300), by:[100, BOT-6]},
+    {pos:"ATA", ax:ax(432), by:[40, BOT-40]},
+  ];
+}
 
 /* ====== V2 · ETAPA D — ROLES: mismo comando, manos distintas (tabla afinable) ====== */
 const PESOS_POS = {
@@ -1153,48 +1165,39 @@ function newState(club, rival){
     paredAutoUsada:false, vincParedes:0, golesAmigos:{},
   };
 }
-/* ---------- V2: armar los equipos de 5 ---------- */
-function bandaPara(pos, volBand){
-  if(pos==="VOL") return volBand===0 ? [TOP+10,MIDY-4] : [MIDY+4,BOT-10];
-  return [TOP+10,BOT-10];
+/* ---------- V3·1: armar los equipos de 7 (vos + amigos en su pos + canteranos) ---------- */
+function mkEnt(ref, pos, nombre, stats, vinculo, guts, look, slot, idle){
+  return {ref, pos, nombre, stats, vinculo, guts, look,
+    elast:ELASTICIDAD[pos], ancla:slot.ax, banda:slot.by, idle:idle||0,
+    x: ref==="yo"?300:slot.ax, y: ref==="yo"?MIDY:(slot.by[0]+slot.by[1])/2, anim:0, face:1};
 }
 function buildEquipo(){
   const v=ensureVida();
-  const equipo=[{ref:"yo", pos:"ATA", nombre:career.name, stats:career.stats, vinculo:null, guts:null, look:career.look}];
-  v.amigos.forEach((a,i)=> equipo.push({ref:i, pos:a.pos, nombre:a.nombre, stats:a.stats, vinculo:a.vinculo,
-    guts: clamp(Math.round(55 + a.stats.fisico*0.5), 30, 100), look:a.look}));
-  // canteranos genéricos (nombre procedural NO-humano) completan la formación 1-1-2-1
-  const need={ARQ:1, DEF:1, VOL:2};
-  for(const e of equipo){ if(need[e.pos]>0) need[e.pos]--; }
-  let n=1;
-  for(const pos of ["ARQ","DEF","VOL","VOL"]){
-    if(equipo.length>=5) break;
-    if(need[pos]>0){ need[pos]--; equipo.push({ref:"cantera", pos, nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}}); }
+  const slots=formacion("mia");
+  const usados=slots.map(()=>false);
+  const iAta=slots.findIndex(s=>s.pos==="ATA"); usados[iAta]=true;
+  const equipo=[mkEnt("yo","ATA",career.name,career.stats,null,null,career.look,slots[iAta])];
+  let cN=1;
+  for(let ai=0; ai<v.amigos.length && equipo.length<7; ai++){
+    const a=v.amigos[ai];
+    let si=slots.findIndex((s,i)=>!usados[i] && s.pos===a.pos);   // su posición real si hay lugar
+    if(si<0) si=slots.findIndex((s,i)=>!usados[i]);               // si no, cualquier slot libre
+    if(si<0) break;
+    usados[si]=true;
+    const guts=clamp(Math.round(55+a.stats.fisico*0.5),30,100);
+    equipo.push(mkEnt(ai, a.pos, a.nombre, a.stats, a.vinculo, guts, a.look, slots[si], ai*1.3));
   }
-  while(equipo.length<5) equipo.push({ref:"cantera", pos:"VOL", nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}});
-  // SIEMPRE tiene que haber arquero: si tus 4 amigos son todos de campo, un cantera va al arco (aunque el plantel quede en 6)
-  if(!equipo.some(e=>e.pos==="ARQ")) equipo.push({ref:"cantera", pos:"ARQ", nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}});
-  let volBand=0;
-  for(const e of equipo){
-    e.elast=ELASTICIDAD[e.pos]; e.ancla=ANCLA_MIA[e.pos];
-    e.banda=bandaPara(e.pos, e.pos==="VOL"?volBand++:0);
-    e.anim=0; e.face=1;
-    if(e.ref!=="yo"){ e.x=e.ancla; e.y=(e.banda[0]+e.banda[1])/2; }
-  }
+  for(let i=0;i<slots.length;i++){ if(!usados[i]){ usados[i]=true;   // canteranos completan
+    equipo.push(mkEnt("cantera", slots[i].pos, "Cantera "+(cN), Object.assign({},STATS_CANTERA), 0, 50, {piel:cN%3,pelo:0,camiseta:0}, slots[i], cN*0.9)); cN++; } }
   return equipo;
 }
 function buildRivales(){
-  const rs=[]; let volBand=0;
-  for(const pos of ["ARQ","DEF","VOL","VOL","ATA"]){
-    const e={pos, elast:ELASTICIDAD[pos], ancla:ANCLA_RIVAL[pos]};
-    e.banda=bandaPara(pos, pos==="VOL"?volBand++:0);
-    e.x=e.ancla; e.y=(e.banda[0]+e.banda[1])/2;
-    rs.push(e);
-  }
-  return rs;
+  return formacion("rival").map((s,i)=>({pos:s.pos, elast:ELASTICIDAD[s.pos], ancla:s.ax, banda:s.by,
+    x:s.ax, y:(s.by[0]+s.by[1])/2, idle:i*1.1, anim:0}));
 }
-/* los que NO maneja la mecánica de encuentros acompañan la jugada por anclas */
-function rivalesActivos(){ return PS.posesion==="mia" ? [1,2] : [4]; }
+/* índices ACTIVOS del rival (los maneja la mecánica de encuentros; el resto es escenografía).
+   7v7: idx 0=ARQ, 1-2=DEF, 3-5=VOL, 6=ATA. Cuando ataco, sus 2 DEF marcan; cuando defiendo, su ATA lleva. */
+function rivalesActivos(){ return PS.posesion==="mia" ? [1,2] : [6]; }
 
 /* ====== V2 · ETAPA C — PASE REAL Y CONTROL QUE CAMBIA ======
    El pase deja de ser un duelo: la pelota viaja a un compañero REAL y pasás
@@ -1393,9 +1396,9 @@ function equipoPuntos(){
 }
 function rivalPuntos(){
   return PS.rivales.map((r,i)=>{
-    if(i===0) return {x:PS.keeper.x, y:PS.keeper.y};
-    if(PS.posesion==="mia" && (i===1||i===2)){ const df=PS.defenders[i-1]; if(df && !df.passed) return {x:df.x, y:df.y}; }
-    if(PS.posesion==="rival" && i===4 && PS.carrier.active) return {x:PS.carrier.x, y:PS.carrier.y};
+    if(i===0) return {x:PS.keeper.x, y:PS.keeper.y};                       // arquero rival
+    if(PS.posesion==="mia" && (i===1||i===2)){ const df=PS.defenders[i-1]; if(df) return {x:df.x, y:df.y}; }  // sus DEF = tus marcadores (aunque estén vencidos)
+    if(PS.posesion==="rival" && i===6 && PS.carrier.active) return {x:PS.carrier.x, y:PS.carrier.y};          // su ATA lleva la pelota
     return {x:r.x, y:r.y};
   });
 }
@@ -1447,22 +1450,33 @@ $("minimap").addEventListener("pointerdown", e=>{
   t.classList.add("show");
   clearTimeout(mmTipTO); mmTipTO=setTimeout(()=>t.classList.remove("show"), 2000);
 });
+/* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
+   y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
+const VEL_POSICIONALES = 0.32;
+function moverPosicional(e, obj){
+  const targetX = clamp((e.ancla+(PS.empuje||0)) + (PS.ball.x - WORLD_W/2)*e.elast, 30, GOAL_X-16);
+  const targetY = clamp(PS.ball.y, e.banda[0], e.banda[1]) + Math.sin(PS._t*0.03 + (e.idle||0))*1.0;
+  obj.x += clamp(targetX-obj.x, -VEL_POSICIONALES, VEL_POSICIONALES);
+  obj.y += clamp(targetY-obj.y, -VEL_POSICIONALES, VEL_POSICIONALES);
+}
 function updateAnclas(){
-  const bx=PS.ball.x, ci=(PS.posesion==="mia")?(PS.controlIdx||0):0;
+  PS._t=(PS._t||0)+1;
+  const ci=(PS.posesion==="mia")?(PS.controlIdx||0):0;
   PS.equipo.forEach((e,i)=>{
     if(e.pos==="ARQ") return;
     if(PS.posesion==="mia" && i===ci) return;          // al controlado lo movés vos
-    const obj = e.ref==="yo" ? PS.player : e;          // vos también acompañás cuando no te controlan
-    const ancla = e.ancla + (PS.empuje||0);            // "jugada armada": el equipo sube
-    obj.x = clamp(ancla + (bx - WORLD_W/2)*e.elast, 30, GOAL_X-16);
-    obj.y += clamp(clamp(PS.ball.y, e.banda[0], e.banda[1]) - obj.y, -0.35, 0.35);
+    moverPosicional(e, e.ref==="yo" ? PS.player : e);  // vos también acompañás cuando no te controlan
   });
   const act=rivalesActivos();
-  PS.rivales.forEach((e,i)=>{
-    if(i===0 || act.includes(i)) return;
-    e.x = clamp(e.ancla + (bx - WORLD_W/2)*e.elast, 30, GOAL_X-16);
-    e.y += clamp(clamp(PS.ball.y, e.banda[0], e.banda[1]) - e.y, -0.35, 0.35);
-  });
+  PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; moverPosicional(e, e); });
+  // V3·1: el defensor SUPERADO no desaparece: vuelve caminando a su ancla, vencido atrás tuyo
+  for(const df of PS.defenders){
+    if(df.passed && df.tercio){
+      const restX=(df.tercio[0]+df.tercio[1])/2 - 40;
+      df.x += clamp(restX-df.x, -0.4, 0.4);
+      df.y += clamp((MIDY)-df.y, -0.2, 0.2);
+    }
+  }
 }
 
 function spawnDefenders(fromX){
@@ -1610,7 +1624,11 @@ function draw(){
     const act=rivalesActivos();
     PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; drawKit(c, e.x-cam, e.y, PS.rival.c1, PS.rival.c2, false, e.x*0.22); });
   }
-  for(const df of PS.defenders){ if(!df.passed && PS.posesion==="mia") drawKit(c, df.x-cam, df.y, PS.rival.c1, PS.rival.c2, false); }
+  /* V3·1: los marcadores del tercio SIEMPRE se dibujan; el superado se ve vencido (más chico/tenue), nunca desaparece */
+  if(PS.posesion==="mia") for(const df of PS.defenders){
+    drawKit(c, df.x-cam, df.y, PS.rival.c1, PS.rival.c2, false, df.x*0.22);
+    if(df.passed){ c.fillStyle="rgba(6,18,11,0.35)"; c.fillRect((df.x-cam-4)|0,(df.y-13)|0,8,17); }  // veladura de "vencido"
+  }
   if(PS.carrier.active) drawKit(c, PS.carrier.x-cam, PS.carrier.y, PS.rival.c1, PS.rival.c2, false, PS.carrier.x*0.25);
   drawKit(c, PS.keeper.x-cam, PS.keeper.y, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
   drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
