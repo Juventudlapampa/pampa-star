@@ -193,6 +193,12 @@
   @keyframes pop{0%{transform:scale(.2);opacity:0}35%{transform:scale(1.18);opacity:1}80%{transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
   .flash.gol .big{color:var(--sol-2);}
   .flash.bad .big{color:#9fb2c4;font-size:clamp(1.1rem,6.5vw,1.9rem);}
+  /* V3·2: corte de cámara (negro seco) y cartel de cambio de control */
+  .cut{position:absolute;inset:0;background:#000;z-index:8;opacity:0;pointer-events:none;}
+  .banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:9;pointer-events:none;
+    font-family:'Press Start 2P',monospace;font-size:.72rem;line-height:1.5;color:var(--sol-2);text-align:center;
+    background:rgba(6,18,11,.82);border:2px solid var(--sol);border-radius:9px;padding:.5rem .7rem;display:none;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
+  .banner.show{display:block;animation:pop .5s ease;}
 
   /* ---------- FINAL ---------- */
   #screen-final{justify-content:center;text-align:center;gap:.2rem;padding:.6rem;}
@@ -362,6 +368,8 @@
       <div class="stage" id="stage">
         <canvas id="pitch" width="280" height="156"></canvas>
         <div class="hint" id="hint">Al arco rival <b>▶</b></div>
+        <div class="cut" id="cut"></div>
+        <div class="banner" id="banner"></div>
         <div class="flash" id="flash"><div class="big" id="flash-big">¡GOL!</div></div>
       </div>
 
@@ -1163,6 +1171,7 @@ function newState(club, rival){
     golesEnPartido:0,
     controlIdx:0, pasesSeguidos:0, empuje:0, bonusJugada:false,   // V2·C
     paredAutoUsada:false, vincParedes:0, golesAmigos:{},
+    escena:null, colaEscenas:[], _t:0, _last:0,                   // V3·2 máquina de escenas
   };
 }
 /* ---------- V3·1: armar los equipos de 7 (vos + amigos en su pos + canteranos) ---------- */
@@ -1267,46 +1276,64 @@ function renderPaseMenu(filtrado, obligatorio){
     grid.appendChild(back);
   }
 }
+const VEL_PELOTA=0.12;   // px por ms (~2 px/frame @60fps); V3·5 puede afinar por distancia
 function resolvePase(r){
   if(PS.state!=="menu") return;
   PS.state="resolving";
   SFX("menu"); SFX("kick");
   ctrlGastarGuts(2);                              // construir es barato
   $("cmd-grid").innerHTML="";
-  $("combat-txt").innerHTML=`La soltás para <b>${esc(nombreDe(r.e))}</b>… ➡️`;
+  $("combat-txt").innerHTML=`La soltás para <b>${esc(nombreDe(r.e))}</b>… ➡️`;   // NO anuncia resultado: la imagen primero
   const win = Math.random()*100 < r.pct;
   PS.minuto += rnd(1,2); renderClock();           // pasar casi no quema reloj
-  setTimeout(()=>{
-    if(win){
-      PS.pasesSeguidos=(PS.pasesSeguidos||0)+1;
-      if(r.e.ref!=="yo" && r.e.ref!=="cantera"){ PS.conexiones=PS.conexiones||{}; PS.conexiones[r.idx]=(PS.conexiones[r.idx]||0)+1; } // E: dupla de la tarde
-      let extra="";
-      if(PS.pasesSeguidos===3){ PS.bonusJugada=true; PS.empuje=40; extra=" <b>¡JUGADA ARMADA!</b> Próximo tiro o gambeta +10%."; }
-      animarPase(r, ()=>{
-        if(PS.encounter && PS.encounter.ref) PS.encounter.ref.passed=true;  // tu marcador quedó atrás
-        PS.controlIdx=r.idx;
-        const e=ctrlEnt(); if(e.anim==null){ e.anim=0; e.face=1; }
-        setGuts();
-        endLine(`AHORA JUGÁS: <b>${esc(nombreDe(r.e))}</b> (${r.e.pos}).${extra}`, true);
-        setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.encCooldown=45; PS.state="run"; setHint(); }, 900);
-      });
-    } else {
-      PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
-      endLine("¡Interceptado! Leyeron la línea de pase.", false);
-      const cp=ctrlPos(), ix=(cp.x+r.x)/2, iy=(cp.y+r.y)/2;
-      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; rivalCounter(ix, iy); PS.state="run"; }, 950);
-    }
-  }, 500);
+  if(win){
+    PS.pasesSeguidos=(PS.pasesSeguidos||0)+1;
+    if(r.e.ref!=="yo" && r.e.ref!=="cantera"){ PS.conexiones=PS.conexiones||{}; PS.conexiones[r.idx]=(PS.conexiones[r.idx]||0)+1; }  // E: dupla de la tarde
+    PS._jugadaArmada = (PS.pasesSeguidos===3);
+    if(PS._jugadaArmada){ PS.bonusJugada=true; PS.empuje=40; }
+  } else { PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; }
+  escenaPase(r, win);
 }
-function animarPase(r, cb){
-  const sx=PS.ball.x, sy=PS.ball.y, dest=posDe(r.e);
-  let s=0; const iv=setInterval(()=>{
-    s++; const t=s/6;
-    PS.ball.x=sx+(dest.x-sx)*t; PS.ball.y=sy+(dest.y-sy)*t;
-    PS.camX=clamp(PS.ball.x-140,0,WORLD_W-CW);
-    draw(); drawMinimap();
-    if(s>=6){ clearInterval(iv); cb(); }
-  },50);
+/* E2 — la escena estrella: la pelota VIAJA (cámara sobre ella); si hay corte posible,
+   hit-stop de 250ms ("¿llega?") antes del desenlace; el texto va DESPUÉS. */
+function escenaPase(r, win){
+  const cp=ctrlPos(), sx=cp.x, sy=cp.y, dx=r.x, dy=r.y;
+  let dmin=1e9, corte=null;
+  rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return;
+    const d=distSeg(sx,sy,dx,dy,rp.x,rp.y);
+    if(d<dmin){ dmin=d;
+      const L2=(dx-sx)**2+(dy-sy)**2||1, t=clamp(((rp.x-sx)*(dx-sx)+(rp.y-sy)*(dy-sy))/L2,0,1);
+      corte={x:sx+(dx-sx)*t, y:sy+(dy-sy)*t, rx:rp.x, ry:rp.y};
+    }});
+  const hayCorte = dmin<40 && corte;
+  const viaje=(x0,y0,x1,y1)=>{ const dur=Math.max(120, Math.hypot(x1-x0,y1-y0)/VEL_PELOTA);
+    return {tipo:"pase", dur, t:0, tick:(t)=>{ const k=t/dur; PS.ball.x=x0+(x1-x0)*k; PS.ball.y=y0+(y1-y0)*k; camSeguir(PS.ball.x); }}; };
+  const seq=[];
+  if(hayCorte){
+    seq.push(viaje(sx,sy,corte.x,corte.y));
+    seq.push({tipo:"hitstop", dur:250, t:0, inicio:()=>{ PS.ball.x=corte.x; PS.ball.y=corte.y; SFX("sting"); }});  // el cuarto de segundo del suspenso
+    if(win) seq.push(viaje(corte.x,corte.y,dx,dy));
+    else seq.push({tipo:"robo", dur:180, t:0, inicio:()=>{ PS.ball.x=corte.rx; PS.ball.y=corte.ry; camSeguir(PS.ball.x); }});
+  } else {
+    seq.push(viaje(sx,sy,dx,dy));
+  }
+  seq[seq.length-1].fin = ()=> win ? paseCompletado(r) : paseInterceptado(r, corte||{x:(sx+dx)/2,y:(sy+dy)/2});
+  seq.forEach(encolarEscena);
+}
+function paseCompletado(r){
+  if(PS.encounter && PS.encounter.ref) PS.encounter.ref.passed=true;   // tu marcador quedó atrás
+  PS.controlIdx=r.idx; const e=ctrlEnt(); if(e.anim==null){ e.anim=0; e.face=1; } setGuts();
+  banner(`AHORA JUGÁS:<br>${esc(nombreDe(r.e)).toUpperCase()} (${r.e.pos})` + (PS._jugadaArmada?`<br><span style="color:var(--ok)">¡JUGADA ARMADA! +10%</span>`:""));
+  PS._jugadaArmada=false;
+  hideCombat(); PS.encCooldown=45; setHint();
+  if(checkTime()) return;
+  PS.state="run";
+}
+function paseInterceptado(r, ip){
+  SFX("lose"); banner(`¡INTERCEPTADO!<br><span style="font-size:.55rem;color:#ff9c8c">leyeron el pase</span>`);
+  hideCombat(); PS.controlIdx=0;
+  if(checkTime()) return;
+  rivalCounter(ip.x, ip.y); PS.state="run";
 }
 /* PARED 1-2: zafás de la presión SIN perder el control. Con vínculo ≥70, la
    primera del partido con esa dupla sale sola ("se conocen de memoria"). */
@@ -1488,6 +1515,7 @@ function spawnDefenders(fromX){
   PS.keeper.faced = false;
 }
 function kickoff(quien){
+  corteNegro(120);   // E3: saque desde el medio -> corte de cámara
   PS.posesion = quien;
   PS.encounter = null; PS.encCooldown = 40;
   PS.controlIdx = 0; PS.pasesSeguidos = 0; PS.empuje = 0; setGuts();   // volvés a jugar VOS
@@ -1505,6 +1533,7 @@ function kickoff(quien){
 }
 /* posesión rival arrancando desde su campo (contragolpe / saque del arquero) */
 function rivalCounter(fromX, fromY){
+  corteNegro(120);   // E3: la cámara salta al contragolpe -> corte seco
   PS.posesion="rival";
   PS.controlIdx=0; PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; setGuts();  // defendés VOS
   PS.carrier={x:clamp(fromX, 180, GOAL_X-120), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
@@ -1556,10 +1585,42 @@ function startPlay(club, rival){
 }
 function abbr(n){ return n.replace("Deportivo","Dep.").replace("Atlético","Atl.").toUpperCase().slice(0,12); }
 
+/* ====== V3·2 — MÁQUINA DE ESCENAS (unidad de presentación; cola única, sin setTimeout sueltos) ======
+   Una escena a la vez en PS.escena; el resto encolado en PS.colaEscenas. Se avanza por TIEMPO REAL
+   (dt en ms), así funciona igual con el reloj del navegador y es testeable a mano. */
+function perfNow(){ return (window.performance && performance.now) ? performance.now() : 0; }
+function encolarEscena(esc){ PS.colaEscenas.push(esc); if(!PS.escena) siguienteEscena(); }
+function siguienteEscena(){
+  PS.escena = PS.colaEscenas.shift() || null;
+  const e=PS.escena; if(e){ e.t=0; if(e.inicio) e.inicio(); }
+}
+function avanzarEscena(dt){
+  const e=PS.escena; if(!e) return;
+  e.t += dt;
+  if(e.tick) e.tick(Math.min(e.t, e.dur), dt);
+  if(e.t >= e.dur){ const fin=e.fin; siguienteEscena(); if(fin) fin(); }  // siguienteEscena antes de fin: fin puede encolar la próxima
+}
+function camSeguir(px){ PS.camX = clamp(px - CW/2, 0, WORLD_W-CW); }      // centra la cámara en un punto del mundo
+/* corte en negro (E3): 120ms para saltos largos; paneo suave lo maneja el ease de camX */
+let cutTO=0;
+function corteNegro(ms){
+  const el=$("cut"); if(!el) return;
+  clearTimeout(cutTO); el.style.transition="none"; el.style.opacity="1";
+  requestAnimationFrame(()=>{ el.style.transition="opacity 90ms ease"; el.style.opacity="0"; });
+  cutTO=setTimeout(()=>{ el.style.opacity="0"; }, ms||120);
+}
+function banner(txt, ms){
+  const b=$("banner"); if(!b) return;
+  b.innerHTML=txt; b.className="banner show";
+  clearTimeout(b._to); b._to=setTimeout(()=>b.classList.remove("show"), ms||1200);
+}
+
 /* ---------- Bucle principal ---------- */
 function loop(){
   if(PS && PS.running){
-    if(PS.state==="run") update();
+    const now=perfNow(), dt = PS._last ? Math.min(80, now-PS._last) : 16; PS._last=now;
+    if(PS.escena) avanzarEscena(dt);          // durante una escena, el juego no procesa input
+    else if(PS.state==="run") update();
     draw();
     drawMinimap();
   }
