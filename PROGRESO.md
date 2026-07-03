@@ -1,5 +1,29 @@
 # PAMPA STAR — Progreso
 
+## ✅ Tanda de integración + pase de calidad (jul 2026)
+
+### Integración sobre el partido v2 (dirección: pixel retro + chiptune)
+- **Sonido:** chiptune propio (`pampa-star-audio.js`) enganchado a todo — silbatos (inicio/entretiempo/final), sting del encuentro, blip de menú, patada, ganar/perder duelo, gol, gol rival, atajada, especial, pasitos. Música por estado (posesión + urgente en los últimos minutos). Mute con ícono+texto, volumen/mute persistidos, desbloqueo al primer toque.
+- **Controles:** cruceta a la izquierda + botones PATEAR y CALDÉN a la derecha (grandes, ícono+texto, estado en palabras). Teclado: flechas/WASD + Espacio (patear) + E (especial); botones en pantalla clickeables.
+- **Inicio:** pantalla título con CONTINUAR (resumen de carrera) / NUEVO JUEGO / sonido.
+- **Avatar con ORIGEN:** nombre; localidad (75 de La Pampa; pueblo +Carácter, ciudad grande +técnica); rasgo permanente (Potrerista/De Club/Arranque Tardío, condiciona la semana); estilo (Encarás/La Clavás/Jugás en Equipo); repartir 5 puntos; apariencia etiquetada; club "desde abajo". El origen tiñe stats, semana, vínculos y prensa.
+- **Lore de intro** adaptativo a [PUEBLO], [CLUB] y [PUEBLO DEL CLUB].
+
+### Pase de calidad — revisión adversarial (4 agentes) + soak + QA mobile + a11y
+Soak: 2 temporadas al azar con invariantes OK (GF=GC, G=P, pts=g·3+e, PJ=16, campeón, save siempre parseable). QA mobile 375px: sin desbordes; táctiles subidos. **12 hallazgos únicos, todos arreglados y verificados:**
+1. **[ALTA] Equipo sin arquero → partido congelado.** Con 4 amigos de campo, `buildEquipo` cortaba antes del ARQ y `rivalShot` crasheaba matando el RAF. Fix: garantizar siempre un ARQ (cantera al arco, aunque el plantel quede en 6) + guard defensivo en `rivalShot`.
+2. **[ALTA] Textos con género en pantallas nuevas.** "CREÁ TU JUGADOR"→"TU CRACK", "¿de chico?"→"Tu historia con la pelota", "TARDÍO"→"ARRANQUE TARDÍO", "EL QUE ENCARA/LA CLAVA/JUEGA PARA TODOS"→"ENCARÁS/LA CLAVÁS/JUGÁS EN EQUIPO", lore "pibes…"→"quienes…". (badge y label "delantero"→"ataque" ya venían.)
+3. **[MEDIA] NUEVO JUEGO borraba el save al instante.** Ahora el borrado se difiere a EMPEZAR CARRERA; "Volver al inicio" conserva la carrera vieja (flag `nuevoPendiente`).
+4. **[MEDIA] Espacio robaba la activación de botones por teclado** en todas las pantallas. Ahora los atajos de juego (Espacio/E/flechas) solo actúan con la cancha activa.
+5. **[MEDIA] Botones táctiles chicos** (+/− de puntos 32px, ◀▶ de pinta 30px, mute ~24px). Todos a 44px. Cruceta 42→46px.
+6. **[MEDIA] Ráfaga de notas al desmutear** (el secuenciador recuperaba el atraso de golpe). Fix en `pampa-star-audio.js`: no acumular atraso (`mus.next` se resincroniza).
+7. **[MEDIA] SFX doble** (el "win/lose" del duelo sonaba encima del gol/atajada). Fix con flag `_sfxBig`.
+8. **[MEDIA] `ensureSeason` no validaba nada.** Ahora `seasonValida()` regenera una temporada corrupta; stats con NaN/string se sanean a número.
+9. **[BAJA] Gambeta ganada controlando a un amigo avanzaba tu sprite** (no el del amigo). Fix: usar `ctrlPos()`.
+10. **[BAJA] Desbloqueo de audio `{once:true}`** moría si el AudioContext se suspendía. Ahora reanuda en cada interacción + `visibilitychange`.
+11. **[BAJA] Saque lateral con "◀ VOLVER"** abría un duelo fantasma con el encounter viejo. Fix: `encounter=null` y menú de pase obligatorio sin VOLVER.
+12. **[BAJA] `lookResolved` con índice corrupto** (negativo/NaN) crasheaba `draw()`. Fix: índice a prueba de basura en `pampa-star-sprites.js`.
+
 ## ✅ Hecho
 
 ### Base (previo)

@@ -95,6 +95,7 @@ var PSAUDIO = (function(){
     const stepDur = 60/L.bpm/2; // corcheas
     mus.timer=setInterval(()=>{
       if(prefs.muted){ return; }
+      if(mus.next < ctx.currentTime) mus.next = ctx.currentTime + 0.02;  // no acumular atraso (mute o pestaña en background): evita ráfaga de notas al reengancharse
       while(mus.next < ctx.currentTime+0.18){
         const i=mus.step%16;
         scheduleNote(L.bass[i], mus.next, stepDur*0.95, "triangle", 0.20);

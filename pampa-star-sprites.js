@@ -34,8 +34,9 @@ var PSART = (function(){
   function px(c,x,y,w,h,col){ c.fillStyle=col; c.fillRect(x|0,y|0,w|0,h|0); }
 
   function lookResolved(l){
-    const k=l||{piel:0,pelo:1,camiseta:0};
-    const piel=PIELES[(k.piel||0)%PIELES.length], pelo=PELOS[(k.pelo||0)%PELOS.length], cam=CAMISETAS[(k.camiseta||0)%CAMISETAS.length];
+    const k=l||{};
+    const si=(x,n)=> Math.abs(((x|0)))%n;   // índice a prueba de negativos/NaN/strings (un save corrupto no debe crashear draw)
+    const piel=PIELES[si(k.piel,PIELES.length)], pelo=PELOS[si(k.pelo,PELOS.length)], cam=CAMISETAS[si(k.camiseta,CAMISETAS.length)];
     return {pielHex:piel.hex, peloHex:pelo.hex, peloEstilo:pelo.estilo, peloRasgo:pelo.rasgo, camEstilo:cam.estilo};
   }
 

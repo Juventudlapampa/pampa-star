@@ -59,7 +59,7 @@
   .selcard .sd{font-family:'JetBrains Mono',monospace;font-size:.5rem;opacity:.85;margin-top:.3rem;line-height:1.35;}
   .pts-row{display:flex;align-items:center;gap:.4rem;margin-top:.35rem;font-family:'JetBrains Mono',monospace;font-size:.66rem;}
   .pts-row .pn{flex:1;}
-  .pts-btn{width:32px;height:32px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.8rem;}
+  .pts-btn{width:44px;height:44px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.9rem;flex:0 0 auto;}
   .pts-btn:active{background:rgba(246,193,29,.7);color:#000;}
   .pts-val{min-width:46px;text-align:center;color:var(--sol-2);font-weight:700;}
   #lore-txt b{color:var(--sol-2);}
@@ -118,7 +118,7 @@
   .pv-canvas{width:48px;height:72px;image-rendering:pixelated;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(246,239,220,.2);flex:0 0 auto;}
   .pinta-cycles{flex:1;display:flex;flex-direction:column;gap:.35rem;min-width:0;}
   .cyc{display:flex;align-items:center;gap:.4rem;}
-  .cycb{width:30px;height:30px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.75rem;flex:0 0 auto;}
+  .cycb{width:44px;height:44px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.85rem;flex:0 0 auto;}
   .cycb:active{background:rgba(246,193,29,.7);color:#000;}
   .cyclbl{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--sol-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
@@ -133,7 +133,7 @@
   .guts{display:flex;align-items:center;gap:.35rem;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;padding:.4rem .45rem;}
   .guts .lab{font-family:'Press Start 2P',monospace;font-size:.48rem;color:var(--ok);}
   .mutebtn{background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;color:var(--crema);
-    font-family:'JetBrains Mono',monospace;font-size:.6rem;padding:.4rem .45rem;cursor:pointer;min-width:52px;}
+    font-family:'JetBrains Mono',monospace;font-size:.6rem;padding:.4rem .45rem;cursor:pointer;min-width:52px;min-height:44px;}
   .mutebtn:active{background:rgba(246,193,29,.6);color:#000;}
   .guts-bar{width:52px;height:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.18);border-radius:2px;overflow:hidden;}
   .guts-fill{height:100%;width:100%;background:linear-gradient(90deg,#7ee08a,#3fbf63);transition:width .25s, background .25s;}
@@ -148,10 +148,10 @@
   canvas#pitch{display:block;width:100%;height:auto;aspect-ratio:280/156;max-height:58dvh;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges;}
 
   .controls{flex:1;min-height:128px;display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.7rem .3rem .2rem;}
-  .dpad{position:relative;width:124px;height:124px;flex:0 0 auto;touch-action:none;}
-  .dbtn{position:absolute;width:42px;height:42px;background:rgba(8,20,12,.7);border:2px solid rgba(246,239,220,.45);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--crema);font-size:1.05rem;}
+  .dpad{position:relative;width:136px;height:136px;flex:0 0 auto;touch-action:none;}
+  .dbtn{position:absolute;width:46px;height:46px;background:rgba(8,20,12,.7);border:2px solid rgba(246,239,220,.45);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--crema);font-size:1.05rem;}
   .dbtn:active,.dbtn.on{background:rgba(246,193,29,.85);color:#000;border-color:var(--sol-2);}
-  .dbtn.up{left:41px;top:0;} .dbtn.down{left:41px;top:82px;} .dbtn.left{left:0;top:41px;} .dbtn.right{left:82px;top:41px;}
+  .dbtn.up{left:45px;top:0;} .dbtn.down{left:45px;top:90px;} .dbtn.left{left:0;top:45px;} .dbtn.right{left:90px;top:45px;}
   .hint{position:absolute;top:6px;left:8px;z-index:6;font-family:'JetBrains Mono',monospace;font-size:.58rem;line-height:1.45;color:var(--crema);background:rgba(8,20,12,.62);border:1px solid rgba(246,239,220,.25);border-radius:7px;padding:.28rem .5rem;text-align:left;}
   .hint b{color:var(--sol-2);}
   /* botones de acción (celu): grandes, con ícono Y texto */
@@ -252,7 +252,7 @@
     <div class="intro-scroll">
       <div class="brand" style="padding-bottom:.2rem">
         <div class="kicker">Carrera nueva</div>
-        <h1 style="font-size:clamp(1rem,5vw,1.5rem)">CREÁ TU JUGADOR</h1>
+        <h1 style="font-size:clamp(1rem,5vw,1.5rem)">CREÁ TU CRACK</h1>
       </div>
       <div class="panel">
         <label class="fld">Tu nombre</label>
@@ -262,10 +262,10 @@
         <select class="sel" id="in-localidad"></select>
         <div class="mono" id="localidad-fx" style="font-size:.56rem;opacity:.8;margin-top:.3rem"></div>
         <div style="height:.6rem"></div>
-        <label class="fld">¿Cuánto jugaste de chico? (rasgo permanente)</label>
+        <label class="fld">Tu historia con la pelota (rasgo permanente)</label>
         <div class="selcards" id="sel-rasgo"></div>
         <div style="height:.6rem"></div>
-        <label class="fld">Tu estilo de delantero</label>
+        <label class="fld">Tu estilo de ataque</label>
         <div class="selcards" id="sel-estilo"></div>
         <div style="height:.6rem"></div>
         <label class="fld">Repartí 5 puntos (<span id="pts-libres">5</span> libres)</label>
@@ -285,7 +285,7 @@
           </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.7rem">
-          <span class="pos-badge">⚡ Delantero</span>
+          <span class="pos-badge">⚡ Ataque</span>
           <span class="mono" style="font-size:.56rem;opacity:.6">posición fija</span>
         </div>
         <button class="btn" id="btn-start">EMPEZAR CARRERA ▶</button>
@@ -519,6 +519,7 @@ function ensureCareer(name, club){
   career.name = name; career.club = club;
   // mergear con defaults: un guardado viejo sin alguna stat no puede dejar duelos en NaN
   career.stats = Object.assign(freshStats(), (career.stats && typeof career.stats==="object") ? career.stats : {});
+  for(const k in career.stats) career.stats[k]=clamp(numOr(career.stats[k],50),1,99);   // ninguna stat puede quedar NaN/string
   if(career.goles==null)     career.goles = 0;
   if(career.partidos==null)  career.partidos = 0;
   if(career.victorias==null) career.victorias = 0;
@@ -564,12 +565,12 @@ const CIUDADES_GRANDES = ["Santa Rosa","General Pico"];
 const RASGOS = [
   {k:"potrerista", n:"POTRERISTA", d:"+3 Gambeta · −2 Físico. Gambeta y pases suben más rápido al entrenar."},
   {k:"club",       n:"DE CLUB",    d:"+2 Pase. Vínculo inicial más alto al reclutar y mejores paredes."},
-  {k:"tardio",     n:"TARDÍO",     d:"Arrancás más abajo (−2 Tiro/Gambeta/Pase) pero TODO entrenamiento rinde más."},
+  {k:"tardio",     n:"ARRANQUE TARDÍO", d:"Arrancás más abajo (−2 Tiro/Gambeta/Pase) pero TODO entrenamiento rinde más."},
 ];
 const ESTILOS = [
-  {k:"encarador", n:"EL QUE ENCARA",    d:"+2 Gambeta · +2 Velocidad."},
-  {k:"definidor", n:"EL QUE LA CLAVA",  d:"+3 Tiro."},
-  {k:"equipo",    n:"JUEGA PARA TODOS", d:"+2 Pase y el vínculo pesa MÁS en pases y paredes."},
+  {k:"encarador", n:"ENCARÁS",         d:"+2 Gambeta · +2 Velocidad."},
+  {k:"definidor", n:"LA CLAVÁS",       d:"+3 Tiro."},
+  {k:"equipo",    n:"JUGÁS EN EQUIPO", d:"+2 Pase y el vínculo pesa MÁS en pases y paredes."},
 ];
 let rasgoSel=null, estiloSel=null;
 let puntosSel={tiro:0,gambeta:0,pase:0,velocidad:0,fisico:0,caracter:0};
@@ -614,7 +615,7 @@ function initIntro(){
     sloc.value="Santa Rosa";
     sloc.addEventListener("change", renderOrigen);
   }
-  if(career){
+  if(career && !nuevoPendiente){                           // creando carrera nueva: no prellenar con la vieja
     $("in-name").value = career.name || "";
     const idx = CLUBES.findIndex(c=>c.n===career.club);
     if(idx>=0) sel.value = idx;
@@ -642,22 +643,23 @@ $("btn-continuar").addEventListener("click", ()=>{
   ensureCareer(career.name, career.club);
   ensureSeason(); renderSeason();
 });
+let nuevoPendiente=false;   // NO borra el save hasta EMPEZAR CARRERA: si volvés atrás, no perdés nada
 $("btn-nuevo").addEventListener("click", ()=>{
-  if(career && !confirm("Arrancar de cero BORRA la carrera actual. ¿Dale?")) return;
-  localStorage.removeItem(STORE); career=null;
+  if(career && !confirm("Vas a crear una carrera nueva. Si la empezás, se reemplaza la actual. ¿Seguimos?")) return;
+  nuevoPendiente=true;
   rasgoSel=null; estiloSel=null; puntosSel={tiro:0,gambeta:0,pase:0,velocidad:0,fisico:0,caracter:0};
   lookSel={piel:0,pelo:1,camiseta:0};
   $("in-name").value="";
   initIntro(); showScreen("screen-intro");
 });
 $("btn-mute-title").addEventListener("click", ()=>{ PSAUDIO.toggleMute(); refreshMute(); });
-$("btn-intro-volver").addEventListener("click", ()=>renderTitle());
+$("btn-intro-volver").addEventListener("click", ()=>{ nuevoPendiente=false; renderTitle(); });  // cancelar: la carrera vieja queda intacta
 /* ---------- Lore de intro (adaptativo al origen) ---------- */
 function mostrarLore(){
   const club=CLUBES.find(c=>c.n===career.club)||CLUBES[0];
   const loc=(career.origen&&career.origen.localidad)||"tu pueblo";
   $("lore-txt").innerHTML =
-    `En La Pampa el viento no para nunca, y hay pibes que aprenden a jugar contra él antes que a favor. Vos sos de esa gente. `+
+    `En La Pampa el viento no para nunca, y hay quienes aprenden a jugar contra él antes que a favor. Vos sos de esa gente. `+
     `Naciste en <b>${esc(loc)}</b>, donde la pelota era lo único que sobraba. Jugaste donde se pudo, con lo que había, `+
     `hasta que armaste el bolso y te mudaste a <b>${esc(club.loc)}</b> para probarte en <b>${esc(club.n)}</b>, `+
     `un equipo que la pelea abajo y al que no le sobra nada. Nadie te está esperando. No hay cámaras, no hay contrato, no hay nada firmado. `+
@@ -687,7 +689,8 @@ $("in-club").addEventListener("change", renderPinta);
 $("btn-start").addEventListener("click", ()=>{
   const name = ($("in-name").value||"").trim() || "Promesa";
   const club = CLUBES[+$("in-club").value];
-  ensureCareer(name, club.n);                       // llega siempre desde NUEVO JUEGO: carrera fresca
+  if(nuevoPendiente){ localStorage.removeItem(STORE); career=null; nuevoPendiente=false; }  // recién ACÁ se reemplaza la carrera vieja
+  ensureCareer(name, club.n);                       // carrera fresca
   career.look = {piel:lookSel.piel, pelo:lookSel.pelo, camiseta:lookSel.camiseta};
   /* ORIGEN: condiciona toda la carrera (localidad = identidad; rasgo y estilo = juego) */
   const localidad=$("in-localidad").value;
@@ -741,8 +744,15 @@ function nuevaTemporada(){
     golesMios: 0, campeon: null, terminada: false,
   };
 }
+function seasonValida(t){
+  if(!t || !Array.isArray(t.fixture) || t.fixture.length!==FECHAS_TOTAL) return false;
+  if(!Array.isArray(t.tabla) || t.tabla.length!==CLUBES.length) return false;
+  for(const r of t.tabla){ if(!r||typeof r!=="object") return false; for(const k of ["pj","g","e","p","gf","gc","pts"]) if(typeof r[k]!=="number"||isNaN(r[k])) return false; }
+  if(typeof t.fecha!=="number"||t.fecha<0||t.fecha>FECHAS_TOTAL) return false;
+  return true;
+}
 function ensureSeason(){
-  if(!career.temporada || !career.temporada.fixture) career.temporada = nuevaTemporada();
+  if(!seasonValida(career.temporada)) career.temporada = nuevaTemporada();   // un save corrupto arranca temporada nueva, no rompe
   saveCareer();
 }
 function myClubIdx(){ const i=CLUBES.findIndex(c=>c.n===career.club); return i>=0?i:0; }
@@ -1162,6 +1172,8 @@ function buildEquipo(){
     if(need[pos]>0){ need[pos]--; equipo.push({ref:"cantera", pos, nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}}); }
   }
   while(equipo.length<5) equipo.push({ref:"cantera", pos:"VOL", nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}});
+  // SIEMPRE tiene que haber arquero: si tus 4 amigos son todos de campo, un cantera va al arco (aunque el plantel quede en 6)
+  if(!equipo.some(e=>e.pos==="ARQ")) equipo.push({ref:"cantera", pos:"ARQ", nombre:"Cantera "+(n++), stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50, look:{piel:n%3,pelo:0,camiseta:0}});
   let volBand=0;
   for(const e of equipo){
     e.elast=ELASTICIDAD[e.pos]; e.ancla=ANCLA_MIA[e.pos];
@@ -1231,7 +1243,7 @@ function receptoresPase(filtrado){
     return {idx:c.i, e:c.e, x:c.x, y:c.y, dir, espacio, pct:clamp(Math.round(pct),25,96), vinc, dupla:vinc>=60};
   });
 }
-function renderPaseMenu(filtrado){
+function renderPaseMenu(filtrado, obligatorio){
   const rs=receptoresPase(filtrado);
   $("combat-txt").innerHTML = filtrado ? "🪡 Pase filtrado: ¿a quién se la metés entre líneas?" : "➡️ ¿A quién se la das?";
   const grid=$("cmd-grid"); grid.innerHTML="";
@@ -1245,10 +1257,12 @@ function renderPaseMenu(filtrado){
     b.addEventListener("click", ()=>resolvePase(r), {once:true});
     grid.appendChild(b);
   });
-  const back=document.createElement("button");
-  back.className="cmd wide"; back.innerHTML=`<div class="cn">◀ VOLVER</div>`;
-  back.addEventListener("click", ()=>{ const cmds=buildCommands("def"); renderCombat(`Te marcan de cerca. ¿Qué hacés?`, cmds, "atk"); }, {once:true});
-  grid.appendChild(back);
+  if(!obligatorio){   // en el saque lateral el pase es obligatorio: sin VOLVER (no hay defensor al que enfrentar)
+    const back=document.createElement("button");
+    back.className="cmd wide"; back.innerHTML=`<div class="cn">◀ VOLVER</div>`;
+    back.addEventListener("click", ()=>{ const cmds=buildCommands("def"); renderCombat(`Te marcan de cerca. ¿Qué hacés?`, cmds, "atk"); }, {once:true});
+    grid.appendChild(back);
+  }
 }
 function resolvePase(r){
   if(PS.state!=="menu") return;
@@ -1357,13 +1371,13 @@ function perderPelota(x,y){
   const r=Math.random();
   if(r<0.45){ hideCombat(); PS.controlIdx=0; rivalCounter(x,y); PS.state="run"; return; }   // contra clásica
   if(r<0.80) return pelotaDividida(x,y);                                                     // disputa
-  /* lateral: reanudás vos con un pase desde la banda */
-  PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=0;
+  /* lateral: reanudás vos con un pase desde la banda (obligatorio, sin defensor: encounter limpio) */
+  PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=0; PS.encounter=null;
   PS.player.x=clamp(x,50,GOAL_X-50); PS.player.y=TOP+8;
   PS.ball.x=PS.player.x+7; PS.ball.y=PS.player.y;
   setGuts(); PS.state="menu"; setTag("atk");
   $("combat").classList.add("show");
-  renderPaseMenu();
+  renderPaseMenu(false, true);
   $("combat-txt").innerHTML="Se fue al lateral: sacás vos. ➡️ ¿A quién se la das?";
 }
 
@@ -1868,7 +1882,7 @@ function applyOutcome(cm, win){
   const nomCompa = conCompa ? esc(PS.compa.nombre) : "";
   if(win){
     enc.ref.passed = true;
-    PS.player.x = clamp(PS.player.x + (cm.on==="pared"?34:cm.on==="gambeta"?26:20), 16, GOAL_X-2);
+    const cp=ctrlPos(); cp.x = clamp(cp.x + (cm.on==="pared"?34:cm.on==="gambeta"?26:20), 16, GOAL_X-2);  // avanza el que TENÉS, no siempre vos
     if(conCompa){ PS.compa.vinculo = Math.min(100, PS.compa.vinculo+1); }  // jugar juntos une
     endLine(conCompa
       ? (cm.on==="pared" ? `¡Pared perfecta con <b>${nomCompa}</b>! Se entienden de memoria. (+1 vínculo)`
@@ -1886,7 +1900,8 @@ function applyOutcome(cm, win){
   }
 }
 function endLine(txt, good){
-  if(!/GOL|SACÓ|ATAJADÓN/.test(txt)) SFX(good?"win":"lose");   // los momentos grandes ya suenan solos
+  if(PS && PS._sfxBig){ PS._sfxBig=false; }        // ya sonó un momento grande (gol/atajada): no dupliques
+  else SFX(good?"win":"lose");
   $("combat-txt").innerHTML = (good?"✔ ":"✖ ") + txt;
 }
 
@@ -1894,7 +1909,7 @@ function endLine(txt, good){
 function rivalShot(){
   PS.state="menu";
   clearDirs(); $("hint").style.display="none";
-  const arq=PS.equipo.find(e=>e.pos==="ARQ");
+  const arq=PS.equipo.find(e=>e.pos==="ARQ") || {ref:"cantera", pos:"ARQ", nombre:"Cantera", stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50};  // guard: nunca sin arquero
   const atk=PS.rival.f+6;
   const carArq = arq.ref==="yo" ? career.stats.caracter : (arq.stats.caracter!=null?arq.stats.caracter:45);
   const base = statDe(arq,"fisico")*0.7 + carArq*0.4;
@@ -2010,10 +2025,13 @@ function statLabel(k){ return {pase:"Pase",tiro:"Tiro",gambeta:"Gambeta",velocid
 /* ---------- Flash / Guts / pantallas / hint ---------- */
 let flashTO=0;
 function flash(kind, text){
-  /* sonido según el momento (goles, atajadas, gol rival) */
+  /* sonido según el momento (goles, atajadas, gol rival) y marca "momento grande" para no duplicar en endLine */
+  let big=true;
   if(/GOLAZO|¡GOL!|¡GOOOL/.test(text)) SFX("goal");
   else if(/GOL RIVAL/.test(text)) SFX("golRival");
   else if(/SACÓ|ATAJADÓN/.test(text)) SFX("save");
+  else big=false;
+  if(PS) PS._sfxBig = big;
   const f=$("flash");
   clearTimeout(flashTO);            // que el flash anterior no apague a este
   f.className="flash"; void f.offsetWidth;  // reinicia la animación CSS
@@ -2114,11 +2132,12 @@ function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.quer
   // nunca robar teclas cuando el foco está en un formulario (nombre, club)
   const enFormulario = e => { const t=e.target&&e.target.tagName; return t==="INPUT"||t==="SELECT"||t==="TEXTAREA"; };
   const keyDir = e => KMAP[e.key] || KMAP[e.key.toLowerCase()]; // toLowerCase: que Shift/CapsLock no deje la tecla pegada
+  const enPartido = () => $("screen-match").classList.contains("active");   // los atajos de juego solo en la cancha
   addEventListener("keydown",e=>{
     if(enFormulario(e)) return;
-    if(e.key===" "||e.code==="Space"){ accionPatear(); e.preventDefault(); return; }   // patear
-    if(e.key.toLowerCase()==="e"){ accionEspecial(); e.preventDefault(); return; }      // tiro especial
-    const k=keyDir(e); if(k){ setDir(k,true); e.preventDefault(); }
+    if(enPartido() && (e.key===" "||e.code==="Space")){ accionPatear(); e.preventDefault(); return; }   // patear (no roba Espacio en botones)
+    if(enPartido() && e.key.toLowerCase()==="e"){ accionEspecial(); e.preventDefault(); return; }        // tiro especial
+    const k=keyDir(e); if(k && enPartido()){ setDir(k,true); e.preventDefault(); }
   });
   addEventListener("keyup",  e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,false); e.preventDefault(); } });
 })();
@@ -2131,8 +2150,11 @@ function refreshMute(){
   $("btn-mute").textContent = m ? "🔇 OFF" : "🔊 ON";
   const t=$("btn-mute-title"); if(t) t.textContent = m ? "🔇 SONIDO: OFF" : "🔊 SONIDO: ON";
 }
-addEventListener("pointerdown", ()=>PSAUDIO.unlock(), {once:true});
-addEventListener("keydown", ()=>PSAUDIO.unlock(), {once:true});
+/* reanuda el AudioContext en cada interacción y al volver a foco: iOS/Android lo suspenden al cambiar de app o bloquear */
+function audioKeepAlive(){ try{ PSAUDIO.unlock(); }catch(e){} }
+addEventListener("pointerdown", audioKeepAlive);
+addEventListener("keydown", audioKeepAlive);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) audioKeepAlive(); });
 $("btn-mute").addEventListener("click", ()=>{ PSAUDIO.toggleMute(); refreshMute(); });
 refreshMute();
 
