@@ -1475,10 +1475,13 @@ $("minimap").addEventListener("pointerdown", e=>{
   const cv=$("minimap"), r=cv.getBoundingClientRect();
   const px_=(e.clientX-r.left)/r.width*cv.width, py_=(e.clientY-r.top)/r.height*cv.height;
   const mX=x=> x/WORLD_W*cv.width, mY=y=> 4+(y-TOP)/(BOT-TOP)*(cv.height-8);
-  let mejor=null, md=99;
-  equipoPuntos().forEach(p=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<9){ md=d; mejor=p; } });
+  let mejor=null, mIdx=-1, md=99;
+  equipoPuntos().forEach((p,i)=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<10){ md=d; mejor=p; mIdx=i; } });
   if(!mejor) return;
-  const t=$("mm-tip"), eq=mejor.e;
+  const eq=mejor.e;
+  // V3·3: en defensa, tocar un propio en el minimapa te pasa el control a ese jugador
+  if(PS.posesion==="rival" && PS.state==="run" && eq.pos!=="ARQ"){ marcarCon(mIdx, true); return; }
+  const t=$("mm-tip");
   t.textContent = eq.ref==="yo" ? `${career.name} (VOS) · ATA` :
     `${eq.nombre} · ${eq.pos} · vínculo ${eq.vinculo!=null?eq.vinculo:"—"}`;
   t.classList.add("show");
@@ -1487,6 +1490,8 @@ $("minimap").addEventListener("pointerdown", e=>{
 /* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
    y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
 const VEL_POSICIONALES = 0.32;
+const VEL_PERSECUCION   = 0.55;   // V3·3: perseguís más rápido que el portador rival -> con buen ángulo lo alcanzás
+const VEL_RIVAL_CON_PELOTA = 0.34;
 function moverPosicional(e, obj){
   const targetX = clamp((e.ancla+(PS.empuje||0)) + (PS.ball.x - WORLD_W/2)*e.elast, 30, GOAL_X-16);
   const targetY = clamp(PS.ball.y, e.banda[0], e.banda[1]) + Math.sin(PS._t*0.03 + (e.idle||0))*1.0;
@@ -1495,11 +1500,10 @@ function moverPosicional(e, obj){
 }
 function updateAnclas(){
   PS._t=(PS._t||0)+1;
-  const ci=(PS.posesion==="mia")?(PS.controlIdx||0):0;
+  const ci=PS.controlIdx||0;                           // al controlado (ataque o defensa) lo movés vos
   PS.equipo.forEach((e,i)=>{
-    if(e.pos==="ARQ") return;
-    if(PS.posesion==="mia" && i===ci) return;          // al controlado lo movés vos
-    moverPosicional(e, e.ref==="yo" ? PS.player : e);  // vos también acompañás cuando no te controlan
+    if(e.pos==="ARQ" || i===ci) return;
+    moverPosicional(e, e.ref==="yo" ? PS.player : e);  // el resto es escenografía viva
   });
   const act=rivalesActivos();
   PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; moverPosicional(e, e); });
@@ -1539,18 +1543,35 @@ function kickoff(quien){
   setHint();
 }
 /* posesión rival arrancando desde su campo (contragolpe / saque del arquero) */
+/* V3·3: en defensa controlás automáticamente al propio MÁS CERCANO a la pelota.
+   Podés cambiar tocando otro punto propio en el minimapa. */
+function idxMasCercanoALaPelota(){
+  let mejor=0, md=1e9;
+  PS.equipo.forEach((e,i)=>{ if(e.pos==="ARQ") return; const pp=posDe(e); const d=Math.hypot(pp.x-PS.ball.x, pp.y-PS.ball.y); if(d<md){ md=d; mejor=i; } });
+  return mejor;
+}
+function marcarCon(idx, avisar){
+  PS.controlIdx=idx; setGuts();
+  const e=ctrlEnt();
+  if(avisar) banner(`AHORA MARCÁS CON:<br>${esc(nombreDe(e)).toUpperCase()} (${e.pos})`);
+  setHint();
+}
 function rivalCounter(fromX, fromY){
   corteNegro(120);   // E3: la cámara salta al contragolpe -> corte seco
   PS.posesion="rival";
-  PS.controlIdx=0; PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; setGuts();  // defendés VOS
+  PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
   PS.carrier={x:clamp(fromX, 180, GOAL_X-120), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
-  PS.player.x = clamp(PS.carrier.x-60, 20, GOAL_X-40);
-  PS.player.y = clamp(PS.carrier.y+14, TOP+6, BOT-6);
-  PS.encCooldown = 45;
+  PS.controlIdx = idxMasCercanoALaPelota();          // auto-switch al más cercano
+  const cp=ctrlPos();
+  cp.x = clamp(PS.carrier.x-50, 20, GOAL_X-40);
+  cp.y = clamp(PS.carrier.y+14, TOP+6, BOT-6);
+  PS.encCooldown = 45; setGuts();
+  banner(`AHORA MARCÁS CON:<br>${esc(nombreDe(ctrlEnt())).toUpperCase()} (${ctrlEnt().pos})`);
   setHint();
 }
 /* recuperás: pasás a atacar desde donde estás */
 function recoverBall(){
+  corteNegro(120); banner("⚔ ¡LA RECUPERASTE!");   // E3: corte + cartel
   PS.posesion="mia";
   PS.controlIdx=0; PS.pasesSeguidos=0; setGuts();   // la recuperaste vos
   PS.carrier.active=false;
@@ -1636,8 +1657,8 @@ function loop(){
 function update(){
   if(PS.encCooldown>0) PS.encCooldown--;
   if(PS.equipo) updateAnclas();          // V2: los equipos acompañan la jugada
-  const p=(PS.posesion==="mia" && PS.equipo) ? ctrlPos() : PS.player;  // movés al que controlás
-  const d=PS.dirs, SP=VELOCIDAD_JUGADOR;
+  const p=PS.equipo ? ctrlPos() : PS.player;  // movés al que controlás (en ataque el portador; en defensa tu perseguidor)
+  const d=PS.dirs, SP=(PS.posesion==="mia") ? VELOCIDAD_JUGADOR : VEL_PERSECUCION;
   let vx=0, vy=0;
   if(d.left) vx-=1; if(d.right) vx+=1; if(d.up) vy-=1; if(d.down) vy+=1;
   if(vx) p.face = vx>0?1:-1;
@@ -1671,7 +1692,7 @@ function update(){
   } else {
     // DEFENSA: el rival avanza hacia tu arco (izquierda)
     const cr=PS.carrier;
-    cr.x -= VELOCIDAD_RIVAL;
+    cr.x -= VEL_RIVAL_CON_PELOTA;
     cr.y = clamp(cr.y + Math.sin(cr.x*0.045)*0.3, TOP+10, BOT-10);
     PS.ball.x += ((cr.x-7) - PS.ball.x)*0.4;
     PS.ball.y += (cr.y - PS.ball.y)*0.4;
@@ -2152,7 +2173,7 @@ function setHint(){
   const nom = PS.equipo ? esc(nombreDe(ctrlEnt())).toUpperCase().slice(0,9) : "";
   h.innerHTML = PS.posesion==="mia"
     ? `⚔ JUGÁS: <b>${nom}</b> ▶`
-    : `🛡 DEFENDÉS ◀ ¡al cruce!`;
+    : `🛡 MARCÁS: <b>${nom}</b> ◀`;
   refreshActionBtns();
 }
 /* ====== Integración 2: PATEAR y ESPECIAL desde el juego (botón o tecla) ====== */
