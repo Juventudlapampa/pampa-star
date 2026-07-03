@@ -1,5 +1,15 @@
 # PAMPA STAR — Progreso
 
+## ✅ Partido V3 — presentación y "la magia" (jul 2026, DISENO_PARTIDO_V3.md)
+Capa de presentación sobre el motor v2; el guardado no cambia. Un commit por etapa, verificado.
+- **Etapa 1 — 7v7 con capas:** formación ARQ-2DEF-3VOL-1ATA por equipo (antes 5); amigos en su puesto + canteranos; minimapa muestra los 14. Capa POSICIONAL = escenografía viva (van despacio a su ancla, idle 1px, no chan la pelota). **Nadie desaparece:** el defensor superado vuelve caminando a su ancla, vencido, visible.
+- **Etapa 2 — máquina de escenas:** `PS.escena` + `PS.colaEscenas` avanzadas por tiempo real en `loop()`; adiós a los setTimeout sueltos del pase. **E2 pase (la estrella):** la cámara se despega del pasador y sigue a la PELOTA; si hay corte posible, **hit-stop 250ms** ("¿llega?") antes del desenlace; aterriza en el receptor con cartel "AHORA JUGÁS: X". Regla de oro: la imagen primero, el texto después. **E3 corte:** negro seco 120ms en saltos largos de cámara.
+- **Etapa 4 — megatiros + E4/E5:** el remate es escena (pelota al arco + **hit-stop 400ms** + desenlace + texto después). **E5 especial:** cut-in dramático (retrato + líneas de velocidad) + silencio 400ms + estela. Los 3 especiales en el menú de arquero con estado etiquetado; **Tiro Atuel activado** (nivel 5, rasante). Jugada armada al área = +5 Guts (subidón).
+- **Etapa 3 — defensa:** control automático al propio más cercano ("AHORA MARCÁS CON: X") + override tocando el minimapa; persecución 0.55 vs 0.34 (alcanzás con buen ángulo); recuperación con corte + "¡LA RECUPERASTE!".
+- **Etapa 5 — constantes de ritmo:** VEL_PORTADOR_MIO 0.50, VEL_PERSECUCION 0.55, VEL_RIVAL_CON_PELOTA 0.34, VEL_POSICIONALES 0.15, VEL_PELOTA ~2px/f, hit-stops 250/400, corte 120. Lo lento son los cuerpos, lo rápido la pelota y los cortes.
+- **Parcial (documentado, para tuning):** marca pasiva del tercio (−15%) y escenas de los pases DEL rival; migración a escenas de los duelos def/defensa/despeje/arquero (aún en setTimeout, sin carreras observadas). Cut-in dibujado como overlay HTML (no canvas).
+- **⛔ CONTROL 1 (playtest de Rodri) pendiente** antes del PROMPT 2 (presentación). No arrancar el 2 sin su feedback.
+
 ## ✅ Tanda de integración + pase de calidad (jul 2026)
 
 ### Integración sobre el partido v2 (dirección: pixel retro + chiptune)

@@ -1489,9 +1489,11 @@ $("minimap").addEventListener("pointerdown", e=>{
 });
 /* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
    y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
-const VEL_POSICIONALES = 0.32;
-const VEL_PERSECUCION   = 0.55;   // V3·3: perseguís más rápido que el portador rival -> con buen ángulo lo alcanzás
+/* ====== V3·5 — constantes de ritmo (tabla del diseño; lo lento son los CUERPOS, lo rápido la PELOTA) ====== */
+const VEL_PORTADOR_MIO  = 0.50;   // conducir es decidir, no picar (bajó de 0.62)
+const VEL_PERSECUCION   = 0.55;   // perseguís más rápido que el portador rival -> con buen ángulo lo alcanzás
 const VEL_RIVAL_CON_PELOTA = 0.34;
+const VEL_POSICIONALES  = 0.15;   // escenografía que respira
 function moverPosicional(e, obj){
   const targetX = clamp((e.ancla+(PS.empuje||0)) + (PS.ball.x - WORLD_W/2)*e.elast, 30, GOAL_X-16);
   const targetY = clamp(PS.ball.y, e.banda[0], e.banda[1]) + Math.sin(PS._t*0.03 + (e.idle||0))*1.0;
@@ -1658,7 +1660,7 @@ function update(){
   if(PS.encCooldown>0) PS.encCooldown--;
   if(PS.equipo) updateAnclas();          // V2: los equipos acompañan la jugada
   const p=PS.equipo ? ctrlPos() : PS.player;  // movés al que controlás (en ataque el portador; en defensa tu perseguidor)
-  const d=PS.dirs, SP=(PS.posesion==="mia") ? VELOCIDAD_JUGADOR : VEL_PERSECUCION;
+  const d=PS.dirs, SP=(PS.posesion==="mia") ? VEL_PORTADOR_MIO : VEL_PERSECUCION;
   let vx=0, vy=0;
   if(d.left) vx-=1; if(d.right) vx+=1; if(d.up) vy-=1; if(d.down) vy+=1;
   if(vx) p.face = vx>0?1:-1;
