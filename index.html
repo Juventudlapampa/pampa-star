@@ -1194,7 +1194,8 @@ function newState(club, rival){
     controlIdx:0, pasesSeguidos:0, empuje:0, bonusJugada:false,   // V2·C
     paredAutoUsada:false, vincParedes:0, golesAmigos:{},
     escena:null, colaEscenas:[], _t:0, _last:0,                   // V3·2 máquina de escenas
-    rivalGuts:100,                                                // V4·E3: la CPU también se cansa (nada de Guts infinitos)
+    rivalGuts:100,
+    desc1:rnd(0,2.5), desc2:rnd(0,3.5),   // V4·E4: descuento OCULTO de cada tiempo (finales de infarto)                                                // V4·E3: la CPU también se cansa (nada de Guts infinitos)
   };
 }
 /* V4·E3: fuerza efectiva del rival — baja cuando su equipo se queda sin nafta */
@@ -2010,16 +2011,16 @@ function duelIntro(k){
 }
 
 /* ---------- Reloj estilizado ---------- */
-function advanceClock(){ renderClock(); }   // v3.1: el reloj corre solo durante el juego (tickReloj), las acciones no lo saltan
+function advanceClock(){ PS.minuto += rnd(0.6, 1.4); renderClock(); }   // V4·E4: cada accion salta el reloj (ademas corre en tiempo real al conducir)
 function renderClock(){
-  $("hud-min").textContent = Math.min(90,Math.round(PS.minuto))+"'";
+  const _m=Math.round(PS.minuto); $("hud-min").textContent = (PS.half===1&&PS.minuto>45.01)?"45+'":(PS.half===2&&PS.minuto>90.01)?"90+'":Math.min(90,_m)+"'";
   $("hud-half").textContent = PS.half===1?"1T":"2T";
   if(PS.half===2 && PS.minuto>=80) MUSICA("final");   // últimos minutos: música urgente
 }
 /* devuelve true si interceptó el flujo (entretiempo o final) */
 function checkTime(){
-  if(PS.minuto>=90){ fullTime(); return true; }
-  if(PS.half===1 && PS.minuto>=45){ halftime(); return true; }
+  if(PS.minuto>=90+(PS.desc2||0)){ fullTime(); return true; }
+  if(PS.half===1 && PS.minuto>=45+(PS.desc1||0)){ halftime(); return true; }
   return false;
 }
 function halftime(){

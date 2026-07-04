@@ -21,7 +21,15 @@ Las fallas del deploy eran arrastre del incidente de latencia de GitHub (2-3/7);
 ### ⛔ CONTROL 1 — VEREDICTO: el v3 NO pasó el playtest (jul 2026)
 Feedback de Rodri: el modelo de control está equivocado de raíz — "estoy manejando un jugador, no es el juego que quiero". El original es otro paradigma: movés al portador con propósito (lento), la cámara CORTA a la acción con drama, elegís del menú en los encuentros, apuntás tocando la cancha, cambiás de jugador, 22 en cancha bien dimensionada, y la identidad es de JUEGO (logo, estudio, transiciones), no de app.
 
-### 🎯 RUMBO: PARTIDO v4 (en espera del diseño)
+### ✅ PARTIDO v4 CONSTRUIDO (jul 2026) — "Cinematic Soccer"
+**Base:** el prompt de Rodri + `INVESTIGACION_MOTOR_TSUBASA.md` (el `DISENO_PARTIDO_V4.md` de Cowork **nunca sincronizó** a la carpeta; si aparece, diffear contra esto).
+- **E1 — Cancha dimensionada + 11v11 + cámara con zoom:** mundo al doble (1280), formación 1-4-3-3 por slots (vos sos el 9), vista de acción con zoom ×2 que sigue la pelota (ventana ~140px), radar CT2 de 48px con los 22 y la ventana de cámara dibujada, marcadores dinámicos por cercanía.
+- **E2 — Dirigís la jugada:** APUNTADO TOCANDO EL RADAR (pase a cualquier punto, modelo CT2): tocás, el juego propone el receptor más cercano con su % real, confirmás o seguís. El control sigue a la pelota; en defensa el radar cambia el marcador.
+- **E3 — Matriz de intenciones + CPU con nafta:** quite>gambeta / corte>pase / bloqueo>tiro con intención rival OCULTA por zona (±8/6) revelada en el relato; la CPU gasta Guts (duelos, remates, persecución), su fuerza cae hasta 14% vacía, recupera ⅛ al entretiempo. El asedio es estrategia.
+- **E4 — Reloj del original completo:** corre en tiempo real al conducir + SALTA 0.6–1.4' por acción + **descuento oculto** por tiempo (45+'/90+' en el HUD): nadie sabe cuándo pita el árbitro.
+- **Deviaciones documentadas:** encuentro voluntario de menú completo (botón B del original) cubierto parcialmente por PATEAR + pase apuntado; balón aéreo (trap/through/despeje aéreo) y reposicionamiento en córners no entraron — candidatos v4.1 según playtest.
+
+### 🎯 (histórico) rumbo v4 — diseño
 - **Investigación hecha** (`INVESTIGACION_MOTOR_TSUBASA.md`): el motor "Cinematic Soccer" de Tecmo al detalle — doble capa (vista de acción + radar CT2 en tiempo real), encuentros por contacto o voluntarios (B), menú contextual por rol con matriz corte>pase / quite>gambeta / bloqueo>tiro, GUTS con costos y recuperación de 1/8 al entretiempo, reloj regresivo por acción + tiempo real al correr, descuento impredecible, y las trampas a evitar (radar ciego de CT1, ciclado numérico de defensores, GUTS infinitos de la CPU).
 - **Filtro editorial** (`PAMPA_STAR_FILTRO_INFORME.md`): qué se toma/adapta/rechaza (casino y escándalos: NUNCA).
 - **v3.1 interino**: reloj continuo estilo original (corre solo en juego, congelado en menús; 2×45', `SEGUNDOS_POR_MINUTO`).
