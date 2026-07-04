@@ -1194,8 +1194,12 @@ function newState(club, rival){
     controlIdx:0, pasesSeguidos:0, empuje:0, bonusJugada:false,   // V2·C
     paredAutoUsada:false, vincParedes:0, golesAmigos:{},
     escena:null, colaEscenas:[], _t:0, _last:0,                   // V3·2 máquina de escenas
+    rivalGuts:100,                                                // V4·E3: la CPU también se cansa (nada de Guts infinitos)
   };
 }
+/* V4·E3: fuerza efectiva del rival — baja cuando su equipo se queda sin nafta */
+function rivalF(){ return PS.rival.f * (0.86 + 0.14*clamp(PS.rivalGuts,0,100)/100); }
+function rivalGasta(n){ PS.rivalGuts = clamp(PS.rivalGuts - n, 0, 100); }
 /* ---------- V3·1: armar los equipos de 7 (vos + amigos en su pos + canteranos) ---------- */
 function mkEnt(ref, pos, nombre, stats, vinculo, guts, look, slot, idle){
   return {ref, pos, nombre, stats, vinculo, guts, look,
@@ -1313,7 +1317,7 @@ function resolvePase(r){
   if(PS.state!=="menu") return;
   PS.state="resolving";
   SFX("menu"); SFX("kick");
-  ctrlGastarGuts(2);                              // construir es barato
+  ctrlGastarGuts(2); rivalGasta(1);                 // construir es barato; a ellos perseguir también les cuesta
   $("cmd-grid").innerHTML="";
   $("combat-txt").innerHTML=`La soltás para <b>${esc(nombreDe(r.e))}</b>… ➡️`;   // NO anuncia resultado: la imagen primero
   const win = Math.random()*100 < r.pct;
@@ -1382,7 +1386,7 @@ function mejorParedPar(){
 function resolvePared(cm){
   const par=cm.par, vinc=paseParVinculo(ctrlEnt(), par);
   const auto = vinc>=70 && !PS.paredAutoUsada;
-  const pct = clamp(Math.round(55 + effStat("pase")*0.35 + vinc*0.20 - PS.rival.f*0.3 + ((career.origen&&career.origen.rasgo==="club")?5:0)), 20, 95);
+  const pct = clamp(Math.round(55 + effStat("pase")*0.35 + vinc*0.20 - rivalF()*0.3 + ((career.origen&&career.origen.rasgo==="club")?5:0)), 20, 95);
   const win = auto || (Math.random()*100 < pct);
   if(auto) PS.paredAutoUsada=true;
   advanceClock();
@@ -1411,7 +1415,7 @@ function pelotaDividida(x,y){
   PS.equipo.forEach((e,i)=>{ if(e.pos==="ARQ") return; const p=posDe(e); const d=Math.hypot(p.x-x,p.y-y); if(d<dm){ dm=d; mio={e,i}; } });
   let dr=1e9; rivalPuntos().forEach((r,ri)=>{ if(ri===0) return; dr=Math.min(dr, Math.hypot(r.x-x,r.y-y)); });
   const miP = statDe(mio.e,"fisico") + statDe(mio.e,"velocidad") + rnd(0,25);
-  const rvP = PS.rival.f*1.6 + rnd(0,25);
+  const rvP = rivalF()*1.6 + rnd(0,25);
   PS.state="resolving"; setTag("def"); $("cmd-grid").innerHTML="";
   $("combat").classList.add("show");
   $("combat-txt").innerHTML=`⚔ Pelota dividida… ¡<b>${esc(nombreDe(mio.e))}</b> va al cruce!`;
@@ -1856,7 +1860,7 @@ function startEncounter(type, ref){
   renderCombat(txt, cmds, tag);
 }
 function buildCommands(type){
-  const g = PS.rival.f;
+  const g = rivalF();   // V4·E3: el cansancio de la CPU pesa
   if(type==="def"){
     /* V2: PASE abre submenú de receptores reales; PARED es 1-2; comandos según el ROL del que controlás */
     const rol=(PS.equipo?ctrlEnt().pos:"ATA");
@@ -1944,6 +1948,25 @@ function chooseCommand(cm){
     cm = Object.assign({}, cm, {my: cm.my+6});              // ¡jugada armada! +10% aprox
     PS.bonusJugada=false; PS.empuje=0;
   }
+  /* V4·E3 — MATRIZ DE INTENCIONES (quite>gambeta · corte>pase · bloqueo>tiro):
+     el rival elige su intención OCULTA según la zona; adivinar(te) cambia el duelo. */
+  PS._intentTxt="";
+  if(["gambeta","tiroLejano"].includes(cm.on)){
+    const zonaBaja = ctrlPos().x > WORLD_W*0.66;                       // cerca de su arco defienden el tiro
+    const intent = pick(zonaBaja ? ["bloqueo","quite","bloqueo"] : ["quite","corte","corte"]);
+    const contra = {gambeta:"quite", tiroLejano:"bloqueo"}[cm.on];
+    if(intent===contra){ cm=Object.assign({},cm,{my:cm.my-8}); PS._intentTxt=" — te la olió"; }
+    else { cm=Object.assign({},cm,{my:cm.my+6}); PS._intentTxt=" — esperaba otra cosa"; }
+    rivalGasta(3);
+  }
+  if(cm.on==="defensa"){
+    const cerca = PS.carrier.x < WORLD_W*0.33;                          // cerca de TU arco busca el tiro
+    const accion = pick(cerca ? ["tiro","gambeta","tiro"] : ["pase","gambeta","pase"]);
+    const gana = {cortar:"pase", quitar:"gambeta", bloquear:"tiro"}[cm.k];
+    if(gana===accion){ cm=Object.assign({},cm,{my:cm.my+8}); PS._intentTxt=" — ¡le leíste la intención!"; }
+    else if(cm.k!=="marcar"){ cm=Object.assign({},cm,{my:cm.my-4}); PS._intentTxt=" — iba a otra cosa"; }
+    rivalGasta(4);
+  }
   const win = Math.random() < duelChance(cm.my, cm.def);
   $("cmd-grid").innerHTML = "";
   if(cm.on==="tiroGol"||cm.on==="gambetaGk"||cm.on==="tiroLejano") return escenaTiro(cm, win);   // V3·4: E4/E5
@@ -2004,6 +2027,7 @@ function halftime(){
   SFX("whistle",2); MUSICA(null);
   PS.minuto=45; renderClock();
   PS.guts = clamp(PS.guts + GUTS_ENTRETIEMPO, 0, 100); setGuts();
+  PS.rivalGuts = clamp(PS.rivalGuts + 13, 0, 100);   // V4·E3: la CPU recupera ~1/8, como vos
   if(PS.equipo) PS.equipo.forEach(e=>{ if(e.guts!=null) e.guts=clamp(e.guts+GUTS_ENTRETIEMPO,0,100); }); // el descanso es para todo el equipo
   setTag("ht");
   $("combat-txt").innerHTML = `Final del primer tiempo: <b>${PS.gMe}-${PS.gRv}</b>. Naranjas, charla del técnico y recuperás <b>Guts</b>.`;
@@ -2120,7 +2144,9 @@ function applyOutcome(cm, win){
 function endLine(txt, good){
   if(PS && PS._sfxBig){ PS._sfxBig=false; }        // ya sonó un momento grande (gol/atajada): no dupliques
   else SFX(good?"win":"lose");
-  $("combat-txt").innerHTML = (good?"✔ ":"✖ ") + txt;
+  let extra="";
+  if(PS && PS._intentTxt){ extra=`<i style="opacity:.8">${PS._intentTxt}</i>`; PS._intentTxt=""; }  // V4·E3: revela la intención rival
+  $("combat-txt").innerHTML = (good?"✔ ":"✖ ") + txt + extra;
 }
 
 /* ---------- V2·D: el remate rival se JUEGA con tu arquero (menú de 3) ---------- */
@@ -2128,7 +2154,7 @@ function rivalShot(){
   PS.state="menu";
   clearDirs(); $("hint").style.display="none";
   const arq=PS.equipo.find(e=>e.pos==="ARQ") || {ref:"cantera", pos:"ARQ", nombre:"Cantera", stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50};  // guard: nunca sin arquero
-  const atk=PS.rival.f+6;
+  const atk=rivalF()+6; rivalGasta(8);   // rematar cansa (V4·E3)
   const carArq = arq.ref==="yo" ? career.stats.caracter : (arq.stats.caracter!=null?arq.stats.caracter:45);
   const base = statDe(arq,"fisico")*0.7 + carArq*0.4;
   const esCantera = arq.ref==="cantera";
@@ -2299,7 +2325,7 @@ function accionEspecial(){
   PS.state="menu"; PS.encounter={type:"shot", ref:null};
   $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
   PS.keeper.faced=true;
-  chooseCommand({k:e.id, cn:e.cn, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:PS.rival.f+8, on:"tiroGol", especial:e});
+  chooseCommand({k:e.id, cn:e.cn, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:rivalF()+8, on:"tiroGol", especial:e});
 }
 function refreshActionBtns(){
   const bp=$("btn-patear"), be=$("btn-especial");
