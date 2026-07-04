@@ -18,7 +18,14 @@ Capa de presentación sobre el motor v2; el guardado no cambia. Un commit por et
 ### Deploy de Pages
 Las fallas del deploy eran arrastre del incidente de latencia de GitHub (2-3/7); se destrabó con un redeploy forzado y hoy todos los runs están en verde con el sitio al día. Blindado con `.nojekyll`.
 
-- **⛔ CONTROL 1 (playtest de Rodri) pendiente** antes del PROMPT 2 (presentación). No arrancar el 2 sin su feedback.
+### ⛔ CONTROL 1 — VEREDICTO: el v3 NO pasó el playtest (jul 2026)
+Feedback de Rodri: el modelo de control está equivocado de raíz — "estoy manejando un jugador, no es el juego que quiero". El original es otro paradigma: movés al portador con propósito (lento), la cámara CORTA a la acción con drama, elegís del menú en los encuentros, apuntás tocando la cancha, cambiás de jugador, 22 en cancha bien dimensionada, y la identidad es de JUEGO (logo, estudio, transiciones), no de app.
+
+### 🎯 RUMBO: PARTIDO v4 (en espera del diseño)
+- **Investigación hecha** (`INVESTIGACION_MOTOR_TSUBASA.md`): el motor "Cinematic Soccer" de Tecmo al detalle — doble capa (vista de acción + radar CT2 en tiempo real), encuentros por contacto o voluntarios (B), menú contextual por rol con matriz corte>pase / quite>gambeta / bloqueo>tiro, GUTS con costos y recuperación de 1/8 al entretiempo, reloj regresivo por acción + tiempo real al correr, descuento impredecible, y las trampas a evitar (radar ciego de CT1, ciclado numérico de defensores, GUTS infinitos de la CPU).
+- **Filtro editorial** (`PAMPA_STAR_FILTRO_INFORME.md`): qué se toma/adapta/rechaza (casino y escándalos: NUNCA).
+- **v3.1 interino**: reloj continuo estilo original (corre solo en juego, congelado en menús; 2×45', `SEGUNDOS_POR_MINUTO`).
+- **Flujo acordado:** Cowork entrega `DISENO_PARTIDO_V4.md` → Rodri dispara el prompt de build (ya entregado y guardado) → Code reescribe el motor por etapas. **NO arrancar sin su aviso.** La presentación (PROMPT 2) y la escalera van DESPUÉS del v4 probado.
 
 ## ✅ Tanda de integración + pase de calidad (jul 2026)
 
