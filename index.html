@@ -437,7 +437,12 @@
 /* ====== AFINADO RÁPIDO (tocá estos valores para cambiar la sensación) ====== */
 const VELOCIDAD_JUGADOR = 0.62;   // velocidad de tu corrida (px por frame)
 const VELOCIDAD_RIVAL   = 0.38;   // velocidad del rival cuando ataca con la pelota
-const MINUTOS_POR_ACCION = [3,5]; // cuánto salta el reloj por cada acción resuelta (V2·F: ~22 acciones/partido)
+/* v3.1 — RELOJ CONTINUO estilo original: el tiempo corre mientras JUGÁS (los menús
+   y las escenas lo congelan, como en el fierro). Dos tiempos de 45'.
+   El original: 30' a ~10s reales por minuto. Rodri sugirió 45' cada 15s; arrancamos
+   en 10 (≈7,5 min de juego corrido por tiempo) — es UNA constante, se afina acá. */
+const SEGUNDOS_POR_MINUTO = 10;
+const MINUTOS_POR_ACCION = [0,0]; // (v3.1: las acciones ya no saltan el reloj; queda por compat)
 const GUTS_ENTRETIEMPO   = 20;    // Guts que recuperás en el entretiempo
 /* =========================================================================== */
 
@@ -1294,7 +1299,7 @@ function resolvePase(r){
   $("cmd-grid").innerHTML="";
   $("combat-txt").innerHTML=`La soltás para <b>${esc(nombreDe(r.e))}</b>… ➡️`;   // NO anuncia resultado: la imagen primero
   const win = Math.random()*100 < r.pct;
-  PS.minuto += rnd(1,2); renderClock();           // pasar casi no quema reloj
+  renderClock();                                   // v3.1: el pase no salta el reloj (corre solo en juego)
   if(win){
     PS.pasesSeguidos=(PS.pasesSeguidos||0)+1;
     if(r.e.ref!=="yo" && r.e.ref!=="cantera"){ PS.conexiones=PS.conexiones||{}; PS.conexiones[r.idx]=(PS.conexiones[r.idx]||0)+1; }  // E: dupla de la tarde
@@ -1662,6 +1667,10 @@ function loop(){
   if(PS) PS.raf = requestAnimationFrame(loop);
 }
 function update(){
+  /* v3.1: reloj continuo — corre SOLO acá (estado run); menús y escenas lo congelan */
+  PS.minuto += (1/60)/SEGUNDOS_POR_MINUTO;
+  renderClock();
+  if(checkTime()) return;                // 45' -> entretiempo / 90' -> final, aun en pleno juego
   if(PS.encCooldown>0) PS.encCooldown--;
   if(PS.equipo) updateAnclas();          // V2: los equipos acompañan la jugada
   const p=PS.equipo ? ctrlPos() : PS.player;  // movés al que controlás (en ataque el portador; en defensa tu perseguidor)
@@ -1895,7 +1904,7 @@ function duelIntro(k){
 }
 
 /* ---------- Reloj estilizado ---------- */
-function advanceClock(){ PS.minuto += rnd(MINUTOS_POR_ACCION[0], MINUTOS_POR_ACCION[1]); renderClock(); }
+function advanceClock(){ renderClock(); }   // v3.1: el reloj corre solo durante el juego (tickReloj), las acciones no lo saltan
 function renderClock(){
   $("hud-min").textContent = Math.min(90,Math.round(PS.minuto))+"'";
   $("hud-half").textContent = PS.half===1?"1T":"2T";
