@@ -367,7 +367,7 @@
       <div class="guts"><span class="lab" id="guts-lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
     </div>
 
-    <canvas id="minimap" class="minimap" width="280" height="36"></canvas>
+    <canvas id="minimap" class="minimap" width="280" height="48"></canvas>
     <div class="mm-tip" id="mm-tip"></div>
 
     <div class="field" id="field">
@@ -436,7 +436,7 @@
 
 /* ====== AFINADO RÁPIDO (tocá estos valores para cambiar la sensación) ====== */
 const VELOCIDAD_JUGADOR = 0.62;   // velocidad de tu corrida (px por frame)
-const VELOCIDAD_RIVAL   = 0.38;   // velocidad del rival cuando ataca con la pelota
+const VELOCIDAD_RIVAL   = 0.48;   // velocidad del rival cuando ataca con la pelota (V4: mundo más grande)
 /* v3.1 — RELOJ CONTINUO estilo original: el tiempo corre mientras JUGÁS (los menús
    y las escenas lo congelan, como en el fierro). Dos tiempos de 45'.
    El original: 30' a ~10s reales por minuto. Rodri sugirió 45' cada 15s; arrancamos
@@ -1115,11 +1115,15 @@ $("btn-terminar-semana").addEventListener("click", ()=>{
    X = largo de cancha (scroll horizontal). Tu arco a la IZQUIERDA, el rival a la DERECHA. */
 const CW=280, CH=156;          // resolución interna del canvas (apaisado)
 const TOP=8, BOT=CH-8;         // líneas de banda
-const WORLD_W=640;             // largo total de la cancha
+/* ====== V4 — CANCHA BIEN DIMENSIONADA + CÁMARA CON ZOOM (Cinematic Soccer) ======
+   El mundo se duplica (11v11 con aire de verdad). La vista de ACCIÓN es el canvas
+   con zoom siguiendo la pelota (drama); el RADAR muestra los 22 (modelo CT2). */
+const WORLD_W=1280;            // largo total de la cancha (V4: el doble)
 const GOAL_X=WORLD_W-8;        // línea de gol rival (derecha)
-const AREA_X=GOAL_X-96;        // frente del área rival
-const MY_AREA_X=104;           // frente de TU área (izquierda)
+const AREA_X=GOAL_X-110;       // frente del área rival
+const MY_AREA_X=118;           // frente de TU área (izquierda)
 const MIDY=CH/2;
+const ZOOM_ACCION=2.0;         // la vista de acción ve ~140px de mundo alrededor de la pelota
 
 /* ---------- Arte: módulo PSART (pampa-star-sprites.js, ver ARTE.md) ---------- */
 PSART.config({CW,CH,TOP,BOT,WORLD_W,GOAL_X,AREA_X,MY_AREA_X,MIDY});
@@ -1132,20 +1136,26 @@ const px=PSART.px, drawKit=PSART.drawKit, drawBall=PSART.drawBall,
    vertical propia. Nada de pathfinding. El rival usa el mismo sistema. */
 const ELASTICIDAD = {ARQ:0.05, DEF:0.30, VOL:0.50, ATA:0.72};   // cuánto acompaña cada rol a la pelota
 const STATS_CANTERA = {pase:40,tiro:38,gambeta:38,velocidad:42,fisico:40};
-/* V3·1: formación 7v7 = ARQ – 2 DEF – 3 VOL – 1 ATA. Cada slot: ancla X + banda Y.
-   "mia" ataca a la derecha; "rival" es el espejo (WORLD_W - x). */
+/* V4: formación 11v11 = ARQ – 4 DEF – 3 VOL – 3 ATA (1-4-3-3). Cada slot: ancla X + banda Y.
+   "mia" ataca a la derecha; "rival" es el espejo (WORLD_W - x). El slot ATA central es el tuyo. */
+function bandasDe(n){   // reparte n bandas verticales parejas entre TOP y BOT
+  const h=(BOT-TOP)/n;
+  return Array.from({length:n},(_,i)=>[Math.round(TOP+i*h)+2, Math.round(TOP+(i+1)*h)-2]);
+}
 function formacion(side){
   const mir = side==="rival", ax = x => mir ? (WORLD_W - x) : x;
+  const b4=bandasDe(4), b3=bandasDe(3);
   return [
     {pos:"ARQ", ax:ax(26),  by:[TOP+10, BOT-10]},
-    {pos:"DEF", ax:ax(152), by:[TOP+6, 74]},
-    {pos:"DEF", ax:ax(152), by:[82, BOT-6]},
-    {pos:"VOL", ax:ax(300), by:[TOP+6, 56]},
-    {pos:"VOL", ax:ax(300), by:[62, 94]},
-    {pos:"VOL", ax:ax(300), by:[100, BOT-6]},
-    {pos:"ATA", ax:ax(432), by:[40, BOT-40]},
+    {pos:"DEF", ax:ax(230), by:b4[0]}, {pos:"DEF", ax:ax(230), by:b4[1]},
+    {pos:"DEF", ax:ax(230), by:b4[2]}, {pos:"DEF", ax:ax(230), by:b4[3]},
+    {pos:"VOL", ax:ax(560), by:b3[0]}, {pos:"VOL", ax:ax(560), by:b3[1]}, {pos:"VOL", ax:ax(560), by:b3[2]},
+    {pos:"ATA", ax:ax(880), by:b3[0]},
+    {pos:"ATA", ax:ax(880), by:[52, BOT-52], mio:true},   // el 9: banda central (slot de VOS)
+    {pos:"ATA", ax:ax(880), by:b3[2]},
   ];
 }
+const JUGADORES_POR_EQUIPO = 11;
 
 /* ====== V2 · ETAPA D — ROLES: mismo comando, manos distintas (tabla afinable) ====== */
 const PESOS_POS = {
@@ -1196,10 +1206,10 @@ function buildEquipo(){
   const v=ensureVida();
   const slots=formacion("mia");
   const usados=slots.map(()=>false);
-  const iAta=slots.findIndex(s=>s.pos==="ATA"); usados[iAta]=true;
+  const iAta=slots.findIndex(s=>s.mio); usados[iAta]=true;   // el 9 central es TUYO
   const equipo=[mkEnt("yo","ATA",career.name,career.stats,null,null,career.look,slots[iAta])];
   let cN=1;
-  for(let ai=0; ai<v.amigos.length && equipo.length<7; ai++){
+  for(let ai=0; ai<v.amigos.length && equipo.length<JUGADORES_POR_EQUIPO; ai++){
     const a=v.amigos[ai];
     let si=slots.findIndex((s,i)=>!usados[i] && s.pos===a.pos);   // su posición real si hay lugar
     if(si<0) si=slots.findIndex((s,i)=>!usados[i]);               // si no, cualquier slot libre
@@ -1220,7 +1230,15 @@ function buildRivales(){
 }
 /* índices ACTIVOS del rival (los maneja la mecánica de encuentros; el resto es escenografía).
    7v7: idx 0=ARQ, 1-2=DEF, 3-5=VOL, 6=ATA. Cuando ataco, sus 2 DEF marcan; cuando defiendo, su ATA lleva. */
-function rivalesActivos(){ return PS.posesion==="mia" ? [1,2] : [6]; }
+/* V4 (11v11): los activos se eligen por CERCANÍA al iniciar cada posesión, no por índice fijo.
+   Atacando: los 2 rivales de campo más cerca tuyo son "los marcadores" (los representan los
+   sintéticos de spawnDefenders, así que se ocultan del dibujo por anclas). Defendiendo: el
+   rival de campo más cercano al punto del contragolpe "es" el portador. */
+function rivalesMasCercanos(x, y, n){
+  return PS.rivales.map((r,i)=>({i,d:(r.pos==="ARQ")?1e9:Math.hypot(r.x-x,r.y-y)}))
+    .sort((a,b)=>a.d-b.d).slice(0,n).map(o=>o.i);
+}
+function rivalesActivos(){ return PS._activos || []; }
 
 /* ====== V2 · ETAPA C — PASE REAL Y CONTROL QUE CAMBIA ======
    El pase deja de ser un duelo: la pelota viaja a un compañero REAL y pasás
@@ -1450,6 +1468,9 @@ function drawMinimap(){
   const mX=x=> x/WORLD_W*Wm, mY=y=> 4+(y-TOP)/(BOT-TOP)*(Hm-8);
   c.fillStyle="#0d2a18"; c.fillRect(0,0,Wm,Hm);
   c.fillStyle="rgba(246,239,220,.25)"; c.fillRect(Wm/2,2,1,Hm-4);       // línea media
+  /* V4: ventana de la cámara — qué pedazo del mundo está mirando la vista de acción */
+  c.strokeStyle="rgba(246,193,29,.55)"; c.lineWidth=1;
+  c.strokeRect(mX(PS.camX), 1, Math.max(6,mX(CWv)), Hm-2);
   c.fillStyle="#f6efdc";                                                 // corchetes de arcos [ ]
   c.fillRect(1,Hm/2-7,1,14); c.fillRect(1,Hm/2-7,3,1); c.fillRect(1,Hm/2+6,3,1);
   c.fillRect(Wm-2,Hm/2-7,1,14); c.fillRect(Wm-4,Hm/2-7,3,1); c.fillRect(Wm-4,Hm/2+6,3,1);
@@ -1497,8 +1518,8 @@ $("minimap").addEventListener("pointerdown", e=>{
 /* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
    y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
 /* ====== V3·5 — constantes de ritmo (tabla del diseño; lo lento son los CUERPOS, lo rápido la PELOTA) ====== */
-const VEL_PORTADOR_MIO  = 0.50;   // conducir es decidir, no picar (bajó de 0.62)
-const VEL_PERSECUCION   = 0.55;   // perseguís más rápido que el portador rival -> con buen ángulo lo alcanzás
+const VEL_PORTADOR_MIO  = 0.62;   // conducir es decidir, no picar (V4: reescalado al mundo doble)
+const VEL_PERSECUCION   = 0.70;   // perseguís más rápido que el portador rival -> con buen ángulo lo alcanzás
 const VEL_RIVAL_CON_PELOTA = 0.34;
 const VEL_POSICIONALES  = 0.15;   // escenografía que respira
 function moverPosicional(e, obj){
@@ -1527,10 +1548,16 @@ function updateAnclas(){
 }
 
 function spawnDefenders(fromX){
-  /* F1: marcaje selectivo — UN marcador por tercio (correr por espacio libre ES libre) */
+  /* F1/V4: marcaje selectivo — UN marcador por tercio (correr por espacio libre ES libre).
+     Los sintéticos nacen SOBRE los 2 rivales de campo más cercanos (que se ocultan del
+     dibujo por anclas): visualmente son ellos, mecánicamente el tercio manda. */
+  const cp=(PS.equipo&&ctrlPos())||{x:fromX,y:MIDY};
+  PS._activos = PS.rivales ? rivalesMasCercanos(cp.x, cp.y, 2) : [];
+  const rA=PS.rivales?PS.rivales[PS._activos[0]]:null, rB=PS.rivales?PS.rivales[PS._activos[1]]:null;
+  const T1=Math.round(WORLD_W/3), T2=Math.round(WORLD_W*2/3);
   PS.defenders = [
-    {x:clamp(fromX+110, 140, AREA_X-60), y:rnd(TOP+18,BOT-18), passed:false, tercio:[213,427]},
-    {x:clamp(fromX+230, 220, AREA_X-30), y:rnd(TOP+18,BOT-18), passed:false, tercio:[427,WORLD_W]},
+    {x:rA?rA.x:clamp(fromX+180, 260, AREA_X-80), y:rA?rA.y:rnd(TOP+18,BOT-18), passed:false, tercio:[T1,T2]},
+    {x:rB?rB.x:clamp(fromX+400, 420, AREA_X-40), y:rB?rB.y:rnd(TOP+18,BOT-18), passed:false, tercio:[T2,WORLD_W]},
   ];
   PS.keeper.faced = false;
 }
@@ -1542,15 +1569,17 @@ function kickoff(quien){
   PS.encounter = null; PS.encCooldown = 40;
   PS.controlIdx = 0; PS.pasesSeguidos = 0; PS.empuje = 0; setGuts();   // volvés a jugar VOS
   if(quien==="mia"){
-    PS.player.x=300; PS.player.y=MIDY;
-    PS.ball.x=308; PS.ball.y=MIDY;
+    PS.player.x=WORLD_W/2-20; PS.player.y=MIDY;
+    PS.ball.x=PS.player.x+8; PS.ball.y=MIDY;
     PS.carrier.active=false;
-    spawnDefenders(300);
+    spawnDefenders(PS.player.x);
   } else {
-    PS.carrier={x:330,y:MIDY,active:true};
-    PS.player.x=250; PS.player.y=MIDY+18;   // te ubicás entre el rival y tu arco
-    PS.ball.x=322; PS.ball.y=MIDY;
+    PS.carrier={x:WORLD_W/2+20,y:MIDY,active:true};
+    PS._activos = PS.rivales ? rivalesMasCercanos(PS.carrier.x, PS.carrier.y, 1) : [];  // ese rival "es" el portador
+    PS.player.x=WORLD_W/2-70; PS.player.y=MIDY+18;   // te ubicás entre el rival y tu arco
+    PS.ball.x=PS.carrier.x-8; PS.ball.y=MIDY;
   }
+  camSeguir(PS.ball.x);   // V4: la cámara arranca sobre la pelota
   setHint();
 }
 /* posesión rival arrancando desde su campo (contragolpe / saque del arquero) */
@@ -1572,12 +1601,14 @@ function rivalCounter(fromX, fromY){
   musicaDeJuego();
   PS.posesion="rival";
   PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
-  PS.carrier={x:clamp(fromX, 180, GOAL_X-120), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
+  PS.carrier={x:clamp(fromX, 260, GOAL_X-160), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
+  PS._activos = PS.rivales ? rivalesMasCercanos(PS.carrier.x, PS.carrier.y, 1) : [];  // ese rival "es" el portador
   PS.controlIdx = idxMasCercanoALaPelota();          // auto-switch al más cercano
   const cp=ctrlPos();
   cp.x = clamp(PS.carrier.x-50, 20, GOAL_X-40);
   cp.y = clamp(PS.carrier.y+14, TOP+6, BOT-6);
   PS.encCooldown = 45; setGuts();
+  camSeguir(PS.ball.x);   // V4: corte y cámara sobre el contragolpe
   banner(`AHORA MARCÁS CON:<br>${esc(nombreDe(ctrlEnt())).toUpperCase()} (${ctrlEnt().pos})`);
   setHint();
 }
@@ -1640,7 +1671,9 @@ function avanzarEscena(dt){
   if(e.tick) e.tick(Math.min(e.t, e.dur), dt);
   if(e.t >= e.dur){ const fin=e.fin; siguienteEscena(); if(fin) fin(); }  // siguienteEscena antes de fin: fin puede encolar la próxima
 }
-function camSeguir(px){ PS.camX = clamp(px - CW/2, 0, WORLD_W-CW); }      // centra la cámara en un punto del mundo
+/* V4: la vista de acción es una ventana con ZOOM — ve CW/ZOOM px de mundo (drama de cerca) */
+const CWv = CW/ZOOM_ACCION, CHv = CH/ZOOM_ACCION;
+function camSeguir(px){ PS.camX = clamp(px - CWv/2, 0, WORLD_W-CWv); }    // centra la cámara en un punto del mundo
 /* corte en negro (E3): 120ms para saltos largos; paneo suave lo maneja el ease de camX */
 let cutTO=0;
 function corteNegro(ms){
@@ -1717,12 +1750,15 @@ function update(){
     if(cr.x < MY_AREA_X){ rivalShot(); return; }
   }
   // cámara sigue el centro de gravedad (jugador+pelota)
-  PS.camX = clamp(((p.x+PS.ball.x)/2) - 140, 0, WORLD_W-CW);
+  PS.camX = clamp(((p.x+PS.ball.x)/2) - CWv/2, 0, WORLD_W-CWv);
 }
 
 /* ============================ RENDER (arte en pampa-star-sprites.js) ============================ */
 function draw(){
   const c=PS.ctx, cam=PS.camX;
+  /* V4: VISTA DE ACCIÓN con zoom — la cámara sigue la pelota de cerca; el radar da el panorama */
+  PS.camY = clamp(PS.ball.y - CHv/2, 0, CH-CHv);
+  c.setTransform(ZOOM_ACCION, 0, 0, ZOOM_ACCION, 0, -PS.camY*ZOOM_ACCION);
   PSART.drawPitch(c, cam);
   /* V2: compañeros con su pinta y rivales pasivos acompañando por anclas */
   if(PS.equipo){
@@ -1749,6 +1785,7 @@ function draw(){
   drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
   const cp=(PS.posesion==="mia" && PS.equipo)?ctrlPos():PS.player;
   drawMarker(c, cp.x-cam, cp.y);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
+  c.setTransform(1,0,0,1,0,0);     // V4: fuera del mundo, coordenadas de canvas normales
 }
 
 /* ============================ COMBATE (menú tipo Pokémon) ============================ */
@@ -2199,7 +2236,7 @@ function setHint(){
 function accionPatear(){
   if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
   const g=PS.rival.f, p=ctrlPos(), dist=GOAL_X-p.x;
-  if(dist<=150){                                   // en zona de remate: abre el menú de arquero (con especiales)
+  if(dist<=170){                                   // en zona de remate: abre el menú de arquero (con especiales)
     PS.keeper.faced=true; startEncounter("gk", PS.keeper); return;
   }
   clearDirs();                                     // de lejos: tiro directo etiquetado "DESDE LEJOS"
