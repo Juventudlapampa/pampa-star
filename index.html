@@ -1503,6 +1503,13 @@ $("minimap").addEventListener("pointerdown", e=>{
   const cv=$("minimap"), r=cv.getBoundingClientRect();
   const px_=(e.clientX-r.left)/r.width*cv.width, py_=(e.clientY-r.top)/r.height*cv.height;
   const mX=x=> x/WORLD_W*cv.width, mY=y=> 4+(y-TOP)/(BOT-TOP)*(cv.height-8);
+  /* V4·E2 — APUNTADO TOCANDO LA CANCHA: en ataque, tocar el radar propone el pase
+     hacia ese punto (el compañero más cercano al toque). Congela y pedís confirmación. */
+  if(PS.posesion==="mia" && PS.state==="run" && !PS.escena){
+    const wx=px_/cv.width*WORLD_W, wy=TOP+(py_-4)/(cv.height-8)*(BOT-TOP);
+    apuntarPase(wx, wy);
+    return;
+  }
   let mejor=null, mIdx=-1, md=99;
   equipoPuntos().forEach((p,i)=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<10){ md=d; mejor=p; mIdx=i; } });
   if(!mejor) return;
@@ -1515,6 +1522,45 @@ $("minimap").addEventListener("pointerdown", e=>{
   t.classList.add("show");
   clearTimeout(mmTipTO); mmTipTO=setTimeout(()=>t.classList.remove("show"), 2000);
 });
+/* V4·E2: pase apuntado — elegís el DESTINO en el radar, el juego te ofrece el receptor
+   más cercano a ese punto con su % real, y confirmás o cancelás (encuentro voluntario). */
+function apuntarPase(wx, wy){
+  const ci=PS.controlIdx||0;
+  let best=null, bd=1e9;
+  PS.equipo.forEach((e,i)=>{
+    if(i===ci || e.pos==="ARQ") return;
+    const p=posDe(e), d=Math.hypot(p.x-wx, p.y-wy);
+    if(d<bd){ bd=d; best={e, idx:i, x:p.x, y:p.y}; }
+  });
+  if(!best || bd>240){ banner("NADIE CERCA DE AHÍ"); return; }
+  const cp=ctrlPos(), dx=best.x-cp.x;
+  const dir= dx>20?"▲ adelante" : dx<-20?"▼ atrás" : "◀▶ lateral";
+  const espacio = dx>200;
+  let dmin=1e9; rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return; dmin=Math.min(dmin, distSeg(cp.x,cp.y,best.x,best.y,rp.x,rp.y)); });
+  const vinc=paseParVinculo(ctrlEnt(), best.e);
+  let pct = 68 + (effStat("pase")*pesoCtrl("pase")-50)*0.5 + (statDe(best.e,"pase")-50)*0.2 + vinc*0.12 - 8;
+  if(dmin<60) pct -= (60-dmin)*0.4;
+  if(espacio) pct -= 10;
+  pct = clamp(Math.round(pct), 22, 96);
+  const rObj = {idx:best.idx, e:best.e, x:best.x, y:best.y, dir, espacio, pct, vinc, dupla:vinc>=60};
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"aim", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  $("combat-txt").innerHTML = `➡️ Pase apuntado a <b>${esc(nombreDe(best.e))}</b> (${best.e.pos} · ${dir}${espacio?" · al espacio":""})`;
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  const ok=document.createElement("button");
+  const cls=pct>=66?"hi":pct>=40?"mid":"lo";
+  ok.className="cmd";
+  ok.innerHTML=`<span class="ico">➡️</span><div class="cn">DARLE EL PASE</div><div class="ch ${cls}">${pct}%${rObj.dupla?" ★dupla":""}</div>`;
+  ok.addEventListener("click", ()=>resolvePase(rObj), {once:true});
+  grid.appendChild(ok);
+  const no=document.createElement("button");
+  no.className="cmd";
+  no.innerHTML=`<span class="ico">✖</span><div class="cn">SEGUIR</div><div class="ch mid">cancelar</div>`;
+  no.addEventListener("click", ()=>{ SFX("menu"); hideCombat(); PS.encounter=null; PS.state="run"; setHint(); }, {once:true});
+  grid.appendChild(no);
+  SFX("menu");
+}
 /* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
    y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
 /* ====== V3·5 — constantes de ritmo (tabla del diseño; lo lento son los CUERPOS, lo rápido la PELOTA) ====== */
@@ -2228,8 +2274,8 @@ function setHint(){
   const h=$("hint"); h.style.display="block";
   const nom = PS.equipo ? esc(nombreDe(ctrlEnt())).toUpperCase().slice(0,9) : "";
   h.innerHTML = PS.posesion==="mia"
-    ? `⚔ JUGÁS: <b>${nom}</b> ▶`
-    : `🛡 MARCÁS: <b>${nom}</b> ◀`;
+    ? `⚔ JUGÁS: <b>${nom}</b> ▶ · radar = pase`
+    : `🛡 MARCÁS: <b>${nom}</b> ◀ · radar = cambiar`;
   refreshActionBtns();
 }
 /* ====== Integración 2: PATEAR y ESPECIAL desde el juego (botón o tecla) ====== */
