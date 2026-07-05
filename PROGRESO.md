@@ -1,5 +1,17 @@
 # PAMPA STAR — Progreso
 
+## ✅ PARTIDO v4.1 (jul 2026) — respuesta al playtest CONTROL 2
+Feedback de Rodri con captura de CT2 al lado: faltaba el CUADRO DE ANIMACIÓN, la cancha estaba alargada, no podía pasar/cambiar/tirar a otro lado y el arquero rival no se movía. Todo atacado:
+- **🖼 CUADRO DE ANIMACIÓN (lo grande):** sprites GRANDES originales (16×26 por código, mismas variantes de FORMA del sprite chico) que PISAN la vista de acción en los momentos de drama, estilo el "dibujito" de la serie: cara a cara del encuentro (vos vs defensor / mano a mano con el arquero / remate rival vs tu arquero), patada del tiro Y del pase (la pelota sale volando con estela si es especial), festejo de gol con brazos arriba y saltito. Fondo con líneas de velocidad animadas + piso + marco; teñido de fuego en especiales. Poses: parado/correr/encarar/patear/arquero/festejo. Se limpia solo en cada kickoff/contra/cierre de menú.
+- **📐 Cancha PROPORCIONADA (doc §1.2):** mundo 1050×680 (105×68 m reales, ×10); áreas, arcos, penales y círculo central a escala FIFA en `PSART.config`. `draw()` con cámara 2D real (camX+camY explícitos, sin translate mágico); formación reescalada (DEF 190 / VOL 460 / ATA 730).
+- **🗺 Radar con proporciones reales:** canvas 210×136 (antes 280×48 estirado), centrado al 58%, con círculo central, arcos a escala y la VENTANA DE LA CÁMARA en 2D (rectángulo que muestra qué pedazo del mundo mira la acción).
+- **➡️ Botón PASE:** tercer botón de acción (y tecla P): abre el menú de receptores CUANDO QUERÉS, sin esperar el encuentro; VOLVER reanuda el juego. En defensa se apaga ("sin pelota").
+- **🧤 Arqueros VIVOS:** los DOS arqueros siguen la pelota siempre (clamp ±52 del centro del arco); el rival vuelve a su casa cuando ataca su equipo.
+- **🎯 El tiro VIAJA a la zona elegida:** cada zona del arco tiene su `gy` (esquinas ±44, palos ±38); si sale AFUERA pasa de largo el palo (se VE el error). Verificado: esquina alta = pelota a MIDY−44 exacto.
+- **⚖ Velocidades reescaladas al mundo alto:** posicionales 0.55 (antes 0.15, quedaban clavados), marcadores persiguen a ±0.85 en Y, vuelta al ancla ±0.55.
+Verificado en preview: 11v11 arranca, cine pinta (77% panel + sprites), pase voluntario y VOLVER, tiro a zona exacta, gol+festejo, kickoff limpia, defensa con CAMBIO, remate rival con cuadro, layout mobile 375×812 sin desbordes.
+**Pendiente conocido:** radar ampliado a pantalla para apuntar fino, pelota aérea, córners, perfiles IA, alargue/penales (lista v4.1 del doc).
+
 ## ✅ Partido V3 — presentación y "la magia" (jul 2026, DISENO_PARTIDO_V3.md)
 Capa de presentación sobre el motor v2; el guardado no cambia. Un commit por etapa, verificado.
 - **Etapa 1 — 7v7 con capas:** formación ARQ-2DEF-3VOL-1ATA por equipo (antes 5); amigos en su puesto + canteranos; minimapa muestra los 14. Capa POSICIONAL = escenografía viva (van despacio a su ancla, idle 1px, no chan la pelota). **Nadie desaparece:** el defensor superado vuelve caminando a su ancla, vencido, visible.

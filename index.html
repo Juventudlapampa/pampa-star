@@ -137,8 +137,8 @@
   .mutebtn:active{background:rgba(246,193,29,.6);color:#000;}
   .guts-bar{width:52px;height:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.18);border-radius:2px;overflow:hidden;}
   .guts-fill{height:100%;width:100%;background:linear-gradient(90deg,#7ee08a,#3fbf63);transition:width .25s, background .25s;}
-  /* minimapa (V2): plano de la cancha completa, FORMA antes que color */
-  .minimap{display:block;width:100%;height:auto;image-rendering:pixelated;background:#0d2a18;border:2px solid rgba(246,239,220,.18);border-radius:8px;touch-action:manipulation;}
+  /* minimapa/radar (V4.1): plano de la cancha completa con PROPORCIONES reales (105×68), FORMA antes que color */
+  .minimap{display:block;width:58%;margin:0 auto;height:auto;image-rendering:pixelated;background:#0d2a18;border:2px solid rgba(246,239,220,.18);border-radius:8px;touch-action:manipulation;}
   .mm-tip{display:none;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--sol-2);background:rgba(0,0,0,.75);border:1px solid var(--sol);border-radius:6px;padding:.25rem .5rem;text-align:center;}
   .mm-tip.show{display:block;}
 
@@ -367,7 +367,7 @@
       <div class="guts"><span class="lab" id="guts-lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
     </div>
 
-    <canvas id="minimap" class="minimap" width="280" height="48"></canvas>
+    <canvas id="minimap" class="minimap" width="210" height="136"></canvas>
     <div class="mm-tip" id="mm-tip"></div>
 
     <div class="field" id="field">
@@ -388,6 +388,7 @@
           <div class="dbtn right" data-dir="right">▶</div>
         </div>
         <div class="abtns">
+          <button class="abtn" id="btn-pase"><span class="abi">➡️</span><span class="abt">PASE</span><span class="abs" id="pase-sub">elegí receptor</span></button>
           <button class="abtn" id="btn-patear"><span class="abi">🎯</span><span class="abt">PATEAR</span><span class="abs" id="patear-sub">o BARRA espaciadora</span></button>
           <button class="abtn special" id="btn-especial"><span class="abi">🔥</span><span class="abt">CALDÉN</span><span class="abs" id="especial-sub">NIVEL 3</span></button>
         </div>
@@ -1113,22 +1114,26 @@ $("btn-terminar-semana").addEventListener("click", ()=>{
 
 /* ---------- Geometría del mundo (pixel, cancha APAISADA) ----------
    X = largo de cancha (scroll horizontal). Tu arco a la IZQUIERDA, el rival a la DERECHA. */
-const CW=280, CH=156;          // resolución interna del canvas (apaisado)
-const TOP=8, BOT=CH-8;         // líneas de banda
-/* ====== V4 — CANCHA BIEN DIMENSIONADA + CÁMARA CON ZOOM (Cinematic Soccer) ======
-   El mundo se duplica (11v11 con aire de verdad). La vista de ACCIÓN es el canvas
-   con zoom siguiendo la pelota (drama); el RADAR muestra los 22 (modelo CT2). */
-const WORLD_W=1280;            // largo total de la cancha (V4: el doble)
-const GOAL_X=WORLD_W-8;        // línea de gol rival (derecha)
-const AREA_X=GOAL_X-110;       // frente del área rival
-const MY_AREA_X=118;           // frente de TU área (izquierda)
-const MIDY=CH/2;
-const ZOOM_ACCION=2.0;         // la vista de acción ve ~140px de mundo alrededor de la pelota
+const CW=280, CH=156;          // resolución interna del canvas de ACCIÓN (apaisado)
+/* ====== V4.1 — CANCHA REAL 105×68 (doc §1.2) + CÁMARA 2D CON ZOOM ======
+   El mundo es una cancha PROPORCIONADA (105×68 → 1050×680 unidades). La vista de
+   acción es una ventana con zoom que sigue la pelota en X e Y; el RADAR de abajo
+   tiene las proporciones REALES de una cancha (modelo CT2). */
+const WORLD_W=1050, CAMPO_H=680;  // 105×68 metros → ×10
+const TOP=12, BOT=CAMPO_H-12;     // líneas de banda
+const MIDY=CAMPO_H/2;
+const GOAL_X=WORLD_W-8;           // línea de gol rival (derecha)
+const AREA_X=GOAL_X-165;          // frente del área rival (16,5m)
+const MY_AREA_X=173;              // frente de TU área
+const ZOOM_ACCION=2.0;            // la vista de acción ve ~140×78 de mundo alrededor de la pelota
+const GOAL_MEDIO=55, CIRCULO=92;  // media boca del arco (7,3m) y radio del círculo central (9,15m)
 
 /* ---------- Arte: módulo PSART (pampa-star-sprites.js, ver ARTE.md) ---------- */
-PSART.config({CW,CH,TOP,BOT,WORLD_W,GOAL_X,AREA_X,MY_AREA_X,MIDY});
+PSART.config({CW,CH,TOP,BOT,WORLD_W,GOAL_X,AREA_X,MY_AREA_X,MIDY,
+  AREA_MEDIO:200, CHICA_MEDIO:90, GOAL_MEDIO, CHICA_D:55, PENAL_D:110, PENAL_D2:118, CIRCULO});  // cancha real 105×68
 const px=PSART.px, drawKit=PSART.drawKit, drawBall=PSART.drawBall,
-      drawMarker=PSART.drawMarker, lookResolved=PSART.lookResolved;
+      drawMarker=PSART.drawMarker, lookResolved=PSART.lookResolved,
+      drawKitBig=PSART.drawKitBig, drawBallBig=PSART.drawBallBig;
 
 /* ====== V2 · ETAPA A — EQUIPO EN LA CANCHA (DISENO_PARTIDO_V2.md) ======
    5v5: vos + tus amigos en su posición + canteranos genéricos de relleno.
@@ -1146,13 +1151,13 @@ function formacion(side){
   const mir = side==="rival", ax = x => mir ? (WORLD_W - x) : x;
   const b4=bandasDe(4), b3=bandasDe(3);
   return [
-    {pos:"ARQ", ax:ax(26),  by:[TOP+10, BOT-10]},
-    {pos:"DEF", ax:ax(230), by:b4[0]}, {pos:"DEF", ax:ax(230), by:b4[1]},
-    {pos:"DEF", ax:ax(230), by:b4[2]}, {pos:"DEF", ax:ax(230), by:b4[3]},
-    {pos:"VOL", ax:ax(560), by:b3[0]}, {pos:"VOL", ax:ax(560), by:b3[1]}, {pos:"VOL", ax:ax(560), by:b3[2]},
-    {pos:"ATA", ax:ax(880), by:b3[0]},
-    {pos:"ATA", ax:ax(880), by:[52, BOT-52], mio:true},   // el 9: banda central (slot de VOS)
-    {pos:"ATA", ax:ax(880), by:b3[2]},
+    {pos:"ARQ", ax:ax(30),  by:[MIDY-100, MIDY+100]},
+    {pos:"DEF", ax:ax(190), by:b4[0]}, {pos:"DEF", ax:ax(190), by:b4[1]},
+    {pos:"DEF", ax:ax(190), by:b4[2]}, {pos:"DEF", ax:ax(190), by:b4[3]},
+    {pos:"VOL", ax:ax(460), by:b3[0]}, {pos:"VOL", ax:ax(460), by:b3[1]}, {pos:"VOL", ax:ax(460), by:b3[2]},
+    {pos:"ATA", ax:ax(730), by:b3[0]},
+    {pos:"ATA", ax:ax(730), by:[MIDY-190, MIDY+190], mio:true},   // el 9: banda central (slot de VOS)
+    {pos:"ATA", ax:ax(730), by:b3[2]},
   ];
 }
 const JUGADORES_POR_EQUIPO = 11;
@@ -1188,7 +1193,7 @@ function newState(club, rival){
     myKeeper:{x:16,y:MIDY},
     keeper:{x:GOAL_X-14,y:MIDY,faced:false}, // arquero rival
     defenders:[],
-    camX:0, dirs:{up:false,down:false,left:false,right:false},
+    camX:0, camY:0, dirs:{up:false,down:false,left:false,right:false},
     encounter:null, encCooldown:0,
     golesEnPartido:0,
     controlIdx:0, pasesSeguidos:0, empuje:0, bonusJugada:false,   // V2·C
@@ -1292,7 +1297,7 @@ function receptoresPase(filtrado){
     return {idx:c.i, e:c.e, x:c.x, y:c.y, dir, espacio, pct:clamp(Math.round(pct),25,96), vinc, dupla:vinc>=60};
   });
 }
-function renderPaseMenu(filtrado, obligatorio){
+function renderPaseMenu(filtrado, obligatorio, libre){
   const rs=receptoresPase(filtrado);
   $("combat-txt").innerHTML = filtrado ? "🪡 Pase filtrado: ¿a quién se la metés entre líneas?" : "➡️ ¿A quién se la das?";
   const grid=$("cmd-grid"); grid.innerHTML="";
@@ -1309,7 +1314,10 @@ function renderPaseMenu(filtrado, obligatorio){
   if(!obligatorio){   // en el saque lateral el pase es obligatorio: sin VOLVER (no hay defensor al que enfrentar)
     const back=document.createElement("button");
     back.className="cmd wide"; back.innerHTML=`<div class="cn">◀ VOLVER</div>`;
-    back.addEventListener("click", ()=>{ const cmds=buildCommands("def"); renderCombat(`Te marcan de cerca. ¿Qué hacés?`, cmds, "atk"); }, {once:true});
+    if(libre)   // V4.1: pase voluntario (botón PASE) — volver es seguir jugando, no un encuentro
+      back.addEventListener("click", ()=>{ SFX("menu"); hideCombat(); PS.encounter=null; PS.state="run"; setHint(); }, {once:true});
+    else
+      back.addEventListener("click", ()=>{ const cmds=buildCommands("def"); renderCombat(`Te marcan de cerca. ¿Qué hacés?`, cmds, "atk"); }, {once:true});
     grid.appendChild(back);
   }
 }
@@ -1329,6 +1337,10 @@ function resolvePase(r){
     PS._jugadaArmada = (PS.pasesSeguidos===3);
     if(PS._jugadaArmada){ PS.bonusJugada=true; PS.empuje=40; }
   } else { PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; }
+  /* V4.1: cuadro breve de la patada del pase, y recién ahí la pelota viaja por la cancha */
+  encolarEscena({tipo:"cinePase", dur:340, t:0,
+    inicio:()=>{ PS.cine={tipo:"patada", t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
+    fin:()=>{ PS.cine=null; }});
   escenaPase(r, win);
 }
 /* E2 — la escena estrella: la pelota VIAJA (cámara sobre ella); si hay corte posible,
@@ -1473,12 +1485,15 @@ function drawMinimap(){
   const mX=x=> x/WORLD_W*Wm, mY=y=> 4+(y-TOP)/(BOT-TOP)*(Hm-8);
   c.fillStyle="#0d2a18"; c.fillRect(0,0,Wm,Hm);
   c.fillStyle="rgba(246,239,220,.25)"; c.fillRect(Wm/2,2,1,Hm-4);       // línea media
-  /* V4: ventana de la cámara — qué pedazo del mundo está mirando la vista de acción */
-  c.strokeStyle="rgba(246,193,29,.55)"; c.lineWidth=1;
-  c.strokeRect(mX(PS.camX), 1, Math.max(6,mX(CWv)), Hm-2);
-  c.fillStyle="#f6efdc";                                                 // corchetes de arcos [ ]
-  c.fillRect(1,Hm/2-7,1,14); c.fillRect(1,Hm/2-7,3,1); c.fillRect(1,Hm/2+6,3,1);
-  c.fillRect(Wm-2,Hm/2-7,1,14); c.fillRect(Wm-4,Hm/2-7,3,1); c.fillRect(Wm-4,Hm/2+6,3,1);
+  c.strokeStyle="rgba(246,239,220,.2)"; c.lineWidth=1;                   // círculo central
+  c.beginPath(); c.arc(Wm/2, Hm/2, CIRCULO/(BOT-TOP)*(Hm-8), 0, Math.PI*2); c.stroke();
+  /* V4.1: ventana de la cámara en 2D — qué pedazo del mundo mira la vista de acción */
+  c.strokeStyle="rgba(246,193,29,.6)"; c.lineWidth=1;
+  c.strokeRect(mX(PS.camX), mY(PS.camY), Math.max(6,mX(CWv)), Math.max(6,CHv/(BOT-TOP)*(Hm-8)));
+  const gb=Math.round(GOAL_MEDIO/(BOT-TOP)*(Hm-8));                      // corchetes de arcos [ ] a escala
+  c.fillStyle="#f6efdc";
+  c.fillRect(1,Hm/2-gb,1,gb*2); c.fillRect(1,Hm/2-gb,3,1); c.fillRect(1,Hm/2+gb-1,3,1);
+  c.fillRect(Wm-2,Hm/2-gb,1,gb*2); c.fillRect(Wm-4,Hm/2-gb,3,1); c.fillRect(Wm-4,Hm/2+gb-1,3,1);
   for(const p of rivalPuntos()){                                         // rivales ▲
     const x=mX(p.x), y=mY(p.y);
     c.fillStyle="#0a1f13"; c.strokeStyle="#f6efdc"; c.lineWidth=1;
@@ -1572,7 +1587,7 @@ function apuntarPase(wx, wy){
 const VEL_PORTADOR_MIO  = 0.62;   // conducir es decidir, no picar (V4: reescalado al mundo doble)
 const VEL_PERSECUCION   = 0.70;   // perseguís más rápido que el portador rival -> con buen ángulo lo alcanzás
 const VEL_RIVAL_CON_PELOTA = 0.34;
-const VEL_POSICIONALES  = 0.15;   // escenografía que respira
+const VEL_POSICIONALES  = 0.55;   // V4.1: escenografía que respira (mundo 680 de alto: si no, quedan clavados)
 function moverPosicional(e, obj){
   const targetX = clamp((e.ancla+(PS.empuje||0)) + (PS.ball.x - WORLD_W/2)*e.elast, 30, GOAL_X-16);
   const targetY = clamp(PS.ball.y, e.banda[0], e.banda[1]) + Math.sin(PS._t*0.03 + (e.idle||0))*1.0;
@@ -1593,7 +1608,7 @@ function updateAnclas(){
     if(df.passed && df.tercio){
       const restX=(df.tercio[0]+df.tercio[1])/2 - 40;
       df.x += clamp(restX-df.x, -0.4, 0.4);
-      df.y += clamp((MIDY)-df.y, -0.2, 0.2);
+      df.y += clamp((MIDY)-df.y, -0.55, 0.55);
     }
   }
 }
@@ -1607,8 +1622,8 @@ function spawnDefenders(fromX){
   const rA=PS.rivales?PS.rivales[PS._activos[0]]:null, rB=PS.rivales?PS.rivales[PS._activos[1]]:null;
   const T1=Math.round(WORLD_W/3), T2=Math.round(WORLD_W*2/3);
   PS.defenders = [
-    {x:rA?rA.x:clamp(fromX+180, 260, AREA_X-80), y:rA?rA.y:rnd(TOP+18,BOT-18), passed:false, tercio:[T1,T2]},
-    {x:rB?rB.x:clamp(fromX+400, 420, AREA_X-40), y:rB?rB.y:rnd(TOP+18,BOT-18), passed:false, tercio:[T2,WORLD_W]},
+    {x:rA?rA.x:clamp(fromX+180, 260, AREA_X-80), y:rA?rA.y:rnd(MIDY-90,MIDY+90), passed:false, tercio:[T1,T2]},
+    {x:rB?rB.x:clamp(fromX+400, 420, AREA_X-40), y:rB?rB.y:rnd(MIDY-90,MIDY+90), passed:false, tercio:[T2,WORLD_W]},
   ];
   PS.keeper.faced = false;
 }
@@ -1617,6 +1632,7 @@ function kickoff(quien){
   corteNegro(120);   // E3: saque desde el medio -> corte de cámara
   musicaDeJuego();
   PS.posesion = quien;
+  PS.cine = null;    // V4.1: se apaga el cuadro de animación, vuelve la cancha
   PS.encounter = null; PS.encCooldown = 40;
   PS.controlIdx = 0; PS.pasesSeguidos = 0; PS.empuje = 0; setGuts();   // volvés a jugar VOS
   if(quien==="mia"){
@@ -1651,6 +1667,7 @@ function rivalCounter(fromX, fromY){
   corteNegro(120);   // E3: la cámara salta al contragolpe -> corte seco
   musicaDeJuego();
   PS.posesion="rival";
+  PS.cine=null;      // V4.1: contragolpe = cancha, no cuadro
   PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
   PS.carrier={x:clamp(fromX, 260, GOAL_X-160), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
   PS._activos = PS.rivales ? rivalesMasCercanos(PS.carrier.x, PS.carrier.y, 1) : [];  // ese rival "es" el portador
@@ -1774,9 +1791,10 @@ function update(){
     // defensores te buscan
     for(const df of PS.defenders){
       if(df.passed) continue;
-      if(Math.abs(p.x-df.x) < 130){ df.y += clamp(p.y-df.y,-0.6,0.6); df.x += clamp(p.x-df.x,-0.2,0.2); }
+      if(Math.abs(p.x-df.x) < 130){ df.y += clamp(p.y-df.y,-0.85,0.85); df.x += clamp(p.x-df.x,-0.25,0.25); }
     }
-    PS.keeper.y += clamp(PS.ball.y-PS.keeper.y, -0.7,0.7);
+    PS.keeper.y = clamp(PS.keeper.y + clamp(PS.ball.y-PS.keeper.y, -1.2,1.2), MIDY-52, MIDY+52);   // V4.1: el arquero rival VIVE (cubre su arco)
+    PS.myKeeper.y = clamp(PS.myKeeper.y + clamp(PS.ball.y-PS.myKeeper.y, -1.0,1.0), MIDY-52, MIDY+52);
     if(PS.encCooldown===0){
       for(const df of PS.defenders){
         if(df.passed) continue;
@@ -1796,7 +1814,8 @@ function update(){
     cr.y = clamp(cr.y + Math.sin(cr.x*0.045)*0.3, TOP+10, BOT-10);
     PS.ball.x += ((cr.x-7) - PS.ball.x)*0.4;
     PS.ball.y += (cr.y - PS.ball.y)*0.4;
-    PS.myKeeper.y += clamp(PS.ball.y-PS.myKeeper.y, -0.5,0.5);
+    PS.myKeeper.y = clamp(PS.myKeeper.y + clamp(PS.ball.y-PS.myKeeper.y, -1.2,1.2), MIDY-52, MIDY+52);
+    PS.keeper.y = clamp(PS.keeper.y + clamp(MIDY-PS.keeper.y, -0.6,0.6), MIDY-52, MIDY+52);
     if(PS.encCooldown===0 && Math.hypot(p.x-cr.x, p.y-cr.y) < 24){ startEncounter("dfs", cr); return; }
     if(cr.x < MY_AREA_X){ rivalShot(); return; }
   }
@@ -1807,36 +1826,78 @@ function update(){
 /* ============================ RENDER (arte en pampa-star-sprites.js) ============================ */
 function draw(){
   const c=PS.ctx, cam=PS.camX;
-  /* V4: VISTA DE ACCIÓN con zoom — la cámara sigue la pelota de cerca; el radar da el panorama */
-  PS.camY = clamp(PS.ball.y - CHv/2, 0, CH-CHv);
-  c.setTransform(ZOOM_ACCION, 0, 0, ZOOM_ACCION, 0, -PS.camY*ZOOM_ACCION);
-  PSART.drawPitch(c, cam);
+  /* V4.1: VISTA DE ACCIÓN con cámara 2D — mundo 1050×680 proporcionado (105×68 m, doc §1.2);
+     la cámara sigue la pelota en X e Y; el radar da el panorama */
+  PS.camY = clamp(PS.ball.y - CHv/2, 0, CAMPO_H-CHv);
+  const oy=PS.camY;
+  c.setTransform(ZOOM_ACCION, 0, 0, ZOOM_ACCION, 0, 0);
+  PSART.drawPitch(c, cam, oy);
   /* V2: compañeros con su pinta y rivales pasivos acompañando por anclas */
   if(PS.equipo){
     for(const e of PS.equipo){
       if(e.ref==="yo" || e.pos==="ARQ") continue;
-      drawKit(c, e.x-cam, e.y, PS.club.c1, PS.club.c2, false, e.x*0.22, lookResolved(e.look));
+      drawKit(c, e.x-cam, e.y-oy, PS.club.c1, PS.club.c2, false, e.x*0.22, lookResolved(e.look));
     }
     const act=rivalesActivos();
-    PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; drawKit(c, e.x-cam, e.y, PS.rival.c1, PS.rival.c2, false, e.x*0.22); });
+    PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; drawKit(c, e.x-cam, e.y-oy, PS.rival.c1, PS.rival.c2, false, e.x*0.22); });
   }
   /* V3·1: los marcadores del tercio SIEMPRE se dibujan; el superado se ve vencido (más chico/tenue), nunca desaparece */
   if(PS.posesion==="mia") for(const df of PS.defenders){
-    drawKit(c, df.x-cam, df.y, PS.rival.c1, PS.rival.c2, false, df.x*0.22);
-    if(df.passed){ c.fillStyle="rgba(6,18,11,0.35)"; c.fillRect((df.x-cam-4)|0,(df.y-13)|0,8,17); }  // veladura de "vencido"
+    drawKit(c, df.x-cam, df.y-oy, PS.rival.c1, PS.rival.c2, false, df.x*0.22);
+    if(df.passed){ c.fillStyle="rgba(6,18,11,0.35)"; c.fillRect((df.x-cam-4)|0,(df.y-oy-13)|0,8,17); }  // veladura de "vencido"
   }
-  if(PS.carrier.active) drawKit(c, PS.carrier.x-cam, PS.carrier.y, PS.rival.c1, PS.rival.c2, false, PS.carrier.x*0.25);
-  drawKit(c, PS.keeper.x-cam, PS.keeper.y, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
-  drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
+  if(PS.carrier.active) drawKit(c, PS.carrier.x-cam, PS.carrier.y-oy, PS.rival.c1, PS.rival.c2, false, PS.carrier.x*0.25);
+  drawKit(c, PS.keeper.x-cam, PS.keeper.y-oy, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
+  drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y-oy, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
   /* V3·4: estela de fuego del megatiro (post-pitch, así no la pisa el repintado del frame) */
   if(PS.escena && PS.escena.tipo==="tiro" && PS.escena.esp){
-    for(let m=1;m<=4;m++) px(c, PS.ball.x-m*7-cam, PS.ball.y-1, 5, 3, m<3?"#ff8c3a":"#f6c11d");
+    for(let m=1;m<=4;m++) px(c, PS.ball.x-m*7-cam, PS.ball.y-oy-1, 5, 3, m<3?"#ff8c3a":"#f6c11d");
   }
-  drawBall(c, PS.ball.x-cam, PS.ball.y);
-  drawKit(c, PS.player.x-cam, PS.player.y, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
+  drawBall(c, PS.ball.x-cam, PS.ball.y-oy);
+  drawKit(c, PS.player.x-cam, PS.player.y-oy, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
   const cp=(PS.posesion==="mia" && PS.equipo)?ctrlPos():PS.player;
-  drawMarker(c, cp.x-cam, cp.y);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
+  drawMarker(c, cp.x-cam, cp.y-oy);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
   c.setTransform(1,0,0,1,0,0);     // V4: fuera del mundo, coordenadas de canvas normales
+  dibujarCine(c);                  // V4.1: el CUADRO DE ANIMACIÓN pisa la vista cuando hay acción grande
+}
+/* ====== V4.1 — CUADRO DE ANIMACIÓN: la acción en grande (el "dibujito" de la serie) ======
+   Mientras hay un encuentro o un remate, el canvas muestra el cara a cara / la patada
+   con sprites grandes; el radar sigue dando el panorama táctico. */
+function dibujarCine(c){
+  const ci=PS.cine; if(!ci) return;
+  ci.t=(ci.t||0)+1;
+  const piso=CH-20;                                          // los pies apoyan sobre el piso del cuadro
+  PSART.drawCineFondo(c, ci.t, ci.esp);
+  const S=4;
+  const meLook = lookResolved(ci.look||career.look);
+  if(ci.tipo==="duelo"){
+    if(ci.enc==="dfs"){                                      // defendés: el rival viene con la pelota
+      drawKitBig(c, 82, piso, S, 1, "correr", ci.t, PS.club.c1, PS.club.c2, meLook);
+      drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 172, piso-4, 2.4);
+    } else if(ci.enc==="arq"){                               // ¡remata el rival! tu arquero al frente
+      drawKitBig(c, 82, piso, S, 1, "arquero", ci.t, "#5bb8e8", "#1a1a1a", meLook, true);
+      drawKitBig(c, 198, piso, S, -1, "patear", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 168, piso-10, 2.4);
+    } else if(ci.enc==="gk"){                                // mano a mano con el arquero
+      drawKitBig(c, 82, piso, S, 1, "encarar", ci.t, PS.club.c1, PS.club.c2, meLook);
+      drawKitBig(c, 202, piso, S, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);
+      drawBallBig(c, 106, piso-4, 2.4);
+    } else {                                                 // te sale al cruce un defensor
+      drawKitBig(c, 82, piso, S, 1, "encarar", ci.t, PS.club.c1, PS.club.c2, meLook);
+      drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 106, piso-4, 2.4);
+    }
+  } else if(ci.tipo==="patada"){                             // el remate / el pase que sale
+    drawKitBig(c, 96, piso, S+0.5, 1, "patear", ci.t, PS.club.c1, PS.club.c2, meLook);
+    const bx=118+ci.t*7;
+    if(bx<CW+10){
+      if(ci.esp) for(let m=1;m<=4;m++) px(c, bx-m*9, piso-34-m, 7, 4, m<3?"#ff8c3a":"#f6c11d");
+      drawBallBig(c, bx, piso-32, 2.6);
+    }
+  } else if(ci.tipo==="festejo"){                            // ¡grito de gol!
+    drawKitBig(c, CW/2, piso, S+1, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);
+  }
 }
 
 /* ============================ COMBATE (menú tipo Pokémon) ============================ */
@@ -1850,6 +1911,8 @@ function startEncounter(type, ref){
   SFX("sting");
   const amigos=(career.vida&&career.vida.amigos)||[];
   PS.compa = (type==="def" && amigos.length) ? pick(amigos) : null;  // quién te acompaña la jugada
+  /* V4.1: arranca el CUADRO DE ANIMACIÓN — el cara a cara en grande mientras decidís */
+  PS.cine = {tipo:"duelo", enc:type, t:0, look: PS.equipo ? ctrlEnt().look : career.look};
   clearDirs();
   $("hint").style.display = "none";
   const cmds = buildCommands(type);
@@ -1941,7 +2004,7 @@ function setTag(tag){
   else if(tag==="ht"){ el.textContent="⏸ ENTRETIEMPO"; el.className="ctag ht"; }
   else { el.textContent="⚔ ATAQUE"; el.className="ctag"; }
 }
-function hideCombat(){ $("combat").classList.remove("show"); }
+function hideCombat(){ $("combat").classList.remove("show"); if(PS) PS.cine=null; }   // V4.1: al cerrar el menú, vuelve la cancha
 function chooseCommand(cm){
   if(PS.state!=="menu") return;
   if(cm.submenu){ SFX("menu"); renderPaseMenu(cm.submenu==="filtrado"); return; }   // V2: PASE abre receptores, sigue en menú
@@ -1951,9 +2014,9 @@ function chooseCommand(cm){
     SFX("menu");
     const grid=$("cmd-grid"); grid.innerHTML="";
     $("combat-txt").innerHTML="🎯 ¿A qué zona del arco? (esquinas: más gol, más riesgo de afuera)";
-    const ZONAS=[
-      {n:"↖ ESQUINA ALTA", mod:6, fuera:0.14},{n:"↑ ALTO CENTRO", mod:-2, fuera:0.03},{n:"↗ ESQUINA ALTA", mod:6, fuera:0.14},
-      {n:"↙ PALO BAJO",    mod:4, fuera:0.08},{n:"↓ AL MEDIO",    mod:-4, fuera:0.01},{n:"↘ PALO BAJO",   mod:4, fuera:0.08},
+    const ZONAS=[   /* V4.1: gy = a qué punto del arco viaja la pelota (que se VEA a dónde apuntaste) */
+      {n:"↖ ESQUINA ALTA", mod:6, fuera:0.14, gy:-44},{n:"↑ ALTO CENTRO", mod:-2, fuera:0.03, gy:0},{n:"↗ ESQUINA ALTA", mod:6, fuera:0.14, gy:44},
+      {n:"↙ PALO BAJO",    mod:4, fuera:0.08, gy:-38},{n:"↓ AL MEDIO",    mod:-4, fuera:0.01, gy:0},{n:"↘ PALO BAJO",   mod:4, fuera:0.08, gy:38},
     ];
     grid.style.gridTemplateColumns="1fr 1fr 1fr";
     ZONAS.forEach(z=>{
@@ -2007,14 +2070,21 @@ function mostrarCutin(e){ $("cutin-cara").textContent=e.ico; $("cutin-nom").text
 function ocultarCutin(){ $("cutin").classList.remove("show"); }
 function escenaTiro(cm, win){
   const esp=cm.especial, cp=ctrlPos(), sx=cp.x, sy=cp.y;
-  const gy = (esp&&esp.rasante) ? BOT-16 : MIDY;                 // Atuel entra rasante, pegado al pasto
+  /* V4.1: la pelota viaja a la ZONA que elegiste (palo/esquina), no siempre al medio;
+     si se va afuera, pasa de largo el palo (se ve el error) */
+  let gy = (esp&&esp.rasante) ? MIDY+44 : MIDY + ((cm._zona&&cm._zona.gy)||0);
+  if(PS._afuera) gy = MIDY + (cm._zona&&cm._zona.gy<0 ? -70 : 70);
   const seq=[];
   if(esp){
     seq.push({tipo:"cutin", dur:650, t:0, inicio:()=>{ SFX("especial"); mostrarCutin(esp); }});
     seq.push({tipo:"silencio", dur:400, t:0, inicio:()=>{ MUSICA(null); }});   // silencio dramático antes del disparo
   }
+  /* V4.1: primero el CUADRO de la patada (el dibujito), después la pelota viaja en la cancha */
+  seq.push({tipo:"cinePatada", dur:480, t:0,
+    inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); PS.cine={tipo:"patada", esp:!!esp, t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
+    fin:()=>{ PS.cine=null; }});
   const dist=Math.hypot((GOAL_X-8)-sx, gy-sy), dur=Math.max(220, dist/(esp?0.17:0.13));
-  seq.push({tipo:"tiro", esp, dur, t:0, inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); },
+  seq.push({tipo:"tiro", esp, dur, t:0,
     tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0); camSeguir(PS.ball.x); }});
   seq.push({tipo:"hitstop", dur:400, t:0, inicio:()=>{ PS.ball.x=GOAL_X-8; PS.ball.y=gy; SFX("sting"); }});  // arquero en el aire: ¿gol o atajada?
   seq[seq.length-1].fin = ()=>{ if(win) goalSequence(cm.on==="gambetaGk", cm.on==="tiroLejano", esp); else tiroAtajado(cm); };
@@ -2196,6 +2266,7 @@ function rivalShot(){
         especialArq:arq, sub:`-20 Guts de ${esc(arq.nombre)} · vínculo ${arq.vinculo}`});
   }
   PS.encounter={type:"arq", ref:arq};
+  PS.cine={tipo:"duelo", enc:"arq", t:0, look: arq.look};   // V4.1: cuadro del remate rival vs tu arquero
   SFX("sting"); SFX("kick");
   renderCombat(`¡El ataque de <b>${PS.rival.n}</b> remata! <b>${esc(nombreDe(arq))}</b> bajo los tres palos…`, cmds, "def");
 }
@@ -2216,7 +2287,10 @@ function goalSequence(dribble, lejano, especial){
     PS.golesEnPartido++;                                            // gol PERSONAL: sube stats y nivel
   }
   $("hud-gme").textContent = PS.gMe;
-  PS.ball.x = GOAL_X; PS.ball.y = MIDY; draw();
+  PS.ball.x = GOAL_X; PS.ball.y = MIDY;
+  /* V4.1: cuadro del festejo — el goleador con los brazos arriba (se limpia en el saque) */
+  PS.cine = {tipo:"festejo", t:0, look: quien ? quien.look : career.look};
+  draw();
   flash("gol", (lejano||especial) ? "¡GOLAZO!" : "¡GOL!");
   endLine(quien ? `¡GOL de <b>${esc(quien.nombre)}</b>! La jugada la armaron entre todos. (+1 vínculo)`
         : especial ? `¡El ${especial.cn} rompió la red! El arquero ni la vio.`
@@ -2348,6 +2422,16 @@ function accionPatear(){
   $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
   chooseCommand({k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"});
 }
+/* V4.1: PASE como acción directa — la tocás cuando quieras, sin esperar el encuentro */
+function accionPase(){
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena || !PS.equipo) return;
+  if(!receptoresPase().length){ banner("SIN RECEPTORES CERCA"); return; }
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"pase", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  renderPaseMenu(false, false, true);
+  SFX("menu");
+}
 function accionEspecial(){
   if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
   if(PS.equipo && (PS.controlIdx||0)!==0) return;            // el especial es TUYO: llegá vos
@@ -2360,13 +2444,14 @@ function accionEspecial(){
   chooseCommand({k:e.id, cn:e.cn, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:rivalF()+8, on:"tiroGol", especial:e});
 }
 function refreshActionBtns(){
-  const bp=$("btn-patear"), be=$("btn-especial");
+  const bp=$("btn-patear"), be=$("btn-especial"), bpa=$("btn-pase");
   if(!bp || !PS) return;
   const puedo = PS.posesion==="mia";
   bp.classList.remove("off");                      // V4: el botón SIEMPRE sirve — patear o cambiar de marcador
   bp.querySelector(".abt").textContent = puedo ? "PATEAR" : "CAMBIO";
   bp.querySelector(".abi").textContent = puedo ? "🎯" : "🔁";
   $("patear-sub").textContent = puedo ? "o BARRA espaciadora" : "al más cercano · o BARRA";
+  if(bpa){ bpa.classList.toggle("off", !puedo); $("pase-sub").textContent = puedo ? "elegí receptor · tecla P" : "sin pelota"; }
   const e=TIROS_ESPECIALES[0];
   const yoCtrl = !PS.equipo || (PS.controlIdx||0)===0;
   let sub, off=true;
@@ -2379,6 +2464,7 @@ function refreshActionBtns(){
   $("especial-sub").textContent=sub;
 }
 $("btn-patear").addEventListener("click", accionPatear);
+$("btn-pase").addEventListener("click", accionPase);
 $("btn-especial").addEventListener("click", accionEspecial);
 
 /* ---------- Botones final: aplicar mi resultado a la fecha y volver a la temporada ---------- */
@@ -2414,6 +2500,7 @@ function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.quer
     if(enFormulario(e)) return;
     if(enPartido() && (e.key===" "||e.code==="Space")){ accionPatear(); e.preventDefault(); return; }   // patear (no roba Espacio en botones)
     if(enPartido() && e.key.toLowerCase()==="e"){ accionEspecial(); e.preventDefault(); return; }        // tiro especial
+    if(enPartido() && e.key.toLowerCase()==="p"){ accionPase(); e.preventDefault(); return; }            // V4.1: pase voluntario
     const k=keyDir(e); if(k && enPartido()){ setDir(k,true); e.preventDefault(); }
   });
   addEventListener("keyup",  e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,false); e.preventDefault(); } });
