@@ -435,16 +435,31 @@
    - La posesión alterna naturalmente. Gol => sube stat. Guardado en localStorage.
    ========================================================================== */
 
-/* ====== AFINADO RÁPIDO (tocá estos valores para cambiar la sensación) ====== */
-const VELOCIDAD_JUGADOR = 0.62;   // velocidad de tu corrida (px por frame)
-const VELOCIDAD_RIVAL   = 0.48;   // velocidad del rival cuando ataca con la pelota (V4: mundo más grande)
-/* v3.1 — RELOJ CONTINUO estilo original: el tiempo corre mientras JUGÁS (los menús
-   y las escenas lo congelan, como en el fierro). Dos tiempos de 45'.
-   El original: 30' a ~10s reales por minuto. Rodri sugirió 45' cada 15s; arrancamos
-   en 10 (≈7,5 min de juego corrido por tiempo) — es UNA constante, se afina acá. */
-const SEGUNDOS_POR_MINUTO = 15;   // V4 doc §6: default 15 (afinable)
+/* ====== AFINADO RÁPIDO (tocá estos valores para cambiar la sensación) ======
+   TODO el balance del partido vive acá arriba (V4.2): velocidades, radios,
+   reloj y umbrales. Tocás un número, recargás, probás. */
+/* — velocidades (px de mundo por frame; el mundo es 1050×680 = 105×68 m) — */
+const VELOCIDAD_JUGADOR = 0.62;   // tu corrida (también la del controlado en defensa vía VEL_PERSECUCION)
+const VELOCIDAD_RIVAL   = 0.48;   // rival atacando con pelota (legado; el portador rival usa VEL_RIVAL_CON_PELOTA)
+const VEL_PORTADOR_MIO  = 0.62;   // conducir es decidir, no picar
+const VEL_PERSECUCION   = 0.70;   // perseguís más rápido que el portador rival → con buen ángulo lo alcanzás
+const VEL_RIVAL_CON_PELOTA = 0.34;
+const VEL_POSICIONALES  = 0.55;   // la escenografía viva (los 22 acompañando la jugada)
+const VEL_PELOTA        = 0.12;   // px por ms (~2 px/frame @60fps) en pases y tiros
+/* — radios y umbrales de encuentro — */
+const PRESION_RADIO     = 26;     // radio del marcador de cada tercio (te alcanza → encuentro)
+const RADIO_ENCUENTRO_DEF = 24;   // en defensa: distancia al portador rival para el cruce
+const DIST_MENU_ARQUERO = 170;    // con PATEAR a menos de esto del arco: menú de definición
+const PASE_RADIO        = 380;    // receptores de pase a menos de esto (el pase largo penaliza %)
+const PASE_TOPE_VIAJE   = 2400;   // ms máximos de viaje de la pelota en un pase
+const AEREO_UMBRAL      = 300;    // V4.2: un pase más largo que esto viaja POR ARRIBA (duelo aéreo al caer)
+const GUTS_RENDIDO      = 25;     // V4 doc §8: por debajo, solo pasar y correr (SIN NAFTA)
+/* — reloj (V4 doc §6) — */
+const SEGUNDOS_POR_MINUTO = 15;   // segundos reales por minuto de juego libre (default del doc)
 const MINUTOS_POR_ACCION = [0,0]; // (v3.1: las acciones ya no saltan el reloj; queda por compat)
-const GUTS_ENTRETIEMPO   = 20;    // Guts que recuperás en el entretiempo
+const GUTS_ENTRETIEMPO   = 20;    // Guts que recupera el equipo en el entretiempo (§6: el ARQ solo si le convirtieron)
+/* — córners y pelota aérea (V4.2) — */
+const CORNER_PROB       = 0.35;   // chance de que una atajada mande la pelota al córner
 /* =========================================================================== */
 
 /* ====== TIROS ESPECIALES PAMPEANOS ======
@@ -1176,7 +1191,7 @@ function pesoCtrl(k){
   const pos=e?e.pos:"ATA";
   return (PESOS_POS[pos]&&PESOS_POS[pos][k])||1;
 }
-const PRESION_RADIO = 26;   // F1: radio del marcador de cada tercio (antes 22 para todos)
+/* (PRESION_RADIO vive en el bloque AFINADO RÁPIDO de arriba) */
 
 /* ---------- Estado del partido ---------- */
 let PS = null;
@@ -1285,7 +1300,7 @@ function receptoresPase(filtrado){
   const cands=[];
   /* R2: solo receptores a distancia de pase real (380 en el mundo 1050×680); si no hay nadie, la lista queda vacía */
   PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return; const p=posDe(e);
-    const d=Math.hypot(p.x-cp.x, p.y-cp.y); if(d>380) return; cands.push({i,e,x:p.x,y:p.y,d}); });
+    const d=Math.hypot(p.x-cp.x, p.y-cp.y); if(d>PASE_RADIO) return; cands.push({i,e,x:p.x,y:p.y,d}); });
   cands.sort((a,b)=> b.x-a.x);
   const paseEf = filtrado ? (effStat("pase")*0.8 + effStat("caracter")*0.3) : effStat("pase")*pesoCtrl("pase");
   return cands.slice(0,3).map(c=>{
@@ -1326,7 +1341,7 @@ function renderPaseMenu(filtrado, obligatorio, libre){
     grid.appendChild(back);
   }
 }
-const VEL_PELOTA=0.12;   // px por ms (~2 px/frame @60fps); V3·5 puede afinar por distancia
+/* (VEL_PELOTA vive en el bloque AFINADO RÁPIDO de arriba) */
 function resolvePase(r){
   if(PS.state!=="menu") return;
   PS.state="resolving";
@@ -1360,7 +1375,7 @@ function escenaPase(r, win){
       corte={x:sx+(dx-sx)*t, y:sy+(dy-sy)*t, rx:rp.x, ry:rp.y};
     }});
   const hayCorte = dmin<40 && corte;
-  const viaje=(x0,y0,x1,y1)=>{ const dur=clamp(Math.hypot(x1-x0,y1-y0)/VEL_PELOTA, 120, 2400);   // R2: el pase largo vuela, no pasea 6s
+  const viaje=(x0,y0,x1,y1)=>{ const dur=clamp(Math.hypot(x1-x0,y1-y0)/VEL_PELOTA, 120, PASE_TOPE_VIAJE);   // R2: el pase largo vuela, no pasea 6s
     return {tipo:"pase", dur, t:0, tick:(t)=>{ const k=t/dur; PS.ball.x=x0+(x1-x0)*k; PS.ball.y=y0+(y1-y0)*k; camSeguir(PS.ball.x); }}; };
   const seq=[];
   if(hayCorte){
@@ -1592,11 +1607,7 @@ function apuntarPase(wx, wy){
 }
 /* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
    y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
-/* ====== V3·5 — constantes de ritmo (tabla del diseño; lo lento son los CUERPOS, lo rápido la PELOTA) ====== */
-const VEL_PORTADOR_MIO  = 0.62;   // conducir es decidir, no picar (V4: reescalado al mundo doble)
-const VEL_PERSECUCION   = 0.70;   // perseguís más rápido que el portador rival -> con buen ángulo lo alcanzás
-const VEL_RIVAL_CON_PELOTA = 0.34;
-const VEL_POSICIONALES  = 0.55;   // V4.1: escenografía que respira (mundo 680 de alto: si no, quedan clavados)
+/* ====== V3·5 — ritmo: lo lento son los CUERPOS, lo rápido la PELOTA (constantes en AFINADO RÁPIDO) ====== */
 function moverPosicional(e, obj){
   const targetX = clamp((e.ancla+(PS.empuje||0)) + (PS.ball.x - WORLD_W/2)*e.elast, 30, GOAL_X-16);
   const targetY = clamp(PS.ball.y, e.banda[0], e.banda[1]) + Math.sin(PS._t*0.03 + (e.idle||0))*1.0;
@@ -1825,7 +1836,7 @@ function update(){
     PS.ball.y += (cr.y - PS.ball.y)*0.4;
     PS.myKeeper.y = clamp(PS.myKeeper.y + clamp(PS.ball.y-PS.myKeeper.y, -1.2,1.2), MIDY-52, MIDY+52);
     PS.keeper.y = clamp(PS.keeper.y + clamp(MIDY-PS.keeper.y, -0.6,0.6), MIDY-52, MIDY+52);
-    if(PS.encCooldown===0 && Math.hypot(p.x-cr.x, p.y-cr.y) < 24){ startEncounter("dfs", cr); return; }
+    if(PS.encCooldown===0 && Math.hypot(p.x-cr.x, p.y-cr.y) < RADIO_ENCUENTRO_DEF){ startEncounter("dfs", cr); return; }
     if(cr.x < MY_AREA_X){ rivalShot(); return; }
   }
   // cámara sigue el centro de gravedad (jugador+pelota)
@@ -1867,6 +1878,17 @@ function draw(){
   const cp=(PS.posesion==="mia" && PS.equipo)?ctrlPos():PS.player;
   drawMarker(c, cp.x-cam, cp.y-oy);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
   c.setTransform(1,0,0,1,0,0);     // V4: fuera del mundo, coordenadas de canvas normales
+  /* V4.2: NOMBRE sobre el controlado — que nunca haya duda de a quién dirigís (forma+texto) */
+  if(PS.equipo && PS.state==="run" && !PS.escena){
+    const nx=(cp.x-cam)*ZOOM_ACCION, ny=(cp.y-oy)*ZOOM_ACCION;
+    if(nx>-40 && nx<CW+40){
+      const nom=String(nombreDe(ctrlEnt())).toUpperCase().slice(0,8);
+      c.font="7px 'Press Start 2P', monospace"; c.textAlign="center"; c.textBaseline="alphabetic";
+      c.lineWidth=3; c.strokeStyle="#0a1f13"; c.strokeText(nom, nx, ny-52);
+      c.fillStyle="#ffffff"; c.fillText(nom, nx, ny-52);
+      c.textAlign="left";
+    }
+  }
   dibujarCine(c);                  // V4.1: el CUADRO DE ANIMACIÓN pisa la vista cuando hay acción grande
 }
 /* ====== V4.1 — CUADRO DE ANIMACIÓN: la acción en grande (el "dibujito" de la serie) ======
@@ -1967,7 +1989,7 @@ function buildCommands(type){
     cmds.push({k:"tiro", cn:"TIRO", ico:"🎯", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"});
     /* V4 doc §8: umbral de RENDIDO — con el tanque casi vacío solo podés pasar y correr */
     const gCtrl = (PS.controlIdx||0)===0 ? PS.guts : ctrlEnt().guts;
-    if(gCtrl < 25){
+    if(gCtrl < GUTS_RENDIDO){
       for(const c of cmds){ if(c.k!=="paseMenu" && !c.locked){ c.locked=true; c.lockTxt="SIN NAFTA"; } }
     }
     return cmds;
@@ -2154,7 +2176,11 @@ function halftime(){
   PS.minuto=45; renderClock();
   PS.guts = clamp(PS.guts + GUTS_ENTRETIEMPO, 0, 100); setGuts();
   PS.rivalGuts = clamp(PS.rivalGuts + 13, 0, 100);   // V4·E3: la CPU recupera ~1/8, como vos
-  if(PS.equipo) PS.equipo.forEach(e=>{ if(e.guts!=null) e.guts=clamp(e.guts+GUTS_ENTRETIEMPO,0,100); }); // el descanso es para todo el equipo
+  if(PS.equipo) PS.equipo.forEach(e=>{
+    if(e.guts==null) return;
+    if(e.pos==="ARQ" && PS.gRv===0) return;   // V4 doc §6: el arquero SOLO recupera si le convirtieron (la tensión del asedio se arrastra)
+    e.guts=clamp(e.guts+GUTS_ENTRETIEMPO,0,100);
+  });
   setTag("ht");
   $("combat-txt").innerHTML = `Final del primer tiempo: <b>${PS.gMe}-${PS.gRv}</b>. Naranjas, charla del técnico y recuperás <b>Guts</b>.`;
   const grid=$("cmd-grid"); grid.innerHTML="";
@@ -2441,7 +2467,7 @@ function accionPatear(){
   if(PS && PS.state==="run" && PS.posesion==="rival" && !PS.escena){ marcarCon(idxMasCercanoALaPelota(), true); return; }
   if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
   const g=PS.rival.f, p=ctrlPos(), dist=GOAL_X-p.x;
-  if(dist<=170){                                   // en zona de remate: abre el menú de arquero (con especiales)
+  if(dist<=DIST_MENU_ARQUERO){                     // en zona de remate: abre el menú de arquero (con especiales)
     PS.keeper.faced=true; startEncounter("gk", PS.keeper); return;
   }
   clearDirs();                                     // de lejos: tiro directo etiquetado "DESDE LEJOS"
