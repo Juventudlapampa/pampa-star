@@ -138,9 +138,20 @@
   .guts-bar{width:52px;height:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.18);border-radius:2px;overflow:hidden;}
   .guts-fill{height:100%;width:100%;background:linear-gradient(90deg,#7ee08a,#3fbf63);transition:width .25s, background .25s;}
   /* minimapa/radar (V4.1): plano de la cancha completa con PROPORCIONES reales (105×68), FORMA antes que color */
-  .minimap{display:block;width:58%;margin:0 auto;height:auto;image-rendering:pixelated;background:#0d2a18;border:2px solid rgba(246,239,220,.18);border-radius:8px;touch-action:manipulation;}
+  .mmwrap{position:relative;width:58%;margin:0 auto;}
+  .minimap{display:block;width:100%;height:auto;image-rendering:pixelated;background:#0d2a18;border:2px solid rgba(246,239,220,.18);border-radius:8px;touch-action:manipulation;}
+  .mm-zoom{position:absolute;right:-50px;bottom:0;width:44px;height:44px;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.35);border-radius:9px;font-size:1.1rem;color:var(--crema);cursor:pointer;}
+  .mm-zoom:active{background:rgba(246,193,29,.7);}
   .mm-tip{display:none;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--sol-2);background:rgba(0,0,0,.75);border:1px solid var(--sol);border-radius:6px;padding:.25rem .5rem;text-align:center;}
   .mm-tip.show{display:block;}
+  /* V4.2-C: radar ampliado a pantalla (modo apuntado) */
+  .radar-big{display:none;position:fixed;inset:0;z-index:40;background:rgba(4,12,7,.94);flex-direction:column;align-items:center;justify-content:center;gap:.6rem;padding:.8rem;}
+  .radar-big.show{display:flex;}
+  .radar-big canvas{width:min(94vw, 118vh);height:auto;image-rendering:pixelated;background:#0d2a18;border:3px solid rgba(246,239,220,.3);border-radius:10px;touch-action:manipulation;}
+  .rb-head{display:flex;align-items:center;gap:.8rem;}
+  .rb-tit{font-family:'Press Start 2P',monospace;font-size:.62rem;color:var(--sol-2);}
+  .rb-close{min-height:44px;padding:.4rem .8rem;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.35);border-radius:9px;color:var(--crema);font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer;}
+  .rb-sub{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--crema);opacity:.85;text-align:center;}
 
   /* campo apaisado arriba + controles abajo, todo en pantalla vertical */
   .field{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
@@ -367,8 +378,18 @@
       <div class="guts"><span class="lab" id="guts-lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
     </div>
 
-    <canvas id="minimap" class="minimap" width="210" height="136"></canvas>
+    <div class="mmwrap">
+      <canvas id="minimap" class="minimap" width="210" height="136"></canvas>
+      <button class="mm-zoom" id="mm-zoom" aria-label="Ampliar radar para apuntar">🔍</button>
+    </div>
     <div class="mm-tip" id="mm-tip"></div>
+
+    <!-- V4.2-C: RADAR AMPLIADO (doc §1.2/§4) — modo apuntado a pantalla, todo pausado -->
+    <div class="radar-big" id="radar-big">
+      <div class="rb-head"><span class="rb-tit" id="rb-tit">🎯 APUNTÁ EN EL RADAR</span><button class="rb-close" id="rb-close">✕ CERRAR</button></div>
+      <canvas id="radar-big-cv" width="210" height="136"></canvas>
+      <div class="rb-sub" id="rb-sub">Tocá un compañero (pase) o un espacio libre (pase al espacio)</div>
+    </div>
 
     <div class="field" id="field">
       <div class="stage" id="stage">
@@ -1536,18 +1557,26 @@ function drawMinimap(){
   const bx=mX(PS.ball.x), by=mY(PS.ball.y);                              // pelota ◎
   c.fillStyle="#ffffff"; c.beginPath(); c.arc(bx,by,1.3,0,Math.PI*2); c.fill();
   c.strokeStyle="#ffffff"; c.beginPath(); c.arc(bx,by,3.2,0,Math.PI*2); c.stroke();
+  /* V4.2-C: si el radar ampliado está abierto, espejar el mismo dibujo (pixelado ×grande) */
+  const rb=$("radar-big");
+  if(rb && rb.classList.contains("show")){
+    const bc=$("radar-big-cv").getContext("2d");
+    bc.imageSmoothingEnabled=false; bc.drawImage(cv,0,0);
+  }
 }
 /* tooltip 2s al tocar un punto propio: NOMBRE · POS · vínculo */
 let mmTipTO=0;
-$("minimap").addEventListener("pointerdown", e=>{
+/* V4.2-C: el tap del radar es UNO solo (chico o ampliado): en ataque propone el pase
+   (a un compañero o AL ESPACIO); en defensa cambia el marcador; si no, tooltip. */
+function radarTap(cv, e){
   if(!PS || !PS.equipo) return;
-  const cv=$("minimap"), r=cv.getBoundingClientRect();
+  const enAim = PS.state==="aim";
+  const r=cv.getBoundingClientRect();
   const px_=(e.clientX-r.left)/r.width*cv.width, py_=(e.clientY-r.top)/r.height*cv.height;
   const mX=x=> x/WORLD_W*cv.width, mY=y=> 4+(y-TOP)/(BOT-TOP)*(cv.height-8);
-  /* V4·E2 — APUNTADO TOCANDO LA CANCHA: en ataque, tocar el radar propone el pase
-     hacia ese punto (el compañero más cercano al toque). Congela y pedís confirmación. */
-  if(PS.posesion==="mia" && PS.state==="run" && !PS.escena){
+  if(PS.posesion==="mia" && (PS.state==="run"||enAim) && !PS.escena){
     const wx=px_/cv.width*WORLD_W, wy=TOP+(py_-4)/(cv.height-8)*(BOT-TOP);
+    if(enAim) cerrarRadarBig(false);
     apuntarPase(wx, wy);
     return;
   }
@@ -1556,14 +1585,38 @@ $("minimap").addEventListener("pointerdown", e=>{
   equipoPuntos().forEach((p,i)=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<hit){ md=d; mejor=p; mIdx=i; } });
   if(!mejor) return;
   const eq=mejor.e;
-  // V3·3: en defensa, tocar un propio en el minimapa te pasa el control a ese jugador
-  if(PS.posesion==="rival" && PS.state==="run" && eq.pos!=="ARQ"){ marcarCon(mIdx, true); return; }
+  // V3·3: en defensa, tocar un propio te pasa el control a ese jugador
+  if(PS.posesion==="rival" && (PS.state==="run"||enAim) && eq.pos!=="ARQ"){
+    if(enAim){ cerrarRadarBig(false); PS.state="run"; }
+    marcarCon(mIdx, true); return;
+  }
+  if(enAim) return;   // en el ampliado no hay tooltip
   const t=$("mm-tip");
   t.textContent = eq.ref==="yo" ? `${career.name} (VOS) · ATA` :
     `${eq.nombre} · ${eq.pos} · vínculo ${eq.vinculo!=null?eq.vinculo:"—"}`;
   t.classList.add("show");
   clearTimeout(mmTipTO); mmTipTO=setTimeout(()=>t.classList.remove("show"), 2000);
-});
+}
+$("minimap").addEventListener("pointerdown", e=> radarTap($("minimap"), e));
+$("radar-big-cv").addEventListener("pointerdown", e=> radarTap($("radar-big-cv"), e));
+/* abrir/cerrar el modo apuntado (doc §4: "el radar se agranda a pantalla, todo pausado") */
+function abrirRadarBig(){
+  if(!PS || !PS.equipo || PS.escena || PS.state!=="run") return;
+  clearDirs();
+  PS.state="aim";
+  $("rb-tit").textContent = PS.posesion==="mia" ? "🎯 APUNTÁ EL PASE" : "🛡 ELEGÍ A QUIÉN MARCAR";
+  $("rb-sub").textContent = PS.posesion==="mia"
+    ? "Tocá un compañero (pase) o un espacio libre (pase al espacio) · ✕ para seguir"
+    : "Tocá un jugador tuyo para pasarle el control · ✕ para seguir";
+  $("radar-big").classList.add("show");
+  SFX("menu");
+}
+function cerrarRadarBig(reanudar){
+  $("radar-big").classList.remove("show");
+  if(PS && PS.state==="aim" && reanudar!==false){ PS.state="run"; setHint(); }
+}
+$("mm-zoom").addEventListener("click", abrirRadarBig);
+$("rb-close").addEventListener("click", ()=>cerrarRadarBig(true));
 /* V4·E2: pase apuntado — elegís el DESTINO en el radar, el juego te ofrece el receptor
    más cercano a ese punto con su % real, y confirmás o cancelás (encuentro voluntario). */
 function apuntarPase(wx, wy){
@@ -1574,7 +1627,12 @@ function apuntarPase(wx, wy){
     const p=posDe(e), d=Math.hypot(p.x-wx, p.y-wy);
     if(d<bd){ bd=d; best={e, idx:i, x:p.x, y:p.y}; }
   });
-  if(!best || bd>240){ banner("NADIE CERCA DE AHÍ"); return; }
+  if(!best){ banner("NADIE CERCA DE AHÍ"); return; }
+  /* V4.2-C (doc §4): tocar un punto LIBRE = pase al espacio — el más cercano sale a buscarla */
+  if(bd>240){
+    if(bd>430){ banner("MUY LEJOS DE TODOS"); return; }
+    return apuntarEspacio(wx, wy, best);
+  }
   const cp=ctrlPos(), dx=best.x-cp.x;
   const dir= dx>20?"▲ adelante" : dx<-20?"▼ atrás" : "◀▶ lateral";
   const espacio = dx>200;
@@ -1604,6 +1662,70 @@ function apuntarPase(wx, wy){
   no.addEventListener("click", ()=>{ SFX("menu"); hideCombat(); PS.encounter=null; PS.state="run"; setHint(); }, {once:true});
   grid.appendChild(no);
   SFX("menu");
+}
+/* V4.2-C — PASE AL ESPACIO (doc §4): la tirás a un punto libre y el compañero más cercano
+   PICA a buscarla; carrera resuelta por su velocidad vs el rival más cercano al punto. */
+function apuntarEspacio(wx, wy, best){
+  wx=clamp(wx, 40, GOAL_X-12); wy=clamp(wy, TOP+6, BOT-6);
+  const cp=ctrlPos();
+  const dR=Math.hypot(best.x-wx, best.y-wy);
+  let dRiv=1e9; rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return; dRiv=Math.min(dRiv, Math.hypot(rp.x-wx, rp.y-wy)); });
+  let pct = 62 + (statDe(best.e,"velocidad")-50)*0.6 + clamp((dRiv-dR)*0.12, -18, 18)
+              + (effStat("pase")*pesoCtrl("pase")-50)*0.3;
+  const dd=Math.hypot(wx-cp.x, wy-cp.y);
+  if(dd>200) pct -= (dd-200)*0.05;
+  pct=clamp(Math.round(pct), 15, 92);
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"aim", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  $("combat-txt").innerHTML=`💨 PASE AL ESPACIO: <b>${esc(nombreDe(best.e))}</b> (${best.e.pos}) sale a buscarla${dRiv<dR?" — <i>el rival está más cerca</i>":""}`;
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  const ok=document.createElement("button");
+  const cls=pct>=66?"hi":pct>=40?"mid":"lo";
+  ok.className="cmd";
+  ok.innerHTML=`<span class="ico">💨</span><div class="cn">LARGARLA AHÍ</div><div class="ch ${cls}">${pct}%</div>`;
+  ok.addEventListener("click", ()=>resolveEspacio({best, wx, wy, pct}), {once:true});
+  grid.appendChild(ok);
+  const no=document.createElement("button");
+  no.className="cmd";
+  no.innerHTML=`<span class="ico">✖</span><div class="cn">SEGUIR</div><div class="ch mid">cancelar</div>`;
+  no.addEventListener("click", ()=>{ SFX("menu"); hideCombat(); PS.encounter=null; PS.state="run"; setHint(); }, {once:true});
+  grid.appendChild(no);
+  SFX("menu");
+}
+function resolveEspacio(o){
+  if(PS.state!=="menu") return;
+  PS.state="resolving";
+  SFX("menu"); SFX("kick");
+  ctrlGastarGuts(3); rivalGasta(2);
+  $("cmd-grid").innerHTML="";
+  $("combat-txt").innerHTML=`La largás al espacio para <b>${esc(nombreDe(o.best.e))}</b>… 💨`;
+  const win = Math.random()*100 < o.pct;
+  if(win){ PS.pasesSeguidos=(PS.pasesSeguidos||0)+1; PS._jugadaArmada=(PS.pasesSeguidos===3); if(PS._jugadaArmada){ PS.bonusJugada=true; PS.empuje=40; } }
+  else { PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; }
+  const cp=ctrlPos(), sx=cp.x, sy=cp.y;
+  const eEnt=o.best.e, p0=posDe(eEnt), ex0=p0.x, ey0=p0.y;
+  const dur=clamp(Math.hypot(o.wx-sx, o.wy-sy)/VEL_PELOTA, 200, PASE_TOPE_VIAJE);
+  encolarEscena({tipo:"cinePase", dur:340, t:0,
+    inicio:()=>{ PS.cine={tipo:"patada", t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
+    fin:()=>{ PS.cine=null; }});
+  encolarEscena({tipo:"paseEspacio", dur, t:0,
+    tick:(t)=>{ const k=t/dur;
+      PS.ball.x=sx+(o.wx-sx)*k; PS.ball.y=sy+(o.wy-sy)*k;
+      const obj=posDe(eEnt);   // el receptor PICA hacia el punto (la carrera se VE)
+      obj.x=ex0+(o.wx-ex0)*Math.min(1,k*1.05); obj.y=ey0+(o.wy-ey0)*Math.min(1,k*1.05);
+      camSeguir(PS.ball.x); }});
+  encolarEscena({tipo:"hitstop", dur:250, t:0,
+    inicio:()=>{ PS.ball.x=o.wx; PS.ball.y=o.wy; SFX("sting"); },
+    fin:()=>{
+      if(win){ paseCompletado({idx:o.best.idx, e:o.best.e}); }
+      else {
+        SFX("lose"); banner("¡LLEGÓ PRIMERO EL RIVAL!");
+        hideCombat(); PS.controlIdx=0;
+        if(checkTime()) return;
+        rivalCounter(o.wx, o.wy); PS.state="run";
+      }
+    }});
 }
 /* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
    y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
@@ -2570,6 +2692,9 @@ function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.quer
     if(enPartido() && (e.key===" "||e.code==="Space")){ accionPatear(); e.preventDefault(); return; }   // patear (no roba Espacio en botones)
     if(enPartido() && e.key.toLowerCase()==="e"){ accionEspecial(); e.preventDefault(); return; }        // tiro especial
     if(enPartido() && e.key.toLowerCase()==="p"){ accionPase(); e.preventDefault(); return; }            // V4.1: pase voluntario
+    if(enPartido() && e.key.toLowerCase()==="r"){                                                        // V4.2: radar ampliado (abrir/cerrar)
+      if(PS && PS.state==="aim") cerrarRadarBig(true); else abrirRadarBig();
+      e.preventDefault(); return; }
     const k=keyDir(e); if(k && enPartido()){ setDir(k,true); e.preventDefault(); }
   });
   addEventListener("keyup",  e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,false); e.preventDefault(); } });
