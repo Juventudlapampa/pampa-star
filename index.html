@@ -1226,7 +1226,7 @@ function newState(club, rival){
     state:"run", running:true, raf:0,
     posesion:"mia",
     player:{x:300,y:MIDY,anim:0,face:1},
-    ball:{x:308,y:MIDY},
+    ball:{x:308,y:MIDY}, ballAlt:0,    // V4.2-D: altura de la pelota (vuela por ARRIBA en centros/pelotazos)
     carrier:{x:0,y:0,active:false},          // atacante rival cuando defendés
     myKeeper:{x:16,y:MIDY},
     keeper:{x:GOAL_X-14,y:MIDY,faced:false}, // arquero rival
@@ -1352,6 +1352,24 @@ function renderPaseMenu(filtrado, obligatorio, libre){
     b.addEventListener("click", ()=>resolvePase(r), {once:true});
     grid.appendChild(b);
   });
+  /* V4.2-D: CENTRO desde la banda (campo rival, pegado a la raya): pelotazo AL ÁREA por arriba */
+  const cpC=ctrlPos();
+  if(!filtrado && cpC.x>WORLD_W/2 && Math.abs(cpC.y-MIDY)>190){
+    const obj=mejorAtacanteArea();
+    if(obj){
+      const tx=clamp(GOAL_X-95+rnd(-25,25), AREA_X-30, GOAL_X-30), ty=clamp(MIDY+rnd(-45,45), TOP+20, BOT-20);
+      let pctC = 55 + (effStat("pase")*pesoCtrl("pase")-50)*0.4 + (statDe(obj.e,"aereo")-50)*0.25;
+      pctC=clamp(Math.round(pctC),25,90);
+      const b=document.createElement("button");
+      const cls=pctC>=66?"hi":pctC>=40?"mid":"lo";
+      b.className="cmd";
+      b.innerHTML=`<span class="ico">🆙</span><div class="cn">CENTRO AL ÁREA</div>
+        <div class="ch ${cls}">${pctC}%</div><div class="csub">por arriba · busca a ${esc(nombreDe(obj.e))}</div>`;
+      b.addEventListener("click", ()=>resolvePase({idx:obj.idx, e:obj.e, x:tx, y:ty, dir:"al área", espacio:false,
+        pct:pctC, vinc:paseParVinculo(ctrlEnt(),obj.e), dupla:false, aereo:true}), {once:true});
+      grid.appendChild(b);
+    }
+  }
   if(!obligatorio){   // en el saque lateral el pase es obligatorio: sin VOLVER (no hay defensor al que enfrentar)
     const back=document.createElement("button");
     back.className="cmd wide"; back.innerHTML=`<div class="cn">◀ VOLVER</div>`;
@@ -1388,6 +1406,9 @@ function resolvePase(r){
    hit-stop de 250ms ("¿llega?") antes del desenlace; el texto va DESPUÉS. */
 function escenaPase(r, win){
   const cp=ctrlPos(), sx=cp.x, sy=cp.y, dx=r.x, dy=r.y;
+  /* V4.2-D (doc §4): el pase LARGO (o el centro) va POR ARRIBA — nadie lo corta a media
+     altura, pero al caer se disputa en un DUELO AÉREO si hay rival cerca */
+  if(r.aereo || Math.hypot(dx-sx,dy-sy)>AEREO_UMBRAL) return escenaPaseAereo(r, win, sx, sy);
   let dmin=1e9, corte=null;
   rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return;
     const d=distSeg(sx,sy,dx,dy,rp.x,rp.y);
@@ -1409,6 +1430,93 @@ function escenaPase(r, win){
   }
   seq[seq.length-1].fin = ()=> win ? paseCompletado(r) : paseInterceptado(r, corte||{x:(sx+dx)/2,y:(sy+dy)/2});
   seq.forEach(encolarEscena);
+}
+/* ====== V4.2-D — PELOTA AÉREA (doc §4) ====== */
+function escenaPaseAereo(r, win, sx, sy){
+  const dx=r.x, dy=r.y;
+  const dur=clamp(Math.hypot(dx-sx,dy-sy)/(VEL_PELOTA*1.15), 300, PASE_TOPE_VIAJE);
+  encolarEscena({tipo:"paseAereo", dur, t:0,
+    tick:(t)=>{ const k=t/dur;
+      PS.ball.x=sx+(dx-sx)*k; PS.ball.y=sy+(dy-sy)*k;
+      PS.ballAlt=Math.sin(Math.PI*k)*30;                       // el globo del envío
+      camSeguir(PS.ball.x); }});
+  encolarEscena({tipo:"hitstop", dur:280, t:0,
+    inicio:()=>{ PS.ball.x=dx; PS.ball.y=dy; PS.ballAlt=6; SFX("sting"); },
+    fin:()=>{ PS.ballAlt=0; aterrizajeAereo(r, win, dx, dy); }});
+}
+function aterrizajeAereo(r, win, dx, dy){
+  if(!win){                                                    // el envío salió pasado: dividida donde cayó
+    SFX("lose"); banner("EL ENVÍO SE FUE LARGO…");
+    PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
+    return pelotaDividida(clamp(dx+rnd(-20,20),40,GOAL_X-12), clamp(dy+rnd(-16,16),TOP+6,BOT-6));
+  }
+  let dRiv=1e9; rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return; dRiv=Math.min(dRiv, Math.hypot(rp.x-dx, rp.y-dy)); });
+  if(dRiv<46) return dueloAereo(r, dx, dy);                    // hay rival abajo de la pelota: se salta
+  finRecepcionAerea(r, dx, dy);                                // solo: la baja tranquilo
+}
+function dueloAereo(r, dx, dy){
+  const my = statDe(r.e,"aereo") + statDe(r.e,"fisico")*0.35 + paseParVinculo(ctrlEnt(), r.e)*0.10;
+  const def = rivalF()*1.05 + 8; rivalGasta(3);
+  const win2 = Math.random() < duelChance(my, def);
+  PS.state="resolving";
+  setTag("atk"); $("cmd-grid").innerHTML=""; $("combat").classList.add("show");
+  $("combat-txt").innerHTML=`🆙 ¡Duelo aéreo! <b>${esc(nombreDe(r.e))}</b> salta con el defensor…`;
+  PS.cine={tipo:"duelo", enc:"aereo", t:0, look:r.e.look};
+  setTimeout(()=>{
+    if(win2){ endLine(`¡La ganó por arriba <b>${esc(nombreDe(r.e))}</b>!`, true);
+      setTimeout(()=>{ if(checkTime()) return; finRecepcionAerea(r, dx, dy); }, 700); }
+    else { endLine("La ganó el defensor en el salto…", false);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; pelotaDividida(dx, dy); }, 700); }
+  }, 850);
+}
+function finRecepcionAerea(r, dx, dy){
+  if(dx > AREA_X-40) return menuAereo(r, dx, dy);              // cayó llegando al área: el MENÚ AÉREO
+  paseCompletado(r);                                           // recepción normal: control al receptor
+}
+/* el menú alterno del área (doc §4): Bajarla / Volea / Dejarla pasar */
+function menuAereo(r, dx, dy){
+  PS.controlIdx=r.idx; setGuts();
+  PS.state="menu"; PS.encounter={type:"aereo", ref:null};
+  clearDirs(); $("hint").style.display="none";
+  PS.cine={tipo:"duelo", enc:"aereo", t:0, look:r.e.look};
+  const g=rivalF();
+  const cmds=[
+    {k:"bajarla", cn:"BAJARLA", ico:"🦶", cost:4,
+     my:statDe(r.e,"gambeta")*0.5+statDe(r.e,"aereo")*0.55, def:g+4, on:"bajarla", sub:"control orientado · seguís vos"},
+    {k:"volea", cn:"VOLEA", ico:"💥", cost:12,
+     my:statDe(r.e,"tiro")*0.8+statDe(r.e,"aereo")*0.35, def:g+16, on:"volea",
+     _zona:{n:"volea", mod:0, fuera:0.08, gy:pick([-38,0,38])}, sub:"de primera · el arquero no la espera"},
+  ];
+  /* DEJARLA PASAR: la finta — solo si viene un compañero por detrás de la pelota */
+  let atras=null, mejorX=dx+14;
+  PS.equipo.forEach((e,i)=>{ if(i===r.idx || e.pos==="ARQ") return; const p=posDe(e);
+    if(p.x>mejorX && p.x<GOAL_X-14 && Math.abs(p.y-dy)<120){ mejorX=p.x; atras={e,i,x:p.x,y:p.y}; } });
+  if(atras) cmds.push({k:"dejarla", cn:"DEJARLA PASAR", ico:"👻", cost:2, on:"dejarla", atras,
+    pctFijo:clamp(Math.round(58 + statDe(r.e,"caracter")*0.35), 30, 90), my:0, def:0,
+    sub:`finta para ${esc(nombreDe(atras.e))} · arquero vendido`});
+  renderCombat(`☄️ La pelota BAJA en el área… la espera <b>${esc(nombreDe(r.e))}</b>`, cmds, "atk");
+}
+function resolveDejarla(cm){
+  const win = Math.random()*100 < cm.pctFijo;
+  advanceClock();
+  if(win){
+    PS.controlIdx=cm.atras.i; setGuts();
+    const cp=ctrlPos(); PS.ball.x=clamp(cp.x+6,16,GOAL_X-12); PS.ball.y=cp.y;
+    PS.bonusJugada=true; PS.keeper.faced=false; rivalGasta(5);    // el arquero quedó VENDIDO: +10% al próximo remate
+    endLine(`¡Genial! La dejó pasar y quedó para <b>${esc(nombreDe(cm.atras.e))}</b>. ¡El arquero vendido!`, true);
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.state="run"; setHint(); }, 950);
+  } else {
+    endLine("La finta no engañó a nadie: el arquero se quedó con la pelota…", false);
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; rivalCounter(GOAL_X-130, MIDY); PS.state="run"; }, 950);
+  }
+}
+/* el mejor atacante parado en el área (o cerca) para buscar un centro */
+function mejorAtacanteArea(){
+  const ci=PS.controlIdx||0;
+  let mejor=null, md=1e9;
+  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return; const p=posDe(e);
+    const d=Math.hypot(p.x-(GOAL_X-95), p.y-MIDY); if(d<md){ md=d; mejor={idx:i, e, x:p.x, y:p.y}; } });
+  return mejor;
 }
 function paseCompletado(r){
   if(PS.encounter && PS.encounter.ref) PS.encounter.ref.passed=true;   // tu marcador quedó atrás
@@ -1471,6 +1579,7 @@ function pelotaDividida(x,y){
   const miP = statDe(mio.e,"fisico") + statDe(mio.e,"velocidad") + rnd(0,25);
   const rvP = rivalF()*1.6 + rnd(0,25);
   PS.cine=null;   // R1: la disputa se VE en la cancha (el cuadro del duelo viejo no la tapa)
+  PS.ballAlt=0;
   PS.state="resolving"; setTag("def"); $("cmd-grid").innerHTML="";
   $("combat").classList.add("show");
   $("combat-txt").innerHTML=`⚔ Pelota dividida… ¡<b>${esc(nombreDe(mio.e))}</b> va al cruce!`;
@@ -1775,6 +1884,7 @@ function kickoff(quien){
   musicaDeJuego();
   PS.posesion = quien;
   PS.cine = null;    // V4.1: se apaga el cuadro de animación, vuelve la cancha
+  PS.ballAlt = 0;
   PS.encounter = null; PS.encCooldown = 40;
   PS.controlIdx = 0; PS.pasesSeguidos = 0; PS.empuje = 0; setGuts();   // volvés a jugar VOS
   if(quien==="mia"){
@@ -1810,6 +1920,7 @@ function rivalCounter(fromX, fromY){
   musicaDeJuego();
   PS.posesion="rival";
   PS.cine=null;      // V4.1: contragolpe = cancha, no cuadro
+  PS.ballAlt=0;
   PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
   PS.carrier={x:clamp(fromX, 260, GOAL_X-160), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
   PS._activos = PS.rivales ? rivalesMasCercanos(PS.carrier.x, PS.carrier.y, 1) : [];  // ese rival "es" el portador
@@ -1995,7 +2106,9 @@ function draw(){
   if(PS.escena && PS.escena.tipo==="tiro" && PS.escena.esp){
     for(let m=1;m<=4;m++) px(c, PS.ball.x-m*7-cam, PS.ball.y-oy-1, 5, 3, m<3?"#ff8c3a":"#f6c11d");
   }
-  drawBall(c, PS.ball.x-cam, PS.ball.y-oy);
+  /* V4.2-D: pelota aérea — sombra en el pasto y la pelota arriba (se LEE que va por el aire) */
+  if(PS.ballAlt>0.5){ c.fillStyle="rgba(0,0,0,.3)"; c.fillRect((PS.ball.x-cam-2)|0,(PS.ball.y-oy-1)|0,5,2); }
+  drawBall(c, PS.ball.x-cam, PS.ball.y-oy-(PS.ballAlt||0));
   drawKit(c, PS.player.x-cam, PS.player.y-oy, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
   const cp=(PS.posesion==="mia" && PS.equipo)?ctrlPos():PS.player;
   drawMarker(c, cp.x-cam, cp.y-oy);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
@@ -2049,6 +2162,10 @@ function dibujarCine(c){
       drawKitBig(c, 82, piso, S, 1, "encarar", ci.t, PS.club.c1, PS.club.c2, meLook);
       drawKitBig(c, 202, piso, S, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);
       drawBallBig(c, 106, piso-4, 2.4);
+    } else if(ci.enc==="aereo"){                             // V4.2-D: la pelota BAJA del cielo en el área
+      drawKitBig(c, 82, piso, S, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);   // saltando, brazos arriba
+      drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 90, 36 + Math.sin(ci.t*0.09)*3, 2.6);   // la pelota cayendo sobre él
     } else {                                                 // te sale al cruce un defensor
       drawKitBig(c, 82, piso, S, 1, "encarar", ci.t, PS.club.c1, PS.club.c2, meLook);
       drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
@@ -2203,9 +2320,10 @@ function chooseCommand(cm){
   }
   PS.state = "resolving";
   SFX("menu");
-  if(cm.on==="tiroGol"||cm.on==="tiroLejano") SFX("kick");
+  if(cm.on==="tiroGol"||cm.on==="tiroLejano"||cm.on==="volea") SFX("kick");
   ctrlGastarGuts(cm.cost);                                  // V2: el Guts es del jugador controlado
   if(cm.on==="pared2"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML=duelIntro("pared"); return setTimeout(()=>resolvePared(cm), 700); }
+  if(cm.on==="dejarla"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML="La deja pasar entre las piernas… 👻"; return setTimeout(()=>resolveDejarla(cm), 800); }   // V4.2-D
   if(PS.bonusJugada && ["gambeta","tiroGol","tiroLejano","gambetaGk"].includes(cm.on)){
     cm = Object.assign({}, cm, {my: cm.my+6});              // ¡jugada armada! +10% aprox
     PS.bonusJugada=false; PS.empuje=0;
@@ -2232,7 +2350,7 @@ function chooseCommand(cm){
   let win = Math.random() < duelChance(cm.my, cm.def);
   if(win && cm._zona && Math.random()<cm._zona.fuera){ win=false; PS._afuera=true; }   // V4 §4: la esquina también puede irse
   $("cmd-grid").innerHTML = "";
-  if(cm.on==="tiroGol"||cm.on==="gambetaGk"||cm.on==="tiroLejano") return escenaTiro(cm, win);   // V3·4: E4/E5
+  if(cm.on==="tiroGol"||cm.on==="gambetaGk"||cm.on==="tiroLejano"||cm.on==="volea") return escenaTiro(cm, win);   // V3·4: E4/E5 · V4.2: la volea también es escena
   $("combat-txt").innerHTML = duelIntro(cm.k);
   setTimeout(()=> applyOutcome(cm, win), 850);
 }
@@ -2291,6 +2409,7 @@ function duelIntro(k){
     bloquear:"Ponés el cuerpo… 🧱", marcar:"Aguantás firme, sin comerte el amague… 👁️",
     cierre:"¡Llega la cobertura barriendo! 🤜", despeje:"La revoleás lejos, sin vueltas… 🦶",
     atajar:"¡Vuelo al palo! 🧤", despejar:"¡Puños afuera! 👊", atajadaEsp:"✨ ¡Toda la fe en ese guante!",
+    bajarla:"La espera con el pecho… 🦶", volea:"¡Se tira de VOLEA! 💥",
   })[k] || "…";
 }
 
@@ -2353,6 +2472,21 @@ function applyOutcome(cm, win){
     endLine("El remate de lejos se va desviado. Saca el arquero…", false);
     advanceClock();
     setTimeout(()=>{ if(checkTime()) return; hideCombat(); rivalCounter(GOAL_X-140, MIDY); PS.state="run"; }, 1100);
+    return;
+  }
+  /* --- V4.2-D: BAJARLA (recepción aérea en el área) --- */
+  if(cm.on==="bajarla"){
+    advanceClock();
+    if(win){
+      const cp=ctrlPos(); cp.x=clamp(PS.ball.x-4, 16, GOAL_X-14); cp.y=clamp(PS.ball.y, TOP+6, BOT-6);
+      PS.keeper.faced=false;                      // dominada en el área: podés encarar el mano a mano
+      endLine("¡La bajó de pecho, quedó dominada en el área!", true);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.state="run"; setHint(); }, 900);
+    } else {
+      endLine("No la pudo domar: el control se le fue largo…", false);
+      const bx=PS.ball.x, by=PS.ball.y;
+      setTimeout(()=>{ if(checkTime()) return; perderPelota(bx, by); }, 900);
+    }
     return;
   }
   /* --- V2·D: DESPEJE del DEF (100% seguro, pelota dividida lejos, nunca gol en contra) --- */
