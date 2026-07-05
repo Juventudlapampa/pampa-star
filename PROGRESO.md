@@ -29,6 +29,15 @@ Feedback de Rodri: el modelo de control está equivocado de raíz — "estoy man
 - **E4 — Reloj del original completo:** corre en tiempo real al conducir + SALTA 0.6–1.4' por acción + **descuento oculto** por tiempo (45+'/90+' en el HUD): nadie sabe cuándo pita el árbitro.
 - **Deviaciones documentadas:** encuentro voluntario de menú completo (botón B del original) cubierto parcialmente por PATEAR + pase apuntado; balón aéreo (trap/through/despeje aéreo) y reposicionamiento en córners no entraron — candidatos v4.1 según playtest.
 
+### Ajustes al DISENO_PARTIDO_V4.md de Cowork (llegó después del build)
+El diseño coincidió en el grueso con lo construido (misma fuente: la investigación). Se aplicaron los 5 gaps baratos:
+1. **Arco en 6 ZONAS tocables** (§4): esquinas +gol pero pueden irse AFUERA (riesgo visible en el %), al medio seguro.
+2. **Botón CAMBIO en defensa** (§5): el botón de acción se convierte en CAMBIO (al más cercano); la BARRA también.
+3. **Reloj a 15s/min** (§6, default del doc) y **descuento 1–4'**.
+4. **Umbral de RENDIDO** (§8): con Guts <25 solo podés pasar y correr (SIN NAFTA).
+5. Desgaste ya cubierto (CPU con nafta, matriz, megatiros por condición).
+**Pendientes del doc para v4.1 (según playtest):** radar ampliado a pantalla para apuntar, pelota aérea (§4), córners con reposicionamiento, perfiles de IA por jugador, arquero que solo recupera si le convirtieron, gancho guionado del especial, alargue/penales (recién con eliminatorias del Mundial).
+
 ### 🎯 (histórico) rumbo v4 — diseño
 - **Investigación hecha** (`INVESTIGACION_MOTOR_TSUBASA.md`): el motor "Cinematic Soccer" de Tecmo al detalle — doble capa (vista de acción + radar CT2 en tiempo real), encuentros por contacto o voluntarios (B), menú contextual por rol con matriz corte>pase / quite>gambeta / bloqueo>tiro, GUTS con costos y recuperación de 1/8 al entretiempo, reloj regresivo por acción + tiempo real al correr, descuento impredecible, y las trampas a evitar (radar ciego de CT1, ciclado numérico de defensores, GUTS infinitos de la CPU).
 - **Filtro editorial** (`PAMPA_STAR_FILTRO_INFORME.md`): qué se toma/adapta/rechaza (casino y escándalos: NUNCA).

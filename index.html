@@ -441,7 +441,7 @@ const VELOCIDAD_RIVAL   = 0.48;   // velocidad del rival cuando ataca con la pel
    y las escenas lo congelan, como en el fierro). Dos tiempos de 45'.
    El original: 30' a ~10s reales por minuto. Rodri sugirió 45' cada 15s; arrancamos
    en 10 (≈7,5 min de juego corrido por tiempo) — es UNA constante, se afina acá. */
-const SEGUNDOS_POR_MINUTO = 10;
+const SEGUNDOS_POR_MINUTO = 15;   // V4 doc §6: default 15 (afinable)
 const MINUTOS_POR_ACCION = [0,0]; // (v3.1: las acciones ya no saltan el reloj; queda por compat)
 const GUTS_ENTRETIEMPO   = 20;    // Guts que recuperás en el entretiempo
 /* =========================================================================== */
@@ -1195,7 +1195,7 @@ function newState(club, rival){
     paredAutoUsada:false, vincParedes:0, golesAmigos:{},
     escena:null, colaEscenas:[], _t:0, _last:0,                   // V3·2 máquina de escenas
     rivalGuts:100,
-    desc1:rnd(0,2.5), desc2:rnd(0,3.5),   // V4·E4: descuento OCULTO de cada tiempo (finales de infarto)                                                // V4·E3: la CPU también se cansa (nada de Guts infinitos)
+    desc1:rnd(1,3), desc2:rnd(1,4),   // V4·E4: descuento OCULTO de cada tiempo (finales de infarto)                                                // V4·E3: la CPU también se cansa (nada de Guts infinitos)
   };
 }
 /* V4·E3: fuerza efectiva del rival — baja cuando su equipo se queda sin nafta */
@@ -1879,6 +1879,11 @@ function buildCommands(type){
     else cmds.push({k:"pared", cn:"PARED (1-2)", ico:"🔁", locked:true, lockTxt:"SIN COMPAÑERO"});
     if(rol==="DEF") cmds.push({k:"despeje", cn:"DESPEJE", ico:"🦶", cost:2, on:"despeje", pctFijo:100, my:0, def:0, sub:"seguro · pelota dividida lejos"});
     cmds.push({k:"tiro", cn:"TIRO", ico:"🎯", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"});
+    /* V4 doc §8: umbral de RENDIDO — con el tanque casi vacío solo podés pasar y correr */
+    const gCtrl = (PS.controlIdx||0)===0 ? PS.guts : ctrlEnt().guts;
+    if(gCtrl < 25){
+      for(const c of cmds){ if(c.k!=="paseMenu" && !c.locked){ c.locked=true; c.lockTxt="SIN NAFTA"; } }
+    }
     return cmds;
   }
   if(type==="gk"){
@@ -1940,6 +1945,28 @@ function hideCombat(){ $("combat").classList.remove("show"); }
 function chooseCommand(cm){
   if(PS.state!=="menu") return;
   if(cm.submenu){ SFX("menu"); renderPaseMenu(cm.submenu==="filtrado"); return; }   // V2: PASE abre receptores, sigue en menú
+  /* V4 doc §4 — TIRO CON ARCO EN 6 ZONAS TOCABLES: esquinas rinden más pero pueden
+     irse afuera; al medio es seguro pero atajable. Solo tiros normales (el especial va solo). */
+  if(cm.on==="tiroGol" && !cm.especial && !cm._zona){
+    SFX("menu");
+    const grid=$("cmd-grid"); grid.innerHTML="";
+    $("combat-txt").innerHTML="🎯 ¿A qué zona del arco? (esquinas: más gol, más riesgo de afuera)";
+    const ZONAS=[
+      {n:"↖ ESQUINA ALTA", mod:6, fuera:0.14},{n:"↑ ALTO CENTRO", mod:-2, fuera:0.03},{n:"↗ ESQUINA ALTA", mod:6, fuera:0.14},
+      {n:"↙ PALO BAJO",    mod:4, fuera:0.08},{n:"↓ AL MEDIO",    mod:-4, fuera:0.01},{n:"↘ PALO BAJO",   mod:4, fuera:0.08},
+    ];
+    grid.style.gridTemplateColumns="1fr 1fr 1fr";
+    ZONAS.forEach(z=>{
+      const b=document.createElement("button");
+      const pct=Math.round(duelChance(cm.my+z.mod, cm.def)*100*(1-z.fuera));
+      const cls=pct>=60?"hi":pct>=38?"mid":"lo";
+      b.className="cmd";
+      b.innerHTML=`<div class="cn" style="font-size:.5rem">${z.n}</div><div class="ch ${cls}">${pct}%</div>`;
+      b.addEventListener("click", ()=>{ grid.style.gridTemplateColumns=""; chooseCommand(Object.assign({},cm,{_zona:z, my:cm.my+z.mod})); }, {once:true});
+      grid.appendChild(b);
+    });
+    return;
+  }
   PS.state = "resolving";
   SFX("menu");
   if(cm.on==="tiroGol"||cm.on==="tiroLejano") SFX("kick");
@@ -1968,7 +1995,8 @@ function chooseCommand(cm){
     else if(cm.k!=="marcar"){ cm=Object.assign({},cm,{my:cm.my-4}); PS._intentTxt=" — iba a otra cosa"; }
     rivalGasta(4);
   }
-  const win = Math.random() < duelChance(cm.my, cm.def);
+  let win = Math.random() < duelChance(cm.my, cm.def);
+  if(win && cm._zona && Math.random()<cm._zona.fuera){ win=false; PS._afuera=true; }   // V4 §4: la esquina también puede irse
   $("cmd-grid").innerHTML = "";
   if(cm.on==="tiroGol"||cm.on==="gambetaGk"||cm.on==="tiroLejano") return escenaTiro(cm, win);   // V3·4: E4/E5
   $("combat-txt").innerHTML = duelIntro(cm.k);
@@ -1993,8 +2021,9 @@ function escenaTiro(cm, win){
   seq.forEach(encolarEscena);
 }
 function tiroAtajado(cm){
-  SFX("save"); flash("bad","¡LA SACÓ!");
-  banner(cm.especial ? "¡VOLÓ Y LA MANOTEÓ!" : "¡ATAJÓ EL ARQUERO!");
+  const afuera = PS._afuera; PS._afuera=false;
+  if(afuera){ SFX("lose"); flash("bad","¡AFUERA!"); banner("¡SE FUE POR CENTÍMETROS!"); }   // V4 §4: el riesgo de la esquina
+  else { SFX("save"); flash("bad","¡LA SACÓ!"); banner(cm.especial ? "¡VOLÓ Y LA MANOTEÓ!" : "¡ATAJÓ EL ARQUERO!"); }
   hideCombat(); advanceClock();
   if(checkTime()) return;
   rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run";
@@ -2307,6 +2336,8 @@ function setHint(){
 }
 /* ====== Integración 2: PATEAR y ESPECIAL desde el juego (botón o tecla) ====== */
 function accionPatear(){
+  /* V4 doc §5: defendiendo, el mismo botón es CAMBIO → te pasa al defensor más cercano a la pelota */
+  if(PS && PS.state==="run" && PS.posesion==="rival" && !PS.escena){ marcarCon(idxMasCercanoALaPelota(), true); return; }
   if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
   const g=PS.rival.f, p=ctrlPos(), dist=GOAL_X-p.x;
   if(dist<=170){                                   // en zona de remate: abre el menú de arquero (con especiales)
@@ -2332,8 +2363,10 @@ function refreshActionBtns(){
   const bp=$("btn-patear"), be=$("btn-especial");
   if(!bp || !PS) return;
   const puedo = PS.posesion==="mia";
-  bp.classList.toggle("off", !puedo);
-  $("patear-sub").textContent = puedo ? "o BARRA espaciadora" : "sin pelota";
+  bp.classList.remove("off");                      // V4: el botón SIEMPRE sirve — patear o cambiar de marcador
+  bp.querySelector(".abt").textContent = puedo ? "PATEAR" : "CAMBIO";
+  bp.querySelector(".abi").textContent = puedo ? "🎯" : "🔁";
+  $("patear-sub").textContent = puedo ? "o BARRA espaciadora" : "al más cercano · o BARRA";
   const e=TIROS_ESPECIALES[0];
   const yoCtrl = !PS.equipo || (PS.controlIdx||0)===0;
   let sub, off=true;
