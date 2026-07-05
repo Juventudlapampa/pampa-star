@@ -1942,6 +1942,10 @@ function dibujarCine(c){
     }
   } else if(ci.tipo==="festejo"){                            // ¡grito de gol!
     drawKitBig(c, CW/2, piso, S+0.5, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);   // R8: 4.5 entra entero, con saltito y todo
+  } else if(ci.tipo==="atajada"){                            // V4.2-B: ¡la sacó el arquero rival! (pelota en el guante)
+    const S2=S+0.5;
+    drawKitBig(c, CW/2+10, piso, S2, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);
+    drawBallBig(c, CW/2+10 - 7*S2 - 2, piso - 26*S2 + 6, 2.2);
   }
 }
 
@@ -2131,9 +2135,17 @@ function escenaTiro(cm, win){
       inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); PS.cine={tipo:"patada", esp:!!esp, t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
       fin:()=>{ PS.cine=null; }});
   const dist=Math.hypot((GOAL_X-8)-sx, gy-sy), dur=Math.max(220, dist/(esp?0.17:0.13));
+  /* V4.2-B: el arquero REACCIONA — vuela hacia la zona; si ataja LLEGA, si es gol queda a mitad
+     de camino, si va afuera la mira pasar */
+  const afueraTiro=PS._afuera, ky0=PS.keeper.y;
+  const kyFin = afueraTiro ? ky0
+              : win ? MIDY + (gy-MIDY)*0.45
+              : clamp(gy, MIDY-GOAL_MEDIO+6, MIDY+GOAL_MEDIO-6);
   seq.push({tipo:"tiro", esp, dur, t:0,
-    tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0); camSeguir(PS.ball.x); }});
-  seq.push({tipo:"hitstop", dur:400, t:0, inicio:()=>{ PS.ball.x=GOAL_X-8; PS.ball.y=gy; SFX("sting"); }});  // arquero en el aire: ¿gol o atajada?
+    tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0);
+      PS.keeper.y = ky0 + (kyFin-ky0)*Math.min(1, k*1.15);   // el vuelo del arquero
+      camSeguir(PS.ball.x); }});
+  seq.push({tipo:"hitstop", dur:400, t:0, inicio:()=>{ PS.ball.x=GOAL_X-8; PS.ball.y=gy; PS.keeper.y=kyFin; SFX("sting"); }});  // arquero en el aire: ¿gol o atajada?
   seq[seq.length-1].fin = ()=>{ if(win) goalSequence(cm.on==="gambetaGk", cm.on==="tiroLejano", esp); else tiroAtajado(cm); };
   seq.forEach(encolarEscena);
 }
@@ -2143,7 +2155,11 @@ function tiroAtajado(cm){
   else { SFX("save"); flash("bad","¡LA SACÓ!"); banner(cm.especial ? "¡VOLÓ Y LA MANOTEÓ!" : "¡ATAJÓ EL ARQUERO!"); }
   hideCombat(); advanceClock();
   if(checkTime()) return;
-  rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run";
+  if(afuera){ rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; return; }   // afuera → saca el rival
+  /* V4.2-B: el CUADRO de la atajada — el arquero rival en grande con la pelota, y recién ahí la contra */
+  encolarEscena({tipo:"cineAtajada", dur:750, t:0,
+    inicio:()=>{ PS.cine={tipo:"atajada", t:0}; },
+    fin:()=>{ PS.cine=null; rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; }});
 }
 function duelIntro(k){
   return ({
