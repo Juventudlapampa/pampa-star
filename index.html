@@ -1126,7 +1126,9 @@ const GOAL_X=WORLD_W-8;           // línea de gol rival (derecha)
 const AREA_X=GOAL_X-165;          // frente del área rival (16,5m)
 const MY_AREA_X=173;              // frente de TU área
 const ZOOM_ACCION=2.0;            // la vista de acción ve ~140×78 de mundo alrededor de la pelota
-const GOAL_MEDIO=55, CIRCULO=92;  // media boca del arco (7,3m) y radio del círculo central (9,15m)
+const GOAL_MEDIO=55, CIRCULO=92;  // OJO: arco agrandado ADREDE (11m vs 7,3m real) por legibilidad en celu y
+                                  // porque las ZONAS de tiro (gy ±44/±38), el afuera ±70 y el clamp de arqueros ±52
+                                  // están atados a este 55 — si lo bajás a escala real (37), reescalá TODA esa cadena.
 
 /* ---------- Arte: módulo PSART (pampa-star-sprites.js, ver ARTE.md) ---------- */
 PSART.config({CW,CH,TOP,BOT,WORLD_W,GOAL_X,AREA_X,MY_AREA_X,MIDY,
@@ -1281,7 +1283,9 @@ function posDe(e){ return e.ref==="yo" ? PS.player : (e.pos==="ARQ" ? PS.myKeepe
 function receptoresPase(filtrado){
   const ci=PS.controlIdx||0, cp=ctrlPos();
   const cands=[];
-  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return; const p=posDe(e); cands.push({i,e,x:p.x,y:p.y}); });
+  /* R2: solo receptores a distancia de pase real (380 en el mundo 1050×680); si no hay nadie, la lista queda vacía */
+  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return; const p=posDe(e);
+    const d=Math.hypot(p.x-cp.x, p.y-cp.y); if(d>380) return; cands.push({i,e,x:p.x,y:p.y,d}); });
   cands.sort((a,b)=> b.x-a.x);
   const paseEf = filtrado ? (effStat("pase")*0.8 + effStat("caracter")*0.3) : effStat("pase")*pesoCtrl("pase");
   return cands.slice(0,3).map(c=>{
@@ -1293,6 +1297,7 @@ function receptoresPase(filtrado){
     let pct = 68 + (paseEf-50)*0.5 + (statDe(c.e,"pase")-50)*0.2 + vinc*0.12 - (filtrado?0:12);
     if(dmin<55) pct -= (55-dmin)*0.4;
     if(espacio) pct -= 10;
+    if(c.d>200) pct -= (c.d-200)*0.05;                                 // R2: el pase largo cuesta
     if(c.e.pos==="VOL" && c.x>WORLD_W/3 && c.x<WORLD_W*2/3) pct += 8;   // juego por el medio
     return {idx:c.i, e:c.e, x:c.x, y:c.y, dir, espacio, pct:clamp(Math.round(pct),25,96), vinc, dupla:vinc>=60};
   });
@@ -1355,7 +1360,7 @@ function escenaPase(r, win){
       corte={x:sx+(dx-sx)*t, y:sy+(dy-sy)*t, rx:rp.x, ry:rp.y};
     }});
   const hayCorte = dmin<40 && corte;
-  const viaje=(x0,y0,x1,y1)=>{ const dur=Math.max(120, Math.hypot(x1-x0,y1-y0)/VEL_PELOTA);
+  const viaje=(x0,y0,x1,y1)=>{ const dur=clamp(Math.hypot(x1-x0,y1-y0)/VEL_PELOTA, 120, 2400);   // R2: el pase largo vuela, no pasea 6s
     return {tipo:"pase", dur, t:0, tick:(t)=>{ const k=t/dur; PS.ball.x=x0+(x1-x0)*k; PS.ball.y=y0+(y1-y0)*k; camSeguir(PS.ball.x); }}; };
   const seq=[];
   if(hayCorte){
@@ -1429,6 +1434,7 @@ function pelotaDividida(x,y){
   let dr=1e9; rivalPuntos().forEach((r,ri)=>{ if(ri===0) return; dr=Math.min(dr, Math.hypot(r.x-x,r.y-y)); });
   const miP = statDe(mio.e,"fisico") + statDe(mio.e,"velocidad") + rnd(0,25);
   const rvP = rivalF()*1.6 + rnd(0,25);
+  PS.cine=null;   // R1: la disputa se VE en la cancha (el cuadro del duelo viejo no la tapa)
   PS.state="resolving"; setTag("def"); $("cmd-grid").innerHTML="";
   $("combat").classList.add("show");
   $("combat-txt").innerHTML=`⚔ Pelota dividida… ¡<b>${esc(nombreDe(mio.e))}</b> va al cruce!`;
@@ -1451,7 +1457,7 @@ function perderPelota(x,y){
   if(r<0.45){ hideCombat(); PS.controlIdx=0; rivalCounter(x,y); PS.state="run"; return; }   // contra clásica
   if(r<0.80) return pelotaDividida(x,y);                                                     // disputa
   /* lateral: reanudás vos con un pase desde la banda (obligatorio, sin defensor: encounter limpio) */
-  PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=0; PS.encounter=null;
+  PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=0; PS.encounter=null; PS.cine=null;   // R1: en el lateral se ve la banda, no el duelo viejo
   PS.player.x=clamp(x,50,GOAL_X-50); PS.player.y=TOP+8;
   PS.ball.x=PS.player.x+7; PS.ball.y=PS.player.y;
   setGuts(); PS.state="menu"; setTag("atk");
@@ -1531,7 +1537,8 @@ $("minimap").addEventListener("pointerdown", e=>{
     return;
   }
   let mejor=null, mIdx=-1, md=99;
-  equipoPuntos().forEach((p,i)=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<10){ md=d; mejor=p; mIdx=i; } });
+  const hit = 22 * (cv.width / r.width);   // R12: ~44px de DEDO en pantalla, sin importar a qué tamaño se muestre el radar
+  equipoPuntos().forEach((p,i)=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<hit){ md=d; mejor=p; mIdx=i; } });
   if(!mejor) return;
   const eq=mejor.e;
   // V3·3: en defensa, tocar un propio en el minimapa te pasa el control a ese jugador
@@ -1561,6 +1568,8 @@ function apuntarPase(wx, wy){
   let pct = 68 + (effStat("pase")*pesoCtrl("pase")-50)*0.5 + (statDe(best.e,"pase")-50)*0.2 + vinc*0.12 - 8;
   if(dmin<60) pct -= (60-dmin)*0.4;
   if(espacio) pct -= 10;
+  const ddPase=Math.hypot(best.x-cp.x, best.y-cp.y);
+  if(ddPase>200) pct -= (ddPase-200)*0.05;   // R2: apuntado lejos también cuesta
   pct = clamp(Math.round(pct), 22, 96);
   const rObj = {idx:best.idx, e:best.e, x:best.x, y:best.y, dir, espacio, pct, vinc, dupla:vinc>=60};
   clearDirs();
@@ -1863,9 +1872,22 @@ function draw(){
 /* ====== V4.1 — CUADRO DE ANIMACIÓN: la acción en grande (el "dibujito" de la serie) ======
    Mientras hay un encuentro o un remate, el canvas muestra el cara a cara / la patada
    con sprites grandes; el radar sigue dando el panorama táctico. */
+/* etiqueta a prueba de daltonismo: flecha ▼ grande + "VOS" sobre TU sprite (FORMA + texto, nunca solo color) */
+function marcaVosCine(c, x, topY){
+  c.fillStyle="#0a1f13";
+  c.beginPath(); c.moveTo(x-9,topY); c.lineTo(x+9,topY); c.lineTo(x,topY+12); c.closePath(); c.fill();
+  c.fillStyle="#ffffff";
+  c.beginPath(); c.moveTo(x-6,topY+2); c.lineTo(x+6,topY+2); c.lineTo(x,topY+9); c.closePath(); c.fill();
+  c.font="7px 'Press Start 2P', monospace"; c.textAlign="center"; c.textBaseline="alphabetic";
+  c.lineWidth=3; c.strokeStyle="#0a1f13"; c.strokeText("VOS", x, topY-3);
+  c.fillStyle="#ffffff"; c.fillText("VOS", x, topY-3);
+  c.textAlign="left";
+}
 function dibujarCine(c){
   const ci=PS.cine; if(!ci) return;
-  ci.t=(ci.t||0)+1;
+  /* R10: t avanza por TIEMPO REAL (1 unidad ≈ 1 frame de 60Hz) — a 120Hz el cuadro dura lo mismo */
+  const now=perfNow();
+  ci.t=(ci.t||0) + Math.min(3,(now-(ci._last||now))/16.7); ci._last=now;
   const piso=CH-20;                                          // los pies apoyan sobre el piso del cuadro
   PSART.drawCineFondo(c, ci.t, ci.esp);
   const S=4;
@@ -1888,15 +1910,16 @@ function dibujarCine(c){
       drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
       drawBallBig(c, 106, piso-4, 2.4);
     }
+    marcaVosCine(c, 82, piso - 26*S - 16);                   // R11: tu lado SIEMPRE señalado con ▼ + VOS
   } else if(ci.tipo==="patada"){                             // el remate / el pase que sale
     drawKitBig(c, 96, piso, S+0.5, 1, "patear", ci.t, PS.club.c1, PS.club.c2, meLook);
     const bx=118+ci.t*7;
-    if(bx<CW+10){
+    if(bx<CW+50){                                            // R9: la estela sale deslizándose, no se esfuma
       if(ci.esp) for(let m=1;m<=4;m++) px(c, bx-m*9, piso-34-m, 7, 4, m<3?"#ff8c3a":"#f6c11d");
       drawBallBig(c, bx, piso-32, 2.6);
     }
   } else if(ci.tipo==="festejo"){                            // ¡grito de gol!
-    drawKitBig(c, CW/2, piso, S+1, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);
+    drawKitBig(c, CW/2, piso, S+0.5, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);   // R8: 4.5 entra entero, con saltito y todo
   }
 }
 
@@ -2079,10 +2102,12 @@ function escenaTiro(cm, win){
     seq.push({tipo:"cutin", dur:650, t:0, inicio:()=>{ SFX("especial"); mostrarCutin(esp); }});
     seq.push({tipo:"silencio", dur:400, t:0, inicio:()=>{ MUSICA(null); }});   // silencio dramático antes del disparo
   }
-  /* V4.1: primero el CUADRO de la patada (el dibujito), después la pelota viaja en la cancha */
-  seq.push({tipo:"cinePatada", dur:480, t:0,
-    inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); PS.cine={tipo:"patada", esp:!!esp, t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
-    fin:()=>{ PS.cine=null; }});
+  /* V4.1: primero el CUADRO de la patada (el dibujito), después la pelota viaja en la cancha.
+     R7: la GAMBETA al arquero no patea — conserva el cara a cara del duelo, sin SFX de remate */
+  if(cm.on!=="gambetaGk")
+    seq.push({tipo:"cinePatada", dur:480, t:0,
+      inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); PS.cine={tipo:"patada", esp:!!esp, t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
+      fin:()=>{ PS.cine=null; }});
   const dist=Math.hypot((GOAL_X-8)-sx, gy-sy), dur=Math.max(220, dist/(esp?0.17:0.13));
   seq.push({tipo:"tiro", esp, dur, t:0,
     tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0); camSeguir(PS.ball.x); }});
@@ -2124,6 +2149,7 @@ function checkTime(){
 }
 function halftime(){
   PS.state="halftime";
+  PS.cine=null;   // R1c: si el 45' interceptó un desenlace, que el entretiempo no herede el cuadro colgado
   SFX("whistle",2); MUSICA(null);
   PS.minuto=45; renderClock();
   PS.guts = clamp(PS.guts + GUTS_ENTRETIEMPO, 0, 100); setGuts();
@@ -2188,8 +2214,8 @@ function applyOutcome(cm, win){
           if(checkTime()) return;
           hideCombat();
           PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=0;
-          PS.player.x=130; PS.player.y=MIDY; PS.ball.x=137; PS.ball.y=MIDY;
-          spawnDefenders(130); PS.encCooldown=40; setGuts(); setHint();
+          PS.player.x=MY_AREA_X+20; PS.player.y=MIDY; PS.ball.x=PS.player.x+7; PS.ball.y=MIDY;   // R4: salís jugando apenas AFUERA de tu área (antes 130 quedaba adentro)
+          spawnDefenders(PS.player.x); PS.encCooldown=40; setGuts(); setHint();
           PS.state="run";
         }, 1200);
       }
@@ -2304,6 +2330,7 @@ function goalSequence(dribble, lejano, especial){
 /* ---------- Final del partido ---------- */
 function fullTime(){
   PS.state="end";
+  PS.cine=null;   // R1c: ídem entretiempo — el pitazo final limpia el cuadro
   SFX("whistle",3); MUSICA(null);
   PS.minuto=90; renderClock();
   const win = PS.gMe>PS.gRv, draw_ = PS.gMe===PS.gRv;

@@ -10,6 +10,19 @@ Feedback de Rodri con captura de CT2 al lado: faltaba el CUADRO DE ANIMACIÓN, l
 - **🎯 El tiro VIAJA a la zona elegida:** cada zona del arco tiene su `gy` (esquinas ±44, palos ±38); si sale AFUERA pasa de largo el palo (se VE el error). Verificado: esquina alta = pelota a MIDY−44 exacto.
 - **⚖ Velocidades reescaladas al mundo alto:** posicionales 0.55 (antes 0.15, quedaban clavados), marcadores persiguen a ±0.85 en Y, vuelta al ancla ±0.55.
 Verificado en preview: 11v11 arranca, cine pinta (77% panel + sprites), pase voluntario y VOLVER, tiro a zona exacta, gol+festejo, kickoff limpia, defensa con CAMBIO, remate rival con cuadro, layout mobile 375×812 sin desbordes.
+
+### Revisión adversarial del v4.1 ✅ (4 lentes · 14 hallazgos · 12 confirmados, todos arreglados y verificados)
+1. **[ALTA · daltonismo]** En el cuadro de duelo, VOS y el rival se distinguían SOLO por color de camiseta (con carrera nueva, sprites idénticos) → flecha ▼ grande + etiqueta "VOS" sobre tu sprite en TODOS los duelos (forma + texto, la regla de la casa).
+2. **[MEDIA]** PS.cine quedaba colgado tapando la cancha en el lateral, la pelota dividida y el entretiempo/final interceptados por checkTime → limpieza en pelotaDividida, rama lateral de perderPelota, halftime y fullTime.
+3. **[MEDIA]** El guard "SIN RECEPTORES CERCA" era inalcanzable (receptoresPase nunca filtraba por distancia) y un pase de media cancha mostraba el mismo % que uno corto y viajaba 6,3s sin input → filtro de radio 380, penalidad de % por distancia (>200: −0.05/px, también en el apuntado) y viaje topeado a 2,4s.
+4. **[MEDIA]** El tap del radar quedó en ~20px de blanco táctil (canvas más chico mostrado al 58%) justo siendo el ÚNICO camino para elegir marcador específico → umbral escalado a píxeles de pantalla (~44px de dedo siempre).
+5. **[BAJA]** GOAL_MEDIO=55 es un arco de 11m, no los 7,3 reales: decisión deliberada (legibilidad + zonas atadas al 55) → documentada en el comentario con la cadena completa a reescalar si algún día se baja.
+6. **[BAJA]** Tras la atajada propia salías jugando en x=130, DENTRO del área nueva (MY_AREA_X pasó de 118 a 173) → MY_AREA_X+20.
+7. **[BAJA]** GAMBETEAR al arquero mostraba el cuadro de PATADA con SFX de remate → la gambeta conserva el cara a cara, sin patada.
+8. **[BAJA]** El festejo a escala 5 se decapitaba 4px contra el techo del canvas en los frames del saltito → escala 4,5, entra entero.
+9. **[BAJA]** La estela de fuego del especial se esfumaba de golpe a 20px del borde → guard ampliado a CW+50, sale deslizándose.
+10. **[BAJA]** El cine animaba por FRAME dentro de escenas en MILISEGUNDOS (a 120Hz la patada quedaba desincronizada) → ci.t avanza por dt real (1 unidad ≈ 1 frame de 60Hz en cualquier pantalla).
+Falsos positivos descartados con verificación: el tiro DESDE LEJOS al medio (diseño explícito, la dificultad está en el duelo) y el rasante siempre al mismo palo (firma del especial, pre-existente).
 **Pendiente conocido:** radar ampliado a pantalla para apuntar fino, pelota aérea, córners, perfiles IA, alargue/penales (lista v4.1 del doc).
 
 ## ✅ Partido V3 — presentación y "la magia" (jul 2026, DISENO_PARTIDO_V3.md)
