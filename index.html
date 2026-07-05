@@ -1456,17 +1456,30 @@ function aterrizajeAereo(r, win, dx, dy){
 }
 function dueloAereo(r, dx, dy){
   const my = statDe(r.e,"aereo") + statDe(r.e,"fisico")*0.35 + paseParVinculo(ctrlEnt(), r.e)*0.10;
-  const def = rivalF()*1.05 + 8; rivalGasta(3);
+  let def = rivalF()*1.05 + 8; rivalGasta(3);
+  /* V4.2-E (doc §7): en el córner el arquero puede SALIR A CORTAR — más duro, pero si
+     igual la ganás, quedó en el aire (vendido) */
+  const salioArquero = r.corner && Math.random()<0.35;
+  if(salioArquero) def += 12;
   const win2 = Math.random() < duelChance(my, def);
   PS.state="resolving";
   setTag("atk"); $("cmd-grid").innerHTML=""; $("combat").classList.add("show");
-  $("combat-txt").innerHTML=`🆙 ¡Duelo aéreo! <b>${esc(nombreDe(r.e))}</b> salta con el defensor…`;
+  $("combat-txt").innerHTML = salioArquero
+    ? `🆙 ¡Centro al área y SALE EL ARQUERO! <b>${esc(nombreDe(r.e))}</b> va con todo…`
+    : `🆙 ¡Duelo aéreo! <b>${esc(nombreDe(r.e))}</b> salta con el defensor…`;
   PS.cine={tipo:"duelo", enc:"aereo", t:0, look:r.e.look};
   setTimeout(()=>{
-    if(win2){ endLine(`¡La ganó por arriba <b>${esc(nombreDe(r.e))}</b>!`, true);
-      setTimeout(()=>{ if(checkTime()) return; finRecepcionAerea(r, dx, dy); }, 700); }
-    else { endLine("La ganó el defensor en el salto…", false);
-      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; pelotaDividida(dx, dy); }, 700); }
+    if(win2){
+      if(salioArquero){ PS.keeper.faced=false; PS.bonusJugada=true; }
+      endLine(salioArquero ? `¡El arquero quedó EN EL AIRE y la ganó <b>${esc(nombreDe(r.e))}</b>! El arco está vacío…`
+                           : `¡La ganó por arriba <b>${esc(nombreDe(r.e))}</b>!`, true);
+      setTimeout(()=>{ if(checkTime()) return; finRecepcionAerea(r, dx, dy); }, 700);
+    } else {
+      endLine(salioArquero ? "¡Salió el arquero y la descolgó con seguridad!" : "La ganó el defensor en el salto…", false);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0;
+        if(salioArquero){ rivalCounter(GOAL_X-130, MIDY); PS.state="run"; }
+        else pelotaDividida(dx, dy); }, 700);
+    }
   }, 850);
 }
 function finRecepcionAerea(r, dx, dy){
@@ -2391,15 +2404,73 @@ function escenaTiro(cm, win){
 }
 function tiroAtajado(cm){
   const afuera = PS._afuera; PS._afuera=false;
+  const corner = !afuera && Math.random()<CORNER_PROB;   // V4.2-E: la atajada puede irse al córner
   if(afuera){ SFX("lose"); flash("bad","¡AFUERA!"); banner("¡SE FUE POR CENTÍMETROS!"); }   // V4 §4: el riesgo de la esquina
+  else if(corner){ SFX("save"); flash("bad","¡AL CÓRNER!"); banner("¡EL ARQUERO LA SACÓ AL CÓRNER!"); }
   else { SFX("save"); flash("bad","¡LA SACÓ!"); banner(cm.especial ? "¡VOLÓ Y LA MANOTEÓ!" : "¡ATAJÓ EL ARQUERO!"); }
   hideCombat(); advanceClock();
   if(checkTime()) return;
   if(afuera){ rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; return; }   // afuera → saca el rival
-  /* V4.2-B: el CUADRO de la atajada — el arquero rival en grande con la pelota, y recién ahí la contra */
+  /* V4.2-B: el CUADRO de la atajada — el arquero rival en grande con la pelota, y recién ahí lo que sigue */
   encolarEscena({tipo:"cineAtajada", dur:750, t:0,
     inicio:()=>{ PS.cine={tipo:"atajada", t:0}; },
-    fin:()=>{ PS.cine=null; rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; }});
+    fin:()=>{ PS.cine=null;
+      if(corner) iniciarCorner();
+      else { rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; } }});
+}
+/* ====== V4.2-E — CÓRNER con reposicionamiento (doc §5) ====== */
+function iniciarCorner(){
+  corteNegro(120);
+  PS.posesion="mia"; PS.carrier.active=false; PS.encounter={type:"corner", ref:null};
+  PS.cine=null; PS.ballAlt=0; PS.pasesSeguidos=0;
+  PS.controlIdx=0;                                        // el córner lo tirás VOS
+  const lado = PS.ball.y<MIDY ? TOP+6 : BOT-6;            // del lado al que salió la pelota
+  const cp=ctrlPos(); cp.x=GOAL_X-8; cp.y=lado;
+  PS.ball.x=GOAL_X-4; PS.ball.y=lado;
+  camSeguir(PS.ball.x); setGuts();
+  const obj=mejorCabeceador();
+  PS.state="menu";
+  clearDirs(); $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  const esArriba = lado<MIDY;
+  const spots=[
+    {n:"PRIMER PALO",  ico:"🥅", x:GOAL_X-38,  y:MIDY+(esArriba?-34:34), mod:+6, sub:"cerca · gana el pique"},
+    {n:"PUNTO PENAL",  ico:"⚪", x:GOAL_X-108, y:MIDY,                    mod:0,  sub:"clásico · frontal"},
+    {n:"SEGUNDO PALO", ico:"🎯", x:GOAL_X-38,  y:MIDY+(esArriba?34:-34), mod:-5, sub:"sorpresa · más espacio"},
+  ];
+  $("combat-txt").innerHTML=`🚩 CÓRNER. ¿Dónde ubicás a <b>${esc(nombreDe(obj.e))}</b> para ir a buscar el centro?`;
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  spots.forEach(s=>{
+    let pct = 56 + (effStat("pase")*0.3-15) + (statDe(obj.e,"aereo")-50)*0.45 + s.mod;
+    pct=clamp(Math.round(pct),25,90);
+    const b=document.createElement("button");
+    const cls=pct>=66?"hi":pct>=40?"mid":"lo";
+    b.className="cmd";
+    b.innerHTML=`<span class="ico">${s.ico}</span><div class="cn">${s.n}</div><div class="ch ${cls}">${pct}%</div><div class="csub">${s.sub}</div>`;
+    b.addEventListener("click", ()=>ejecutarCorner(obj, s, pct), {once:true});
+    grid.appendChild(b);
+  });
+  SFX("sting");
+}
+function mejorCabeceador(){
+  const ci=PS.controlIdx||0;
+  let mejor=null, mv=-1;
+  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return;
+    const v=statDe(e,"aereo")+statDe(e,"fisico")*0.3; if(v>mv){ mv=v; mejor={idx:i, e}; } });
+  return mejor;
+}
+function ejecutarCorner(obj, s, pct){
+  if(PS.state!=="menu") return;
+  /* REPOSICIONAMIENTO (doc §5): tu cabeceador al punto elegido, dos acompañan, la defensa se cierra */
+  const pO=posDe(obj.e); pO.x=s.x; pO.y=s.y;
+  let extra=0;
+  PS.equipo.forEach((e,i)=>{ if(i===(PS.controlIdx||0) || i===obj.idx || e.pos==="ARQ" || extra>=2) return;
+    if(e.pos==="ATA"||e.pos==="VOL"){ const p=posDe(e); p.x=GOAL_X-130-extra*26; p.y=MIDY+(extra?-52:52); extra++; } });
+  let rext=0;
+  PS.rivales.forEach((e,i)=>{ if(i===0 || rext>=3) return; e.x=GOAL_X-70-rext*24; e.y=MIDY+(rext-1)*40; rext++; });
+  PS.keeper.y=MIDY;
+  draw(); drawMinimap();
+  resolvePase({idx:obj.idx, e:obj.e, x:s.x, y:s.y, dir:"al área", espacio:false, pct,
+    vinc:paseParVinculo(ctrlEnt(), obj.e), dupla:false, aereo:true, corner:true});
 }
 function duelIntro(k){
   return ({
