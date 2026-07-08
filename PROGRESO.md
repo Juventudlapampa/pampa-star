@@ -1,5 +1,21 @@
 # PAMPA STAR — Progreso
 
+## ✅ INGESTA DE ASSETS (jul 2026) — inventario curado + data separada + ilustraciones
+Rodri dejó el material que juntó (imágenes IA, sonidos, roster, diálogos, docs). Inventariado e ingerido por partes, con la regla de arquitectura: **el contenido va a estructuras limpias fuera del `index.html`, portable a Godot.**
+
+**QUÉ SE INTEGRÓ (usable ya):**
+- **Ilustraciones de pantalla** → `assets/ui/` (6 WebP, **362KB total desde ~8MB**, optimizadas con sharp/libvips para celu): portada + logo (con alpha) en el TÍTULO, y fondos ilustrados en LORE y SEMANA vía clase `.hasbg` con overlay para legibilidad. **El pixel-art del PARTIDO no se toca** (sigue en su canvas). Fallback: si una imagen no carga, queda el gradiente y el título en texto.
+- **Roster** → `data/roster_pampeano.json`: 50 identidades pampeanas ficticias, 10 pueblos, posición mapeada al motor (MED→VOL, DEL→ATA), `stats_auto` deterministas afinables. **Sin personas reales ni menores.** Todavía NO cableado: es la base para planteles/rotación.
+- **Diálogos/lore** → `data/relatos.json`: narrador de inicio + 3 relatores ficticios (Pichi el Bagual, El Profe, Delfina Roldán) + escenas de sabor. Referenciados desde `DISENO_PRESENTACION.md` (los usa el "elegí tu relato" de Prompt 2).
+
+**QUÉ SE DEJÓ PARA DESPUÉS (usable más adelante, queda en `assets_drive/` local):** 7 fondos variantes extra, 10 personajes TANDA2 (retratos DT/rival/jugadores para la presentación), 6 avatares + 6 escudos transparentes (editor de avatar), pixel-art NES de referencia, ficha de cartucho.
+
+**QUÉ SE DESCARTÓ:** ⛔ **material de Tecmo/Captain Tsubasa** (parche de ROM `.ips` + ROM `.nes` del paquete original) — marcado como PROHIBIDO, **jamás entra al juego**; documentos de la Subsecretaría (censo, encuestas) ajenos al juego; re-empaquetados redundantes; docs `.md` duplicados.
+
+**SONIDOS — PROPUESTA (no se pisó el chiptune actual):** 12 WAVs sampleados (44.1kHz mono). Propuestos en `ASSETS_INVENTARIO.md` como opción A/B; recomendación: sumar solo lo que hoy NO existe (blips de diálogo, música de "chill/pueblo", quizá "carga" del especial) dejando el chiptune del partido intacto. Los loops de música son cortos (2.4–4s). **Espera OK de Rodri antes de cablear.**
+
+**Arquitectura:** `assets_drive/` (186MB crudos + material de terceros) va al `.gitignore` — fuente LOCAL, no se publica en Pages; solo lo optimizado (`assets/`, `data/`) se commitea. Ver `ASSETS_INVENTARIO.md` y `data/README.md`.
+
 ## ✅ PARTIDO v4.2 (jul 2026) — COMPLETO de punta a punta (prompt "completalo a jugable")
 Los 8 puntos del prompt de Rodri, commiteados por parte (A–E + cierre):
 - **(A) Balance a mano:** bloque único AFINADO RÁPIDO arriba del script con TODO (velocidades, PRESION_RADIO, RADIO_ENCUENTRO_DEF, DIST_MENU_ARQUERO, PASE_RADIO, PASE_TOPE_VIAJE, AEREO_UMBRAL, GUTS_RENDIDO, SEGUNDOS_POR_MINUTO, CORNER_PROB). **Control clarísimo:** NOMBRE del controlado sobre su cabeza (texto con borde + flecha ▼, también en defensa — RV2 arregló que quedara sobre el sprite equivocado). **Doc §6:** el ARQ solo recupera Guts al entretiempo si le convirtieron.

@@ -63,6 +63,8 @@ const RELATOS = {
 
 Líneas de ≤90 caracteres (la cinta es chica y se lee en un vistazo).
 
+> **📦 Líneas de muestra YA disponibles (jul 2026):** Rodri generó diálogos reales para estas voces. Están ingeridos como **data separada** en [`data/relatos.json`](data/relatos.json) (`pampa-star/relatos@1`): el `narrador_inicio` (4 líneas del título), y `relatores[]` con **Pichi el Bagual** (grito de gol), **El Profe** (análisis/previa) y **Delfina Roldán** (previa) — más `escenas` de sabor (vestuario, bar, prensa, chill en el pueblo). Al construir esta capa, cargar de ahí en vez de hardcodear. Todas las voces son **ficticias y originales** (nunca personas ni medios reales). Nota de mapeo: el diseño llama "El Bagual Medina" y "El Profe Zárate" a las voces de cabina; en la data figuran como "Pichi el Bagual" y "El Profe" — unificar apellidos al integrar.
+
 ## 1.2 Los personajes (todos inventados)
 
 **📱 PICHI (streamer).** "Pichi en vivo", transmite desde una pieza en General
