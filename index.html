@@ -24,6 +24,18 @@
   .screen{display:none;flex:1;min-height:0;flex-direction:column;}
   .screen.active{display:flex;animation:fade .3s ease;}
   @keyframes fade{from{opacity:0}to{opacity:1}}
+  /* V4.3: ilustraciones de PANTALLA (assets/ui/*.webp) — fondo con overlay para que el texto
+     se lea; si la imagen no carga (file:// sin server), queda el gradiente del body de fallback.
+     El pixel-art del PARTIDO no usa esto: va en su canvas aparte. */
+  .screen.hasbg{position:relative;background-size:cover;background-position:center top;background-repeat:no-repeat;border-radius:12px;}
+  .screen.hasbg::before{content:"";position:absolute;inset:.5rem;border-radius:12px;
+    background:linear-gradient(180deg,rgba(6,18,11,.62),rgba(6,18,11,.9));z-index:0;pointer-events:none;}
+  .screen.hasbg > *{position:relative;z-index:1;}
+  #screen-title{background-image:url('assets/ui/portada.webp');}
+  #screen-lore{background-image:url('assets/ui/fondo_pueblo.webp');}
+  #screen-week{background-image:url('assets/ui/fondo_menu.webp');}
+  .brand .logo-img{display:block;width:min(62%,220px);margin:.2rem auto .1rem;image-rendering:auto;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.55));}
   .pix{font-family:'Press Start 2P',monospace;}
   .mono{font-family:'JetBrains Mono',monospace;}
 
@@ -241,11 +253,13 @@
 <div class="wrap">
 
   <!-- ============ TÍTULO ============ -->
-  <section class="screen active" id="screen-title">
+  <section class="screen active hasbg" id="screen-title">
     <div class="intro-scroll" style="display:flex;flex-direction:column;justify-content:center;">
       <div class="brand">
         <div class="kicker">Liga Cultural de Fútbol · La Pampa</div>
-        <h1>PAMPA<br>STAR</h1>
+        <img class="logo-img" id="title-logo" src="assets/ui/logo.webp" alt="PAMPA STAR"
+             onerror="this.style.display='none';document.getElementById('title-h1').style.display='block';">
+        <h1 id="title-h1" style="display:none">PAMPA<br>STAR</h1>
         <div class="ball">⚽</div>
         <div class="sub">Del potrero al Mundial. Retro, pampeano y por comandos.</div>
       </div>
@@ -260,7 +274,7 @@
   </section>
 
   <!-- ============ LORE ============ -->
-  <section class="screen" id="screen-lore">
+  <section class="screen hasbg" id="screen-lore">
     <div class="intro-scroll" style="display:flex;flex-direction:column;justify-content:center;">
       <div class="panel">
         <div class="se-title">📜 TU HISTORIA</div>
@@ -346,7 +360,7 @@
   </section>
 
   <!-- ============ SEMANA (vida entre fechas) ============ -->
-  <section class="screen" id="screen-week">
+  <section class="screen hasbg" id="screen-week">
     <div class="se-scroll">
       <div class="se-head">
         <div class="kicker" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase">Tu semana · La Pampa</div>
