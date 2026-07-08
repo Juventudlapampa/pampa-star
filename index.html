@@ -1451,7 +1451,7 @@ function aterrizajeAereo(r, win, dx, dy){
     return pelotaDividida(clamp(dx+rnd(-20,20),40,GOAL_X-12), clamp(dy+rnd(-16,16),TOP+6,BOT-6));
   }
   let dRiv=1e9; rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return; dRiv=Math.min(dRiv, Math.hypot(rp.x-dx, rp.y-dy)); });
-  if(dRiv<46) return dueloAereo(r, dx, dy);                    // hay rival abajo de la pelota: se salta
+  if(r.corner || dRiv<46) return dueloAereo(r, dx, dy);        // RV3: el córner SIEMPRE se disputa (área poblada); si no, solo con rival abajo
   finRecepcionAerea(r, dx, dy);                                // solo: la baja tranquilo
 }
 function dueloAereo(r, dx, dy){
@@ -1467,7 +1467,7 @@ function dueloAereo(r, dx, dy){
   $("combat-txt").innerHTML = salioArquero
     ? `🆙 ¡Centro al área y SALE EL ARQUERO! <b>${esc(nombreDe(r.e))}</b> va con todo…`
     : `🆙 ¡Duelo aéreo! <b>${esc(nombreDe(r.e))}</b> salta con el defensor…`;
-  PS.cine={tipo:"duelo", enc:"aereo", t:0, look:r.e.look};
+  PS.cine={tipo:"duelo", enc:"aereo", gk:salioArquero, t:0, look:r.e.look};   // RV8: si sale el arquero, se lo VE
   setTimeout(()=>{
     if(win2){
       if(salioArquero){ PS.keeper.faced=false; PS.bonusJugada=true; }
@@ -1505,8 +1505,11 @@ function menuAereo(r, dx, dy){
   PS.equipo.forEach((e,i)=>{ if(i===r.idx || e.pos==="ARQ") return; const p=posDe(e);
     if(p.x>mejorX && p.x<GOAL_X-14 && Math.abs(p.y-dy)<120){ mejorX=p.x; atras={e,i,x:p.x,y:p.y}; } });
   if(atras) cmds.push({k:"dejarla", cn:"DEJARLA PASAR", ico:"👻", cost:2, on:"dejarla", atras,
-    pctFijo:clamp(Math.round(58 + statDe(r.e,"caracter")*0.35), 30, 90), my:0, def:0,
+    pctFijo:clamp(Math.round(58 + (statDe(r.e,"caracter")-50)*0.35), 30, 90), my:0, def:0,   // RV6: carácter CENTRADO (antes dominaba siempre con ~75%)
     sub:`finta para ${esc(nombreDe(atras.e))} · arquero vendido`});
+  /* RV5: el umbral SIN NAFTA (doc §8) también rige acá — rendido no hay volea */
+  const gRec = r.idx===0 ? PS.guts : (r.e.guts!=null ? r.e.guts : 100);
+  if(gRec < GUTS_RENDIDO) for(const c of cmds){ if(c.k==="volea"){ c.locked=true; c.lockTxt="SIN NAFTA"; } }
   renderCombat(`☄️ La pelota BAJA en el área… la espera <b>${esc(nombreDe(r.e))}</b>`, cmds, "atk");
 }
 function resolveDejarla(cm){
@@ -1698,7 +1701,9 @@ function radarTap(cv, e){
   const mX=x=> x/WORLD_W*cv.width, mY=y=> 4+(y-TOP)/(BOT-TOP)*(cv.height-8);
   if(PS.posesion==="mia" && (PS.state==="run"||enAim) && !PS.escena){
     const wx=px_/cv.width*WORLD_W, wy=TOP+(py_-4)/(cv.height-8)*(BOT-TOP);
-    if(enAim) cerrarRadarBig(false);
+    /* RV1: cerrar REANUDANDO (state=run) — si apuntarPase rebota con un banner
+       ("nadie cerca"), el juego sigue; antes quedaba pausado en "aim" sin salida (celu) */
+    if(enAim) cerrarRadarBig(true);
     apuntarPase(wx, wy);
     return;
   }
@@ -2123,7 +2128,9 @@ function draw(){
   if(PS.ballAlt>0.5){ c.fillStyle="rgba(0,0,0,.3)"; c.fillRect((PS.ball.x-cam-2)|0,(PS.ball.y-oy-1)|0,5,2); }
   drawBall(c, PS.ball.x-cam, PS.ball.y-oy-(PS.ballAlt||0));
   drawKit(c, PS.player.x-cam, PS.player.y-oy, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
-  const cp=(PS.posesion==="mia" && PS.equipo)?ctrlPos():PS.player;
+  /* RV2: la flecha y el nombre van sobre el CONTROLADO real — también en defensa
+     (antes en defensa quedaban clavados sobre TU sprite aunque marcaras con otro) */
+  const cp = PS.equipo ? ctrlPos() : PS.player;
   drawMarker(c, cp.x-cam, cp.y-oy);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
   c.setTransform(1,0,0,1,0,0);     // V4: fuera del mundo, coordenadas de canvas normales
   /* V4.2: NOMBRE sobre el controlado — que nunca haya duda de a quién dirigís (forma+texto) */
@@ -2131,9 +2138,10 @@ function draw(){
     const nx=(cp.x-cam)*ZOOM_ACCION, ny=(cp.y-oy)*ZOOM_ACCION;
     if(nx>-40 && nx<CW+40){
       const nom=String(nombreDe(ctrlEnt())).toUpperCase().slice(0,8);
+      const nyy=Math.max(12, ny-52);   // RV9: pegado a la banda de arriba, el nombre no se va del canvas
       c.font="7px 'Press Start 2P', monospace"; c.textAlign="center"; c.textBaseline="alphabetic";
-      c.lineWidth=3; c.strokeStyle="#0a1f13"; c.strokeText(nom, nx, ny-52);
-      c.fillStyle="#ffffff"; c.fillText(nom, nx, ny-52);
+      c.lineWidth=3; c.strokeStyle="#0a1f13"; c.strokeText(nom, nx, nyy);
+      c.fillStyle="#ffffff"; c.fillText(nom, nx, nyy);
       c.textAlign="left";
     }
   }
@@ -2177,7 +2185,8 @@ function dibujarCine(c){
       drawBallBig(c, 106, piso-4, 2.4);
     } else if(ci.enc==="aereo"){                             // V4.2-D: la pelota BAJA del cielo en el área
       drawKitBig(c, 82, piso, S, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);   // saltando, brazos arriba
-      drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
+      if(ci.gk) drawKitBig(c, 198, piso, S, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);   // RV8: ¡salió el arquero!
+      else drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
       drawBallBig(c, 90, 36 + Math.sin(ci.t*0.09)*3, 2.6);   // la pelota cayendo sobre él
     } else {                                                 // te sale al cruce un defensor
       drawKitBig(c, 82, piso, S, 1, "encarar", ci.t, PS.club.c1, PS.club.c2, meLook);
@@ -2194,10 +2203,11 @@ function dibujarCine(c){
     }
   } else if(ci.tipo==="festejo"){                            // ¡grito de gol!
     drawKitBig(c, CW/2, piso, S+0.5, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);   // R8: 4.5 entra entero, con saltito y todo
-  } else if(ci.tipo==="atajada"){                            // V4.2-B: ¡la sacó el arquero rival! (pelota en el guante)
+  } else if(ci.tipo==="atajada"){                            // V4.2-B: ¡la sacó el arquero rival!
     const S2=S+0.5;
     drawKitBig(c, CW/2+10, piso, S2, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);
-    drawBallBig(c, CW/2+10 - 7*S2 - 2, piso - 26*S2 + 6, 2.2);
+    if(ci.corner) drawBallBig(c, CW/2-38 - ci.t*1.2, Math.max(10, piso-26*S2 - ci.t*0.8), 2.2);   // desviada: se va al córner
+    else drawBallBig(c, CW/2+10 - 7*S2 - 2, piso - 26*S2 + 6, 2.2);                               // retenida en el guante
   }
 }
 
@@ -2337,8 +2347,8 @@ function chooseCommand(cm){
   ctrlGastarGuts(cm.cost);                                  // V2: el Guts es del jugador controlado
   if(cm.on==="pared2"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML=duelIntro("pared"); return setTimeout(()=>resolvePared(cm), 700); }
   if(cm.on==="dejarla"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML="La deja pasar entre las piernas… 👻"; return setTimeout(()=>resolveDejarla(cm), 800); }   // V4.2-D
-  if(PS.bonusJugada && ["gambeta","tiroGol","tiroLejano","gambetaGk"].includes(cm.on)){
-    cm = Object.assign({}, cm, {my: cm.my+6});              // ¡jugada armada! +10% aprox
+  if(PS.bonusJugada && ["gambeta","tiroGol","tiroLejano","gambetaGk","volea","bajarla"].includes(cm.on)){
+    cm = Object.assign({}, cm, {my: cm.my+6});              // ¡jugada armada / arquero vendido! +10% aprox (RV4: la volea también cobra)
     PS.bonusJugada=false; PS.empuje=0;
   }
   /* V4·E3 — MATRIZ DE INTENCIONES (quite>gambeta · corte>pase · bloqueo>tiro):
@@ -2404,16 +2414,18 @@ function escenaTiro(cm, win){
 }
 function tiroAtajado(cm){
   const afuera = PS._afuera; PS._afuera=false;
-  const corner = !afuera && Math.random()<CORNER_PROB;   // V4.2-E: la atajada puede irse al córner
+  const esGambeta = cm.on==="gambetaGk";
+  const corner = !afuera && !esGambeta && Math.random()<CORNER_PROB;   // V4.2-E: la atajada puede irse al córner (RV7: la gambeta perdida NO — no hubo tiro)
   if(afuera){ SFX("lose"); flash("bad","¡AFUERA!"); banner("¡SE FUE POR CENTÍMETROS!"); }   // V4 §4: el riesgo de la esquina
   else if(corner){ SFX("save"); flash("bad","¡AL CÓRNER!"); banner("¡EL ARQUERO LA SACÓ AL CÓRNER!"); }
+  else if(esGambeta){ SFX("save"); flash("bad","¡TE LA SACÓ!"); banner("¡EL ARQUERO SE QUEDÓ CON TUS PIES!"); }
   else { SFX("save"); flash("bad","¡LA SACÓ!"); banner(cm.especial ? "¡VOLÓ Y LA MANOTEÓ!" : "¡ATAJÓ EL ARQUERO!"); }
   hideCombat(); advanceClock();
   if(checkTime()) return;
   if(afuera){ rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; return; }   // afuera → saca el rival
-  /* V4.2-B: el CUADRO de la atajada — el arquero rival en grande con la pelota, y recién ahí lo que sigue */
+  /* V4.2-B: el CUADRO de la atajada — el arquero rival en grande, y recién ahí lo que sigue */
   encolarEscena({tipo:"cineAtajada", dur:750, t:0,
-    inicio:()=>{ PS.cine={tipo:"atajada", t:0}; },
+    inicio:()=>{ PS.cine={tipo:"atajada", corner, t:0}; },   // RV: al córner se ve la pelota DESVIADA, no en el guante
     fin:()=>{ PS.cine=null;
       if(corner) iniciarCorner();
       else { rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; } }});
@@ -2467,6 +2479,9 @@ function ejecutarCorner(obj, s, pct){
     if(e.pos==="ATA"||e.pos==="VOL"){ const p=posDe(e); p.x=GOAL_X-130-extra*26; p.y=MIDY+(extra?-52:52); extra++; } });
   let rext=0;
   PS.rivales.forEach((e,i)=>{ if(i===0 || rext>=3) return; e.x=GOAL_X-70-rext*24; e.y=MIDY+(rext-1)*40; rext++; });
+  /* RV3: los MARCADORES (la capa mecánica y lo que muestra el radar como "sus DEF")
+     también se paran en los palos — sin esto, la defensa del córner era un fantasma */
+  PS.defenders.forEach((df,k)=>{ df.passed=false; df.x=GOAL_X-44; df.y=MIDY+(k?30:-30); });
   PS.keeper.y=MIDY;
   draw(); drawMinimap();
   resolvePase({idx:obj.idx, e:obj.e, x:s.x, y:s.y, dir:"al área", espacio:false, pct,

@@ -1,5 +1,25 @@
 # PAMPA STAR — Progreso
 
+## ✅ PARTIDO v4.2 (jul 2026) — COMPLETO de punta a punta (prompt "completalo a jugable")
+Los 8 puntos del prompt de Rodri, commiteados por parte (A–E + cierre):
+- **(A) Balance a mano:** bloque único AFINADO RÁPIDO arriba del script con TODO (velocidades, PRESION_RADIO, RADIO_ENCUENTRO_DEF, DIST_MENU_ARQUERO, PASE_RADIO, PASE_TOPE_VIAJE, AEREO_UMBRAL, GUTS_RENDIDO, SEGUNDOS_POR_MINUTO, CORNER_PROB). **Control clarísimo:** NOMBRE del controlado sobre su cabeza (texto con borde + flecha ▼, también en defensa — RV2 arregló que quedara sobre el sprite equivocado). **Doc §6:** el ARQ solo recupera Guts al entretiempo si le convirtieron.
+- **(B) Arquero rival REACTIVO:** vuela hacia la zona del tiro en la escena (llega si ataja / mitad de camino si es gol / mira si va afuera) + cuadro de atajada (750ms) antes de la contra.
+- **(C) Radar AMPLIABLE (doc §1.2/§4):** lupa junto al radar (o tecla R) → pantalla completa pausada, mismo tap (apuntar/marcar), espejo pixelado del radar chico. **PASE AL ESPACIO:** tocar un punto libre → el más cercano PICA (carrera visible), % por velocidad vs el rival del punto.
+- **(D) PELOTA AÉREA (doc §4):** pases >300 y centros van POR ARRIBA (globo + sombra, sin corte a media altura) → DUELO AÉREO al caer (aereo+físico+vínculo vs defensa) → si cae llegando al área, MENÚ AÉREO: BAJARLA / VOLEA (escena completa) / DEJARLA PASAR (finta, arquero vendido → +10% al remate). Botón **CENTRO AL ÁREA** desde la banda en campo rival.
+- **(E) CÓRNER con reposicionamiento (doc §5):** ~35% de las atajadas van al córner → elegís dónde parar a tu mejor cabeceador (PRIMER PALO/PUNTO PENAL/SEGUNDO PALO con su %), acompañantes y defensa se reposicionan (marcadores incluidos — RV3), centro aéreo SIEMPRE disputado, y el arquero puede SALIR A CORTAR (§7): si igual la ganás quedó EN EL AIRE (arco vacío, bonus).
+- **Soak de partido completo:** dos tiempos + entretiempo + final sin trabas (clicks al azar en todos los menús + acciones aleatorias de pase/tiro/radar). Sin errores de consola.
+### Revisión adversarial v4.2 (4 lentes; verificación manual — el workflow agotó el cupo de sesión): 9 arreglos
+1. **[ALTA] Soft-lock del radar ampliado**: tap a un punto sin jugada dejaba el juego pausado en "aim" sin salida en celu → cerrar SIEMPRE reanuda.
+2. **[ALTA] Flecha/nombre sobre el sprite equivocado en defensa** (era de arrastre del v4): ahora siguen al controlado real.
+3. **[ALTA] Córner fantasma**: `rivalPuntos()` pisaba a los rivales reposicionados con los marcadores viejos → los marcadores también van a los palos y el córner SIEMPRE se disputa.
+4. La VOLEA no cobraba el bonus del arquero vendido → agregada a la lista de bonusJugada (y BAJARLA).
+5. El menú aéreo ignoraba SIN NAFTA → volea bloqueada con Guts <25.
+6. DEJARLA PASAR dominaba siempre (~75%) → carácter centrado (58±).
+7. La gambeta al arquero perdida podía "irse al córner" sin tiro → excluida + banner propio.
+8. El cuadro del duelo aéreo no mostraba al arquero cuando salía → ahora se lo ve (amarillo, guantes).
+9. Nombre del controlado se salía del canvas en la banda de arriba → clampeado.
+**Pendiente conocido (fuera de alcance v4.2, doc §6/§11):** alargue/penales (recién con eliminatorias del Mundial), perfiles de IA por jugador, tácticas seleccionables, identidad/presentación (PROMPT 2).
+
 ## ✅ PARTIDO v4.1 (jul 2026) — respuesta al playtest CONTROL 2
 Feedback de Rodri con captura de CT2 al lado: faltaba el CUADRO DE ANIMACIÓN, la cancha estaba alargada, no podía pasar/cambiar/tirar a otro lado y el arquero rival no se movía. Todo atacado:
 - **🖼 CUADRO DE ANIMACIÓN (lo grande):** sprites GRANDES originales (16×26 por código, mismas variantes de FORMA del sprite chico) que PISAN la vista de acción en los momentos de drama, estilo el "dibujito" de la serie: cara a cara del encuentro (vos vs defensor / mano a mano con el arquero / remate rival vs tu arquero), patada del tiro Y del pase (la pelota sale volando con estela si es especial), festejo de gol con brazos arriba y saltito. Fondo con líneas de velocidad animadas + piso + marco; teñido de fuego en especiales. Poses: parado/correr/encarar/patear/arquero/festejo. Se limpia solo en cada kickoff/contra/cierre de menú.
