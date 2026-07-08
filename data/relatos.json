@@ -1,0 +1,74 @@
+{
+  "_schema": "pampa-star/relatos@1",
+  "_fuente": "PAMPA_DIALOGOS_CONVERSACIONES (Rodri, jul 2026)",
+  "_notas": "Voces y escenas FICTICIAS y ORIGINALES (Pichi el Bagual, El Profe, Delfina Roldan). NUNCA personas reales ni medios reales. Texto de sabor para intro, relato y momentos; data separada del codigo.",
+  "narrador_inicio": [
+    "PAMPA STAR.",
+    "No es la historia de una estrella. Es la de un pibe que patea contra el viento.",
+    "Acá no nacés crack, te hacés.",
+    "Bienvenido a La Pampa."
+  ],
+  "relatores": [
+    {
+      "id": "pichi",
+      "nombre": "Pichi el Bagual",
+      "estilo": "grito de cancha, puro corazon",
+      "gol": [
+        "¡GOL! ¡Goool del pibe de Winifreda!",
+        "¡Se levantó el viento y se la llevó puesta!",
+        "¡La clavó en el ángulo como si fuera un caldén!",
+        "¡Qué patada, papá! ¡Se escuchó hasta en la ruta 35!",
+        "Dale campeón, que acá no hay VAR, hay corazón."
+      ]
+    },
+    {
+      "id": "profe",
+      "nombre": "El Profe",
+      "estilo": "analisis tactico pampeano",
+      "previa": [
+        "Señores, en La Pampa la pelota no rueda, pelea contra el viento.",
+        "El equipo juega con lo que hay, y hoy hay mucho huevo.",
+        "No es tiki-tiki, es garra pampeana.",
+        "El mediocampo es un caldén: firme, no se mueve.",
+        "Si no la metés, al menos dejá la suela."
+      ]
+    },
+    {
+      "id": "delfina",
+      "nombre": "Delfina Roldán",
+      "estilo": "previa con mate, cercana",
+      "previa": [
+        "Buenas tardes desde General Pico, con el mate recién cebado.",
+        "Hoy juega el pibe que se vino a probar a Santa Rosa.",
+        "La tribuna está vacía pero el pueblo está escuchando.",
+        "¿Se puede soñar? Acá en La Pampa soñamos con viento en contra."
+      ]
+    }
+  ],
+  "escenas": {
+    "vestuario_dt": [
+      "DT: Muchachos, no tenemos botines nuevos, tenemos 90 minutos.",
+      "Jugador 1: Profe, hace frío.",
+      "DT: Mejor, así el rival se congela y nosotros corremos.",
+      "Jugador 2: ¿Juego?",
+      "DT: Jugás vos, juega Toay, juega Victorica. Hoy somos todos."
+    ],
+    "amigos_bar": [
+      "Tomi: Che, ¿viste el tiro ese?",
+      "Vos: Era para probar el viento.",
+      "Mati: En La Pampa no se prueba, se le pega y se reza.",
+      "Tomi: Mañana mate en el caldén y seguimos."
+    ],
+    "prensa_post": [
+      "Periodista: ¿Cómo viste el gol?",
+      "Vos: Lo vi como veo la pampa: infinito.",
+      "Periodista: ¿Y el rival?",
+      "Vos: Duro, pero nosotros tenemos más polvo en las rodillas."
+    ],
+    "chill_pueblo": [
+      "Vecina: Pibe, ¿no vas a entrenar?",
+      "Vos: Ya entrené, ahora tomo mate abajo del caldén.",
+      "Kiosquero: Así se hacen los cracks, tranquilo pero con hambre."
+    ]
+  }
+}

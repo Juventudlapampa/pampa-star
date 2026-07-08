@@ -1,0 +1,1110 @@
+{
+  "_schema": "pampa-star/roster@1",
+  "_fuente": "PAMPA_STAR_ROSTER_50.csv (Rodri, jul 2026)",
+  "_notas": "50 identidades pampeanas FICTICIAS. Nombres de pila inventados, apodos y pueblos reales de La Pampa (info publica). Sin personas reales, sin menores. stats_auto = derivadas deterministas por id+posicion (afinables), NO autoradas a mano. posicion_motor mapea MED->VOL, DEL->ATA para el engine actual.",
+  "_portabilidad": "Data pura, sin dependencias del index.html: viaja a Godot como Resource/JSON tal cual.",
+  "clubes_por_pueblo": {
+    "Winifreda": {
+      "apodo": "El Bagual de Winifreda",
+      "jugadores": [
+        1,
+        11,
+        21,
+        31,
+        41
+      ]
+    },
+    "Toay": {
+      "apodo": "El Caldén de Toay",
+      "jugadores": [
+        2,
+        12,
+        22,
+        32,
+        42
+      ]
+    },
+    "General Pico": {
+      "apodo": "El Viento de General Pico",
+      "jugadores": [
+        3,
+        13,
+        23,
+        33,
+        43
+      ]
+    },
+    "Santa Rosa": {
+      "apodo": "Polvo de Santa Rosa",
+      "jugadores": [
+        4,
+        14,
+        24,
+        34,
+        44
+      ]
+    },
+    "Victorica": {
+      "apodo": "Ruta de Victorica",
+      "jugadores": [
+        5,
+        15,
+        25,
+        35,
+        45
+      ]
+    },
+    "Eduardo Castex": {
+      "apodo": "Pampa de Eduardo Castex",
+      "jugadores": [
+        6,
+        16,
+        26,
+        36,
+        46
+      ]
+    },
+    "Realicó": {
+      "apodo": "Churrasco de Realicó",
+      "jugadores": [
+        7,
+        17,
+        27,
+        37,
+        47
+      ]
+    },
+    "Intendente Alvear": {
+      "apodo": "Mate de Intendente Alvear",
+      "jugadores": [
+        8,
+        18,
+        28,
+        38,
+        48
+      ]
+    },
+    "Guatraché": {
+      "apodo": "Laucha de Guatraché",
+      "jugadores": [
+        9,
+        19,
+        29,
+        39,
+        49
+      ]
+    },
+    "Macachín": {
+      "apodo": "Cacique de Macachín",
+      "jugadores": [
+        10,
+        20,
+        30,
+        40,
+        50
+      ]
+    }
+  },
+  "jugadores": [
+    {
+      "id": 1,
+      "nombre": "Thiago",
+      "apodo": "El Bagual de Winifreda",
+      "pueblo": "Winifreda",
+      "posicion": "ARQ",
+      "posicion_motor": "ARQ",
+      "rasgo": "patea contra el viento",
+      "historia": "De Winifreda, empezó pateando en la calle de tierra. Patea contra el viento.",
+      "stats_auto": {
+        "pase": 49,
+        "tiro": 37,
+        "gambeta": 36,
+        "velocidad": 48,
+        "resistencia": 61,
+        "fisico": 63,
+        "aereo": 61,
+        "caracter": 58
+      }
+    },
+    {
+      "id": 2,
+      "nombre": "Lautaro",
+      "apodo": "El Caldén de Toay",
+      "pueblo": "Toay",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "mate en el entretiempo",
+      "historia": "De Toay, empezó pateando en la calle de tierra. Mate en el entretiempo.",
+      "stats_auto": {
+        "pase": 58,
+        "tiro": 45,
+        "gambeta": 50,
+        "velocidad": 57,
+        "resistencia": 63,
+        "fisico": 62,
+        "aereo": 58,
+        "caracter": 54
+      }
+    },
+    {
+      "id": 3,
+      "nombre": "Benja",
+      "apodo": "El Viento de General Pico",
+      "pueblo": "General Pico",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "botines heredados",
+      "historia": "De General Pico, empezó pateando en la calle de tierra. Botines heredados.",
+      "stats_auto": {
+        "pase": 48,
+        "tiro": 42,
+        "gambeta": 45,
+        "velocidad": 56,
+        "resistencia": 55,
+        "fisico": 56,
+        "aereo": 62,
+        "caracter": 61
+      }
+    },
+    {
+      "id": 4,
+      "nombre": "Facu",
+      "apodo": "Polvo de Santa Rosa",
+      "pueblo": "Santa Rosa",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "corre como caldén en tormenta",
+      "historia": "De Santa Rosa, empezó pateando en la calle de tierra. Corre como caldén en tormenta.",
+      "stats_auto": {
+        "pase": 66,
+        "tiro": 58,
+        "gambeta": 68,
+        "velocidad": 55,
+        "resistencia": 58,
+        "fisico": 60,
+        "aereo": 47,
+        "caracter": 57
+      }
+    },
+    {
+      "id": 5,
+      "nombre": "Nico",
+      "apodo": "Ruta de Victorica",
+      "pueblo": "Victorica",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "zurda de ruta 35",
+      "historia": "De Victorica, empezó pateando en la calle de tierra. Zurda de ruta 35.",
+      "stats_auto": {
+        "pase": 58,
+        "tiro": 60,
+        "gambeta": 58,
+        "velocidad": 53,
+        "resistencia": 56,
+        "fisico": 46,
+        "aereo": 47,
+        "caracter": 50
+      }
+    },
+    {
+      "id": 6,
+      "nombre": "Santi",
+      "apodo": "Pampa de Eduardo Castex",
+      "pueblo": "Eduardo Castex",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "cabezazo de molino",
+      "historia": "De Eduardo Castex, empezó pateando en la calle de tierra. Cabezazo de molino.",
+      "stats_auto": {
+        "pase": 57,
+        "tiro": 53,
+        "gambeta": 62,
+        "velocidad": 54,
+        "resistencia": 70,
+        "fisico": 48,
+        "aereo": 42,
+        "caracter": 55
+      }
+    },
+    {
+      "id": 7,
+      "nombre": "Mateo",
+      "apodo": "Churrasco de Realicó",
+      "pueblo": "Realicó",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "tiro libre con tierra",
+      "historia": "De Realicó, empezó pateando en la calle de tierra. Tiro libre con tierra.",
+      "stats_auto": {
+        "pase": 60,
+        "tiro": 59,
+        "gambeta": 65,
+        "velocidad": 60,
+        "resistencia": 60,
+        "fisico": 45,
+        "aereo": 48,
+        "caracter": 55
+      }
+    },
+    {
+      "id": 8,
+      "nombre": "Juan",
+      "apodo": "Mate de Intendente Alvear",
+      "pueblo": "Intendente Alvear",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "marca hasta el alambrado",
+      "historia": "De Intendente Alvear, empezó pateando en la calle de tierra. Marca hasta el alambrado.",
+      "stats_auto": {
+        "pase": 57,
+        "tiro": 61,
+        "gambeta": 68,
+        "velocidad": 64,
+        "resistencia": 60,
+        "fisico": 57,
+        "aereo": 50,
+        "caracter": 61
+      }
+    },
+    {
+      "id": 9,
+      "nombre": "Tomi",
+      "apodo": "Laucha de Guatraché",
+      "pueblo": "Guatraché",
+      "posicion": "ARQ",
+      "posicion_motor": "ARQ",
+      "rasgo": "nunca se tira",
+      "historia": "De Guatraché, empezó pateando en la calle de tierra. Nunca se tira.",
+      "stats_auto": {
+        "pase": 51,
+        "tiro": 42,
+        "gambeta": 43,
+        "velocidad": 48,
+        "resistencia": 60,
+        "fisico": 55,
+        "aereo": 67,
+        "caracter": 65
+      }
+    },
+    {
+      "id": 10,
+      "nombre": "Mati",
+      "apodo": "Cacique de Macachín",
+      "pueblo": "Macachín",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "juega descalzo de chico",
+      "historia": "De Macachín, empezó pateando en la calle de tierra. Juega descalzo de chico.",
+      "stats_auto": {
+        "pase": 56,
+        "tiro": 38,
+        "gambeta": 43,
+        "velocidad": 64,
+        "resistencia": 64,
+        "fisico": 68,
+        "aereo": 65,
+        "caracter": 63
+      }
+    },
+    {
+      "id": 11,
+      "nombre": "Bruno",
+      "apodo": "El Bagual de Winifreda",
+      "pueblo": "Winifreda",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "grita goles al cielo pampeano",
+      "historia": "De Winifreda, empezó pateando en la calle de tierra. Grita goles al cielo pampeano.",
+      "stats_auto": {
+        "pase": 59,
+        "tiro": 39,
+        "gambeta": 48,
+        "velocidad": 62,
+        "resistencia": 65,
+        "fisico": 61,
+        "aereo": 67,
+        "caracter": 49
+      }
+    },
+    {
+      "id": 12,
+      "nombre": "Axel",
+      "apodo": "El Caldén de Toay",
+      "pueblo": "Toay",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "patea contra el viento",
+      "historia": "De Toay, empezó pateando en la calle de tierra. Patea contra el viento.",
+      "stats_auto": {
+        "pase": 58,
+        "tiro": 51,
+        "gambeta": 60,
+        "velocidad": 60,
+        "resistencia": 62,
+        "fisico": 54,
+        "aereo": 56,
+        "caracter": 59
+      }
+    },
+    {
+      "id": 13,
+      "nombre": "Dylan",
+      "apodo": "El Viento de General Pico",
+      "pueblo": "General Pico",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "mate en el entretiempo",
+      "historia": "De General Pico, empezó pateando en la calle de tierra. Mate en el entretiempo.",
+      "stats_auto": {
+        "pase": 63,
+        "tiro": 58,
+        "gambeta": 54,
+        "velocidad": 61,
+        "resistencia": 66,
+        "fisico": 52,
+        "aereo": 57,
+        "caracter": 51
+      }
+    },
+    {
+      "id": 14,
+      "nombre": "Ian",
+      "apodo": "Polvo de Santa Rosa",
+      "pueblo": "Santa Rosa",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "botines heredados",
+      "historia": "De Santa Rosa, empezó pateando en la calle de tierra. Botines heredados.",
+      "stats_auto": {
+        "pase": 66,
+        "tiro": 51,
+        "gambeta": 65,
+        "velocidad": 65,
+        "resistencia": 66,
+        "fisico": 51,
+        "aereo": 52,
+        "caracter": 57
+      }
+    },
+    {
+      "id": 15,
+      "nombre": "Valen",
+      "apodo": "Ruta de Victorica",
+      "pueblo": "Victorica",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "corre como caldén en tormenta",
+      "historia": "De Victorica, empezó pateando en la calle de tierra. Corre como caldén en tormenta.",
+      "stats_auto": {
+        "pase": 47,
+        "tiro": 73,
+        "gambeta": 67,
+        "velocidad": 63,
+        "resistencia": 56,
+        "fisico": 58,
+        "aereo": 62,
+        "caracter": 53
+      }
+    },
+    {
+      "id": 16,
+      "nombre": "Ramiro",
+      "apodo": "Pampa de Eduardo Castex",
+      "pueblo": "Eduardo Castex",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "zurda de ruta 35",
+      "historia": "De Eduardo Castex, empezó pateando en la calle de tierra. Zurda de ruta 35.",
+      "stats_auto": {
+        "pase": 53,
+        "tiro": 68,
+        "gambeta": 70,
+        "velocidad": 61,
+        "resistencia": 53,
+        "fisico": 46,
+        "aereo": 59,
+        "caracter": 62
+      }
+    },
+    {
+      "id": 17,
+      "nombre": "Franco",
+      "apodo": "Churrasco de Realicó",
+      "pueblo": "Realicó",
+      "posicion": "ARQ",
+      "posicion_motor": "ARQ",
+      "rasgo": "cabezazo de molino",
+      "historia": "De Realicó, empezó pateando en la calle de tierra. Cabezazo de molino.",
+      "stats_auto": {
+        "pase": 43,
+        "tiro": 37,
+        "gambeta": 34,
+        "velocidad": 45,
+        "resistencia": 54,
+        "fisico": 64,
+        "aereo": 59,
+        "caracter": 56
+      }
+    },
+    {
+      "id": 18,
+      "nombre": "Eze",
+      "apodo": "Mate de Intendente Alvear",
+      "pueblo": "Intendente Alvear",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "tiro libre con tierra",
+      "historia": "De Intendente Alvear, empezó pateando en la calle de tierra. Tiro libre con tierra.",
+      "stats_auto": {
+        "pase": 56,
+        "tiro": 49,
+        "gambeta": 50,
+        "velocidad": 61,
+        "resistencia": 63,
+        "fisico": 58,
+        "aereo": 63,
+        "caracter": 59
+      }
+    },
+    {
+      "id": 19,
+      "nombre": "Lucho",
+      "apodo": "Laucha de Guatraché",
+      "pueblo": "Guatraché",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "marca hasta el alambrado",
+      "historia": "De Guatraché, empezó pateando en la calle de tierra. Marca hasta el alambrado.",
+      "stats_auto": {
+        "pase": 59,
+        "tiro": 40,
+        "gambeta": 40,
+        "velocidad": 62,
+        "resistencia": 56,
+        "fisico": 63,
+        "aereo": 60,
+        "caracter": 48
+      }
+    },
+    {
+      "id": 20,
+      "nombre": "Pablo",
+      "apodo": "Cacique de Macachín",
+      "pueblo": "Macachín",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "nunca se tira",
+      "historia": "De Macachín, empezó pateando en la calle de tierra. Nunca se tira.",
+      "stats_auto": {
+        "pase": 58,
+        "tiro": 54,
+        "gambeta": 67,
+        "velocidad": 61,
+        "resistencia": 68,
+        "fisico": 49,
+        "aereo": 53,
+        "caracter": 53
+      }
+    },
+    {
+      "id": 21,
+      "nombre": "Agus",
+      "apodo": "El Bagual de Winifreda",
+      "pueblo": "Winifreda",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "juega descalzo de chico",
+      "historia": "De Winifreda, empezó pateando en la calle de tierra. Juega descalzo de chico.",
+      "stats_auto": {
+        "pase": 57,
+        "tiro": 49,
+        "gambeta": 68,
+        "velocidad": 67,
+        "resistencia": 62,
+        "fisico": 49,
+        "aereo": 53,
+        "caracter": 52
+      }
+    },
+    {
+      "id": 22,
+      "nombre": "Gonza",
+      "apodo": "El Caldén de Toay",
+      "pueblo": "Toay",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "grita goles al cielo pampeano",
+      "historia": "De Toay, empezó pateando en la calle de tierra. Grita goles al cielo pampeano.",
+      "stats_auto": {
+        "pase": 65,
+        "tiro": 59,
+        "gambeta": 61,
+        "velocidad": 66,
+        "resistencia": 68,
+        "fisico": 47,
+        "aereo": 46,
+        "caracter": 60
+      }
+    },
+    {
+      "id": 23,
+      "nombre": "Maxi",
+      "apodo": "El Viento de General Pico",
+      "pueblo": "General Pico",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "patea contra el viento",
+      "historia": "De General Pico, empezó pateando en la calle de tierra. Patea contra el viento.",
+      "stats_auto": {
+        "pase": 55,
+        "tiro": 71,
+        "gambeta": 70,
+        "velocidad": 59,
+        "resistencia": 49,
+        "fisico": 46,
+        "aereo": 62,
+        "caracter": 57
+      }
+    },
+    {
+      "id": 24,
+      "nombre": "Lucas",
+      "apodo": "Polvo de Santa Rosa",
+      "pueblo": "Santa Rosa",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "mate en el entretiempo",
+      "historia": "De Santa Rosa, empezó pateando en la calle de tierra. Mate en el entretiempo.",
+      "stats_auto": {
+        "pase": 61,
+        "tiro": 67,
+        "gambeta": 56,
+        "velocidad": 61,
+        "resistencia": 55,
+        "fisico": 57,
+        "aereo": 56,
+        "caracter": 56
+      }
+    },
+    {
+      "id": 25,
+      "nombre": "Alan",
+      "apodo": "Ruta de Victorica",
+      "pueblo": "Victorica",
+      "posicion": "ARQ",
+      "posicion_motor": "ARQ",
+      "rasgo": "botines heredados",
+      "historia": "De Victorica, empezó pateando en la calle de tierra. Botines heredados.",
+      "stats_auto": {
+        "pase": 45,
+        "tiro": 44,
+        "gambeta": 41,
+        "velocidad": 47,
+        "resistencia": 58,
+        "fisico": 54,
+        "aereo": 63,
+        "caracter": 64
+      }
+    },
+    {
+      "id": 26,
+      "nombre": "Brian",
+      "apodo": "Pampa de Eduardo Castex",
+      "pueblo": "Eduardo Castex",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "corre como caldén en tormenta",
+      "historia": "De Eduardo Castex, empezó pateando en la calle de tierra. Corre como caldén en tormenta.",
+      "stats_auto": {
+        "pase": 57,
+        "tiro": 44,
+        "gambeta": 54,
+        "velocidad": 49,
+        "resistencia": 67,
+        "fisico": 57,
+        "aereo": 57,
+        "caracter": 50
+      }
+    },
+    {
+      "id": 27,
+      "nombre": "Kevin",
+      "apodo": "Churrasco de Realicó",
+      "pueblo": "Realicó",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "zurda de ruta 35",
+      "historia": "De Realicó, empezó pateando en la calle de tierra. Zurda de ruta 35.",
+      "stats_auto": {
+        "pase": 56,
+        "tiro": 45,
+        "gambeta": 51,
+        "velocidad": 58,
+        "resistencia": 61,
+        "fisico": 65,
+        "aereo": 52,
+        "caracter": 56
+      }
+    },
+    {
+      "id": 28,
+      "nombre": "Joel",
+      "apodo": "Mate de Intendente Alvear",
+      "pueblo": "Intendente Alvear",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "cabezazo de molino",
+      "historia": "De Intendente Alvear, empezó pateando en la calle de tierra. Cabezazo de molino.",
+      "stats_auto": {
+        "pase": 63,
+        "tiro": 51,
+        "gambeta": 56,
+        "velocidad": 62,
+        "resistencia": 60,
+        "fisico": 52,
+        "aereo": 53,
+        "caracter": 55
+      }
+    },
+    {
+      "id": 29,
+      "nombre": "Damián",
+      "apodo": "Laucha de Guatraché",
+      "pueblo": "Guatraché",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "tiro libre con tierra",
+      "historia": "De Guatraché, empezó pateando en la calle de tierra. Tiro libre con tierra.",
+      "stats_auto": {
+        "pase": 58,
+        "tiro": 61,
+        "gambeta": 62,
+        "velocidad": 53,
+        "resistencia": 55,
+        "fisico": 49,
+        "aereo": 45,
+        "caracter": 55
+      }
+    },
+    {
+      "id": 30,
+      "nombre": "Emi",
+      "apodo": "Cacique de Macachín",
+      "pueblo": "Macachín",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "marca hasta el alambrado",
+      "historia": "De Macachín, empezó pateando en la calle de tierra. Marca hasta el alambrado.",
+      "stats_auto": {
+        "pase": 59,
+        "tiro": 52,
+        "gambeta": 65,
+        "velocidad": 60,
+        "resistencia": 61,
+        "fisico": 47,
+        "aereo": 49,
+        "caracter": 56
+      }
+    },
+    {
+      "id": 31,
+      "nombre": "Rodrigo",
+      "apodo": "El Bagual de Winifreda",
+      "pueblo": "Winifreda",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "nunca se tira",
+      "historia": "De Winifreda, empezó pateando en la calle de tierra. Nunca se tira.",
+      "stats_auto": {
+        "pase": 57,
+        "tiro": 59,
+        "gambeta": 69,
+        "velocidad": 61,
+        "resistencia": 50,
+        "fisico": 57,
+        "aereo": 58,
+        "caracter": 56
+      }
+    },
+    {
+      "id": 32,
+      "nombre": "Julián",
+      "apodo": "El Caldén de Toay",
+      "pueblo": "Toay",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "juega descalzo de chico",
+      "historia": "De Toay, empezó pateando en la calle de tierra. Juega descalzo de chico.",
+      "stats_auto": {
+        "pase": 61,
+        "tiro": 64,
+        "gambeta": 57,
+        "velocidad": 57,
+        "resistencia": 61,
+        "fisico": 55,
+        "aereo": 57,
+        "caracter": 50
+      }
+    },
+    {
+      "id": 33,
+      "nombre": "Nahuel",
+      "apodo": "El Viento de General Pico",
+      "pueblo": "General Pico",
+      "posicion": "ARQ",
+      "posicion_motor": "ARQ",
+      "rasgo": "grita goles al cielo pampeano",
+      "historia": "De General Pico, empezó pateando en la calle de tierra. Grita goles al cielo pampeano.",
+      "stats_auto": {
+        "pase": 43,
+        "tiro": 36,
+        "gambeta": 34,
+        "velocidad": 50,
+        "resistencia": 53,
+        "fisico": 59,
+        "aereo": 55,
+        "caracter": 58
+      }
+    },
+    {
+      "id": 34,
+      "nombre": "Tobías",
+      "apodo": "Polvo de Santa Rosa",
+      "pueblo": "Santa Rosa",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "patea contra el viento",
+      "historia": "De Santa Rosa, empezó pateando en la calle de tierra. Patea contra el viento.",
+      "stats_auto": {
+        "pase": 51,
+        "tiro": 46,
+        "gambeta": 39,
+        "velocidad": 64,
+        "resistencia": 61,
+        "fisico": 59,
+        "aereo": 53,
+        "caracter": 60
+      }
+    },
+    {
+      "id": 35,
+      "nombre": "Uriel",
+      "apodo": "Ruta de Victorica",
+      "pueblo": "Victorica",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "mate en el entretiempo",
+      "historia": "De Victorica, empezó pateando en la calle de tierra. Mate en el entretiempo.",
+      "stats_auto": {
+        "pase": 51,
+        "tiro": 41,
+        "gambeta": 46,
+        "velocidad": 52,
+        "resistencia": 61,
+        "fisico": 61,
+        "aereo": 62,
+        "caracter": 63
+      }
+    },
+    {
+      "id": 36,
+      "nombre": "Santino",
+      "apodo": "Pampa de Eduardo Castex",
+      "pueblo": "Eduardo Castex",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "botines heredados",
+      "historia": "De Eduardo Castex, empezó pateando en la calle de tierra. Botines heredados.",
+      "stats_auto": {
+        "pase": 59,
+        "tiro": 60,
+        "gambeta": 65,
+        "velocidad": 53,
+        "resistencia": 56,
+        "fisico": 47,
+        "aereo": 46,
+        "caracter": 61
+      }
+    },
+    {
+      "id": 37,
+      "nombre": "Bauti",
+      "apodo": "Churrasco de Realicó",
+      "pueblo": "Realicó",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "corre como caldén en tormenta",
+      "historia": "De Realicó, empezó pateando en la calle de tierra. Corre como caldén en tormenta.",
+      "stats_auto": {
+        "pase": 69,
+        "tiro": 54,
+        "gambeta": 58,
+        "velocidad": 57,
+        "resistencia": 60,
+        "fisico": 50,
+        "aereo": 48,
+        "caracter": 55
+      }
+    },
+    {
+      "id": 38,
+      "nombre": "Ciro",
+      "apodo": "Mate de Intendente Alvear",
+      "pueblo": "Intendente Alvear",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "zurda de ruta 35",
+      "historia": "De Intendente Alvear, empezó pateando en la calle de tierra. Zurda de ruta 35.",
+      "stats_auto": {
+        "pase": 69,
+        "tiro": 59,
+        "gambeta": 65,
+        "velocidad": 65,
+        "resistencia": 60,
+        "fisico": 53,
+        "aereo": 53,
+        "caracter": 55
+      }
+    },
+    {
+      "id": 39,
+      "nombre": "Tiziano",
+      "apodo": "Laucha de Guatraché",
+      "pueblo": "Guatraché",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "cabezazo de molino",
+      "historia": "De Guatraché, empezó pateando en la calle de tierra. Cabezazo de molino.",
+      "stats_auto": {
+        "pase": 54,
+        "tiro": 73,
+        "gambeta": 56,
+        "velocidad": 62,
+        "resistencia": 61,
+        "fisico": 53,
+        "aereo": 60,
+        "caracter": 57
+      }
+    },
+    {
+      "id": 40,
+      "nombre": "Benicio",
+      "apodo": "Cacique de Macachín",
+      "pueblo": "Macachín",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "tiro libre con tierra",
+      "historia": "De Macachín, empezó pateando en la calle de tierra. Tiro libre con tierra.",
+      "stats_auto": {
+        "pase": 47,
+        "tiro": 73,
+        "gambeta": 71,
+        "velocidad": 65,
+        "resistencia": 52,
+        "fisico": 55,
+        "aereo": 54,
+        "caracter": 49
+      }
+    },
+    {
+      "id": 41,
+      "nombre": "Mirko",
+      "apodo": "El Bagual de Winifreda",
+      "pueblo": "Winifreda",
+      "posicion": "ARQ",
+      "posicion_motor": "ARQ",
+      "rasgo": "marca hasta el alambrado",
+      "historia": "De Winifreda, empezó pateando en la calle de tierra. Marca hasta el alambrado.",
+      "stats_auto": {
+        "pase": 56,
+        "tiro": 30,
+        "gambeta": 35,
+        "velocidad": 47,
+        "resistencia": 60,
+        "fisico": 56,
+        "aereo": 56,
+        "caracter": 62
+      }
+    },
+    {
+      "id": 42,
+      "nombre": "Thiago A.",
+      "apodo": "El Caldén de Toay",
+      "pueblo": "Toay",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "nunca se tira",
+      "historia": "De Toay, empezó pateando en la calle de tierra. Nunca se tira.",
+      "stats_auto": {
+        "pase": 50,
+        "tiro": 43,
+        "gambeta": 53,
+        "velocidad": 57,
+        "resistencia": 63,
+        "fisico": 69,
+        "aereo": 56,
+        "caracter": 53
+      }
+    },
+    {
+      "id": 43,
+      "nombre": "Lautaro G.",
+      "apodo": "El Viento de General Pico",
+      "pueblo": "General Pico",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "juega descalzo de chico",
+      "historia": "De General Pico, empezó pateando en la calle de tierra. Juega descalzo de chico.",
+      "stats_auto": {
+        "pase": 51,
+        "tiro": 40,
+        "gambeta": 38,
+        "velocidad": 63,
+        "resistencia": 55,
+        "fisico": 65,
+        "aereo": 63,
+        "caracter": 56
+      }
+    },
+    {
+      "id": 44,
+      "nombre": "Facundo R.",
+      "apodo": "Polvo de Santa Rosa",
+      "pueblo": "Santa Rosa",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "grita goles al cielo pampeano",
+      "historia": "De Santa Rosa, empezó pateando en la calle de tierra. Grita goles al cielo pampeano.",
+      "stats_auto": {
+        "pase": 69,
+        "tiro": 49,
+        "gambeta": 53,
+        "velocidad": 62,
+        "resistencia": 61,
+        "fisico": 54,
+        "aereo": 54,
+        "caracter": 52
+      }
+    },
+    {
+      "id": 45,
+      "nombre": "Nicolás P.",
+      "apodo": "Ruta de Victorica",
+      "pueblo": "Victorica",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "patea contra el viento",
+      "historia": "De Victorica, empezó pateando en la calle de tierra. Patea contra el viento.",
+      "stats_auto": {
+        "pase": 56,
+        "tiro": 52,
+        "gambeta": 64,
+        "velocidad": 67,
+        "resistencia": 57,
+        "fisico": 59,
+        "aereo": 43,
+        "caracter": 63
+      }
+    },
+    {
+      "id": 46,
+      "nombre": "Santiago V.",
+      "apodo": "Pampa de Eduardo Castex",
+      "pueblo": "Eduardo Castex",
+      "posicion": "MED",
+      "posicion_motor": "VOL",
+      "rasgo": "mate en el entretiempo",
+      "historia": "De Eduardo Castex, empezó pateando en la calle de tierra. Mate en el entretiempo.",
+      "stats_auto": {
+        "pase": 60,
+        "tiro": 57,
+        "gambeta": 58,
+        "velocidad": 65,
+        "resistencia": 62,
+        "fisico": 60,
+        "aereo": 50,
+        "caracter": 49
+      }
+    },
+    {
+      "id": 47,
+      "nombre": "Mateo S.",
+      "apodo": "Churrasco de Realicó",
+      "pueblo": "Realicó",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "botines heredados",
+      "historia": "De Realicó, empezó pateando en la calle de tierra. Botines heredados.",
+      "stats_auto": {
+        "pase": 56,
+        "tiro": 71,
+        "gambeta": 65,
+        "velocidad": 66,
+        "resistencia": 51,
+        "fisico": 51,
+        "aereo": 56,
+        "caracter": 57
+      }
+    },
+    {
+      "id": 48,
+      "nombre": "Juan Cruz",
+      "apodo": "Mate de Intendente Alvear",
+      "pueblo": "Intendente Alvear",
+      "posicion": "DEL",
+      "posicion_motor": "ATA",
+      "rasgo": "corre como caldén en tormenta",
+      "historia": "De Intendente Alvear, empezó pateando en la calle de tierra. Corre como caldén en tormenta.",
+      "stats_auto": {
+        "pase": 53,
+        "tiro": 67,
+        "gambeta": 71,
+        "velocidad": 62,
+        "resistencia": 53,
+        "fisico": 51,
+        "aereo": 63,
+        "caracter": 49
+      }
+    },
+    {
+      "id": 49,
+      "nombre": "Tomás F.",
+      "apodo": "Laucha de Guatraché",
+      "pueblo": "Guatraché",
+      "posicion": "ARQ",
+      "posicion_motor": "ARQ",
+      "rasgo": "zurda de ruta 35",
+      "historia": "De Guatraché, empezó pateando en la calle de tierra. Zurda de ruta 35.",
+      "stats_auto": {
+        "pase": 51,
+        "tiro": 30,
+        "gambeta": 39,
+        "velocidad": 51,
+        "resistencia": 57,
+        "fisico": 67,
+        "aereo": 62,
+        "caracter": 57
+      }
+    },
+    {
+      "id": 50,
+      "nombre": "Matías L.",
+      "apodo": "Cacique de Macachín",
+      "pueblo": "Macachín",
+      "posicion": "DEF",
+      "posicion_motor": "DEF",
+      "rasgo": "cabezazo de molino",
+      "historia": "De Macachín, empezó pateando en la calle de tierra. Cabezazo de molino.",
+      "stats_auto": {
+        "pase": 54,
+        "tiro": 41,
+        "gambeta": 39,
+        "velocidad": 54,
+        "resistencia": 62,
+        "fisico": 63,
+        "aereo": 68,
+        "caracter": 59
+      }
+    }
+  ]
+}
