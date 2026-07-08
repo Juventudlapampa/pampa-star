@@ -1,1 +1,8 @@
 .claude/
+
+# Material crudo del export de Drive: fuente local, NO va al repo/Pages.
+# Pesa ~186MB (imágenes IA sin optimizar) e incluye material de terceros
+# (parche de ROM de Captain Tsubasa) que NUNCA debe publicarse.
+# Lo que sirve se optimiza y se commitea en assets/ y data/.
+assets_drive/
+.assets_tmp/
