@@ -1,0 +1,80 @@
+{
+  "_schema": "pampa-star/balance@1",
+  "_notas": "Constantes de balance del motor Phaser, AFUERA del código (portable a Godot). Afinás un número, recargás, probás. Unidades: velocidades en px de mundo por segundo; distancias/radios en px de mundo (mundo lógico 1050x680 = 105x68 m). El motor las lee de este JSON.",
+
+  "mundo": {
+    "ancho": 1050,
+    "alto": 680,
+    "arco_medio": 55,
+    "comentario": "arco_medio = media boca del arco en px (decisión de legibilidad, no escala FIFA exacta)"
+  },
+
+  "velocidad": {
+    "_calibracion": "Fix del playtest: el avance es LENTO y con esfuerzo; NADIE es imbatible. El portador va más lento que un defensor cerrando, y perseguir cuesta Guts y no es infinito.",
+    "portador_con_pelota": 118,
+    "defensor_cerrando": 150,
+    "perseguidor_sin_pelota": 138,
+    "rival_con_pelota": 108,
+    "_regla": "defensor_cerrando > portador_con_pelota  →  te pueden alcanzar. perseguidor_sin_pelota < defensor_cerrando  →  correr al pedo no te hace súper-rápido."
+  },
+
+  "persecucion": {
+    "_nota": "Perseguir sin pelota drena Guts: no podés correr infinito.",
+    "guts_por_segundo": 6,
+    "guts_minimo_para_correr": 8,
+    "comentario": "por debajo de guts_minimo_para_correr, el jugador trota (cae a velocidad reducida)"
+  },
+
+  "conduccion": {
+    "guts_por_segundo": 3,
+    "radio_encuentro": 26,
+    "comentario": "conducir con la pelota también drena de a poco; radio_encuentro = a qué distancia el rival te sale al cruce y congela el tiempo"
+  },
+
+  "guts": {
+    "max": 100,
+    "umbral_rendido": 25,
+    "costo_pase": 20,
+    "costo_quite": 50,
+    "costo_pared": 60,
+    "costo_tiro": 80,
+    "recuperacion_entretiempo_frac": 0.125,
+    "cpu_factor_costo": 0.75,
+    "comentario": "umbral_rendido: por debajo solo pasás y corrés. cpu_factor_costo: la CPU también gasta (no energía infinita)."
+  },
+
+  "duelo": {
+    "spread": 58,
+    "min": 0.07,
+    "max": 0.95,
+    "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?')"
+  },
+
+  "tiro": {
+    "_zonas": "6 zonas tocables del arco. bonus suma/resta chance; fuera = prob. de irse afuera si ganaba (riesgo de la esquina); gy = desplazamiento vertical del destino para la animación.",
+    "zonas": [
+      { "id": "alto_izq",   "n": "Ángulo alto", "bonus": 6,  "fuera": 0.14, "gy": -44 },
+      { "id": "alto_centro","n": "Alto al medio","bonus": -2, "fuera": 0.03, "gy": 0 },
+      { "id": "alto_der",   "n": "Ángulo alto", "bonus": 6,  "fuera": 0.14, "gy": 44 },
+      { "id": "bajo_izq",   "n": "Palo bajo",   "bonus": 4,  "fuera": 0.08, "gy": -38 },
+      { "id": "bajo_centro","n": "Al medio",    "bonus": -4, "fuera": 0.01, "gy": 0 },
+      { "id": "bajo_der",   "n": "Palo bajo",   "bonus": 4,  "fuera": 0.08, "gy": 38 }
+    ]
+  },
+
+  "epica": {
+    "_nota": "Tiempos de la rebanada épica (ms). Afinables para que el remate emocione.",
+    "corrida_ms": 620,
+    "patada_windup_ms": 160,
+    "vuelo_ms": 620,
+    "curva_altura": 46,
+    "slowmo_factor": 0.28,
+    "slowmo_ms": 520,
+    "flash_ms": 120,
+    "shake_intensidad": 0.012,
+    "shake_ms": 260,
+    "zoom_remate": 1.35,
+    "red_sacudida_ms": 700,
+    "rebote_atajada_ms": 520
+  }
+}
