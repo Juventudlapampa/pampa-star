@@ -1,5 +1,22 @@
 # PAMPA STAR — Progreso
 
+## ✅ MIGRACIÓN A PHASER — HITO 1: la rebanada épica (jul 2026)
+Decisión de Rodri (`PAMPA_STAR_MIGRACION_PHASER.md`): el HTML validó el diseño, pero la ÉPICA pide un motor de juego → se migra a **Phaser 3**. **El HTML clásico NO se toca** (queda jugable de referencia); Phaser se construye AL LADO en `phaser/`. Solo se hizo el **HITO 1** (la secuencia de remate), y se frena para playtest: *si el remate emociona, seguimos.*
+
+**Qué hay (`phaser/`, 3 commits A-B-C):**
+- **La secuencia épica** (`scenes/shot.js`): corrida → patada (hit-stop+flash) → pelota que vuela con **curva bezier + estela** → el arquero **se estira** → desenlace con **GOL** (red que se sacude —malla de nodos con resorte—, flash, shake, fanfarria, burst de partículas, "¡GOOOL!"), **ATAJADA** (guantes, rebote, "¡LA SACÓ!") o **AFUERA**. Cámara con **zoom + pan + SLOW-MOTION** en el momento clave. **SFX originales** por beat (WebAudio, sin archivos). Apuntás **tocando el arco**; toggle ARQUERO NORMAL/FIGURA; botón REPETIR.
+- **El bug del arquero, CERRADO con test** (`logic/duel.js` + `test/duel.test.js`): `resolveShot()` es lógica PURA que decide una sola vez con el invariante **keeperWins ⇔ outcome≠'gol'**; la animación es esclava. 2010 asserts en verde. Verificado también en la animación (atajada = pelota afuera de la red, nunca gol).
+- **Calibración del playtest** (`data/balance.json`): avance lento (`portador 118 < defensor_cerrando 150`), perseguir cuesta aguante y no es infinito (`aguante_minimo`, `factor_trote`). El movimiento libre es HITO 2, pero las constantes ya están.
+- **Arquitectura para Godot**: DATA (`data/balance.json`) + LÓGICA pura (`logic/`) separadas del RENDER (`scenes/`, `audio/`). Phaser 3.80.1 (MIT) vendorizado en `vendor/` (anda con `file://` y en Pages, sin CDN). Ver `phaser/README.md`.
+
+**Revisión adversarial (3 lentes + verificador, 18 agentes):** 7 hallazgos confirmados, todos aplicados —
+1. Poder del tiro y skill del arquero (normal/figura) estaban hardcodeados en shot.js → movidos a `balance.json.duelo` (shot_power, keeper_skill). 2. **"Guts" es el nombre del medidor de energía de Captain Tsubasa** → renombrado a **"aguante"** en el balance nuevo (ver decisión pendiente ⬇). 3-5. Tiempos de animación y el trote sueltos → todos a `balance.epica`/`persecucion`. Los 2 leaks (partículas, tweens de reset) ya estaban arreglados en el propio build. 8 falsos positivos descartados con verificación (invariante textual, NaN, geometría de render, toggle daltónico —tiene etiqueta de texto—, etc.).
+
+**⚠ DECISIÓN PENDIENTE PARA RODRI — el nombre "GUTS":** la revisión marcó (con razón) que "Guts" es el nombre del medidor de energía de Tecmo/Captain Tsubasa, y la regla dura prohíbe nombres de esa saga. En el motor **Phaser nuevo** ya lo renombré a **"aguante"** (rioplatense, original). Pero el **motor HTML clásico** y varios docs siguen usando "guts"/"GUTS" por todos lados. **No hice el rename masivo en el clásico sin tu OK** (toca código que anda y tu terminología). Opciones: (a) rename project-wide a "aguante", (b) dejar el clásico como está (es legado) y solo el Phaser en limpio, (c) "guts" te parece bien igual (es palabra común de "aguante/agallas"). **Decime.**
+
+**Verificado:** test verde; gol/atajada/afuera consistentes con el duelo; mobile apaisado (vertical → "girá el celu"); REPETIR agresivo sin fugas ni trabas; el HTML clásico intacto; sin errores de consola.
+**Siguiente (con tu playtest):** HITO 2 partido jugable → 3 animaciones → 4 carrera → 5 presentación+audio → 6 escalera+Mundial.
+
 ## ✅ INGESTA DE ASSETS (jul 2026) — inventario curado + data separada + ilustraciones
 Rodri dejó el material que juntó (imágenes IA, sonidos, roster, diálogos, docs). Inventariado e ingerido por partes, con la regla de arquitectura: **el contenido va a estructuras limpias fuera del `index.html`, portable a Godot.**
 

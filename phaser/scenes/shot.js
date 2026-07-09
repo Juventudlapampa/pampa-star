@@ -125,7 +125,7 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
       const d = Phaser.Math.Distance.Between(px, py, n.rx, n.ry);
       if (d < 70) { const k = (1 - d / 70) * 26; n.vx += k; n.vy += (n.ry - py) * -0.04; } // empuja la malla hacia adentro
     }
-    this.netActive = 90; // frames de vida del resorte
+    this.netActive = this.BAL.epica.red_vida_frames; // frames de vida del resorte
   }
 
   update() {
@@ -159,7 +159,6 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
   }
 
   zoneTargetY(zona) {
-    const half = (this.mouthBot - this.mouthTop) / 2 - 12;
     return Phaser.Math.Clamp(this.midMouth + zona.gy * 1.5, this.mouthTop + 10, this.mouthBot - 10);
   }
 
@@ -170,9 +169,10 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
     const BAL = this.BAL, EP = BAL.epica;
 
     // ===== EL RESULTADO SE DECIDE ACÁ, UNA VEZ. La anim es esclava. =====
-    const keeperSkill = this.dificil ? 92 : 46;
+    // (poder del tiro y skill del arquero salen del JSON: cero balance hardcodeado)
+    const keeperSkill = this.dificil ? BAL.duelo.keeper_skill.figura : BAL.duelo.keeper_skill.normal;
     const res = window.PampaDuel.resolveShot({
-      shotPower: 66, keeperSkill, zone: zona,
+      shotPower: BAL.duelo.shot_power, keeperSkill, zone: zona,
       cfg: { spread: BAL.duelo.spread, min: BAL.duelo.min, max: BAL.duelo.max }
     });
     const targetY = res.outcome === "afuera"
@@ -244,8 +244,8 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
   impact(res, targetY, zona) {
     const EP = this.BAL.epica;
     this.trail.setFrequency(-1);            // apaga la estela
-    this.cameras.main.zoomTo(1, 420, "Sine.easeInOut");
-    this.cameras.main.pan(this.W / 2, this.H / 2, 420, "Sine.easeInOut");
+    this.cameras.main.zoomTo(1, EP.camara_reset_ms, "Sine.easeInOut");
+    this.cameras.main.pan(this.W / 2, this.H / 2, EP.camara_reset_ms, "Sine.easeInOut");
 
     if (res.outcome === "gol") {
       // ¡GOL! red que revienta + flash + shake + fanfarria
@@ -254,7 +254,7 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
       this.cameras.main.shake(EP.shake_ms, EP.shake_intensidad);
       this.cameras.main.flash(EP.flash_ms, 255, 255, 210);
       this.SFX && this.SFX.net();
-      this.time.delayedCall(90, () => this.SFX && this.SFX.goal());
+      this.time.delayedCall(EP.fanfarria_delay_ms, () => this.SFX && this.SFX.goal());
       this.burst(this.goalX + 30, targetY);
       this.punch("¡GOOOL!", "¡La clavó donde el viento no la saca!", this.COL.sol2);
       this.tweens.add({ targets: this.ball, y: targetY + 30, duration: EP.red_sacudida_ms, ease: "Bounce.easeOut" });
@@ -262,7 +262,7 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
       // ¡LA SACÓ! guantes + rebote
       this.ball.setPosition(this.keeper.x + 16, this.keeper.y);
       this.SFX && this.SFX.gloves();
-      this.cameras.main.shake(140, 0.006);
+      this.cameras.main.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
       this.dust(this.keeper.x + 16, this.keeper.y);
       this.punch("¡LA SACÓ!", "El arquero voló y la manoteó.", this.COL.cielo);
       // rebote afuera
@@ -272,10 +272,10 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
       // ¡AFUERA! pasa de largo el palo
       this.SFX && this.SFX.afuera();
       this.punch("¡AFUERA!", "Se fue por centímetros. ¡Uf!", this.COL.rojo);
-      this.tweens.add({ targets: this.ball, x: this.goalX + 240, y: targetY + (zona.gy < 0 ? -80 : 80), alpha: 0.2, duration: 520, ease: "Quad.easeIn" });
+      this.tweens.add({ targets: this.ball, x: this.goalX + 240, y: targetY + (zona.gy < 0 ? -80 : 80), alpha: 0.2, duration: EP.afuera_ms, ease: "Quad.easeIn" });
     }
 
-    this.time.delayedCall(1100, () => { this.repeat.setAlpha(1); this.busy = false; });
+    this.time.delayedCall(EP.mostrar_repetir_ms, () => { this.repeat.setAlpha(1); this.busy = false; });
   }
 
   // ---- efectos ----
@@ -288,14 +288,18 @@ window.PampaShot = class PampaShot extends Phaser.Scene {
     this.tweens.add({ targets: this.subText, alpha: 1, duration: 300, delay: 260 });
   }
   burst(x, y) {
-    this.add.particles(x, y, "spark_sol", { lifespan: 700, speed: { min: 120, max: 340 }, scale: { start: 1.4, end: 0 }, quantity: 26, angle: { min: 0, max: 360 }, tint: [0xffd84d, 0xffffff, 0x7ee08a], emitting: false }).setDepth(25).explode(26);
+    const e = this.add.particles(x, y, "spark_sol", { lifespan: 700, speed: { min: 120, max: 340 }, scale: { start: 1.4, end: 0 }, quantity: 26, angle: { min: 0, max: 360 }, tint: [0xffd84d, 0xffffff, 0x7ee08a], emitting: false }).setDepth(25);
+    e.explode(26); this.time.delayedCall(900, () => e.destroy());   // no dejar emisores colgados al repetir
   }
   dust(x, y) {
-    this.add.particles(x, y, "spark", { lifespan: 420, speed: { min: 40, max: 120 }, scale: { start: 0.9, end: 0 }, alpha: { start: 0.5, end: 0 }, quantity: 12, angle: { min: 200, max: 340 }, tint: 0xdfeef6, emitting: false }).setDepth(25).explode(12);
+    const e = this.add.particles(x, y, "spark", { lifespan: 420, speed: { min: 40, max: 120 }, scale: { start: 0.9, end: 0 }, alpha: { start: 0.5, end: 0 }, quantity: 12, angle: { min: 200, max: 340 }, tint: 0xdfeef6, emitting: false }).setDepth(25);
+    e.explode(12); this.time.delayedCall(600, () => e.destroy());
   }
 
   reset() {
-    this.repeat.setAlpha(0); this.bigText.setAlpha(0); this.subText.setAlpha(0);
+    // matar tweens colgados (p.ej. el punch del "¡GOOOL!" que aún late al tocar REPETIR)
+    this.tweens.killTweensOf([this.bigText, this.subText, this.ball, this.player, this.keeper, this.marker, this.reticle]);
+    this.repeat.setAlpha(0); this.bigText.setAlpha(0).setScale(1).setAngle(0); this.subText.setAlpha(0);
     this.player.setTexture("player_idle").setPosition(this.startX, this.startY);
     this.ball.setTexture("ball").setPosition(this.startX + 22, this.startY + 14).setScale(1.7).setAlpha(1).setRotation(0);
     this.keeper.setTexture("keeper_idle").setPosition(this.goalX - 30, this.midMouth);

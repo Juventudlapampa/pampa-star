@@ -10,7 +10,7 @@
   },
 
   "velocidad": {
-    "_calibracion": "Fix del playtest: el avance es LENTO y con esfuerzo; NADIE es imbatible. El portador va más lento que un defensor cerrando, y perseguir cuesta Guts y no es infinito.",
+    "_calibracion": "Fix del playtest: el avance es LENTO y con esfuerzo; NADIE es imbatible. El portador va más lento que un defensor cerrando, y perseguir cuesta AGUANTE y no es infinito.",
     "portador_con_pelota": 118,
     "defensor_cerrando": 150,
     "perseguidor_sin_pelota": 138,
@@ -19,19 +19,21 @@
   },
 
   "persecucion": {
-    "_nota": "Perseguir sin pelota drena Guts: no podés correr infinito.",
-    "guts_por_segundo": 6,
-    "guts_minimo_para_correr": 8,
-    "comentario": "por debajo de guts_minimo_para_correr, el jugador trota (cae a velocidad reducida)"
+    "_nota": "Perseguir sin pelota drena aguante: no podés correr infinito.",
+    "aguante_por_segundo": 6,
+    "aguante_minimo_para_correr": 8,
+    "factor_trote": 0.6,
+    "comentario": "por debajo de aguante_minimo_para_correr, el jugador TROTA: su velocidad cae a factor_trote (60%)"
   },
 
   "conduccion": {
-    "guts_por_segundo": 3,
+    "aguante_por_segundo": 3,
     "radio_encuentro": 26,
     "comentario": "conducir con la pelota también drena de a poco; radio_encuentro = a qué distancia el rival te sale al cruce y congela el tiempo"
   },
 
-  "guts": {
+  "aguante": {
+    "_nota": "AGUANTE = la energía/esfuerzo (antes 'guts'). Nombre original rioplatense. El motor clásico HTML todavía usa 'guts'; ver decisión pendiente en PROGRESO.",
     "max": 100,
     "umbral_rendido": 25,
     "costo_pase": 20,
@@ -47,7 +49,9 @@
     "spread": 58,
     "min": 0.07,
     "max": 0.95,
-    "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?')"
+    "shot_power": 66,
+    "keeper_skill": { "normal": 46, "figura": 92 },
+    "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?'). shot_power = fuerza del remate; keeper_skill = capacidad del arquero (normal/figura del toggle)."
   },
 
   "tiro": {
@@ -75,6 +79,13 @@
     "shake_ms": 260,
     "zoom_remate": 1.35,
     "red_sacudida_ms": 700,
-    "rebote_atajada_ms": 520
+    "rebote_atajada_ms": 520,
+    "atajada_shake_ms": 140,
+    "atajada_shake_int": 0.006,
+    "afuera_ms": 520,
+    "mostrar_repetir_ms": 1100,
+    "fanfarria_delay_ms": 90,
+    "red_vida_frames": 90,
+    "camara_reset_ms": 420
   }
 }
