@@ -9,14 +9,27 @@
     "comentario": "arco_medio = media boca del arco en px (decisión de legibilidad, no escala FIFA exacta)"
   },
 
-  "velocidad": {
-    "_calibracion": "Fix del playtest: el avance es LENTO y con esfuerzo; NADIE es imbatible. El portador va más lento que un defensor cerrando, y perseguir cuesta AGUANTE y no es infinito.",
-    "portador_con_pelota": 118,
-    "defensor_cerrando": 150,
-    "perseguidor_sin_pelota": 138,
-    "rival_con_pelota": 108,
-    "posicionales_por_segundo": 90,
-    "_regla": "defensor_cerrando > portador_con_pelota  →  te pueden alcanzar. perseguidor_sin_pelota < defensor_cerrando  →  correr al pedo no te hace súper-rápido."
+  "ritmo": {
+    "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR (pedido del playtest: 'arrancá BIEN PAUSADO'). La mayor parte del tiempo avanzás LENTO y con margen; el freno con zoom aparece SOLO en los momentos clave. Velocidades en px de mundo por segundo.",
+    "portador_con_pelota": 84,
+    "defensor_cerrando": 104,
+    "perseguidor_sin_pelota": 94,
+    "rival_con_pelota": 58,
+    "posicionales_por_segundo": 55,
+    "_regla": "defensor_cerrando > portador → te alcanzan, pero con AIRE para jugar antes.",
+    "radio_encuentro": 26,
+    "cooldown_encuentro_ms": 3200,
+    "persecutores": 1,
+    "arranque_rival_ms": 1500,
+    "_reaccion": "cooldown largo = respirás entre cruces; 1 solo perseguidor = hay espacio; arranque_rival_ms = cuando pierden/reciben la pelota, el rival la pisa un momento antes de arrancar (tenés tiempo de reaccionar y elegir marcador).",
+    "seg_por_minuto": 24,
+    "salto_accion_min": 0.4,
+    "salto_accion_max": 0.9,
+    "descuento_min": 1,
+    "descuento_max": 3,
+    "zoom_encuentro": 1.22,
+    "zoom_encuentro_ms": 380,
+    "_zoom": "al congelar un encuentro la cámara se ACERCA suave al cruce (lectura con calma, se ve a los de alrededor); al resolver vuelve igual de suave."
   },
 
   "persecucion": {
@@ -29,8 +42,7 @@
 
   "conduccion": {
     "aguante_por_segundo": 3,
-    "radio_encuentro": 26,
-    "comentario": "conducir con la pelota también drena de a poco; radio_encuentro = a qué distancia el rival te sale al cruce y congela el tiempo"
+    "comentario": "conducir con la pelota también drena de a poco (el radio de encuentro vive en ritmo.radio_encuentro)"
   },
 
   "aguante": {
@@ -60,20 +72,14 @@
       { "pos": "ATA", "n": 3, "ax": 730 }
     ],
     "elasticidad": { "ARQ": 0.02, "DEF": 0.25, "VOL": 0.45, "ATA": 0.6 },
-    "seg_por_minuto": 15,
-    "salto_accion_min": 0.6,
-    "salto_accion_max": 1.4,
-    "descuento_min": 1,
-    "descuento_max": 3,
-    "dist_tiro": 320,
+    "dist_tiro": 380,
     "dist_remate_rival": 200,
     "pase_radio": 380,
     "pase_penal_lejano": 0.05,
     "matriz_bonus": 12,
     "cpu_pesos": { "quite": 0.4, "corte": 0.3, "bloqueo": 0.3 },
-    "cpu_persecutores": 2,
     "calden": { "x_min": 680, "aguante": 30, "mult": 1.3 },
-    "comentario": "dist_tiro: a menos de esto del arco rival podés rematar. matriz_bonus: cuánto pesa acertar/errar la adivinanza (quite>gambeta, corte>pase, bloqueo>tiro). calden.x_min: el Disparo del Caldén se habilita pasando esa línea con aguante suficiente."
+    "comentario": "dist_tiro: a menos de esto del arco rival podés rematar (subido a 380: que se LLEGUE a patear). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: el Caldén se habilita pasando esa línea con aguante. (El reloj, los saltos y los perseguidores viven en el bloque ritmo.)"
   },
 
   "duelo": {

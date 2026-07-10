@@ -65,13 +65,13 @@
       rivalKeeperSkill: opts.rivalKeeperSkill != null ? opts.rivalKeeperSkill : bal.duelo.keeper_skill.normal,
       minuto: 0, tiempo: 1,
       /* descuento OCULTO e impredecible por tiempo (doc §6: nadie sabe cuándo pita) */
-      desc1: P.descuento_min + Math.floor(rng() * (P.descuento_max - P.descuento_min + 1)),
-      desc2: P.descuento_min + Math.floor(rng() * (P.descuento_max - P.descuento_min + 1)),
+      desc1: bal.ritmo.descuento_min + Math.floor(rng() * (bal.ritmo.descuento_max - bal.ritmo.descuento_min + 1)),
+      desc2: bal.ritmo.descuento_min + Math.floor(rng() * (bal.ritmo.descuento_max - bal.ritmo.descuento_min + 1)),
       golesMio: 0, golesRival: 0,
       posesion: "mia", modo: "juego",
       ctrl: idxDelVos(null), pelota: { x: W / 2, y: H / 2 },
       portadorRival: 0,
-      cooldown: 0, _t: 0
+      cooldown: 0, esperaRival: 0, _t: 0
     };
     // el 9 (VOS o el primero ATA) arranca con la pelota
     st.ctrl = st.mios.findIndex(function (j) { return j.esVos; });
@@ -84,7 +84,7 @@
   /* ---------- saques y reposicionamiento ---------- */
   function kickoff(st, quien) {
     var W = st.W, H = st.H;
-    st.posesion = quien; st.modo = "juego"; st.cooldown = 1200;
+    st.posesion = quien; st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     st.mios.forEach(function (j) { j.x = j.ax; j.y = (j.banda[0] + j.banda[1]) / 2; });
     st.rivales.forEach(function (j) { j.x = j.ax; j.y = (j.banda[0] + j.banda[1]) / 2; });
     if (quien === "mia") {
@@ -97,6 +97,7 @@
       st.rivales[st.portadorRival].x = W / 2 + 20; st.rivales[st.portadorRival].y = H / 2;
       st.ctrl = masCercanoAPelota(st);
       st.pelota.x = W / 2 + 12; st.pelota.y = H / 2;
+      st.esperaRival = st.bal.ritmo.arranque_rival_ms;   // la pisa un momento: tenés tiempo de reaccionar
     }
   }
   function masCercanoAPelota(st) {
@@ -112,12 +113,12 @@
   /* ---------- el TICK del modo juego ---------- */
   function tick(st, dtMs, input) {
     if (st.modo !== "juego") return [];
-    var ev = [], dt = dtMs / 1000, bal = st.bal, V = bal.velocidad, P = bal.partido;
+    var ev = [], dt = dtMs / 1000, bal = st.bal, V = bal.ritmo, P = bal.partido, R = bal.ritmo;
     st._t += dtMs;
     if (st.cooldown > 0) st.cooldown = Math.max(0, st.cooldown - dtMs);
 
     /* reloj: corre en tiempo real solo acá (menús y cine lo congelan) */
-    st.minuto += dt / P.seg_por_minuto;
+    st.minuto += dt / R.seg_por_minuto;
     var limite = (st.tiempo === 1 ? 45 + st.desc1 : 90 + st.desc2);
     if (st.minuto >= limite) { ev.push({ tipo: st.tiempo === 1 ? "entretiempo" : "final" }); st.modo = "congelado"; return ev; }
 
@@ -143,7 +144,7 @@
       var el = P.elasticidad[j.pos] != null ? P.elasticidad[j.pos] : 0.4;
       var tx = clamp(j.ax + empuje * el * (esMio ? 1 : 1), 20, st.W - 20);
       var ty = clamp(st.pelota.y, j.banda[0], j.banda[1]) + Math.sin(st._t * 0.003 + j.idle) * 3;
-      var v = V.posicionales_por_segundo || 90;
+      var v = V.posicionales_por_segundo || 55;
       j.x += clamp(tx - j.x, -v * dt, v * dt);
       j.y += clamp(ty - j.y, -v * dt, v * dt);
     }
@@ -156,7 +157,7 @@
       /* los N rivales más cercanos te CIERRAN (más rápidos que vos: te alcanzan) */
       var caza = st.rivales.map(function (j, i) { return { i: i, d: dist(j.x, j.y, ctrl.x, ctrl.y) }; })
         .filter(function (o) { return st.rivales[o.i].pos !== "ARQ"; })
-        .sort(function (a, b) { return a.d - b.d; }).slice(0, P.cpu_persecutores);
+        .sort(function (a, b) { return a.d - b.d; }).slice(0, R.persecutores);
       st.rivales.forEach(function (j, i) {
         var esCaza = caza.some(function (o) { return o.i === i; });
         if (esCaza) {
@@ -169,7 +170,7 @@
       /* encuentro: te salieron al cruce */
       if (st.cooldown === 0) {
         for (var k = 0; k < caza.length; k++) {
-          if (caza[k].d < bal.conduccion.radio_encuentro) {
+          if (caza[k].d < R.radio_encuentro) {
             st.modo = "congelado";
             ev.push({ tipo: "encuentro", rivalIdx: caza[k].i });
             return ev;
@@ -177,15 +178,19 @@
         }
       }
     } else {
-      /* la CPU ataca: su portador avanza hacia TU arco (x → 0) */
+      /* la CPU ataca: su portador avanza hacia TU arco (x → 0).
+         RITMO: recién recibida, la PISA un momento (arranque_rival_ms) — tu ventana de reacción. */
       var pr = st.rivales[st.portadorRival];
-      pr.x = clamp(pr.x - V.rival_con_pelota * dt, 20, st.W - 20);
-      pr.y = clamp(pr.y + Math.sin(pr.x * 0.02) * 26 * dt, 20, st.H - 20);
+      if (st.esperaRival > 0) { st.esperaRival = Math.max(0, st.esperaRival - dtMs); }
+      else {
+        pr.x = clamp(pr.x - V.rival_con_pelota * dt, 20, st.W - 20);
+        pr.y = clamp(pr.y + Math.sin(pr.x * 0.02) * 26 * dt, 20, st.H - 20);
+      }
       st.pelota.x += (pr.x - 12 - st.pelota.x) * Math.min(1, dt * 10);
       st.pelota.y += (pr.y - st.pelota.y) * Math.min(1, dt * 10);
       st.rivales.forEach(function (j, i) { if (i !== st.portadorRival) moverPosicional(j, false, i); });
       /* encuentro defensivo: TU marcador lo alcanzó */
-      if (st.cooldown === 0 && dist(ctrl.x, ctrl.y, pr.x, pr.y) < bal.conduccion.radio_encuentro) {
+      if (st.cooldown === 0 && dist(ctrl.x, ctrl.y, pr.x, pr.y) < R.radio_encuentro) {
         st.modo = "congelado";
         ev.push({ tipo: "encuentroDef" });
         return ev;
@@ -203,8 +208,8 @@
   /* ---------- reloj a saltos ---------- */
   function saltoReloj(st, rng) {
     rng = rng || Math.random;
-    var P = st.bal.partido;
-    st.minuto += P.salto_accion_min + rng() * (P.salto_accion_max - P.salto_accion_min);
+    var R = st.bal.ritmo;
+    st.minuto += R.salto_accion_min + rng() * (R.salto_accion_max - R.salto_accion_min);
   }
   /* tras un salto, ¿pitó? (para que el árbitro pueda cortar después de una acción) */
   function chequearTiempo(st) {
@@ -305,26 +310,27 @@
   function ganarAtaque(st, accion) {
     var c = st.mios[st.ctrl];
     c.x = clamp(c.x + (accion === "pared" ? 60 : accion === "gambeta" ? 46 : 30), 14, st.W - 14);
-    st.cooldown = 1400; st.modo = "juego";
+    st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
   }
   function perderPelota(st, rng) {
     rng = rng || Math.random;
-    st.posesion = "rival"; st.modo = "juego"; st.cooldown = 1400;
-    /* el rival más cercano se la lleva */
+    st.posesion = "rival"; st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+    /* el rival más cercano se la lleva, y la PISA: tenés tiempo de acomodarte */
     var c = st.mios[st.ctrl], mejor = 0, md = 1e9;
     st.rivales.forEach(function (j, i) { if (j.pos === "ARQ") return; var d = dist(j.x, j.y, c.x, c.y); if (d < md) { md = d; mejor = i; } });
     st.portadorRival = mejor;
     st.ctrl = masCercanoAPelota(st);
+    st.esperaRival = st.bal.ritmo.arranque_rival_ms;
   }
   function ganarDefensa(st) {
-    st.posesion = "mia"; st.modo = "juego"; st.cooldown = 1400;
+    st.posesion = "mia"; st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     /* recuperaste: seguís con el que marcó */
     st.pelota.x = st.mios[st.ctrl].x + 12; st.pelota.y = st.mios[st.ctrl].y;
   }
   function perderDefensa(st) {
     var pr = st.rivales[st.portadorRival];
     pr.x = clamp(pr.x - 60, 20, st.W - 20);   // te dejó atrás: gana metros
-    st.modo = "juego"; st.cooldown = 1400;
+    st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
   }
 
   /* ---------- pases ---------- */
@@ -359,7 +365,7 @@
       st.ctrl = receptorIdx;                       // el control VIAJA con el pase
       var r = st.mios[receptorIdx];
       st.pelota.x = r.x + 12; st.pelota.y = r.y;
-      st.cooldown = 1200; st.modo = "juego";
+      st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
     } else {
       perderPelota(st, rng);
     }
@@ -385,7 +391,7 @@
     return { shotPower: poder, keeperSkill: st.rivalKeeperSkill };
   }
   function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
-  function tiroFallado(st, rng) { perderPelota(st, rng); st.cooldown = 1800; }
+  function tiroFallado(st, rng) { perderPelota(st, rng); st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }
 
   /* ---------- el remate RIVAL contra tu arquero ---------- */
   function opcionesArquero(st) {
@@ -408,8 +414,8 @@
     if (eleccion === "despejar") {
       /* dividida al medio: 50/50 */
       var mia = rng() < 0.5;
-      if (mia) { st.posesion = "mia"; st.ctrl = masCercanoAPelota(st); st.pelota.x = st.W / 2; st.pelota.y = st.H / 2; st.modo = "juego"; st.cooldown = 1400; reubicar(st); }
-      else { st.posesion = "rival"; st.portadorRival = st.rivales.length - 2; st.rivales[st.portadorRival].x = st.W / 2; st.rivales[st.portadorRival].y = st.H / 2; st.pelota.x = st.W / 2; st.pelota.y = st.H / 2; st.ctrl = masCercanoAPelota(st); st.modo = "juego"; st.cooldown = 1400; }   // auto-switch: marcás con el más cercano a la dividida
+      if (mia) { st.posesion = "mia"; st.ctrl = masCercanoAPelota(st); st.pelota.x = st.W / 2; st.pelota.y = st.H / 2; st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; reubicar(st); }
+      else { st.posesion = "rival"; st.portadorRival = st.rivales.length - 2; st.rivales[st.portadorRival].x = st.W / 2; st.rivales[st.portadorRival].y = st.H / 2; st.pelota.x = st.W / 2; st.pelota.y = st.H / 2; st.ctrl = masCercanoAPelota(st); st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }   // auto-switch: marcás con el más cercano a la dividida
       return { golRival: false, dividida: true, mia: mia, eleccion: eleccion };
     }
     /* atajó y retiene: salís jugando desde tu área */
@@ -417,7 +423,7 @@
     st.ctrl = st.mios.findIndex(function (j) { return j.pos === "DEF"; });
     var d0 = st.mios[st.ctrl]; d0.x = 200; d0.y = st.H / 2;
     st.pelota.x = 212; st.pelota.y = st.H / 2;
-    st.modo = "juego"; st.cooldown = 1600;
+    st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     return { golRival: false, retiene: true, eleccion: eleccion };
   }
   function reubicar(st) {

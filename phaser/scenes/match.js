@@ -70,6 +70,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.buildRadar();
     this.buildCineBase();
 
+    /* cámara doble: la principal (cancha+cine) puede hacer ZOOM a los cruces;
+       la de UI (hud+menús) queda siempre quieta y sin escalar */
+    this.uiCam = this.cameras.add(0, 0, this.W, this.H);
+    this.cameras.main.ignore([this.hudLayer, this.menuLayer]);
+    this.uiCam.ignore([this.gameLayer, this.cineLayer]);
+
     /* input de campo: arrastrás y el jugador va (coordenadas de mundo) */
     this.input.on("pointerdown", (p) => this.onCampo(p));
     this.input.on("pointermove", (p) => { if (p.isDown) this.onCampo(p); });
@@ -277,11 +283,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     const evs = P.tick(st, delta, input);
     for (const ev of evs) {
-      if (ev.tipo === "encuentro") { this.target = null; this.abrirMenuAtaque(); }
-      else if (ev.tipo === "encuentroDef") { this.target = null; this.abrirMenuDefensa(); }
-      else if (ev.tipo === "rivalTira") { this.target = null; this.abrirMenuArquero(); }
-      else if (ev.tipo === "entretiempo") { this.target = null; this.panelTiempo("entretiempo"); }
-      else if (ev.tipo === "final") { this.target = null; this.panelTiempo("final"); }
+      this.target = null;
+      /* RITMO: el freno con zoom aparece SOLO acá — encuentro/remate: la cámara se acerca
+         SUAVE al cruce, ves a los de alrededor, y recién entonces aparece el menú (lectura) */
+      if (ev.tipo === "encuentro") this.prepararEncuentro(ev.rivalIdx, () => this.abrirMenuAtaque());
+      else if (ev.tipo === "encuentroDef") this.prepararEncuentro(null, () => this.abrirMenuDefensa());
+      else if (ev.tipo === "rivalTira") this.prepararEncuentro(null, () => this.abrirMenuArquero());
+      else if (ev.tipo === "entretiempo") this.panelTiempo("entretiempo");
+      else if (ev.tipo === "final") this.panelTiempo("final");
     }
 
     this.dibujarMundo(time);
@@ -330,17 +339,55 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
 
   /* ============================== MENÚS (encuentro) ============================== */
+  /* la LECTURA: la cámara se acerca suave al cruce ANTES de abrir el menú */
+  prepararEncuentro(rivalIdx, abrir) {
+    this.fase = "menu";
+    const st = this.st, R = this.BAL.ritmo;
+    const c = st.mios[st.ctrl];
+    const otro = rivalIdx != null ? st.rivales[rivalIdx]
+      : (st.posesion === "rival" ? st.rivales[st.portadorRival] : c);
+    this._marcarRival(otro);
+    const p = this.aPantalla((c.x + otro.x) / 2, (c.y + otro.y) / 2);
+    this.cameras.main.zoomTo(R.zoom_encuentro, R.zoom_encuentro_ms, "Sine.easeInOut");
+    this.cameras.main.pan(p.x, Math.max(p.y, 150), R.zoom_encuentro_ms, "Sine.easeInOut");
+    this.time.delayedCall(Math.round(R.zoom_encuentro_ms * 0.85), abrir);
+  }
+  _marcarRival(j) {
+    this._quitarMarcaRival();
+    if (!j) return;
+    const s = this.aPantalla(j.x, j.y);
+    this._encMark = this.add.text(s.x, s.y - 52 * s.escala - 12, "▽", { fontFamily: "monospace", fontSize: "16px", color: "#e3503e", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5).setDepth(s.y + 3);
+    this.gameLayer.add(this._encMark);
+    if (this.uiCam) this.uiCam.ignore(this._encMark);
+  }
+  _quitarMarcaRival() { if (this._encMark) { this._encMark.destroy(); this._encMark = null; } }
+  /* volver al juego: destraba y la cámara vuelve igual de suave */
+  reanudar(pit) {
+    this._quitarMarcaRival();
+    if (pit) { this.panelTiempo(pit); return; }
+    this.st.modo = "juego"; this.fase = "juego";
+    const R = this.BAL.ritmo;
+    this.cameras.main.zoomTo(1, R.zoom_encuentro_ms, "Sine.easeInOut");
+    this.cameras.main.pan(this.W / 2, this.H / 2, R.zoom_encuentro_ms, "Sine.easeInOut");
+  }
   limpiarMenu() { this.menuLayer.removeAll(true); this.menuLayer.setVisible(false); }
+  /* menú COMPACTO abajo: la cancha queda visible (el momento de decisión es de LECTURA) */
   panelBase(titulo) {
     this.menuLayer.removeAll(true);
     const W = this.W, H = this.H;
-    const fondo = this.add.rectangle(W / 2, H / 2, W, H, 0x06120b, 0.72);
-    const panel = this.add.rectangle(W / 2, H / 2 + 30, 560, 320, 0x0d2a18, 0.96).setStrokeStyle(3, 0xf6c11d, 0.8);
-    const t = this.add.text(W / 2, H / 2 - 100, titulo, { fontFamily: "monospace", fontSize: "17px", color: "#f6efdc", align: "center", wordWrap: { width: 520 } }).setOrigin(0.5);
-    this.menuLayer.add([fondo, panel, t]);
+    const strip = this.add.rectangle(W / 2, H - 92, W, 184, 0x0d2a18, 0.94).setStrokeStyle(3, 0xf6c11d, 0.7);
+    const t = this.add.text(W / 2, H - 164, titulo, { fontFamily: "monospace", fontSize: "14px", color: "#f6efdc", align: "center", wordWrap: { width: W - 40 } }).setOrigin(0.5);
+    this.menuLayer.add([strip, t]);
     this.menuLayer.setVisible(true);
     this.fase = "menu";
     return t;
+  }
+  /* fila horizontal de botones centrada */
+  filaBotones(items, y, ancho) {
+    const n = items.length, gap = 12;
+    const total = n * ancho + (n - 1) * gap;
+    let x = this.W / 2 - total / 2 + ancho / 2;
+    items.forEach(it => { this.botonMenu(x, y, ancho, it.texto, it.sub, it.cb, it.bloqueada, it.motivo); x += ancho + gap; });
   }
   botonMenu(x, y, w, texto, sub, cb, bloqueada, motivo) {
     const bg = bloqueada ? 0x333d36 : 0xf6efdc;
@@ -354,14 +401,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
   abrirMenuAtaque() {
     const st = this.st, P = window.PampaPartido;
-    this.panelBase("⚔ ¡Te salen al cruce! ¿Qué hacés?\n(la matriz: quite>gambeta · corte>pase · bloqueo>tiro — adiviná qué eligen)");
+    this.panelBase("⚔ ¡Te salen al cruce! (quite>gambeta · corte>pase · bloqueo>tiro: adiviná qué eligen)");
     const acc = P.accionesAtaque(st);
-    const W = this.W, H = this.H, y0 = H / 2 - 40;
-    acc.forEach((a, i) => {
-      const fila = Math.floor(i / 2), col = i % 2;
+    this.filaBotones(acc.map(a => {
       const pct = Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st), this.BAL.duelo) * 100);
-      this.botonMenu(W / 2 - 140 + col * 280, y0 + fila * 66, 260,
-        a.ico + " " + a.n, "~" + pct + "% · " + a.costo + " aguante", () => {
+      return {
+        texto: a.ico + " " + a.n, sub: "~" + pct + "% · " + a.costo + " ag.", bloqueada: a.bloqueada, motivo: a.motivo,
+        cb: () => {
           if (a.id === "pase") { this.abrirMenuPases(true); return; }
           if (a.id === "tiro") {
             /* la matriz manda: primero hay que zafar del BLOQUEO del defensor */
@@ -370,13 +416,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
             else {
               this.limpiarMenu(); P.perderPelota(st);
               this.avisar(r.matriz === "leyeron" ? "¡TE BLOQUEARON EL TIRO! Lo veían venir." : "TE LO TAPARON. Pelota rival.", 1600);
-              const pit = P.chequearTiempo(st); if (pit) this.panelTiempo(pit); else this.fase = "juego";
+              this.reanudar(P.chequearTiempo(st));
             }
             return;
           }
           this.resolverAtaque(a);
-        }, a.bloqueada, a.motivo);
-    });
+        }
+      };
+    }), this.H - 96, 222);
   }
   resolverAtaque(a) {
     const st = this.st, P = window.PampaPartido;
@@ -386,62 +433,60 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const despues = () => {
       if (r.win) { P.ganarAtaque(st, a.id); this.avisar(a.id === "pared" ? "¡PARED Y SEGUÍS DE LARGO!" : "¡LO DEJASTE ATRÁS!" + (r.matriz === "zafaste" ? " (le erraron a la marca)" : ""), 1400); }
       else { P.perderPelota(st); this.avisar(r.matriz === "leyeron" ? "¡TE LEYERON LA JUGADA! Pelota rival." : "TE LA SACARON. Pelota rival.", 1600); this.SFX && this.SFX.whistle(); }
-      const pit = P.chequearTiempo(st); if (pit) this.panelTiempo(pit); else this.fase = "juego";
+      this.reanudar(P.chequearTiempo(st));
     };
     if (importante) this.cineGambeta(r.win, despues); else despues();
   }
 
   abrirMenuDefensa() {
     const st = this.st, P = window.PampaPartido;
-    this.panelBase("🛡 ¡" + this.nombreRival + " avanza con la pelota! Te toca marcar.\n(solo ves TUS números: adivinar la intención rival es el juego)");
+    this.panelBase("🛡 ¡" + this.nombreRival + " avanza! Solo ves TUS números: adivinar su intención es el juego.");
     const acc = P.accionesDefensa(st);
-    const W = this.W, H = this.H, y0 = H / 2 - 40;
-    acc.forEach((a, i) => {
+    this.filaBotones(acc.map(a => {
       const pct = Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st) + 4, this.BAL.duelo) * 100);
-      this.botonMenu(W / 2, y0 + i * 64, 300, a.ico + " " + a.n, "~" + pct + "% · " + a.costo + " aguante", () => {
-        const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo });
-        this.limpiarMenu();
-        if (r.win) { P.ganarDefensa(st); this.avisar("¡RECUPERASTE! " + (r.matriz === "leiste" ? "(le leíste la intención)" : ""), 1500); this.SFX && this.SFX.whistle(); }
-        else { P.perderDefensa(st); this.avisar(r.matriz === "teEngano" ? "TE ENGAÑÓ CON EL AMAGUE… sigue el rival." : "SE TE ESCAPÓ POR VELOCIDAD…", 1500); }
-        const pit = P.chequearTiempo(st); if (pit) this.panelTiempo(pit); else this.fase = "juego";
-      }, a.bloqueada, a.motivo);
-    });
+      return {
+        texto: a.ico + " " + a.n, sub: "~" + pct + "% · " + a.costo + " ag.", bloqueada: a.bloqueada, motivo: a.motivo,
+        cb: () => {
+          const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo });
+          this.limpiarMenu();
+          if (r.win) { P.ganarDefensa(st); this.avisar("¡RECUPERASTE! " + (r.matriz === "leiste" ? "(le leíste la intención)" : ""), 1500); this.SFX && this.SFX.whistle(); }
+          else { P.perderDefensa(st); this.avisar(r.matriz === "teEngano" ? "TE ENGAÑÓ CON EL AMAGUE… sigue el rival." : "SE TE ESCAPÓ POR VELOCIDAD…", 1500); }
+          this.reanudar(P.chequearTiempo(st));
+        }
+      };
+    }), this.H - 96, 280);
   }
 
   abrirMenuPases(desdeEncuentro) {
     const st = this.st, P = window.PampaPartido;
-    this.panelBase("➡️ ¿A quién se la das? (adelante rinde más)");
+    this.panelBase("➡️ ¿A quién se la das? (▲ = adelante, rinde más)");
     const rs = P.receptoresPase(st);
-    const W = this.W, H = this.H, y0 = H / 2 - 44;
-    rs.forEach((r, i) => {
-      this.botonMenu(W / 2, y0 + i * 60, 380,
-        (r.adelante ? "▲ " : "◀ ") + r.nombre.toUpperCase().slice(0, 12) + " · " + r.pos,
-        r.pct + "% · " + r.d + "m" + (r.adelante ? " · adelante" : ""), () => {
-          const res = P.resolverPase(st, r.idx, r.pct);
-          this.limpiarMenu();
-          if (res.win) this.avisar("AHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase(), 1300);
-          else { this.avisar("¡INTERCEPTADO! Leyeron el pase.", 1600); this.SFX && this.SFX.whistle(); }
-          const pit = P.chequearTiempo(st); if (pit) this.panelTiempo(pit); else this.fase = "juego";
-        });
-    });
-    this.botonMenu(W / 2, y0 + rs.length * 60 + 6, 380, "◀ VOLVER", desdeEncuentro ? "al encuentro" : "seguir jugando", () => {
-      if (desdeEncuentro) this.abrirMenuAtaque();
-      else { this.limpiarMenu(); st.modo = "juego"; this.fase = "juego"; }
-    });
+    this.filaBotones(rs.map(r => ({
+      texto: (r.adelante ? "▲ " : "◀ ") + r.nombre.toUpperCase().slice(0, 9),
+      sub: r.pct + "% · " + r.d + "m",
+      cb: () => {
+        const res = P.resolverPase(st, r.idx, r.pct);
+        this.limpiarMenu();
+        if (res.win) this.avisar("AHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase(), 1300);
+        else { this.avisar("¡INTERCEPTADO! Leyeron el pase.", 1600); this.SFX && this.SFX.whistle(); }
+        this.reanudar(P.chequearTiempo(st));
+      }
+    })), this.H - 122, 200);
+    this.filaBotones([{
+      texto: "◀ VOLVER", sub: desdeEncuentro ? "al encuentro" : "seguir jugando",
+      cb: () => { if (desdeEncuentro) this.abrirMenuAtaque(); else { this.limpiarMenu(); this.reanudar(null); } }
+    }], this.H - 52, 300);
   }
 
   /* --- zonas del arco (el apuntado del remate) --- */
   abrirZonas(esCalden, desdeEncuentro) {
-    const st = this.st;
-    this.panelBase((esCalden ? "🔥 DISPARO DEL CALDÉN — " : "🎯 ") + "¿A qué zona del arco?\n(esquinas: más gol, más riesgo de que se vaya afuera)");
-    const zonas = this.BAL.tiro.zonas, W = this.W, H = this.H;
-    zonas.forEach((z, i) => {
-      const fila = Math.floor(i / 3), col = i % 3;
-      this.botonMenu(W / 2 - 180 + col * 180, H / 2 - 20 + fila * 66, 165,
-        z.n, "riesgo " + Math.round(z.fuera * 100) + "%", () => this.ejecutarRemate(z, esCalden));
-    });
+    this.panelBase((esCalden ? "🔥 DISPARO DEL CALDÉN — " : "🎯 ") + "¿A qué zona? (esquinas: más gol, más riesgo de afuera)");
+    const zonas = this.BAL.tiro.zonas;
+    this.filaBotones(zonas.slice(0, 3).map(z => ({ texto: z.n, sub: "riesgo " + Math.round(z.fuera * 100) + "%", cb: () => this.ejecutarRemate(z, esCalden) })), this.H - 122, 220);
+    const fila2 = zonas.slice(3).map(z => ({ texto: z.n, sub: "riesgo " + Math.round(z.fuera * 100) + "%", cb: () => this.ejecutarRemate(z, esCalden) }));
     /* si venís de zafar un encuentro no hay VOLVER gratis: el remate ya está lanzado a decisión */
-    if (!desdeEncuentro) this.botonMenu(W / 2, H / 2 + 120, 380, "◀ VOLVER", "seguir jugando", () => { this.limpiarMenu(); st.modo = "juego"; this.fase = "juego"; });
+    if (!desdeEncuentro) fila2.push({ texto: "◀ VOLVER", sub: "seguir jugando", cb: () => { this.limpiarMenu(); this.reanudar(null); } });
+    this.filaBotones(fila2, this.H - 52, desdeEncuentro ? 220 : 190);
   }
 
   ejecutarRemate(zona, esCalden) {
@@ -486,7 +531,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.strokePath();
     }
   }
-  entrarCine() { this.fase = "cine"; this.gameLayer.setVisible(false); this.hudLayer.setVisible(false); this.cineLayer.setVisible(true); this.cameras.main.setZoom(1); this.cameras.main.centerOn(this.W / 2, this.H / 2); }
+  entrarCine() { this._quitarMarcaRival(); this.fase = "cine"; this.gameLayer.setVisible(false); this.hudLayer.setVisible(false); this.cineLayer.setVisible(true); this.cameras.main.setZoom(1); this.cameras.main.centerOn(this.W / 2, this.H / 2); }
   salirCine(pit) {
     this.viajeState = null;
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
@@ -497,7 +542,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (hecho) return; hecho = true;
       this.cineLayer.setVisible(false); this.gameLayer.setVisible(true); this.hudLayer.setVisible(true);
       this.cameras.main.fadeIn(ms, 0, 0, 0);
-      if (pit) this.panelTiempo(pit); else { this.st.modo = "juego"; this.fase = "juego"; }
+      this.reanudar(pit);
     };
     this.cameras.main.once("camerafadeoutcomplete", volver);
     this.cameras.main.fadeOut(ms, 0, 0, 0);
@@ -682,14 +727,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st, P = window.PampaPartido;
     this.panelBase("🧤 ¡" + this.nombreRival + " remata! Tu arquero bajo los tres palos…");
     const ops = P.opcionesArquero(st);
-    const W = this.W, H = this.H;
-    ops.forEach((o, i) => {
-      this.botonMenu(W / 2, H / 2 - 20 + i * 66, 320, o.ico + " " + o.n, o.riesgo, () => {
-        const res = P.resolverAtajada(st, o.id);
-        this.limpiarMenu();
-        this.cineAtajadaMia(res);
-      });
-    });
+    this.filaBotones(ops.map(o => ({
+      texto: o.ico + " " + o.n, sub: o.riesgo,
+      cb: () => { const res = P.resolverAtajada(st, o.id); this.limpiarMenu(); this.cineAtajadaMia(res); }
+    })), this.H - 96, 320);
   }
   cineAtajadaMia(res) {
     this.entrarCine();
@@ -724,15 +765,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   panelTiempo(cual) {
     const st = this.st, W = this.W, H = this.H;
     this.fase = "pausa"; this.target = null;
+    this._quitarMarcaRival();
+    this.cameras.main.setZoom(1); this.cameras.main.centerOn(W / 2, H / 2);
     this.limpiarMenu();
+    /* pausa dura: panel central grande (acá no hay lectura de cancha) */
     const titulo = cual === "entretiempo" ? "⏸ ENTRETIEMPO" : "🏁 FINAL DEL PARTIDO";
     const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival;
     const detalle = cual === "entretiempo"
       ? "El descanso recupera aguante para todo el equipo."
       : (st.golesMio > st.golesRival ? "¡GANASTE! El pueblo festeja." : st.golesMio === st.golesRival ? "Empate con gusto a poco… o a mucho." : "Se perdió. La revancha ya se juega en tu cabeza.");
-    this.panelBase(titulo + "\n\n" + marcador + "\n" + detalle);
-    this.fase = "pausa";   // panelBase la puso en "menu": esto es una pausa dura
-    this.botonMenu(W / 2, H / 2 + 90, 380,
+    const fondo = this.add.rectangle(W / 2, H / 2, W, H, 0x06120b, 0.78);
+    const panel = this.add.rectangle(W / 2, H / 2, 560, 300, 0x0d2a18, 0.96).setStrokeStyle(3, 0xf6c11d, 0.8);
+    const t = this.add.text(W / 2, H / 2 - 70, titulo + "\n\n" + marcador + "\n" + detalle, { fontFamily: "monospace", fontSize: "17px", color: "#f6efdc", align: "center", wordWrap: { width: 520 } }).setOrigin(0.5);
+    this.menuLayer.add([fondo, panel, t]);
+    this.menuLayer.setVisible(true);
+    this.fase = "pausa";
+    this.botonMenu(W / 2, H / 2 + 80, 380,
       cual === "entretiempo" ? "▶ SEGUNDO TIEMPO" : "↺ JUGAR OTRO PARTIDO",
       cual === "entretiempo" ? "saca " + this.nombreRival : "arranca de cero", () => {
         this.limpiarMenu();

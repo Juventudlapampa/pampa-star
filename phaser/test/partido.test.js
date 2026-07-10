@@ -31,7 +31,7 @@ function partidoNuevo(rng) {
 /* ---- 2) reloj: corre en juego, entretiempo y final con descuento oculto ---- */
 (function () {
   var st = partidoNuevo(seq([0.0]));   // descuento mínimo
-  ok(st.desc1 >= bal.partido.descuento_min && st.desc1 <= bal.partido.descuento_max, "descuento en rango");
+  ok(st.desc1 >= bal.ritmo.descuento_min && st.desc1 <= bal.ritmo.descuento_max, "descuento en rango");
   st.cooldown = 9e9;                    // aislar el reloj: sin encuentros en este test
   st.minuto = 44.9 + st.desc1;
   var evs = [];
@@ -49,7 +49,7 @@ function partidoNuevo(rng) {
 
 /* ---- 3) CALIBRACIÓN: el defensor que cierra es MÁS RÁPIDO que tu portador ---- */
 (function () {
-  ok(bal.velocidad.defensor_cerrando > bal.velocidad.portador_con_pelota, "defensor_cerrando > portador (te alcanzan)");
+  ok(bal.ritmo.defensor_cerrando > bal.ritmo.portador_con_pelota, "defensor_cerrando > portador (te alcanzan)");
   var st = partidoNuevo();
   var ctrl = st.mios[st.ctrl];
   var caza0 = st.rivales.map(function (j, i) { return { i: i, d: Math.hypot(j.x - ctrl.x, j.y - ctrl.y) }; })
