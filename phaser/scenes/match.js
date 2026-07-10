@@ -447,12 +447,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   ejecutarRemate(zona, esCalden) {
     const st = this.st, P = window.PampaPartido;
     /* ===== EL RESULTADO SE DECIDE ACÁ, UNA VEZ (bug del arquero cerrado) ===== */
-    const prep = P.prepararRemate(st, esCalden);
+    const prep = P.prepararRemate(st, esCalden);   // cobra aguante y salta el reloj (en la lógica)
     const res = window.PampaDuel.resolveShot({
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
     });
-    P.saltoReloj(st);
     this.limpiarMenu();
     this.res = res; this.zona = zona; this.esCalden = !!esCalden;
     this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);

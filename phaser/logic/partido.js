@@ -374,12 +374,14 @@
     var C = st.bal.partido.calden, j = st.mios[st.ctrl];
     return st.posesion === "mia" && j.esVos && j.x > C.x_min && j.aguante >= st.bal.aguante.costo_calden;
   }
-  /* parámetros del remate (la ESCENA llama a Duel.resolveShot con esto: una sola fuente de verdad) */
-  function prepararRemate(st, esCalden) {
+  /* parámetros del remate (la ESCENA llama a Duel.resolveShot con esto: una sola fuente de verdad).
+     El salto de reloj del remate vive ACÁ (lógica), no en la escena. */
+  function prepararRemate(st, esCalden, rng) {
     var j = st.mios[st.ctrl], C = st.bal.partido.calden;
     var poder = (j.stats.tiro || 50) + (j.stats.caracter || 50) * 0.12 + bonusAguante(st);
     if (esCalden) poder *= C.mult;
     gastar(st, "mio", esCalden ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro);
+    saltoReloj(st, rng);
     return { shotPower: poder, keeperSkill: st.rivalKeeperSkill };
   }
   function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
@@ -407,7 +409,7 @@
       /* dividida al medio: 50/50 */
       var mia = rng() < 0.5;
       if (mia) { st.posesion = "mia"; st.ctrl = masCercanoAPelota(st); st.pelota.x = st.W / 2; st.pelota.y = st.H / 2; st.modo = "juego"; st.cooldown = 1400; reubicar(st); }
-      else { st.posesion = "rival"; st.portadorRival = st.rivales.length - 2; st.rivales[st.portadorRival].x = st.W / 2; st.rivales[st.portadorRival].y = st.H / 2; st.modo = "juego"; st.cooldown = 1400; }
+      else { st.posesion = "rival"; st.portadorRival = st.rivales.length - 2; st.rivales[st.portadorRival].x = st.W / 2; st.rivales[st.portadorRival].y = st.H / 2; st.pelota.x = st.W / 2; st.pelota.y = st.H / 2; st.ctrl = masCercanoAPelota(st); st.modo = "juego"; st.cooldown = 1400; }   // auto-switch: marcás con el más cercano a la dividida
       return { golRival: false, dividida: true, mia: mia, eleccion: eleccion };
     }
     /* atajó y retiene: salís jugando desde tu área */
