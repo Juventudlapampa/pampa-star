@@ -101,6 +101,61 @@ window.PampaSprites = function (scene) {
     bake("spark", 8, 8, (g) => { g.fillStyle(0xffffff); g.fillCircle(4, 4, 3); });
     bake("spark_sol", 8, 8, (g) => { g.fillStyle(0xffd84d); g.fillCircle(4, 4, 3); });
 
+    /* ======= HITO 2: kits del partido =======
+       Daltonismo: el RIVAL se distingue por FORMA (camiseta a FRANJAS verticales),
+       no solo por el color; los arqueros llevan GUANTES. */
+    const R = { cam: 0xe3503e, cam2: 0x8a1f3a, short: 0x1a1a1a };
+    const franjas = (g, x, y, w, h) => { for (let i = 0; i < w; i += 4) { g.fillStyle(R.cam); g.fillRect(x + i, y, 2, h); g.fillStyle(R.cam2); g.fillRect(x + i + 2, y, 2, h); } };
+    // RIVAL — parado (franjas)
+    bake("rival_idle", 34, 50, (g) => {
+      g.fillStyle(C.sombra, 0.30); g.fillEllipse(16, 45, 22, 6);
+      g.fillStyle(C.pelo); g.fillRoundedRect(9, 2, 14, 8, 3);
+      g.fillStyle(C.piel); g.fillRoundedRect(10, 5, 12, 9, 3);
+      g.fillStyle(0x14110c); g.fillRect(12, 8, 2, 2);               // ojo (mira hacia abajo/tu arco)
+      franjas(g, 8, 14, 16, 15);
+      g.fillStyle(R.short); g.fillRoundedRect(9, 27, 14, 6, 2);
+      pierna(g, 11, 32, C); pierna(g, 19, 32, C);
+      g.fillStyle(R.cam); g.fillRect(5, 16, 3, 10); g.fillRect(24, 16, 3, 10);
+      g.fillStyle(C.piel); g.fillRect(5, 25, 3, 3); g.fillRect(24, 25, 3, 3);
+    });
+    // RIVAL — corriendo
+    bake("rival_run", 34, 50, (g) => {
+      g.fillStyle(C.sombra, 0.30); g.fillEllipse(16, 45, 22, 6);
+      g.fillStyle(C.pelo); g.fillRoundedRect(9, 2, 14, 8, 3);
+      g.fillStyle(C.piel); g.fillRoundedRect(10, 5, 12, 9, 3);
+      g.fillStyle(0x14110c); g.fillRect(12, 8, 2, 2);
+      franjas(g, 8, 14, 16, 15);
+      g.fillStyle(R.short); g.fillRoundedRect(9, 27, 14, 6, 2);
+      pierna(g, 8, 32, C); pierna(g, 21, 30, C);
+      g.fillStyle(R.cam); g.fillRect(24, 14, 3, 10); g.fillRect(6, 18, 3, 9);
+      g.fillStyle(C.piel); g.fillRect(24, 23, 3, 3); g.fillRect(6, 26, 3, 3);
+    });
+    // TU ARQUERO (celeste oscuro + guantes, forma distintiva)
+    bake("keeper_mio", 40, 50, (g) => {
+      g.fillStyle(C.sombra, 0.30); g.fillEllipse(16, 45, 22, 6);
+      g.fillStyle(C.pelo); g.fillRoundedRect(9, 2, 14, 8, 3);
+      g.fillStyle(C.piel); g.fillRoundedRect(10, 5, 12, 9, 3);
+      g.fillStyle(0x14110c); g.fillRect(18, 8, 2, 2);
+      g.fillStyle(0x1d4fd6); g.fillRoundedRect(8, 14, 16, 15, 4);   // azul francia (distinto de ambos equipos)
+      g.fillStyle(0xffffff, 0.15); g.fillRect(9, 16, 14, 2);
+      g.fillStyle(0x14110c); g.fillRoundedRect(9, 27, 14, 6, 2);
+      pierna(g, 11, 32, C); pierna(g, 19, 32, C);
+      g.fillStyle(0x1d4fd6); g.fillRect(4, 15, 3, 9); g.fillRect(25, 15, 3, 9);
+      g.fillStyle(C.guante); g.fillCircle(5, 25, 3); g.fillCircle(27, 25, 3);   // GUANTES
+    });
+    // TU ARQUERO grande para el cine (vuelo dramático, espejo del rival)
+    bake("cine_arquero_mio", 150, 92, (g) => {
+      g.fillStyle(C.sombra, 0.22); g.fillEllipse(75, 84, 120, 10);
+      g.fillStyle(0x1d4fd6); g.fillRoundedRect(38, 26, 64, 30, 14);
+      g.fillStyle(C.piel); g.fillCircle(112, 40, 14);
+      g.fillStyle(0x14110c); g.fillRect(116, 36, 5, 4);
+      g.fillStyle(0x14110c); g.fillRoundedRect(30, 30, 20, 24, 6);
+      g.fillStyle(C.piel); g.fillRect(6, 34, 28, 10);
+      g.fillStyle(C.botin); g.fillRect(0, 32, 10, 12);
+      g.fillStyle(0x1d4fd6); g.fillRect(96, 20, 34, 9);
+      g.fillStyle(C.guante); g.fillCircle(134, 22, 12); g.fillCircle(132, 40, 10);
+    });
+
     /* ======= SPRITES GRANDES DEL MODO CINE (expresivos, media pantalla) ======= */
     // EL PIE golpeando la pelota (primer plano) — 96×72
     bake("cine_pie", 96, 72, (g) => {

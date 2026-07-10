@@ -15,6 +15,7 @@
     "defensor_cerrando": 150,
     "perseguidor_sin_pelota": 138,
     "rival_con_pelota": 108,
+    "posicionales_por_segundo": 90,
     "_regla": "defensor_cerrando > portador_con_pelota  →  te pueden alcanzar. perseguidor_sin_pelota < defensor_cerrando  →  correr al pedo no te hace súper-rápido."
   },
 
