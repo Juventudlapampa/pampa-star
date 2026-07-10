@@ -27,6 +27,7 @@
   <script src="vendor/phaser.min.js"></script>
   <script src="logic/duel.js"></script>
   <script src="logic/perspectiva.js"></script>
+  <script src="logic/tiro.js"></script>
   <script src="logic/partido.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/sprites.js"></script>
@@ -44,6 +45,7 @@
       {id:"bajo_izq",n:"Palo bajo",bonus:4,fuera:0.08,gy:-38},
       {id:"bajo_centro",n:"Al medio",bonus:-4,fuera:0.01,gy:0},
       {id:"bajo_der",n:"Palo bajo",bonus:4,fuera:0.08,gy:38}]},
+    tiro_ejecucion:{peso_destreza:0.65,ruido_max:0.38,potencia_dulce:[0.6,0.88],penal_potencia_floja:26,fuera_potencia_pasada:0.5,bonus_esquina:14,fuera_esquina:0.16,fuera_borde:0.8,curva_bonus:5,gy_max:44,sens_arrastre:1.35,sens_comba:4,tecla_paso:0.14,tecla_osc_ms:1100},
     juego:{vel_jugador:210,vel_avance_auto:46,zona_remate_y:250},
     cine:{persp:{k:3.2},plano_pie_ms:460,plano_viaje_ms:1050,plano_esfuerzo_ms:360,plano_arquero_ms:520,corte_ms:90,corte_flash_ms:120,slowmo_desde:0.72,slowmo_factor:0.32,lineas_velocidad:14,desenlace_hold_ms:1200,zoom_viaje:1.25,camara_pan_ms:420,drift_mult:1.4,pelota_escala_base:0.5,pelota_escala_span:3.7,impacto_gol_ms:340,impacto_atajada_ms:320,impacto_afuera_ms:420},
     epica:{flash_ms:120,shake_intensidad:0.012,shake_ms:260,red_sacudida_ms:700,rebote_atajada_ms:520,atajada_shake_ms:140,atajada_shake_int:0.006,afuera_ms:520,fanfarria_delay_ms:90,red_vida_frames:90,camara_reset_ms:420},

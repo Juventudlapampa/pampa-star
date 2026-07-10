@@ -1,5 +1,29 @@
 # PAMPA STAR — Progreso
 
+## 🔄 TANDA ABC (jul 2026) — ritmo + tiro con ejecución + avatar lindo
+El playtest del Hito 2 pidió tres frentes. Se commitea POR BLOQUE; al cerrar C, frena para playtest.
+
+### ✅ BLOQUE A — RITMO MODULADO (commit `0399603`)
+El partido estaba "rapidísimo, amontonado, sin aire y ni se llegaba a patear". Ahora:
+- **TODO el ritmo vive junto en `balance.json → ritmo`** con nombres claros (velocidades, radio y cooldown del encuentro, perseguidores, reloj, saltos, descuento, zoom). Arrancás BIEN PAUSADO y se afina tocando UN bloque.
+- **Aire para jugar**: portador 84 vs defensor que cierra 104 (te alcanzan, pero con margen), UN solo perseguidor, cooldown de encuentro 3.2s, y al perder/recibir la pelota el rival **la pisa 1.5s** antes de arrancar (tiempo de reaccionar y elegir marcador). `dist_tiro` 380: **se llega a patear**.
+- **El freno con zoom SOLO en lo clave**: en el encuentro la cámara se acerca SUAVE al cruce (1.22×) con el rival marcado ▽, y el menú es una **tira compacta abajo** — la cancha queda visible: el momento de decisión es de LECTURA. Cámara doble (la UI nunca se escala). Al resolver, vuelve igual de suave.
+- Verificado headless: 3.2s de aire hasta el primer encuentro, zoom con HUD quieto, menú con cancha visible, retorno suave. Tests migrados a `ritmo.*`.
+
+### ✅ BLOQUE B — TIRO HÍBRIDO CON EJECUCIÓN (este commit)
+La construcción sigue siendo Tsubasa (decisión/lectura), pero **el remate ahora lo ejecutás VOS** (sabor New Star Soccer): al elegir TIRO o CALDÉN se abre **LA DEFINICIÓN** en modo cine — el arco grande de frente, y tu gesto define **puntería + potencia + comba** antes de que arranquen los planos (pie → viaje → esfuerzo → arquero → desenlace).
+- **Tres formas, mismo momento** (se detecta el dispositivo y cambian las instrucciones):
+  · **Celular (dedo)**: arrastrás — al costado apuntás, hacia arriba cargás potencia, y si el gesto va en banana le das comba. Soltás = remate. Un tap corto NO dispara.
+  · **Mouse**: el mismo arrastre.
+  · **Teclado**: ←→↑↓ mueven la mira, ESPACIO mantenido carga la barra de potencia (sube y baja: soltá en el momento), y otro ESPACIO clava la comba con timing.
+- **La destreza pesa, los stats también**: `logic/tiro.js` (PURO, portable a Godot, `test/tiro.test.js` 15 asserts) convierte tu ejecución en la zona del remate — esquina rinde más pero arriesga, potencia con **punto dulce** (floja la ataja fácil / pasada se puede ir), comba controlada suma. El stat de tiro da **margen de error** (crack = pulso firme, pibe = tiembla). Todo afinable en `balance.json → tiro_ejecucion` (peso_destreza, sensibilidades, punto dulce, ruido).
+- **El arquero sigue intacto**: la ejecución PREPARA la zona; `duel.resolveShot` decide UNA vez (invariante testeado con la zona dinámica). Devolución honesta del gesto ("¡EJECUCIÓN PERFECTA!" / "¡AL LÍMITE DEL PALO!") sin adelantar el resultado.
+- **UI legible sin color solo**: la franja justa de potencia se NOMBRA ("¡JUSTA!"/"¡PASADA!"), la comba tiene aguja + flechas ↶↷, la mira se marca al pasarse del palo.
+- Verificado headless: gesto completo (aim/pot/comba en vivo), teclado por fases, VOLVER cancela gratis, desde encuentro no hay VOLVER, Caldén con su título y costo 30, cadena de planos entera y vuelta al juego. Tests: 2010+9+30+15 verdes.
+
+### ⏳ BLOQUE C — GENERADOR DE PERSONAJE LINDO (en curso)
+Avatar pixel por CAPAS combinables (piel/cara/pelo/camiseta/accesorios, cada variante con nombre — no solo color) + editor en la creación y para los 4 amigos + la cara personalizada en el ZOOM del cine.
+
 ## ✅ HITO 2 — EL PARTIDO COMPLETO JUGABLE (jul 2026)
 El Hito 1 (el turno juego↔cine) quedó **aprobado por playtest**. Sobre esa base se construyó el partido entero. **Frena para playtest de Rodri.**
 

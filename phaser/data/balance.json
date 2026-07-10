@@ -92,7 +92,7 @@
   },
 
   "tiro": {
-    "_zonas": "6 zonas tocables del arco. bonus suma/resta chance; fuera = prob. de irse afuera si ganaba (riesgo de la esquina); gy = desplazamiento vertical del destino para la animación.",
+    "_zonas": "LEGADO (Hito 1/2): las 6 zonas tocables. Desde el Bloque B el remate se define con tiro_ejecucion (logic/tiro.js genera la zona dinámica); quedan de referencia para comparar números.",
     "zonas": [
       { "id": "alto_izq",   "n": "Ángulo alto", "bonus": 6,  "fuera": 0.14, "gy": -44 },
       { "id": "alto_centro","n": "Alto al medio","bonus": -2, "fuera": 0.03, "gy": 0 },
@@ -101,6 +101,29 @@
       { "id": "bajo_centro","n": "Al medio",    "bonus": -4, "fuera": 0.01, "gy": 0 },
       { "id": "bajo_der",   "n": "Palo bajo",   "bonus": 4,  "fuera": 0.08, "gy": 38 }
     ]
+  },
+
+  "tiro_ejecucion": {
+    "_nota": "TIRO HÍBRIDO (Bloque B): la construcción sigue siendo por decisión, pero el REMATE lo ejecutás VOS (New-Star-style). Apuntás en el arco, cargás potencia y le das comba. La lógica vive en logic/tiro.js; acá SOLO las perillas.",
+    "peso_destreza": 0.65,
+    "_peso": "0 = la ejecución no pesa nada (todo stats) … 1 = la ejecución manda. Con 0.65 la destreza pesa pero un crack sigue teniendo más margen.",
+    "ruido_max": 0.38,
+    "_ruido": "temblor máximo de la puntería con stat de tiro 30; con stat 90 el pulso es firme (ruido→0). ASÍ pesan los stats: margen de error.",
+    "potencia_dulce": [0.6, 0.88],
+    "penal_potencia_floja": 26,
+    "fuera_potencia_pasada": 0.5,
+    "bonus_esquina": 14,
+    "fuera_esquina": 0.16,
+    "fuera_borde": 0.8,
+    "curva_bonus": 5,
+    "gy_max": 44,
+    "sens_arrastre": 1.35,
+    "sens_comba": 4,
+    "_sens": "sens_arrastre: cuánto recorre la mira por px arrastrado (subila si cuesta llegar al palo). sens_comba: cuánta panza del gesto hace falta para la comba máxima (bajala si la comba sale sin querer).",
+    "tecla_paso": 0.14,
+    "tecla_osc_ms": 1100,
+    "_teclado": "tecla_paso: cuánto mueve la mira cada toque de flecha. tecla_osc_ms: período de la barra de potencia (ESPACIO mantenido) y del medidor de comba (más largo = más fácil clavar el timing).",
+    "comentario": "Solo para TIRO y TIRO ESPECIAL (Caldén). El resto de los comandos sigue siendo por decisión/lectura."
   },
 
   "juego": {

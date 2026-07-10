@@ -17,7 +17,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   init() {
     this.BAL = this.game.registry.get("balance");
     this.SFX = window.PampaSFX;
-    this.fase = "juego";                 // juego | menu | cine | pausa
+    this.fase = "juego";                 // juego | menu | cine | definicion | pausa
     this.target = null;                  // objetivo de arrastre (coords de MUNDO)
   }
 
@@ -76,9 +76,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cameras.main.ignore([this.hudLayer, this.menuLayer]);
     this.uiCam.ignore([this.gameLayer, this.cineLayer]);
 
-    /* input de campo: arrastrás y el jugador va (coordenadas de mundo) */
-    this.input.on("pointerdown", (p) => this.onCampo(p));
-    this.input.on("pointermove", (p) => { if (p.isDown) this.onCampo(p); });
+    /* input de campo: arrastrás y el jugador va (coordenadas de mundo).
+       En LA DEFINICIÓN (fase "definicion") el mismo puntero pasa a ser el gesto del remate. */
+    this.input.on("pointerdown", (p) => { if (this.fase === "definicion") this.defPointerDown(p); else this.onCampo(p); });
+    this.input.on("pointermove", (p) => { if (this.fase === "definicion") this.defPointerMove(p); else if (p.isDown) this.onCampo(p); });
+    this.input.on("pointerup", (p) => { if (this.fase === "definicion") this.defPointerUp(p); });
+    /* teclado (escritorio): flechas + ESPACIO para la definición */
+    if (this.input.keyboard) {
+      this.keys = this.input.keyboard.addKeys("LEFT,RIGHT,UP,DOWN,SPACE");
+      this.input.keyboard.on("keydown-SPACE", (ev) => { ev.preventDefault && ev.preventDefault(); this.defTecla("abajo"); });
+      this.input.keyboard.on("keyup-SPACE", () => this.defTecla("arriba"));
+    }
 
     this.cameras.main.setBackgroundColor("#06120b");
     this.avisar("¡ARRANCA EL PARTIDO! Llevá la pelota al arco del fondo.", 2200);
@@ -263,13 +271,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st, P = window.PampaPartido;
     if (key === "cambio" && st.posesion === "rival") { P.cambiarAlMasCercano(st); this.avisar("AHORA MARCÁS CON: " + st.mios[st.ctrl].nombre.toUpperCase(), 1000); }
     if (key === "pase" && st.posesion === "mia") { st.modo = "congelado"; this.abrirMenuPases(false); }
-    if (key === "tiro" && st.posesion === "mia" && P.puedeTirar(st)) { st.modo = "congelado"; this.abrirZonas(false); }
-    if (key === "calden" && st.posesion === "mia" && P.puedeCalden(st)) { st.modo = "congelado"; this.abrirZonas(true); }
+    if (key === "tiro" && st.posesion === "mia" && P.puedeTirar(st)) { st.modo = "congelado"; this.abrirDefinicion(false, false); }
+    if (key === "calden" && st.posesion === "mia" && P.puedeCalden(st)) { st.modo = "congelado"; this.abrirDefinicion(true, false); }
   }
 
   /* ============================== UPDATE ============================== */
   update(time, delta) {
     if (this.fase === "cine") { this.updateViaje(delta); return; }
+    if (this.fase === "definicion") { this.updateDefinicion(delta); return; }
     if (this.fase !== "juego") return;
     const st = this.st, P = window.PampaPartido;
 
@@ -412,7 +421,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           if (a.id === "tiro") {
             /* la matriz manda: primero hay que zafar del BLOQUEO del defensor */
             const r = P.resolverDuelo(st, { accion: "tiro", poder: a.poder, costo: 0 });
-            if (r.win) { this.avisar(r.matriz === "zafaste" ? "¡Zafaste de la marca!" : "¡Le ganaste al bloqueo!", 900); this.abrirZonas(false, true); }
+            if (r.win) { this.avisar(r.matriz === "zafaste" ? "¡Zafaste de la marca!" : "¡Le ganaste al bloqueo!", 900); this.abrirDefinicion(false, true); }
             else {
               this.limpiarMenu(); P.perderPelota(st);
               this.avisar(r.matriz === "leyeron" ? "¡TE BLOQUEARON EL TIRO! Lo veían venir." : "TE LO TAPARON. Pelota rival.", 1600);
@@ -478,29 +487,203 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }], this.H - 52, 300);
   }
 
-  /* --- zonas del arco (el apuntado del remate) --- */
-  abrirZonas(esCalden, desdeEncuentro) {
-    this.panelBase((esCalden ? "🔥 DISPARO DEL CALDÉN — " : "🎯 ") + "¿A qué zona? (esquinas: más gol, más riesgo de afuera)");
-    const zonas = this.BAL.tiro.zonas;
-    this.filaBotones(zonas.slice(0, 3).map(z => ({ texto: z.n, sub: "riesgo " + Math.round(z.fuera * 100) + "%", cb: () => this.ejecutarRemate(z, esCalden) })), this.H - 122, 220);
-    const fila2 = zonas.slice(3).map(z => ({ texto: z.n, sub: "riesgo " + Math.round(z.fuera * 100) + "%", cb: () => this.ejecutarRemate(z, esCalden) }));
-    /* si venís de zafar un encuentro no hay VOLVER gratis: el remate ya está lanzado a decisión */
-    if (!desdeEncuentro) fila2.push({ texto: "◀ VOLVER", sub: "seguir jugando", cb: () => { this.limpiarMenu(); this.reanudar(null); } });
-    this.filaBotones(fila2, this.H - 52, desdeEncuentro ? 220 : 190);
+  /* ============ LA DEFINICIÓN (Bloque B): el remate lo ejecutás VOS ============
+     La construcción sigue siendo por decisión, pero acá aparece un mini-momento
+     de DESTREZA: apuntás en el arco, cargás potencia y le das comba.
+     Tres formas (se detecta el dispositivo): dedo (arrastrar/flick), mouse
+     (arrastrar) y teclado (flechas + ESPACIO con timing). La verdad la calcula
+     logic/tiro.js y el resultado lo decide duel.resolveShot, UNA sola vez.  */
+  abrirDefinicion(esCalden, desdeEncuentro) {
+    this.limpiarMenu();
+    this.entrarCine();                       // apaga cancha+HUD, cámara quieta
+    this.fase = "definicion";
+    this.esCalden = !!esCalden;
+    const W = this.W, H = this.H, cfg = this.BAL.tiro_ejecucion;
+    this.limpiarContenido();
+
+    /* el arco grande (la misma geometría del desenlace: lo que ves es donde va) */
+    const gx = W / 2, gy = H * 0.56, gw = 340, gh = 170;
+    this.defGeo = { gx, gy, gw, gh };
+    const g = this.cineBG;
+    g.clear();
+    g.fillStyle(this.esCalden ? 0x2a130b : 0x0b2416, 1); g.fillRect(0, 0, W, H);
+    g.fillStyle(this.COL.pasto2, 1); g.fillRect(0, gy, W, H - gy);
+    g.fillStyle(0xdfeef6, 0.35);
+    for (let x = -gw / 2; x <= gw / 2; x += 16) g.fillRect(gx + x, gy - gh, 2, gh);
+    for (let y = 0; y <= gh; y += 14) g.fillRect(gx - gw / 2, gy - gh + y, gw, 2);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(gx - gw / 2 - 6, gy - gh - 6, 8, gh + 6); g.fillRect(gx + gw / 2, gy - gh - 6, 8, gh + 6);
+    g.fillRect(gx - gw / 2 - 6, gy - gh - 6, gw + 14, 8);
+    const arq = this.add.sprite(gx, gy - 34, "cine_arquero").setScale(1.5); this.cineContent.add(arq);
+
+    this.cineLabel.setText(this.esCalden ? "· la definición del Caldén ·" : "· la definición ·");
+    const titulo = this.add.text(W / 2, 26, (this.esCalden ? "🔥 EL CALDENAZO ES TUYO" : "🎯 LA DEFINICIÓN ES TUYA"),
+      { fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
+    this.cineContent.add(titulo);
+    /* instrucciones según dispositivo (el gesto es el mismo con dedo o mouse) */
+    const esTouch = this.sys.game.device.input.touch;
+    const inst = esTouch
+      ? "ARRASTRÁ: al costado = puntería · hacia arriba = potencia\ncurvá el gesto = comba · SOLTÁ para rematar"
+      : "ARRASTRÁ con el mouse (costado = puntería, arriba = potencia, gesto curvo = comba)\no TECLADO: ←→↑↓ apuntás · ESPACIO mantenido = potencia · ESPACIO de nuevo = comba";
+    const instTxt = this.add.text(W / 2, H - 30, inst, { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", align: "center", backgroundColor: "#0a1f13bb", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+    this.cineContent.add(instTxt);
+
+    /* gráfico dinámico: mira + barra de potencia + medidor de comba */
+    this.defG = this.add.graphics(); this.cineContent.add(this.defG);
+    this.defTxtPot = this.add.text(W - 46, gy - gh - 24, "POTENCIA", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc" }).setOrigin(0.5); this.cineContent.add(this.defTxtPot);
+    this.defTxtCombaL = this.add.text(gx - gw / 2 - 40, gy + 44, "↶", { fontFamily: "monospace", fontSize: "18px", color: "#f6efdc" }).setOrigin(0.5); this.cineContent.add(this.defTxtCombaL);
+    this.defTxtCombaR = this.add.text(gx + gw / 2 + 40, gy + 44, "↷", { fontFamily: "monospace", fontSize: "18px", color: "#f6efdc" }).setOrigin(0.5); this.cineContent.add(this.defTxtCombaR);
+    this.defTxtComba = this.add.text(gx, gy + 68, "COMBA", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc" }).setOrigin(0.5); this.cineContent.add(this.defTxtComba);
+
+    /* estado del gesto: modo apuntar → potencia → comba (teclado) o un solo arrastre (puntero) */
+    this.def = { aimX: 0, aimY: 0.25, pot: 0, cu: 0, modo: "apuntar", drag: null, hecho: false, desdeEncuentro: !!desdeEncuentro, cfg };
+
+    /* VOLVER (solo si el remate no vino de zafar un encuentro) */
+    if (!desdeEncuentro) {
+      const vb = this.add.rectangle(74, 28, 128, 40, 0xf6efdc, 1).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const vt = this.add.text(74, 28, "◀ VOLVER", { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      this.cineContent.add(vb); this.cineContent.add(vt);
+      vb.on("pointerdown", (p, x, y, ev) => {
+        ev && ev.stopPropagation && ev.stopPropagation();
+        this._uiTocado = this.time.now;
+        if (this.def && !this.def.hecho) { this.def.hecho = true; this.salirCine(null); }
+      });
+    }
+    this.defDibujar();
   }
 
-  ejecutarRemate(zona, esCalden) {
-    const st = this.st, P = window.PampaPartido;
+  /* --- gesto con puntero (dedo o mouse): un solo arrastre define todo --- */
+  defPointerDown(p) {
+    const d = this.def; if (!d || d.hecho || d.drag) return;
+    if (this.time.now - (this._uiTocado || 0) < 80) return;    // acaba de tocar VOLVER
+    d.drag = { x0: p.x, y0: p.y, path: [{ x: p.x, y: p.y }] };
+    d.modo = "arrastre";
+  }
+  defPointerMove(p) {
+    const d = this.def; if (!d || d.hecho || !d.drag) return;
+    const cfg = d.cfg, W = this.W, H = this.H, dr = d.drag;
+    if (dr.path.length < 64) dr.path.push({ x: p.x, y: p.y });
+    d.aimX = Phaser.Math.Clamp((p.x - dr.x0) / (W * 0.20) * cfg.sens_arrastre, -1.25, 1.25);
+    d.pot = Phaser.Math.Clamp((dr.y0 - p.y) / (H * 0.42) * cfg.sens_arrastre, 0, 1);
+    d.aimY = d.pot * 1.15 - 0.15;            // con el gesto, la potencia levanta la pelota (a full puede irse ALTA)
+    d.cu = this.defCurvaDelGesto(dr, p);
+  }
+  defPointerUp(p) {
+    const d = this.def; if (!d || d.hecho || !d.drag) return;
+    const dr = d.drag;
+    const largo = Math.hypot(p.x - dr.x0, p.y - dr.y0);
+    if (largo < 30) { d.drag = null; d.modo = "apuntar"; return; }   // fue un tap, no un remate
+    d.cu = this.defCurvaDelGesto(dr, p);
+    this.dispararDefinicion();
+  }
+  /* la COMBA sale de la panza del gesto: arrastre derecho = sin curva; gesto en banana = comba a ese lado */
+  defCurvaDelGesto(dr, p) {
+    const n = dr.path.length; if (n < 5) return 0;
+    const x0 = dr.x0, y0 = dr.y0, x1 = p.x, y1 = p.y;
+    const L2 = (x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0);
+    if (L2 < 900) return 0;
+    const m = dr.path[Math.floor(n / 2)];
+    const cross = (x1 - x0) * (m.y - y0) - (y1 - y0) * (m.x - x0);
+    return Phaser.Math.Clamp(cross / L2 * (this.def.cfg.sens_comba || 4), -1, 1);
+  }
+
+  /* --- teclado: ESPACIO abajo = cargar potencia · soltar = fijar · otro ESPACIO = fijar comba --- */
+  defTecla(cual) {
+    const d = this.def; if (this.fase !== "definicion" || !d || d.hecho || d.drag) return;
+    if (cual === "abajo") {
+      if (d.modo === "apuntar") { d.modo = "potencia"; d.t0 = this.time.now; }
+      else if (d.modo === "comba") { this.dispararDefinicion(); }
+    } else if (cual === "arriba" && d.modo === "potencia") {
+      d.modo = "comba"; d.t0 = this.time.now;
+    }
+  }
+
+  updateDefinicion(delta) {
+    const d = this.def; if (!d || d.hecho) return;
+    const cfg = d.cfg;
+    if (!d.drag && this.keys) {
+      if (d.modo === "apuntar") {
+        const v = cfg.tecla_paso * (delta / 100);
+        if (this.keys.LEFT.isDown) d.aimX = Phaser.Math.Clamp(d.aimX - v, -1.25, 1.25);
+        if (this.keys.RIGHT.isDown) d.aimX = Phaser.Math.Clamp(d.aimX + v, -1.25, 1.25);
+        if (this.keys.UP.isDown) d.aimY = Phaser.Math.Clamp(d.aimY + v, -1.15, 1.15);
+        if (this.keys.DOWN.isDown) d.aimY = Phaser.Math.Clamp(d.aimY - v, -1.15, 1.15);
+      } else if (d.modo === "potencia") {
+        /* la barra sube y baja: soltás en el momento justo */
+        const t = ((this.time.now - d.t0) % cfg.tecla_osc_ms) / cfg.tecla_osc_ms;
+        d.pot = t < 0.5 ? t * 2 : 2 - t * 2;
+      } else if (d.modo === "comba") {
+        d.cu = Math.sin((this.time.now - d.t0) * Math.PI * 2 / cfg.tecla_osc_ms);
+      }
+    }
+    this.defDibujar();
+  }
+
+  defDibujar() {
+    const d = this.def, G = this.defGeo; if (!d || !G) return;
+    const g = this.defG, cfg = d.cfg, W = this.W;
+    g.clear();
+    /* MIRA sobre el arco (si te pasás del palo se ve AFUERA del arco: aviso honesto) */
+    const mx = G.gx + Phaser.Math.Clamp(d.aimX, -1.25, 1.25) * G.gw / 2;
+    const my = G.gy - G.gh / 2 - Phaser.Math.Clamp(d.aimY, -1.15, 1.15) * (G.gh / 2 - 12);
+    const pasado = Math.max(Math.abs(d.aimX), Math.abs(d.aimY)) > 1;
+    g.lineStyle(3, pasado ? 0xe3503e : 0xffd84d, 1);
+    g.strokeCircle(mx, my, 14);
+    g.beginPath(); g.moveTo(mx - 22, my); g.lineTo(mx - 8, my); g.moveTo(mx + 8, my); g.lineTo(mx + 22, my);
+    g.moveTo(mx, my - 22); g.lineTo(mx, my - 8); g.moveTo(mx, my + 8); g.lineTo(mx, my + 22); g.strokePath();
+
+    /* BARRA DE POTENCIA (vertical, derecha) con la franja JUSTA etiquetada */
+    const bx = W - 46, bTop = G.gy - G.gh, bH = G.gh + 40, bW = 22;
+    g.fillStyle(0x0a1f13, 0.85); g.fillRect(bx - bW / 2, bTop, bW, bH);
+    const dulce = cfg.potencia_dulce;
+    g.fillStyle(0x7ee08a, 0.5);
+    g.fillRect(bx - bW / 2, bTop + bH * (1 - dulce[1]), bW, bH * (dulce[1] - dulce[0]));
+    g.fillStyle(d.pot > dulce[1] ? 0xe3503e : 0xffd84d, 1);
+    const fh = bH * d.pot;
+    g.fillRect(bx - bW / 2 + 3, bTop + bH - fh, bW - 6, fh);
+    g.lineStyle(2, 0xf6efdc, 0.9); g.strokeRect(bx - bW / 2, bTop, bW, bH);
+    /* la franja dulce se nombra, no solo se pinta (daltonismo) */
+    this.defTxtPot.setText(d.pot > dulce[1] ? "¡PASADA!" : d.pot >= dulce[0] ? "¡JUSTA!" : "POTENCIA");
+
+    /* MEDIDOR DE COMBA (horizontal, bajo el arco): aguja desde el centro */
+    const cw = G.gw * 0.7, cy = G.gy + 44, cx0 = G.gx - cw / 2;
+    g.fillStyle(0x0a1f13, 0.85); g.fillRect(cx0, cy - 8, cw, 16);
+    g.lineStyle(2, 0xf6efdc, 0.9); g.strokeRect(cx0, cy - 8, cw, 16);
+    g.lineStyle(2, 0xf6efdc, 0.5); g.beginPath(); g.moveTo(G.gx, cy - 10); g.lineTo(G.gx, cy + 10); g.strokePath();
+    g.fillStyle(0xffd84d, 1);
+    const nx = G.gx + d.cu * cw / 2;
+    g.fillRect(Math.min(G.gx, nx), cy - 5, Math.max(3, Math.abs(nx - G.gx)), 10);
+    this.defTxtComba.setText(d.modo === "comba" ? "¡ESPACIO para clavar la comba!" : Math.abs(d.cu) > 0.1 ? "COMBA " + (d.cu < 0 ? "◀" : "▶") : "COMBA");
+  }
+
+  /* --- el gesto se cierra: logic/tiro.js evalúa y duel.resolveShot decide UNA vez --- */
+  dispararDefinicion() {
+    const d = this.def; if (!d || d.hecho) return;
+    d.hecho = true;
+    const st = this.st, P = window.PampaPartido, cfg = d.cfg;
+    const stats = st.mios[st.ctrl].stats || {};
+    const ej = window.PampaTiro.evaluarEjecucion({
+      aimX: d.aimX, aimY: d.aimY, potencia: d.pot, curva: d.cu,
+      statTiro: stats.tiro != null ? stats.tiro : 50, cfg
+    });
     /* ===== EL RESULTADO SE DECIDE ACÁ, UNA VEZ (bug del arquero cerrado) ===== */
-    const prep = P.prepararRemate(st, esCalden);   // cobra aguante y salta el reloj (en la lógica)
+    const prep = P.prepararRemate(st, this.esCalden);   // cobra aguante y salta el reloj (en la lógica)
     const res = window.PampaDuel.resolveShot({
-      shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: zona,
+      shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
     });
-    this.limpiarMenu();
-    this.res = res; this.zona = zona; this.esCalden = !!esCalden;
+    this.res = res; this.zona = ej.zona; this.ejec = ej;
+    /* devolución inmediata de TU ejecución (habla del gesto, no adelanta el resultado) */
+    const fb = ej.detalle.seFuePorBorde ? "¡AL LÍMITE DEL PALO!"
+      : ej.calidad > 0.8 ? "¡EJECUCIÓN PERFECTA!"
+        : ej.calidad > 0.55 ? "¡BUENA EJECUCIÓN!" : "EJECUCIÓN FLOJA…";
+    const fbTxt = this.add.text(this.W / 2, this.defGeo.gy - this.defGeo.gh - 40, fb,
+      { fontFamily: "'Press Start 2P',monospace", fontSize: "13px", color: ej.calidad > 0.55 ? "#7ee08a" : "#e3503e", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
+    this.cineContent.add(fbTxt);
+    this.SFX && this.SFX.kick();
     this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
-    this.time.delayedCall(this.BAL.cine.corte_ms, () => this.startCineRemate());
+    this.fase = "cine";
+    this.time.delayedCall(560, () => this.corte(() => this.planoPie()));
   }
 
   /* ============================== MODO CINE ============================== */
@@ -549,11 +732,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.time.delayedCall(ms + 120, volver);
   }
 
-  /* --- cine del REMATE: pie → viaje (hacia adentro) → esfuerzo → arquero → desenlace --- */
-  startCineRemate() {
-    this.entrarCine();
-    this.planoPie();
-  }
+  /* --- cine del REMATE: pie → viaje (hacia adentro) → esfuerzo → arquero → desenlace ---
+     (arranca desde dispararDefinicion, que ya está en modo cine) */
   planoPie() {
     const W = this.W, H = this.H, C = this.BAL.cine;
     this.limpiarContenido();
