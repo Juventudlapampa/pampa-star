@@ -100,5 +100,59 @@ window.PampaSprites = function (scene) {
     // CHISPA (partícula de impacto / estela)
     bake("spark", 8, 8, (g) => { g.fillStyle(0xffffff); g.fillCircle(4, 4, 3); });
     bake("spark_sol", 8, 8, (g) => { g.fillStyle(0xffd84d); g.fillCircle(4, 4, 3); });
+
+    /* ======= SPRITES GRANDES DEL MODO CINE (expresivos, media pantalla) ======= */
+    // EL PIE golpeando la pelota (primer plano) — 96×72
+    bake("cine_pie", 96, 72, (g) => {
+      // pierna/pantalón bajando desde arriba-izq
+      g.fillStyle(C.camiseta); g.fillRoundedRect(6, -4, 22, 30, 6);
+      g.fillStyle(C.piel); g.fillRect(12, 22, 18, 18);          // canilla
+      g.fillStyle(0xe8e4d4); g.fillRect(14, 36, 20, 10);        // media
+      // botín (dinámico, apuntando a la pelota)
+      g.fillStyle(C.botin); g.fillRect(20, 44, 34, 16); g.fillTriangle(54, 44, 54, 60, 70, 54);
+      g.fillStyle(0x2a2a2a); g.fillRect(24, 58, 30, 4);         // suela
+      // pelota en el punto de impacto (con leve squash)
+      g.fillStyle(0xffffff); g.fillEllipse(78, 50, 26, 22);
+      g.fillStyle(0x1d1d1d); g.fillCircle(80, 48, 4);
+      g.fillStyle(0xcfcfcf); g.fillCircle(72, 44, 2);
+      // estrella de impacto
+      g.fillStyle(0xffd84d); g.fillTriangle(66, 50, 78, 40, 78, 60); g.fillTriangle(90, 50, 78, 40, 78, 60);
+    });
+
+    // EL JUGADOR en ESFUERZO (torso+cara, gesto de fuerza) — 96×112
+    bake("cine_jugador", 96, 112, (g) => {
+      // cuello + cabeza
+      g.fillStyle(C.pelo); g.fillRoundedRect(30, 2, 36, 20, 8);
+      g.fillStyle(C.piel); g.fillRoundedRect(33, 10, 30, 30, 8);
+      // cara con gesto: cejas fruncidas + boca apretada (esfuerzo)
+      g.fillStyle(0x14110c); g.fillRect(37, 20, 9, 3); g.fillRect(50, 20, 9, 3);     // cejas
+      g.fillStyle(0x14110c); g.fillRect(39, 25, 5, 4); g.fillRect(52, 25, 5, 4);     // ojos
+      g.fillStyle(C.boca); g.fillRect(42, 33, 12, 3);                                // boca apretada
+      // torso (camiseta con brillo)
+      g.fillStyle(C.camiseta); g.fillRoundedRect(20, 38, 56, 60, 12);
+      g.fillStyle(0xffffff); g.fillRect(24, 44, 48, 3);
+      // brazos abiertos por el impulso
+      g.fillStyle(C.camiseta); g.fillRoundedRect(4, 46, 18, 16, 6); g.fillRoundedRect(74, 46, 18, 16, 6);
+      g.fillStyle(C.piel); g.fillCircle(8, 66, 8); g.fillCircle(88, 66, 8);
+    });
+
+    // EL ARQUERO estirado (vuelo dramático, guantes al frente) — 150×92
+    bake("cine_arquero", 150, 92, (g) => {
+      g.fillStyle(C.sombra, 0.22); g.fillEllipse(75, 84, 120, 10);
+      // cuerpo arqueado, horizontal
+      g.fillStyle(C.arqCam); g.fillRoundedRect(38, 26, 64, 30, 14);
+      g.fillStyle(C.piel); g.fillCircle(112, 40, 14);            // cabeza a la derecha
+      g.fillStyle(0x14110c); g.fillRect(116, 36, 5, 4);          // ojo concentrado
+      g.fillStyle(C.arqShort); g.fillRoundedRect(30, 30, 20, 24, 6);
+      // piernas estiradas a la izquierda
+      g.fillStyle(C.piel); g.fillRect(6, 34, 28, 10);
+      g.fillStyle(C.botin); g.fillRect(0, 32, 10, 12);
+      // brazos + GUANTES bien al frente (a la derecha, hacia la pelota)
+      g.fillStyle(C.arqCam); g.fillRect(96, 20, 34, 9);
+      g.fillStyle(C.guante); g.fillCircle(134, 22, 12); g.fillCircle(132, 40, 10);
+    });
+
+    // ARCO de fondo para el modo cine (marco simple, se usa dibujado + este relleno de red)
+    bake("cine_red", 8, 8, (g) => { g.fillStyle(0xdfeef6, 0.5); g.fillRect(0, 0, 8, 1); g.fillRect(0, 0, 1, 8); });
   }
 };

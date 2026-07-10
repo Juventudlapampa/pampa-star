@@ -66,8 +66,31 @@
     ]
   },
 
+  "juego": {
+    "_nota": "MODO JUEGO: cancha 3/4 (arco al fondo). Movés al jugador hacia el arco; velocidades en px de PANTALLA por segundo (la escena es 960x540).",
+    "vel_jugador": 210,
+    "vel_avance_auto": 46,
+    "zona_remate_y": 250,
+    "comentario": "vel_jugador: cuánto te movés al arrastrar. vel_avance_auto: el jugador sube solo despacio hacia el arco. zona_remate_y: por encima de esta Y (más cerca del arco) aparece ¡REMATÁ!"
+  },
+
+  "cine": {
+    "_nota": "MODO CINE: la secuencia de PLANOS que cortan como película. La pelota viaja HACIA ADENTRO (perspectiva, profundidad). Tiempos en ms. persp.k = fuerza de la perspectiva.",
+    "persp": { "k": 3.2 },
+    "plano_pie_ms": 460,
+    "plano_viaje_ms": 1050,
+    "plano_esfuerzo_ms": 360,
+    "plano_arquero_ms": 520,
+    "corte_ms": 90,
+    "slowmo_desde": 0.72,
+    "slowmo_factor": 0.32,
+    "lineas_velocidad": 14,
+    "desenlace_hold_ms": 1200,
+    "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: fracción del viaje donde entra el slow-motion. lineas_velocidad: cuántas rayas de velocidad radiales."
+  },
+
   "epica": {
-    "_nota": "Tiempos de la rebanada épica (ms). Afinables para que el remate emocione.",
+    "_nota": "Tiempos de efectos (ms): shake, flash, red, rebote. Afinables para que el remate emocione.",
     "corrida_ms": 620,
     "patada_windup_ms": 160,
     "vuelo_ms": 620,
