@@ -26,9 +26,10 @@
 
   <script src="vendor/phaser.min.js"></script>
   <script src="logic/duel.js"></script>
+  <script src="logic/perspectiva.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/sprites.js"></script>
-  <script src="scenes/shot.js"></script>
+  <script src="scenes/match.js"></script>
   <script>
   "use strict";
   // fallback mínimo (mismos números que data/balance.json) para abrir con doble clic sin server
@@ -42,7 +43,9 @@
       {id:"bajo_izq",n:"Palo bajo",bonus:4,fuera:0.08,gy:-38},
       {id:"bajo_centro",n:"Al medio",bonus:-4,fuera:0.01,gy:0},
       {id:"bajo_der",n:"Palo bajo",bonus:4,fuera:0.08,gy:38}]},
-    epica:{corrida_ms:620,patada_windup_ms:160,vuelo_ms:620,curva_altura:46,slowmo_factor:0.28,slowmo_ms:520,flash_ms:120,shake_intensidad:0.012,shake_ms:260,zoom_remate:1.35,red_sacudida_ms:700,rebote_atajada_ms:520,atajada_shake_ms:140,atajada_shake_int:0.006,afuera_ms:520,mostrar_repetir_ms:1100,fanfarria_delay_ms:90,red_vida_frames:90,camara_reset_ms:420}
+    juego:{vel_jugador:210,vel_avance_auto:46,zona_remate_y:250},
+    cine:{persp:{k:3.2},plano_pie_ms:460,plano_viaje_ms:1050,plano_esfuerzo_ms:360,plano_arquero_ms:520,corte_ms:90,slowmo_desde:0.72,slowmo_factor:0.32,lineas_velocidad:14,desenlace_hold_ms:1200},
+    epica:{flash_ms:120,shake_intensidad:0.012,shake_ms:260,red_sacudida_ms:700,rebote_atajada_ms:520,atajada_shake_ms:140,atajada_shake_int:0.006,afuera_ms:520,fanfarria_delay_ms:90,red_vida_frames:90,camara_reset_ms:420}
   };
 
   /* Cargamos balance.json ANTES de crear el juego (fetch simple, tolerante a
@@ -57,7 +60,7 @@
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { pixelArt: false, antialias: true },
       callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); } },
-      scene: [ window.PampaShot ]
+      scene: [ window.PampaMatch ]
     };
     window.PAMPA_GAME = new Phaser.Game(config);
   }
