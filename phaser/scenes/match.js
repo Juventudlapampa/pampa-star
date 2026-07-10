@@ -34,9 +34,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.buildJuego();
     this.buildCineBase();
 
-    // toggle dificultad (texto + color: se lee por la palabra, no solo color)
+    // toggle dificultad (texto + color: se lee por la palabra, no solo color). Va DENTRO del
+    // gameLayer para ocultarse con la cancha en el cine (R: no se cuela sobre la película).
     this.diff = this.add.text(12, 12, "ARQUERO: NORMAL", { fontFamily: "monospace", fontSize: "13px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 8, y: 5 } }).setDepth(60).setInteractive({ useHandCursor: true });
+    this.gameLayer.add(this.diff);
     this.diff.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation();
+      if (this.modo !== "juego" || this.busy) return;      // R: sin efecto durante el cine
       this.dificil = !this.dificil;
       this.diff.setText(this.dificil ? "ARQUERO: FIGURA" : "ARQUERO: NORMAL").setBackgroundColor(this.dificil ? "#e3503e" : "#7ee08a");
       this.SFX && this.SFX.unlock();
@@ -104,15 +107,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.modo !== "juego" || this.busy) return;
     // tocar el arco cuando estás en rango = apuntar + rematar
     if (this.enRango() && p.y < this.BAL.juego.zona_remate_y + 40 && Math.abs(p.x - this.jGoal.x) < this.jGoal.w) {
-      this.rematar(this.zonaPorX(p.x)); return;
+      this.rematar(this.zonaPorX(p.x, p.y)); return;   // R: la Y del toque también apunta (alto/bajo)
     }
     this.target = { x: Phaser.Math.Clamp(p.x, 40, this.W - 40), y: Phaser.Math.Clamp(p.y, 120, this.H - 40) };
   }
   enRango() { return this.jPlayer.y < this.BAL.juego.zona_remate_y; }
-  zonaPorX(x) {
+  zonaPorX(x, y) {
     const z = this.BAL.tiro.zonas, rel = (x - this.jGoal.x) / (this.jGoal.w / 2); // -1..1
     const col = rel < -0.33 ? 0 : rel > 0.33 ? 2 : 1;
-    const alto = Math.random() < 0.5;
+    // alto/bajo por la Y del toque (arriba del arco = ángulo alto); sin Y (botón) = al azar
+    const alto = (y != null) ? (y < this.jGoal.y - this.jGoal.h * 0.45) : (Math.random() < 0.5);
     return (alto ? [z[0], z[1], z[2]] : [z[3], z[4], z[5]])[col];
   }
 
@@ -160,14 +164,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     vs.elapsed += delta;
     const raw = Phaser.Math.Clamp(vs.elapsed / vs.dur, 0, 1);
     const d = 1 - (1 - raw) * (1 - raw);                         // easeOut: rápido y luego lento (slow-mo natural)
+    const C = this.BAL.cine;
     const s = window.PampaPersp.aPantalla(d, vs.cfg);
-    vs.ball.setPosition(s.x, s.y).setScale(0.5 + 3.7 * s.escala); // grande cerca → chica lejos
+    vs.ball.setPosition(s.x, s.y).setScale(C.pelota_escala_base + C.pelota_escala_span * s.escala); // grande cerca → chica lejos
     vs.ball.rotation += 0.3;
     this.lineasVelocidad(vs.vp.x, vs.vp.y, 0.4 + 0.6 * d);       // líneas de velocidad más intensas al fondo
-    if (!vs.zoomed && d > this.BAL.cine.slowmo_desde) {          // el momento clave: zoom + tensión
+    if (!vs.zoomed && d > C.slowmo_desde) {                      // el momento clave: zoom + tensión
       vs.zoomed = true;
-      this.cameras.main.zoomTo(1.25, 420, "Sine.easeInOut");
-      this.cameras.main.pan(vs.vp.x, vs.vp.y + 40, 420, "Sine.easeInOut");
+      this.cameras.main.zoomTo(C.zoom_viaje, C.camara_pan_ms, "Sine.easeInOut");
+      this.cameras.main.pan(vs.vp.x, vs.vp.y + 40, C.camara_pan_ms, "Sine.easeInOut");
       this.SFX && this.SFX.crowd(500);
     }
     if (raw >= 1) vs.activo = false;
@@ -186,9 +191,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       cfg: { spread: BAL.duelo.spread, min: BAL.duelo.min, max: BAL.duelo.max }
     });
     // corte seco a negro y arranca el cine
-    this.cameras.main.flash(120, 255, 255, 255);
-    this.cameras.main.shake(90, 0.006);
-    this.time.delayedCall(90, () => this.startCine(res, zona));
+    this.cameras.main.flash(BAL.cine.corte_flash_ms, 255, 255, 255);
+    this.cameras.main.shake(BAL.cine.corte_ms, 0.006);
+    this.time.delayedCall(BAL.cine.corte_ms, () => this.startCine(res, zona));
   }
 
   /* =================== MODO CINE — la secuencia de planos =================== */
@@ -248,12 +253,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const trail = this.add.particles(0, 0, "spark", { lifespan: 300, speed: 0, scale: { start: 1.0, end: 0 }, alpha: { start: 0.55, end: 0 }, frequency: 22, follow: ball, tint: 0xffffff }).setDepth(2);
     this.cineContent.add(trail);
     this.SFX && this.SFX.whoosh(C.plano_viaje_ms);
-    const driftX = (this.zona.gy || 0) * 1.4;
+    const driftX = (this.zona.gy || 0) * C.drift_mult;
     const cfg = { k: C.persp.k, vpX: vp.x, vpY: vp.y, nearY: nearY, driftX: driftX };
     // La pelota que se aleja HACIA ADENTRO se anima por TIEMPO en update() (no por tween):
     // así avanza siempre y es la pieza que se puede verificar. El avance del plano lo manda el reloj.
     this.viajeState = { activo: true, elapsed: 0, dur: C.plano_viaje_ms, ball, trail, cfg, vp, zoomed: false };
-    this.time.delayedCall(C.plano_viaje_ms, () => { if (trail && trail.stop) trail.stop(); if (this.viajeState) this.viajeState.activo = false; this.corte(() => this.planoEsfuerzo()); });
+    this.time.delayedCall(C.plano_viaje_ms, () => {
+      if (trail && trail.stop) trail.stop();
+      if (this.viajeState) this.viajeState.activo = false;
+      // R: el zoom/pan del slow-mo del viaje NO debe contaminar los planos siguientes:
+      // reseteo la cámara AHORA (instantáneo, lo tapa el negro del corte) para que el clímax quede centrado.
+      this.cameras.main.setZoom(1); this.cameras.main.centerOn(this.W / 2, this.H / 2);
+      this.corte(() => this.planoEsfuerzo());
+    });
   }
   dibujarCanchaProfunda(vp, nearY) {
     const W = this.W, H = this.H, g = this.cineBG;
@@ -265,9 +277,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.lineStyle(2, this.COL.raya, 0.28);
     for (let i = 1; i <= 9; i++) {
       const d = i / 10, s = window.PampaPersp.aPantalla(d, { k: this.BAL.cine.persp.k, vpX: vp.x, vpY: vp.y, nearY: nearY });
-      const t = s.alturaDesdeVP === undefined ? 0 : 0; // usamos y directo
-      const halfW = (W / 2) * (s.y - vp.y) / (nearY - vp.y);
-      g.beginPath(); g.moveTo(vp.x - halfW, s.y); g.lineTo(vp.x + halfW, s.y); g.strokePath();
+      // R: el ancho de la raya converge IGUAL que las líneas laterales (34 en el fondo → W/2 en H)
+      const half = 34 + (W / 2 - 34) * ((s.y - vp.y) / (H - vp.y));
+      g.beginPath(); g.moveTo(vp.x - half, s.y); g.lineTo(vp.x + half, s.y); g.strokePath();
     }
     // líneas laterales
     g.lineStyle(3, this.COL.raya, 0.5);
@@ -351,13 +363,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineContent.add(arq);
     const ball = this.add.sprite(gx - 260, gy - 40, "ball").setScale(1.6);
     this.cineContent.add(ball);
-    const targetY = gy - gh * 0.6 + (this.zona.gy || 0) * 1.4;
+    const targetY = gy - gh * 0.6 + (this.zona.gy || 0) * C.drift_mult;
+    const impGol = C.impacto_gol_ms, impAtj = C.impacto_atajada_ms, impAfu = C.impacto_afuera_ms;
 
     // el TWEEN mueve la pelota (visual); el IMPACTO lo dispara el RELOJ (robusto ante cualquier loop)
     if (res.outcome === "gol") {
       arq.setPosition(gx + (this.zona.gy < 0 ? 90 : -90), gy - 10);   // el arquero llega tarde al otro lado
-      this.tweens.add({ targets: ball, x: gx + (this.zona.gy || 0) * 1.2, y: targetY, scale: 1.2, duration: 340, ease: "Quad.easeIn" });
-      this.time.delayedCall(340, () => {
+      this.tweens.add({ targets: ball, x: gx + (this.zona.gy || 0) * 1.2, y: targetY, scale: 1.2, duration: impGol, ease: "Quad.easeIn" });
+      this.time.delayedCall(impGol, () => {
         ball.setPosition(gx + (this.zona.gy || 0) * 1.2, targetY);
         this.cameras.main.shake(EP.shake_ms, EP.shake_intensidad);
         this.cameras.main.flash(EP.flash_ms, 255, 255, 210);
@@ -367,8 +380,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.tweens.add({ targets: ball, y: ball.y + 40, duration: EP.red_sacudida_ms, ease: "Bounce.easeOut" });
       });
     } else if (res.outcome === "atajada") {
-      this.tweens.add({ targets: ball, x: gx - 30, y: gy - 20, scale: 1.7, duration: 320, ease: "Quad.easeIn" });
-      this.time.delayedCall(320, () => {
+      this.tweens.add({ targets: ball, x: gx - 30, y: gy - 20, scale: 1.7, duration: impAtj, ease: "Quad.easeIn" });
+      this.time.delayedCall(impAtj, () => {
         ball.setPosition(gx - 30, gy - 20);
         this.SFX && this.SFX.gloves(); this.cameras.main.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
         this.dust(gx - 30, gy - 20);
@@ -376,16 +389,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.tweens.add({ targets: ball, x: gx - 260, y: gy + 40, duration: EP.rebote_atajada_ms, ease: "Quad.easeOut" });
       });
     } else {
-      this.tweens.add({ targets: ball, x: gx + (this.zona.gy < 0 ? -1 : 1) * (gw / 2 + 60), y: gy - gh - 30, scale: 1.0, alpha: 0.3, duration: 420, ease: "Quad.easeIn" });
-      this.time.delayedCall(300, () => { this.SFX && this.SFX.afuera(); this.punch("¡AFUERA!", "Se fue por centímetros. ¡Uf!", 0xe3503e); });
+      this.tweens.add({ targets: ball, x: gx + (this.zona.gy < 0 ? -1 : 1) * (gw / 2 + 60), y: gy - gh - 30, scale: 1.0, alpha: 0.3, duration: impAfu, ease: "Quad.easeIn" });
+      this.time.delayedCall(impAfu - 120, () => { this.SFX && this.SFX.afuera(); this.punch("¡AFUERA!", "Se fue por centímetros. ¡Uf!", 0xe3503e); });
     }
-    this.time.delayedCall(340 + C.desenlace_hold_ms, () => this.volverAJuego());
+    this.time.delayedCall(impGol + C.desenlace_hold_ms, () => this.volverAJuego());
   }
 
   volverAJuego() {
+    // R: el fundido de retorno va por la CÁMARA (cubre ambas capas), no por el negro de cineLayer
+    // (que se ocultaba con la capa y el fundido se perdía). Fade a negro → entrarJuego → fade in.
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
-    this.cameras.main.zoomTo(1, 200); this.cameras.main.centerOn(this.W / 2, this.H / 2);
-    this.corte(() => this.entrarJuego());
+    this.cameras.main.setZoom(1); this.cameras.main.centerOn(this.W / 2, this.H / 2);
+    const ms = this.BAL.cine.corte_ms;
+    let vuelto = false;
+    const volver = () => { if (vuelto) return; vuelto = true; this.entrarJuego(); this.cameras.main.fadeIn(ms, 0, 0, 0); };
+    this.cameras.main.once("camerafadeoutcomplete", volver);
+    this.cameras.main.fadeOut(ms, 0, 0, 0);
+    this.time.delayedCall(ms + 120, volver);   // fallback: si el evento del fade no dispara, volvemos igual
   }
 
   // ---- efectos ----

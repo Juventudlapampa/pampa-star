@@ -82,11 +82,20 @@
     "plano_esfuerzo_ms": 360,
     "plano_arquero_ms": 520,
     "corte_ms": 90,
+    "corte_flash_ms": 120,
     "slowmo_desde": 0.72,
     "slowmo_factor": 0.32,
     "lineas_velocidad": 14,
     "desenlace_hold_ms": 1200,
-    "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: fracción del viaje donde entra el slow-motion. lineas_velocidad: cuántas rayas de velocidad radiales."
+    "zoom_viaje": 1.25,
+    "camara_pan_ms": 420,
+    "drift_mult": 1.4,
+    "pelota_escala_base": 0.5,
+    "pelota_escala_span": 3.7,
+    "impacto_gol_ms": 340,
+    "impacto_atajada_ms": 320,
+    "impacto_afuera_ms": 420,
+    "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: fracción del viaje donde entra el slow-motion. zoom_viaje: acercamiento en el momento clave. drift_mult: cuánto se curva la pelota al palo apuntado. pelota_escala_*: tamaño de la pelota cerca (base+span) y lejos (base). impacto_*_ms: duración del viaje de la pelota al desenlace."
   },
 
   "epica": {
