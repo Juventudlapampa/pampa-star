@@ -36,13 +36,43 @@
     "_nota": "AGUANTE = la energía/esfuerzo (antes 'guts'). Nombre original rioplatense. El motor clásico HTML todavía usa 'guts'; ver decisión pendiente en PROGRESO.",
     "max": 100,
     "umbral_rendido": 25,
-    "costo_pase": 20,
-    "costo_quite": 50,
-    "costo_pared": 60,
-    "costo_tiro": 80,
+    "costo_gambeta": 8,
+    "costo_pase": 4,
+    "costo_pared": 10,
+    "costo_tiro": 14,
+    "costo_quite": 8,
+    "costo_corte": 6,
+    "costo_bloqueo": 7,
+    "costo_calden": 30,
     "recuperacion_entretiempo_frac": 0.125,
     "cpu_factor_costo": 0.75,
-    "comentario": "umbral_rendido: por debajo solo pasás y corrés. cpu_factor_costo: la CPU también gasta (no energía infinita)."
+    "comentario": "Costos REESCALADOS a max=100 (los del doc §8 eran para un máximo ~1000). umbral_rendido: por debajo solo pasás y corrés. cpu_factor_costo: la CPU también gasta (no energía infinita)."
+  },
+
+  "partido": {
+    "_nota": "HITO 2: el partido completo. Mundo lógico 1050×680 (x = avance hacia el arco rival, y = lateral). 11 por lado, formación 1-4-3-3 (anclas del v4 clásico, ya afinadas jugando).",
+    "jugadores_por_lado": 11,
+    "formacion": [
+      { "pos": "ARQ", "n": 1, "ax": 30 },
+      { "pos": "DEF", "n": 4, "ax": 190 },
+      { "pos": "VOL", "n": 3, "ax": 460 },
+      { "pos": "ATA", "n": 3, "ax": 730 }
+    ],
+    "elasticidad": { "ARQ": 0.02, "DEF": 0.25, "VOL": 0.45, "ATA": 0.6 },
+    "seg_por_minuto": 15,
+    "salto_accion_min": 0.6,
+    "salto_accion_max": 1.4,
+    "descuento_min": 1,
+    "descuento_max": 3,
+    "dist_tiro": 320,
+    "dist_remate_rival": 200,
+    "pase_radio": 380,
+    "pase_penal_lejano": 0.05,
+    "matriz_bonus": 12,
+    "cpu_pesos": { "quite": 0.4, "corte": 0.3, "bloqueo": 0.3 },
+    "cpu_persecutores": 2,
+    "calden": { "x_min": 680, "aguante": 30, "mult": 1.3 },
+    "comentario": "dist_tiro: a menos de esto del arco rival podés rematar. matriz_bonus: cuánto pesa acertar/errar la adivinanza (quite>gambeta, corte>pase, bloqueo>tiro). calden.x_min: el Disparo del Caldén se habilita pasando esa línea con aguante suficiente."
   },
 
   "duelo": {
