@@ -1199,18 +1199,108 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     this.selloMenu();
   }
+  /* ============ FEEL B4 · LA TENSIÓN DEL PASE: nunca más instantáneo ============ */
+  distALinea(p, a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy || 1;
+    const t = Phaser.Math.Clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / L2, 0, 1);
+    return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t));
+  }
   confirmarPase(rec, alVacio) {
     const st = this.st, P = window.PampaPartido;
     this._receptores = null;
+    /* foto ANTES de resolver: origen, destino y el rival que puede cortarla */
+    const origen = { x: st.mios[st.ctrl].x, y: st.mios[st.ctrl].y };
+    const destino = { x: st.mios[rec.idx].x, y: st.mios[rec.idx].y };
+    if (alVacio) destino.x = Math.min(destino.x + (this.BAL.partido.vacio_avance || 130), st.W - 60);
+    let cortador = null, dMin = 60;
+    st.rivales.forEach((r) => {
+      if (r.pos === "ARQ") return;
+      const d = this.distALinea(r, origen, destino);
+      if (d < dMin) { dMin = d; cortador = r; }
+    });
+    /* la verdad se decide UNA vez en la lógica; el teatro solo la cuenta */
     let res, texto;
     if (alVacio) {
       res = P.resolverPaseAlVacio(st, rec.idx, rec.pct);
       texto = res.win ? "¡PASE AL VACÍO!\n" + st.mios[st.ctrl].nombre.toUpperCase() + " la agarra en carrera\n(el arquero quedó vendido)" : "¡La adelantaste demasiado!\nPelota rival.";
     } else {
       res = P.resolverPase(st, rec.idx, rec.pct);
-      texto = res.win ? "Pase justo.\nAHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase() : "¡INTERCEPTADO!\nLeyeron el pase.";
+      texto = res.win ? "AHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase() : "¡INTERCEPTADO!\nLeyeron el pase.";
     }
-    this.mostrarResolucion(texto, res.win ? "#7ee08a" : "#e3503e", { anim: "pase", gana: res.win });
+    this.animarPase(origen, destino, alVacio, cortador, res.win, texto);
+  }
+  animarPase(origen, destino, alVacio, cortador, win, texto) {
+    this.estado = "RESOLUCION";
+    this.limpiarMenu();
+    const snd = this.FLAGS.e6_cine ? this.SFX : null;
+    const wA = this.aRender(origen.x, origen.y), wB = this.aRender(destino.x, destino.y);
+    const cam = this.cameras.main;
+    cam.stopFollow();
+    const peligro = !!cortador;
+    /* trayectoria punteada del pase al vacío + el compañero corriendo a buscarla */
+    const linea = this.add.graphics().setDepth(7);
+    this.mundoLayer.add(linea); this.uiCam.ignore(linea);
+    if (alVacio) {
+      linea.lineStyle(3, 0xffd84d, 0.8);
+      const seg = 12, n = Math.floor(Math.hypot(wB.x - wA.x, wB.y - wA.y) / (seg * 2));
+      for (let i = 0; i < n; i++) {
+        const t0 = (i * 2 * seg) / (n * 2 * seg), t1 = ((i * 2 + 1) * seg) / (n * 2 * seg);
+        linea.beginPath();
+        linea.moveTo(wA.x + (wB.x - wA.x) * t0, wA.y + (wB.y - wA.y) * t0);
+        linea.lineTo(wA.x + (wB.x - wA.x) * t1, wA.y + (wB.y - wA.y) * t1);
+        linea.strokePath();
+      }
+    }
+    /* la cámara acompaña a la pelota en su viaje */
+    const durVuelo = alVacio ? 850 : 650;
+    cam.pan(wB.x, wB.y, durVuelo + (peligro ? 700 : 150), "Sine.easeInOut", true);
+    snd && snd.whoosh(durVuelo);
+    const bola = this.sprPelota;
+    bola.setPosition(wA.x, wA.y);
+    const cerrar = () => {
+      linea.destroy();
+      if (win && !peligro) {
+        /* pase seguro: fluye sin fricción — aviso chico y a jugar */
+        this.quitarDuelo();
+        this.zoomBase();
+        this.estado = "LIBRE";
+        this.avisar(texto.split("\n")[0]);
+      } else {
+        this.mostrarResolucion(texto, win ? "#7ee08a" : "#e3503e", { anim: "pase", gana: win });
+      }
+    };
+    /* LA SECUENCIA AVANZA POR RELOJ (robusto — lección del Hito 1: los tweens
+       son solo movimiento visual, jamás el hilo de la historia) */
+    if (!peligro) {
+      this.tweens.add({ targets: bola, x: wB.x, y: wB.y + 34, duration: durVuelo, ease: "Sine.easeInOut" });
+      this.time.delayedCall(durVuelo + 80, cerrar);
+      return;
+    }
+    /* HAY PELIGRO: el rival se LANZA al corte — medio segundo de suspenso antes de saber */
+    const F = this.BAL.feel || {};
+    const silencio = F.silencio_ms || 500;
+    const tMedio = Math.round(durVuelo * 0.55);
+    const wM = { x: (wA.x + wB.x) / 2, y: (wA.y + wB.y) / 2 };
+    this.materializarDuelo(cortador, true);
+    if (this.sprDuelo) {
+      const desde = this.aRender(cortador.x, cortador.y);
+      this.sprDuelo.setPosition(desde.x, desde.y);
+      this.tweens.add({ targets: this.sprDuelo, x: wM.x + (win ? 26 : 0), y: wM.y + 6, duration: tMedio + 480, ease: "Quad.easeIn" });
+    }
+    this.tweens.add({ targets: bola, x: wM.x, y: wM.y + 30, duration: tMedio, ease: "Sine.easeIn" });
+    /* EL MOMENTO: la pelota llega al cruce… suspenso… y recién ahí se revela */
+    this.time.delayedCall(tMedio + silencio, () => {
+      if (win) {
+        snd && snd.whoosh(300);
+        this.tweens.add({ targets: bola, x: wB.x, y: wB.y + 34, duration: Math.round(durVuelo * 0.45), ease: "Sine.easeOut" });
+        if (this.sprDuelo) this.tweens.add({ targets: this.sprDuelo, alpha: 0.5, angle: 18, duration: 300 });   // se lanzó y pasó de largo
+      } else {
+        snd && snd.gloves();
+        bola.setPosition(wM.x, wM.y + 30);
+        if (this.sprDuelo && this._dueloBase) this.reproducirAnim(this.sprDuelo, this._dueloBase, "gambeta", 700);   // se la queda
+      }
+    });
+    this.time.delayedCall(tMedio + silencio + (win ? Math.round(durVuelo * 0.45) + 60 : 420), cerrar);
   }
 
   /* --- RESOLUCION (doc §9): sin input, se muestra el desenlace y se reanuda --- */
