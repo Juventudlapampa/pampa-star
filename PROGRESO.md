@@ -1,5 +1,19 @@
 # PAMPA STAR — Progreso
 
+## 🔄 PARTIDO V2 PHASER — "Cámara Cinematográfica" (jul 2026, por etapas)
+Nueva especificación que **manda sobre el partido anterior**: `docs/DISENO_PARTIDO_V2_PAMPA_STAR.md` (+ su investigación `docs/INVESTIGACION_CAMARA_CINEMATICA_TSUBASA.md`). El modelo Tecmo real: la vista de acción muestra SOLO al portador grande; la cancha entera vive únicamente en el radar. Cada etapa se prueba en el celular de Rodri antes de seguir.
+
+### ✅ ETAPA 1 — Cámara y mundo lógico (el cambio madre)
+`phaser/scenes/match.js` REESCRITO según el doc §2/§10 (la escena anterior — Hito 2 + Tanda ABC con menús, cine y LA DEFINICIÓN — queda en git, commit `53f0d80`, para reintegrar sus piezas en las Etapas 3-6):
+- **Mundo lógico 2400×1200** que nunca se ve entero (la ventana visible es ~436×245: un 18%×20% del mundo).
+- **Cámara cinematográfica literal del doc**: `setBounds(0,0,2400,1200)` + `startFollow(portador, true, 0.12, 0.12)` + `setDeadzone(220,140)` + `setZoom(2.2)` + `roundPixels` (en la cámara, sin tocar el config). Corte de plano listo: si la pelota cambia de dueño, pan de 300ms al nuevo portador y follow.
+- **SOLO el portador materializado** como sprite grande (su avatar del editor, ×2, filtro NEAREST = pixel nítido): ocupa el **41% del alto visible** (⅓–½ ✓). Los otros 21 son **entidades lógicas** en `logic/partido.js`, que NO se tocó: la simulación sigue en su espacio 1050×680 con todo el tuning del Bloque A intacto, y la escena escala coordenadas (SX/SY).
+- **Control**: tocás/arrastrás la cancha y el portador corre hacia ahí (pantalla→mundo→simulación vía `getWorldPoint`); en escritorio, flechas o WASD. Sin mouse obligatorio.
+- **Sandbox explícito de la etapa** (comentado en el código): encuentros apagados (`cooldown` clavado — los menús con pausa son la **Etapa 3**) y aguante clavado al máximo (la economía es la **Etapa 5**). Reloj y entretiempo corren en esqueleto.
+- Saves retrocompatibles: `armarPlanteles` idéntico (pampa_star_v1 + avatares + roster); el editor de pinta sigue siendo la escena inicial y `¡A LA CANCHA!` entra a la nueva escena.
+- Verificado headless: bounds/zoom/deadzone/lerp/follow exactos, 2 sprites en escena (portador + pelota), 22 entidades lógicas, fracción de alto 0.41, movimiento táctil y teclado con la cámara siguiendo, cero errores de consola. Tests: 2010+9+30+15+137 verdes (lógica intacta).
+- **Qué NO hay todavía (a propósito)**: radar (E2), HUD (E2), menús/pausa/retratos (E3), animaciones y falsa perspectiva (E4), guts/duelos (E5), cut-ins (E6).
+
 ## 🔄 TANDA ABC (jul 2026) — ritmo + tiro con ejecución + avatar lindo
 El playtest del Hito 2 pidió tres frentes. Se commitea POR BLOQUE; al cerrar C, frena para playtest.
 
