@@ -76,7 +76,20 @@ function partidoNuevo(rng) {
   var gam = acc.find(function (a) { return a.id === "gambeta"; }), pas = acc.find(function (a) { return a.id === "pase"; });
   ok(gam.bloqueada, "rendido: gambeta bloqueada");
   ok(!pas.bloqueada, "rendido: el pase sigue disponible");
-  console.log("[4] aguante y rendido: ok");
+  /* E5: RECUPERACIÓN sin pelota — un compañero que no marca ni conduce respira */
+  var st2 = partidoNuevo();
+  st2.cooldown = 999999;
+  var otro = st2.mios.findIndex(function (x, i) { return i !== st2.ctrl && x.pos === "VOL"; });
+  st2.mios[otro].aguante = 500;
+  for (var k = 0; k < 10; k++) P.tick(st2, 1000, null);   // 10 segundos
+  var esperado = bal.aguante.recuperacion_por_segundo * 10;
+  ok(Math.abs(st2.mios[otro].aguante - 500 - esperado) < 0.01, "regen sin pelota ≈ " + esperado + "/10s (dio +" + (st2.mios[otro].aguante - 500).toFixed(2) + ")");
+  /* E5: el salto de reloj también recupera (y al tanque rival) */
+  var riv0 = st2.aguanteRival = 500;
+  st2.mios[otro].aguante = 500;
+  P.saltoReloj(st2, seq([0.5]));
+  ok(st2.mios[otro].aguante > 500 && st2.aguanteRival > riv0, "el salto de reloj regenera a ambos lados");
+  console.log("[4] aguante, rendido y recuperación: ok");
 })();
 
 /* ---- 5) MATRIZ: que te lean la jugada tiene que doler ---- */
@@ -119,9 +132,9 @@ function partidoNuevo(rng) {
   st.mios[st.ctrl].x = st.W - 100;
   ok(P.puedeTirar(st), "cerca: podés tirar");
   ok(P.puedeCalden(st), "VOS + posición + aguante: Caldén habilitado");
-  st.mios[st.ctrl].aguante = 10;
+  st.mios[st.ctrl].aguante = bal.aguante.costo_calden - 1;   // agnóstico de la escala de guts
   ok(!P.puedeCalden(st), "sin aguante: Caldén bloqueado");
-  st.mios[st.ctrl].aguante = 90;
+  st.mios[st.ctrl].aguante = bal.aguante.max;
   var prep = P.prepararRemate(st, true);
   ok(prep.shotPower > 0 && prep.keeperSkill > 0, "prepararRemate da los parámetros para duel.resolveShot");
   // invariante del arquero (integración): resolveShot jamás da gol si el arquero gana

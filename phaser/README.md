@@ -24,7 +24,7 @@ node phaser/test/duel.test.js     # 2010 asserts, verde
 ```
 
 ## Calibración (fix del playtest)
-En `balance.json → velocidad`: el avance es **lento y con esfuerzo**, el `defensor_cerrando` es más rápido que el `portador_con_pelota` (te alcanzan), y perseguir **cuesta Guts y no es infinito** (`persecucion.guts_por_segundo` + `guts_minimo_para_correr`). El movimiento libre es HITO 2, pero las constantes ya están bien nombradas y coherentes.
+En `balance.json → ritmo`: el avance es **lento y con esfuerzo**, el `defensor_cerrando` es más rápido que el `portador_con_pelota` (te alcanzan), y perseguir **cuesta guts y no es infinito** (`persecucion.aguante_por_segundo` + `aguante_minimo_para_correr`). La economía completa (costos, recuperación, rendido) vive en el bloque `aguante`, escala máx 1000 del doc v2 §7.
 
 ## Sin terceros
 Sprites generados por código, SFX sintetizados en vivo, Phaser es MIT (vendorizado en `vendor/`). **Nada de assets, sprites, música, código ni nombres de Tecmo/Captain Tsubasa** — solo se emula la forma de jugar. Daltonismo: el arquero se distingue por **forma** (brazos + guantes), no solo color; el jugador lleva flecha **▼ VOS**.

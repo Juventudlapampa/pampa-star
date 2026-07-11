@@ -53,10 +53,10 @@
     cine:{persp:{k:3.2},plano_pie_ms:460,plano_viaje_ms:1050,plano_esfuerzo_ms:360,plano_arquero_ms:520,corte_ms:90,corte_flash_ms:120,slowmo_desde:0.72,slowmo_factor:0.32,lineas_velocidad:14,desenlace_hold_ms:1200,zoom_viaje:1.25,camara_pan_ms:420,drift_mult:1.4,pelota_escala_base:0.5,pelota_escala_span:3.7,impacto_gol_ms:340,impacto_atajada_ms:320,impacto_afuera_ms:420},
     epica:{flash_ms:120,shake_intensidad:0.012,shake_ms:260,red_sacudida_ms:700,rebote_atajada_ms:520,atajada_shake_ms:140,atajada_shake_int:0.006,afuera_ms:520,fanfarria_delay_ms:90,red_vida_frames:90,camara_reset_ms:420},
     ritmo:{portador_con_pelota:84,defensor_cerrando:104,perseguidor_sin_pelota:94,rival_con_pelota:58,posicionales_por_segundo:55,radio_encuentro:26,cooldown_encuentro_ms:3200,persecutores:1,arranque_rival_ms:1500,seg_por_minuto:24,salto_accion_min:0.4,salto_accion_max:0.9,descuento_min:1,descuento_max:3,zoom_encuentro:1.22,zoom_encuentro_ms:380},
-    persecucion:{aguante_por_segundo:6,aguante_minimo_para_correr:8,factor_trote:0.6},
-    conduccion:{aguante_por_segundo:3},
-    aguante:{max:100,umbral_rendido:25,costo_gambeta:8,costo_pase:4,costo_pared:10,costo_tiro:14,costo_quite:8,costo_corte:6,costo_bloqueo:7,costo_calden:30,recupera_no_moverse:6,recuperacion_entretiempo_frac:0.125,cpu_factor_costo:0.75},
-    partido:{jugadores_por_lado:11,formacion:[{pos:"ARQ",n:1,ax:30},{pos:"DEF",n:4,ax:190},{pos:"VOL",n:3,ax:460},{pos:"ATA",n:3,ax:730}],elasticidad:{ARQ:0.02,DEF:0.25,VOL:0.45,ATA:0.6},dist_tiro:525,tiro_lejos_desde:380,tiro_lejos_penal:0.06,bonus_arquero_vendido:10,vacio_penal:12,vacio_avance:130,vacio_ventana_ms:8000,dist_remate_rival:200,pase_radio:380,pase_penal_lejano:0.05,matriz_bonus:12,cpu_pesos:{quite:0.4,corte:0.3,bloqueo:0.3},calden:{x_min:680,aguante:30,mult:1.3}}
+    persecucion:{aguante_por_segundo:12,aguante_minimo_para_correr:100,factor_trote:0.6},
+    conduccion:{aguante_por_segundo:0.3},
+    aguante:{max:1000,umbral_rendido:100,costo_gambeta:80,costo_pase:40,costo_pared:60,costo_tiro:80,costo_quite:80,costo_corte:60,costo_bloqueo:70,costo_calden:300,recupera_no_moverse:30,recuperacion_por_segundo:0.2,recuperacion_por_minuto_salto:6,recuperacion_entretiempo_frac:0.125,cpu_factor_costo:0.75},
+    partido:{jugadores_por_lado:11,formacion:[{pos:"ARQ",n:1,ax:30},{pos:"DEF",n:4,ax:190},{pos:"VOL",n:3,ax:460},{pos:"ATA",n:3,ax:730}],elasticidad:{ARQ:0.02,DEF:0.25,VOL:0.45,ATA:0.6},dist_tiro:525,tiro_lejos_desde:380,tiro_lejos_penal:0.06,bonus_arquero_vendido:10,vacio_penal:12,vacio_avance:130,vacio_ventana_ms:8000,dist_remate_rival:200,pase_radio:380,pase_penal_lejano:0.05,matriz_bonus:12,cpu_pesos:{quite:0.4,corte:0.3,bloqueo:0.3},calden:{x_min:680,mult:1.3}}
   };
 
   /* Cargamos balance + roster ANTES de crear el juego (fetch simple, tolerante

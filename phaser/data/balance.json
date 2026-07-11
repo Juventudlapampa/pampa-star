@@ -34,33 +34,35 @@
 
   "persecucion": {
     "_nota": "Perseguir sin pelota drena aguante: no podés correr infinito.",
-    "aguante_por_segundo": 6,
-    "aguante_minimo_para_correr": 8,
+    "aguante_por_segundo": 12,
+    "aguante_minimo_para_correr": 100,
     "factor_trote": 0.6,
     "comentario": "por debajo de aguante_minimo_para_correr, el jugador TROTA: su velocidad cae a factor_trote (60%)"
   },
 
   "conduccion": {
-    "aguante_por_segundo": 3,
-    "comentario": "conducir con la pelota también drena de a poco (el radio de encuentro vive en ritmo.radio_encuentro)"
+    "aguante_por_segundo": 0.3,
+    "comentario": "v2 §7: mantener la gambeta consume ~3 guts cada 10 segundos"
   },
 
   "aguante": {
-    "_nota": "AGUANTE = la energía/esfuerzo (antes 'guts'). Nombre original rioplatense. El motor clásico HTML todavía usa 'guts'; ver decisión pendiente en PROGRESO.",
-    "max": 100,
-    "umbral_rendido": 25,
-    "costo_gambeta": 8,
-    "costo_pase": 4,
-    "costo_pared": 10,
-    "costo_tiro": 14,
-    "costo_quite": 8,
-    "costo_corte": 6,
-    "costo_bloqueo": 7,
-    "costo_calden": 30,
-    "recupera_no_moverse": 6,
+    "_nota": "ETAPA 5: economía de GUTS en la ESCALA DEL DOC v2 §7 (máx 1000). Tiro 80 · uno-dos 60 · especiales escalan (Caldén 300) · conducir 3/10s · recuperar sin pelota 2/10s · entretiempo ⅛ · bajo ~100 casi inutilizado (rendido).",
+    "max": 1000,
+    "umbral_rendido": 100,
+    "costo_gambeta": 80,
+    "costo_pase": 40,
+    "costo_pared": 60,
+    "costo_tiro": 80,
+    "costo_quite": 80,
+    "costo_corte": 60,
+    "costo_bloqueo": 70,
+    "costo_calden": 300,
+    "recupera_no_moverse": 30,
+    "recuperacion_por_segundo": 0.2,
+    "recuperacion_por_minuto_salto": 6,
     "recuperacion_entretiempo_frac": 0.125,
     "cpu_factor_costo": 0.75,
-    "comentario": "Costos REESCALADOS a max=100 (los del doc §8 eran para un máximo ~1000). umbral_rendido: por debajo solo pasás y corrés. cpu_factor_costo: la CPU también gasta (no energía infinita)."
+    "comentario": "umbral_rendido: por debajo solo pasás y trotás. cpu_factor_costo: la CPU también gasta. Todo afinable acá; la lógica lee estas claves, nada hardcodeado."
   },
 
   "partido": {
@@ -85,8 +87,8 @@
     "pase_penal_lejano": 0.05,
     "matriz_bonus": 12,
     "cpu_pesos": { "quite": 0.4, "corte": 0.3, "bloqueo": 0.3 },
-    "calden": { "x_min": 680, "aguante": 30, "mult": 1.3 },
-    "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: el Caldén se habilita pasando esa línea con aguante. (El reloj y los perseguidores viven en el bloque ritmo.)"
+    "calden": { "x_min": 680, "mult": 1.3 },
+    "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: línea que habilita el Caldén (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.)"
   },
 
   "duelo": {

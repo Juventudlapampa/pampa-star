@@ -140,6 +140,17 @@
       ctrl.x = clamp(ctrl.x + input.dx / m * vel * dt, 14, st.W - 14);
       ctrl.y = clamp(ctrl.y + input.dy / m * vel * dt, 14, st.H - 14);
     }
+    /* v2 §7: recuperación SIN pelota (~2 guts/10s) — el que no conduce ni marca, respira.
+       El tanque rival también (si no, muere al minuto 25 y el partido pierde dinámica). */
+    var regen = bal.aguante.recuperacion_por_segundo || 0;
+    if (regen) {
+      st.mios.forEach(function (j, i) {
+        var conduce = st.posesion === "mia" && i === st.ctrl;
+        var marca = st.posesion === "rival" && i === st.ctrl;
+        if (!conduce && !marca) j.aguante = clamp(j.aguante + regen * dt, 0, bal.aguante.max);
+      });
+      st.aguanteRival = clamp(st.aguanteRival + regen * dt, 0, bal.aguante.max);
+    }
 
     /* --- posicionales de ambos lados (escenografía viva, elástica a la pelota) --- */
     var empuje = (st.pelota.x - st.W / 2);
@@ -212,7 +223,17 @@
   function saltoReloj(st, rng) {
     rng = rng || Math.random;
     var R = st.bal.ritmo;
-    st.minuto += R.salto_accion_min + rng() * (R.salto_accion_max - R.salto_accion_min);
+    var salto = R.salto_accion_min + rng() * (R.salto_accion_max - R.salto_accion_min);
+    st.minuto += salto;
+    /* el tiempo que SALTA también recupera (si no, la regen del §7 es simbólica:
+       el partido tiene ~10 min reales de juego libre y ~60' de saltos) */
+    var porMin = st.bal.aguante.recuperacion_por_minuto_salto || 0;
+    if (porMin) {
+      st.mios.forEach(function (j, i) {
+        if (!(st.posesion === "mia" && i === st.ctrl)) j.aguante = clamp(j.aguante + porMin * salto, 0, st.bal.aguante.max);
+      });
+      st.aguanteRival = clamp(st.aguanteRival + porMin * salto, 0, st.bal.aguante.max);
+    }
   }
   /* tras un salto, ¿pitó? (para que el árbitro pueda cortar después de una acción) */
   function chequearTiempo(st) {
@@ -231,7 +252,7 @@
   /* ---------- aguante ---------- */
   function poderRival(st) {    // la fuerza de la CPU cae con su tanque (no energía infinita)
     var base = 52;
-    return base * (0.86 + 0.14 * clamp(st.aguanteRival, 0, 100) / 100);
+    return base * (0.86 + 0.14 * clamp(st.aguanteRival / st.bal.aguante.max, 0, 1));   // fracción: sirve en cualquier escala
   }
   function gastar(st, quien, costo) {
     if (quien === "rival") st.aguanteRival = clamp(st.aguanteRival - costo * st.bal.aguante.cpu_factor_costo, 0, st.bal.aguante.max);
@@ -241,7 +262,7 @@
 
   /* ---------- menús de encuentro (por rol) ---------- */
   function statCtrl(st, k) { return st.mios[st.ctrl].stats[k] || 45; }
-  function bonusAguante(st) { var a = st.mios[st.ctrl].aguante; return (a - 50) * 0.08; }
+  function bonusAguante(st) { var frac = st.mios[st.ctrl].aguante / st.bal.aguante.max; return (frac - 0.5) * 8; }   // ±4, en cualquier escala
 
   function accionesAtaque(st) {
     var A = st.bal.aguante, puedeT = puedeTirar(st), rend = rendido(st);
@@ -293,7 +314,7 @@
       var def = poderRival(st);
       if (CONTRA[opts.accion] === accionRival) { def += B; matriz = "leyeron"; }   // te adivinaron
       else { atk += B * 0.6; matriz = "zafaste"; }                                  // esquivaste la marca equivocada
-      gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || 6));
+      gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
       win = rng() < Duel.duelChance(atk, def, bal.duelo);
     } else {
       /* defiendo: la CPU "ataca" con intención oculta */
@@ -302,7 +323,7 @@
       var atkRiv = poderRival(st) + 4;
       if (CONTRA[accionRival] === opts.accion) { defMio += B; matriz = "leiste"; }  // le adivinaste la intención
       else { atkRiv += B * 0.6; matriz = "teEngano"; }
-      gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || 6));
+      gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
       win = rng() < Duel.duelChance(defMio, atkRiv, bal.duelo);
     }
     saltoReloj(st, rng);

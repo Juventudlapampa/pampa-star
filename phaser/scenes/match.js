@@ -841,6 +841,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const p = this.portadorActual();
     if (p.clave === this._portadorClave) return;
     this._portadorClave = p.clave;
+    this.target = null;               // cambió el dueño: el destino viejo no vale
     this._base = this.bakePortador(p);
     /* sin flipX: el dorsal horneado debe leerse derecho (accesibilidad) */
     this.sprPortador.setTexture(this._base + (this._esHeroico ? this._animIdle + "1" : "_idle")).setScale(this._escalaBase).setFlipX(false);
@@ -867,8 +868,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============================== UPDATE ============================== */
   update(time, delta) {
     const st = this.st, P = window.PampaPartido;
-    /* sandbox hasta la Etapa 5: el desgaste no corre (los DOS tanques quietos, simétrico) */
-    if (!this._economiaActiva) { st.mios[st.ctrl].aguante = this.BAL.aguante.max; st.aguanteRival = this.BAL.aguante.max; }
+    /* ETAPA 5: la economía de guts corre con el flag e5_guts; apagado = tanques quietos (sandbox) */
+    if (!this.FLAGS.e5_guts) { st.mios[st.ctrl].aguante = this.BAL.aguante.max; st.aguanteRival = this.BAL.aguante.max; }
 
     /* §9 EN SERIO: fuera de LIBRE la simulación NO corre (pausa → animación → pausa,
        estados realmente separados — si no, rivalTira/final pisan la resolución) */
@@ -879,9 +880,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       return;
     }
 
-    /* input de movimiento → SOLO corriendo libre con la pelota */
+    /* input de movimiento: con pelota movés al portador; SIN pelota movés a tu
+       MARCADOR (lo leés en el radar por su anillo — perseguir drena guts, §7) */
     let input = null;
-    if (this.estado === "LIBRE" && st.posesion === "mia") {
+    if (this.estado === "LIBRE") {
       const ctrl = st.mios[st.ctrl];
       if (this.cursors) {
         let dx = 0, dy = 0;
@@ -895,7 +897,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const dx = this.target.x - ctrl.x, dy = this.target.y - ctrl.y;
         if (Math.hypot(dx, dy) > 8) input = { dx, dy }; else this.target = null;
       }
-    } else if (st.posesion !== "mia") this.target = null;
+    }
 
     /* flag e3_menus apagado = sandbox de la E1 (sin cruces, remate rival auto-resuelto) */
     if (!this.FLAGS.e3_menus) st.cooldown = 9e9;
