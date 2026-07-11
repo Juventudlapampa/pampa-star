@@ -1,7 +1,7 @@
 /* ============================================================================
    PAMPA STAR · phaser/logic/tiro.js — LÓGICA PURA del TIRO CON EJECUCIÓN
-   Tsubasa para construir, New Star Soccer para definir: la jugada se arma por
-   decisión, pero el REMATE lo ejecutás VOS (puntería + potencia + curva).
+   Se construye por DECISIÓN y se define por DESTREZA: la jugada se arma
+   eligiendo, pero el REMATE lo ejecutás VOS (puntería + potencia + curva).
    Este módulo convierte tu ejecución en una "zona" para duel.resolveShot:
    el invariante del arquero sigue intacto (acá no se decide gol, se PREPARA).
 

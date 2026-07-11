@@ -1,0 +1,18 @@
+{
+  "_schema": "pampa-star/portraits@1",
+  "_nota": "MANIFEST DE RETRATOS (doc v2 §6). HOY: bustos PLACEHOLDER 100% originales dibujados por código (SVG→webp, ~2KB c/u). RODRI: para poner tu banco real, pisá los archivos de assets/retratos/ CON LOS MISMOS NOMBRES (reemplazo 1:1, no hace falta tocar nada más) o editá 'archivo'/'n' acá. arquetipo: 'companero' = NPCs de tu equipo · 'rival' = rivales (asignación determinista por nombre del jugador). VOS y tus 4 amigos NO usan el banco: su retrato es la cara del avatar del editor. Si un archivo falta, cae solo a caras de avatar (tolerante).",
+  "retratos": [
+    { "archivo": "assets/retratos/retrato_pibe_1.webp", "arquetipo": "companero", "n": "Placeholder pibe 1", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_pibe_2.webp", "arquetipo": "companero", "n": "Placeholder pibe 2", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_pibe_3.webp", "arquetipo": "companero", "n": "Placeholder pibe 3", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_pibe_4.webp", "arquetipo": "companero", "n": "Placeholder pibe 4", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_pibe_5.webp", "arquetipo": "companero", "n": "Placeholder pibe 5", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_pibe_6.webp", "arquetipo": "companero", "n": "Placeholder pibe 6", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_juvenil.webp", "arquetipo": "companero", "n": "Placeholder juvenil", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_rival_1.webp", "arquetipo": "rival", "n": "Placeholder rival 1", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_rival_2.webp", "arquetipo": "rival", "n": "Placeholder rival 2", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_volante.webp", "arquetipo": "rival", "n": "Placeholder volante rival", "origen": "placeholder original por código" },
+    { "archivo": "assets/retratos/retrato_delantero.webp", "arquetipo": "rival", "n": "Placeholder delantero rival", "origen": "placeholder original por código" }
+  ],
+  "sugerencias_de_tu_banco": "cuando armes el manifest real: assets_drive/PAMPA_STAR_Assets/png_transparent/avatar_1..6.png (bustos transparentes) y PAMPA_STAR_PERSONAJES_TANDA2/*.webp (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist, pampean_boy_watercolor); el DT y el utilero quedan para la presentación (H5)."
+}

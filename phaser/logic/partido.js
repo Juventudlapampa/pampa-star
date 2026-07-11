@@ -248,7 +248,7 @@
     var acc = [
       { id: "gambeta", n: "GAMBETA", ico: "🌀", costo: A.costo_gambeta, poder: statCtrl(st, "gambeta"), bloqueada: rend },
       { id: "pase", n: "PASE ▸", ico: "➡️", costo: A.costo_pase, poder: statCtrl(st, "pase"), bloqueada: false, submenu: true },
-      { id: "pared", n: "PARED (1-2)", ico: "🔁", costo: A.costo_pared, poder: statCtrl(st, "pase") * 0.8 + mejorVinculo(st) * 0.2, bloqueada: rend || !hayCompaCerca(st) },
+      { id: "pared", n: "PARED (1-2)", ico: "🔁", costo: A.costo_pared, poder: statCtrl(st, "pase") * 0.8 + mejorVinculo(st) * 0.2, bloqueada: rend || !hayCompaCerca(st), motivo: rend ? "SIN AGUANTE" : (!hayCompaCerca(st) ? "SIN COMPAÑERO CERCA" : null) },
       { id: "tiro", n: "TIRO", ico: "🎯", costo: A.costo_tiro, poder: statCtrl(st, "tiro"), bloqueada: rend || !puedeT, motivo: !puedeT ? "LEJOS DEL ARCO" : (rend ? "SIN AGUANTE" : null) }
     ];
     if (rend) acc.forEach(function (a) { if (a.id !== "pase") { a.bloqueada = true; a.motivo = "SIN AGUANTE"; } });
@@ -375,6 +375,48 @@
     return { win: win };
   }
 
+  /* ---------- PASE AL VACÍO (v2 §7 "Through") ----------
+     Dejás pasar la pelota al espacio de un compañero adelantado: más riesgo
+     que el pase al pie, pero si sale, el receptor gana metros y el ARQUERO
+     QUEDA VENDIDO por una ventana corta (bonus al próximo remate). */
+  function receptorAlVacio(st) {
+    var c = st.mios[st.ctrl], mejor = null;
+    st.mios.forEach(function (j, i) {
+      if (i === st.ctrl || j.pos === "ARQ") return;
+      if (j.x <= c.x + 40) return;                        // tiene que estar ADELANTE
+      if (dist(j.x, j.y, c.x, c.y) > st.bal.partido.pase_radio) return;
+      if (!mejor || j.x > st.mios[mejor].x) mejor = i;
+    });
+    return mejor;
+  }
+  function resolverPaseAlVacio(st, receptorIdx, pctBase, rng) {
+    rng = rng || Math.random;
+    var P = st.bal.partido;
+    gastar(st, "mio", st.bal.aguante.costo_pase);
+    saltoReloj(st, rng);
+    var pct = clamp(pctBase - P.vacio_penal, 10, 92);
+    var win = rng() * 100 < pct;
+    if (win) {
+      var r = st.mios[receptorIdx];
+      r.x = clamp(r.x + P.vacio_avance, 20, st.W - 60);   // corre al espacio
+      st.ctrl = receptorIdx;
+      st.pelota.x = r.x + 12; st.pelota.y = r.y;
+      st._vendidoHasta = st._t + P.vacio_ventana_ms;      // el arquero quedó a contrapié
+      st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
+    } else {
+      perderPelota(st, rng);
+    }
+    return { win: win, pct: pct };
+  }
+
+  /* NO MOVERSE (v2 §7): no disputás — el rival sigue, vos recuperás aire */
+  function esperarDefensa(st) {
+    var j = st.mios[st.ctrl];
+    j.aguante = clamp(j.aguante + st.bal.aguante.recupera_no_moverse, 0, st.bal.aguante.max);
+    st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+    return { recupero: st.bal.aguante.recupera_no_moverse };
+  }
+
   /* ---------- tiro / Caldén ---------- */
   function puedeTirar(st) {
     return st.posesion === "mia" && st.mios[st.ctrl].x > st.W - st.bal.partido.dist_tiro;
@@ -386,12 +428,18 @@
   /* parámetros del remate (la ESCENA llama a Duel.resolveShot con esto: una sola fuente de verdad).
      El salto de reloj del remate vive ACÁ (lógica), no en la escena. */
   function prepararRemate(st, esCalden, rng) {
-    var j = st.mios[st.ctrl], C = st.bal.partido.calden;
+    var j = st.mios[st.ctrl], P = st.bal.partido, C = P.calden;
     var poder = (j.stats.tiro || 50) + (j.stats.caracter || 50) * 0.12 + bonusAguante(st);
+    /* v2 §7: desde lejos el tiro normal pierde fuerza (los especiales no) */
+    var d = dist(j.x, j.y, st.W, st.H / 2);
+    if (!esCalden) poder -= Math.max(0, d - P.tiro_lejos_desde) * P.tiro_lejos_penal;
+    /* pase al vacío reciente: el arquero quedó vendido */
+    var vendido = st._vendidoHasta && st._t < st._vendidoHasta;
+    if (vendido) { poder += P.bonus_arquero_vendido; st._vendidoHasta = 0; }
     if (esCalden) poder *= C.mult;
     gastar(st, "mio", esCalden ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro);
     saltoReloj(st, rng);
-    return { shotPower: poder, keeperSkill: st.rivalKeeperSkill };
+    return { shotPower: poder, keeperSkill: st.rivalKeeperSkill, arqueroVendido: !!vendido, distancia: Math.round(d) };
   }
   function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
   function tiroFallado(st, rng) { perderPelota(st, rng); st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }
@@ -445,6 +493,7 @@
     crearPartido: crearPartido, tick: tick, kickoff: kickoff,
     saltoReloj: saltoReloj, chequearTiempo: chequearTiempo, entretiempo: entretiempo,
     accionesAtaque: accionesAtaque, accionesDefensa: accionesDefensa,
+    receptorAlVacio: receptorAlVacio, resolverPaseAlVacio: resolverPaseAlVacio, esperarDefensa: esperarDefensa,
     resolverDuelo: resolverDuelo, ganarAtaque: ganarAtaque, perderPelota: perderPelota,
     ganarDefensa: ganarDefensa, perderDefensa: perderDefensa,
     receptoresPase: receptoresPase, resolverPase: resolverPase,

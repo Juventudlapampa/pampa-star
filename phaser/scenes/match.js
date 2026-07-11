@@ -10,8 +10,12 @@
    toca: la simulación sigue en su espacio 1050×680 y la escena escala).
 
    Qué NO hay todavía (a propósito — una etapa por vez, doc §10):
-   radar (Etapa 2) · menús/pausa/retratos (Etapa 3) · animaciones y falsa
-   perspectiva (Etapa 4) · economía de guts y duelos (Etapa 5) · cine (Etapa 6).
+   animaciones y falsa perspectiva (Etapa 4) · economía de guts (Etapa 5) ·
+   cine/cut-ins (Etapa 6). Del §7 quedan SIN implementar (decisión anotada
+   para Rodri, no son bugs): los menús de RECEPCIÓN (Trap/Through/volea/
+   cabezazo al recibir — hoy el pase da control directo y el "through" vive
+   dentro del pase dirigido), el Despeje de jugador en área propia y el
+   "achicar" del arquero en el mano a mano.
    La escena anterior (Hito 2 + Tanda ABC) vive en git (commit 53f0d80): sus
    menús, el modo cine y LA DEFINICIÓN se reintegran en las etapas 3-6.
 
@@ -20,8 +24,25 @@
 window.PampaMatch = class PampaMatch extends Phaser.Scene {
   constructor() { super("match"); }
 
+  /* retratos del banco (doc §6): se cargan acá; sin server/archivo, cae a la cara del avatar */
+  preload() {
+    this._retratos = { companero: [], rival: [] };
+    const man = this.game.registry.get("portraits");
+    if (man && Array.isArray(man.retratos)) {
+      man.retratos.forEach((r, i) => {
+        const key = "retrato_" + i;
+        this.load.image(key, "../" + r.archivo);
+        (r.arquetipo === "rival" ? this._retratos.rival : this._retratos.companero).push(key);
+      });
+    }
+  }
+
   init() {
     this.BAL = this.game.registry.get("balance");
+    /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
+       Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true }, this.BAL.flags || {});
+    this.estado = "LIBRE";               // LIBRE_CORRIENDO | MENU (pausa) | PASE (apuntando) | RESOLUCION (doc §9)
     /* ETAPA 1 — constantes de cámara y mundo (números del doc §2; se afinan
        por criterio del doc: chico→más zoom, encajonado→más deadzone,
        tiembla→roundPixels/zoom entero. Con el visto bueno pasan a balance.json) */
@@ -33,6 +54,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       ESCALA_PORTADOR: 2          // sprite 34×50 ×2 = 100px de mundo ≈ 41% del alto visible (⅓–½ ✓)
     };
     this.target = null;           // hacia dónde corre el portador (coords de SIMULACIÓN)
+    this.sprDuelo = null;         // limpio ante scene.restart (el objeto viejo murió con la escena)
   }
 
   create() {
@@ -47,14 +69,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const plantel = this.armarPlanteles();
     this.st = window.PampaPartido.crearPartido({ bal: this.BAL, mios: plantel.mios, rivales: plantel.rivales });
     this.nombreRival = plantel.nombreRival;
-    /* ETAPA 1 (sandbox): sin encuentros (los menús con pausa son la Etapa 3)
-       y sin economía de aguante (la Etapa 5 la trae con los duelos) */
-    this.st.cooldown = 9e9;
 
     /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
-       capa de HUD (radar + marcador + guts): la ve solo la cámara de UI, fija */
+       capa de HUD (radar + marcador + guts) y capa de MENÚ: solo la cámara de UI fija */
     this.mundoLayer = this.add.container(0, 0);
     this.hudLayer = this.add.container(0, 0);
+    this.menuLayer = this.add.container(0, 0);
 
     this.buildCancha();
     this.buildPortador();
@@ -71,8 +91,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* --- ETAPA 2: RADAR + HUD en cámara fija (doc §3/§4) --- */
     this.buildRadar();
     this.buildHUD();
+    this.buildBotonAccion();
     this.uiCam = this.cameras.add(0, 0, 960, 540);
-    cam.ignore(this.hudLayer);
+    cam.ignore([this.hudLayer, this.menuLayer]);
     this.uiCam.ignore(this.mundoLayer);
 
     /* --- input: táctil primero (tocás/arrastrás y el portador corre hacia ahí),
@@ -85,6 +106,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.input.keyboard) {
       this.cursors = this.input.keyboard.createCursorKeys();
       this.wasd = this.input.keyboard.addKeys("W,A,S,D");
+      this.keyEnter = this.input.keyboard.addKey("ENTER");
+      /* ESPACIO = el botón de acción (doc §8); ESC = cancelar (todo se puede sin mouse) */
+      this.input.keyboard.on("keydown-SPACE", (ev) => { ev.preventDefault && ev.preventDefault(); this.onBotonAccion(); });
+      this.input.keyboard.on("keydown-ESC", () => {
+        if (this.estado === "PASE" && this._paseCancelar) this._paseCancelar();
+        else if (this.estado === "MENU" && this._menuVolver) this._menuVolver();
+      });
     }
 
     /* guía breve pegada al portador */
@@ -92,6 +120,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const hint = this.add.text(j.x * this.SX, j.y * this.SY + 70, "tocá la cancha (o flechas) para correr",
       { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
     this.mundoLayer.add(hint);
+    this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
     this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
   }
 
@@ -242,7 +271,359 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const R = this.radar, st = this.st;
     return { x: (p.x - R.x) / R.w * st.W, y: (p.y - R.y) / R.h * st.H };
   }
-  onRadarTap(p) { /* Etapa 3 le da uso (pase dirigible / elegir marcador) */ }
+  onRadarTap(p) {
+    const st = this.st, P = window.PampaPartido, w = this.radarAMundo(p);
+    if (this.estado === "PASE") {
+      /* PASE DIRIGIBLE (doc §7): tocás el destino en el radar. El receptor es el
+         más cercano al punto; si tocaste MÁS ALLÁ de él (hacia el arco), es AL VACÍO. */
+      let mejor = null, md = 1e9;
+      this._receptores.forEach(r => {
+        const j = st.mios[r.idx], d = Math.hypot(j.x - w.x, j.y - w.y);
+        if (d < md) { md = d; mejor = r; }
+      });
+      if (!mejor) return;
+      const alVacio = mejor.adelante && w.x > st.mios[mejor.idx].x + 40;
+      this.confirmarPase(mejor, alVacio);
+    } else if (this.estado === "LIBRE" && st.posesion === "rival") {
+      /* en defensa: tap en el radar elige a quién controlás */
+      let mejor = -1, md = 1e9;
+      st.mios.forEach((j, i) => { if (j.pos === "ARQ") return; const d = Math.hypot(j.x - w.x, j.y - w.y); if (d < md) { md = d; mejor = i; } });
+      if (mejor >= 0 && P.cambiarA(st, mejor)) this.avisar("Marcás con " + st.mios[mejor].nombre.toUpperCase());
+    }
+  }
+
+  /* ============ ETAPA 3 · RETRATOS (doc §6, banco de Rodri) ============ */
+  _caraDe(j, lado) {
+    const key = "cara_" + lado + (j.numero || 0);
+    if (!this.textures.exists(key)) window.PampaAvatarArte.cara(this, key, j.look || window.PampaAvatar.crearLook());
+    return key;
+  }
+  retratoKey(j, esRival) {
+    /* VOS y tus amigos: la cara del avatar que eligieron en el editor.
+       El resto: retrato del banco por arquetipo (determinista por nombre). */
+    if (!esRival && (j.esVos || j.esAmigo) && j.look) return this._caraDe(j, "m");
+    const pool = this._retratos[esRival ? "rival" : "companero"].filter(k => this.textures.exists(k));
+    if (pool.length) return pool[window.PampaAvatar.hashSemilla(j.nombre || "x") % pool.length];
+    return this._caraDe(j, esRival ? "r" : "m");
+  }
+  retratoPanel(x, j, esRival, gutsVal) {
+    const key = this.retratoKey(j, esRival);
+    const img = this.add.image(x, 386, key);
+    const esc = 132 / img.height; img.setScale(esc);
+    const marco = this.add.rectangle(x, 386, img.width * esc + 10, 142, 0x0a1f13, 0.55).setStrokeStyle(2, esRival ? 0xff8a50 : 0x4fc3f7);
+    const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", fontStyle: "bold" }).setOrigin(0.5);
+    /* §6: nombre + BARRA de guts (color por umbral) + número SIEMPRE */
+    const max = this.BAL.aguante.max, frac = Phaser.Math.Clamp(gutsVal / max, 0, 1);
+    const barCol = frac > 0.5 ? 0x2e7d32 : frac > 0.25 ? 0xf9a825 : 0xc62828;
+    const barBg = this.add.rectangle(x, 480, 96, 9, 0x0a1f13, 0.9).setStrokeStyle(1, 0xf6efdc, 0.7);
+    const bar = this.add.rectangle(x - 48 + 48 * frac, 480, 96 * frac, 7, barCol, 1);
+    const guts = this.add.text(x, 495, "GUTS " + Math.round(gutsVal), { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    this.menuLayer.add([marco, img, nom, barBg, bar, guts]);
+  }
+
+  /* ============ ETAPA 3 · EL MENÚ EN CRUZ con pausa (doc §7/§8/§9) ============ */
+  buildBotonAccion() {
+    if (!this.FLAGS.e3_menus) return;   // sin menús (flag apagado) no hay botón de acción
+    const r = this.add.rectangle(876, 462, 150, 56, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    this.txtBotonAccion = this.add.text(876, 462, "☰ ACCIÓN", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    this.hudLayer.add([r, this.txtBotonAccion]);
+    r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
+  }
+  /* transición de entretiempo (E6 la viste de gala; acá el esqueleto, gateado) */
+  transicionEntretiempo() {
+    if (!this.FLAGS.e6_cine) return;
+    this.cameras.main.fadeIn(600, 6, 18, 11);
+  }
+  onBotonAccion() {
+    const st = this.st, P = window.PampaPartido;
+    if (!this.FLAGS.e3_menus || this.estado !== "LIBRE") return;
+    if (st.posesion === "mia") { st.modo = "congelado"; this.abrirMenuAtaque(null, true); }
+    else { P.cambiarAlMasCercano(st); this.avisar("Marcás con " + st.mios[st.ctrl].nombre.toUpperCase()); }   // defensor más cercano (doc §7)
+  }
+  limpiarMenu() { this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
+  /* ⚠ Phaser: ignore(container) taggea solo a los hijos EXISTENTES — todo lo que
+     se agrega al menú DESPUÉS hay que re-ignorarlo o se dibuja duplicado en la
+     cámara con zoom. Llamar esto al final de cada armado de menú. */
+  selloMenu() { this.cameras.main.ignore(this.menuLayer); }
+  /* materializa al SEGUNDO sprite grande del cruce (doc §1 permite portador+rival+arquero) */
+  materializarDuelo(j, esRival, texturaFija) {
+    this.quitarDuelo();
+    let tx = texturaFija;
+    if (!tx) {
+      const base = (esRival ? "v2riv" : "v2mio") + "d" + (j.numero || 0);
+      window.PampaAvatarArte.jugador(this, base, j.look || window.PampaAvatar.crearLook(), esRival);
+      tx = base + "_idle";
+    }
+    this.sprDuelo = this.add.sprite(j.x * this.SX, j.y * this.SY, tx).setScale(this.V2.ESCALA_PORTADOR).setDepth(9);
+    this.mundoLayer.add(this.sprDuelo);
+    if (this.uiCam) this.uiCam.ignore(this.sprDuelo);
+  }
+  quitarDuelo() { if (this.sprDuelo) { this.sprDuelo.destroy(); this.sprDuelo = null; } }
+  /* la cruz: opciones en W/N/E/S como el pad del original (doc §8) */
+  abrirMenuCruz(cfg) {
+    this.estado = "MENU";
+    this.limpiarMenu();
+    const strip = this.add.rectangle(480, 404, 960, 216, 0x0a1f13, 0.42);
+    const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
+    this.menuLayer.add([strip, tit]);
+    if (cfg.izq) this.retratoPanel(104, cfg.izq.j, !!cfg.izq.esRival, cfg.izq.guts);
+    if (cfg.der) this.retratoPanel(856, cfg.der.j, cfg.der.esRival !== false, cfg.der.guts);
+    const POS = { N: [480, 352], S: [480, 458], W: [318, 405], E: [642, 405] };
+    this._menuOps = {}; this._menuSel = null; this._menuBtns = {};
+    ["N", "S", "W", "E"].forEach(dir => {
+      const op = cfg.opciones[dir];
+      if (!op) return;
+      this._menuOps[dir] = op;
+      const [x, y] = POS[dir];
+      const bg = op.bloqueada ? 0x333d36 : 0xf6efdc;
+      /* bloqueado se ve por TEXTURA (rayado ▨) + motivo escrito, no solo por el gris */
+      const r = this.add.rectangle(x, y, 176, 50, bg, 0.97).setStrokeStyle(2, 0x0a1f13);
+      const subTxt = op.bloqueada ? ("▨ " + (op.motivo || "no disponible")) : op.sub;
+      const t = this.add.text(x, y - (subTxt ? 9 : 0), op.texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: op.bloqueada ? "#9aa59d" : "#0a1f13" }).setOrigin(0.5);
+      this.menuLayer.add([r, t]);
+      if (subTxt) { const s = this.add.text(x, y + 13, subTxt, { fontFamily: "monospace", fontSize: "10px", color: op.bloqueada ? "#c76a5e" : "#365a41" }).setOrigin(0.5); this.menuLayer.add(s); }
+      if (!op.bloqueada) {
+        r.setInteractive({ useHandCursor: true });
+        r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; op.cb(); });
+      }
+      this._menuBtns[dir] = r;
+    });
+    /* opción del CENTRO (p.ej. 🔥 CALDÉN cuando está disponible, sin pisar el TIRO) */
+    if (cfg.centro) {
+      const c = this.add.rectangle(480, 405, 150, 50, 0xff8c3a, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const ct = this.add.text(480, 398, cfg.centro.texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      const cs = this.add.text(480, 416, cfg.centro.sub || "", { fontFamily: "monospace", fontSize: "10px", color: "#5a2d12" }).setOrigin(0.5);
+      this.menuLayer.add([c, ct, cs]);
+      c.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.centro.cb(); });
+    }
+    if (cfg.volver) {
+      this._menuVolver = cfg.volver;
+      const v = this.add.rectangle(906, 306, 64, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const vt = this.add.text(906, 306, "✕", { fontFamily: "monospace", fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
+      this.menuLayer.add([v, vt]);
+      v.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.volver(); });
+    }
+    this.selloMenu();
+  }
+  menuSeleccionar(dir) {
+    if (!this._menuOps || !this._menuOps[dir]) return;
+    this._menuSel = dir;
+    Object.keys(this._menuBtns).forEach(d => this._menuBtns[d].setStrokeStyle(d === dir ? 4 : 2, d === dir ? 0xffd84d : 0x0a1f13));
+  }
+  teclasDeMenu() {
+    if (!this.cursors) return;
+    const JD = Phaser.Input.Keyboard.JustDown;
+    if (this.estado === "MENU") {
+      if (JD(this.cursors.left)) this.menuSeleccionar("W");
+      if (JD(this.cursors.right)) this.menuSeleccionar("E");
+      if (JD(this.cursors.up)) this.menuSeleccionar("N");
+      if (JD(this.cursors.down)) this.menuSeleccionar("S");
+      if (JD(this.keyEnter) && this._menuSel) {
+        const op = this._menuOps[this._menuSel];
+        if (op && !op.bloqueada) op.cb();
+      }
+    } else if (this.estado === "PASE" && this._receptores) {
+      if (JD(this.cursors.left)) { this._recSel = (this._recSel + this._receptores.length - 1) % this._receptores.length; }
+      if (JD(this.cursors.right)) { this._recSel = (this._recSel + 1) % this._receptores.length; }
+      if (JD(this.keyEnter)) { this.confirmarPase(this._receptores[this._recSel], false); return; }   // confirmado: no evaluar más teclas
+      if (JD(this.cursors.up)) { const r = this._receptores[this._recSel]; if (r && r.adelante) this.confirmarPase(r, true); }
+    }
+  }
+
+  /* --- los menús por situación (doc §7) --- */
+  abrirMenuAtaque(rivalIdx, libre) {
+    const st = this.st, P = window.PampaPartido;
+    const rival = rivalIdx != null ? st.rivales[rivalIdx] : null;
+    if (rival) this.materializarDuelo(rival, true);
+    const acc = P.accionesAtaque(st);
+    const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
+    const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st), this.BAL.duelo) * 100);
+    const puedeC = P.puedeCalden(st), puedeT = P.puedeTirar(st);
+    const gam = A("gambeta"), par = A("pared"), tir = A("tiro");
+    this.abrirMenuCruz({
+      titulo: rival ? "⚔ ¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés?",
+      izq: { j: st.mios[st.ctrl], guts: st.mios[st.ctrl].aguante },
+      der: rival ? { j: rival, guts: st.aguanteRival } : null,
+      opciones: {
+        W: { texto: "➡ PASE", sub: "elegí destino en el radar", cb: () => this.iniciarPaseDirigido(rivalIdx, libre) },
+        N: {
+          texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " guts", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
+          cb: () => libre ? this.reanudarLibre() : this.resolverAccionAtaque(gam, rivalIdx)
+        },
+        S: { texto: "🔁 UNO-DOS", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " guts", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
+        E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " guts" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+      },
+      /* el CALDÉN convive con el tiro normal (§7: opciones separadas) — va al centro */
+      centro: puedeC ? { texto: "🔥 CALDÉN", sub: this.BAL.aguante.costo_calden + " guts · especial", cb: () => this.resolverTiro(true, rivalIdx, libre) } : null,
+      volver: libre ? () => this.reanudarLibre() : null
+    });
+  }
+  abrirMenuDefensa() {
+    const st = this.st, P = window.PampaPartido;
+    const rival = st.rivales[st.portadorRival];
+    this.materializarDuelo(st.mios[st.ctrl], false);   // tu marcador entra a cámara
+    const acc = P.accionesDefensa(st);
+    const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
+    const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st) + 4, this.BAL.duelo) * 100);
+    const qui = A("quite"), cor = A("corte"), blo = A("bloqueo");
+    const sub = a => a.bloqueada ? null : "~" + pct(a) + "% · " + a.costo + " guts";
+    this.abrirMenuCruz({
+      titulo: "🛡 ¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
+      /* §6 literal: ATACANTE a la izquierda, defensor a la derecha */
+      izq: { j: rival, esRival: true, guts: st.aguanteRival },
+      der: { j: st.mios[st.ctrl], esRival: false, guts: st.mios[st.ctrl].aguante },
+      opciones: {
+        W: { texto: "✂ CORTE", sub: sub(cor), bloqueada: cor.bloqueada, motivo: cor.motivo, cb: () => this.resolverAccionDefensa(cor) },
+        N: { texto: "🦶 QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
+        E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
+        S: { texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " guts · el rival sigue", cb: () => this.resolverNoMoverse() }
+      }
+    });
+  }
+  abrirMenuArquero() {
+    const st = this.st, P = window.PampaPartido;
+    const arq = st.mios.find(j => j.pos === "ARQ");
+    this.materializarDuelo(arq, false, "keeper_mio");
+    const ops = P.opcionesArquero(st);
+    this.abrirMenuCruz({
+      titulo: "🧤 ¡" + this.nombreRival + " remata! Tu arquero bajo los tres palos…",
+      izq: { j: arq, guts: arq.aguante },
+      der: { j: st.rivales[st.portadorRival], guts: st.aguanteRival },
+      opciones: {
+        W: { texto: "🧤 " + ops[0].n, sub: ops[0].riesgo, cb: () => this.resolverArquero(ops[0].id) },
+        N: { texto: "👊 " + ops[1].n, sub: ops[1].riesgo, cb: () => this.resolverArquero(ops[1].id) }
+      }
+    });
+  }
+
+  /* --- resoluciones (doc §7: el CPU eligió en secreto; §9: RESOLUCION sin input) --- */
+  resolverAccionAtaque(a, rivalIdx) {
+    const st = this.st, P = window.PampaPartido;
+    const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo });
+    if (r.win) {
+      P.ganarAtaque(st, a.id);
+      this.mostrarResolucion(a.id === "pared" ? "¡PARED Y SEGUÍS DE LARGO!" : "¡GAMBETA Y DE LARGO!" + (r.matriz === "zafaste" ? "\n(le erraron a la marca)" : ""), "#7ee08a", { anim: "gambeta", gana: true });
+    } else {
+      P.perderPelota(st);
+      this.mostrarResolucion(r.matriz === "leyeron" ? "¡TE LEYERON LA JUGADA!\nPelota rival." : "TE LA SACARON.\nPelota rival.", "#e3503e", { anim: "gambeta", gana: false });
+    }
+  }
+  resolverAccionDefensa(a) {
+    const st = this.st, P = window.PampaPartido;
+    const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo });
+    if (r.win) { P.ganarDefensa(st); this.mostrarResolucion("¡RECUPERASTE!" + (r.matriz === "leiste" ? "\n(le leíste la intención)" : ""), "#7ee08a", { anim: "quite", gana: true }); }
+    else { P.perderDefensa(st); this.mostrarResolucion(r.matriz === "teEngano" ? "TE ENGAÑÓ CON EL AMAGUE…" : "SE TE ESCAPÓ POR VELOCIDAD…", "#e3503e", { anim: "quite", gana: false }); }
+  }
+  resolverNoMoverse() {
+    const st = this.st, P = window.PampaPartido;
+    const r = P.esperarDefensa(st);
+    this.mostrarResolucion("Esperás y juntás aire (+" + r.recupero + " guts).\nEl rival sigue…", "#f6efdc", null);
+  }
+  resolverArquero(id) {
+    const st = this.st, P = window.PampaPartido;
+    const res = P.resolverAtajada(st, id);
+    if (res.golRival) this.mostrarResolucion("GOL DE " + this.nombreRival + "…\nSacás del medio.", "#e3503e", { anim: "arquero", gana: false });
+    else if (res.retiene) this.mostrarResolucion("¡LA RETUVO TU ARQUERO!\nSalís jugando.", "#7ee08a", { anim: "arquero", gana: true });
+    else this.mostrarResolucion(res.mia ? "¡PUÑOS AFUERA!\nLa dividida quedó tuya." : "¡PUÑOS AFUERA!\nLa ganó " + this.nombreRival + "…", "#f6efdc", { anim: "arquero", gana: true });
+  }
+  resolverTiro(esCalden, rivalIdx, libre) {
+    const st = this.st, P = window.PampaPartido;
+    if (!libre && rivalIdx != null) {
+      /* la matriz manda: primero zafar del BLOQUEO del defensor */
+      const acc = P.accionesAtaque(st).find(a => a.id === "tiro");
+      const r = P.resolverDuelo(st, { accion: "tiro", poder: acc ? acc.poder : 50, costo: 0 });
+      if (!r.win) {
+        P.perderPelota(st);
+        this.mostrarResolucion(r.matriz === "leyeron" ? "¡TE BLOQUEARON EL TIRO!\nLo veían venir." : "TE LO TAPARON.\nPelota rival.", "#e3503e", { anim: "gambeta", gana: false });
+        return;
+      }
+    }
+    /* Etapa 3: resolución directa (la DEFINICIÓN + cine vuelven en la Etapa 6) */
+    const prep = P.prepararRemate(st, esCalden);
+    const res = window.PampaDuel.resolveShot({
+      shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: { bonus: 0, fuera: 0.05, gy: 0 },
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+    });
+    if (res.outcome === "gol") { P.golMio(st); this.mostrarResolucion((esCalden ? "¡CALDENAZO!\n" : "¡GOOOL!\n") + (prep.arqueroVendido ? "(el arquero estaba vendido)" : "¡La clavaste!"), "#ffd84d", { anim: "tiro", gana: true }); }
+    else if (res.outcome === "atajada") { P.tiroFallado(st); this.mostrarResolucion("¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
+    else { P.tiroFallado(st); this.mostrarResolucion("¡AFUERA!\nSe fue por centímetros…", "#e3503e", { anim: "tiro", gana: false }); }
+  }
+  reanudarLibre() {
+    this.st.modo = "juego";
+    this.quitarDuelo();
+    this.limpiarMenu();
+    this.estado = "LIBRE";
+  }
+  finDelPartido() {
+    const st = this.st;
+    this.estado = "FINAL";     // estado propio: ningún delayedCall de resolución lo puede barrer
+    this.quitarDuelo();
+    this.limpiarMenu();
+    const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5);
+    const b = this.add.rectangle(480, 330, 320, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const bt = this.add.text(480, 330, "↺ OTRO PARTIDO", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    this.menuLayer.add([t, b, bt]);
+    b.on("pointerdown", () => this.scene.restart());
+    this.selloMenu();
+  }
+
+  /* --- PASE dirigido tocando el radar (doc §7/§8) --- */
+  iniciarPaseDirigido(rivalIdx, libre) {
+    const st = this.st, P = window.PampaPartido;
+    const rs = P.receptoresPase(st);
+    if (!rs.length) { this.avisar("No hay a quién dársela…"); return; }
+    this.limpiarMenu();
+    this.estado = "PASE";
+    this._receptores = rs; this._recSel = 0;
+    this._paseOrigen = { rivalIdx, libre };
+    const hint = this.add.text(this.radar.x + this.radar.w / 2, this.radar.y - 26,
+      "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
+      { fontFamily: "monospace", fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
+    this._paseCancelar = () => {
+      if (this._paseOrigen.libre) this.reanudarLibre(); else this.abrirMenuAtaque(this._paseOrigen.rivalIdx, false);
+    };
+    const cancel = this.add.rectangle(this.radar.x + this.radar.w + 36, this.radar.y + 24, 56, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const ct = this.add.text(this.radar.x + this.radar.w + 36, this.radar.y + 24, "✕", { fontFamily: "monospace", fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
+    this.menuLayer.add([hint, cancel, ct]);
+    cancel.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
+      this._paseCancelar && this._paseCancelar();
+    });
+    this.selloMenu();
+  }
+  confirmarPase(rec, alVacio) {
+    const st = this.st, P = window.PampaPartido;
+    this._receptores = null;
+    let res, texto;
+    if (alVacio) {
+      res = P.resolverPaseAlVacio(st, rec.idx, rec.pct);
+      texto = res.win ? "¡PASE AL VACÍO!\n" + st.mios[st.ctrl].nombre.toUpperCase() + " la agarra en carrera\n(el arquero quedó vendido)" : "¡La adelantaste demasiado!\nPelota rival.";
+    } else {
+      res = P.resolverPase(st, rec.idx, rec.pct);
+      texto = res.win ? "Pase justo.\nAHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase() : "¡INTERCEPTADO!\nLeyeron el pase.";
+    }
+    this.mostrarResolucion(texto, res.win ? "#7ee08a" : "#e3503e", { anim: "pase", gana: res.win });
+  }
+
+  /* --- RESOLUCION (doc §9): sin input, se muestra el desenlace y se reanuda --- */
+  mostrarResolucion(texto, colorHex, animCfg) {
+    this.estado = "RESOLUCION";
+    this.limpiarMenu();
+    const t = this.add.text(480, 226, texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "13px", color: colorHex, stroke: "#0a1f13", strokeThickness: 5, align: "center", lineSpacing: 8 }).setOrigin(0.5).setScale(0.3);
+    this.menuLayer.add(t);
+    this.selloMenu();
+    this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
+    this.animarResolucion(animCfg);
+    this.time.delayedCall(1050, () => {
+      /* si durante la resolución se abrió OTRO momento (p.ej. rivalTira, que no
+         espera cooldown), ese menú manda: no lo barremos ni tocamos el estado */
+      if (this.estado !== "RESOLUCION") return;
+      this.quitarDuelo();
+      this.limpiarMenu();
+      this.estado = "LIBRE";
+    });
+  }
+  animarResolucion(cfg) { /* la Etapa 4 le pone cuerpo (frames de gambeta/quite/tiro/arquero) */ }
   dibujarRadar() {
     const g = this.radarG, R = this.radar, st = this.st;
     g.clear();
@@ -264,6 +645,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (i === st.ctrl) { g.lineStyle(2, 0xffffff, 1); g.strokeCircle(x, y, 8); }
       this.radarNumsMios[i].setPosition(x, y);
     });
+    /* apuntando el pase: CUADRADO (forma) alrededor de cada receptor; grueso = elegido con teclado */
+    if (this.estado === "PASE" && this._receptores) {
+      this._receptores.forEach((r, k) => {
+        const j = st.mios[r.idx], x = mx(j.x), y = my(j.y);
+        g.lineStyle(k === this._recSel ? 3 : 1.5, 0xffd84d, 1);
+        g.strokeRect(x - 9, y - 9, 18, 18);
+      });
+    }
     /* pelota: ROMBO blanco con borde negro, arriba de todo */
     const bx = mx(st.pelota.x), by = my(st.pelota.y);
     g.fillStyle(0xffffff, 1);
@@ -322,9 +711,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
   /* tocar/arrastrar en la cancha = correr hacia ahí (pantalla → mundo → simulación) */
   apuntar(p) {
+    if (this.estado !== "LIBRE") return;                                // en menú/pase/resolución no se corre
     if (this.time.now - (this._uiTocado || 0) < 80) return;             // acaba de tocar UI (radar/botones)
     const R = this.radar;
     if (R && p.x > R.x - 8 && p.x < R.x + R.w + 8 && p.y > R.y - 8) return;   // sobre el radar
+    if (this.FLAGS.e3_menus && p.x > 790 && p.y > 420) return;          // sobre el botón de acción (si existe)
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     this.target = { x: w.x / this.SX, y: w.y / this.SY };
   }
@@ -332,14 +723,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============================== UPDATE ============================== */
   update(time, delta) {
     const st = this.st, P = window.PampaPartido;
-    /* ETAPA 1 (sandbox): sin encuentros ni desgaste — ver nota del create() */
-    st.cooldown = 9e9;
-    st.mios[st.ctrl].aguante = this.BAL.aguante.max;
+    /* sandbox hasta la Etapa 5: el desgaste no corre (los DOS tanques quietos, simétrico) */
+    if (!this._economiaActiva) { st.mios[st.ctrl].aguante = this.BAL.aguante.max; st.aguanteRival = this.BAL.aguante.max; }
 
-    /* input → dirección del portador (teclado pisa al táctil si se usa).
-       En posesión rival mirás el corte: tu marcador lógico no se maneja todavía (Etapa 3). */
+    /* §9 EN SERIO: fuera de LIBRE la simulación NO corre (pausa → animación → pausa,
+       estados realmente separados — si no, rivalTira/final pisan la resolución) */
+    if (this.estado !== "LIBRE") {
+      if (this.estado === "MENU" || this.estado === "PASE") this.teclasDeMenu();
+      this.dibujarRadar();
+      this.refrescarHUD();
+      return;
+    }
+
+    /* input de movimiento → SOLO corriendo libre con la pelota */
     let input = null;
-    if (st.posesion === "mia") {
+    if (this.estado === "LIBRE" && st.posesion === "mia") {
       const ctrl = st.mios[st.ctrl];
       if (this.cursors) {
         let dx = 0, dy = 0;
@@ -353,23 +751,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const dx = this.target.x - ctrl.x, dy = this.target.y - ctrl.y;
         if (Math.hypot(dx, dy) > 8) input = { dx, dy }; else this.target = null;
       }
-    } else this.target = null;
+    } else if (st.posesion !== "mia") this.target = null;
 
+    /* flag e3_menus apagado = sandbox de la E1 (sin cruces, remate rival auto-resuelto) */
+    if (!this.FLAGS.e3_menus) st.cooldown = 9e9;
     const evs = P.tick(st, delta, input);
     let aviso = null;
     for (const ev of evs) {
-      /* Etapa 1: sin menús — solo el esqueleto del reloj (el partido completo vuelve en las etapas 3+) */
-      if (ev.tipo === "entretiempo") { P.entretiempo(st); aviso = "ENTRETIEMPO — saca " + this.nombreRival; }
-      else if (ev.tipo === "final") aviso = "FINAL " + st.golesMio + "-" + st.golesRival + " — Etapa 1 completa";
+      /* ETAPA 3: los cruces abren el MENÚ con pausa (doc §7/§9) */
+      if (ev.tipo === "encuentro") this.abrirMenuAtaque(ev.rivalIdx, false);
+      else if (ev.tipo === "encuentroDef") this.abrirMenuDefensa();
       else if (ev.tipo === "rivalTira") {
-        /* el rival llegó al área: sin menú de arquero todavía (Etapa 3), la
-           atajada se auto-resuelve para que el sandbox no quede congelado */
-        const res = P.resolverAtajada(st, Math.random() < 0.5 ? "atajar" : "despejar");
-        aviso = res.golRival ? "GOL DE " + this.nombreRival + " — sacás vos"
-          : res.retiene ? "¡Tu arquero la retuvo! Salís jugando"
-            : res.mia ? "¡Puños afuera! La dividida quedó tuya"
-              : "¡Puños afuera! La ganó " + this.nombreRival;
+        if (this.FLAGS.e3_menus) this.abrirMenuArquero();
+        else { const res = P.resolverAtajada(st, Math.random() < 0.5 ? "atajar" : "despejar"); aviso = res.golRival ? "GOL DE " + this.nombreRival : "¡La sacó tu arquero!"; }
       }
+      else if (ev.tipo === "entretiempo") { P.entretiempo(st); this.transicionEntretiempo(); aviso = "ENTRETIEMPO — saca " + this.nombreRival; }
+      else if (ev.tipo === "final") this.finDelPartido();
     }
 
     /* el portador (y SOLO él) se dibuja; si la pelota cambió de dueño, corte de plano */
@@ -397,6 +794,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const t = this.add.text(this.sprPortador.x, this.sprPortador.y - 96, txt, { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }, align: "center" })
       .setOrigin(0.5).setDepth(5000);
     this.mundoLayer.add(t);
+    if (this.uiCam) this.uiCam.ignore(t);   // hijo dinámico: re-ignorar a mano
     this.tweens.add({ targets: t, alpha: 0, delay: 2200, duration: 500, onComplete: () => t.destroy() });
   }
 };
