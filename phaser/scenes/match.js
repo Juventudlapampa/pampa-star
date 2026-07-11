@@ -39,6 +39,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
   init() {
     this.BAL = this.game.registry.get("balance");
+    this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
     this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true }, this.BAL.flags || {});
@@ -58,6 +59,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.sprDuelo = null;         // limpio ante scene.restart (el objeto viejo murió con la escena)
     this._bakes = new Set();      // re-horneado fresco POR PARTIDO (la pinta pudo cambiar)
     this._persp = null;
+    this._urgente = false;        // el anuncio de los últimos 5' vuelve a armarse cada partido
+    this._ladoTema = null;        // el motivo musical suena al cambiar el LADO, no en cada pase
+    this._hudMarc = this._hudReloj = this._hudGuts = null;   // caches del HUD: el restart los recrea vacíos
   }
 
   create() {
@@ -422,10 +426,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.hudLayer.add([r, this.txtBotonAccion]);
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
   }
-  /* transición de entretiempo (E6 la viste de gala; acá el esqueleto, gateado) */
+  /* transición de ENTRETIEMPO (E6): fundido + banner con el marcador */
   transicionEntretiempo() {
+    this.SFX && this.SFX.whistle();
     if (!this.FLAGS.e6_cine) return;
-    this.cameras.main.fadeIn(600, 6, 18, 11);
+    const st = this.st;
+    this.cameras.main.fadeIn(700, 6, 18, 11);
+    const banda = this.add.rectangle(480, 200, 960, 84, 0x0a1f13, 0.9);
+    const t = this.add.text(480, 190, "⏸ ENTRETIEMPO", { fontFamily: "'Press Start 2P',monospace", fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
+    const m = this.add.text(480, 218, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival + " · el descanso recupera aguante", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    this.hudLayer.add([banda, t, m]);
+    this.cameras.main.ignore([banda, t, m]);
+    this.tweens.add({ targets: [banda, t, m], alpha: 0, delay: 2100, duration: 500, onComplete: () => { banda.destroy(); t.destroy(); m.destroy(); } });
   }
   onBotonAccion() {
     const st = this.st, P = window.PampaPartido;
@@ -633,9 +645,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   resolverArquero(id) {
     const st = this.st, P = window.PampaPartido;
     const res = P.resolverAtajada(st, id);
-    if (res.golRival) this.mostrarResolucion("GOL DE " + this.nombreRival + "…\nSacás del medio.", "#e3503e", { anim: "arquero", gana: false });
-    else if (res.retiene) this.mostrarResolucion("¡LA RETUVO TU ARQUERO!\nSalís jugando.", "#7ee08a", { anim: "arquero", gana: true });
-    else this.mostrarResolucion(res.mia ? "¡PUÑOS AFUERA!\nLa dividida quedó tuya." : "¡PUÑOS AFUERA!\nLa ganó " + this.nombreRival + "…", "#f6efdc", { anim: "arquero", gana: true });
+    const snd = this.FLAGS.e6_cine ? this.SFX : null;
+    if (res.golRival) { this.efectoGol(true); this.mostrarResolucion("GOL DE " + this.nombreRival + "…\nSacás del medio.", "#e3503e", { anim: "arquero", gana: false }); }
+    else if (res.retiene) { snd && snd.gloves(); this.mostrarResolucion("¡LA RETUVO TU ARQUERO!\nSalís jugando.", "#7ee08a", { anim: "arquero", gana: true }); }
+    else { snd && snd.gloves(); this.mostrarResolucion(res.mia ? "¡PUÑOS AFUERA!\nLa dividida quedó tuya." : "¡PUÑOS AFUERA!\nLa ganó " + this.nombreRival + "…", "#f6efdc", { anim: "arquero", gana: true }); }
   }
   resolverTiro(esCalden, rivalIdx, libre) {
     const st = this.st, P = window.PampaPartido;
@@ -649,15 +662,61 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         return;
       }
     }
-    /* Etapa 3: resolución directa (la DEFINICIÓN + cine vuelven en la Etapa 6) */
-    const prep = P.prepararRemate(st, esCalden);
-    const res = window.PampaDuel.resolveShot({
-      shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: { bonus: 0, fuera: 0.05, gy: 0 },
-      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+    const rematar = () => {
+      const prep = P.prepararRemate(st, esCalden);
+      const res = window.PampaDuel.resolveShot({
+        shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: { bonus: 0, fuera: 0.05, gy: 0 },
+        cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+      });
+      const snd = this.FLAGS.e6_cine ? this.SFX : null;   // flag apagado = Etapa 5 exacta (sin SFX de acción)
+      snd && snd.kick();
+      if (res.outcome === "gol") {
+        P.golMio(st);
+        this.efectoGol(false);
+        this.mostrarResolucion((esCalden ? "¡CALDENAZO!\n" : "¡GOOOL!\n") + (prep.arqueroVendido ? "(el arquero estaba vendido)" : "¡La clavaste!"), "#ffd84d", { anim: "tiro", gana: true });
+      }
+      else if (res.outcome === "atajada") { P.tiroFallado(st); snd && snd.gloves(); this.mostrarResolucion("¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
+      else { P.tiroFallado(st); snd && snd.afuera(); this.mostrarResolucion("¡AFUERA!\nSe fue por centímetros…", "#e3503e", { anim: "tiro", gana: false }); }
+    };
+    /* E6: el tiro ESPECIAL entra con CUT-IN de pantalla (retrato grande + banner) */
+    if (esCalden && this.FLAGS.e6_cine) this.cutInEspecial("¡DISPARO DEL CALDÉN!", rematar);
+    else rematar();
+  }
+
+  /* ============ ETAPA 6 · pulido cinematográfico ============ */
+  cutInEspecial(titulo, cb) {
+    this.estado = "RESOLUCION";
+    this.limpiarMenu();
+    const j = this.st.mios[this.st.ctrl];
+    const franja = this.add.rectangle(480, 270, 1100, 190, 0x2a130b, 0.94).setStrokeStyle(4, 0xffd84d).setAngle(-4);
+    const img = this.add.image(-140, 270, this.retratoKey(j, false));
+    img.setScale(180 / img.height);
+    const txt = this.add.text(1150, 258, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "22px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 8 }).setOrigin(0.5);
+    const sub = this.add.text(1150, 292, (j.esVos ? "VOS" : j.nombre) + " toma fuerza del árbol eterno…", { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+    this.menuLayer.add([franja, img, txt, sub]);
+    this.selloMenu();
+    this.tweens.add({ targets: img, x: 200, duration: 260, ease: "Back.easeOut" });
+    this.tweens.add({ targets: [txt, sub], x: 560, duration: 260, ease: "Back.easeOut" });
+    this.cameras.main.flash(120, 255, 216, 77);
+    this.SFX && this.SFX.whoosh(700);
+    this.time.delayedCall(950, () => { this.limpiarMenu(); cb(); });
+  }
+  /* la RED se sacude: sacudón + chispas en la boca del arco.
+     El gol EN CONTRA se distingue también por sonido (notas que bajan) y chispas frías. */
+  efectoGol(arcoIzquierdo) {
+    if (!this.FLAGS.e6_cine) return;   // flag apagado = Etapa 5 exacta (silencio)
+    const st = this.st, enContra = arcoIzquierdo;
+    const w = this.aRender(enContra ? 20 : st.W - 20, st.H / 2);
+    const e = this.add.particles(w.x, w.y, enContra ? "spark" : "spark_sol", {
+      lifespan: 700, speed: { min: 120, max: 360 }, scale: { start: 1.4, end: 0 }, quantity: 26,
+      angle: { min: 0, max: 360 }, tint: enContra ? [0xdfeef6, 0x9aa5b0] : [0xffd84d, 0xffffff], emitting: false
     });
-    if (res.outcome === "gol") { P.golMio(st); this.mostrarResolucion((esCalden ? "¡CALDENAZO!\n" : "¡GOOOL!\n") + (prep.arqueroVendido ? "(el arquero estaba vendido)" : "¡La clavaste!"), "#ffd84d", { anim: "tiro", gana: true }); }
-    else if (res.outcome === "atajada") { P.tiroFallado(st); this.mostrarResolucion("¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
-    else { P.tiroFallado(st); this.mostrarResolucion("¡AFUERA!\nSe fue por centímetros…", "#e3503e", { anim: "tiro", gana: false }); }
+    this.mundoLayer.add(e);
+    e.explode(26);
+    this.time.delayedCall(900, () => e.destroy());
+    this.cameras.main.shake(240, 0.011);
+    this.SFX && this.SFX.net();
+    this.time.delayedCall(90, () => this.SFX && (enContra ? (this.SFX.golEnContra && this.SFX.golEnContra()) : this.SFX.goal()));
   }
   reanudarLibre() {
     this.st.modo = "juego";
@@ -668,6 +727,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   finDelPartido() {
     const st = this.st;
     this.estado = "FINAL";     // estado propio: ningún delayedCall de resolución lo puede barrer
+    this.SFX && this.SFX.whistle();
     this.quitarDuelo();
     this.limpiarMenu();
     const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5);
@@ -833,6 +893,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.lineStyle(1, 0xf6efdc, 0.8); g.strokeRect(bx, by, bw, bh);
     const gutsTxt = "GUTS " + Math.round(val);
     if (this._hudGuts !== gutsTxt) { this._hudGuts = gutsTxt; this.txtGuts.setText(gutsTxt); }
+    /* E6: los ÚLTIMOS 5 MINUTOS se anuncian (tictac + reloj marcado con ⏰, no solo color).
+       TODO el bloque bajo el flag: apagado = reloj plano de la Etapa 5. */
+    if (this.FLAGS.e6_cine) {
+      if (!this._urgente && st.tiempo === 2 && st.minuto >= 85) {
+        this._urgente = true;
+        this.txtReloj.setColor("#c62828");
+        this.SFX && this.SFX.temaUrgente && this.SFX.temaUrgente();
+        this.avisar("⏰ ¡ÚLTIMOS MINUTOS!");
+      }
+      if (this._urgente) this.txtReloj.setText("⏰ " + this.txtReloj.text.replace("⏰ ", ""));
+    }
   }
   /* el corte de plano: la pelota cambió de dueño → pan breve + follow al nuevo portador (doc §2).
      El destino del pan se actualiza cada frame al portador VIVO: si se mueve
@@ -846,6 +917,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* sin flipX: el dorsal horneado debe leerse derecho (accesibilidad) */
     this.sprPortador.setTexture(this._base + (this._esHeroico ? this._animIdle + "1" : "_idle")).setScale(this._escalaBase).setFlipX(false);
     const cam = this.cameras.main;
+    /* E6: el corte de plano se SIENTE — flash breve + motivo musical al cambiar el LADO
+       (no en cada pase entre compañeros: el hook es por POSESIÓN) */
+    if (this.FLAGS.e6_cine) {
+      cam.flash(90, 255, 255, 235);
+      const lado = p.esRival ? "rival" : "mia";
+      if (lado !== this._ladoTema) { this._ladoTema = lado; this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado); }
+    }
     cam.stopFollow();
     this._panVivo = true;
     const wp = this.aRender(p.j.x, p.j.y);

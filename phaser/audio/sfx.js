@@ -68,7 +68,26 @@
     /* silbato del árbitro */
     whistle: function () { var c = ensure(); if (!c) return; var t = now(); tone("square", 1900, 2100, t, 0.14, 0.12); },
     /* rumor de la tribuna (colita para la tensión) */
-    crowd: function (ms) { var c = ensure(); if (!c) return; var t = now(); noise(t, (ms || 700) / 1000, 0.05, 500, 0.4, "bandpass"); }
+    crowd: function (ms) { var c = ensure(); if (!c) return; var t = now(); noise(t, (ms || 700) / 1000, 0.05, 500, 0.4, "bandpass"); },
+
+    /* ===== HOOKS DE MÚSICA (v2 §9) — motivos ORIGINALES cortos como placeholder.
+       La música en loop por posesión es etapa posterior: el partido YA llama a
+       estos hooks; acá se decide qué suena (hoy: un motivo de 3 notas). ===== */
+    temaPosesion: function (quien) {
+      var c = ensure(); if (!c) return; var t = now();
+      var notas = quien === "mia" ? [392, 494, 587] : [440, 349, 294];   // sube con la tuya, baja con la de ellos
+      for (var i = 0; i < notas.length; i++) tone("triangle", notas[i], notas[i], t + i * 0.07, 0.1, 0.1);
+    },
+    temaUrgente: function () {
+      var c = ensure(); if (!c) return; var t = now();
+      for (var i = 0; i < 4; i++) tone("square", 880, 880, t + i * 0.12, 0.06, 0.12);   // tictac de los últimos 5'
+    },
+    /* gol EN CONTRA: mismas notas del festejo pero CAYENDO (el oído distingue el lado) */
+    golEnContra: function () {
+      var c = ensure(); if (!c) return; var t = now();
+      var notes = [784, 659, 523, 392];
+      for (var i = 0; i < notes.length; i++) tone("square", notes[i], notes[i], t + i * 0.09, 0.16, 0.13);
+    }
   };
   return SFX;
 });
