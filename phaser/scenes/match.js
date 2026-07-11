@@ -51,10 +51,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       ZOOM: 2.2, LERP: 0.12,
       DEADZONE_W: 220, DEADZONE_H: 140,
       PAN_CORTE_MS: 300,          // corte de plano al cambiar el dueño de la pelota (250-400ms)
-      ESCALA_PORTADOR: 2          // sprite 34×50 ×2 = 100px de mundo ≈ 41% del alto visible (⅓–½ ✓)
+      ESCALA_PORTADOR: 2,         // sprite tosco 34×50 ×2 = 100px de mundo ≈ 41% del alto visible (⅓–½ ✓)
+      ESCALA_HEROICO: 1.0         // sprite heroico 48×108 (cuerpo ~91px) ≈ 37% del alto visible (⅓–½ ✓)
     };
     this.target = null;           // hacia dónde corre el portador (coords de SIMULACIÓN)
     this.sprDuelo = null;         // limpio ante scene.restart (el objeto viejo murió con la escena)
+    this._bakes = new Set();      // re-horneado fresco POR PARTIDO (la pinta pudo cambiar)
+    this._persp = null;
   }
 
   create() {
@@ -117,7 +120,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* guía breve pegada al portador */
     const j = this.portadorActual().j;
-    const hint = this.add.text(j.x * this.SX, j.y * this.SY + 70, "tocá la cancha (o flechas) para correr",
+    const wj = this.aRender(j.x, j.y);
+    const hint = this.add.text(wj.x, wj.y + 70, "tocá la cancha (o flechas) para correr",
       { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
     this.mundoLayer.add(hint);
     this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
@@ -177,6 +181,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      nunca se vea entera (ventana visible ≈ 436×245 de mundo). Vista simple:
      la falsa perspectiva con convergencia es la Etapa 4. */
   buildCancha() {
+    if (this.FLAGS.e4_arte) { this.buildCanchaPerspectiva(); return; }
     const W = this.V2.MUNDO_W, H = this.V2.MUNDO_H, g = this.add.graphics();
     g.setDepth(0);
     this.mundoLayer.add(g);
@@ -212,6 +217,64 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     arco(W - 30, -1);       // arco rival (derecha)
   }
 
+  /* ============ ETAPA 4 · CANCHA EN FALSA PERSPECTIVA (dirección de arte) ============
+     Lados convergiendo hacia el fondo (arriba = lejos), leve curvatura de
+     horizonte, franjas horizontales #2E7D32/#388E3C que se AFINAN a lo lejos,
+     y los sprites se achican con la profundidad (escalaEn). */
+  buildCanchaPerspectiva() {
+    const W = this.V2.MUNDO_W, H = this.V2.MUNDO_H, g = this.add.graphics();
+    g.setDepth(0);
+    this.mundoLayer.add(g);
+    const yTop = 96, yBot = H - 22, insTop = 170, insBot = 20;
+    this._persp = { yTop, yBot, insTop, insBot };   // lo usa aRender() para remapear la sim al trapecio
+    const xIzq = y => insTop + (insBot - insTop) * ((y - yTop) / (yBot - yTop));
+    const xDer = y => W - xIzq(y);
+    /* cielo + tribuna + HORIZONTE CURVO (la leve curvatura de la Tierra) */
+    g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, yTop);
+    g.fillStyle(0x0e2c44, 1); for (let x = 0; x < W; x += 26) g.fillRect(x, 10, 13, 44);
+    g.fillStyle(0xf6efdc, 0.25); for (let x = 10; x < W; x += 40) g.fillRect(x, 22 + Math.floor(8 * Math.sin(x * 0.01)), 3, 3);   // gente
+    g.fillStyle(0x1b5e20, 1); g.fillEllipse(W / 2, yTop + 30, W * 1.12, 78);
+    /* pasto: FRANJAS HORIZONTALES en dos verdes, más finas hacia el fondo */
+    let y = yBot, i = 0;
+    while (y > yTop) {
+      const t = (y - yTop) / (yBot - yTop);
+      const h = Math.max(24, 26 + 66 * t);
+      g.fillStyle(i % 2 ? 0x2e7d32 : 0x388e3c, 1);
+      g.fillRect(0, Math.max(yTop, y - h), W, Math.min(h, y - yTop));
+      y -= h; i++;
+    }
+    /* cuñas laterales oscuras = la convergencia hacia el fondo */
+    g.fillStyle(0x14352a, 1);
+    g.fillTriangle(0, yTop, insTop, yTop, insBot, yBot); g.fillTriangle(0, yTop, insBot, yBot, 0, yBot);
+    g.fillTriangle(W, yTop, W - insTop, yTop, W - insBot, yBot); g.fillTriangle(W, yTop, W - insBot, yBot, W, yBot);
+    /* líneas: perímetro trapezoidal + medio + círculo elíptico + áreas */
+    g.lineStyle(6, 0xeafff0, 0.85);
+    g.strokePoints([{ x: insTop, y: yTop }, { x: W - insTop, y: yTop }, { x: W - insBot, y: yBot }, { x: insBot, y: yBot }], true, true);
+    g.beginPath(); g.moveTo(W / 2, yTop); g.lineTo(W / 2, yBot); g.strokePath();
+    g.strokeEllipse(W / 2, (yTop + yBot) / 2, 340, 250);
+    const area = (lado) => {   // trapecio del área siguiendo la perspectiva
+      const y0 = (yTop + yBot) / 2 - 320, y1 = (yTop + yBot) / 2 + 320;
+      const x0 = lado > 0 ? xIzq(y0) : xDer(y0), x1 = lado > 0 ? xIzq(y1) : xDer(y1);
+      const prof = 330 * lado;
+      g.strokePoints([{ x: x0, y: y0 }, { x: x0 + prof, y: y0 }, { x: x1 + prof, y: y1 }, { x: x1, y: y1 }], false, true);
+      g.fillStyle(0xeafff0, 0.85); g.fillCircle((lado > 0 ? xIzq((yTop + yBot) / 2) : xDer((yTop + yBot) / 2)) + 240 * lado, (yTop + yBot) / 2, 8);
+    };
+    area(1); area(-1);
+    /* arcos sobre las líneas de gol (blancos con red) */
+    const arco = (lado) => {
+      const yc = (yTop + yBot) / 2, gh = 210;
+      const gx = lado > 0 ? xIzq(yc) : xDer(yc), dir = lado;
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(gx - (dir > 0 ? 8 : 0), yc - gh / 2, 8, gh);
+      g.fillStyle(0xdfeef6, 0.4);
+      for (let yy = -gh / 2; yy <= gh / 2; yy += 16) g.fillRect(gx, yc + yy, 28 * -dir, 2);
+      for (let xx = 0; xx < 28; xx += 8) g.fillRect(gx - xx * dir, yc - gh / 2, 2, gh);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(gx - (dir > 0 ? 30 : -2), yc - gh / 2 - 4, 30, 4); g.fillRect(gx - (dir > 0 ? 30 : -2), yc + gh / 2, 30, 4);
+    };
+    arco(1); arco(-1);
+  }
+
   /* ============ EL PORTADOR: el ÚNICO sprite grande de la vista ============ */
   portadorActual() {
     const st = this.st;
@@ -219,25 +282,55 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return { j: st.rivales[st.portadorRival], idx: st.portadorRival, esRival: true, clave: "r" + st.portadorRival };
   }
   bakePortador(p) {
+    const Arte = window.PampaAvatarArte;
+    if (this.FLAGS.e4_arte) {
+      /* ETAPA 4: sprite HEROICO ¾ trasero con kit (celeste liso vs naranja a rayas).
+         Fresco una vez por partido (fuerza): la pinta pudo cambiar en el editor. */
+      const esArq = p.j.pos === "ARQ";
+      const base = (p.esRival ? "h_riv" : "h_mio") + p.idx;
+      if (!this._bakes) this._bakes = new Set();
+      const fresco = !this._bakes.has(base); this._bakes.add(base);
+      Arte.heroico(this, base, p.j.look, esArq ? (p.esRival ? "arqRival" : "arqMio") : (p.esRival ? "rival" : "mio"),
+        p.j.numero, esArq ? ["parado", "estirada", "atajada", "despeje"] : undefined, fresco);
+      this._esHeroico = true; this._escalaBase = this.V2.ESCALA_HEROICO;
+      this._animIdle = esArq ? "_parado_" : "_correr_";
+      return base;
+    }
     const base = (p.esRival ? "v2riv" : "v2mio") + p.idx;
-    window.PampaAvatarArte.jugador(this, base, p.j.look, p.esRival);
-    /* pixel nítido al escalar (equivale al pixelArt del config, sin tocar index.html) */
+    Arte.jugador(this, base, p.j.look, p.esRival);
     ["_idle", "_run"].forEach(s => this.textures.get(base + s).setFilter(Phaser.Textures.FilterMode.NEAREST));
+    this._esHeroico = false; this._escalaBase = this.V2.ESCALA_PORTADOR;
     return base;
+  }
+  /* escala por profundidad (E4): más lejos (arriba) = más chico */
+  escalaEn(jy) { return this.FLAGS.e4_arte ? (0.82 + 0.36 * (jy / this.st.H)) : 1; }
+  /* sim → mundo de RENDER: con la cancha en perspectiva (E4) el rectángulo de la
+     simulación se remapea AL TRAPECIO dibujado (nadie pisa el cielo ni las cuñas) */
+  aRender(jx, jy) {
+    if (!this.FLAGS.e4_arte || !this._persp) return { x: jx * this.SX, y: jy * this.SY };
+    const P = this._persp;
+    const y = P.yTop + 16 + (jy / this.st.H) * (P.yBot - P.yTop - 30);
+    const t = (y - P.yTop) / (P.yBot - P.yTop);
+    const xi = P.insTop + (P.insBot - P.insTop) * t;
+    const x = xi + 16 + (jx / this.st.W) * (this.V2.MUNDO_W - 2 * xi - 32);
+    return { x, y };
   }
   buildPortador() {
     const p = this.portadorActual();
     this._portadorClave = p.clave;
     const base = this.bakePortador(p);
     this._base = base;
-    this.sprPortador = this.add.sprite(p.j.x * this.SX, p.j.y * this.SY, base + "_idle")
-      .setScale(this.V2.ESCALA_PORTADOR).setDepth(10);
+    const w0 = this.aRender(p.j.x, p.j.y);
+    this.sprPortador = this.add.sprite(w0.x, w0.y, base + (this._esHeroico ? this._animIdle + "1" : "_idle"))
+      .setScale(this._escalaBase).setDepth(10);
     this.textures.get("ball").setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.sprPelota = this.add.sprite(0, 0, "ball").setScale(1.6).setDepth(11);
     /* marca de control clara: ▼ + nombre (forma + etiqueta, no solo color) */
     this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: "monospace", fontSize: "11px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 4 })
       .setOrigin(0.5).setDepth(12);
-    this.mundoLayer.add([this.sprPortador, this.sprPelota, this.marker]);
+    this.trailG = this.add.graphics().setDepth(8);   // estelas de velocidad (E4)
+    this._trail = [];
+    this.mundoLayer.add([this.trailG, this.sprPortador, this.sprPelota, this.marker]);
   }
 
   /* ============ ETAPA 2 · RADAR (doc §3): la ÚNICA vista de la cancha entera ============
@@ -348,13 +441,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* materializa al SEGUNDO sprite grande del cruce (doc §1 permite portador+rival+arquero) */
   materializarDuelo(j, esRival, texturaFija) {
     this.quitarDuelo();
-    let tx = texturaFija;
-    if (!tx) {
+    const Arte = window.PampaAvatarArte;
+    let tx, escala = this.V2.ESCALA_PORTADOR;
+    if (this.FLAGS.e4_arte) {
+      /* MISMA clave que el portador (idx = numero-1): un solo horneado por jugador */
+      const esArq = j.pos === "ARQ";
+      this._dueloBase = (esRival ? "h_riv" : "h_mio") + ((j.numero || 1) - 1);
+      this._dueloEsArq = esArq;
+      if (!this._bakes) this._bakes = new Set();
+      const fresco = !this._bakes.has(this._dueloBase); this._bakes.add(this._dueloBase);
+      Arte.heroico(this, this._dueloBase, j.look || window.PampaAvatar.crearLook(),
+        esArq ? (esRival ? "arqRival" : "arqMio") : (esRival ? "rival" : "mio"),
+        j.numero, esArq ? ["parado", "estirada", "atajada", "despeje"] : undefined, fresco);
+      tx = this._dueloBase + (esArq ? "_parado_0" : "_correr_1");
+      escala = this.V2.ESCALA_HEROICO * this.escalaEn(j.y);
+    } else if (texturaFija) tx = texturaFija;
+    else {
       const base = (esRival ? "v2riv" : "v2mio") + "d" + (j.numero || 0);
-      window.PampaAvatarArte.jugador(this, base, j.look || window.PampaAvatar.crearLook(), esRival);
+      Arte.jugador(this, base, j.look || window.PampaAvatar.crearLook(), esRival);
       tx = base + "_idle";
+      this._dueloBase = null;
     }
-    this.sprDuelo = this.add.sprite(j.x * this.SX, j.y * this.SY, tx).setScale(this.V2.ESCALA_PORTADOR).setDepth(9);
+    const wd = this.aRender(j.x, j.y);
+    /* oclusión coherente con la perspectiva: el que está más CERCA (abajo) tapa */
+    const prof = j.y > this.portadorActual().j.y ? 11 : 9;
+    this.sprDuelo = this.add.sprite(wd.x, wd.y, tx).setScale(escala).setDepth(prof);
     this.mundoLayer.add(this.sprDuelo);
     if (this.uiCam) this.uiCam.ignore(this.sprDuelo);
   }
@@ -623,7 +734,38 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.estado = "LIBRE";
     });
   }
-  animarResolucion(cfg) { /* la Etapa 4 le pone cuerpo (frames de gambeta/quite/tiro/arquero) */ }
+  /* ETAPA 4: la resolución se VE — el que actúa reproduce su animación de 4 frames */
+  animarResolucion(cfg) {
+    if (!cfg || !this.FLAGS.e4_arte || !this._esHeroico) return;
+    if (cfg.anim === "arquero") {
+      if (this.sprDuelo && this._dueloBase && this._dueloEsArq)
+        this.reproducirAnim(this.sprDuelo, this._dueloBase, cfg.gana ? ((this.st.golesRival + Math.floor(this.st.minuto)) % 2 ? "atajada" : "despeje") : "estirada", 900);
+      return;
+    }
+    if (cfg.anim === "quite" && cfg.gana && this.sprDuelo && this._dueloBase && !this._dueloEsArq) {
+      /* recuperaste VOS: la animación es de TU marcador (el sprite del duelo), no del rival */
+      this.reproducirAnim(this.sprDuelo, this._dueloBase, "pase", 900);   // barrida baja
+      return;
+    }
+    /* variedad del remate: tiro raso / volea / cabezazo (se ven y se distinguen) */
+    const variedad = ["tiro", "volea", "cabezazo"][(this.st.golesMio + this.st.golesRival + Math.floor(this.st.minuto * 10)) % 3];
+    const mapa = { gambeta: "gambeta", pase: "pase", quite: "gambeta", tiro: variedad };
+    this.reproducirAnim(this.sprPortador, this._base, mapa[cfg.anim] || "gambeta", cfg.anim === "tiro" && cfg.gana ? 480 : 900);
+    if (cfg.anim === "tiro" && cfg.gana)
+      this.time.delayedCall(500, () => { if (this.sprPortador.active) this.reproducirAnim(this.sprPortador, this._base, "festejo", 520); });
+  }
+  /* UN solo ciclo (0→3) sosteniendo el último frame: las acciones no se "rebobinan" */
+  reproducirAnim(spr, base, anim, dur) {
+    let f = 0;
+    this.time.addEvent({
+      delay: Math.max(50, dur / 5), repeat: 4,
+      callback: () => {
+        if (!spr.active) return;
+        const key = base + "_" + anim + "_" + Math.min(f++, 3);
+        if (this.textures.exists(key)) spr.setTexture(key);
+      }
+    });
+  }
   dibujarRadar() {
     const g = this.radarG, R = this.radar, st = this.st;
     g.clear();
@@ -700,11 +842,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (p.clave === this._portadorClave) return;
     this._portadorClave = p.clave;
     this._base = this.bakePortador(p);
-    this.sprPortador.setTexture(this._base + "_idle");
+    /* sin flipX: el dorsal horneado debe leerse derecho (accesibilidad) */
+    this.sprPortador.setTexture(this._base + (this._esHeroico ? this._animIdle + "1" : "_idle")).setScale(this._escalaBase).setFlipX(false);
     const cam = this.cameras.main;
     cam.stopFollow();
     this._panVivo = true;
-    cam.pan(p.j.x * this.SX, p.j.y * this.SY, this.V2.PAN_CORTE_MS, "Sine.easeInOut", true, (c, prog) => {
+    const wp = this.aRender(p.j.x, p.j.y);
+    cam.pan(wp.x, wp.y, this.V2.PAN_CORTE_MS, "Sine.easeInOut", true, (c, prog) => {
       if (prog === 1) { this._panVivo = false; cam.startFollow(this.sprPortador, true, this.V2.LERP, this.V2.LERP); }
     });
   }
@@ -772,11 +916,30 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* el portador (y SOLO él) se dibuja; si la pelota cambió de dueño, corte de plano */
     this.seguirPortador();
     const p = this.portadorActual();
-    const wx = p.j.x * this.SX, wy = p.j.y * this.SY;
-    const corriendo = !p.esRival && !!(input);
-    this.sprPortador.setPosition(wx, wy)
-      .setTexture(this._base + (corriendo && Math.floor(time / 110) % 2 ? "_run" : "_idle"));
-    this.sprPelota.setPosition(st.pelota.x * this.SX, st.pelota.y * this.SY + 34);
+    const wr = this.aRender(p.j.x, p.j.y);
+    const wx = wr.x, wy = wr.y;
+    const corriendo = (!p.esRival && !!input) || (p.esRival && st.esperaRival <= 0);
+    if (this._esHeroico) {
+      /* ciclo de correr de 4 frames + escala por profundidad (E4) */
+      const f = corriendo ? Math.floor(time / 110) % 4 : 1;
+      this.sprPortador.setTexture(this._base + this._animIdle + f).setScale(this._escalaBase * this.escalaEn(p.j.y));
+      /* ESTELAS: el pasto transmite velocidad cuando el portador corre (E4) */
+      if (corriendo) {
+        const u = this._trail[this._trail.length - 1];
+        if (!u || Math.hypot(wx - u.x, wy - u.y) > 14) { this._trail.push({ x: wx, y: wy + 34 }); if (this._trail.length > 6) this._trail.shift(); }
+      } else this._trail.length = 0;
+      const tg = this.trailG; tg.clear();
+      for (let i = 1; i < this._trail.length; i++) {
+        tg.lineStyle(3, 0xffffff, 0.08 + 0.3 * (i / this._trail.length));
+        tg.beginPath(); tg.moveTo(this._trail[i - 1].x, this._trail[i - 1].y); tg.lineTo(this._trail[i].x, this._trail[i].y); tg.strokePath();
+      }
+    } else {
+      this.sprPortador.setPosition(wx, wy)
+        .setTexture(this._base + (corriendo && Math.floor(time / 110) % 2 ? "_run" : "_idle"));
+    }
+    this.sprPortador.setPosition(wx, wy);
+    const wb = this.aRender(st.pelota.x, st.pelota.y);
+    this.sprPelota.setPosition(wb.x, wb.y + 34).setScale(1.6 * this.escalaEn(st.pelota.y));
     this.marker.setText("▼ " + (p.j.esVos ? "VOS" : (p.j.nombre || "").toUpperCase().slice(0, 10)))
       .setPosition(wx, wy - 62);
     /* pan vivo: mientras dura el corte, el destino persigue al portador real */
