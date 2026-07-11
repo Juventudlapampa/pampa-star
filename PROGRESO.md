@@ -21,8 +21,14 @@ La construcción sigue siendo Tsubasa (decisión/lectura), pero **el remate ahor
 - **UI legible sin color solo**: la franja justa de potencia se NOMBRA ("¡JUSTA!"/"¡PASADA!"), la comba tiene aguja + flechas ↶↷, la mira se marca al pasarse del palo.
 - Verificado headless: gesto completo (aim/pot/comba en vivo), teclado por fases, VOLVER cancela gratis, desde encuentro no hay VOLVER, Caldén con su título y costo 30, cadena de planos entera y vuelta al juego. Tests: 2010+9+30+15 verdes.
 
-### ⏳ BLOQUE C — GENERADOR DE PERSONAJE LINDO (en curso)
-Avatar pixel por CAPAS combinables (piel/cara/pelo/camiseta/accesorios, cada variante con nombre — no solo color) + editor en la creación y para los 4 amigos + la cara personalizada en el ZOOM del cine.
+### ✅ BLOQUE C — GENERADOR DE PERSONAJE LINDO (este commit)
+Chau personajes toscos: ahora el juego **arranca en el EDITOR DE PINTA** y tu avatar se arma por **CAPAS combinables**, todo dibujado por código (original, nada de terceros):
+- **Las capas** (`logic/avatar.js`, PURO y testeado — 137 asserts): 4 tonos de piel, 6 **cortes de pelo con FORMA propia** (rapado/corto/flequillo/rulos/colita/melena), 5 colores de pelo, 3 ojos, 3 cejas, 3 bocas, accesorios (**vincha y muñequeras**) y 3 estilos de camiseta. **Regla daltonismo cumplida**: cada variante tiene NOMBRE en el editor (steppers ◀ Rulos ▶), los cortes/ojos/bocas se distinguen por forma y todo color vive con HEX etiquetado.
+- **El editor** (`scenes/editor.js`): pestañas **VOS + tus 4 AMIGOS** del save clásico, vista previa en vivo (cara grande + jugador de cancha), GUARDAR y ¡A LA CANCHA!. **Guardado retrocompatible**: agrega `career.avatares` a `pampa_star_v1` sin tocar nada de lo viejo (verificado: el `look` clásico queda intacto); sin save clásico, guarda aparte.
+- **Migración automática** del avatar viejo (`career.look` piel/pelo/camiseta → capas nuevas; el "largo colorado (vincha)" clásico conserva su vincha; las franjas clásicas van a "banda" porque **las franjas son la identidad del RIVAL** y no se tocan).
+- **En la cancha**: los 20 jugadores de campo se hornean CON SU LOOK (`scenes/avatar_arte.js`) — VOS y amigos con lo que elegiste, los NPC del roster con **combos procedurales deterministas** por nombre. Los arqueros conservan sus GUANTES y el rival sus FRANJAS (identidades por forma).
+- **LA CARA EN EL ZOOM** (el pedido clave): el primer plano del esfuerzo en el remate y el cine de la gambeta muestran **tu cara personalizada** (pelo, cejas, ojos, boca, vincha) — el generador y el zoom van juntos.
+- Verificado headless: editor→cancha (transición ok), migración de save real simulado, usuario sin save, revancha (re-horneado idempotente), cara custom en el plano esfuerzo, cero errores de consola. Tests: 2010+9+30+15+137 verdes.
 
 ## ✅ HITO 2 — EL PARTIDO COMPLETO JUGABLE (jul 2026)
 El Hito 1 (el turno juego↔cine) quedó **aprobado por playtest**. Sobre esa base se construyó el partido entero. **Frena para playtest de Rodri.**

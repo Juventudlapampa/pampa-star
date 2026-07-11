@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>PAMPA STAR · Hito 1 — La rebanada épica (Phaser)</title>
+<title>PAMPA STAR (Phaser) — tu pinta + el partido</title>
 <style>
   html,body{margin:0;height:100%;background:#06120b;overflow:hidden;
     font-family:'JetBrains Mono',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
@@ -28,9 +28,12 @@
   <script src="logic/duel.js"></script>
   <script src="logic/perspectiva.js"></script>
   <script src="logic/tiro.js"></script>
+  <script src="logic/avatar.js"></script>
   <script src="logic/partido.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/sprites.js"></script>
+  <script src="scenes/avatar_arte.js"></script>
+  <script src="scenes/editor.js"></script>
   <script src="scenes/match.js"></script>
   <script>
   "use strict";
@@ -76,7 +79,7 @@
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { pixelArt: false, antialias: true },
       callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); } },
-      scene: [ window.PampaMatch ]
+      scene: [ window.PampaEditor, window.PampaMatch ]   // arranca en el editor de pinta → ¡A LA CANCHA!
     };
     window.PAMPA_GAME = new Phaser.Game(config);
   }

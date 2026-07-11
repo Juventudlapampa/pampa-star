@@ -46,6 +46,8 @@
             pos: linea.pos,
             stats: p.stats || { pase: 50, tiro: 50, gambeta: 50, velocidad: 50, resistencia: 50, fisico: 50, aereo: 50, caracter: 50 },
             esVos: !!p.esVos, esAmigo: !!p.esAmigo, vinculo: p.vinculo || 0,
+            look: p.look || null,               // el avatar por capas (Bloque C) viaja con el plantel
+
             aguante: bal.aguante.max,
             ax: ax, banda: banda,
             x: ax, y: (banda[0] + banda[1]) / 2,

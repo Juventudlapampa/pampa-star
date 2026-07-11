@@ -106,7 +106,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       career.vida.amigos.forEach(a => {
         const p = mapa[a.pos] || "VOL";
         const idx = slots.findIndex((s, i) => s === p && !usados.has(i));
-        if (idx >= 0 && a.nombre) { usados.add(idx); mios[idx] = { nombre: String(a.nombre).slice(0, 12), pos: p, stats: a.stats, esAmigo: true, vinculo: a.vinculo || 0 }; }
+        if (idx >= 0 && a.nombre) { usados.add(idx); mios[idx] = { nombre: String(a.nombre).slice(0, 12), pos: p, stats: a.stats, esAmigo: true, vinculo: a.vinculo || 0, lookClasico: a.look }; }
       });
     }
     const atas = slots.reduce((arr, s, i) => (s === "ATA" && arr.push(i), arr), []);
@@ -125,6 +125,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (k >= 0) { const j = pool.splice(k, 1)[0]; pueblo = j.pueblo.toUpperCase().slice(0, 10); return { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
       return {};
     });
+    /* --- Bloque C: cada jugador lleva su LOOK (editor → VOS/amigos; procedural → NPCs) --- */
+    const A = window.PampaAvatar;
+    let sueltos = null;
+    try { const r2 = localStorage.getItem("pampa_star_avatares"); if (r2) sueltos = JSON.parse(r2); } catch (e) { }
+    const avs = (career && career.avatares) || sueltos || {};
+    mios.forEach((j, i) => {
+      if (j.esVos) j.look = A.validarLook(avs.vos || A.migrarDelClasico(career && career.look) || A.lookProcedural(j.nombre || "vos"));
+      else if (j.esAmigo) j.look = A.validarLook((avs.amigos && avs.amigos[j.nombre]) || A.migrarDelClasico(j.lookClasico) || A.lookProcedural(j.nombre));
+      else j.look = A.lookProcedural((j.nombre || "compa") + "|" + i);
+    });
+    rivales.forEach((j, i) => { j.look = A.lookProcedural((j.nombre || "rival") + "|" + pueblo + i); });
     return { mios, rivales, nombreRival: pueblo };
   }
 
@@ -166,13 +177,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
 
   buildJugadores() {
-    this.sprMios = this.st.mios.map(j => {
-      const tx = j.pos === "ARQ" ? "keeper_mio" : "player_idle";
-      const s = this.add.sprite(0, 0, tx); this.gameLayer.add(s); return s;
+    /* Bloque C: cada jugador de campo se hornea CON SU LOOK (los arqueros
+       conservan su identidad de guantes; el rival sigue A FRANJAS — forma) */
+    const Arte = window.PampaAvatarArte;
+    this.sprMios = this.st.mios.map((j, i) => {
+      let tx = "keeper_mio", base = null;
+      if (j.pos !== "ARQ") { base = "mio" + i; Arte.jugador(this, base, j.look, false); tx = base + "_idle"; }
+      const s = this.add.sprite(0, 0, tx); s.setData("base", base); this.gameLayer.add(s); return s;
     });
-    this.sprRivales = this.st.rivales.map(j => {
-      const tx = j.pos === "ARQ" ? "keeper_idle" : "rival_idle";
-      const s = this.add.sprite(0, 0, tx); this.gameLayer.add(s); return s;
+    this.sprRivales = this.st.rivales.map((j, i) => {
+      let tx = "keeper_idle", base = null;
+      if (j.pos !== "ARQ") { base = "riv" + i; Arte.jugador(this, base, j.look, true); tx = base + "_idle"; }
+      const s = this.add.sprite(0, 0, tx); s.setData("base", base); this.gameLayer.add(s); return s;
     });
     this.sprPelota = this.add.sprite(0, 0, "ball"); this.gameLayer.add(this.sprPelota);
     this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: "monospace", fontSize: "12px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5); this.gameLayer.add(this.marker);
@@ -313,10 +329,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const s = this.aPantalla(j.x, j.y);
       spr.setPosition(s.x, s.y).setScale(0.65 + 1.45 * s.escala).setDepth(s.y);
       const corre = (esMio && i === st.ctrl && this.target) || (!esMio && i === st.portadorRival && st.posesion === "rival");
-      if (j.pos !== "ARQ") {
-        const base = esMio ? "player" : "rival";
-        spr.setTexture(corre && Math.floor(time / 110) % 2 ? base + "_run" : base + "_idle");
-      }
+      const base = spr.getData("base");
+      if (base) spr.setTexture(corre && Math.floor(time / 110) % 2 ? base + "_run" : base + "_idle");
     };
     st.mios.forEach((j, i) => dibujar(this.sprMios[i], j, true, i));
     st.rivales.forEach((j, i) => dibujar(this.sprRivales[i], j, false, i));
@@ -805,13 +819,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillRect(vp.x - gw / 2 - 3, vp.y - gh - 3, 4, gh + 4); g.fillRect(vp.x + gw / 2, vp.y - gh - 3, 4, gh + 4);
     g.fillRect(vp.x - gw / 2 - 3, vp.y - gh - 3, gw + 7, 4);
   }
+  /* Bloque C: el primer plano lleva LA CARA del que remata (su look del editor) */
+  texturaCineJugador() {
+    const j = this.st.mios[this.st.ctrl];
+    if (!j || !j.look || !window.PampaAvatarArte) return "cine_jugador";
+    const key = "cine_look_" + this.st.ctrl;
+    window.PampaAvatarArte.cineJugador(this, key, j.look);
+    return key;
+  }
   planoEsfuerzo() {
     const W = this.W, H = this.H, C = this.BAL.cine;
     this.limpiarContenido();
     this.cineBG.clear(); this.cineBG.fillStyle(0x1a1206, 1); this.cineBG.fillRect(0, 0, W, H);
     this.cineLabel.setText("· el esfuerzo ·");
     this.lineasVelocidad(W / 2, H / 2, 1, this.esCalden ? 0xffd84d : 0xffffff);
-    const jug = this.add.sprite(W / 2, H / 2 + 20, "cine_jugador").setScale(2.6).setAngle(4);
+    const jug = this.add.sprite(W / 2, H / 2 + 20, this.texturaCineJugador()).setScale(2.6).setAngle(4);
     this.cineContent.add(jug);
     this.tweens.add({ targets: jug, scale: 3.4, angle: -3, duration: C.plano_esfuerzo_ms, ease: "Sine.easeOut" });
     this.SFX && this.SFX.crowd(400);
@@ -891,7 +913,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineBG.clear(); this.cineBG.fillStyle(0x1a1206, 1); this.cineBG.fillRect(0, 0, W, H);
     this.cineLabel.setText("· la gambeta ·");
     this.lineasVelocidad(W / 2, H / 2, 1);
-    const jug = this.add.sprite(W / 2 - 70, H / 2 + 16, "cine_jugador").setScale(2.4).setAngle(-4); this.cineContent.add(jug);
+    const jug = this.add.sprite(W / 2 - 70, H / 2 + 16, this.texturaCineJugador()).setScale(2.4).setAngle(-4); this.cineContent.add(jug);
     const riv = this.add.sprite(W / 2 + 110, H / 2 + 30, "rival_idle").setScale(4.4).setAngle(6); this.cineContent.add(riv);
     this.tweens.add({ targets: jug, x: W / 2 - 30, scale: 3.1, duration: 420, ease: "Sine.easeOut" });
     this.tweens.add({ targets: riv, x: W / 2 + 190, angle: win ? 28 : 0, alpha: win ? 0.55 : 1, duration: 420, ease: "Quad.easeOut" });
