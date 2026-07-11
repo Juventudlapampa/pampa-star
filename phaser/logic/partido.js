@@ -88,8 +88,10 @@
   function kickoff(st, quien) {
     var W = st.W, H = st.H;
     st.posesion = quien; st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
-    st.mios.forEach(function (j) { j.x = j.ax; j.y = (j.banda[0] + j.banda[1]) / 2; });
-    st.rivales.forEach(function (j) { j.x = j.ax; j.y = (j.banda[0] + j.banda[1]) / 2; });
+    /* Feel B2: como arranca el fútbol — CADA equipo EN SU MITAD, en su formación.
+       Nadie empieza en campo rival (los ATA se paran al borde del círculo central). */
+    st.mios.forEach(function (j) { j.x = Math.min(j.ax, W / 2 - 40); j.y = (j.banda[0] + j.banda[1]) / 2; });
+    st.rivales.forEach(function (j) { j.x = Math.max(j.ax, W / 2 + 40); j.y = (j.banda[0] + j.banda[1]) / 2; });
     if (quien === "mia") {
       st.ctrl = st.mios.findIndex(function (j) { return j.esVos; });
       if (st.ctrl < 0) st.ctrl = st.mios.length - 2;

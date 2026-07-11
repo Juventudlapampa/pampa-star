@@ -25,7 +25,13 @@ function partidoNuevo(rng) {
   ok(st.mios.filter(function (j) { return j.pos === "ARQ"; }).length === 1, "exactamente 1 ARQ mío");
   ok(st.mios[st.ctrl].esVos, "VOS arrancás con la pelota");
   ok(st.posesion === "mia" && st.modo === "juego", "arranca jugando en posesión mía");
-  console.log("[1] creación 11v11: ok");
+  /* Feel B2: el saque es de fútbol — cada equipo EN SU MITAD, pelota al centro */
+  ok(st.mios.every(function (j) { return j.x <= st.W / 2; }), "ninguno de los míos arranca en campo rival");
+  ok(st.rivales.every(function (j) { return j.x >= st.W / 2; }), "ningún rival arranca en mi campo");
+  ok(Math.abs(st.pelota.x - st.W / 2) <= 20 && Math.abs(st.pelota.y - st.H / 2) < 1, "la pelota sale del círculo central");
+  P.golMio(st);   // tras el gol: saque del que lo recibió, todos reposicionados
+  ok(st.posesion === "rival" && st.rivales.every(function (j) { return j.x >= st.W / 2; }), "tras tu gol: saca el rival desde el centro, cada uno en su mitad");
+  console.log("[1] creación 11v11 + saque real: ok");
 })();
 
 /* ---- 2) reloj: corre en juego, entretiempo y final con descuento oculto ---- */
@@ -51,15 +57,16 @@ function partidoNuevo(rng) {
 (function () {
   ok(bal.ritmo.defensor_cerrando > bal.ritmo.portador_con_pelota, "defensor_cerrando > portador (te alcanzan)");
   var st = partidoNuevo();
-  var ctrl = st.mios[st.ctrl];
-  var caza0 = st.rivales.map(function (j, i) { return { i: i, d: Math.hypot(j.x - ctrl.x, j.y - ctrl.y) }; })
-    .filter(function (o) { return st.rivales[o.i].pos !== "ARQ"; }).sort(function (a, b) { return a.d - b.d; })[0];
-  var d0 = caza0.d;
+  var masCerca = function () {
+    var c = st.mios[st.ctrl];
+    return Math.min.apply(null, st.rivales.filter(function (j) { return j.pos !== "ARQ"; })
+      .map(function (j) { return Math.hypot(j.x - c.x, j.y - c.y); }));
+  };
+  var d0 = masCerca();
   st.cooldown = 999999;   // sin encuentro para medir la persecución
   for (var i = 0; i < 30; i++) P.tick(st, 100, { dx: 1, dy: 0 });   // corro hacia el arco
-  var r = st.rivales[caza0.i];
-  var d1 = Math.hypot(r.x - st.mios[st.ctrl].x, r.y - st.mios[st.ctrl].y);
-  ok(d1 < d0, "el cazador se ACERCA aunque corras (d " + Math.round(d0) + "→" + Math.round(d1) + ")");
+  var d1 = masCerca();
+  ok(d1 < d0, "no te escapás: el rival más cercano se ACERCA aunque corras (d " + Math.round(d0) + "→" + Math.round(d1) + ")");
   console.log("[3] calibración (te alcanzan): ok");
 })();
 
