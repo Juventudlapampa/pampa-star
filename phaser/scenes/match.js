@@ -51,6 +51,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        y sin economía de aguante (la Etapa 5 la trae con los duelos) */
     this.st.cooldown = 9e9;
 
+    /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
+       capa de HUD (radar + marcador + guts): la ve solo la cámara de UI, fija */
+    this.mundoLayer = this.add.container(0, 0);
+    this.hudLayer = this.add.container(0, 0);
+
     this.buildCancha();
     this.buildPortador();
 
@@ -62,6 +67,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     cam.setDeadzone(this.V2.DEADZONE_W, this.V2.DEADZONE_H);
     cam.setZoom(this.V2.ZOOM);
     cam.roundPixels = true;       // scroll sin temblor (equivale al roundPixels del config, sin tocar index.html)
+
+    /* --- ETAPA 2: RADAR + HUD en cámara fija (doc §3/§4) --- */
+    this.buildRadar();
+    this.buildHUD();
+    this.uiCam = this.cameras.add(0, 0, 960, 540);
+    cam.ignore(this.hudLayer);
+    this.uiCam.ignore(this.mundoLayer);
 
     /* --- input: táctil primero (tocás/arrastrás y el portador corre hacia ahí),
            teclado en escritorio (flechas o WASD). Sin mouse obligatorio (doc §8).
@@ -75,10 +87,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.wasd = this.input.keyboard.addKeys("W,A,S,D");
     }
 
-    /* guía breve pegada al portador (no es HUD: el HUD fijo llega en la Etapa 2) */
+    /* guía breve pegada al portador */
     const j = this.portadorActual().j;
     const hint = this.add.text(j.x * this.SX, j.y * this.SY + 70, "tocá la cancha (o flechas) para correr",
       { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
+    this.mundoLayer.add(hint);
     this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
   }
 
@@ -137,6 +150,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   buildCancha() {
     const W = this.V2.MUNDO_W, H = this.V2.MUNDO_H, g = this.add.graphics();
     g.setDepth(0);
+    this.mundoLayer.add(g);
     /* pasto con franjas de corte (forma, no solo tono) */
     g.fillStyle(0x2a9d4f, 1); g.fillRect(0, 0, W, H);
     g.fillStyle(0x259247, 1);
@@ -194,6 +208,100 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* marca de control clara: ▼ + nombre (forma + etiqueta, no solo color) */
     this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: "monospace", fontSize: "11px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 4 })
       .setOrigin(0.5).setDepth(12);
+    this.mundoLayer.add([this.sprPortador, this.sprPelota, this.marker]);
+  }
+
+  /* ============ ETAPA 2 · RADAR (doc §3): la ÚNICA vista de la cancha entera ============
+     Graphics fijo redibujado por frame desde las 22 entidades lógicas (el plan
+     barato del doc, seguro en gama baja). Accesibilidad: forma + color + número:
+     míos = CÍRCULOS #4FC3F7 · rivales = TRIÁNGULOS #FF8A50 · pelota = ROMBO
+     blanco con borde negro · anillo blanco en quien controlás. */
+  buildRadar() {
+    const rw = 264, rh = 132, rx = 12, ry = 540 - rh - 12;
+    this.radar = { x: rx, y: ry, w: rw, h: rh };
+    const marco = this.add.rectangle(rx + rw / 2, ry + rh / 2, rw + 6, rh + 6, 0x0b3d0b, 0.92).setStrokeStyle(2, 0xf6efdc, 0.7);
+    this.radarG = this.add.graphics();
+    this.hudLayer.add([marco, this.radarG]);
+    /* números de camiseta: 22 textos chiquitos que siguen a su ficha */
+    const mkNum = (n) => {
+      const t = this.add.text(0, 0, String(n), { fontFamily: "monospace", fontSize: "9px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5).setDepth(1);
+      this.hudLayer.add(t); return t;
+    };
+    this.radarNumsMios = this.st.mios.map(j => mkNum(j.numero));
+    this.radarNumsRiv = this.st.rivales.map(j => mkNum(j.numero));
+    /* zona interactiva (el pase dirigible y el cambio en defensa la usan en la Etapa 3) */
+    this.radarZona = this.add.zone(rx + rw / 2, ry + rh / 2, rw, rh).setInteractive();
+    this.hudLayer.add(this.radarZona);
+    this.radarZona.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation();
+      this._uiTocado = this.time.now;
+      this.onRadarTap(p);
+    });
+  }
+  radarAMundo(p) {   // punto del radar → coordenadas de SIMULACIÓN
+    const R = this.radar, st = this.st;
+    return { x: (p.x - R.x) / R.w * st.W, y: (p.y - R.y) / R.h * st.H };
+  }
+  onRadarTap(p) { /* Etapa 3 le da uso (pase dirigible / elegir marcador) */ }
+  dibujarRadar() {
+    const g = this.radarG, R = this.radar, st = this.st;
+    g.clear();
+    const mx = wx => R.x + wx / st.W * R.w, my = wy => R.y + wy / st.H * R.h;
+    g.lineStyle(1, 0xeafff0, 0.35);
+    g.beginPath(); g.moveTo(mx(st.W / 2), R.y + 2); g.lineTo(mx(st.W / 2), R.y + R.h - 2); g.strokePath();
+    /* rivales: TRIÁNGULOS #FF8A50 */
+    st.rivales.forEach((j, i) => {
+      const x = mx(j.x), y = my(j.y);
+      g.fillStyle(0xff8a50, 1); g.fillTriangle(x, y - 6, x + 5.5, y + 4.5, x - 5.5, y + 4.5);
+      g.lineStyle(1, 0x0a1f13, 0.9); g.strokeTriangle(x, y - 6, x + 5.5, y + 4.5, x - 5.5, y + 4.5);
+      this.radarNumsRiv[i].setPosition(x, y + 0.5);
+    });
+    /* míos: CÍRCULOS #4FC3F7 (+ anillo blanco en el controlado) */
+    st.mios.forEach((j, i) => {
+      const x = mx(j.x), y = my(j.y);
+      g.fillStyle(0x4fc3f7, 1); g.fillCircle(x, y, 5.5);
+      g.lineStyle(1, 0x0a1f13, 0.9); g.strokeCircle(x, y, 5.5);
+      if (i === st.ctrl) { g.lineStyle(2, 0xffffff, 1); g.strokeCircle(x, y, 8); }
+      this.radarNumsMios[i].setPosition(x, y);
+    });
+    /* pelota: ROMBO blanco con borde negro, arriba de todo */
+    const bx = mx(st.pelota.x), by = my(st.pelota.y);
+    g.fillStyle(0xffffff, 1);
+    g.fillPoints([{ x: bx, y: by - 5 }, { x: bx + 4, y: by }, { x: bx, y: by + 5 }, { x: bx - 4, y: by }], true);
+    g.lineStyle(1.5, 0x000000, 1);
+    g.strokePoints([{ x: bx, y: by - 5 }, { x: bx + 4, y: by }, { x: bx, y: by + 5 }, { x: bx - 4, y: by }], true, true);
+  }
+
+  /* ============ ETAPA 2 · HUD fijo (doc §4) ============ */
+  buildHUD() {
+    const barra = this.add.rectangle(480, 15, 960, 30, 0x0a1f13, 0.85);
+    this.txtMarcador = this.add.text(480, 15, "", { fontFamily: "'Press Start 2P',monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    this.txtReloj = this.add.text(948, 15, "", { fontFamily: "monospace", fontSize: "14px", color: "#ffd84d" }).setOrigin(1, 0.5);
+    /* guts del portador: color por umbral + SIEMPRE el número exacto (no depende del color) */
+    this.txtGuts = this.add.text(948, 512, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
+    this.gutsG = this.add.graphics();
+    this.hudLayer.add([barra, this.txtMarcador, this.txtReloj, this.gutsG, this.txtGuts]);
+  }
+  refrescarHUD() {
+    const st = this.st;
+    const m = Math.floor(st.minuto), lim = st.tiempo === 1 ? 45 : 90;
+    const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival;
+    if (this._hudMarc !== marcador) { this._hudMarc = marcador; this.txtMarcador.setText(marcador); }
+    const reloj = (m > lim ? lim + "+'" : m + "'") + " " + (st.tiempo === 1 ? "1T" : "2T");
+    if (this._hudReloj !== reloj) { this._hudReloj = reloj; this.txtReloj.setText(reloj); }
+    /* barra de guts del PORTADOR (si la tiene el rival, su tanque compartido) */
+    const p = this.portadorActual();
+    const max = this.BAL.aguante.max;
+    const val = p.esRival ? this.st.aguanteRival : p.j.aguante;
+    const frac = Phaser.Math.Clamp(val / max, 0, 1);
+    const color = frac > 0.5 ? 0x2e7d32 : frac > 0.25 ? 0xf9a825 : 0xc62828;
+    const bx = 948 - 170, by = 528, bw = 170, bh = 12;
+    const g = this.gutsG; g.clear();
+    g.fillStyle(0x0a1f13, 0.85); g.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
+    g.fillStyle(color, 1); g.fillRect(bx, by, bw * frac, bh);
+    g.lineStyle(1, 0xf6efdc, 0.8); g.strokeRect(bx, by, bw, bh);
+    const gutsTxt = "GUTS " + Math.round(val);
+    if (this._hudGuts !== gutsTxt) { this._hudGuts = gutsTxt; this.txtGuts.setText(gutsTxt); }
   }
   /* el corte de plano: la pelota cambió de dueño → pan breve + follow al nuevo portador (doc §2).
      El destino del pan se actualiza cada frame al portador VIVO: si se mueve
@@ -214,6 +322,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
   /* tocar/arrastrar en la cancha = correr hacia ahí (pantalla → mundo → simulación) */
   apuntar(p) {
+    if (this.time.now - (this._uiTocado || 0) < 80) return;             // acaba de tocar UI (radar/botones)
+    const R = this.radar;
+    if (R && p.x > R.x - 8 && p.x < R.x + R.w + 8 && p.y > R.y - 8) return;   // sobre el radar
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     this.target = { x: w.x / this.SX, y: w.y / this.SY };
   }
@@ -275,12 +386,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const cam = this.cameras.main;
     if (this._panVivo && cam.panEffect.isRunning) cam.panEffect.destination.set(wx, wy);
     if (aviso) this.avisar(aviso);
+
+    /* ETAPA 2: radar + HUD, siempre al día */
+    this.dibujarRadar();
+    this.refrescarHUD();
   }
 
   /* aviso breve anclado al PORTADOR (a donde la cámara va, no de donde viene) */
   avisar(txt) {
     const t = this.add.text(this.sprPortador.x, this.sprPortador.y - 96, txt, { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }, align: "center" })
       .setOrigin(0.5).setDepth(5000);
+    this.mundoLayer.add(t);
     this.tweens.add({ targets: t, alpha: 0, delay: 2200, duration: 500, onComplete: () => t.destroy() });
   }
 };
