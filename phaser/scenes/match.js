@@ -538,6 +538,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.sprDuelo.x += esRival ? 150 : -150;
       this.sprDuelo.setAlpha(0.4);
       this.tweens.add({ targets: this.sprDuelo, x: destinoX, alpha: 1, duration: durBeat * 0.8, ease: "Quad.easeOut" });
+      /* Feel B7: entra CORRIENDO al plano, no teletransportado */
+      if (this._dueloBase && !this._dueloEsArq) this.reproducirAnim(this.sprDuelo, this._dueloBase, "correr", durBeat * 0.8);
     }
     if (megaViene) {
       const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
@@ -1621,18 +1623,32 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const wx = wr.x, wy = wr.y;
     const corriendo = (!p.esRival && !!input) || (p.esRival && st.esperaRival <= 0);
     if (this._esHeroico) {
-      /* ciclo de correr de 4 frames + escala por profundidad (E4) */
-      const f = corriendo ? Math.floor(time / 110) % 4 : 1;
+      /* Feel B7: ciclo de correr de 6 FRAMES + escala por profundidad */
+      const esCorrer = this._animIdle === "_correr_";
+      const nF = esCorrer ? 6 : 4;
+      const f = corriendo ? Math.floor(time / 95) % nF : (esCorrer ? 2 : 1);
       this.sprPortador.setTexture(this._base + this._animIdle + f).setScale(this._escalaBase * this.escalaEn(p.j.y));
-      /* ESTELAS: el pasto transmite velocidad cuando el portador corre (E4) */
+      /* la pelota PEGADA AL PIE con su propio rebote (sigue el ciclo de la corrida) */
+      this._botePelota = corriendo && !p.esRival ? [0, 4, 6, 0, 4, 6][f] || 0 : 0;
+      if (corriendo) this.sprPelota.rotation += 0.18;
+      /* ESTELAS + LÍNEAS DE VELOCIDAD cuando corre A FONDO (>600ms sostenido) */
       if (corriendo) {
+        if (!this._corriendoDesde) this._corriendoDesde = time;
         const u = this._trail[this._trail.length - 1];
         if (!u || Math.hypot(wx - u.x, wy - u.y) > 14) { this._trail.push({ x: wx, y: wy + 34 }); if (this._trail.length > 6) this._trail.shift(); }
-      } else this._trail.length = 0;
+      } else { this._trail.length = 0; this._corriendoDesde = 0; }
       const tg = this.trailG; tg.clear();
       for (let i = 1; i < this._trail.length; i++) {
         tg.lineStyle(3, 0xffffff, 0.08 + 0.3 * (i / this._trail.length));
         tg.beginPath(); tg.moveTo(this._trail[i - 1].x, this._trail[i - 1].y); tg.lineTo(this._trail[i].x, this._trail[i].y); tg.strokePath();
+      }
+      if (corriendo && this._corriendoDesde && time - this._corriendoDesde > 600) {
+        /* a fondo: ráfagas horizontales detrás del héroe (anime puro) */
+        for (let k = 0; k < 3; k++) {
+          const ly = wy - 24 + k * 22, lx = wx - 34 - (k % 2) * 10;
+          tg.lineStyle(2, 0xffffff, 0.35 - k * 0.08);
+          tg.beginPath(); tg.moveTo(lx, ly); tg.lineTo(lx - 26 - (time / 40 % 12), ly); tg.strokePath();
+        }
       }
     } else {
       this.sprPortador.setPosition(wx, wy)
@@ -1640,7 +1656,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     this.sprPortador.setPosition(wx, wy);
     const wb = this.aRender(st.pelota.x, st.pelota.y);
-    this.sprPelota.setPosition(wb.x, wb.y + 34).setScale(1.6 * this.escalaEn(st.pelota.y));
+    this.sprPelota.setPosition(wb.x, wb.y + 34 - (this._botePelota || 0)).setScale(1.6 * this.escalaEn(st.pelota.y));
     this.marker.setText("▼ " + (p.j.esVos ? "VOS" : (p.j.nombre || "").toUpperCase().slice(0, 10)))
       .setPosition(wx, wy - 62);
     /* pan vivo: mientras dura el corte, el destino persigue al portador real */

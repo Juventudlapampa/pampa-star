@@ -251,10 +251,13 @@ window.PampaAvatarArte = (function () {
   }
   /* poses: pi/pd = pie [dx, y, rodillaDx] · bi/bd = mano [dx, y] · salto · lean */
   var POSES = {
+    /* Feel B7: ciclo de correr de 6 frames (contacto → transición → paso, espejado) */
     correr: [
       { pi: [-9, PISO], pd: [11, PISO - 13, 3], bi: [-14, 40], bd: [13, 52] },
+      { pi: [-6, PISO], pd: [8, PISO - 8, 2], bi: [-14, 43], bd: [13, 49], salto: 1 },
       { pi: [-3, PISO], pd: [5, PISO - 5, 2], bi: [-13, 46], bd: [13, 46] },
       { pi: [11, PISO - 13, 3], pd: [-9, PISO], bi: [13, 52], bd: [-14, 40] },
+      { pi: [8, PISO - 8, 2], pd: [-6, PISO], bi: [13, 49], bd: [-14, 43], salto: 1 },
       { pi: [5, PISO - 5, 2], pd: [-3, PISO], bi: [13, 46], bd: [-13, 46] }
     ],
     gambeta: [
