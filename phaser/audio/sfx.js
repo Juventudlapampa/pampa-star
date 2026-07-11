@@ -84,6 +84,13 @@
       tone("sawtooth", 160, 720, t, dur || 0.75, 0.07);
       noise(t, dur || 0.75, 0.04, 900, 0.6, "bandpass");
     },
+    /* RISER GRANDE (Feel B6): cuando el rival anuncia una MEGACOSA — más grave, más largo */
+    riserGrande: function (dur) {
+      var c = ensure(); if (!c) return; var t = now();
+      tone("sawtooth", 80, 500, t, dur || 1.4, 0.09);
+      tone("triangle", 55, 110, t, dur || 1.4, 0.08);
+      noise(t, dur || 1.4, 0.05, 400, 0.5, "lowpass");
+    },
     temaUrgente: function () {
       var c = ensure(); if (!c) return; var t = now();
       for (var i = 0; i < 4; i++) tone("square", 880, 880, t + i * 0.12, 0.06, 0.12);   // tictac de los últimos 5'

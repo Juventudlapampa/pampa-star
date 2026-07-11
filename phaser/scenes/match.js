@@ -527,19 +527,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      zoom leve, riser, y el que entra al duelo aparece deslizándose al plano */
   beatDeTension(j, esRival, texturaFija, abrir) {
     const F = this.BAL.feel || {};
+    /* Feel B6: si viene una MEGACOSA rival, el beat SE ALARGA y el sonido cambia:
+       sabés que viene algo grande (pero no cuál) */
+    const megaViene = !!this._megaRival;
+    const durBeat = megaViene ? (F.beat_mega_ms || 1400) : (F.beat_encuentro_ms || 750);
     this.estado = "BEAT";
     this.materializarDuelo(j, esRival, texturaFija);
     if (this.sprDuelo) {
-      /* entra AL plano, no se teletransporta: arranca corrido hacia su lado */
       const destinoX = this.sprDuelo.x;
       this.sprDuelo.x += esRival ? 150 : -150;
       this.sprDuelo.setAlpha(0.4);
-      this.tweens.add({ targets: this.sprDuelo, x: destinoX, alpha: 1, duration: (F.beat_encuentro_ms || 750) * 0.8, ease: "Quad.easeOut" });
+      this.tweens.add({ targets: this.sprDuelo, x: destinoX, alpha: 1, duration: durBeat * 0.8, ease: "Quad.easeOut" });
+    }
+    if (megaViene) {
+      const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
+      this.menuLayer.add(aviso);
+      this.selloMenu();
+      this.tweens.add({ targets: aviso, scale: 1.12, duration: 300, yoyo: true, repeat: 3 });
     }
     const cam = this.cameras.main;
-    cam.zoomTo(this.V2.ZOOM * (1 + (F.beat_zoom_extra || 0.12)), (F.beat_encuentro_ms || 750), "Sine.easeInOut");
-    if (this.FLAGS.e6_cine) this.SFX && this.SFX.riser && this.SFX.riser((F.beat_encuentro_ms || 750) / 1000);
-    this.time.delayedCall(F.beat_encuentro_ms || 750, () => { if (this.estado === "BEAT") abrir(); });
+    cam.zoomTo(this.V2.ZOOM * (1 + (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1)), durBeat, "Sine.easeInOut");
+    if (this.FLAGS.e6_cine) {
+      if (megaViene) this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(durBeat / 1000);
+      else this.SFX && this.SFX.riser && this.SFX.riser(durBeat / 1000);
+    }
+    this.time.delayedCall(durBeat, () => { if (this.estado === "BEAT") abrir(); });
   }
   /* devuelve la cámara a su zoom base tras el drama del beat */
   zoomBase() { this.cameras.main.zoomTo(this.V2.ZOOM, 420, "Sine.easeInOut"); }
@@ -699,8 +711,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         N: { texto: "🦶 QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
         E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
         S: { texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " guts · el rival sigue", cb: () => this.resolverNoMoverse() }
-      }
+      },
+      /* Feel B6: TU megacosa defensiva — misma gramática que el megatiro */
+      centro: (() => {
+        const m = this.megaDefensaDisponible(["quite", "bloqueo"], st.mios[st.ctrl]);
+        if (!m) return null;
+        return {
+          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.guts + " guts · especial",
+          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.guts + " guts", () => {
+            st.mios[st.ctrl].aguante = Math.max(0, st.mios[st.ctrl].aguante - m.guts);
+            const base = m.tipo === "quite" ? qui : blo;
+            this.resolverAccionDefensa({ id: base.id, poder: base.poder + (m.bonus || 16), costo: 0 });
+          })
+        };
+      })()
     });
+  }
+  /* qué MEGADEFENSA está disponible para ese jugador (data + nivel + guts) */
+  megaDefensaDisponible(tipos, j) {
+    const nivel = this._nivelCarrera || 1;
+    const lista = ((this.MEGA && this.MEGA.megadefensas) || []).filter(m =>
+      tipos.indexOf(m.tipo) >= 0 && nivel >= (m.nivel || 1) && j && j.aguante >= (m.guts || 250));
+    return lista.length ? lista[lista.length - 1] : null;
   }
   abrirMenuArquero() {
     const st = this.st, P = window.PampaPartido;
@@ -714,17 +746,40 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       opciones: {
         W: { texto: "🧤 " + ops[0].n, sub: ops[0].riesgo, cb: () => this.resolverArquero(ops[0].id) },
         N: { texto: "👊 " + ops[1].n, sub: ops[1].riesgo, cb: () => this.resolverArquero(ops[1].id) }
-      }
+      },
+      /* Feel B6: la MEGAATAJADA del arquero */
+      centro: (() => {
+        const m = this.megaDefensaDisponible(["atajada"], arq);
+        if (!m) return null;
+        return {
+          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.guts + " guts · especial",
+          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.guts + " guts", () => {
+            arq.aguante = Math.max(0, arq.aguante - m.guts);
+            this.resolverArquero("atajar", m.bonus || 20, m.grito);
+          })
+        };
+      })()
     });
   }
 
   /* --- resoluciones (doc §7: el CPU eligió en secreto; §9: RESOLUCION sin input) --- */
   resolverAccionAtaque(a, rivalIdx) {
     const st = this.st, P = window.PampaPartido;
-    const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo });
+    /* Feel B6: si el rival vino con megacosa, pega en este duelo (y la paga) */
+    const megaR = this._megaRival; this._megaRival = null;
+    const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo, bonusRival: megaR ? megaR.bonus : 0 });
+    if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.guts * (this.BAL.aguante.cpu_factor_costo || 1));
     if (r.win) {
       P.ganarAtaque(st, a.id);
-      this.mostrarResolucion(a.id === "pared" ? "¡PARED Y SEGUÍS DE LARGO!" : "¡GAMBETA Y DE LARGO!" + (r.matriz === "zafaste" ? "\n(le erraron a la marca)" : ""), "#7ee08a", { anim: "gambeta", gana: true });
+      const texto = megaR ? "¡LE GANASTE AL " + megaR.n.toUpperCase() + "!\nMomento para el recuerdo." : (a.id === "pared" ? "¡PARED Y SEGUÍS DE LARGO!" : "¡GAMBETA Y DE LARGO!" + (r.matriz === "zafaste" ? "\n(le erraron a la marca)" : ""));
+      this.mostrarResolucion(texto, "#7ee08a", { anim: "gambeta", gana: true });
+    } else if (megaR) {
+      /* la megacosa rival se hizo sentir: cut-in del rival + teatro */
+      P.perderPelota(st);
+      const rival = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
+      this.cutInEspecial("¡" + megaR.n.toUpperCase() + "!", megaR.grito, () => {
+        this.mostrarResolucion(megaR.grito + "\nTe la sacó con un movimiento especial.", "#e3503e", { anim: "gambeta", gana: false });
+      }, rival, true);
     } else {
       P.perderPelota(st);
       this.mostrarResolucion(r.matriz === "leyeron" ? "¡TE LEYERON LA JUGADA!\nPelota rival." : "TE LA SACARON.\nPelota rival.", "#e3503e", { anim: "gambeta", gana: false });
@@ -741,23 +796,32 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const r = P.esperarDefensa(st);
     this.mostrarResolucion("Esperás y juntás aire (+" + r.recupero + " guts).\nEl rival sigue…", "#f6efdc", null);
   }
-  resolverArquero(id) {
+  resolverArquero(id, bonus, grito) {
     const st = this.st, P = window.PampaPartido;
-    const res = P.resolverAtajada(st, id);
+    const res = P.resolverAtajada(st, id, null, bonus || 0);
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     if (res.golRival) { this.efectoGol(true); this.mostrarResolucion("GOL DE " + this.nombreRival + "…\nSacás del medio.", "#e3503e", { anim: "arquero", gana: false }); }
-    else if (res.retiene) { snd && snd.gloves(); this.mostrarResolucion("¡LA RETUVO TU ARQUERO!\nSalís jugando.", "#7ee08a", { anim: "arquero", gana: true }); }
+    else if (res.retiene) { snd && snd.gloves(); this.mostrarResolucion((grito ? grito + "\n" : "") + "¡LA RETUVO TU ARQUERO!\nSalís jugando.", "#7ee08a", { anim: "arquero", gana: true }); }
     else { snd && snd.gloves(); this.mostrarResolucion(res.mia ? "¡PUÑOS AFUERA!\nLa dividida quedó tuya." : "¡PUÑOS AFUERA!\nLa ganó " + this.nombreRival + "…", "#f6efdc", { anim: "arquero", gana: true }); }
   }
   resolverTiro(esCalden, rivalIdx, libre) {
     const st = this.st, P = window.PampaPartido;
     if (!libre && rivalIdx != null) {
-      /* la matriz manda: primero zafar del BLOQUEO del defensor */
+      /* la matriz manda: primero zafar del BLOQUEO del defensor (con su megacosa si vino) */
+      const megaR = this._megaRival; this._megaRival = null;
       const acc = P.accionesAtaque(st).find(a => a.id === "tiro");
-      const r = P.resolverDuelo(st, { accion: "tiro", poder: acc ? acc.poder : 50, costo: 0 });
+      const r = P.resolverDuelo(st, { accion: "tiro", poder: acc ? acc.poder : 50, costo: 0, bonusRival: megaR ? megaR.bonus : 0 });
+      if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.guts * (this.BAL.aguante.cpu_factor_costo || 1));
       if (!r.win) {
         P.perderPelota(st);
-        this.mostrarResolucion(r.matriz === "leyeron" ? "¡TE BLOQUEARON EL TIRO!\nLo veían venir." : "TE LO TAPARON.\nPelota rival.", "#e3503e", { anim: "gambeta", gana: false });
+        if (megaR) {
+          const rival = st.rivales[rivalIdx];
+          this.cutInEspecial("¡" + megaR.n.toUpperCase() + "!", megaR.grito, () => {
+            this.mostrarResolucion(megaR.grito + "\n¡Te tapó el tiro con un movimiento especial!", "#e3503e", { anim: "gambeta", gana: false });
+          }, rival, true);
+        } else {
+          this.mostrarResolucion(r.matriz === "leyeron" ? "¡TE BLOQUEARON EL TIRO!\nLo veían venir." : "TE LO TAPARON.\nPelota rival.", "#e3503e", { anim: "gambeta", gana: false });
+        }
         return;
       }
     }
@@ -1100,13 +1164,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
 
   /* ============ ETAPA 6 · pulido cinematográfico ============ */
-  cutInEspecial(titulo, sub, cb) {
+  cutInEspecial(titulo, sub, cb, jRet, esRivalRet) {
     if (typeof sub === "function") { cb = sub; sub = null; }   // compat con la firma vieja
     this.estado = "RESOLUCION";
     this.limpiarMenu();
-    const j = this.st.mios[this.st.ctrl];
-    const franja = this.add.rectangle(480, 270, 1100, 190, 0x2a130b, 0.94).setStrokeStyle(4, 0xffd84d).setAngle(-4);
-    const img = this.add.image(-140, 270, this.retratoKey(j, false));
+    const j = jRet || this.st.mios[this.st.ctrl];
+    const franja = this.add.rectangle(480, 270, 1100, 190, esRivalRet ? 0x2a0b0b : 0x2a130b, 0.94).setStrokeStyle(4, esRivalRet ? 0xff8a50 : 0xffd84d).setAngle(-4);
+    const img = this.add.image(-140, 270, this.retratoKey(j, !!esRivalRet));
     img.setScale(180 / img.height);
     const txt = this.add.text(1150, 258, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "22px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 8 }).setOrigin(0.5);
     const subTxt = this.add.text(1150, 292, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
@@ -1524,7 +1588,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     for (const ev of evs) {
       /* FEEL B1: los cruces se ANUNCIAN con un beat de tensión ANTES del menú
          (zoom leve + riser + el rival entrando al plano) — nunca un menú de golpe */
-      if (ev.tipo === "encuentro") this.beatDeTension(st.rivales[ev.rivalIdx], true, null, () => this.abrirMenuAtaque(ev.rivalIdx, false));
+      if (ev.tipo === "encuentro") {
+        /* Feel B6: en MOMENTOS CALIENTES (cerca de su arco, con tanque) el rival puede
+           venir con una MEGACOSA — decidido por la situación del duelo, no azar puro */
+        this._megaRival = null;
+        const F6 = this.BAL.feel || {};
+        if (this.FLAGS.e6_cine && st.mios[st.ctrl].x > (F6.mega_x_caliente || 700)) {
+          const defs = ((this.MEGA && this.MEGA.megadefensas) || []).filter(m => (m.tipo === "quite" || m.tipo === "bloqueo") && st.aguanteRival >= (m.guts || 250));
+          if (defs.length) {
+            const semilla = ((st.golesMio + st.golesRival) * 7 + Math.floor(st.minuto * 10)) % 100;
+            if (semilla / 100 < (F6.mega_prob_caliente || 0.45)) this._megaRival = defs[semilla % defs.length];
+          }
+        }
+        this.beatDeTension(st.rivales[ev.rivalIdx], true, null, () => this.abrirMenuAtaque(ev.rivalIdx, false));
+      }
       else if (ev.tipo === "encuentroDef") this.beatDeTension(st.mios[st.ctrl], false, null, () => this.abrirMenuDefensa());
       else if (ev.tipo === "rivalTira") {
         if (this.FLAGS.e3_menus) {

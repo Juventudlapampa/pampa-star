@@ -316,6 +316,7 @@
       var def = poderRival(st);
       if (CONTRA[opts.accion] === accionRival) { def += B; matriz = "leyeron"; }   // te adivinaron
       else { atk += B * 0.6; matriz = "zafaste"; }                                  // esquivaste la marca equivocada
+      def += opts.bonusRival || 0;   // Feel B6: la megacosa defensiva del rival pega acá
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
       win = rng() < Duel.duelChance(atk, def, bal.duelo);
     } else {
@@ -480,10 +481,11 @@
       { id: "despejar", n: "DESPEJAR", ico: "👊", poder: base + 8, riesgo: "más seguro · pelota dividida" }
     ];
   }
-  function resolverAtajada(st, eleccion, rng) {
+  function resolverAtajada(st, eleccion, rng, bonus) {
     rng = rng || Math.random;
     var ops = opcionesArquero(st);
     var op = ops.find(function (o) { return o.id === eleccion; }) || ops[0];
+    op = { id: op.id, n: op.n, poder: op.poder + (bonus || 0) };   // Feel B6: MEGAATAJADA suma acá
     var atkRiv = poderRival(st) + 12;
     gastar(st, "rival", st.bal.aguante.costo_tiro);
     saltoReloj(st, rng);
