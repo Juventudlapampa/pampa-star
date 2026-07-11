@@ -451,13 +451,35 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     else { P.cambiarAlMasCercano(st); this.avisar("Marcás con " + st.mios[st.ctrl].nombre.toUpperCase()); }   // defensor más cercano (doc §7)
   }
   limpiarMenu() { this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
+  /* FEEL B1 · EL BEAT DE TENSIÓN: el cruce se anuncia 600-900ms ANTES del menú —
+     zoom leve, riser, y el que entra al duelo aparece deslizándose al plano */
+  beatDeTension(j, esRival, texturaFija, abrir) {
+    const F = this.BAL.feel || {};
+    this.estado = "BEAT";
+    this.materializarDuelo(j, esRival, texturaFija);
+    if (this.sprDuelo) {
+      /* entra AL plano, no se teletransporta: arranca corrido hacia su lado */
+      const destinoX = this.sprDuelo.x;
+      this.sprDuelo.x += esRival ? 150 : -150;
+      this.sprDuelo.setAlpha(0.4);
+      this.tweens.add({ targets: this.sprDuelo, x: destinoX, alpha: 1, duration: (F.beat_encuentro_ms || 750) * 0.8, ease: "Quad.easeOut" });
+    }
+    const cam = this.cameras.main;
+    cam.zoomTo(this.V2.ZOOM * (1 + (F.beat_zoom_extra || 0.12)), (F.beat_encuentro_ms || 750), "Sine.easeInOut");
+    if (this.FLAGS.e6_cine) this.SFX && this.SFX.riser && this.SFX.riser((F.beat_encuentro_ms || 750) / 1000);
+    this.time.delayedCall(F.beat_encuentro_ms || 750, () => { if (this.estado === "BEAT") abrir(); });
+  }
+  /* devuelve la cámara a su zoom base tras el drama del beat */
+  zoomBase() { this.cameras.main.zoomTo(this.V2.ZOOM, 420, "Sine.easeInOut"); }
   /* ⚠ Phaser: ignore(container) taggea solo a los hijos EXISTENTES — todo lo que
      se agrega al menú DESPUÉS hay que re-ignorarlo o se dibuja duplicado en la
      cámara con zoom. Llamar esto al final de cada armado de menú. */
   selloMenu() { this.cameras.main.ignore(this.menuLayer); }
   /* materializa al SEGUNDO sprite grande del cruce (doc §1 permite portador+rival+arquero) */
   materializarDuelo(j, esRival, texturaFija) {
+    if (this.sprDuelo && this._dueloJ === j) return;   // ya entró en el beat: no re-hornear ni parpadear
     this.quitarDuelo();
+    this._dueloJ = j;
     const Arte = window.PampaAvatarArte;
     let tx, escala = this.V2.ESCALA_PORTADOR;
     if (this.FLAGS.e4_arte) {
@@ -486,7 +508,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.mundoLayer.add(this.sprDuelo);
     if (this.uiCam) this.uiCam.ignore(this.sprDuelo);
   }
-  quitarDuelo() { if (this.sprDuelo) { this.sprDuelo.destroy(); this.sprDuelo = null; } }
+  quitarDuelo() { if (this.sprDuelo) { this.sprDuelo.destroy(); this.sprDuelo = null; } this._dueloJ = null; }
   /* la cruz: opciones en W/N/E/S como el pad del original (doc §8) */
   abrirMenuCruz(cfg) {
     this.estado = "MENU";
@@ -727,6 +749,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.st.modo = "juego";
     this.quitarDuelo();
     this.limpiarMenu();
+    this.zoomBase();
     this.estado = "LIBRE";
   }
   finDelPartido() {
@@ -804,12 +827,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.selloMenu();
     this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
     this.animarResolucion(animCfg);
-    this.time.delayedCall(1050, () => {
-      /* si durante la resolución se abrió OTRO momento (p.ej. rivalTira, que no
-         espera cooldown), ese menú manda: no lo barremos ni tocamos el estado */
+    /* FEEL B1: NINGUNA resolución devuelve el control antes del mínimo (teatro obligatorio) */
+    this.time.delayedCall((this.BAL.feel && this.BAL.feel.resolucion_min_ms) || 1600, () => {
       if (this.estado !== "RESOLUCION") return;
       this.quitarDuelo();
       this.limpiarMenu();
+      this.zoomBase();
       this.estado = "LIBRE";
     });
   }
@@ -1001,11 +1024,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const evs = P.tick(st, delta, input);
     let aviso = null;
     for (const ev of evs) {
-      /* ETAPA 3: los cruces abren el MENÚ con pausa (doc §7/§9) */
-      if (ev.tipo === "encuentro") this.abrirMenuAtaque(ev.rivalIdx, false);
-      else if (ev.tipo === "encuentroDef") this.abrirMenuDefensa();
+      /* FEEL B1: los cruces se ANUNCIAN con un beat de tensión ANTES del menú
+         (zoom leve + riser + el rival entrando al plano) — nunca un menú de golpe */
+      if (ev.tipo === "encuentro") this.beatDeTension(st.rivales[ev.rivalIdx], true, null, () => this.abrirMenuAtaque(ev.rivalIdx, false));
+      else if (ev.tipo === "encuentroDef") this.beatDeTension(st.mios[st.ctrl], false, null, () => this.abrirMenuDefensa());
       else if (ev.tipo === "rivalTira") {
-        if (this.FLAGS.e3_menus) this.abrirMenuArquero();
+        if (this.FLAGS.e3_menus) {
+          const arq = st.mios.find(j => j.pos === "ARQ");
+          this.beatDeTension(arq, false, "keeper_mio", () => this.abrirMenuArquero());
+        }
         else { const res = P.resolverAtajada(st, Math.random() < 0.5 ? "atajar" : "despejar"); aviso = res.golRival ? "GOL DE " + this.nombreRival : "¡La sacó tu arquero!"; }
       }
       else if (ev.tipo === "entretiempo") { P.entretiempo(st); this.transicionEntretiempo(); aviso = "ENTRETIEMPO — saca " + this.nombreRival; }

@@ -10,19 +10,19 @@
   },
 
   "ritmo": {
-    "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR (pedido del playtest: 'arrancá BIEN PAUSADO'). La mayor parte del tiempo avanzás LENTO y con margen; el freno con zoom aparece SOLO en los momentos clave. Velocidades en px de mundo por segundo.",
-    "portador_con_pelota": 84,
-    "defensor_cerrando": 104,
-    "perseguidor_sin_pelota": 94,
-    "rival_con_pelota": 58,
-    "posicionales_por_segundo": 55,
+    "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR. FEEL v3 Bloque 1: TODO baja un cambio (~35% menos que la v2 — Tsubasa es drama lento); el reloj compensa con seg_por_minuto para que el partido dure lo mismo en minutos reales. Velocidades en px de mundo por segundo.",
+    "portador_con_pelota": 55,
+    "defensor_cerrando": 68,
+    "perseguidor_sin_pelota": 61,
+    "rival_con_pelota": 38,
+    "posicionales_por_segundo": 36,
     "_regla": "defensor_cerrando > portador → te alcanzan, pero con AIRE para jugar antes.",
     "radio_encuentro": 26,
     "cooldown_encuentro_ms": 3200,
     "persecutores": 1,
     "arranque_rival_ms": 1500,
     "_reaccion": "cooldown largo = respirás entre cruces; 1 solo perseguidor = hay espacio; arranque_rival_ms = cuando pierden/reciben la pelota, el rival la pisa un momento antes de arrancar (tenés tiempo de reaccionar y elegir marcador).",
-    "seg_por_minuto": 24,
+    "seg_por_minuto": 16,
     "salto_accion_min": 0.4,
     "salto_accion_max": 0.9,
     "descuento_min": 1,
@@ -30,6 +30,16 @@
     "zoom_encuentro": 1.22,
     "zoom_encuentro_ms": 380,
     "_zoom": "al congelar un encuentro la cámara se ACERCA suave al cruce (lectura con calma, se ve a los de alrededor); al resolver vuelve igual de suave."
+  },
+
+  "feel": {
+    "_nota": "FEEL v3 (docs/DISENO_FEEL_TSUBASA_V3.md): timing del drama. Cada jugada clave se ANUNCIA (beat), se decide, se ejecuta y se resuelve con teatro — si dura menos de 3s entre anuncio y resolución, está mal.",
+    "beat_encuentro_ms": 750,
+    "beat_mega_ms": 1400,
+    "beat_zoom_extra": 0.12,
+    "resolucion_min_ms": 1600,
+    "silencio_ms": 500,
+    "comentario": "beat_encuentro_ms: aviso de tensión ANTES de abrir el menú (600-900). beat_mega_ms: cuando viene una megacosa rival, el beat se alarga. beat_zoom_extra: cuánto se acerca la cámara en el beat. resolucion_min_ms: NINGUNA resolución devuelve el control antes de esto. silencio_ms: el silencio previo a revelar un tiro/duelo grande (Bloque 8)."
   },
 
   "persecucion": {

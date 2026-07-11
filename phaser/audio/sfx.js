@@ -78,6 +78,12 @@
       var notas = quien === "mia" ? [392, 494, 587] : [440, 349, 294];   // sube con la tuya, baja con la de ellos
       for (var i = 0; i < notas.length; i++) tone("triangle", notas[i], notas[i], t + i * 0.07, 0.1, 0.1);
     },
+    /* RISER del beat de tensión (Feel B1): sube y se corta justo cuando abre el menú */
+    riser: function (dur) {
+      var c = ensure(); if (!c) return; var t = now();
+      tone("sawtooth", 160, 720, t, dur || 0.75, 0.07);
+      noise(t, dur || 0.75, 0.04, 900, 0.6, "bandpass");
+    },
     temaUrgente: function () {
       var c = ensure(); if (!c) return; var t = now();
       for (var i = 0; i < 4; i++) tone("square", 880, 880, t + i * 0.12, 0.06, 0.12);   // tictac de los últimos 5'
