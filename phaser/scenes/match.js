@@ -570,11 +570,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   defPointerDown(p) {
     const d = this.def; if (!d || d.hecho || d.drag) return;
     if (this.time.now - (this._uiTocado || 0) < 80) return;    // acaba de tocar VOLVER
-    d.drag = { x0: p.x, y0: p.y, path: [{ x: p.x, y: p.y }] };
+    d.drag = { id: p.id, x0: p.x, y0: p.y, path: [{ x: p.x, y: p.y }] };   // el gesto es de ESTE dedo
     d.modo = "arrastre";
   }
   defPointerMove(p) {
     const d = this.def; if (!d || d.hecho || !d.drag) return;
+    if (p.id != null && d.drag.id != null && p.id !== d.drag.id) return;   // otro dedo no mueve el gesto
     const cfg = d.cfg, W = this.W, H = this.H, dr = d.drag;
     if (dr.path.length < 64) dr.path.push({ x: p.x, y: p.y });
     d.aimX = Phaser.Math.Clamp((p.x - dr.x0) / (W * 0.20) * cfg.sens_arrastre, -1.25, 1.25);
@@ -584,6 +585,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   defPointerUp(p) {
     const d = this.def; if (!d || d.hecho || !d.drag) return;
+    if (p.id != null && d.drag.id != null && p.id !== d.drag.id) return;   // suelta OTRO dedo: no es el remate
     const dr = d.drag;
     const largo = Math.hypot(p.x - dr.x0, p.y - dr.y0);
     if (largo < 30) { d.drag = null; d.modo = "apuntar"; return; }   // fue un tap, no un remate
