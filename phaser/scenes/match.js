@@ -76,6 +76,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const plantel = this.armarPlanteles();
     this.st = window.PampaPartido.crearPartido({ bal: this.BAL, mios: plantel.mios, rivales: plantel.rivales });
     this.nombreRival = plantel.nombreRival;
+    /* FUSIÓN (flag partido_phaser): si la carrera clásica pidió este partido,
+       el rival lleva el nombre del club real y el final ofrece volver con el resultado */
+    this._pedido = null;
+    try { const r = localStorage.getItem("pampa_pedido_phaser"); if (r) this._pedido = JSON.parse(r); } catch (e) { }
+    if (this._pedido && this._pedido.rival) this.nombreRival = String(this._pedido.rival).toUpperCase().slice(0, 14);
 
     /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
        capa de HUD (radar + marcador + guts) y capa de MENÚ: solo la cámara de UI fija */
@@ -735,6 +740,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const bt = this.add.text(480, 330, "↺ OTRO PARTIDO", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
     this.menuLayer.add([t, b, bt]);
     b.on("pointerdown", () => this.scene.restart());
+    /* FUSIÓN: el resultado vuelve a la carrera clásica (mismo formato pampa_star_v1
+       vía aplicarFecha del clásico — acá solo se deja el resultado y se vuelve) */
+    if (this._pedido) {
+      const b2 = this.add.rectangle(480, 398, 460, 54, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bt2 = this.add.text(480, 398, "▶ APLICAR Y VOLVER A LA CARRERA", { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      this.menuLayer.add([b2, bt2]);
+      b2.on("pointerdown", () => {
+        try {
+          localStorage.setItem("pampa_resultado_phaser", JSON.stringify({ fecha: this._pedido.fecha | 0, golesMio: st.golesMio, golesRival: st.golesRival, ts: Date.now() }));
+          localStorage.removeItem("pampa_pedido_phaser");
+        } catch (e) { }
+        window.location.href = "../index.html";
+      });
+    }
     this.selloMenu();
   }
 

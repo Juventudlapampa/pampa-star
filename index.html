@@ -948,6 +948,39 @@ function renderSeason(){
   }
   showScreen("screen-season");
 }
+/* ============ FUSIÓN CONTROLADA con el partido Phaser (Etapa Final v2) ============
+   TODO detrás del flag `partido_phaser`, APAGADO por defecto: el clásico sigue
+   siendo el camino activo y nada de lo suyo se toca. Encendido, JUGAR FECHA
+   lanza el partido nuevo (phaser/) y su resultado vuelve por el MISMO
+   aplicarFecha() de siempre. Encender/apagar: abrir con ?partido_phaser=1
+   (o =0) — queda guardado en localStorage. */
+function partidoPhaserActivo(){ try{ return localStorage.getItem("pampa_flag_partido_phaser")==="1"; }catch(e){ return false; } }
+(function flagPorURL(){
+  try{
+    const v=new URLSearchParams(location.search).get("partido_phaser");
+    if(v==="1"||v==="0") localStorage.setItem("pampa_flag_partido_phaser", v);
+  }catch(e){}
+})();
+function lanzarPartidoPhaser(rivalClub){
+  try{
+    localStorage.setItem("pampa_pedido_phaser", JSON.stringify({ fecha: career.temporada.fecha, rival: rivalClub.n, ts: Date.now() }));
+    location.href = "phaser/index.html";
+  }catch(e){ startPlay(CLUBES[myClubIdx()], rivalClub); }   // si algo falla, juega el clásico
+}
+function consumirResultadoPhaser(){
+  try{
+    if(!partidoPhaserActivo()) return;
+    const raw = localStorage.getItem("pampa_resultado_phaser"); if(!raw) return;
+    localStorage.removeItem("pampa_resultado_phaser");
+    const r = JSON.parse(raw);
+    if(!career || !career.temporada || career.temporada.terminada) return;
+    if((r.fecha|0) !== career.temporada.fecha) return;      // resultado de otra fecha: no corresponde
+    aplicarFecha(r.golesMio|0, r.golesRival|0);             // el MISMO camino que el resultado clásico
+    saveCareer();
+    renderSeason();
+  }catch(e){}
+}
+
 $("btn-jugar").addEventListener("click", ()=>{
   const t=career.temporada;
   if(t.terminada){
@@ -959,7 +992,11 @@ $("btn-jugar").addEventListener("click", ()=>{
   if(v && v.semanaPendiente){ renderWeek(); return; }  // primero se vive la semana
   const yo=myClubIdx(), f=t.fixture[t.fecha];
   const mio=f.matches.find(m=>m.h===yo||m.a===yo);
-  if(mio){ startPlay(CLUBES[yo], CLUBES[mio.h===yo?mio.a:mio.h]); }
+  if(mio){
+    const rivalClub = CLUBES[mio.h===yo?mio.a:mio.h];
+    if(partidoPhaserActivo()) lanzarPartidoPhaser(rivalClub);
+    else startPlay(CLUBES[yo], rivalClub);
+  }
   else { aplicarFecha(null,null); renderSeason(); }
 });
 $("btn-se-home").addEventListener("click", ()=>{ renderTitle(); });
@@ -2953,6 +2990,7 @@ refreshMute();
 /* ---------- Arranque: título con Continuar/Nuevo ---------- */
 initIntro();
 renderTitle();
+consumirResultadoPhaser();   // fusión v2: si volvés del partido Phaser con resultado, se aplica y te deja en la temporada
 </script>
 </body>
 </html>

@@ -1,7 +1,8 @@
 # PAMPA STAR — Progreso
 
-## 🔄 PARTIDO V2 PHASER — "Cámara Cinematográfica" (jul 2026, por etapas)
-Nueva especificación que **manda sobre el partido anterior**: `docs/DISENO_PARTIDO_V2_PAMPA_STAR.md` (+ su investigación `docs/INVESTIGACION_CAMARA_CINEMATICA_TSUBASA.md`). El modelo Tecmo real: la vista de acción muestra SOLO al portador grande; la cancha entera vive únicamente en el radar. Cada etapa se prueba en el celular de Rodri antes de seguir.
+## ✅ PARTIDO V2 PHASER — "Cámara Cinematográfica" (jul 2026) — TANDA NOCTURNA COMPLETA
+Especificación que **manda sobre el partido anterior**: `docs/DISENO_PARTIDO_V2_PAMPA_STAR.md` (+ `docs/INVESTIGACION_CAMARA_CINEMATICA_TSUBASA.md`).
+**LAS 6 ETAPAS + LA ETAPA FINAL ESTÁN HECHAS** (commits `0b2df82`→Etapa Final), cada una con tests verdes y revisión adversarial con fixes: E1 cámara/mundo · E2 radar+HUD · E3 menús en cruz+pausa+retratos del banco · E4 sprites heroicos+falsa perspectiva · E5 economía de guts escala 1000 · E6 pulido cine (cut-in Caldén, cortes, hooks de música, últimos 5') · FINAL: **fusión con el clásico detrás del flag `partido_phaser` (OFF por defecto, se enciende con `?partido_phaser=1`)** con prueba de saves ida-y-vuelta aprobada, QA de punta a punta (93', 0 errores) y suite 2.203 asserts. **👉 LEER `HANDOFF_FINAL.md`: estado, flags, checklist de aceptación en el celu y DECISIONES QUE ESPERAN A RODRI.**
 
 ### ✅ ETAPA 1 — Cámara y mundo lógico (el cambio madre)
 `phaser/scenes/match.js` REESCRITO según el doc §2/§10 (la escena anterior — Hito 2 + Tanda ABC con menús, cine y LA DEFINICIÓN — queda en git, commit `53f0d80`, para reintegrar sus piezas en las Etapas 3-6):
