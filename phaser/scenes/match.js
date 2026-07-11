@@ -61,6 +61,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._persp = null;
     this._urgente = false;        // el anuncio de los últimos 5' vuelve a armarse cada partido
     this._ladoTema = null;        // el motivo musical suena al cambiar el LADO, no en cada pase
+    this._zonaTema = null;        // el tema del avance (propio/rival) arranca de cero
+    this._megaRival = null;
+    this._timing = null;
     this._hudMarc = this._hudReloj = this._hudGuts = null;   // caches del HUD: el restart los recrea vacíos
   }
 
@@ -1144,10 +1147,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     snd && snd.kick();
-    const fb = ej.enZona ? "¡EJECUCIÓN JUSTA!\n" : "la aguja se te escapó…\n";
-    if (res.outcome === "gol") { P.golMio(st); this.efectoGol(false); this.mostrarResolucion(fb + (mega ? mega.grito : "¡GOOOL!"), "#ffd84d", { anim: "tiro", gana: true }); }
-    else if (res.outcome === "atajada") { P.tiroFallado(st); snd && snd.gloves(); this.mostrarResolucion(fb + "¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
-    else { P.tiroFallado(st); snd && snd.afuera(); this.mostrarResolucion(fb + "¡AFUERA!", "#e3503e", { anim: "tiro", gana: false }); }
+    /* Feel B8: SILENCIO de medio segundo antes de REVELAR el desenlace del tiro */
+    this.estado = "RESOLUCION";
+    this.limpiarMenu();
+    const silencio = this.FLAGS.e6_cine ? ((this.BAL.feel && this.BAL.feel.silencio_ms) || 500) : 0;
+    this.time.delayedCall(silencio, () => {
+      const fb = ej.enZona ? "¡EJECUCIÓN JUSTA!\n" : "la aguja se te escapó…\n";
+      if (res.outcome === "gol") { P.golMio(st); this.efectoGol(false); this.mostrarResolucion(fb + (mega ? mega.grito : "¡GOOOL!"), "#ffd84d", { anim: "tiro", gana: true }); }
+      else if (res.outcome === "atajada") { P.tiroFallado(st); snd && snd.gloves(); this.mostrarResolucion(fb + "¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
+      else { P.tiroFallado(st); snd && snd.afuera(); this.mostrarResolucion(fb + "¡AFUERA!", "#e3503e", { anim: "tiro", gana: false }); }
+    });
   }
   /* MEGATIRO: el resultado se decide UNA vez (bug del arquero cerrado) y el CINE lo cuenta */
   dispararConCine(mega, ej) {
@@ -1204,6 +1213,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.time.delayedCall(900, () => e.destroy());
     this.cameras.main.shake(240, 0.011);
     this.SFX && this.SFX.net();
+    /* Feel B8: explosión de HINCHADA en el gol (y rumor apagado en el gol en contra) */
+    this.SFX && this.SFX.crowd && this.SFX.crowd(enContra ? 600 : 1600);
     this.time.delayedCall(90, () => this.SFX && (enContra ? (this.SFX.golEnContra && this.SFX.golEnContra()) : this.SFX.goal()));
   }
   reanudarLibre() {
@@ -1659,6 +1670,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.sprPelota.setPosition(wb.x, wb.y + 34 - (this._botePelota || 0)).setScale(1.6 * this.escalaEn(st.pelota.y));
     this.marker.setText("▼ " + (p.j.esVos ? "VOS" : (p.j.nombre || "").toUpperCase().slice(0, 10)))
       .setPosition(wx, wy - 62);
+    /* Feel B8: el tema del avance crece al CRUZAR al campo rival (con la pelota) */
+    if (this.FLAGS.e6_cine && st.posesion === "mia") {
+      const zona = st.mios[st.ctrl].x > st.W / 2 ? "rival" : "propio";
+      if (zona !== this._zonaTema) { this._zonaTema = zona; this.SFX && this.SFX.temaCampo && this.SFX.temaCampo(zona); }
+    }
     /* pan vivo: mientras dura el corte, el destino persigue al portador real */
     const cam = this.cameras.main;
     if (this._panVivo && cam.panEffect.isRunning) cam.panEffect.destination.set(wx, wy);

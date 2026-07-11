@@ -91,6 +91,18 @@
       tone("triangle", 55, 110, t, dur || 1.4, 0.08);
       noise(t, dur || 1.4, 0.05, 400, 0.5, "lowpass");
     },
+    /* Feel B8: el tema del avance — pausado y tenso en campo propio, CRECE al cruzar */
+    temaCampo: function (zona) {
+      var c = ensure(); if (!c) return; var t = now();
+      if (zona === "rival") {
+        var arriba = [392, 440, 523];
+        for (var i = 0; i < arriba.length; i++) tone("triangle", arriba[i], arriba[i], t + i * 0.09, 0.14, 0.11);
+        noise(t, 0.4, 0.03, 700, 0.5, "bandpass");
+      } else {
+        tone("triangle", 220, 220, t, 0.22, 0.09);
+        tone("triangle", 262, 262, t + 0.16, 0.24, 0.08);
+      }
+    },
     temaUrgente: function () {
       var c = ensure(); if (!c) return; var t = now();
       for (var i = 0; i < 4; i++) tone("square", 880, 880, t + i * 0.12, 0.06, 0.12);   // tictac de los últimos 5'
