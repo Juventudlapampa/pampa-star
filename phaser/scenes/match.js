@@ -135,6 +135,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.mundoLayer.add(hint);
     this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
     this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
+
+    /* Feel B3: tutorial de 3 pasos la primera vez (flag en el save) */
+    this.tutorialSiHaceFalta();
   }
 
   /* plantel: VOS + amigos de la Capa 3 (save clásico, tolerante) + roster —
@@ -426,10 +429,65 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============ ETAPA 3 · EL MENÚ EN CRUZ con pausa (doc §7/§8/§9) ============ */
   buildBotonAccion() {
     if (!this.FLAGS.e3_menus) return;   // sin menús (flag apagado) no hay botón de acción
-    const r = this.add.rectangle(876, 462, 150, 56, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.txtBotonAccion = this.add.text(876, 462, "☰ ACCIÓN", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
-    this.hudLayer.add([r, this.txtBotonAccion]);
+    /* Feel B3: 64px o más, etiqueta ⚡ ACCIÓN y PULSO sutil cuando hay acciones */
+    const cont = this.add.container(866, 456);
+    const r = this.add.rectangle(0, 0, 188, 68, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: "'Press Start 2P',monospace", fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
+    cont.add([r, this.txtBotonAccion]);
+    this.hudLayer.add(cont);
+    this._btnAccionCont = cont;
+    this._btnPulso = this.tweens.add({ targets: cont, scale: 1.06, duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut", paused: true });
+    if (this.input.keyboard && !this.sys.game.device.input.touch) {
+      this._hintEspacio = this.add.text(866, 498, "ESPACIO = ACCIÓN", { fontFamily: "monospace", fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
+      this.hudLayer.add(this._hintEspacio);
+    }
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
+  }
+  /* Feel B3: la PRIMERA vez que se juega, tres pasos superpuestos al juego real */
+  tutorialSiHaceFalta() {
+    let visto = false;
+    try {
+      const c = localStorage.getItem("pampa_star_v1");
+      if (c) visto = !!JSON.parse(c).tutorialPartido;
+      else visto = localStorage.getItem("pampa_tutorial_partido") === "1";
+    } catch (e) { }
+    if (visto || !this.FLAGS.e3_menus) return;
+    const PASOS = [
+      "1/3 · Movés con el DEDO sobre la cancha\n(o con las flechas / WASD)",
+      "2/3 · ⚡ ACCIÓN abre el menú de jugadas\n(en teclado: ESPACIO)",
+      "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda"
+    ];
+    const ANILLOS = [null, { x: 866, y: 456, w: 210, h: 90 }, { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 }];
+    this.estado = "TUTORIAL";
+    this.st.modo = "congelado";
+    let paso = 0;
+    const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.55).setInteractive();
+    const caja = this.add.text(480, 150, "", { fontFamily: "monospace", fontSize: "16px", color: "#f6efdc", backgroundColor: "#0a1f13ee", padding: { x: 16, y: 12 }, align: "center", lineSpacing: 6 }).setOrigin(0.5);
+    const pie = this.add.text(480, 210, "tocá para seguir ▸", { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    const anillo = this.add.graphics();
+    this.menuLayer.add([velo, caja, pie, anillo]);
+    this.selloMenu();
+    const pintar = () => {
+      caja.setText(PASOS[paso]);
+      anillo.clear();
+      const a = ANILLOS[paso];
+      if (a) { anillo.lineStyle(4, 0xffd84d, 1); anillo.strokeRoundedRect(a.x - a.w / 2, a.y - a.h / 2, a.w, a.h, 12); }
+    };
+    pintar();
+    velo.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
+      paso++;
+      if (paso < PASOS.length) { pintar(); return; }
+      /* fin: se guarda en el save (retrocompatible: campo nuevo) y no vuelve salvo reset */
+      try {
+        const raw = localStorage.getItem("pampa_star_v1");
+        if (raw) { const c = JSON.parse(raw); c.tutorialPartido = true; localStorage.setItem("pampa_star_v1", JSON.stringify(c)); }
+        else localStorage.setItem("pampa_tutorial_partido", "1");
+      } catch (e) { }
+      this.limpiarMenu();
+      this.st.modo = "juego";
+      this.estado = "LIBRE";
+    });
   }
   /* transición de ENTRETIEMPO (E6): fundido + banner con el marcador */
   transicionEntretiempo() {
@@ -447,6 +505,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   onBotonAccion() {
     const st = this.st, P = window.PampaPartido;
     if (!this.FLAGS.e3_menus || this.estado !== "LIBRE") return;
+    if (this._hintEspacio) { this._hintEspacio.destroy(); this._hintEspacio = null; }   // ayuda de primera vez: cumplió
     if (st.posesion === "mia") { st.modo = "congelado"; this.abrirMenuAtaque(null, true); }
     else { P.cambiarAlMasCercano(st); this.avisar("Marcás con " + st.mios[st.ctrl].nombre.toUpperCase()); }   // defensor más cercano (doc §7)
   }
@@ -935,6 +994,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.lineStyle(1, 0xf6efdc, 0.8); g.strokeRect(bx, by, bw, bh);
     const gutsTxt = "GUTS " + Math.round(val);
     if (this._hudGuts !== gutsTxt) { this._hudGuts = gutsTxt; this.txtGuts.setText(gutsTxt); }
+    /* Feel B3: el botón ⚡ACCIÓN pulsa cuando hay acciones disponibles */
+    if (this._btnPulso) {
+      const activo = this.estado === "LIBRE" && st.posesion === "mia";
+      if (activo && this._btnPulso.paused) this._btnPulso.resume();
+      else if (!activo && !this._btnPulso.paused) { this._btnPulso.pause(); this._btnAccionCont.setScale(1); }
+    }
     /* E6: los ÚLTIMOS 5 MINUTOS se anuncian (tictac + reloj marcado con ⏰, no solo color).
        TODO el bloque bajo el flag: apagado = reloj plano de la Etapa 5. */
     if (this.FLAGS.e6_cine) {
