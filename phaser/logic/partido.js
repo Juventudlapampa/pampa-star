@@ -450,17 +450,21 @@
   }
   /* parámetros del remate (la ESCENA llama a Duel.resolveShot con esto: una sola fuente de verdad).
      El salto de reloj del remate vive ACÁ (lógica), no en la escena. */
+  /* esCalden: true = Caldén clásico (compat tests) · objeto {guts, mult} = MEGATIRO de data (Feel B5) */
   function prepararRemate(st, esCalden, rng) {
     var j = st.mios[st.ctrl], P = st.bal.partido, C = P.calden;
+    var mega = (esCalden && typeof esCalden === "object") ? esCalden : null;
+    var especial = !!esCalden;
     var poder = (j.stats.tiro || 50) + (j.stats.caracter || 50) * 0.12 + bonusAguante(st);
     /* v2 §7: desde lejos el tiro normal pierde fuerza (los especiales no) */
     var d = dist(j.x, j.y, st.W, st.H / 2);
-    if (!esCalden) poder -= Math.max(0, d - P.tiro_lejos_desde) * P.tiro_lejos_penal;
+    if (!especial) poder -= Math.max(0, d - P.tiro_lejos_desde) * P.tiro_lejos_penal;
     /* pase al vacío reciente: el arquero quedó vendido */
     var vendido = st._vendidoHasta && st._t < st._vendidoHasta;
     if (vendido) { poder += P.bonus_arquero_vendido; st._vendidoHasta = 0; }
-    if (esCalden) poder *= C.mult;
-    gastar(st, "mio", esCalden ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro);
+    if (mega) poder *= (mega.mult || 1.3);
+    else if (especial) poder *= C.mult;
+    gastar(st, "mio", mega ? (mega.guts || st.bal.aguante.costo_calden) : (especial ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro));
     saltoReloj(st, rng);
     return { shotPower: poder, keeperSkill: st.rivalKeeperSkill, arqueroVendido: !!vendido, distancia: Math.round(d) };
   }

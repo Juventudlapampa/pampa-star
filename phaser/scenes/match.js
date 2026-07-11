@@ -81,12 +81,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._pedido = null;
     try { const r = localStorage.getItem("pampa_pedido_phaser"); if (r) this._pedido = JSON.parse(r); } catch (e) { }
     if (this._pedido && this._pedido.rival) this.nombreRival = String(this._pedido.rival).toUpperCase().slice(0, 14);
+    /* Feel B5: MEGACOSAS de data (nombres pampeanos, costo, nivel) + nivel de carrera */
+    this.MEGA = this.game.registry.get("megacosas") || {
+      megatiros: [{ id: "calden", n: "Disparo del Caldén", grito: "¡CALDENAZO!", sub: "la fuerza del árbol eterno", guts: 300, nivel: 1, mult: 1.3, x_min: 680 }],
+      megadefensas: []
+    };
+    this._nivelCarrera = 1;
+    try { const c = JSON.parse(localStorage.getItem("pampa_star_v1")); if (c && c.nivel) this._nivelCarrera = c.nivel | 0; } catch (e) { }
 
     /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
        capa de HUD (radar + marcador + guts) y capa de MENÚ: solo la cámara de UI fija */
     this.mundoLayer = this.add.container(0, 0);
     this.hudLayer = this.add.container(0, 0);
     this.menuLayer = this.add.container(0, 0);
+    this.cineLayer = this.add.container(0, 0).setVisible(false);   // Feel B5: el CINE de 5 planos (pantalla fija)
 
     this.buildCancha();
     this.buildPortador();
@@ -104,8 +112,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.buildRadar();
     this.buildHUD();
     this.buildBotonAccion();
+    this.buildCineBase();
     this.uiCam = this.cameras.add(0, 0, 960, 540);
-    cam.ignore([this.hudLayer, this.menuLayer]);
+    cam.ignore([this.hudLayer, this.menuLayer, this.cineLayer]);
     this.uiCam.ignore(this.mundoLayer);
 
     /* --- input: táctil primero (tocás/arrastrás y el portador corre hacia ahí),
@@ -120,7 +129,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.wasd = this.input.keyboard.addKeys("W,A,S,D");
       this.keyEnter = this.input.keyboard.addKey("ENTER");
       /* ESPACIO = el botón de acción (doc §8); ESC = cancelar (todo se puede sin mouse) */
-      this.input.keyboard.on("keydown-SPACE", (ev) => { ev.preventDefault && ev.preventDefault(); this.onBotonAccion(); });
+      this.input.keyboard.on("keydown-SPACE", (ev) => {
+        ev.preventDefault && ev.preventDefault();
+        if (this.estado === "TIMING") { this.pararAguja(); return; }   // Feel B5: ESPACIO para la aguja
+        this.onBotonAccion();
+      });
       this.input.keyboard.on("keydown-ESC", () => {
         if (this.estado === "PASE" && this._paseCancelar) this._paseCancelar();
         else if (this.estado === "MENU" && this._menuVolver) this._menuVolver();
@@ -647,7 +660,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const acc = P.accionesAtaque(st);
     const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
     const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st), this.BAL.duelo) * 100);
-    const puedeC = P.puedeCalden(st), puedeT = P.puedeTirar(st);
+    const megaListo = this.megaDisponible(), puedeT = P.puedeTirar(st);
     const gam = A("gambeta"), par = A("pared"), tir = A("tiro");
     this.abrirMenuCruz({
       titulo: rival ? "⚔ ¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés?",
@@ -662,8 +675,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         S: { texto: "🔁 UNO-DOS", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " guts", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
         E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " guts" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
-      /* el CALDÉN convive con el tiro normal (§7: opciones separadas) — va al centro */
-      centro: puedeC ? { texto: "🔥 CALDÉN", sub: this.BAL.aguante.costo_calden + " guts · especial", cb: () => this.resolverTiro(true, rivalIdx, libre) } : null,
+      /* el MEGATIRO (de data, con nombre pampeano) convive con el tiro normal — va al centro */
+      centro: megaListo ? { texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15), sub: megaListo.guts + " guts · especial", cb: () => this.resolverTiro(megaListo, rivalIdx, libre) } : null,
       volver: libre ? () => this.reanudarLibre() : null
     });
   }
@@ -748,29 +761,347 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         return;
       }
     }
-    const rematar = () => {
-      const prep = P.prepararRemate(st, esCalden);
-      const res = window.PampaDuel.resolveShot({
-        shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: { bonus: 0, fuera: 0.05, gy: 0 },
-        cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+    const mega = (esCalden && typeof esCalden === "object") ? esCalden : (esCalden ? this.megaDisponible() : null);
+    if (mega && this.FLAGS.e6_cine) {
+      /* FEEL B5 · MEGATIRO: anuncio con cut-in y carga → ejecución exigente → CINE de 5 planos */
+      this.cutInEspecial("¡" + mega.n.toUpperCase() + "!", (mega.sub || "") + " · " + mega.guts + " guts", () => {
+        this.abrirTiming(mega, (ej) => this.dispararConCine(mega, ej));
       });
-      const snd = this.FLAGS.e6_cine ? this.SFX : null;   // flag apagado = Etapa 5 exacta (sin SFX de acción)
-      snd && snd.kick();
-      if (res.outcome === "gol") {
-        P.golMio(st);
-        this.efectoGol(false);
-        this.mostrarResolucion((esCalden ? "¡CALDENAZO!\n" : "¡GOOOL!\n") + (prep.arqueroVendido ? "(el arquero estaba vendido)" : "¡La clavaste!"), "#ffd84d", { anim: "tiro", gana: true });
-      }
-      else if (res.outcome === "atajada") { P.tiroFallado(st); snd && snd.gloves(); this.mostrarResolucion("¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
-      else { P.tiroFallado(st); snd && snd.afuera(); this.mostrarResolucion("¡AFUERA!\nSe fue por centímetros…", "#e3503e", { anim: "tiro", gana: false }); }
+    } else {
+      /* FEEL B5 · tiro normal (o mega sin cine): LA BARRA DE TIMING — el tiro se EJECUTA */
+      this.abrirTiming(mega, (ej) => this.dispararSimple(mega, ej));
+    }
+  }
+  /* ============ FEEL B5 · EL CINE DE 5 PLANOS (reintegrado de 53f0d80) ============
+     Pie → VIAJE (la pelota HACIA ADENTRO con perspectiva real) → esfuerzo →
+     arquero → desenlace. Vive en cineLayer (pantalla fija, uiCam): es un panel
+     de presentación, no sprites del mundo — el presupuesto de 3 se respeta. */
+  buildCineBase() {
+    const W = 960, H = 540;
+    this.cineBG = this.add.graphics(); this.cineLayer.add(this.cineBG);
+    this.cineContent = this.add.container(0, 0); this.cineLayer.add(this.cineContent);
+    this.cineFX = this.add.graphics(); this.cineLayer.add(this.cineFX);
+    this.cineBig = this.add.text(W / 2, H / 2 - 20, "", { fontFamily: "'Press Start 2P',monospace", fontSize: "48px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineBig);
+    this.cineSub = this.add.text(W / 2, H / 2 + 34, "", { fontFamily: "monospace", fontSize: "16px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineSub);
+    this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
+    this.cineBlack = this.add.rectangle(W / 2, H / 2, W, H, 0x000000).setAlpha(0); this.cineLayer.add(this.cineBlack);
+  }
+  limpiarContenido() { this.cineContent.removeAll(true); this.cineFX.clear(); }
+  corte(fn) {
+    this.cineBlack.setAlpha(1);
+    this.tweens.add({ targets: this.cineBlack, alpha: 0, duration: this.BAL.cine.corte_ms, delay: 20 });
+    this.time.delayedCall(10, fn);
+  }
+  lineasVelocidad(cx, cy, inten, tinte) {
+    const g = this.cineFX, n = this.BAL.cine.lineas_velocidad;
+    g.clear();
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const r0 = 60 + ((i * 53 + this.time.now * 0.25) % 200);
+      const r1 = r0 + 70 * inten;
+      g.lineStyle(2 + 2 * inten, tinte || 0xffffff, 0.18 + 0.28 * inten);
+      g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.strokePath();
+    }
+  }
+  texturaCineJugador() {
+    const j = this.st.mios[this.st.ctrl];
+    if (!j || !j.look || !window.PampaAvatarArte) return "cine_jugador";
+    const key = "cine_look_" + this.st.ctrl;
+    window.PampaAvatarArte.cineJugador(this, key, j.look);
+    return key;
+  }
+  entrarCine() {
+    this.quitarDuelo();
+    this.estado = "CINE";
+    this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
+    this.cineLayer.setVisible(true);
+    this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
+  }
+  salirCine() {
+    this.viajeState = null;
+    this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
+    this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
+    const ms = this.BAL.cine.corte_ms;
+    let hecho = false;
+    const volver = () => {
+      if (hecho) return; hecho = true;
+      this.cineLayer.setVisible(false);
+      this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
+      this.uiCam.fadeIn(ms, 0, 0, 0);
+      this.zoomBase();
+      this.estado = "LIBRE";
     };
-    /* E6: el tiro ESPECIAL entra con CUT-IN de pantalla (retrato grande + banner) */
-    if (esCalden && this.FLAGS.e6_cine) this.cutInEspecial("¡DISPARO DEL CALDÉN!", rematar);
-    else rematar();
+    this.uiCam.once("camerafadeoutcomplete", volver);
+    this.uiCam.fadeOut(ms, 0, 0, 0);
+    this.time.delayedCall(ms + 140, volver);
+  }
+  planoPie() {
+    const W = 960, H = 540, C = this.BAL.cine;
+    this.limpiarContenido();
+    this.cineBG.clear(); this.cineBG.fillStyle(0x2a130b, 1); this.cineBG.fillRect(0, 0, W, H);
+    this.cineLabel.setText("· el pie ·");
+    const pie = this.add.sprite(W / 2, H / 2 + 10, "cine_pie").setScale(0.6).setAngle(-8);
+    this.cineContent.add(pie);
+    this.tweens.add({ targets: pie, scale: 5.2, duration: 260, ease: "Back.easeOut" });
+    this.SFX && this.SFX.kick();
+    this.uiCam.flash(90, 255, 255, 220);
+    this.lineasVelocidad(W / 2, H / 2, 1, 0xffd84d);
+    this.time.delayedCall(C.plano_pie_ms + 240, () => this.corte(() => this.planoViaje()));
+  }
+  planoViaje() {
+    const W = 960, H = 540, C = this.BAL.cine;
+    this.limpiarContenido();
+    this.cineLabel.setText("· el viaje ·");
+    const vp = { x: W / 2, y: H * 0.24 }, nearY = H * 0.96;
+    this.dibujarCanchaProfunda(vp, nearY);
+    const ball = this.add.sprite(W / 2, nearY, "ball").setScale(4.2); this.cineContent.add(ball);
+    const trail = this.add.particles(0, 0, "spark_sol", { lifespan: 300, speed: 0, scale: { start: 1.2, end: 0 }, alpha: { start: 0.6, end: 0 }, frequency: 18, follow: ball }); this.cineContent.add(trail);
+    this.SFX && this.SFX.whoosh(C.plano_viaje_ms);
+    const cfg = { k: C.persp.k, vpX: vp.x, vpY: vp.y, nearY, driftX: (this.zona.gy || 0) * C.drift_mult };
+    this.viajeState = { activo: true, elapsed: 0, dur: C.plano_viaje_ms, ball, trail, cfg, vp, zoomed: false };
+    this.time.delayedCall(C.plano_viaje_ms, () => {
+      if (trail && trail.stop) trail.stop();
+      if (this.viajeState) this.viajeState.activo = false;
+      this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
+      this.corte(() => this.planoEsfuerzo());
+    });
+  }
+  updateViaje(delta) {
+    const vs = this.viajeState; if (!vs || !vs.activo) return;
+    vs.elapsed += delta;
+    const C = this.BAL.cine;
+    const raw = Phaser.Math.Clamp(vs.elapsed / vs.dur, 0, 1);
+    const d = 1 - (1 - raw) * (1 - raw);
+    const s = window.PampaPersp.aPantalla(d, vs.cfg);
+    vs.ball.setPosition(s.x, s.y).setScale(C.pelota_escala_base + C.pelota_escala_span * s.escala);
+    vs.ball.rotation += 0.3;
+    this.lineasVelocidad(vs.vp.x, vs.vp.y, 0.4 + 0.6 * d, 0xffd84d);
+    if (!vs.zoomed && d > C.slowmo_desde) {
+      vs.zoomed = true;
+      this.uiCam.zoomTo(C.zoom_viaje, C.camara_pan_ms, "Sine.easeInOut");
+      this.uiCam.pan(vs.vp.x, vs.vp.y + 40, C.camara_pan_ms, "Sine.easeInOut");
+      this.SFX && this.SFX.crowd(500);
+    }
+    if (raw >= 1) vs.activo = false;
+  }
+  dibujarCanchaProfunda(vp, nearY) {
+    const W = 960, H = 540, g = this.cineBG;
+    g.clear();
+    g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, vp.y);
+    g.fillStyle(0x2a9d4f, 1);
+    g.fillPoints([{ x: 0, y: H }, { x: W, y: H }, { x: vp.x + 34, y: vp.y }, { x: vp.x - 34, y: vp.y }], true);
+    g.lineStyle(2, 0xeafff0, 0.28);
+    for (let i = 1; i <= 9; i++) {
+      const s = window.PampaPersp.aPantalla(i / 10, { k: this.BAL.cine.persp.k, vpX: vp.x, vpY: vp.y, nearY });
+      const half = 34 + (W / 2 - 34) * ((s.y - vp.y) / (H - vp.y));
+      g.beginPath(); g.moveTo(vp.x - half, s.y); g.lineTo(vp.x + half, s.y); g.strokePath();
+    }
+    g.lineStyle(3, 0xeafff0, 0.5);
+    g.beginPath(); g.moveTo(vp.x - 34, vp.y); g.lineTo(0, H); g.moveTo(vp.x + 34, vp.y); g.lineTo(W, H); g.strokePath();
+    const gw = 78, gh = 34;
+    g.fillStyle(0xdfeef6, 0.45);
+    for (let x = -gw / 2; x <= gw / 2; x += 7) g.fillRect(vp.x + x, vp.y - gh, 1, gh);
+    for (let y = 0; y <= gh; y += 6) g.fillRect(vp.x - gw / 2, vp.y - gh + y, gw, 1);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(vp.x - gw / 2 - 3, vp.y - gh - 3, 4, gh + 4); g.fillRect(vp.x + gw / 2, vp.y - gh - 3, 4, gh + 4);
+    g.fillRect(vp.x - gw / 2 - 3, vp.y - gh - 3, gw + 7, 4);
+  }
+  planoEsfuerzo() {
+    const W = 960, H = 540, C = this.BAL.cine;
+    this.limpiarContenido();
+    this.cineBG.clear(); this.cineBG.fillStyle(0x1a1206, 1); this.cineBG.fillRect(0, 0, W, H);
+    this.cineLabel.setText("· el esfuerzo ·");
+    this.lineasVelocidad(W / 2, H / 2, 1, 0xffd84d);
+    const jug = this.add.sprite(W / 2, H / 2 + 20, this.texturaCineJugador()).setScale(2.6).setAngle(4);
+    this.cineContent.add(jug);
+    this.tweens.add({ targets: jug, scale: 3.4, angle: -3, duration: C.plano_esfuerzo_ms, ease: "Sine.easeOut" });
+    this.SFX && this.SFX.crowd(400);
+    this.time.delayedCall(C.plano_esfuerzo_ms, () => this.corte(() => this.planoArquero()));
+  }
+  planoArquero() {
+    const W = 960, H = 540, C = this.BAL.cine;
+    this.limpiarContenido();
+    this.cineBG.clear(); this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
+    this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, H * 0.62, W, H * 0.38);
+    this.cineLabel.setText("· el arquero ·");
+    const arq = this.add.sprite(W / 2 + 40, H / 2, "cine_arquero").setScale(1.2).setAngle(6);
+    this.cineContent.add(arq);
+    this.tweens.add({ targets: arq, scale: 3.0, x: W / 2, angle: 0, duration: C.plano_arquero_ms, ease: "Quad.easeOut" });
+    const ball = this.add.sprite(W / 2 - 220, H / 2 - 90, "ball").setScale(0.8);
+    this.cineContent.add(ball);
+    this.tweens.add({ targets: ball, x: W / 2 + 120, y: H / 2 - 20, scale: 1.9, duration: C.plano_arquero_ms, ease: "Sine.easeIn" });
+    this.SFX && this.SFX.crowd(500);
+    this.time.delayedCall(C.plano_arquero_ms, () => this.corte(() => this.planoDesenlace()));
+  }
+  planoDesenlace() {
+    const W = 960, H = 540, C = this.BAL.cine, EP = this.BAL.epica, res = this.res, st = this.st, P = window.PampaPartido;
+    this.limpiarContenido();
+    this.cineBG.clear(); this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
+    this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, H * 0.66, W, H * 0.34);
+    this.cineLabel.setText("· el desenlace ·");
+    const gx = W / 2, gy = H * 0.5, gw = 300, gh = 150;
+    this.cineBG.fillStyle(0xdfeef6, 0.4);
+    for (let x = -gw / 2; x <= gw / 2; x += 16) this.cineBG.fillRect(gx + x, gy - gh, 2, gh);
+    for (let y = 0; y <= gh; y += 14) this.cineBG.fillRect(gx - gw / 2, gy - gh + y, gw, 2);
+    this.cineBG.fillStyle(0xffffff, 1);
+    this.cineBG.fillRect(gx - gw / 2 - 6, gy - gh - 6, 8, gh + 6); this.cineBG.fillRect(gx + gw / 2, gy - gh - 6, 8, gh + 6);
+    this.cineBG.fillRect(gx - gw / 2 - 6, gy - gh - 6, gw + 14, 8);
+    const arq = this.add.sprite(gx, gy - 20, "cine_arquero").setScale(2.4); this.cineContent.add(arq);
+    const ball = this.add.sprite(gx - 260, gy - 40, "ball").setScale(1.6); this.cineContent.add(ball);
+    const targetY = gy - gh * 0.6 + (this.zona.gy || 0) * C.drift_mult;
+    /* Feel B8: SILENCIO antes de revelar (el vacío en el estómago) */
+    const silencio = (this.BAL.feel && this.BAL.feel.silencio_ms) || 500;
+    if (res.outcome === "gol") {
+      arq.setPosition(gx + (this.zona.gy < 0 ? 90 : -90), gy - 10);
+      this.tweens.add({ targets: ball, x: gx + (this.zona.gy || 0) * 1.2, y: targetY, scale: 1.2, duration: C.impacto_gol_ms, ease: "Quad.easeIn" });
+      this.time.delayedCall(C.impacto_gol_ms + silencio, () => {
+        ball.setPosition(gx + (this.zona.gy || 0) * 1.2, targetY);
+        this.uiCam.shake(EP.shake_ms, EP.shake_intensidad);
+        this.uiCam.flash(EP.flash_ms, 255, 255, 210);
+        this.SFX && this.SFX.net(); this.time.delayedCall(EP.fanfarria_delay_ms, () => this.SFX && this.SFX.goal());
+        this.burst(ball.x, ball.y);
+        this.punch(this._megaGrito || "¡GOOOL!", "¡La clavaste donde el viento no la saca!", 0xffd84d);
+        P.golMio(st);
+      });
+    } else if (res.outcome === "atajada") {
+      this.tweens.add({ targets: ball, x: gx - 30, y: gy - 20, scale: 1.7, duration: C.impacto_atajada_ms, ease: "Quad.easeIn" });
+      this.time.delayedCall(C.impacto_atajada_ms + silencio, () => {
+        ball.setPosition(gx - 30, gy - 20);
+        this.SFX && this.SFX.gloves(); this.uiCam.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
+        this.dust(gx - 30, gy - 20);
+        this.punch("¡LA SACÓ!", "El arquero voló y la manoteó.", 0x5bb8e8);
+        this.tweens.add({ targets: ball, x: gx - 260, y: gy + 40, duration: EP.rebote_atajada_ms, ease: "Quad.easeOut" });
+        P.tiroFallado(st);
+      });
+    } else {
+      this.tweens.add({ targets: ball, x: gx + (this.zona.gy < 0 ? -1 : 1) * (gw / 2 + 60), y: gy - gh - 30, scale: 1.0, alpha: 0.3, duration: C.impacto_afuera_ms, ease: "Quad.easeIn" });
+      this.time.delayedCall(C.impacto_afuera_ms + silencio - 120, () => {
+        this.SFX && this.SFX.afuera(); this.punch("¡AFUERA!", "Se fue por centímetros. ¡Uf!", 0xe3503e);
+        P.tiroFallado(st);
+      });
+    }
+    this.time.delayedCall(C.impacto_gol_ms + silencio + C.desenlace_hold_ms, () => this.salirCine());
+  }
+  punch(big, sub, colorNum) {
+    const hex = "#" + colorNum.toString(16).padStart(6, "0");
+    this.cineBig.setText(big).setColor(hex).setAlpha(1).setScale(0.2).setAngle(-6);
+    this.tweens.killTweensOf(this.cineBig);
+    this.tweens.add({ targets: this.cineBig, scale: 1, angle: 0, duration: 360, ease: "Back.easeOut" });
+    this.cineSub.setText(sub).setAlpha(0);
+    this.tweens.add({ targets: this.cineSub, alpha: 1, duration: 300, delay: 240 });
+  }
+  burst(x, y) {
+    const e = this.add.particles(x, y, "spark_sol", { lifespan: 800, speed: { min: 140, max: 420 }, scale: { start: 1.6, end: 0 }, quantity: 30, angle: { min: 0, max: 360 }, tint: [0xffd84d, 0xffffff, 0x7ee08a], emitting: false });
+    this.cineLayer.add(e); e.explode(30); this.time.delayedCall(1000, () => e.destroy());
+  }
+  dust(x, y) {
+    const e = this.add.particles(x, y, "spark", { lifespan: 480, speed: { min: 50, max: 150 }, scale: { start: 1.0, end: 0 }, alpha: { start: 0.5, end: 0 }, quantity: 14, angle: { min: 200, max: 340 }, tint: 0xdfeef6, emitting: false });
+    this.cineLayer.add(e); e.explode(14); this.time.delayedCall(700, () => e.destroy());
+  }
+
+  /* qué MEGATIRO está disponible: de data (nombre pampeano), desbloqueado por nivel de
+     carrera, pagable con guts y pasada su línea de cancha. Devuelve el más potente. */
+  megaDisponible() {
+    const st = this.st, j = st.mios[st.ctrl];
+    if (!j || !j.esVos || st.posesion !== "mia") return null;
+    const nivel = this._nivelCarrera || 1;
+    const lista = ((this.MEGA && this.MEGA.megatiros) || []).filter(m =>
+      nivel >= (m.nivel || 1) && j.aguante >= (m.guts || 300) && j.x > (m.x_min || 680));
+    return lista.length ? lista[lista.length - 1] : null;
+  }
+  /* la BARRA DE TIMING (Feel B5): frenás la aguja en la zona buena — dedo o teclado, jamás mouse obligatorio */
+  abrirTiming(mega, alRematar) {
+    const F = this.BAL.feel || {};
+    this.estado = "TIMING";
+    this.limpiarMenu();
+    this._timing = {
+      mega, alRematar,
+      t0: this.time.now,
+      periodo: F.barra_periodo_ms || 900,
+      zona: mega ? (F.barra_zona_mega || 0.13) : (F.barra_zona_normal || 0.24),
+      p: 0, parada: false
+    };
+    const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.3).setInteractive();
+    const tit = this.add.text(480, 226, mega ? "⚡ ¡PARÁ LA AGUJA EN LA ZONA! (ventana exigente)" : "🎯 ¡PARÁ LA AGUJA EN LA ZONA!",
+      { fontFamily: "monospace", fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 5 } }).setOrigin(0.5);
+    const ayuda = this.add.text(480, 356, "tocá la pantalla (o ESPACIO / ENTER)", { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    this._timingG = this.add.graphics();
+    this.menuLayer.add([velo, tit, ayuda, this._timingG]);
+    this.selloMenu();
+    velo.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.pararAguja(); });
+  }
+  dibujarTiming() {
+    const T = this._timing; if (!T || !this._timingG || T.parada) return;
+    const g = this._timingG, bx = 480 - 210, by = 288, bw = 420, bh = 30;
+    const fase = ((this.time.now - T.t0) % T.periodo) / T.periodo;
+    T.p = fase < 0.5 ? fase * 2 : 2 - fase * 2;   // la aguja va y viene
+    g.clear();
+    g.fillStyle(0x0a1f13, 0.92); g.fillRect(bx - 4, by - 4, bw + 8, bh + 8);
+    g.fillStyle(0x333d36, 1); g.fillRect(bx, by, bw, bh);
+    /* ZONA BUENA centrada, marcada con borde blanco + etiqueta (forma + texto, no solo color) */
+    const zx = bx + bw * (0.5 - T.zona / 2), zw = bw * T.zona;
+    g.fillStyle(0x2e7d32, 1); g.fillRect(zx, by, zw, bh);
+    g.lineStyle(2, 0xffffff, 1); g.strokeRect(zx, by, zw, bh);
+    if (!this._timingTxtJusto) {
+      this._timingTxtJusto = this.add.text(480, by + bh + 16, "▲ JUSTO ACÁ", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc" }).setOrigin(0.5);
+      this.menuLayer.add(this._timingTxtJusto);
+      this.selloMenu();
+    }
+    const ax = bx + bw * T.p;
+    g.fillStyle(0xffd84d, 1); g.fillRect(ax - 3, by - 8, 6, bh + 16);
+    g.fillTriangle(ax - 8, by - 14, ax + 8, by - 14, ax, by - 4);
+  }
+  pararAguja() {
+    const T = this._timing; if (!T || T.parada) return;
+    T.parada = true;
+    this._timingTxtJusto = null;
+    const st = this.st, stats = st.mios[st.ctrl].stats || {};
+    /* la aguja modula POTENCIA y COLOCACIÓN vía logic/tiro.js (la destreza pesa, los stats también) */
+    const off = T.p - 0.5;
+    const enZona = Math.abs(off) <= T.zona / 2;
+    const potencia = enZona ? 0.75 : (off < 0 ? 0.75 + off * 0.9 : 0.75 + off * 0.5);
+    const ej = window.PampaTiro.evaluarEjecucion({
+      aimX: off * 1.8, aimY: 0.3, potencia: Phaser.Math.Clamp(potencia, 0.1, 1), curva: 0,
+      statTiro: stats.tiro != null ? stats.tiro : 50, cfg: this.BAL.tiro_ejecucion
+    });
+    ej.enZona = enZona;
+    this._timing = null;
+    this.limpiarMenu();
+    T.alRematar(ej);
+  }
+  dispararSimple(mega, ej) {
+    const st = this.st, P = window.PampaPartido;
+    const prep = P.prepararRemate(st, mega || false);
+    const res = window.PampaDuel.resolveShot({
+      shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+    });
+    const snd = this.FLAGS.e6_cine ? this.SFX : null;
+    snd && snd.kick();
+    const fb = ej.enZona ? "¡EJECUCIÓN JUSTA!\n" : "la aguja se te escapó…\n";
+    if (res.outcome === "gol") { P.golMio(st); this.efectoGol(false); this.mostrarResolucion(fb + (mega ? mega.grito : "¡GOOOL!"), "#ffd84d", { anim: "tiro", gana: true }); }
+    else if (res.outcome === "atajada") { P.tiroFallado(st); snd && snd.gloves(); this.mostrarResolucion(fb + "¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
+    else { P.tiroFallado(st); snd && snd.afuera(); this.mostrarResolucion(fb + "¡AFUERA!", "#e3503e", { anim: "tiro", gana: false }); }
+  }
+  /* MEGATIRO: el resultado se decide UNA vez (bug del arquero cerrado) y el CINE lo cuenta */
+  dispararConCine(mega, ej) {
+    const st = this.st, P = window.PampaPartido;
+    const prep = P.prepararRemate(st, mega);
+    this.res = window.PampaDuel.resolveShot({
+      shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+    });
+    this.zona = ej.zona;
+    this._megaGrito = mega.grito || "¡GOOOL!";
+    this.SFX && this.SFX.kick();
+    this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
+    this.entrarCine();
+    this.planoPie();
   }
 
   /* ============ ETAPA 6 · pulido cinematográfico ============ */
-  cutInEspecial(titulo, cb) {
+  cutInEspecial(titulo, sub, cb) {
+    if (typeof sub === "function") { cb = sub; sub = null; }   // compat con la firma vieja
     this.estado = "RESOLUCION";
     this.limpiarMenu();
     const j = this.st.mios[this.st.ctrl];
@@ -778,14 +1109,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const img = this.add.image(-140, 270, this.retratoKey(j, false));
     img.setScale(180 / img.height);
     const txt = this.add.text(1150, 258, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "22px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 8 }).setOrigin(0.5);
-    const sub = this.add.text(1150, 292, (j.esVos ? "VOS" : j.nombre) + " toma fuerza del árbol eterno…", { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
-    this.menuLayer.add([franja, img, txt, sub]);
+    const subTxt = this.add.text(1150, 292, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+    /* Feel B5: CARGA DE GUTS VISIBLE — la barra se llena mientras el anuncio dura */
+    const cargaBg = this.add.rectangle(560, 330, 340, 14, 0x0a1f13, 0.9).setStrokeStyle(2, 0xf6efdc, 0.8);
+    const carga = this.add.rectangle(560 - 168, 330, 4, 10, 0xffd84d, 1).setOrigin(0, 0.5);
+    const cargaTxt = this.add.text(560, 348, "cargando guts…", { fontFamily: "monospace", fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
+    this.menuLayer.add([franja, img, txt, subTxt, cargaBg, carga, cargaTxt]);
     this.selloMenu();
     this.tweens.add({ targets: img, x: 200, duration: 260, ease: "Back.easeOut" });
-    this.tweens.add({ targets: [txt, sub], x: 560, duration: 260, ease: "Back.easeOut" });
+    this.tweens.add({ targets: [txt, subTxt], x: 560, duration: 260, ease: "Back.easeOut" });
+    this.tweens.add({ targets: carga, width: 336, duration: 820, ease: "Sine.easeIn" });
     this.cameras.main.flash(120, 255, 216, 77);
     this.SFX && this.SFX.whoosh(700);
-    this.time.delayedCall(950, () => { this.limpiarMenu(); cb(); });
+    this.time.delayedCall(1050, () => { this.limpiarMenu(); cb(); });
   }
   /* la RED se sacude: sacudón + chispas en la boca del arco.
      El gol EN CONTRA se distingue también por sonido (notas que bajan) y chispas frías. */
@@ -1056,6 +1392,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ETAPA 5: la economía de guts corre con el flag e5_guts; apagado = tanques quietos (sandbox) */
     if (!this.FLAGS.e5_guts) { st.mios[st.ctrl].aguante = this.BAL.aguante.max; st.aguanteRival = this.BAL.aguante.max; }
 
+    /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
+    if (this.estado === "CINE") { this.updateViaje(delta); return; }
+    if (this.estado === "TIMING") {
+      this.dibujarTiming();
+      if (this.keyEnter && Phaser.Input.Keyboard.JustDown(this.keyEnter)) this.pararAguja();
+      return;
+    }
     /* §9 EN SERIO: fuera de LIBRE la simulación NO corre (pausa → animación → pausa,
        estados realmente separados — si no, rivalTira/final pisan la resolución) */
     if (this.estado !== "LIBRE") {

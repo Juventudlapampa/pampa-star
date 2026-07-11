@@ -39,6 +39,9 @@
     "beat_zoom_extra": 0.12,
     "resolucion_min_ms": 1600,
     "silencio_ms": 500,
+    "barra_periodo_ms": 900,
+    "barra_zona_normal": 0.24,
+    "barra_zona_mega": 0.13,
     "comentario": "beat_encuentro_ms: aviso de tensión ANTES de abrir el menú (600-900). beat_mega_ms: cuando viene una megacosa rival, el beat se alarga. beat_zoom_extra: cuánto se acerca la cámara en el beat. resolucion_min_ms: NINGUNA resolución devuelve el control antes de esto. silencio_ms: el silencio previo a revelar un tiro/duelo grande (Bloque 8)."
   },
 
