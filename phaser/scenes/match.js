@@ -42,7 +42,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -920,8 +920,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const megaR = this._megaRival; this._megaRival = null;
     const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo, bonusRival: megaR ? megaR.bonus : 0 });
     if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.guts * (this.BAL.aguante.cpu_factor_costo || 1));
+    /* ANIME B (P2): la GAMBETA se VE — el que encara en pose, el que queda atrás */
+    const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
     if (r.win) {
       P.ganarAtaque(st, a.id);
+      if (a.id === "gambeta" && !megaR && this.hayEscenas() && rivalJ) {
+        this.escenaCine({
+          etiqueta: "· la gambeta ·",
+          prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
+          rival: { j: rivalJ, esRival: true, anim: "pase" },   // el rival queda barrido atrás
+          gana: true, sfx: "whoosh",
+          titulo: "¡LO DEJASTE PAGANDO!", sub: r.matriz === "zafaste" ? "le erraron a la marca y seguís de largo" : "puro coraje: seguís de largo"
+        });
+        return;
+      }
       const texto = megaR ? "¡LE GANASTE AL " + megaR.n.toUpperCase() + "!\nMomento para el recuerdo." : (a.id === "pared" ? "¡PARED Y SEGUÍS DE LARGO!" : "¡GAMBETA Y DE LARGO!" + (r.matriz === "zafaste" ? "\n(le erraron a la marca)" : ""));
       this.mostrarResolucion(texto, "#7ee08a", { anim: "gambeta", gana: true });
     } else if (megaR) {
@@ -933,14 +945,55 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }, rival, true);
     } else {
       P.perderPelota(st);
+      if (a.id === "gambeta" && this.hayEscenas() && rivalJ) {
+        /* la variante "perdés": el defensor se planta y te la saca */
+        this.escenaCine({
+          etiqueta: "· la gambeta ·",
+          prota: { j: rivalJ, esRival: true, anim: "pase" },
+          rival: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
+          gana: true, color: 0xe3503e, sfx: "gloves",
+          titulo: r.matriz === "leyeron" ? "¡TE LEYERON!" : "TE LA SACARON",
+          sub: r.matriz === "leyeron" ? "el quite estaba preparado · pelota rival" : "se plantó justo · pelota rival"
+        });
+        return;
+      }
       this.mostrarResolucion(r.matriz === "leyeron" ? "¡TE LEYERON LA JUGADA!\nPelota rival." : "TE LA SACARON.\nPelota rival.", "#e3503e", { anim: "gambeta", gana: false });
     }
   }
   resolverAccionDefensa(a) {
     const st = this.st, P = window.PampaPartido;
+    const rivalJ = st.rivales[st.portadorRival];
     const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo });
-    if (r.win) { P.ganarDefensa(st); this.mostrarResolucion("¡RECUPERASTE!" + (r.matriz === "leiste" ? "\n(le leíste la intención)" : ""), "#7ee08a", { anim: "quite", gana: true }); }
-    else { P.perderDefensa(st); this.mostrarResolucion(r.matriz === "teEngano" ? "TE ENGAÑÓ CON EL AMAGUE…" : "SE TE ESCAPÓ POR VELOCIDAD…", "#e3503e", { anim: "quite", gana: false }); }
+    /* ANIME B (P2): las dos variantes defensivas de la gambeta — te la hacen / la defendés */
+    if (r.win) {
+      P.ganarDefensa(st);
+      if (a.id === "quite" && this.hayEscenas() && rivalJ) {
+        this.escenaCine({
+          etiqueta: "· el quite ·",
+          prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },   // la barrida baja
+          rival: { j: rivalJ, esRival: true, anim: "gambeta" },
+          gana: true, sfx: "gloves",
+          titulo: "¡RECUPERASTE!", sub: r.matriz === "leiste" ? "le leíste la intención y te tiraste al piso" : "llegaste primero a la pelota"
+        });
+        return;
+      }
+      this.mostrarResolucion("¡RECUPERASTE!" + (r.matriz === "leiste" ? "\n(le leíste la intención)" : ""), "#7ee08a", { anim: "quite", gana: true });
+    }
+    else {
+      P.perderDefensa(st);
+      if (a.id === "quite" && this.hayEscenas() && rivalJ) {
+        this.escenaCine({
+          etiqueta: "· te la hicieron ·",
+          prota: { j: rivalJ, esRival: true, anim: "gambeta" },
+          rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          gana: true, color: 0xe3503e, sfx: "whoosh",
+          titulo: r.matriz === "teEngano" ? "¡TE AMAGÓ!" : "SE TE ESCAPÓ",
+          sub: r.matriz === "teEngano" ? "el amague te dejó pagando" : "te ganó por velocidad pura"
+        });
+        return;
+      }
+      this.mostrarResolucion(r.matriz === "teEngano" ? "TE ENGAÑÓ CON EL AMAGUE…" : "SE TE ESCAPÓ POR VELOCIDAD…", "#e3503e", { anim: "quite", gana: false });
+    }
   }
   resolverNoMoverse() {
     const st = this.st, P = window.PampaPartido;
@@ -949,8 +1002,36 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   resolverArquero(id, bonus, grito) {
     const st = this.st, P = window.PampaPartido;
+    const tiradorR = st.rivales[st.portadorRival];
     const res = P.resolverAtajada(st, id, null, bonus || 0);
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
+    /* ANIME B (P1): también TU arco es una escena — el rival patea, TU arquero vuela */
+    if (this.hayEscenas()) {
+      const arq = st.mios.find(j => j.pos === "ARQ");
+      if (res.golRival) this.escenaCine({
+        etiqueta: "· te rematan ·",
+        prota: { j: tiradorR, esRival: true, anim: "tiro" },
+        rival: arq ? { j: arq, esRival: false, anim: "estirada" } : null,
+        gana: true, color: 0xe3503e, sfx: "golEnContra",
+        titulo: "GOL DE " + this.nombreRival, sub: "se estiró y no llegó… sacás del medio",
+        alFinal: () => this.efectoGol(true)
+      });
+      else if (res.retiene) this.escenaCine({
+        etiqueta: "· tu arquero ·",
+        prota: { j: arq, esRival: false, anim: "atajada" },
+        rival: { j: tiradorR, esRival: true, anim: "tiro" },
+        gana: true, sfx: "gloves",
+        titulo: grito || "¡LA RETUVO!", sub: "tu arquero se quedó con la pelota · salís jugando"
+      });
+      else this.escenaCine({
+        etiqueta: "· tu arquero ·",
+        prota: { j: arq, esRival: false, anim: "despeje" },
+        rival: { j: tiradorR, esRival: true, anim: "tiro" },
+        gana: true, color: 0xf6efdc, sfx: "gloves",
+        titulo: "¡PUÑOS AFUERA!", sub: res.mia ? "la dividida quedó tuya" : "la ganó " + this.nombreRival + "…"
+      });
+      return;
+    }
     if (res.golRival) { this.efectoGol(true); this.mostrarResolucion("GOL DE " + this.nombreRival + "…\nSacás del medio.", "#e3503e", { anim: "arquero", gana: false }); }
     else if (res.retiene) { snd && snd.gloves(); this.mostrarResolucion((grito ? grito + "\n" : "") + "¡LA RETUVO TU ARQUERO!\nSalís jugando.", "#7ee08a", { anim: "arquero", gana: true }); }
     else { snd && snd.gloves(); this.mostrarResolucion(res.mia ? "¡PUÑOS AFUERA!\nLa dividida quedó tuya." : "¡PUÑOS AFUERA!\nLa ganó " + this.nombreRival + "…", "#f6efdc", { anim: "arquero", gana: true }); }
@@ -1293,6 +1374,30 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     snd && snd.kick();
+    /* ANIME B (P1): el tiro se VE — viñeta pateador vs arquero rival, con las
+       siluetas de cuántos tenés en el camino. La verdad ya está decidida. */
+    if (this.hayEscenas()) {
+      const tirador = st.mios[st.ctrl];
+      const arqR = st.rivales.find(jj => jj.pos === "ARQ");
+      const enCamino = this.rivalesEnElCamino(tirador);
+      const gol = res.outcome === "gol";
+      if (gol) P.golMio(st); else P.tiroFallado(st);   // la verdad UNA vez; la escena la cuenta
+      const fb = ej.enZona ? "¡Ejecución justa!" : "la aguja se te escapó…";
+      this.escenaCine({
+        etiqueta: "· el remate ·",
+        prota: { j: tirador, esRival: false, anim: "tiro" },
+        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "parado") } : null,
+        siluetas: enCamino,
+        gana: gol,
+        poseFinalProta: gol ? "festejo" : "tiro",
+        titulo: gol ? (mega ? mega.grito : "¡GOOOL!") : (res.outcome === "atajada" ? "¡LA SACÓ!" : "¡AFUERA!"),
+        sub: gol ? fb : (res.outcome === "atajada" ? "el arquero voló y la manoteó · " + fb : "se fue por centímetros · " + fb),
+        color: gol ? 0xffd84d : (res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e),
+        sfx: gol ? "goal" : (res.outcome === "atajada" ? "gloves" : "afuera"),
+        alFinal: () => { if (gol) this.efectoGol(false); }
+      });
+      return;
+    }
     /* Feel B8: SILENCIO de medio segundo antes de REVELAR el desenlace del tiro */
     this.estado = "RESOLUCION";
     this.limpiarMenu();
@@ -1319,6 +1424,118 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.entrarCine();
     this.planoPie();
   }
+
+  /* ============ ANIME v4 Bloque B · LA CAPA CINEMÁTICA ============
+     Gestor único: recibe tipo de acción, protagonistas y desenlace, y compone
+     la viñeta a pantalla completa con poses ESTÁTICAS de los heroicos (2-4 por
+     escena), efectos y texto. Vive en cineLayer (uiCam, panel de UI): el
+     presupuesto de 3 sprites del mundo no se toca. El hilo avanza POR RELOJ
+     (lección del Hito 1: los tweens son solo movimiento visual). */
+  texturaEscena(j, esRival, anim, frame) {
+    const esArq = j.pos === "ARQ";
+    const base = (esRival ? "h_riv" : "h_mio") + ((j.numero || 1) - 1);
+    if (!this._bakes) this._bakes = new Set();
+    const fresco = !this._bakes.has(base); this._bakes.add(base);
+    window.PampaAvatarArte.heroico(this, base, j.look || window.PampaAvatar.crearLook(),
+      esArq ? (esRival ? "arqRival" : "arqMio") : (esRival ? "rival" : "mio"),
+      j.numero, esArq ? ["parado", "estirada", "atajada", "despeje"] : undefined, fresco);
+    const key = base + "_" + anim + "_" + (frame || 0);
+    return this.textures.exists(key) ? key : base + (esArq ? "_parado_0" : "_correr_1");
+  }
+  /* ¿contra cuántos pateás? — rivales de campo entre vos y el arco (info de la decisión) */
+  rivalesEnElCamino(j) {
+    let n = 0;
+    this.st.rivales.forEach(r => { if (r.pos !== "ARQ" && r.x > j.x && Math.abs(r.y - j.y) < 140) n++; });
+    return n;
+  }
+  /* cfg: { etiqueta, prota:{j,esRival,anim}, rival:{j,esRival,anim}|null, gana,
+            titulo, sub, color?, sfx?, siluetas?, poseFinalProta?, poseFinalRival?, alFinal } */
+  escenaCine(cfg) {
+    const F = this.BAL.escena || {}, feel = this.BAL.feel || {};
+    this.estado = "ESCENA";
+    this.quitarDuelo(); this.limpiarMenu();
+    this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
+    this.cineLayer.setVisible(true);
+    this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
+    this.limpiarContenido();
+    const W = 960, H = 540, g = this.cineBG, rivProta = !!cfg.prota.esRival;
+    g.clear();
+    g.fillStyle(0x081c10, 1); g.fillRect(0, 0, W, H);
+    /* banda diagonal del bando protagonista + pasto al pie (viñeta de manga) */
+    g.fillStyle(rivProta ? 0x2a0b0b : 0x0b1c2a, 1);
+    g.fillTriangle(0, 0, W * 0.66, 0, W * 0.34, H); g.fillTriangle(0, 0, W * 0.34, H, 0, H);
+    g.fillStyle(0x1f7a3c, 1); g.fillRect(0, H * 0.8, W, H * 0.2);
+    g.fillStyle(0x2e7d32, 1); for (let x = 0; x < W; x += 120) g.fillRect(x, H * 0.8, 60, H * 0.2);
+    /* siluetas: CONTRA CUÁNTOS pateás (defensores en el camino; el arquero es el rival del plano) */
+    if (cfg.siluetas != null) {
+      for (let k = 0; k < Math.min(cfg.siluetas, 5); k++) {
+        const sx = W * 0.5 + k * 62, sy = H * 0.4 - k * 24, e = 1 - k * 0.13;
+        g.fillStyle(0x0a1f13, 0.75);
+        g.fillEllipse(sx, sy - 58 * e, 24 * e, 24 * e); g.fillRoundedRect(sx - 15 * e, sy - 46 * e, 30 * e, 60 * e, 8);
+      }
+      const tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
+      this.cineContent.add(tS);
+    }
+    this.cineLabel.setText(cfg.etiqueta || "");
+    /* protagonista y antagonista ENTRAN al plano (tween visual; el hilo va por reloj) */
+    const sp = this.add.sprite(-140, H * 0.58, this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 1)).setScale(F.escala_prota || 3.4);
+    this.cineContent.add(sp);
+    this.tweens.add({ targets: sp, x: W * 0.3, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
+    let sr = null;
+    if (cfg.rival) {
+      sr = this.add.sprite(W + 140, H * 0.62, this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.rival.anim, 0)).setScale(F.escala_rival || 2.9).setFlipX(true);
+      this.cineContent.add(sr);
+      this.tweens.add({ targets: sr, x: W * 0.72, duration: (F.entrada_ms || 420) * 1.15, ease: "Quad.easeOut" });
+    }
+    /* nombres con placa del bando (celeste vs naranja + texto: forma y palabra, no solo color) */
+    const placa = (x, j, esRival) => {
+      const t = this.add.text(x, H * 0.84, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)),
+        { fontFamily: "monospace", fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+      this.cineContent.add(t);
+    };
+    placa(W * 0.3, cfg.prota.j, cfg.prota.esRival);
+    if (cfg.rival) placa(W * 0.72, cfg.rival.j, cfg.rival.esRival);
+    this.lineasVelocidad(W / 2, H * 0.45, 0.9, rivProta ? 0xff8a50 : 0xffd84d);
+    this.uiCam.flash(90, 255, 255, 220);
+    const snd = this.SFX; snd && snd.whoosh && snd.whoosh(F.entrada_ms || 420);
+    /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall) */
+    const tPose = (F.entrada_ms || 420) + (F.pose_ms || 650);
+    const silencio = feel.silencio_ms || 500;
+    this.time.delayedCall(tPose, () => { if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2)); });
+    this.time.delayedCall(tPose + silencio, () => {
+      if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
+      if (sr && sr.active && cfg.rival) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
+      if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * 1.12); this.burst(sp.x, sp.y - 70); }
+      else if (sr) sr.setScale((F.escala_rival || 2.9) * 1.12);
+      this.punch(cfg.titulo, cfg.sub || "", cfg.color != null ? cfg.color : (cfg.gana ? 0xffd84d : 0xe3503e));
+      if (snd) {
+        if (cfg.sfx === "goal") { snd.net(); this.time.delayedCall(90, () => snd.goal()); }
+        else if (cfg.sfx && snd[cfg.sfx]) snd[cfg.sfx]();
+      }
+      this.uiCam.shake(200, cfg.gana ? 0.008 : 0.005);
+    });
+    this.time.delayedCall(tPose + silencio + (F.hold_ms || 1150), () => this.cerrarEscena(cfg.alFinal));
+  }
+  cerrarEscena(alFinal) {
+    this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
+    const ms = this.BAL.cine.corte_ms;
+    let hecho = false;
+    const volver = () => {
+      if (hecho) return; hecho = true;
+      this.limpiarContenido();
+      this.cineLayer.setVisible(false);
+      this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
+      this.uiCam.fadeIn(ms, 0, 0, 0);
+      this.zoomBase();
+      this.estado = "LIBRE";
+      alFinal && alFinal();
+    };
+    this.uiCam.once("camerafadeoutcomplete", volver);
+    this.uiCam.fadeOut(ms, 0, 0, 0);
+    this.time.delayedCall(ms + 140, volver);
+  }
+  /* ¿la capa cinemática está activa? (flag B + el sonido/pulido de la E6 acompañan) */
+  hayEscenas() { return this.FLAGS.v4_escenas && this.FLAGS.e6_cine; }
 
   /* ============ ETAPA 6 · pulido cinematográfico ============ */
   cutInEspecial(titulo, sub, cb, jRet, esRivalRet) {
@@ -1495,6 +1712,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.zoomBase();
         this.estado = "LIBRE";
         this.avisar(texto.split("\n")[0]);
+      } else if (!win && this.hayEscenas()) {
+        /* ANIME B (P3): nunca más "perdiste la pelota" solo en el título —
+           el CORTE es una viñeta: el defensor que se lanzó, en primer plano */
+        const cortJ = cortador || this.st.rivales[this.st.portadorRival];
+        this.escenaCine({
+          etiqueta: "· el corte ·",
+          prota: { j: cortJ, esRival: true, anim: "pase" },   // lanzado a cortarla
+          rival: null,
+          gana: true, color: 0xe3503e, sfx: "gloves",
+          titulo: alVacio ? "¡NO LLEGÓ!" : "¡CORTADO!",
+          sub: alVacio ? "la adelantaste demasiado y la leyeron · pelota rival" : "se lanzó a la línea de pase · pelota rival"
+        });
       } else {
         this.mostrarResolucion(texto, win ? "#7ee08a" : "#e3503e", { anim: "pase", gana: win });
       }
@@ -1722,6 +1951,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
     if (this.estado === "CINE") { this.updateViaje(delta); return; }
+    if (this.estado === "ESCENA") return;   // Anime B: la viñeta corre por reloj propio
     if (this.estado === "TIMING") {
       this.dibujarTiming();
       if (this.keyEnter && Phaser.Input.Keyboard.JustDown(this.keyEnter)) this.pararAguja();

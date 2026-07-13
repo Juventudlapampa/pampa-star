@@ -44,6 +44,15 @@
     "zoom_beat_mult": 3
   },
 
+  "escena": {
+    "_nota": "ANIME v4 Bloque B: LA CAPA CINEMÁTICA (flag v4_escenas). Toda acción significativa corta a una viñeta a pantalla: entrada del protagonista, pose, SILENCIO (feel.silencio_ms) y desenlace. Tiempos en ms; escalas de los sprites heroicos en el panel.",
+    "entrada_ms": 420,
+    "pose_ms": 650,
+    "hold_ms": 1150,
+    "escala_prota": 3.4,
+    "escala_rival": 2.9
+  },
+
   "tempo": {
     "_nota": "ANIME v4 Bloque G: acciones lentas, PARTIDO CORTO. duracion_real_min = cuántos minutos REALES de juego libre dura el partido completo (los saltos de acción lo comprimen más). Si se borra la clave, vuelve el seg_por_minuto de ritmo.",
     "duracion_real_min": 10
