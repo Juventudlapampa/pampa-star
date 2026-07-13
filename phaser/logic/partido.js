@@ -418,6 +418,8 @@
   }
   function resolverPase(st, receptorIdx, pct, rng) {
     rng = rng || Math.random;
+    var o = st.mios[st.ctrl];
+    var dPase = dist(o.x, o.y, st.mios[receptorIdx].x, st.mios[receptorIdx].y);
     gastar(st, "mio", st.bal.aguante.costo_pase);
     saltoReloj(st, rng);
     var win = rng() * 100 < pct;
@@ -426,6 +428,7 @@
       var r = st.mios[receptorIdx];
       st.pelota.x = r.x + 12; st.pelota.y = r.y;
       st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
+      marcarPelotaAlta(st, dPase);                 // Anime F: el pase LARGO llega alto
     } else {
       perderPelota(st, rng);
     }
@@ -454,12 +457,14 @@
     var pct = clamp(pctBase - P.vacio_penal, 10, 92);
     var win = rng() * 100 < pct;
     if (win) {
+      var o = st.mios[st.ctrl];
       var r = st.mios[receptorIdx];
       r.x = clamp(r.x + P.vacio_avance, 20, st.W - 60);   // corre al espacio
       st.ctrl = receptorIdx;
       st.pelota.x = r.x + 12; st.pelota.y = r.y;
       st._vendidoHasta = st._t + P.vacio_ventana_ms;      // el arquero quedó a contrapié
       st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
+      marcarPelotaAlta(st, dist(o.x, o.y, r.x, r.y));     // Anime F: el vacío largo también viene alto
     } else {
       perderPelota(st, rng);
     }
@@ -472,6 +477,48 @@
     j.aguante = clamp(j.aguante + st.bal.aguante.recupera_no_moverse, 0, st.bal.aguante.max);
     st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     return { recupero: st.bal.aguante.recupera_no_moverse };
+  }
+
+  /* ---------- ANIME v4 Bloque F: PELOTA ALTA y tiros situacionales ----------
+     Un pase LARGO ganado llega alto: por una ventana corta se abren las
+     opciones aéreas (cabezazo / volea / chilena — la chilena exige juego
+     aéreo alto y MUCHOS guts). Bajarla la apaga. Todo parametrizado. */
+  function pelotaAltaVigente(st) { return !!(st._altaHasta && st._t < st._altaHasta); }
+  function marcarPelotaAlta(st, distancia) {
+    var P = st.bal.partido;
+    if (distancia >= (P.alto_desde || 240)) st._altaHasta = st._t + (P.alto_ventana_ms || 6000);
+  }
+  function bajarla(st) { st._altaHasta = 0; }
+  function accionesAereas(st) {
+    if (!pelotaAltaVigente(st) || st.posesion !== "mia") return [];
+    var A = st.bal.aguante, P = st.bal.partido, j = st.mios[st.ctrl];
+    var puedeT = puedeTirar(st);
+    var aereo = j.stats.aereo || 45, tiro = j.stats.tiro || 45;
+    var CH = P.chilena || {};
+    var mk = function (id, n, poder, costo, extraBloq, extraMotivo) {
+      var bloq = !puedeT || j.aguante < costo || !!extraBloq;
+      return {
+        id: id, n: n, poder: poder, costo: costo, bloqueada: bloq,
+        motivo: !puedeT ? "LEJOS DEL ARCO" : (extraBloq ? extraMotivo : (j.aguante < costo ? "SIN AGUANTE" : null))
+      };
+    };
+    return [
+      mk("cabezazo", "CABEZAZO", aereo * (P.cabezazo_mult || 0.95), A.costo_cabezazo || 70),
+      mk("volea", "VOLEA", (tiro * 0.6 + aereo * 0.4) * (P.volea_mult || 1.15), A.costo_volea || 90),
+      mk("chilena", "CHILENA", (tiro * 0.5 + aereo * 0.5) * (CH.mult || 1.35), A.costo_chilena || 250,
+        aereo < (CH.aereo_min || 65), "TE FALTA JUEGO AÉREO (" + aereo + "/" + (CH.aereo_min || 65) + ")")
+    ];
+  }
+  function prepararRemateAereo(st, id, rng) {
+    var acc = accionesAereas(st).find(function (a) { return a.id === id; });
+    var P = st.bal.partido;
+    var poder = (acc ? acc.poder : 50) + bonusAguante(st);
+    var vendido = st._vendidoHasta && st._t < st._vendidoHasta;
+    if (vendido) { poder += P.bonus_arquero_vendido; st._vendidoHasta = 0; }
+    gastar(st, "mio", acc ? acc.costo : (st.bal.aguante.costo_cabezazo || 70));
+    st._altaHasta = 0;                          // la pelota bajó, sea cual sea el desenlace
+    saltoReloj(st, rng);
+    return { shotPower: poder, keeperSkill: st.rivalKeeperSkill, tipo: id, arqueroVendido: !!vendido };
   }
 
   /* ---------- tiro / Caldén ---------- */
@@ -565,6 +612,8 @@
     opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,
     cambiarA: cambiarA, cambiarAlMasCercano: cambiarAlMasCercano,
     poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota,
-    mejorMarcador: mejorMarcador, segPorMinuto: segPorMinuto
+    mejorMarcador: mejorMarcador, segPorMinuto: segPorMinuto,
+    pelotaAltaVigente: pelotaAltaVigente, accionesAereas: accionesAereas,
+    prepararRemateAereo: prepararRemateAereo, bajarla: bajarla
   };
 });

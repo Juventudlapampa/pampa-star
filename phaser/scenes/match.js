@@ -42,7 +42,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -1098,6 +1098,75 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.abrirTiming(mega, (ej) => this.dispararSimple(mega, ej));
     }
   }
+  /* ============ ANIME v4 Bloque F · LA DECISIÓN AÉREA ============
+     El pase largo llega ALTO: cabezazo / volea / chilena (o bajarla y jugar).
+     La chilena exige juego aéreo alto y 250 guts — y tiene la escena más
+     espectacular del juego. LA DEFINICIÓN aplica con ventanas más chicas. */
+  abrirMenuAereo() {
+    const st = this.st, P = window.PampaPartido;
+    st.modo = "congelado";
+    const acc = P.accionesAereas(st);
+    const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
+    const cab = A("cabezazo"), vol = A("volea"), chi = A("chilena");
+    const sub = a => a.bloqueada ? null : "~" + Math.round(a.poder) + " de poder · " + a.costo + " guts";
+    this.abrirMenuCruz({
+      titulo: "☁ ¡LA PELOTA VIENE ALTA! ¿Cómo la resolvés? (ventanas más exigentes)",
+      izq: { j: st.mios[st.ctrl], guts: st.mios[st.ctrl].aguante },
+      opciones: {
+        W: { texto: "🎯 CABEZAZO", sub: sub(cab), bloqueada: cab.bloqueada, motivo: cab.motivo, cb: () => this.resolverTiroAereo("cabezazo") },
+        N: { texto: "⚡ VOLEA", sub: sub(vol), bloqueada: vol.bloqueada, motivo: vol.motivo, cb: () => this.resolverTiroAereo("volea") },
+        S: { texto: "🌪 CHILENA", sub: chi.bloqueada ? null : sub(chi) + " · ¡la gloria!", bloqueada: chi.bloqueada, motivo: chi.motivo, cb: () => this.resolverTiroAereo("chilena") },
+        E: { texto: "⬇ BAJARLA", sub: "control y a jugar", cb: () => { P.bajarla(st); this.reanudarLibre(); } }
+      },
+      volver: null
+    });
+  }
+  resolverTiroAereo(id) {
+    const F = this.BAL.feel || {};
+    const zona = id === "chilena" ? (F.barra_zona_chilena || 0.12) : (F.barra_zona_aerea || 0.17);
+    this.abrirTiming(null, (ej) => this.dispararAereo(id, ej), zona);
+  }
+  dispararAereo(id, ej) {
+    const st = this.st, P = window.PampaPartido;
+    const tirador = st.mios[st.ctrl];
+    const enCamino = this.rivalesEnElCamino(tirador);
+    const prep = P.prepararRemateAereo(st, id);
+    const res = window.PampaDuel.resolveShot({
+      shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+    });
+    const snd = this.FLAGS.e6_cine ? this.SFX : null;
+    snd && snd.kick();
+    const gol = res.outcome === "gol";
+    if (gol) P.golMio(st); else P.tiroFallado(st);
+    const NOM = { cabezazo: "CABEZAZO", volea: "VOLEA", chilena: "CHILENA" };
+    const fb = ej.enZona ? "¡Ejecución justa!" : "la aguja se te escapó…";
+    if (this.hayEscenas()) {
+      const arqR = st.rivales.find(jj => jj.pos === "ARQ");
+      this.escenaCine({
+        etiqueta: id === "chilena" ? "· LA CHILENA ·" : "· " + NOM[id].toLowerCase() + " ·",
+        prota: { j: tirador, esRival: false, anim: id === "cabezazo" ? "cabezazo" : "volea" },
+        protaAngle: id === "chilena" ? -115 : 0,       // la vuelta en el aire
+        especial: id === "chilena",
+        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "parado") } : null,
+        siluetas: enCamino,
+        gana: gol,
+        poseFinalProta: gol ? "festejo" : undefined,
+        titulo: gol ? "¡GOOOL DE " + NOM[id] + "!" : (res.outcome === "atajada" ? "¡LA SACÓ!" : "¡AFUERA!"),
+        sub: gol ? (id === "chilena" ? "el momento más épico del potrero · " + fb : fb) : fb,
+        color: gol ? 0xffd84d : (res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e),
+        sfx: gol ? "goal" : (res.outcome === "atajada" ? "gloves" : "afuera"),
+        alFinal: () => {
+          if (gol) this.efectoGol(false);
+          this.relatar(gol ? "gol" : (res.outcome === "atajada" ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
+        }
+      });
+      return;
+    }
+    this.mostrarResolucion((gol ? "¡GOOOL DE " + NOM[id] + "!" : res.outcome === "atajada" ? "¡LA SACÓ EL ARQUERO!" : "¡AFUERA!") + "\n" + fb,
+      gol ? "#ffd84d" : "#e3503e", { anim: id === "cabezazo" ? "cabezazo" : "volea", gana: gol });
+  }
+
   /* ============ FEEL B5 · EL CINE DE 5 PLANOS (reintegrado de 53f0d80) ============
      Pie → VIAJE (la pelota HACIA ADENTRO con perspectiva real) → esfuerzo →
      arquero → desenlace. Vive en cineLayer (pantalla fija, uiCam): es un panel
@@ -1336,16 +1405,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       nivel >= (m.nivel || 1) && j.aguante >= (m.guts || 300) && j.x > (m.x_min || 680));
     return lista.length ? lista[lista.length - 1] : null;
   }
-  /* la BARRA DE TIMING (Feel B5): frenás la aguja en la zona buena — dedo o teclado, jamás mouse obligatorio */
-  abrirTiming(mega, alRematar) {
+  /* la BARRA DE TIMING (Feel B5): frenás la aguja en la zona buena — dedo o teclado, jamás mouse obligatorio.
+     zonaOverride (Anime F): los tiros aéreos usan ventanas más exigentes. */
+  abrirTiming(mega, alRematar, zonaOverride) {
     const F = this.BAL.feel || {};
     this.estado = "TIMING";
     this.limpiarMenu();
     this._timing = {
-      mega, alRematar,
+      mega, alRematar, zonaOverride,
       t0: this.time.now,
       periodo: F.barra_periodo_ms || 900,
-      zona: mega ? (F.barra_zona_mega || 0.13) : (F.barra_zona_normal || 0.24),
+      zona: zonaOverride != null ? zonaOverride : (mega ? (F.barra_zona_mega || 0.13) : (F.barra_zona_normal || 0.24)),
       p: 0, parada: false
     };
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.3).setInteractive();
@@ -1513,9 +1583,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     this.cineLabel.setText(cfg.etiqueta || "");
     /* protagonista y antagonista ENTRAN al plano (tween visual; el hilo va por reloj) */
-    const sp = this.add.sprite(-140, H * 0.58, this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 1)).setScale(F.escala_prota || 3.4);
+    const escProta = (F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1);
+    const sp = this.add.sprite(-140, H * 0.58, this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 1)).setScale(escProta);
+    if (cfg.protaAngle) sp.setAngle(cfg.protaAngle);   // Anime F: la CHILENA da la vuelta en el aire
     this.cineContent.add(sp);
     this.tweens.add({ targets: sp, x: W * 0.3, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
+    if (cfg.especial) {   // la escena más espectacular: doble flash + líneas más gruesas
+      this.lineasVelocidad(W * 0.3, H * 0.5, 1.4, 0xffd84d);
+      this.time.delayedCall((F.entrada_ms || 420) * 0.6, () => this.uiCam.flash(140, 255, 216, 77));
+    }
     let sr = null;
     if (cfg.rival) {
       sr = this.add.sprite(W + 140, H * 0.62, this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.rival.anim, 0)).setScale(F.escala_rival || 2.9).setFlipX(true);
@@ -1543,7 +1619,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.time.delayedCall(tPose + silencio, () => {
       if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
       if (sr && sr.active && cfg.rival) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
-      if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * 1.12); this.burst(sp.x, sp.y - 70); }
+      if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1) * 1.12); this.burst(sp.x, sp.y - 70); }
+      if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
       else if (sr) sr.setScale((F.escala_rival || 2.9) * 1.12);
       this.punch(cfg.titulo, cfg.sub || "", cfg.color != null ? cfg.color : (cfg.gana ? 0xffd84d : 0xe3503e));
       if (snd) {
@@ -1747,7 +1824,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     bola.setPosition(wA.x, wA.y);
     const cerrar = () => {
       linea.destroy();
-      if (win && !peligro) {
+      if (win && this.FLAGS.v4_aereo && this.FLAGS.e3_menus &&
+        window.PampaPartido.pelotaAltaVigente(this.st) && window.PampaPartido.puedeTirar(this.st)) {
+        /* ANIME F: el pase largo LLEGA ALTO cerca del arco — se abre la decisión aérea */
+        this.quitarDuelo();
+        this.abrirMenuAereo();
+      } else if (win && !peligro) {
         /* pase seguro: fluye sin fricción — aviso chico y a jugar */
         this.quitarDuelo();
         this.zoomBase();

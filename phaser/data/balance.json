@@ -68,6 +68,8 @@
     "barra_periodo_ms": 900,
     "barra_zona_normal": 0.24,
     "barra_zona_mega": 0.13,
+    "barra_zona_aerea": 0.17,
+    "barra_zona_chilena": 0.12,
     "mega_x_caliente": 700,
     "mega_prob_caliente": 0.45,
     "comentario": "beat_encuentro_ms: aviso de tensión ANTES de abrir el menú (600-900). beat_mega_ms: cuando viene una megacosa rival, el beat se alarga. beat_zoom_extra: cuánto se acerca la cámara en el beat. resolucion_min_ms: NINGUNA resolución devuelve el control antes de esto. silencio_ms: el silencio previo a revelar un tiro/duelo grande (Bloque 8)."
@@ -98,6 +100,9 @@
     "costo_corte": 60,
     "costo_bloqueo": 70,
     "costo_calden": 300,
+    "costo_cabezazo": 70,
+    "costo_volea": 90,
+    "costo_chilena": 250,
     "recupera_no_moverse": 30,
     "recuperacion_por_segundo": 0.2,
     "recuperacion_por_minuto_salto": 6,
@@ -129,6 +134,11 @@
     "matriz_bonus": 12,
     "cpu_pesos": { "quite": 0.4, "corte": 0.3, "bloqueo": 0.3 },
     "calden": { "x_min": 680, "mult": 1.3 },
+    "alto_desde": 240,
+    "alto_ventana_ms": 6000,
+    "cabezazo_mult": 0.95,
+    "volea_mult": 1.15,
+    "chilena": { "aereo_min": 65, "mult": 1.35 },
     "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: línea que habilita el Caldén (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.)"
   },
 

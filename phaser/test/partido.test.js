@@ -216,5 +216,46 @@ function partidoNuevo(rng) {
   console.log("[11] marcador automático v4: ok");
 })();
 
+/* ---- 12) ANIME v4 F: pelota alta y tiros situacionales ---- */
+(function () {
+  var st = partidoNuevo();
+  /* pase corto: NO viene alta */
+  var rs = P.receptoresPase(st);
+  var cerca = rs.reduce(function (a, b) { return a.d < b.d ? a : b; });
+  P.resolverPase(st, cerca.idx, 100, seq([0.0]));
+  ok(!P.pelotaAltaVigente(st) || cerca.d >= bal.partido.alto_desde, "el pase corto no marca pelota alta");
+  /* pase largo ganado: viene ALTA por una ventana */
+  st = partidoNuevo();
+  var lejos = st.mios.findIndex(function (j, i) { return i !== st.ctrl && j.pos !== "ARQ"; });
+  st.mios[lejos].x = st.mios[st.ctrl].x + bal.partido.alto_desde + 60; st.mios[lejos].y = st.mios[st.ctrl].y;
+  P.resolverPase(st, lejos, 100, seq([0.0]));
+  ok(P.pelotaAltaVigente(st), "el pase largo marca pelota ALTA");
+  /* opciones aéreas: cerca del arco, con stats y guts */
+  var j = st.mios[st.ctrl];
+  j.x = st.W - 120; j.aguante = 1000; j.stats.aereo = 80; j.stats.tiro = 70;
+  var acc = P.accionesAereas(st);
+  ok(acc.length === 3, "3 opciones aéreas");
+  var chi = acc.find(function (a) { return a.id === "chilena"; });
+  var cab = acc.find(function (a) { return a.id === "cabezazo"; });
+  ok(!chi.bloqueada && !cab.bloqueada, "con aereo 80 y guts: chilena y cabezazo habilitados");
+  ok(chi.poder > cab.poder, "la chilena pega más fuerte que el cabezazo");
+  /* chilena exige juego aéreo */
+  j.stats.aereo = 40;
+  var chi2 = P.accionesAereas(st).find(function (a) { return a.id === "chilena"; });
+  ok(chi2.bloqueada && /AÉREO/.test(chi2.motivo || ""), "sin juego aéreo la chilena se bloquea con motivo");
+  j.stats.aereo = 80;
+  /* el remate aéreo consume guts, apaga la pelota alta y da parámetros al duelo */
+  var g0 = j.aguante;
+  var prep = P.prepararRemateAereo(st, "chilena");
+  ok(prep.shotPower > 0 && prep.tipo === "chilena", "prepararRemateAereo entrega el remate");
+  ok(j.aguante === g0 - bal.aguante.costo_chilena, "la chilena costó " + bal.aguante.costo_chilena + " guts");
+  ok(!P.pelotaAltaVigente(st), "tras el remate la pelota bajó");
+  /* la ventana expira sola */
+  st._altaHasta = st._t + 100; st._t += 200;
+  ok(!P.pelotaAltaVigente(st), "la ventana de pelota alta expira");
+  ok(P.accionesAereas(st).length === 0, "sin pelota alta no hay menú aéreo");
+  console.log("[12] pelota alta + tiros situacionales: ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);
