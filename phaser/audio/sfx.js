@@ -9,6 +9,17 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   var ctx = null, master = null, muted = false;
+  /* ANIME v4 Bloque D: el mute se COMPARTE con el botón SONIDO del juego clásico
+     (misma clave pampa_star_audio) — un solo interruptor para todo PAMPA STAR */
+  var PREF_KEY = "pampa_star_audio";
+  try { var _p = JSON.parse(localStorage.getItem(PREF_KEY) || "null"); if (_p && typeof _p === "object") muted = !!_p.muted; } catch (e) { }
+  function persistirMute() {
+    try {
+      var p = JSON.parse(localStorage.getItem(PREF_KEY) || "null") || { vol: 0.6 };
+      p.muted = muted;
+      localStorage.setItem(PREF_KEY, JSON.stringify(p));
+    } catch (e) { }
+  }
 
   function ensure() {
     if (ctx) return ctx;
@@ -48,10 +59,82 @@
     s.start(t0); s.stop(t0 + dur);
   }
 
+  /* ===== ANIME v4 Bloque D · MÚSICA CHIPTUNE EN LOOP (secuenciador propio) =====
+     Dos temas de 16 pasos 100% originales: PROPIA (pausado, mayor, respirado) y
+     RIVAL (tenso, menor, pulso corto). Un timer JS programa notas por delante
+     en el reloj de WebAudio (no se traba con el frame rate). El silencio
+     pre-desenlace se logra con musicaDuck (baja el bus de música y vuelve). */
+  var MUS_VOL = 0.5;
+  var mus = { gain: null, timer: null, tema: null, paso: 0, prox: 0, urgente: false };
+  var TEMAS = {
+    propia: {
+      bpm: 92,
+      bajo: [196, 0, 196, 0, 220, 0, 196, 0, 175, 0, 175, 0, 220, 0, 247, 0],
+      lead: [392, 0, 440, 0, 494, 0, 440, 392, 349, 0, 392, 0, 440, 0, 0, 0]
+    },
+    rival: {
+      bpm: 122,
+      bajo: [110, 110, 0, 110, 104, 104, 0, 104, 98, 98, 0, 98, 104, 104, 117, 0],
+      lead: [0, 330, 0, 311, 0, 330, 0, 0, 0, 294, 0, 311, 0, 330, 349, 0]
+    }
+  };
+  function musEnsure() {
+    if (!ensure()) return null;
+    if (!mus.gain) { mus.gain = ctx.createGain(); mus.gain.gain.value = MUS_VOL; mus.gain.connect(master); }
+    return ctx;
+  }
+  function notaMus(type, f, t0, dur, g) {
+    if (muted || !f) return;
+    var o = ctx.createOscillator(), gn = ctx.createGain();
+    o.type = type; o.frequency.value = f;
+    gn.gain.setValueAtTime(0.0001, t0);
+    gn.gain.exponentialRampToValueAtTime(g, t0 + 0.012);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(gn); gn.connect(mus.gain);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function programar() {
+    if (!mus.tema || !ctx) return;
+    var T = TEMAS[mus.tema]; if (!T) return;
+    var paso = 60 / T.bpm / 2;                        // 16 pasos = 2 compases
+    if (mus.prox < ctx.currentTime) mus.prox = ctx.currentTime + 0.03;   // se quedó atrás (pestaña dormida)
+    while (mus.prox < ctx.currentTime + 0.4) {
+      var i = mus.paso % 16, t0 = mus.prox;
+      notaMus("square", T.bajo[i], t0, paso * 0.9, 0.05);
+      notaMus("triangle", T.lead[i], t0, paso * 1.6, 0.045);
+      if (mus.tema === "rival" && i % 4 === 2) notaMus("square", 1180, t0, 0.03, 0.02);   // púa tensa
+      if (mus.urgente && i % 8 < 2) notaMus("square", 880, t0, 0.05, 0.06);               // tictac del final
+      mus.paso++; mus.prox += paso;
+    }
+  }
+  function musicaTema(nombre) {
+    if (!musEnsure()) return;
+    if (nombre === mus.tema) return;
+    mus.tema = nombre || null;
+    mus.paso = 0; mus.prox = ctx.currentTime + 0.05;
+    if (mus.tema && !mus.timer) mus.timer = setInterval(programar, 120);
+    if (!mus.tema && mus.timer) { clearInterval(mus.timer); mus.timer = null; }
+  }
+  function musicaDuck(ms) {
+    if (!ctx || !mus.gain) return;
+    var t = ctx.currentTime, s = Math.max(0.1, (ms || 500) / 1000);
+    mus.gain.gain.cancelScheduledValues(t);
+    mus.gain.gain.setValueAtTime(0.0001, t);
+    mus.gain.gain.setValueAtTime(0.0001, t + s);
+    mus.gain.gain.linearRampToValueAtTime(muted ? 0.0001 : MUS_VOL, t + s + 0.3);
+  }
+
   var SFX = {
     unlock: unlock,
-    setMuted: function (m) { muted = !!m; },
+    setMuted: function (m) {
+      muted = !!m;
+      if (mus.gain && ctx) { mus.gain.gain.cancelScheduledValues(ctx.currentTime); mus.gain.gain.value = muted ? 0.0001 : MUS_VOL; }
+      persistirMute();
+    },
     isMuted: function () { return muted; },
+    musicaTema: musicaTema,
+    musicaDuck: musicaDuck,
+    musicaUrgente: function (on) { mus.urgente = !!on; },
 
     /* patada seca: click grave + thump */
     kick: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.06, 0.5, 220, 0.7, "lowpass"); tone("triangle", 180, 90, t, 0.09, 0.35); },

@@ -42,7 +42,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -186,7 +186,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
     if (!this._vista4) this.st._noAutoHasta = 9e15;
+
+    /* ANIME D: la música arranca con el partido (tema por posesión, en loop) */
+    this.musica(this.st.posesion === "mia" ? "propia" : "rival");
   }
+  /* helpers de música (flag v4_musica; el mute vive en SFX, compartido con el clásico) */
+  musica(tema) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(tema); }
+  musicaDuck(ms) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaDuck) this.SFX.musicaDuck(ms); }
 
   /* plantel: VOS + amigos de la Capa 3 (save clásico, tolerante) + roster —
      idéntico al partido anterior: los saves existentes cargan igual */
@@ -1247,6 +1253,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const targetY = gy - gh * 0.6 + (this.zona.gy || 0) * C.drift_mult;
     /* Feel B8: SILENCIO antes de revelar (el vacío en el estómago) */
     const silencio = (this.BAL.feel && this.BAL.feel.silencio_ms) || 500;
+    this.musicaDuck(silencio + 300);   // ANIME D: también calla la música del loop
     if (res.outcome === "gol") {
       arq.setPosition(gx + (this.zona.gy < 0 ? 90 : -90), gy - 10);
       this.tweens.add({ targets: ball, x: gx + (this.zona.gy || 0) * 1.2, y: targetY, scale: 1.2, duration: C.impacto_gol_ms, ease: "Quad.easeIn" });
@@ -1402,6 +1409,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "RESOLUCION";
     this.limpiarMenu();
     const silencio = this.FLAGS.e6_cine ? ((this.BAL.feel && this.BAL.feel.silencio_ms) || 500) : 0;
+    if (silencio) this.musicaDuck(silencio);
     this.time.delayedCall(silencio, () => {
       const fb = ej.enZona ? "¡EJECUCIÓN JUSTA!\n" : "la aguja se te escapó…\n";
       if (res.outcome === "gol") { P.golMio(st); this.efectoGol(false); this.mostrarResolucion(fb + (mega ? mega.grito : "¡GOOOL!"), "#ffd84d", { anim: "tiro", gana: true }); }
@@ -1501,7 +1509,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall) */
     const tPose = (F.entrada_ms || 420) + (F.pose_ms || 650);
     const silencio = feel.silencio_ms || 500;
-    this.time.delayedCall(tPose, () => { if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2)); });
+    this.time.delayedCall(tPose, () => {
+      if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2));
+      this.musicaDuck(silencio);   // ANIME D: la música CALLA en el silencio pre-desenlace
+    });
     this.time.delayedCall(tPose + silencio, () => {
       if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
       if (sr && sr.active && cfg.rival) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
@@ -1590,6 +1601,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   finDelPartido() {
     const st = this.st;
     this.estado = "FINAL";     // estado propio: ningún delayedCall de resolución lo puede barrer
+    this.musica(null);         // ANIME D: silencio de vestuario
+    if (this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(false);
     this.SFX && this.SFX.whistle();
     this.quitarDuelo();
     this.limpiarMenu();
@@ -1747,6 +1760,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: this.sprDuelo, x: wM.x + (win ? 26 : 0), y: wM.y + 6, duration: tMedio + 480, ease: "Quad.easeIn" });
     }
     this.tweens.add({ targets: bola, x: wM.x, y: wM.y + 30, duration: tMedio, ease: "Sine.easeIn" });
+    this.time.delayedCall(tMedio, () => this.musicaDuck(silencio));   // ANIME D: suspenso sin música
     /* EL MOMENTO: la pelota llega al cruce… suspenso… y recién ahí se revela */
     this.time.delayedCall(tMedio + silencio, () => {
       if (win) {
@@ -1859,6 +1873,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.txtGuts = this.add.text(948, 512, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtReloj, this.gutsG, this.txtGuts]);
+    /* ANIME D: botón SONIDO de verdad (48px, PC y mobile) — mismo mute que el clásico */
+    const mb = this.add.rectangle(36, 62, 48, 48, 0x0a1f13, 0.72).setStrokeStyle(2, 0xf6efdc, 0.7).setInteractive({ useHandCursor: true });
+    this._muteTxt = this.add.text(36, 62, (this.SFX && this.SFX.isMuted()) ? "🔇" : "🔊", { fontSize: "22px" }).setOrigin(0.5);
+    this.hudLayer.add([mb, this._muteTxt]);
+    mb.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
+      if (!this.SFX) return;
+      this.SFX.setMuted(!this.SFX.isMuted());
+      this._muteTxt.setText(this.SFX.isMuted() ? "🔇" : "🔊");
+    });
   }
   refrescarHUD() {
     const st = this.st;
@@ -1898,6 +1922,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this._urgente = true;
         this.txtReloj.setColor("#c62828");
         this.SFX && this.SFX.temaUrgente && this.SFX.temaUrgente();
+        if (this.FLAGS.v4_musica && this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(true);   // ANIME D: tictac EN el loop
         this.avisar("⏰ ¡ÚLTIMOS MINUTOS!");
       }
       if (this._urgente) this.txtReloj.setText("⏰ " + this.txtReloj.text.replace("⏰ ", ""));
@@ -1920,7 +1945,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.FLAGS.e6_cine) {
       cam.flash(90, 255, 255, 235);
       const lado = p.esRival ? "rival" : "mia";
-      if (lado !== this._ladoTema) { this._ladoTema = lado; this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado); }
+      if (lado !== this._ladoTema) {
+        this._ladoTema = lado;
+        this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado);
+        this.musica(lado === "rival" ? "rival" : "propia");   // ANIME D: el loop cambia con la posesión
+      }
     }
     cam.stopFollow();
     this._panVivo = true;
