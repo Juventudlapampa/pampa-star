@@ -30,6 +30,7 @@
   <script src="logic/tiro.js"></script>
   <script src="logic/avatar.js"></script>
   <script src="logic/partido.js"></script>
+  <script src="logic/relator.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/sprites.js"></script>
   <script src="scenes/avatar_arte.js"></script>
@@ -72,19 +73,20 @@
   const pRoster = fetch("../data/roster_pampeano.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pRetratos = fetch("../data/portraits_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pMega = fetch("../data/megacosas.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  Promise.all([pBal, pRoster, pRetratos, pMega]).then(([bal, roster, retratos, mega])=>{
+  const pRelatos = fetch("../data/relatos.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos]).then(([bal, roster, retratos, mega, relatos])=>{
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;
-    arrancarCon(bal, roster, retratos, mega);
+    arrancarCon(bal, roster, retratos, mega, relatos);
   });
-  function arrancarCon(balance, roster, retratos, mega){
+  function arrancarCon(balance, roster, retratos, mega, relatos){
     const config = {
       type: Phaser.AUTO,
       parent: "game",
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); } },
       scene: [ window.PampaEditor, window.PampaMatch ]   // arranca en el editor de pinta → ¡A LA CANCHA!
     };
     window.PAMPA_GAME = new Phaser.Game(config);

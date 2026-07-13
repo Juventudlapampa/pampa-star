@@ -42,7 +42,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -189,6 +189,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* ANIME D: la música arranca con el partido (tema por posesión, en loop) */
     this.musica(this.st.posesion === "mia" ? "propia" : "rival");
+
+    /* ANIME E: EL RELATOR — el partido se cuenta solo (data/relatos.json → relator) */
+    this.REL = (this.FLAGS.v4_relator && window.PampaRelator)
+      ? window.PampaRelator.crear(this.game.registry.get("relatos") || {}, {})
+      : null;
+    this.relatar("saque", { rival: this.nombreRival });
+  }
+  /* el ticker del relator: una frase por vez, abajo, sin tapar el juego */
+  relatar(situacion, ctx) {
+    if (!this.REL) return;
+    const c = Object.assign({ rival: this.nombreRival, pueblo: this._puebloMio || "La Pampa" }, ctx || {});
+    if (!c.jugador) { const j = this.st && this.st.mios[this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "el pibe"; }
+    const f = this.REL.frase(situacion, c);
+    if (!f || !this.tickerTxt) return;
+    this.tweens.killTweensOf(this.tickerTxt);
+    this.tickerTxt.setText("🎙 " + f).setAlpha(1);
+    this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: 2800, duration: 500 });
   }
   /* helpers de música (flag v4_musica; el mute vive en SFX, compartido con el clásico) */
   musica(tema) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(tema); }
@@ -216,6 +233,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const vosIdx = atas[1] != null ? atas[1] : atas[0];
     usados.add(vosIdx);
     mios[vosIdx] = { nombre: (career && career.name) ? String(career.name).slice(0, 10) : "VOS", pos: "ATA", stats: career && career.stats, esVos: true };
+    /* Anime E: tu pueblo (del origen de la carrera) para el grito de gol del relator */
+    this._puebloMio = (career && career.origen && career.origen.localidad) ? String(career.origen.localidad).toUpperCase().slice(0, 16) : "LA PAMPA";
     let pool = (roster && roster.jugadores) ? roster.jugadores.slice() : [];
     slots.forEach((s, i) => {
       if (mios[i].nombre) return;
@@ -695,6 +714,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this._dueloBase && !this._dueloEsArq) this.reproducirAnim(this.sprDuelo, this._dueloBase, "correr", durBeat * 0.8);
     }
     if (megaViene) {
+      this.relatar("peligro");   // Anime E: el relator también lo huele
       const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.menuLayer.add(aviso);
       this.selloMenu();
@@ -936,7 +956,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
           rival: { j: rivalJ, esRival: true, anim: "pase" },   // el rival queda barrido atrás
           gana: true, sfx: "whoosh",
-          titulo: "¡LO DEJASTE PAGANDO!", sub: r.matriz === "zafaste" ? "le erraron a la marca y seguís de largo" : "puro coraje: seguís de largo"
+          titulo: "¡LO DEJASTE PAGANDO!", sub: r.matriz === "zafaste" ? "le erraron a la marca y seguís de largo" : "puro coraje: seguís de largo",
+          alFinal: () => this.relatar("gambeta_win")
         });
         return;
       }
@@ -959,7 +980,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
           gana: true, color: 0xe3503e, sfx: "gloves",
           titulo: r.matriz === "leyeron" ? "¡TE LEYERON!" : "TE LA SACARON",
-          sub: r.matriz === "leyeron" ? "el quite estaba preparado · pelota rival" : "se plantó justo · pelota rival"
+          sub: r.matriz === "leyeron" ? "el quite estaba preparado · pelota rival" : "se plantó justo · pelota rival",
+          alFinal: () => this.relatar("gambeta_lose")
         });
         return;
       }
@@ -1020,21 +1042,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         rival: arq ? { j: arq, esRival: false, anim: "estirada" } : null,
         gana: true, color: 0xe3503e, sfx: "golEnContra",
         titulo: "GOL DE " + this.nombreRival, sub: "se estiró y no llegó… sacás del medio",
-        alFinal: () => this.efectoGol(true)
+        alFinal: () => { this.efectoGol(true); this.relatar("gol_rival"); }
       });
       else if (res.retiene) this.escenaCine({
         etiqueta: "· tu arquero ·",
         prota: { j: arq, esRival: false, anim: "atajada" },
         rival: { j: tiradorR, esRival: true, anim: "tiro" },
         gana: true, sfx: "gloves",
-        titulo: grito || "¡LA RETUVO!", sub: "tu arquero se quedó con la pelota · salís jugando"
+        titulo: grito || "¡LA RETUVO!", sub: "tu arquero se quedó con la pelota · salís jugando",
+        alFinal: () => this.relatar("arquero_mio")
       });
       else this.escenaCine({
         etiqueta: "· tu arquero ·",
         prota: { j: arq, esRival: false, anim: "despeje" },
         rival: { j: tiradorR, esRival: true, anim: "tiro" },
         gana: true, color: 0xf6efdc, sfx: "gloves",
-        titulo: "¡PUÑOS AFUERA!", sub: res.mia ? "la dividida quedó tuya" : "la ganó " + this.nombreRival + "…"
+        titulo: "¡PUÑOS AFUERA!", sub: res.mia ? "la dividida quedó tuya" : "la ganó " + this.nombreRival + "…",
+        alFinal: () => this.relatar("arquero_mio")
       });
       return;
     }
@@ -1401,7 +1425,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         sub: gol ? fb : (res.outcome === "atajada" ? "el arquero voló y la manoteó · " + fb : "se fue por centímetros · " + fb),
         color: gol ? 0xffd84d : (res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e),
         sfx: gol ? "goal" : (res.outcome === "atajada" ? "gloves" : "afuera"),
-        alFinal: () => { if (gol) this.efectoGol(false); }
+        alFinal: () => {
+          if (gol) this.efectoGol(false);
+          this.relatar(gol ? "gol" : (res.outcome === "atajada" ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
+        }
       });
       return;
     }
@@ -1604,6 +1631,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.musica(null);         // ANIME D: silencio de vestuario
     if (this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(false);
     this.SFX && this.SFX.whistle();
+    this.relatar("final");
     this.quitarDuelo();
     this.limpiarMenu();
     const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5);
@@ -1735,7 +1763,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           rival: null,
           gana: true, color: 0xe3503e, sfx: "gloves",
           titulo: alVacio ? "¡NO LLEGÓ!" : "¡CORTADO!",
-          sub: alVacio ? "la adelantaste demasiado y la leyeron · pelota rival" : "se lanzó a la línea de pase · pelota rival"
+          sub: alVacio ? "la adelantaste demasiado y la leyeron · pelota rival" : "se lanzó a la línea de pase · pelota rival",
+          alFinal: () => this.relatar("corte")
         });
       } else {
         this.mostrarResolucion(texto, win ? "#7ee08a" : "#e3503e", { anim: "pase", gana: win });
@@ -1873,6 +1902,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.txtGuts = this.add.text(948, 512, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtReloj, this.gutsG, this.txtGuts]);
+    /* ANIME E: el ticker del RELATOR (una línea abajo, no tapa el juego) */
+    this.tickerTxt = this.add.text(480, 520, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0);
+    this.hudLayer.add(this.tickerTxt);
     /* ANIME D: botón SONIDO de verdad (48px, PC y mobile) — mismo mute que el clásico */
     const mb = this.add.rectangle(36, 62, 48, 48, 0x0a1f13, 0.72).setStrokeStyle(2, 0xf6efdc, 0.7).setInteractive({ useHandCursor: true });
     this._muteTxt = this.add.text(36, 62, (this.SFX && this.SFX.isMuted()) ? "🔇" : "🔊", { fontSize: "22px" }).setOrigin(0.5);
@@ -1924,6 +1956,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.SFX && this.SFX.temaUrgente && this.SFX.temaUrgente();
         if (this.FLAGS.v4_musica && this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(true);   // ANIME D: tictac EN el loop
         this.avisar("⏰ ¡ÚLTIMOS MINUTOS!");
+        this.relatar("urgente");
       }
       if (this._urgente) this.txtReloj.setText("⏰ " + this.txtReloj.text.replace("⏰ ", ""));
     }
@@ -2045,7 +2078,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         }
         else { const res = P.resolverAtajada(st, Math.random() < 0.5 ? "atajar" : "despejar"); aviso = res.golRival ? "GOL DE " + this.nombreRival : "¡La sacó tu arquero!"; }
       }
-      else if (ev.tipo === "entretiempo") { P.entretiempo(st); this.transicionEntretiempo(); aviso = "ENTRETIEMPO — saca " + this.nombreRival; }
+      else if (ev.tipo === "entretiempo") { P.entretiempo(st); this.transicionEntretiempo(); this.relatar("entretiempo"); aviso = "ENTRETIEMPO — saca " + this.nombreRival; }
       else if (ev.tipo === "final") this.finDelPartido();
     }
 
