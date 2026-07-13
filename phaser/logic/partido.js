@@ -115,6 +115,32 @@
     return mejor;
   }
 
+  /* ANIME v4 Bloque G: jugadores lentos, PARTIDO CORTO. Si balance trae
+     tempo.duracion_real_min, el reloj corre para que 90' quepan en esos
+     minutos REALES de juego libre (los saltos de acción lo acortan más).
+     Sin tempo, cae al seg_por_minuto clásico. */
+  function segPorMinuto(bal) {
+    if (bal.tempo && bal.tempo.duracion_real_min > 0) return (bal.tempo.duracion_real_min * 60) / 90;
+    return bal.ritmo.seg_por_minuto;
+  }
+
+  /* ANIME v4 Bloque A: el mejor MARCADOR es el más cercano a la pelota con
+     preferencia por el que está ENTRE la pelota y tu arco (x=0). */
+  function scoreMarcador(st, i) {
+    var j = st.mios[i];
+    if (!j || j.pos === "ARQ") return 1e9;
+    var d = dist(j.x, j.y, st.pelota.x, st.pelota.y);
+    return j.x < st.pelota.x ? d * 0.72 : d;   // bien parado (entre pelota y arco) pesa menos
+  }
+  function mejorMarcador(st) {
+    var mejor = -1, ms = 1e9;
+    st.mios.forEach(function (j, i) {
+      var s = scoreMarcador(st, i);
+      if (s < ms) { ms = s; mejor = i; }
+    });
+    return mejor;
+  }
+
   /* ---------- el TICK del modo juego ---------- */
   function tick(st, dtMs, input) {
     if (st.modo !== "juego") return [];
@@ -123,7 +149,7 @@
     if (st.cooldown > 0) st.cooldown = Math.max(0, st.cooldown - dtMs);
 
     /* reloj: corre en tiempo real solo acá (menús y cine lo congelan) */
-    st.minuto += dt / R.seg_por_minuto;
+    st.minuto += dt / segPorMinuto(bal);
     var limite = (st.tiempo === 1 ? 45 + st.desc1 : 90 + st.desc2);
     if (st.minuto >= limite) { ev.push({ tipo: st.tiempo === 1 ? "entretiempo" : "final" }); st.modo = "congelado"; return ev; }
 
@@ -197,6 +223,13 @@
       /* la CPU ataca: su portador avanza hacia TU arco (x → 0).
          RITMO: recién recibida, la PISA un momento (arranque_rival_ms) — tu ventana de reacción. */
       var pr = st.rivales[st.portadorRival];
+      /* ANIME A: cambio de marcador AUTOMÁTICO (con histéresis para no titilar).
+         No pisa al jugador mientras conduce (input) ni justo tras un cambio manual. */
+      if ((!bal.vista || bal.vista.cambio_auto !== false) && (!input || (!input.dx && !input.dy)) && st._t > (st._noAutoHasta || 0)) {
+        var cand = mejorMarcador(st);
+        if (cand >= 0 && cand !== st.ctrl &&
+          (st.mios[st.ctrl].pos === "ARQ" || scoreMarcador(st, cand) < scoreMarcador(st, st.ctrl) * 0.7)) st.ctrl = cand;
+      }
       if (st.esperaRival > 0) { st.esperaRival = Math.max(0, st.esperaRival - dtMs); }
       else {
         pr.x = clamp(pr.x - V.rival_con_pelota * dt, 20, st.W - 20);
@@ -511,12 +544,13 @@
   }
 
   /* ---------- cambio de jugador (defensa) ---------- */
+  /* el cambio MANUAL frena el automático un rato (Anime A: la elección tuya vale) */
   function cambiarA(st, idx) {
     if (st.posesion !== "rival") return false;
     if (idx < 0 || idx >= st.mios.length || st.mios[idx].pos === "ARQ") return false;
-    st.ctrl = idx; return true;
+    st.ctrl = idx; st._noAutoHasta = st._t + 2500; return true;
   }
-  function cambiarAlMasCercano(st) { if (st.posesion === "rival") st.ctrl = masCercanoAPelota(st); }
+  function cambiarAlMasCercano(st) { if (st.posesion === "rival") { st.ctrl = masCercanoAPelota(st); st._noAutoHasta = st._t + 2500; } }
 
   return {
     crearPartido: crearPartido, tick: tick, kickoff: kickoff,
@@ -530,6 +564,7 @@
     golMio: golMio, tiroFallado: tiroFallado,
     opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,
     cambiarA: cambiarA, cambiarAlMasCercano: cambiarAlMasCercano,
-    poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota
+    poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota,
+    mejorMarcador: mejorMarcador, segPorMinuto: segPorMinuto
   };
 });

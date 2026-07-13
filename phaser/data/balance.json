@@ -32,6 +32,23 @@
     "_zoom": "al congelar un encuentro la cámara se ACERCA suave al cruce (lectura con calma, se ve a los de alrededor); al resolver vuelve igual de suave."
   },
 
+  "vista": {
+    "_nota": "ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA. La cámara sube hasta ver la cancha (cobertura = fracción del alto del mundo visible; 1.0 = cancha entera). Los 22 se ven como fichas simples; el radar desaparece y el pase se toca sobre la cancha. cambio_auto: marcador automático en defensa (histéresis en la lógica).",
+    "cobertura": 0.85,
+    "lerp": 0.08,
+    "deadzone_w": 60,
+    "deadzone_h": 40,
+    "cambio_auto": true,
+    "escala_portador": 0.6,
+    "escala_ficha": 1.3,
+    "zoom_beat_mult": 3
+  },
+
+  "tempo": {
+    "_nota": "ANIME v4 Bloque G: acciones lentas, PARTIDO CORTO. duracion_real_min = cuántos minutos REALES de juego libre dura el partido completo (los saltos de acción lo comprimen más). Si se borra la clave, vuelve el seg_por_minuto de ritmo.",
+    "duracion_real_min": 10
+  },
+
   "feel": {
     "_nota": "FEEL v3 (docs/DISENO_FEEL_TSUBASA_V3.md): timing del drama. Cada jugada clave se ANUNCIA (beat), se decide, se ejecuta y se resuelve con teatro — si dura menos de 3s entre anuncio y resolución, está mal.",
     "beat_encuentro_ms": 750,

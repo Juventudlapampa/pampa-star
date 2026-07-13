@@ -42,7 +42,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true }, this.BAL.flags || {});
+    /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
+       La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
+    this._vista4 = !!this.FLAGS.v4_vista;
+    this.VI = this.BAL.vista || {};
     this.estado = "LIBRE";               // LIBRE_CORRIENDO | MENU (pausa) | PASE (apuntando) | RESOLUCION (doc §9)
     /* ETAPA 1 — constantes de cámara y mundo (números del doc §2; se afinan
        por criterio del doc: chico→más zoom, encajonado→más deadzone,
@@ -65,6 +69,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._megaRival = null;
     this._timing = null;
     this._hudMarc = this._hudReloj = this._hudGuts = null;   // caches del HUD: el restart los recrea vacíos
+    this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
+    this.ringG = this.paseG = null; this._btnCambiar = null;
   }
 
   create() {
@@ -101,18 +107,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     this.buildCancha();
     this.buildPortador();
+    this.buildFichas();
 
-    /* --- LA CÁMARA CINEMATOGRÁFICA (doc §2, literal) --- */
+    /* --- LA CÁMARA (Anime v4 §0: ELEVADA para navegar; la épica vive en las escenas) ---
+       v4_vista ON: zoom que muestra la cancha (cobertura afinable) + scroll suave mínimo.
+       OFF: la cámara cinematográfica v2 exacta (zoom 2.2 pegada al portador). */
+    this._zoomBase = this._vista4
+      ? Math.max(960 / this.V2.MUNDO_W, 540 / this.V2.MUNDO_H) / (this.VI.cobertura || 0.85)
+      : this.V2.ZOOM;
     const cam = this.cameras.main;
     cam.setBackgroundColor("#06120b");
     cam.setBounds(0, 0, this.V2.MUNDO_W, this.V2.MUNDO_H);
-    cam.startFollow(this.sprPortador, true, this.V2.LERP, this.V2.LERP);
-    cam.setDeadzone(this.V2.DEADZONE_W, this.V2.DEADZONE_H);
-    cam.setZoom(this.V2.ZOOM);
+    const lerp = this._vista4 ? (this.VI.lerp || 0.08) : this.V2.LERP;
+    cam.startFollow(this.sprPortador, true, lerp, lerp);
+    cam.setDeadzone(this._vista4 ? (this.VI.deadzone_w || 60) : this.V2.DEADZONE_W, this._vista4 ? (this.VI.deadzone_h || 40) : this.V2.DEADZONE_H);
+    cam.setZoom(this._zoomBase);
     cam.roundPixels = true;       // scroll sin temblor (equivale al roundPixels del config, sin tocar index.html)
 
-    /* --- ETAPA 2: RADAR + HUD en cámara fija (doc §3/§4) --- */
-    this.buildRadar();
+    /* --- ETAPA 2: RADAR + HUD en cámara fija (doc §3/§4) ---
+       Anime A: con la cancha entera visible el radar SOBRA — no se construye
+       (el pase dirigido se toca directo sobre la cancha) */
+    if (!this._vista4) this.buildRadar(); else this.radar = null;
     this.buildHUD();
     this.buildBotonAccion();
     this.buildCineBase();
@@ -125,7 +140,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            El tap de ¡A LA CANCHA! llega con el puntero todavía apretado desde el
            editor: no cuenta hasta el primer toque propio de esta escena. --- */
     this._punteroListo = false;
-    this.input.on("pointerdown", (p) => { this._punteroListo = true; this.apuntar(p); });
+    this.input.on("pointerdown", (p) => {
+      this._punteroListo = true;
+      /* Anime A: sin radar, el PASE se toca DIRECTO sobre la cancha */
+      if (this._vista4 && this.estado === "PASE") { this.onCanchaTapPase(p); return; }
+      this.apuntar(p);
+    });
     this.input.on("pointermove", (p) => { if (p.isDown && this._punteroListo) this.apuntar(p); });
     if (this.input.keyboard) {
       this.cursors = this.input.keyboard.createCursorKeys();
@@ -141,19 +161,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (this.estado === "PASE" && this._paseCancelar) this._paseCancelar();
         else if (this.estado === "MENU" && this._menuVolver) this._menuVolver();
       });
+      /* Anime A: ESPACIO es SOLO acción — el ciclado manual (que casi no hace falta
+         con el cambio automático) vive en TAB */
+      this.input.keyboard.on("keydown-TAB", (ev) => {
+        ev.preventDefault && ev.preventDefault();
+        if (this.estado !== "LIBRE" || this.st.posesion !== "rival") return;
+        window.PampaPartido.cambiarAlMasCercano(this.st);
+        this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase());
+      });
     }
 
-    /* guía breve pegada al portador */
+    /* guía breve pegada al portador (los textos del MUNDO escalan con la vista elevada) */
+    this._fsMundo = this._vista4 ? Math.round(this.V2.ZOOM / this._zoomBase * 10) / 10 : 1;
     const j = this.portadorActual().j;
     const wj = this.aRender(j.x, j.y);
     const hint = this.add.text(wj.x, wj.y + 70, "tocá la cancha (o flechas) para correr",
-      { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
+      { fontFamily: "monospace", fontSize: Math.round(11 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
     this.mundoLayer.add(hint);
     this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
     this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
 
     /* Feel B3: tutorial de 3 pasos la primera vez (flag en el save) */
     this.tutorialSiHaceFalta();
+
+    /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
+    if (!this._vista4) this.st._noAutoHasta = 9e15;
   }
 
   /* plantel: VOS + amigos de la Capa 3 (save clásico, tolerante) + roster —
@@ -320,7 +352,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const fresco = !this._bakes.has(base); this._bakes.add(base);
       Arte.heroico(this, base, p.j.look, esArq ? (p.esRival ? "arqRival" : "arqMio") : (p.esRival ? "rival" : "mio"),
         p.j.numero, esArq ? ["parado", "estirada", "atajada", "despeje"] : undefined, fresco);
-      this._esHeroico = true; this._escalaBase = this.V2.ESCALA_HEROICO;
+      this._esHeroico = true; this._escalaBase = this.escalaHeroico();
       this._animIdle = esArq ? "_parado_" : "_correr_";
       return base;
     }
@@ -332,6 +364,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   /* escala por profundidad (E4): más lejos (arriba) = más chico */
   escalaEn(jy) { return this.FLAGS.e4_arte ? (0.82 + 0.36 * (jy / this.st.H)) : 1; }
+  /* Anime A: en la vista elevada el portador es apenas mayor que las fichas (la épica va a las escenas) */
+  escalaHeroico() { return this.V2.ESCALA_HEROICO * (this._vista4 ? (this.VI.escala_portador || 0.6) : 1); }
   /* sim → mundo de RENDER: con la cancha en perspectiva (E4) el rectángulo de la
      simulación se remapea AL TRAPECIO dibujado (nadie pisa el cielo ni las cuñas) */
   aRender(jx, jy) {
@@ -353,12 +387,107 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       .setScale(this._escalaBase).setDepth(10);
     this.textures.get("ball").setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.sprPelota = this.add.sprite(0, 0, "ball").setScale(1.6).setDepth(11);
-    /* marca de control clara: ▼ + nombre (forma + etiqueta, no solo color) */
-    this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: "monospace", fontSize: "11px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 4 })
+    /* marca de control clara: ▼ + nombre (forma + etiqueta, no solo color).
+       En la vista elevada el texto del mundo se agranda para leerse igual. */
+    const fsM = this._vista4 ? 22 : 11;
+    this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: "monospace", fontSize: fsM + "px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: this._vista4 ? 6 : 4 })
       .setOrigin(0.5).setDepth(12);
     this.trailG = this.add.graphics().setDepth(8);   // estelas de velocidad (E4)
     this._trail = [];
     this.mundoLayer.add([this.trailG, this.sprPortador, this.sprPelota, this.marker]);
+  }
+
+  /* ============ ANIME v4 Bloque A · LAS 22 FICHAS ============
+     Con la vista elevada, TODOS los jugadores se ven a la vez como sprites
+     simples de alta legibilidad (los toscos de la E1: liso vs RAYAS por diseño,
+     no solo color). El portador sigue siendo el heroico, apenas más grande.
+     Número visible AL PAUSAR (fuera de LIBRE aparecen los dorsales). */
+  buildFichas() {
+    if (!this._vista4) { this.fichasMios = this.fichasRiv = null; return; }
+    const Arte = window.PampaAvatarArte;
+    const mk = (j, esRival, i) => {
+      const base = (esRival ? "f_riv" : "f_mio") + i;
+      Arte.jugador(this, base, j.look || window.PampaAvatar.crearLook(), esRival);
+      ["_idle", "_run"].forEach(s => this.textures.get(base + s).setFilter(Phaser.Textures.FilterMode.NEAREST));
+      const spr = this.add.sprite(0, 0, base + "_idle");
+      const num = this.add.text(0, 0, String(j.numero), { fontFamily: "monospace", fontSize: "20px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 5, fontStyle: "bold" }).setOrigin(0.5).setVisible(false).setDepth(9);
+      this.mundoLayer.add([spr, num]);
+      if (this.uiCam) { this.uiCam.ignore(spr); this.uiCam.ignore(num); }   // se crean antes de uiCam: el create re-sella
+      return { spr, num, lx: j.x, ly: j.y, base };
+    };
+    this.fichasMios = this.st.mios.map((j, i) => mk(j, false, i));
+    this.fichasRiv = this.st.rivales.map((j, i) => mk(j, true, i));
+    this.ringG = this.add.graphics().setDepth(8.5);   // anillo blanco en tu MARCADOR (forma, no solo color)
+    this.paseG = this.add.graphics().setDepth(8.6);   // receptores del pase, dibujados SOBRE la cancha
+    this.mundoLayer.add([this.ringG, this.paseG]);
+  }
+  updateFichas(mostrarNums) {
+    if (!this._vista4 || !this.fichasMios) return;
+    const st = this.st, p = this.portadorActual();
+    const paso = Math.floor(this.time.now / 240) % 2;
+    const escF = this.VI.escala_ficha || 1.3;
+    const upd = (arr, js, esRival) => js.forEach((j, i) => {
+      const F = arr[i]; if (!F) return;
+      const esPortador = (esRival === p.esRival) && i === p.idx;
+      F.spr.setVisible(!esPortador);
+      F.num.setVisible(!esPortador && !!mostrarNums);
+      if (esPortador) return;
+      const w = this.aRender(j.x, j.y);
+      const movio = Math.hypot(j.x - F.lx, j.y - F.ly) > 0.6; F.lx = j.x; F.ly = j.y;
+      const e = escF * this.escalaEn(j.y);
+      F.spr.setPosition(w.x, w.y).setScale(e).setDepth(4 + 4 * (j.y / st.H))
+        .setTexture(F.base + (movio && paso ? "_run" : "_idle"));
+      F.num.setPosition(w.x, w.y - 34 * e);
+    });
+    upd(this.fichasMios, st.mios, false);
+    upd(this.fichasRiv, st.rivales, true);
+    /* los containers de Phaser dibujan por ORDEN DE ALTA: el depth de los hijos
+       recién manda si se ordena — así el de abajo (más cerca) tapa al de arriba */
+    this.mundoLayer.sort("depth");
+    /* en defensa, TU marcador lleva anillo blanco + etiqueta ▼ del portador rival aparte */
+    const g = this.ringG; g.clear();
+    if (st.posesion === "rival" && st.ctrl >= 0) {
+      const c = st.mios[st.ctrl], w = this.aRender(c.x, c.y);
+      g.lineStyle(4, 0xffffff, 0.95); g.strokeCircle(w.x, w.y + 14, 26);
+      g.lineStyle(2, 0x0a1f13, 0.8); g.strokeCircle(w.x, w.y + 14, 29);
+    }
+  }
+  /* pantalla→simulación: la INVERSA de aRender (para tocar el pase sobre la cancha) */
+  aSim(wx, wy) {
+    if (!this.FLAGS.e4_arte || !this._persp) return { x: wx / this.SX, y: wy / this.SY };
+    const P = this._persp;
+    const t = Phaser.Math.Clamp((wy - P.yTop - 16) / (P.yBot - P.yTop - 30), 0, 1);
+    const xi = P.insTop + (P.insBot - P.insTop) * t;
+    const jx = Phaser.Math.Clamp((wx - xi - 16) / (this.V2.MUNDO_W - 2 * xi - 32), 0, 1) * this.st.W;
+    return { x: jx, y: t * this.st.H };
+  }
+  /* PASE DIRIGIBLE sobre la cancha (Anime A): mismo criterio que el radar de la v2 —
+     receptor más cercano al toque; MÁS ALLÁ de él (hacia el arco) = AL VACÍO */
+  onCanchaTapPase(pointer) {
+    if (this.time.now - (this._uiTocado || 0) < 80) return;
+    const st = this.st;
+    const wp = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const w = this.aSim(wp.x, wp.y);
+    let mejor = null, md = 1e9;
+    (this._receptores || []).forEach(r => {
+      const j = st.mios[r.idx], d = Math.hypot(j.x - w.x, j.y - w.y);
+      if (d < md) { md = d; mejor = r; }
+    });
+    if (!mejor) return;
+    const alVacio = mejor.adelante && w.x > st.mios[mejor.idx].x + 40;
+    this.confirmarPase(mejor, alVacio);
+  }
+  /* receptores marcados SOBRE la cancha: CUADRADO amarillo (grueso = elegido con teclado) */
+  dibujarPaseCancha() {
+    if (!this.paseG) return;
+    const g = this.paseG; g.clear();
+    if (this.estado !== "PASE" || !this._receptores) return;
+    this._receptores.forEach((r, k) => {
+      const j = this.st.mios[r.idx], w = this.aRender(j.x, j.y);
+      g.lineStyle(k === this._recSel ? 6 : 3, 0xffd84d, 1);
+      g.strokeRect(w.x - 34, w.y - 34, 68, 68);
+      if (r.adelante) { g.lineStyle(3, 0xffffff, 0.9); g.strokeTriangle(w.x + 44, w.y - 8, w.x + 44, w.y + 8, w.x + 56, w.y); }   // ▶ = puede ir al vacío
+    });
   }
 
   /* ============ ETAPA 2 · RADAR (doc §3): la ÚNICA vista de la cancha entera ============
@@ -458,6 +587,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.hudLayer.add(this._hintEspacio);
     }
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
+    /* Anime A: botón secundario CHICO de ciclado manual en defensa (48px, mobile) */
+    if (this._vista4) {
+      const bc = this.add.rectangle(866, 396, 92, 48, 0xdcd6c2, 0.92).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bct = this.add.text(866, 396, "⇄ OTRO", { fontFamily: "monospace", fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
+      this.hudLayer.add([bc, bct]);
+      this._btnCambiar = [bc, bct];
+      bc.on("pointerdown", (p, x, y, ev) => {
+        ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
+        if (this.estado !== "LIBRE" || this.st.posesion !== "rival") return;
+        window.PampaPartido.cambiarAlMasCercano(this.st);
+        this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase());
+      });
+    }
   }
   /* Feel B3: la PRIMERA vez que se juega, tres pasos superpuestos al juego real */
   tutorialSiHaceFalta() {
@@ -471,9 +613,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const PASOS = [
       "1/3 · Movés con el DEDO sobre la cancha\n(o con las flechas / WASD)",
       "2/3 · ⚡ ACCIÓN abre el menú de jugadas\n(en teclado: ESPACIO)",
-      "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda"
+      this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda"
     ];
-    const ANILLOS = [null, { x: 866, y: 456, w: 210, h: 90 }, { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 }];
+    const ANILLOS = [null, { x: 866, y: 456, w: 210, h: 90 },
+      this._vista4 ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 }];
     this.estado = "TUTORIAL";
     this.st.modo = "congelado";
     let paso = 0;
@@ -523,7 +666,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.FLAGS.e3_menus || this.estado !== "LIBRE") return;
     if (this._hintEspacio) { this._hintEspacio.destroy(); this._hintEspacio = null; }   // ayuda de primera vez: cumplió
     if (st.posesion === "mia") { st.modo = "congelado"; this.abrirMenuAtaque(null, true); }
-    else { P.cambiarAlMasCercano(st); this.avisar("Marcás con " + st.mios[st.ctrl].nombre.toUpperCase()); }   // defensor más cercano (doc §7)
+    /* Anime A: ESPACIO/⚡ es SOLO acción — en defensa el cambio es automático (TAB/⇄ = manual) */
+    else if (!this._vista4) { P.cambiarAlMasCercano(st); this.avisar("Marcás con " + st.mios[st.ctrl].nombre.toUpperCase()); }   // defensor más cercano (doc §7, cámara v2)
   }
   limpiarMenu() { this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
   /* FEEL B1 · EL BEAT DE TENSIÓN: el cruce se anuncia 600-900ms ANTES del menú —
@@ -551,7 +695,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: aviso, scale: 1.12, duration: 300, yoyo: true, repeat: 3 });
     }
     const cam = this.cameras.main;
-    cam.zoomTo(this.V2.ZOOM * (1 + (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1)), durBeat, "Sine.easeInOut");
+    /* en la vista elevada el beat se ACERCA más (si no, el zoom no se siente) */
+    const extraBeat = (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1) * (this._vista4 ? (this.VI.zoom_beat_mult || 3) : 1);
+    cam.zoomTo(this._zoomBase * (1 + extraBeat), durBeat, "Sine.easeInOut");
     if (this.FLAGS.e6_cine) {
       if (megaViene) this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(durBeat / 1000);
       else this.SFX && this.SFX.riser && this.SFX.riser(durBeat / 1000);
@@ -559,7 +705,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.time.delayedCall(durBeat, () => { if (this.estado === "BEAT") abrir(); });
   }
   /* devuelve la cámara a su zoom base tras el drama del beat */
-  zoomBase() { this.cameras.main.zoomTo(this.V2.ZOOM, 420, "Sine.easeInOut"); }
+  zoomBase() { this.cameras.main.zoomTo(this._zoomBase || this.V2.ZOOM, 420, "Sine.easeInOut"); }
   /* ⚠ Phaser: ignore(container) taggea solo a los hijos EXISTENTES — todo lo que
      se agrega al menú DESPUÉS hay que re-ignorarlo o se dibuja duplicado en la
      cámara con zoom. Llamar esto al final de cada armado de menú. */
@@ -582,7 +728,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         esArq ? (esRival ? "arqRival" : "arqMio") : (esRival ? "rival" : "mio"),
         j.numero, esArq ? ["parado", "estirada", "atajada", "despeje"] : undefined, fresco);
       tx = this._dueloBase + (esArq ? "_parado_0" : "_correr_1");
-      escala = this.V2.ESCALA_HEROICO * this.escalaEn(j.y);
+      escala = this.escalaHeroico() * this.escalaEn(j.y);
     } else if (texturaFija) tx = texturaFija;
     else {
       const base = (esRival ? "v2riv" : "v2mio") + "d" + (j.numero || 0);
@@ -1261,14 +1407,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "PASE";
     this._receptores = rs; this._recSel = 0;
     this._paseOrigen = { rivalIdx, libre };
-    const hint = this.add.text(this.radar.x + this.radar.w / 2, this.radar.y - 26,
-      "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
+    /* Anime A: sin radar el destino se toca sobre la CANCHA; el hint baja al pie */
+    const hx = this._vista4 ? 480 : this.radar.x + this.radar.w / 2;
+    const hy = this._vista4 ? 528 : this.radar.y - 26;
+    const hint = this.add.text(hx, hy,
+      this._vista4
+        ? "➡ PASE: tocá el DESTINO sobre la cancha (□ = receptores; más allá = AL VACÍO · ◀▶ + ENTER, ▲ = al vacío, ESC = volver)"
+        : "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
       { fontFamily: "monospace", fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
     this._paseCancelar = () => {
       if (this._paseOrigen.libre) this.reanudarLibre(); else this.abrirMenuAtaque(this._paseOrigen.rivalIdx, false);
     };
-    const cancel = this.add.rectangle(this.radar.x + this.radar.w + 36, this.radar.y + 24, 56, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const ct = this.add.text(this.radar.x + this.radar.w + 36, this.radar.y + 24, "✕", { fontFamily: "monospace", fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
+    const cx = this._vista4 ? 906 : this.radar.x + this.radar.w + 36;
+    const cy = this._vista4 ? 306 : this.radar.y + 24;
+    const cancel = this.add.rectangle(cx, cy, 56, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const ct = this.add.text(cx, cy, "✕", { fontFamily: "monospace", fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
     this.menuLayer.add([hint, cancel, ct]);
     cancel.on("pointerdown", (p, x, y, ev) => {
       ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
@@ -1431,6 +1584,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
   }
   dibujarRadar() {
+    if (!this.radar) return;   // Anime A: en la vista elevada no hay radar
     const g = this.radarG, R = this.radar, st = this.st;
     g.clear();
     const mx = wx => R.x + wx / st.W * R.w, my = wy => R.y + wy / st.H * R.h;
@@ -1503,6 +1657,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (activo && this._btnPulso.paused) this._btnPulso.resume();
       else if (!activo && !this._btnPulso.paused) { this._btnPulso.pause(); this._btnAccionCont.setScale(1); }
     }
+    /* Anime A: el ⇄ de ciclado manual solo aparece cuando defendés */
+    if (this._btnCambiar) {
+      const verlo = this.estado === "LIBRE" && st.posesion === "rival";
+      this._btnCambiar.forEach(o => o.setVisible(verlo));
+    }
     /* E6: los ÚLTIMOS 5 MINUTOS se anuncian (tictac + reloj marcado con ⏰, no solo color).
        TODO el bloque bajo el flag: apagado = reloj plano de la Etapa 5. */
     if (this.FLAGS.e6_cine) {
@@ -1548,9 +1707,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.time.now - (this._uiTocado || 0) < 80) return;             // acaba de tocar UI (radar/botones)
     const R = this.radar;
     if (R && p.x > R.x - 8 && p.x < R.x + R.w + 8 && p.y > R.y - 8) return;   // sobre el radar
-    if (this.FLAGS.e3_menus && p.x > 790 && p.y > 420) return;          // sobre el botón de acción (si existe)
+    if (this.FLAGS.e3_menus && p.x > 790 && p.y > (this._vista4 ? 360 : 420)) return;   // botones ⚡/⇄ (si existen)
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
-    this.target = { x: w.x / this.SX, y: w.y / this.SY };
+    /* Anime A: en la vista elevada el toque se invierte con la MISMA perspectiva
+       que el dibujo (aSim) — tocás la franja del fondo y el jugador va al fondo */
+    this.target = this._vista4 ? this.aSim(w.x, w.y) : { x: w.x / this.SX, y: w.y / this.SY };
   }
 
   /* ============================== UPDATE ============================== */
@@ -1572,6 +1733,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this.estado === "MENU" || this.estado === "PASE") this.teclasDeMenu();
       this.dibujarRadar();
       this.refrescarHUD();
+      this.updateFichas(true);        // Anime A: pausado = DORSALES visibles
+      this.dibujarPaseCancha();       // receptores del pase sobre la cancha
       return;
     }
 
@@ -1680,14 +1843,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._panVivo && cam.panEffect.isRunning) cam.panEffect.destination.set(wx, wy);
     if (aviso) this.avisar(aviso);
 
-    /* ETAPA 2: radar + HUD, siempre al día */
+    /* ETAPA 2: radar + HUD, siempre al día (Anime A: fichas en lugar de radar) */
     this.dibujarRadar();
     this.refrescarHUD();
+    this.updateFichas(false);
+    this.dibujarPaseCancha();
   }
 
   /* aviso breve anclado al PORTADOR (a donde la cámara va, no de donde viene) */
   avisar(txt) {
-    const t = this.add.text(this.sprPortador.x, this.sprPortador.y - 96, txt, { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }, align: "center" })
+    const fs = this._vista4 ? 24 : 12;   // texto del mundo: legible también en la vista elevada
+    const t = this.add.text(this.sprPortador.x, this.sprPortador.y - 96, txt, { fontFamily: "monospace", fontSize: fs + "px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }, align: "center" })
       .setOrigin(0.5).setDepth(5000);
     this.mundoLayer.add(t);
     if (this.uiCam) this.uiCam.ignore(t);   // hijo dinámico: re-ignorar a mano

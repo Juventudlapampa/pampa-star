@@ -178,5 +178,43 @@ function partidoNuevo(rng) {
   console.log("[9] cambio de jugador: ok");
 })();
 
+/* ---- 10) ANIME v4 G: tempo — jugadores lentos, PARTIDO CORTO ---- */
+(function () {
+  ok(Math.abs(P.segPorMinuto(bal) - (bal.tempo.duracion_real_min * 60) / 90) < 1e-9, "tempo manda: seg/min = duracion_real_min*60/90");
+  var sinTempo = JSON.parse(JSON.stringify(bal)); delete sinTempo.tempo;
+  ok(P.segPorMinuto(sinTempo) === bal.ritmo.seg_por_minuto, "sin tempo cae al seg_por_minuto clásico");
+  var st = partidoNuevo();
+  st.cooldown = 9e9;
+  var m0 = st.minuto;
+  P.tick(st, 1000, null);
+  ok(Math.abs((st.minuto - m0) - 1 / P.segPorMinuto(bal)) < 1e-6, "el reloj corre al ritmo del tempo");
+  console.log("[10] tempo v4 (partido corto): ok");
+})();
+
+/* ---- 11) ANIME v4 A: marcador automático con preferencia por el bien parado ---- */
+(function () {
+  var st = partidoNuevo();
+  st.posesion = "rival"; st.modo = "juego"; st.esperaRival = 0; st.cooldown = 9e9;
+  st.pelota.x = 500; st.pelota.y = 340;
+  var iA = st.mios.findIndex(function (j) { return j.pos === "VOL"; });
+  var iB = st.mios.findIndex(function (j, k) { return j.pos === "VOL" && k !== iA; });
+  st.mios.forEach(function (j) { j.x = 100; j.y = 60; });   // todos lejos
+  st.mios[iA].x = 560; st.mios[iA].y = 340;                 // d=60 pero DETRÁS de la pelota
+  st.mios[iB].x = 430; st.mios[iB].y = 340;                 // d=70 y ENTRE la pelota y tu arco
+  ok(P.mejorMarcador(st) === iB, "prefiere al que está entre la pelota y tu arco");
+  st.ctrl = st.mios.findIndex(function (j, k) { return j.pos === "DEF" && k !== iA && k !== iB; });
+  st.mios[st.ctrl].x = 100; st.mios[st.ctrl].y = 600;       // el actual quedó lejísimos
+  P.tick(st, 16, null);
+  ok(st.ctrl === iB, "el tick cambió solo al mejor marcador");
+  var iC = st.mios.findIndex(function (j, k) { return j.pos === "DEF" && k !== st.ctrl; });
+  P.cambiarA(st, iC);
+  P.tick(st, 16, null);
+  ok(st.ctrl === iC, "tras el cambio manual, el automático respeta tu elección");
+  st._noAutoHasta = 0;
+  P.tick(st, 16, { dx: 1, dy: 0 });
+  ok(st.ctrl === iC, "con input activo no te saca el marcador de las manos");
+  console.log("[11] marcador automático v4: ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);
