@@ -42,7 +42,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -573,16 +573,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.textures.exists(key)) window.PampaAvatarArte.cara(this, key, j.look || window.PampaAvatar.crearLook());
     return key;
   }
-  retratoKey(j, esRival) {
-    /* VOS y tus amigos: la cara del avatar que eligieron en el editor.
-       El resto: retrato del banco por arquetipo (determinista por nombre). */
+  /* ANIME v4 Bloque C: RETRATO MODULAR 64×64 con EXPRESIÓN por momento del partido.
+     Determinista por look → mismo id, misma cara. Cacheado por look+expresión. */
+  _retrato64(j, expresion) {
+    const look = j.look || window.PampaAvatar.crearLook();
+    const semilla = window.PampaAvatar.hashSemilla(JSON.stringify(look));
+    const key = "r64_" + semilla + "_" + (expresion || "concentrado");
+    if (!this.textures.exists(key)) window.PampaAvatarArte.retrato64(this, key, look, expresion);
+    return key;
+  }
+  /* qué cara pone según el guts / lado (dolorido si está rendido) */
+  _exprPorGuts(gutsVal) {
+    return gutsVal < this.BAL.aguante.umbral_rendido ? "dolorido" : "concentrado";
+  }
+  retratoKey(j, esRival, expresion) {
+    /* ANIME C: el camino nuevo es el MODULAR (flag v4_retratos64, default ON) —
+       cara generable y determinista para TODO el roster, con expresión. */
+    if (this.FLAGS.v4_retratos64 && j && j.look) return this._retrato64(j, expresion);
+    /* banco webp como capa alternativa (flag off): VOS/amigos del editor, resto del banco */
     if (!esRival && (j.esVos || j.esAmigo) && j.look) return this._caraDe(j, "m");
     const pool = this._retratos[esRival ? "rival" : "companero"].filter(k => this.textures.exists(k));
     if (pool.length) return pool[window.PampaAvatar.hashSemilla(j.nombre || "x") % pool.length];
     return this._caraDe(j, esRival ? "r" : "m");
   }
-  retratoPanel(x, j, esRival, gutsVal) {
-    const key = this.retratoKey(j, esRival);
+  retratoPanel(x, j, esRival, gutsVal, expresion) {
+    const key = this.retratoKey(j, esRival, expresion || this._exprPorGuts(gutsVal));
     const img = this.add.image(x, 386, key);
     const esc = 132 / img.height; img.setScale(esc);
     const marco = this.add.rectangle(x, 386, img.width * esc + 10, 142, 0x0a1f13, 0.55).setStrokeStyle(2, esRival ? 0xff8a50 : 0x4fc3f7);
@@ -1659,7 +1674,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.limpiarMenu();
     const j = jRet || this.st.mios[this.st.ctrl];
     const franja = this.add.rectangle(480, 270, 1100, 190, esRivalRet ? 0x2a0b0b : 0x2a130b, 0.94).setStrokeStyle(4, esRivalRet ? 0xff8a50 : 0xffd84d).setAngle(-4);
-    const img = this.add.image(-140, 270, this.retratoKey(j, !!esRivalRet));
+    /* ANIME C: el que carga un especial va TRIUNFANTE (o el rival, desafiante = frustrado) */
+    const img = this.add.image(-140, 270, this.retratoKey(j, !!esRivalRet, esRivalRet ? "frustrado" : "triunfante"));
     img.setScale(180 / img.height);
     const txt = this.add.text(1150, 258, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "22px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 8 }).setOrigin(0.5);
     const subTxt = this.add.text(1150, 292, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);

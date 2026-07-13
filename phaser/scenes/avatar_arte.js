@@ -336,5 +336,97 @@ window.PampaAvatarArte = (function () {
     return keyBase;
   }
 
-  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, KITS: KITS, bake: bake };
+  /* ============ ANIME v4 Bloque C · RETRATO MODULAR 64×64 ============
+     Rostro base + capas intercambiables (pelo, vello facial, accesorio),
+     estilo MENOS anime: contorno negro grueso, sombras duras de 2-3 tonos
+     (sin dithering), ojos grandes contrastados que se leen chiquitos.
+     4 EXPRESIONES (el partido elige): concentrado, frustrado, triunfante,
+     dolorido. Determinista por look → mismo id, misma cara siempre.
+     El vello facial se DERIVA del look (no rompe saves viejos: campo opcional). */
+  function _oscu(hex, f) {
+    var r = (hex >> 16) & 255, g2 = (hex >> 8) & 255, b = hex & 255;
+    f = f == null ? 0.72 : f;
+    return ((r * f) & 255) << 16 | ((g2 * f) & 255) << 8 | (b * f) & 255;
+  }
+  var VELLOS = ["limpio", "candado", "barba", "bigote"];
+  function velloDe(look) {
+    if (look && look.vello != null) return VELLOS[Math.abs(look.vello | 0) % VELLOS.length];
+    var h = (((look && look.corte) | 0) * 7 + ((look && look.piel) | 0) * 13 + ((look && look.colorPelo) | 0) * 5 + ((look && look.boca) | 0) * 3);
+    return VELLOS[Math.abs(h) % VELLOS.length];
+  }
+  /* expresión → cómo se dibujan cejas/ojos/boca (la FORMA cambia, no solo el color) */
+  var EXPR = {
+    concentrado: { ceja: "recta", parpado: 0.0, boca: "recta", mejilla: 0 },
+    frustrado: { ceja: "enojo", parpado: 0.2, boca: "abajo", mejilla: 0 },
+    triunfante: { ceja: "arriba", parpado: 0.0, boca: "sonrisa", mejilla: 1 },
+    dolorido: { ceja: "pena", parpado: 0.55, boca: "apretada", mejilla: 0 }
+  };
+  function retrato64(scene, key, look, expresion) {
+    var r = A.resolver(look || A.crearLook());
+    var piel = A.hexNum(r.piel.hex), pieloscu = _oscu(piel, 0.8), pielsom = _oscu(piel, 0.66);
+    var pelo = A.hexNum(r.colorPelo.hex), pelosom = _oscu(pelo, 0.62);
+    var E = EXPR[expresion] || EXPR.concentrado, vello = velloDe(look);
+    bake(scene, key, 64, 64, function (g) {
+      /* fondo viñeta (bien tenue: el rostro manda) */
+      g.fillStyle(0x0a1f13, 1); g.fillRect(0, 0, 64, 64);
+      g.fillStyle(0x123524, 1); g.fillRect(0, 40, 64, 24);
+      /* ===== contorno negro grueso: silueta de cabeza + cuello ===== */
+      g.fillStyle(TINTA); g.fillRoundedRect(12, 8, 40, 42, 12);
+      g.fillRect(24, 46, 16, 10);
+      /* ===== piel: cara + cuello (con sombra dura a la izquierda) ===== */
+      g.fillStyle(piel); g.fillRoundedRect(15, 11, 34, 37, 10);
+      g.fillStyle(pielsom); g.fillRect(15, 11, 8, 37);              // sombra dura lateral
+      g.fillStyle(pieloscu); g.fillRect(15, 40, 34, 8);            // mentón en sombra
+      g.fillStyle(piel); g.fillRect(26, 47, 12, 8);                // cuello
+      g.fillStyle(pielsom); g.fillRect(26, 47, 4, 8);
+      /* ===== orejas ===== */
+      g.fillStyle(TINTA); g.fillRect(12, 26, 5, 9); g.fillRect(47, 26, 5, 9);
+      g.fillStyle(pieloscu); g.fillRect(13, 27, 3, 7); g.fillStyle(piel); g.fillRect(48, 27, 3, 7);
+      /* ===== pelo por corte (capa, FORMA distinta cada uno) ===== */
+      g.fillStyle(pelo);
+      var C = r.corte.id;
+      if (C === "rapado") { g.fillRect(17, 9, 30, 6); g.fillStyle(pelosom); g.fillRect(17, 9, 8, 6); }
+      else if (C === "rulos") { g.fillRoundedRect(13, 5, 38, 16, 8); g.fillCircle(16, 10, 5); g.fillCircle(32, 4, 6); g.fillCircle(48, 10, 5); g.fillStyle(pelosom); g.fillCircle(16, 12, 4); }
+      else if (C === "colita") { g.fillRoundedRect(15, 6, 34, 13, 7); g.fillRect(47, 12, 8, 20); g.fillStyle(pelosom); g.fillRect(15, 6, 9, 13); }
+      else if (C === "melena") { g.fillRoundedRect(13, 5, 38, 15, 7); g.fillRect(12, 14, 7, 26); g.fillRect(45, 14, 7, 26); g.fillStyle(pelosom); g.fillRect(12, 14, 7, 26); }
+      else if (C === "flequillo") { g.fillRoundedRect(15, 6, 34, 12, 6); g.fillRect(17, 15, 6, 5); g.fillRect(27, 15, 6, 4); g.fillRect(37, 15, 6, 5); g.fillStyle(pelosom); g.fillRect(15, 6, 9, 12); }
+      else { g.fillRoundedRect(15, 6, 34, 12, 6); g.fillStyle(pelosom); g.fillRect(15, 6, 9, 12); }   // corto
+      /* ===== accesorio: vincha ===== */
+      if (r.conVincha) { g.fillStyle(VINCHA); g.fillRect(16, 16, 32, 4); }
+      /* ===== CEJAS por expresión ===== */
+      g.fillStyle(TINTA);
+      if (E.ceja === "enojo") { g.fillRect(21, 23, 9, 3); g.fillRect(34, 23, 9, 3); g.fillRect(27, 25, 4, 2); g.fillRect(33, 25, 4, 2); }
+      else if (E.ceja === "arriba") { g.fillRect(21, 20, 9, 2); g.fillRect(34, 20, 9, 2); }
+      else if (E.ceja === "pena") { g.fillRect(21, 21, 9, 2); g.fillRect(34, 21, 9, 2); g.fillRect(22, 23, 4, 2); g.fillRect(38, 23, 4, 2); }
+      else { g.fillRect(21, 22, 9, 3); g.fillRect(34, 22, 9, 3); }   // recta
+      /* ===== OJOS grandes contrastados (párpado por expresión) ===== */
+      var oy = 27, oh = 8 - Math.round(6 * E.parpado);
+      g.fillStyle(BLANCO); g.fillRect(22, oy, 9, oh); g.fillRect(33, oy, 9, oh);
+      g.fillStyle(TINTA);
+      if (oh > 3) {
+        var px = r.ojos.id === "picaros" ? 3 : (r.ojos.id === "tranquilos" ? 1 : 2);
+        g.fillRect(22 + px + 1, oy + 1, 4, oh - 1); g.fillRect(33 + px + 1, oy + 1, 4, oh - 1);
+      } else { g.fillRect(22, oy + 1, 9, 2); g.fillRect(33, oy + 1, 9, 2); }   // casi cerrados (dolorido)
+      /* ===== nariz (sombra corta) ===== */
+      g.fillStyle(pielsom); g.fillRect(31, 30, 3, 6);
+      /* ===== BOCA por expresión ===== */
+      g.fillStyle(BOCA);
+      if (E.boca === "sonrisa") { g.fillRect(26, 39, 12, 3); g.fillRect(24, 37, 3, 2); g.fillRect(37, 37, 3, 2); g.fillStyle(BLANCO); g.fillRect(27, 40, 10, 1); }
+      else if (E.boca === "abajo") { g.fillRect(26, 40, 12, 3); g.fillRect(24, 42, 3, 2); g.fillRect(37, 42, 3, 2); }
+      else if (E.boca === "apretada") { g.fillStyle(TINTA); g.fillRect(27, 40, 10, 2); }
+      else { g.fillRect(27, 40, 10, 3); }   // recta
+      if (E.mejilla) { g.fillStyle(_oscu(piel, 0.9)); }   // (reservado)
+      /* ===== VELLO FACIAL (capa determinista) ===== */
+      g.fillStyle(pelosom);
+      if (vello === "barba") { g.fillRect(18, 37, 28, 10); g.fillRect(16, 32, 5, 12); g.fillRect(43, 32, 5, 12); g.fillStyle(piel); g.fillRect(26, 39, 12, 3); }
+      else if (vello === "candado") { g.fillRect(27, 42, 10, 5); g.fillRect(24, 43, 3, 3); g.fillRect(37, 43, 3, 3); }
+      else if (vello === "bigote") { g.fillRect(26, 37, 12, 2); }
+      /* ===== marco (celeste/naranja lo pone quien llama; acá neutro) ===== */
+      g.lineStyle(2, 0x000000, 0.9); g.strokeRect(1, 1, 62, 62);
+    });
+    scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+    return key;
+  }
+
+  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, KITS: KITS, bake: bake };
 })();
