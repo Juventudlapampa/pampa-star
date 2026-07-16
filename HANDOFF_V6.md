@@ -1,5 +1,22 @@
 # HANDOFF V6 — "El anime jugando" (tanda del 16-17/jul/2026)
 
+## ⬆ ADDENDUM (post-tanda, misma noche): OPENING + MÚSICA — COMPLETO
+`docs/ADDENDUM_V6_OPENING_Y_MUSICA.md` (`f7561cf`). **Parte B (reemplazó al §6,
+`3fb413a`)**: la música ahora tiene DIRECCIÓN — EL MOTIVO de 4 notas
+(tónica→quinta→sexta→octava) en todos los temas transformado (insinuado en campo
+propio Am/92 · completo al cruzar con modulación al mayor Do/112 · INVERTIDO con
+bajo cromático y segunda menor cuando la tiene el rival/100 · tictac 138 en los
+últimos 5' · principal en el opening/140), progresión heroica i–VI–III–VII, tres
+capas siempre + **el viento pampeano** sutil de fondo, y los stingers de gol /
+gol en contra construidos sobre el motivo. TODO en `balance.json → musica`.
+**Parte A (`65a4bc5`)**: `scenes/intro.js` — el opening de 8 planos (~20s, cortes
+secos, salteable con cualquier toque, una vez por sesión, botón "▶ VER INTRO" en
+el editor, tiempos y textos en `balance.json → intro`, tolerante a assets
+faltantes). ⚠ La PRIMERA vista de la sesión puede ser muda (autoplay del
+navegador); desde "VER INTRO" suena entera. **Checklist celu**: recargá la
+página → el opening corre solo; tocá y salteás; en el editor "▶ VER INTRO" la
+repite con música. Criterio A.5: ¿da ganas de jugar? Lo firmás vos.
+
 `docs/DISENO_MAESTRO_V6.md` ejecutado **en el orden del §9, completo, sin saltear
 ni reordenar**. Suite final: **2.322 asserts, 0 fallas** (8 suites; nuevas:
 definicion 21, master 19). Soak de cierre: partido RELÁMPAGO entero al 94' con
