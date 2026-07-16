@@ -216,7 +216,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
     if (!this._vista4) this.st._noAutoHasta = 9e15;
 
-    /* ANIME D: la música arranca con el partido (tema por posesión, en loop) */
+    /* ANIME D + ADDENDUM B: la dirección musical llega de balance → el motor */
+    if (this.SFX && this.SFX.configurarMusica) this.SFX.configurarMusica(this.BAL.musica);
     this.musica(this.st.posesion === "mia" ? "propia" : "rival");
 
     /* ANIME E: EL RELATOR — el partido se cuenta solo (data/relatos.json → relator) */

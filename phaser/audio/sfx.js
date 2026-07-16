@@ -64,30 +64,38 @@
      RIVAL (tenso, menor, pulso corto). Un timer JS programa notas por delante
      en el reloj de WebAudio (no se traba con el frame rate). El silencio
      pre-desenlace se logra con musicaDuck (baja el bus de música y vuelve). */
-  /* V6 §6: temas con MÁS CAPAS Y CARÁCTER — bajo octavado, melodía, percusión
-     (bombo + hi-hat de ruido), y la capa que CRECE al cruzar al campo rival
-     (la melodía sube la octava y aparece el eco). Todo sintetizado, original. */
-  var MUS_VOL = 0.5;
-  var mus = { gain: null, timer: null, tema: null, paso: 0, prox: 0, urgente: false, subir: false };
-  var TEMAS = {
-    propia: {
-      bpm: 96,
-      bajo: [98, 0, 98, 196, 0, 98, 0, 147, 110, 0, 110, 220, 0, 110, 0, 165],
-      lead: [392, 0, 440, 494, 0, 587, 494, 440, 392, 0, 330, 392, 0, 440, 0, 0],
-      kick: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0],
-      hat: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1]
+  /* ============================================================================
+     ADDENDUM v6 Parte B (REEMPLAZA al §6): música CON DIRECCIÓN, no "que suene
+     mejor". EL MOTIVO de 4 notas ascendente (tónica→quinta→sexta→octava)
+     aparece en TODOS los temas transformado: insinuado en campo propio,
+     completo al cruzar, INVERTIDO cuando la tiene el rival, a toda máquina en
+     el opening. Tres capas mínimo (bajo + melodía + percusión), progresiones
+     heroicas del anime ochentoso (i–VI–III–VII), y la capa de VIENTO pampeano
+     apenas audible. Los parámetros llegan de balance.json → musica
+     (configurarMusica); este default es el mismo brief.
+     ========================================================================== */
+  var MUSICA = {
+    vol: 0.5,
+    viento: 0.014,
+    motivo: [0, 7, 9, 12],                       // tónica → quinta → sexta → octava
+    temas: {
+      propia_propio: { tonica: 220, modo: "menor", bpm: 92, prog: [0, 8, 3, 10], percusion: 0.35, motivo: "insinuado" },
+      propia_rival: { tonica: 261.63, modo: "mayor", bpm: 112, prog: [0, 9, 5, 7], percusion: 1, motivo: "completo" },
+      rival: { tonica: 220, modo: "menor", bpm: 100, prog: [0, -1, -2, -3], percusion: 0.8, motivo: "invertido", segunda_menor: true },
+      urgente: { tonica: 220, modo: "menor", bpm: 138, prog: [0, 8, 3, 10], percusion: 1, motivo: "completo", tictac: true },
+      opening: { tonica: 220, modo: "menor_a_mayor", bpm: 140, prog: [0, 8, 3, 10], percusion: 1, motivo: "principal" }
     },
-    rival: {
-      bpm: 122,
-      bajo: [110, 110, 0, 110, 104, 104, 0, 104, 98, 98, 0, 98, 104, 104, 117, 0],
-      lead: [0, 330, 0, 311, 0, 330, 0, 0, 0, 294, 0, 311, 0, 330, 349, 0],
-      kick: [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0],
-      hat: [0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1]
-    }
+    gol_bpm: 150,
+    lamento_bpm: 70
   };
+  function configurarMusica(cfg) { if (cfg && typeof cfg === "object") MUSICA = Object.assign({}, MUSICA, cfg); }
+  var mus = { gain: null, timer: null, base: null, urgente: false, paso: 0, prox: 0, viento: null };
+  function semi(f, n) { return f * Math.pow(2, n / 12); }
+  function temaActivo() { return mus.urgente && mus.base ? "urgente" : mus.base; }
+
   function musEnsure() {
     if (!ensure()) return null;
-    if (!mus.gain) { mus.gain = ctx.createGain(); mus.gain.gain.value = MUS_VOL; mus.gain.connect(master); }
+    if (!mus.gain) { mus.gain = ctx.createGain(); mus.gain.gain.value = MUSICA.vol; mus.gain.connect(master); }
     return ctx;
   }
   function notaMus(type, f, t0, dur, g) {
@@ -111,56 +119,98 @@
     s.connect(f); f.connect(g); g.connect(mus.gain);
     s.start(t0); s.stop(t0 + dur);
   }
+  /* la capa PAMPEANA: viento sutil, presente en todos los temas de partido */
+  function vientoOn() {
+    if (mus.viento || !ctx || !MUSICA.viento) return;
+    var n = ctx.sampleRate * 2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    var s = ctx.createBufferSource(); s.buffer = buf; s.loop = true;
+    var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 420;
+    var g = ctx.createGain(); g.gain.value = MUSICA.viento;
+    s.connect(f); f.connect(g); g.connect(mus.gain);
+    s.start();
+    mus.viento = { src: s, gain: g };
+  }
+  function vientoOff() { if (mus.viento) { try { mus.viento.src.stop(); } catch (e) { } mus.viento = null; } }
+
+  /* el secuenciador dirigido: 32 pasos = 4 compases = una vuelta de progresión */
   function programar() {
-    if (!mus.tema || !ctx) return;
-    var T = TEMAS[mus.tema]; if (!T) return;
-    var paso = 60 / T.bpm / 2;                        // 16 pasos = 2 compases
-    if (mus.prox < ctx.currentTime) mus.prox = ctx.currentTime + 0.03;   // se quedó atrás (pestaña dormida)
+    var id = temaActivo(); if (!id || !ctx) return;
+    var T = MUSICA.temas[id]; if (!T) return;
+    var paso = 60 / T.bpm / 2;
+    if (mus.prox < ctx.currentTime) mus.prox = ctx.currentTime + 0.03;   // pestaña dormida: re-engancha
     while (mus.prox < ctx.currentTime + 0.4) {
-      var i = mus.paso % 16, t0 = mus.prox;
-      /* bajo (con quinta sutil), melodía (que SUBE en campo rival), percusión */
-      notaMus("square", T.bajo[i], t0, paso * 0.9, 0.05);
-      if (T.bajo[i] && i % 4 === 0) notaMus("square", T.bajo[i] * 1.5, t0, paso * 0.5, 0.02);
-      var lf = T.lead[i];
-      if (lf) {
-        notaMus("triangle", mus.subir ? lf * 2 : lf, t0, paso * 1.6, 0.045);
-        if (mus.subir) notaMus("triangle", lf, t0 + paso / 2, paso * 0.8, 0.02);   // el eco de abajo: la capa que crece
+      var i = mus.paso % 32, t0 = mus.prox;
+      var compas = Math.floor(i / 8), enCompas = i % 8;
+      var grado = T.prog[compas % T.prog.length];
+      /* modo del compás: el opening MODULA de menor a mayor en la 2da mitad */
+      var mayor = T.modo === "mayor" || (T.modo === "menor_a_mayor" && compas >= 2);
+      var raiz = semi(T.tonica, grado);
+      /* CAPA 1 · BAJO: corcheas en la fundamental, grave (cuadrada) */
+      if (enCompas % 2 === 0) notaMus("square", raiz / 2, t0, paso * 0.85, 0.055);
+      /* CAPA 2 · ARPEGIO del acorde (triangular): 1 - 3/b3 - 5 (+ la 2da menor incómoda del rival) */
+      if (enCompas === 0 || enCompas === 3 || enCompas === 5) {
+        var tercera = mayor ? 4 : 3;
+        var notaArp = enCompas === 0 ? 0 : enCompas === 3 ? tercera : 7;
+        if (T.segunda_menor && enCompas === 5) notaArp = 1;   // la segunda menor: la amenaza
+        notaMus("triangle", semi(raiz, notaArp), t0, paso * 1.5, 0.04);
       }
-      if (T.kick[i]) { golpeMus(t0, 0.09, 0.16, 190, "lowpass"); notaMus("triangle", 58, t0, 0.07, 0.05); }
-      if (T.hat[i]) golpeMus(t0, 0.03, 0.05, 6200, "highpass");
-      if (mus.tema === "rival" && i % 4 === 2) notaMus("square", 1180, t0, 0.03, 0.02);   // púa tensa
-      if (mus.urgente && i % 8 < 2) notaMus("square", 880, t0, 0.05, 0.06);               // tictac del final
+      /* CAPA 3 · EL MOTIVO (pulso brillante), transformado por tema */
+      var M = MUSICA.motivo;
+      if (T.motivo === "completo" && (compas === 0 || compas === 2) && enCompas % 2 === 0)
+        notaMus("square", semi(T.tonica * 2, M[enCompas / 2]), t0, paso * 1.7, 0.045);
+      else if (T.motivo === "insinuado" && compas === 3 && (enCompas === 4 || enCompas === 6))
+        notaMus("square", semi(T.tonica * 2, M[(enCompas - 4) / 2]), t0, paso * 1.9, 0.035);
+      else if (T.motivo === "invertido" && (compas === 0 || compas === 2) && enCompas % 2 === 0)
+        notaMus("square", semi(T.tonica * 2, M[3 - enCompas / 2]), t0, paso * 1.6, 0.04);
+      else if (T.motivo === "principal" && enCompas % 2 === 0)
+        notaMus("square", semi(T.tonica * 2, M[enCompas / 2 % 4] + (mayor ? 0 : 0)), t0, paso * 1.8, 0.055);
+      /* CAPA 4 · PERCUSIÓN (bombo + hat) escalada por carácter */
+      var P = T.percusion || 0;
+      if (P > 0) {
+        if (enCompas === 0 || enCompas === 4 || (P >= 1 && enCompas === 6)) { golpeMus(t0, 0.09, 0.15 * P, 190, "lowpass"); notaMus("triangle", 56, t0, 0.06, 0.05 * P); }
+        if (enCompas % 2 === 1) golpeMus(t0, 0.03, 0.05 * P, 6200, "highpass");
+      }
+      /* URGENTE: el tictac de corcheas encima de todo */
+      if (T.tictac && enCompas % 2 === 0) notaMus("square", 880, t0, 0.05, 0.055);
       mus.paso++; mus.prox += paso;
     }
   }
+  /* API: acepta los nombres nuevos y los viejos ("propia"→propia_propio) */
   function musicaTema(nombre) {
     if (!musEnsure()) return;
-    if (nombre === mus.tema) return;
-    mus.tema = nombre || null;
-    mus.paso = 0; mus.prox = ctx.currentTime + 0.05;
-    mus.subir = false;                                 // el tema nuevo arranca abajo
-    if (mus.tema && !mus.timer) mus.timer = setInterval(programar, 120);
-    if (!mus.tema && mus.timer) { clearInterval(mus.timer); mus.timer = null; }
+    var id = nombre === "propia" ? "propia_propio" : nombre;
+    if (id === mus.base) return;
+    var eraPropia = mus.base && mus.base.indexOf("propia") === 0;
+    mus.base = id || null;
+    /* entre campo propio y rival NO se resetea el compás (el tema CRECE, no cambia) */
+    if (!(eraPropia && id && id.indexOf("propia") === 0)) { mus.paso = 0; mus.prox = ctx.currentTime + 0.05; }
+    if (mus.base) { vientoOn(); if (!mus.timer) mus.timer = setInterval(programar, 120); }
+    else { vientoOff(); if (mus.timer) { clearInterval(mus.timer); mus.timer = null; } }
   }
-  /* V6 §6: el tema CRECE al cruzar al campo rival (sin resetear el compás) */
-  function musicaZona(zona) { mus.subir = zona === "rival"; }
+  /* al cruzar de campo con la pelota, MODULA al mayor relativo y entra el motivo completo */
+  function musicaZona(zona) {
+    if (!mus.base || mus.base.indexOf("propia") !== 0) return;
+    musicaTema(zona === "rival" ? "propia_rival" : "propia_propio");
+  }
   function musicaDuck(ms) {
     if (!ctx || !mus.gain) return;
     var t = ctx.currentTime, s = Math.max(0.1, (ms || 500) / 1000);
     mus.gain.gain.cancelScheduledValues(t);
     mus.gain.gain.setValueAtTime(0.0001, t);
     mus.gain.gain.setValueAtTime(0.0001, t + s);
-    mus.gain.gain.linearRampToValueAtTime(muted ? 0.0001 : MUS_VOL, t + s + 0.3);
+    mus.gain.gain.linearRampToValueAtTime(muted ? 0.0001 : MUSICA.vol, t + s + 0.3);
   }
 
   var SFX = {
     unlock: unlock,
     setMuted: function (m) {
       muted = !!m;
-      if (mus.gain && ctx) { mus.gain.gain.cancelScheduledValues(ctx.currentTime); mus.gain.gain.value = muted ? 0.0001 : MUS_VOL; }
+      if (mus.gain && ctx) { mus.gain.gain.cancelScheduledValues(ctx.currentTime); mus.gain.gain.value = muted ? 0.0001 : MUSICA.vol; }
       persistirMute();
     },
     isMuted: function () { return muted; },
+    configurarMusica: configurarMusica,
     musicaTema: musicaTema,
     musicaZona: musicaZona,
     musicaDuck: musicaDuck,
@@ -177,7 +227,18 @@
     /* la pelota que se va afuera y pega en la tribuna */
     afuera: function () { var c = ensure(); if (!c) return; var t = now(); tone("sine", 700, 240, t, 0.25, 0.08); },
     /* GRITO de gol: fanfarria ascendente */
-    goal: function () { var c = ensure(); if (!c) return; var t = now(); var notes = [392, 523, 659, 784]; for (var i = 0; i < notes.length; i++) tone("square", notes[i], notes[i], t + i * 0.09, 0.16, 0.16); noise(t, 0.5, 0.10, 1400, 0.6, "bandpass"); },
+    /* GRITO de gol: EL MOTIVO a toda potencia — rápido, alto y en MAYOR (brief B.3) */
+    goal: function () {
+      var c = ensure(); if (!c) return; var t = now();
+      var dur = 60 / (MUSICA.gol_bpm || 150);
+      for (var i = 0; i < 4; i++) {
+        var f = 523.25 * Math.pow(2, MUSICA.motivo[i] / 12);
+        tone("square", f, f, t + i * dur * 0.5, dur * 0.8, 0.15);
+        tone("triangle", f / 2, f / 2, t + i * dur * 0.5, dur * 0.8, 0.08);
+      }
+      tone("square", 523.25 * 2, 523.25 * 2, t + 2 * dur, dur * 2.2, 0.12);   // la octava sostenida
+      noise(t, 0.5, 0.10, 1400, 0.6, "bandpass");
+    },
     /* silbato del árbitro */
     whistle: function () { var c = ensure(); if (!c) return; var t = now(); tone("square", 1900, 2100, t, 0.14, 0.12); },
     /* rumor de la tribuna (colita para la tensión) */
@@ -220,11 +281,14 @@
       var c = ensure(); if (!c) return; var t = now();
       for (var i = 0; i < 4; i++) tone("square", 880, 880, t + i * 0.12, 0.06, 0.12);   // tictac de los últimos 5'
     },
-    /* gol EN CONTRA: mismas notas del festejo pero CAYENDO (el oído distingue el lado) */
+    /* gol EN CONTRA: EL MOTIVO INVERTIDO y lento, solo bajo — el lamento (brief B.3) */
     golEnContra: function () {
       var c = ensure(); if (!c) return; var t = now();
-      var notes = [784, 659, 523, 392];
-      for (var i = 0; i < notes.length; i++) tone("square", notes[i], notes[i], t + i * 0.09, 0.16, 0.13);
+      var dur = 60 / (MUSICA.lamento_bpm || 70);
+      for (var i = 0; i < 4; i++) {
+        var f = 110 * Math.pow(2, MUSICA.motivo[3 - i] / 12);
+        tone("square", f, f, t + i * dur * 0.5, dur * 0.9, 0.12);
+      }
     }
   };
   return SFX;

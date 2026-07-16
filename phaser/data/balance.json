@@ -61,6 +61,22 @@
     "escala_rival": 2.9
   },
 
+  "musica": {
+    "_nota": "ADDENDUM v6 Parte B (reemplaza §6): la DIRECCIÓN musical. El MOTIVO de 4 notas (semitonos: tónica→quinta→sexta→octava) aparece en todos los temas transformado. Cada tema: tónica (Hz), modo, BPM, progresión (grados en semitonos, i–VI–III–VII heroica / cromática descendente para el rival), percusión (0-1) y variante del motivo. viento = la capa pampeana sutil. Todo afinable acá, sin código.",
+    "vol": 0.5,
+    "viento": 0.014,
+    "motivo": [0, 7, 9, 12],
+    "temas": {
+      "propia_propio": { "tonica": 220, "modo": "menor", "bpm": 92, "prog": [0, 8, 3, 10], "percusion": 0.35, "motivo": "insinuado" },
+      "propia_rival": { "tonica": 261.63, "modo": "mayor", "bpm": 112, "prog": [0, 9, 5, 7], "percusion": 1, "motivo": "completo" },
+      "rival": { "tonica": 220, "modo": "menor", "bpm": 100, "prog": [0, -1, -2, -3], "percusion": 0.8, "motivo": "invertido", "segunda_menor": true },
+      "urgente": { "tonica": 220, "modo": "menor", "bpm": 138, "prog": [0, 8, 3, 10], "percusion": 1, "motivo": "completo", "tictac": true },
+      "opening": { "tonica": 220, "modo": "menor_a_mayor", "bpm": 140, "prog": [0, 8, 3, 10], "percusion": 1, "motivo": "principal" }
+    },
+    "gol_bpm": 150,
+    "lamento_bpm": 70
+  },
+
   "secuencias": {
     "_nota": "V6 §3.4: las SECUENCIAS encadenan escenas en una sola acción épica (flag v6_secuencias, firma del crack). MEGACORRIDA: N rivales quedan atrás uno a uno y rematás (si un duelo se pierde, muere ahí). COMBINADA: pared, se suma el compañero, elegís CENTRO o AL PIE y ÉL define. Desbloqueo por nivel de carrera, costo alto a propósito.",
     "megacorrida_nivel": 2,
