@@ -1652,6 +1652,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.st.rivales.forEach(r => { if (r.pos !== "ARQ" && r.x > j.x && Math.abs(r.y - j.y) < 140) n++; });
     return n;
   }
+  /* V6 §3.1: ¿qué POSE ILUSTRADA le corresponde a este protagonista? El dueño
+     importa (el arte es del héroe celeste / defensor rival rayado / arquero):
+     si el dueño no coincide o la pose no existe, se cae al heroico de código. */
+  poseParaEscena(p, anim) {
+    if (!p || !p.j) return null;
+    const a = anim || p.anim;
+    const esArq = p.j.pos === "ARQ";
+    if (esArq) return (a === "atajada" || a === "despeje") ? "arquero_ataja" : "arquero_vuela";
+    if (p.esRival) return a === "pase" ? "barrida" : null;   // la barrida ES el defensor rival
+    if (a === "tiro" || a === "volea") return "remate";
+    if (a === "cabezazo") return "cabezazo";
+    if (a === "chilena") return "chilena";
+    if (a === "festejo") return "festejo";
+    return null;   // gambeta/correr: poses pendientes (Rodri, mañana) → heroico
+  }
   /* cfg: { etiqueta, prota:{j,esRival,anim}, rival:{j,esRival,anim}|null, gana,
             titulo, sub, color?, sfx?, siluetas?, poseFinalProta?, poseFinalRival?, alFinal } */
   escenaCine(cfg) {
@@ -1682,11 +1697,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     this.cineLabel.setText(cfg.etiqueta || "");
     /* protagonista y antagonista ENTRAN al plano (tween visual; el hilo va por reloj) */
+    /* V6 §3.1 · ANIMACIÓN LIMITADA: si hay POSE ILUSTRADA del manifest, el
+       protagonista es UNA imagen quieta, grande — el movimiento lo pone todo
+       lo demás (sacudida, líneas, rayas barriendo, flash, freeze). */
     const escProta = (F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1);
-    const sp = this.add.sprite(-140, H * 0.58, this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 1)).setScale(escProta);
-    if (cfg.protaAngle) sp.setAngle(cfg.protaAngle);   // Anime F: la CHILENA da la vuelta en el aire
+    const poseId = this.poseParaEscena(cfg.prota);
+    let sp;
+    if (poseId && this.poseKey(poseId)) {
+      sp = this.add.image(-200, H * 0.52, this.poseKey(poseId));
+      sp.setScale((cfg.especial ? 420 : 360) / sp.height);
+      sp._esPose = true;
+    } else {
+      sp = this.add.sprite(-140, H * 0.58, this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 1)).setScale(escProta);
+    }
+    if (cfg.protaAngle && !sp._esPose) sp.setAngle(cfg.protaAngle);   // la chilena ilustrada ya viene dada vuelta
     this.cineContent.add(sp);
     this.tweens.add({ targets: sp, x: W * 0.3, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
+    /* rayas diagonales BARRIENDO la pantalla (fondo que corre, pose que se sostiene) */
+    const rayas = [];
+    for (let rk = 0; rk < 3; rk++) {
+      const ry = this.add.rectangle(W + rk * 340, 120 + rk * 150, 620, 30, 0xffffff, 0.07).setAngle(-24);
+      this.cineContent.add(ry); rayas.push(ry);
+      this.tweens.add({ targets: ry, x: -400, duration: 900 + rk * 240, repeat: -1 });
+    }
+    /* sacudida de esfuerzo 2-3px a alta frecuencia (se CLAVA en el freeze) */
+    const shakeTw = this.tweens.add({ targets: sp, x: "+=2", y: "-=2", duration: 46, yoyo: true, repeat: -1, delay: F.entrada_ms || 420 });
     if (cfg.especial) {   // la escena más espectacular: doble flash + líneas más gruesas
       this.lineasVelocidad(W * 0.3, H * 0.5, 1.4, 0xffd84d);
       this.time.delayedCall((F.entrada_ms || 420) * 0.6, () => this.uiCam.flash(140, 255, 216, 77));
@@ -1715,7 +1750,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const esc = { revelado: false, cerrado: false };
     const revelar = () => {
       if (esc.revelado) return; esc.revelado = true;
-      if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
+      this.uiCam.flash(60, 255, 255, 255);   // V6 §3.1: un frame blanco en el contacto
+      if (sp.active && sp._esPose) {
+        /* la pose final ilustrada (festejo / arquero que atajó), si existe */
+        const finId = this.poseParaEscena(cfg.prota, cfg.poseFinalProta || cfg.prota.anim);
+        if (finId && this.poseKey(finId) && finId !== poseId) {
+          sp.setTexture(this.poseKey(finId));
+          sp.setScale(360 / sp.height);
+        }
+      } else if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
       if (sr && sr.active && cfg.rival) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
       if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1) * 1.12); this.burst(sp.x, sp.y - 70); }
       else if (sr) sr.setScale((F.escala_rival || 2.9) * 1.12);
@@ -1735,29 +1778,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._escSkip = () => { if (!esc.revelado) revelar(); else cerrarYa(); };
     this.time.delayedCall(tPose, () => {
       if (esc.revelado) return;
-      if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2));
+      /* V6 §3.1 · EL FREEZE: la imagen SE CLAVA — sacudida y rayas paran, silencio */
+      shakeTw.stop();
+      rayas.forEach(r => this.tweens.killTweensOf(r));
+      if (sp.active && !sp._esPose) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2));
       this.musicaDuck(silencio);   // ANIME D: la música CALLA en el silencio pre-desenlace
     });
     this.time.delayedCall(tPose + silencio, revelar);
     this.time.delayedCall(tPose + silencio + this.msV(F.hold_ms || 1150), cerrarYa);
   }
   cerrarEscena(alFinal) {
+    /* V6 §3.1: CORTE SECO entre viñetas — negro un instante y de vuelta al
+       partido, nada de fundidos (como el manga entre viñetas) */
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
-    const ms = this.BAL.cine.corte_ms;
-    let hecho = false;
-    const volver = () => {
-      if (hecho) return; hecho = true;
-      this.limpiarContenido();
+    this.limpiarContenido();
+    this.cineBlack.setAlpha(1);   // un instante de NEGRO (la canaleta entre viñetas)
+    this.time.delayedCall(70, () => {
+      this.cineBlack.setAlpha(0);
       this.cineLayer.setVisible(false);
       this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
-      this.uiCam.fadeIn(ms, 0, 0, 0);
       this.zoomBase();
       this.estado = "LIBRE";
       alFinal && alFinal();
-    };
-    this.uiCam.once("camerafadeoutcomplete", volver);
-    this.uiCam.fadeOut(ms, 0, 0, 0);
-    this.time.delayedCall(ms + 140, volver);
+    });
   }
   /* ¿la capa cinemática está activa? (flag B + el sonido/pulido de la E6 acompañan) */
   hayEscenas() { return this.FLAGS.v4_escenas && this.FLAGS.e6_cine; }
