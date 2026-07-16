@@ -2382,7 +2382,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B8: el tema del avance crece al CRUZAR al campo rival (con la pelota) */
     if (this.FLAGS.e6_cine && st.posesion === "mia") {
       const zona = st.mios[st.ctrl].x > st.W / 2 ? "rival" : "propio";
-      if (zona !== this._zonaTema) { this._zonaTema = zona; this.SFX && this.SFX.temaCampo && this.SFX.temaCampo(zona); }
+      if (zona !== this._zonaTema) {
+        this._zonaTema = zona;
+        this.SFX && this.SFX.temaCampo && this.SFX.temaCampo(zona);
+        if (this.FLAGS.v4_musica && this.SFX && this.SFX.musicaZona) this.SFX.musicaZona(zona);   // V6 §6: el LOOP crece al cruzar
+      }
     }
     /* pan vivo: mientras dura el corte, el destino persigue al portador real */
     const cam = this.cameras.main;

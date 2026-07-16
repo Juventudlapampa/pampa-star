@@ -64,18 +64,25 @@
      RIVAL (tenso, menor, pulso corto). Un timer JS programa notas por delante
      en el reloj de WebAudio (no se traba con el frame rate). El silencio
      pre-desenlace se logra con musicaDuck (baja el bus de música y vuelve). */
+  /* V6 §6: temas con MÁS CAPAS Y CARÁCTER — bajo octavado, melodía, percusión
+     (bombo + hi-hat de ruido), y la capa que CRECE al cruzar al campo rival
+     (la melodía sube la octava y aparece el eco). Todo sintetizado, original. */
   var MUS_VOL = 0.5;
-  var mus = { gain: null, timer: null, tema: null, paso: 0, prox: 0, urgente: false };
+  var mus = { gain: null, timer: null, tema: null, paso: 0, prox: 0, urgente: false, subir: false };
   var TEMAS = {
     propia: {
-      bpm: 92,
-      bajo: [196, 0, 196, 0, 220, 0, 196, 0, 175, 0, 175, 0, 220, 0, 247, 0],
-      lead: [392, 0, 440, 0, 494, 0, 440, 392, 349, 0, 392, 0, 440, 0, 0, 0]
+      bpm: 96,
+      bajo: [98, 0, 98, 196, 0, 98, 0, 147, 110, 0, 110, 220, 0, 110, 0, 165],
+      lead: [392, 0, 440, 494, 0, 587, 494, 440, 392, 0, 330, 392, 0, 440, 0, 0],
+      kick: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0],
+      hat: [0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1]
     },
     rival: {
       bpm: 122,
       bajo: [110, 110, 0, 110, 104, 104, 0, 104, 98, 98, 0, 98, 104, 104, 117, 0],
-      lead: [0, 330, 0, 311, 0, 330, 0, 0, 0, 294, 0, 311, 0, 330, 349, 0]
+      lead: [0, 330, 0, 311, 0, 330, 0, 0, 0, 294, 0, 311, 0, 330, 349, 0],
+      kick: [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+      hat: [0, 1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1]
     }
   };
   function musEnsure() {
@@ -93,6 +100,17 @@
     o.connect(gn); gn.connect(mus.gain);
     o.start(t0); o.stop(t0 + dur + 0.02);
   }
+  /* percusión de ruido al bus de música (bombo grave / hi-hat agudo) */
+  function golpeMus(t0, dur, gain, freq, tipo) {
+    if (muted || !ctx) return;
+    var n = Math.max(1, Math.floor(ctx.sampleRate * dur)), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    var s = ctx.createBufferSource(); s.buffer = buf;
+    var f = ctx.createBiquadFilter(); f.type = tipo; f.frequency.value = freq;
+    var g = ctx.createGain(); g.gain.value = gain;
+    s.connect(f); f.connect(g); g.connect(mus.gain);
+    s.start(t0); s.stop(t0 + dur);
+  }
   function programar() {
     if (!mus.tema || !ctx) return;
     var T = TEMAS[mus.tema]; if (!T) return;
@@ -100,8 +118,16 @@
     if (mus.prox < ctx.currentTime) mus.prox = ctx.currentTime + 0.03;   // se quedó atrás (pestaña dormida)
     while (mus.prox < ctx.currentTime + 0.4) {
       var i = mus.paso % 16, t0 = mus.prox;
+      /* bajo (con quinta sutil), melodía (que SUBE en campo rival), percusión */
       notaMus("square", T.bajo[i], t0, paso * 0.9, 0.05);
-      notaMus("triangle", T.lead[i], t0, paso * 1.6, 0.045);
+      if (T.bajo[i] && i % 4 === 0) notaMus("square", T.bajo[i] * 1.5, t0, paso * 0.5, 0.02);
+      var lf = T.lead[i];
+      if (lf) {
+        notaMus("triangle", mus.subir ? lf * 2 : lf, t0, paso * 1.6, 0.045);
+        if (mus.subir) notaMus("triangle", lf, t0 + paso / 2, paso * 0.8, 0.02);   // el eco de abajo: la capa que crece
+      }
+      if (T.kick[i]) { golpeMus(t0, 0.09, 0.16, 190, "lowpass"); notaMus("triangle", 58, t0, 0.07, 0.05); }
+      if (T.hat[i]) golpeMus(t0, 0.03, 0.05, 6200, "highpass");
       if (mus.tema === "rival" && i % 4 === 2) notaMus("square", 1180, t0, 0.03, 0.02);   // púa tensa
       if (mus.urgente && i % 8 < 2) notaMus("square", 880, t0, 0.05, 0.06);               // tictac del final
       mus.paso++; mus.prox += paso;
@@ -112,9 +138,12 @@
     if (nombre === mus.tema) return;
     mus.tema = nombre || null;
     mus.paso = 0; mus.prox = ctx.currentTime + 0.05;
+    mus.subir = false;                                 // el tema nuevo arranca abajo
     if (mus.tema && !mus.timer) mus.timer = setInterval(programar, 120);
     if (!mus.tema && mus.timer) { clearInterval(mus.timer); mus.timer = null; }
   }
+  /* V6 §6: el tema CRECE al cruzar al campo rival (sin resetear el compás) */
+  function musicaZona(zona) { mus.subir = zona === "rival"; }
   function musicaDuck(ms) {
     if (!ctx || !mus.gain) return;
     var t = ctx.currentTime, s = Math.max(0.1, (ms || 500) / 1000);
@@ -133,6 +162,7 @@
     },
     isMuted: function () { return muted; },
     musicaTema: musicaTema,
+    musicaZona: musicaZona,
     musicaDuck: musicaDuck,
     musicaUrgente: function (on) { mus.urgente = !!on; },
 
