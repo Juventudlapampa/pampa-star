@@ -1,14 +1,14 @@
 {
   "_schema": "pampa-star/megacosas@1",
-  "_nota": "Feel v3 B5/B6: los movimientos ESPECIALES viven en DATA (nada hardcodeado). Cada uno tiene nombre propio pampeano, grito, costo alto de guts (escala máx 1000) y nivel de desbloqueo por progresión de carrera (career.nivel; sin carrera = nivel 1). mult multiplica el poder. x_min: línea de cancha que lo habilita (tiros).",
+  "_nota": "Feel v3 B5/B6: los movimientos ESPECIALES viven en DATA (nada hardcodeado). Cada uno tiene nombre propio pampeano, grito, costo alto de aguante (escala máx 1000) y nivel de desbloqueo por progresión de carrera (career.nivel; sin carrera = nivel 1). mult multiplica el poder. x_min: línea de cancha que lo habilita (tiros).",
   "megatiros": [
-    { "id": "calden", "n": "Disparo del Caldén", "grito": "¡CALDENAZO!", "sub": "la fuerza del árbol eterno", "guts": 300, "nivel": 1, "mult": 1.3, "x_min": 680 },
-    { "id": "atuel", "n": "Tiro del Atuel", "grito": "¡ATUELAZO!", "sub": "el río que no negocia", "guts": 380, "nivel": 3, "mult": 1.45, "x_min": 640 },
-    { "id": "tornado", "n": "Tornado Pampeano", "grito": "¡TORNADO!", "sub": "el viento que arrasa", "guts": 450, "nivel": 5, "mult": 1.6, "x_min": 600 }
+    { "id": "calden", "n": "Disparo del Caldén", "grito": "¡CALDENAZO!", "sub": "la fuerza del árbol eterno", "aguante": 300, "nivel": 1, "mult": 1.3, "x_min": 680 },
+    { "id": "atuel", "n": "Tiro del Atuel", "grito": "¡ATUELAZO!", "sub": "el río que no negocia", "aguante": 380, "nivel": 3, "mult": 1.45, "x_min": 640 },
+    { "id": "tornado", "n": "Tornado Pampeano", "grito": "¡TORNADO!", "sub": "el viento que arrasa", "aguante": 450, "nivel": 5, "mult": 1.6, "x_min": 600 }
   ],
   "megadefensas": [
-    { "id": "pampero", "n": "Quite Pampero", "grito": "¡PAMPERO!", "tipo": "quite", "guts": 260, "nivel": 2, "bonus": 18 },
-    { "id": "medano", "n": "Bloqueo Médano", "grito": "¡MÉDANO!", "tipo": "bloqueo", "guts": 240, "nivel": 2, "bonus": 16 },
-    { "id": "tranquera", "n": "La Tranquera", "grito": "¡TRANQUERA!", "tipo": "atajada", "guts": 300, "nivel": 3, "bonus": 20 }
+    { "id": "pampero", "n": "Quite Pampero", "grito": "¡PAMPERO!", "tipo": "quite", "aguante": 260, "nivel": 2, "bonus": 18 },
+    { "id": "medano", "n": "Bloqueo Médano", "grito": "¡MÉDANO!", "tipo": "bloqueo", "aguante": 240, "nivel": 2, "bonus": 16 },
+    { "id": "tranquera", "n": "La Tranquera", "grito": "¡TRANQUERA!", "tipo": "atajada", "aguante": 300, "nivel": 3, "bonus": 20 }
   ]
 }

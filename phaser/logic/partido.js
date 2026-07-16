@@ -125,16 +125,18 @@
   }
 
   /* ANIME v4 Bloque A: el mejor MARCADOR es el más cercano a la pelota con
-     preferencia por el que está ENTRE la pelota y tu arco (x=0). */
+     preferencia por el que está ENTRE la pelota y tu arco (x=0).
+     V6 §1 F4: EXCLUYENDO al que acaba de perderla (queda fuera de la jugada). */
   function scoreMarcador(st, i) {
     var j = st.mios[i];
     if (!j || j.pos === "ARQ") return 1e9;
     var d = dist(j.x, j.y, st.pelota.x, st.pelota.y);
     return j.x < st.pelota.x ? d * 0.72 : d;   // bien parado (entre pelota y arco) pesa menos
   }
-  function mejorMarcador(st) {
+  function mejorMarcador(st, excluir) {
     var mejor = -1, ms = 1e9;
     st.mios.forEach(function (j, i) {
+      if (excluir != null && i === excluir) return;
       var s = scoreMarcador(st, i);
       if (s < ms) { ms = s; mejor = i; }
     });
@@ -168,7 +170,7 @@
       ctrl.x = clamp(ctrl.x + input.dx / m * vel * dt, 14, st.W - 14);
       ctrl.y = clamp(ctrl.y + input.dy / m * vel * dt, 14, st.H - 14);
     }
-    /* v2 §7: recuperación SIN pelota (~2 guts/10s) — el que no conduce ni marca, respira.
+    /* v2 §7: recuperación SIN pelota (~2 aguante/10s) — el que no conduce ni marca, respira.
        El tanque rival también (si no, muere al minuto 25 y el partido pierde dinámica). */
     var regen = bal.aguante.recuperacion_por_segundo || 0;
     if (regen) {
@@ -200,6 +202,27 @@
       var caza = st.rivales.map(function (j, i) { return { i: i, d: dist(j.x, j.y, ctrl.x, ctrl.y) }; })
         .filter(function (o) { return st.rivales[o.i].pos !== "ARQ"; })
         .sort(function (a, b) { return a.d - b.d; }).slice(0, R.persecutores);
+      /* V6 §1 F5: la defensa MARCA — cada receptor tuyo adelantado tiene un rival
+         encima cerrándole la línea (el libre más cercano), no mirando de lejos */
+      var marcas = {};
+      var nMarc = R.marcadores != null ? R.marcadores : 2;
+      if (nMarc > 0) {
+        var ocupados = caza.map(function (o) { return o.i; });
+        st.mios.map(function (j, i) { return { i: i, x: j.x }; })
+          .filter(function (o) { return o.i !== st.ctrl && st.mios[o.i].pos !== "ARQ" && o.x > st.W * 0.45; })
+          .sort(function (a, b) { return b.x - a.x; }).slice(0, nMarc)
+          .forEach(function (obj) {
+            var m = st.mios[obj.i], mejorR = -1, mdR = 1e9;
+            st.rivales.forEach(function (r, ri) {
+              if (r.pos === "ARQ" || ocupados.indexOf(ri) >= 0) return;
+              var dd = dist(r.x, r.y, m.x, m.y);
+              if (dd < mdR) { mdR = dd; mejorR = ri; }
+            });
+            if (mejorR < 0) return;
+            ocupados.push(mejorR);
+            marcas[mejorR] = { x: m.x + 26, y: m.y };   // se planta ENTRE el receptor y su arco
+          });
+      }
       st.rivales.forEach(function (j, i) {
         var esCaza = caza.some(function (o) { return o.i === i; });
         if (esCaza) {
@@ -207,6 +230,11 @@
           var v = V.defensor_cerrando * dt;
           j.x += (ctrl.x - j.x) / d * Math.min(v, d);
           j.y += (ctrl.y - j.y) / d * Math.min(v, d);
+        } else if (marcas[i]) {
+          var d2 = dist(j.x, j.y, marcas[i].x, marcas[i].y) || 1;
+          var v2 = (V.posicionales_por_segundo || 36) * (R.marca_vel_mult || 1.3) * dt;
+          j.x += (marcas[i].x - j.x) / d2 * Math.min(v2, d2);
+          j.y += (marcas[i].y - j.y) / d2 * Math.min(v2, d2);
         } else moverPosicional(j, false, i);
       });
       /* encuentro: te salieron al cruce */
@@ -226,7 +254,9 @@
       /* ANIME A: cambio de marcador AUTOMÁTICO (con histéresis para no titilar).
          No pisa al jugador mientras conduce (input) ni justo tras un cambio manual. */
       if ((!bal.vista || bal.vista.cambio_auto !== false) && (!input || (!input.dx && !input.dy)) && st._t > (st._noAutoHasta || 0)) {
-        var cand = mejorMarcador(st);
+        /* V6 F4: el que acaba de perderla queda excluido un rato del automático */
+        var excl = (st._perdioHasta && st._t < st._perdioHasta) ? st._perdioIdx : null;
+        var cand = mejorMarcador(st, excl);
         if (cand >= 0 && cand !== st.ctrl &&
           (st.mios[st.ctrl].pos === "ARQ" || scoreMarcador(st, cand) < scoreMarcador(st, st.ctrl) * 0.7)) st.ctrl = cand;
       }
@@ -379,7 +409,12 @@
     var c = st.mios[st.ctrl], mejor = 0, md = 1e9;
     st.rivales.forEach(function (j, i) { if (j.pos === "ARQ") return; var d = dist(j.x, j.y, c.x, c.y); if (d < md) { md = d; mejor = i; } });
     st.portadorRival = mejor;
-    st.ctrl = masCercanoAPelota(st);
+    /* V6 §1 F4: el control pasa al MEJOR posicionado, EXCLUYENDO al que la perdió
+       (y lo recuerda un rato para que el automático tampoco vuelva a él) */
+    st._perdioIdx = st.ctrl;
+    st._perdioHasta = st._t + 3000;
+    var cand = mejorMarcador(st, st._perdioIdx);
+    st.ctrl = cand >= 0 ? cand : masCercanoAPelota(st);
     st.esperaRival = st.bal.ritmo.arranque_rival_ms;
   }
   function ganarDefensa(st) {
@@ -400,11 +435,13 @@
       if (i === st.ctrl || j.pos === "ARQ") return;
       var d = dist(j.x, j.y, c.x, c.y);
       if (d > bal.partido.pase_radio) return;
-      /* riesgo: rival cerca de la línea de pase */
+      /* riesgo: rival EN EL CORREDOR de la línea de pase.
+         V6 §1 F3: uno que está detrás del pasador o pasado el receptor NO corta. */
       var riesgo = 0;
       st.rivales.forEach(function (r) {
         if (r.pos === "ARQ") return;
-        var t = clamp(((r.x - c.x) * (j.x - c.x) + (r.y - c.y) * (j.y - c.y)) / (d * d || 1), 0, 1);
+        var t = ((r.x - c.x) * (j.x - c.x) + (r.y - c.y) * (j.y - c.y)) / (d * d || 1);
+        if (t < 0.1 || t > 0.92) return;
         var px = c.x + (j.x - c.x) * t, py = c.y + (j.y - c.y) * t;
         var dr = dist(r.x, r.y, px, py);
         if (dr < 60) riesgo = Math.max(riesgo, (60 - dr) * 0.5);
@@ -482,7 +519,7 @@
   /* ---------- ANIME v4 Bloque F: PELOTA ALTA y tiros situacionales ----------
      Un pase LARGO ganado llega alto: por una ventana corta se abren las
      opciones aéreas (cabezazo / volea / chilena — la chilena exige juego
-     aéreo alto y MUCHOS guts). Bajarla la apaga. Todo parametrizado. */
+     aéreo alto y MUCHOS aguante). Bajarla la apaga. Todo parametrizado. */
   function pelotaAltaVigente(st) { return !!(st._altaHasta && st._t < st._altaHasta); }
   function marcarPelotaAlta(st, distancia) {
     var P = st.bal.partido;
@@ -531,7 +568,7 @@
   }
   /* parámetros del remate (la ESCENA llama a Duel.resolveShot con esto: una sola fuente de verdad).
      El salto de reloj del remate vive ACÁ (lógica), no en la escena. */
-  /* esCalden: true = Caldén clásico (compat tests) · objeto {guts, mult} = MEGATIRO de data (Feel B5) */
+  /* esCalden: true = Caldén clásico (compat tests) · objeto {aguante, mult} = MEGATIRO de data (Feel B5) */
   function prepararRemate(st, esCalden, rng) {
     var j = st.mios[st.ctrl], P = st.bal.partido, C = P.calden;
     var mega = (esCalden && typeof esCalden === "object") ? esCalden : null;
@@ -545,7 +582,7 @@
     if (vendido) { poder += P.bonus_arquero_vendido; st._vendidoHasta = 0; }
     if (mega) poder *= (mega.mult || 1.3);
     else if (especial) poder *= C.mult;
-    gastar(st, "mio", mega ? (mega.guts || st.bal.aguante.costo_calden) : (especial ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro));
+    gastar(st, "mio", mega ? (mega.aguante || st.bal.aguante.costo_calden) : (especial ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro));
     saltoReloj(st, rng);
     return { shotPower: poder, keeperSkill: st.rivalKeeperSkill, arqueroVendido: !!vendido, distancia: Math.round(d) };
   }

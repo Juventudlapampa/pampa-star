@@ -10,7 +10,7 @@
    toca: la simulación sigue en su espacio 1050×680 y la escena escala).
 
    Qué NO hay todavía (a propósito — una etapa por vez, doc §10):
-   animaciones y falsa perspectiva (Etapa 4) · economía de guts (Etapa 5) ·
+   animaciones y falsa perspectiva (Etapa 4) · economía de aguante (Etapa 5) ·
    cine/cut-ins (Etapa 6). Del §7 quedan SIN implementar (decisión anotada
    para Rodri, no son bugs): los menús de RECEPCIÓN (Trap/Through/volea/
    cabezazo al recibir — hoy el pase da control directo y el "through" vive
@@ -92,14 +92,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._pedido && this._pedido.rival) this.nombreRival = String(this._pedido.rival).toUpperCase().slice(0, 14);
     /* Feel B5: MEGACOSAS de data (nombres pampeanos, costo, nivel) + nivel de carrera */
     this.MEGA = this.game.registry.get("megacosas") || {
-      megatiros: [{ id: "calden", n: "Disparo del Caldén", grito: "¡CALDENAZO!", sub: "la fuerza del árbol eterno", guts: 300, nivel: 1, mult: 1.3, x_min: 680 }],
+      megatiros: [{ id: "calden", n: "Disparo del Caldén", grito: "¡CALDENAZO!", sub: "la fuerza del árbol eterno", aguante: 300, nivel: 1, mult: 1.3, x_min: 680 }],
       megadefensas: []
     };
     this._nivelCarrera = 1;
     try { const c = JSON.parse(localStorage.getItem("pampa_star_v1")); if (c && c.nivel) this._nivelCarrera = c.nivel | 0; } catch (e) { }
 
     /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
-       capa de HUD (radar + marcador + guts) y capa de MENÚ: solo la cámara de UI fija */
+       capa de HUD (radar + marcador + aguante) y capa de MENÚ: solo la cámara de UI fija */
     this.mundoLayer = this.add.container(0, 0);
     this.hudLayer = this.add.container(0, 0);
     this.menuLayer = this.add.container(0, 0);
@@ -125,9 +125,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     cam.roundPixels = true;       // scroll sin temblor (equivale al roundPixels del config, sin tocar index.html)
 
     /* --- ETAPA 2: RADAR + HUD en cámara fija (doc §3/§4) ---
-       Anime A: con la cancha entera visible el radar SOBRA — no se construye
-       (el pase dirigido se toca directo sobre la cancha) */
-    if (!this._vista4) this.buildRadar(); else this.radar = null;
+       V6 §1 F1: el radar VUELVE siempre (Anime A lo había sacado: error).
+       Con la ceguera (§2 R5) pasa a ser LA fuente de información del rival.
+       El pase dirigido acepta las dos: tocar la cancha o tocar el radar. */
+    this.buildRadar();
     this.buildHUD();
     this.buildBotonAccion();
     this.buildCineBase();
@@ -582,7 +583,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.textures.exists(key)) window.PampaAvatarArte.retrato64(this, key, look, expresion);
     return key;
   }
-  /* qué cara pone según el guts / lado (dolorido si está rendido) */
+  /* qué cara pone según el aguante / lado (dolorido si está rendido) */
   _exprPorGuts(gutsVal) {
     return gutsVal < this.BAL.aguante.umbral_rendido ? "dolorido" : "concentrado";
   }
@@ -602,13 +603,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const esc = 132 / img.height; img.setScale(esc);
     const marco = this.add.rectangle(x, 386, img.width * esc + 10, 142, 0x0a1f13, 0.55).setStrokeStyle(2, esRival ? 0xff8a50 : 0x4fc3f7);
     const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", fontStyle: "bold" }).setOrigin(0.5);
-    /* §6: nombre + BARRA de guts (color por umbral) + número SIEMPRE */
+    /* §6: nombre + BARRA de aguante (color por umbral) + número SIEMPRE */
     const max = this.BAL.aguante.max, frac = Phaser.Math.Clamp(gutsVal / max, 0, 1);
     const barCol = frac > 0.5 ? 0x2e7d32 : frac > 0.25 ? 0xf9a825 : 0xc62828;
     const barBg = this.add.rectangle(x, 480, 96, 9, 0x0a1f13, 0.9).setStrokeStyle(1, 0xf6efdc, 0.7);
     const bar = this.add.rectangle(x - 48 + 48 * frac, 480, 96 * frac, 7, barCol, 1);
-    const guts = this.add.text(x, 495, "GUTS " + Math.round(gutsVal), { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
-    this.menuLayer.add([marco, img, nom, barBg, bar, guts]);
+    const aguante = this.add.text(x, 495, "AGUANTE " + Math.round(gutsVal), { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    this.menuLayer.add([marco, img, nom, barBg, bar, aguante]);
   }
 
   /* ============ ETAPA 3 · EL MENÚ EN CRUZ con pausa (doc §7/§8/§9) ============ */
@@ -706,8 +707,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.FLAGS.e3_menus || this.estado !== "LIBRE") return;
     if (this._hintEspacio) { this._hintEspacio.destroy(); this._hintEspacio = null; }   // ayuda de primera vez: cumplió
     if (st.posesion === "mia") { st.modo = "congelado"; this.abrirMenuAtaque(null, true); }
-    /* Anime A: ESPACIO/⚡ es SOLO acción — en defensa el cambio es automático (TAB/⇄ = manual) */
-    else if (!this._vista4) { P.cambiarAlMasCercano(st); this.avisar("Marcás con " + st.mios[st.ctrl].nombre.toUpperCase()); }   // defensor más cercano (doc §7, cámara v2)
+    /* V6 §1 F4: ESPACIO es SOLO ACCIÓN, NUNCA cambia de jugador (TAB/⇄ = manual) */
   }
   limpiarMenu() { this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
   /* FEEL B1 · EL BEAT DE TENSIÓN: el cruce se anuncia 600-900ms ANTES del menú —
@@ -792,8 +792,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const strip = this.add.rectangle(480, 404, 960, 216, 0x0a1f13, 0.42);
     const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
     this.menuLayer.add([strip, tit]);
-    if (cfg.izq) this.retratoPanel(104, cfg.izq.j, !!cfg.izq.esRival, cfg.izq.guts);
-    if (cfg.der) this.retratoPanel(856, cfg.der.j, cfg.der.esRival !== false, cfg.der.guts);
+    if (cfg.izq) this.retratoPanel(104, cfg.izq.j, !!cfg.izq.esRival, cfg.izq.aguante);
+    if (cfg.der) this.retratoPanel(856, cfg.der.j, cfg.der.esRival !== false, cfg.der.aguante);
     const POS = { N: [480, 352], S: [480, 458], W: [318, 405], E: [642, 405] };
     this._menuOps = {}; this._menuSel = null; this._menuBtns = {};
     ["N", "S", "W", "E"].forEach(dir => {
@@ -868,19 +868,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const gam = A("gambeta"), par = A("pared"), tir = A("tiro");
     this.abrirMenuCruz({
       titulo: rival ? "⚔ ¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés?",
-      izq: { j: st.mios[st.ctrl], guts: st.mios[st.ctrl].aguante },
-      der: rival ? { j: rival, guts: st.aguanteRival } : null,
+      izq: { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante },
+      der: rival ? { j: rival, aguante: st.aguanteRival } : null,
       opciones: {
         W: { texto: "➡ PASE", sub: "elegí destino en el radar", cb: () => this.iniciarPaseDirigido(rivalIdx, libre) },
         N: {
-          texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " guts", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
+          texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " aguante", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
           cb: () => libre ? this.reanudarLibre() : this.resolverAccionAtaque(gam, rivalIdx)
         },
-        S: { texto: "🔁 UNO-DOS", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " guts", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
-        E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " guts" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+        S: { texto: "🔁 UNO-DOS", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
+        E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
       /* el MEGATIRO (de data, con nombre pampeano) convive con el tiro normal — va al centro */
-      centro: megaListo ? { texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15), sub: megaListo.guts + " guts · especial", cb: () => this.resolverTiro(megaListo, rivalIdx, libre) } : null,
+      centro: megaListo ? { texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15), sub: megaListo.aguante + " aguante · especial", cb: () => this.resolverTiro(megaListo, rivalIdx, libre) } : null,
       volver: libre ? () => this.reanudarLibre() : null
     });
   }
@@ -892,26 +892,26 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
     const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st) + 4, this.BAL.duelo) * 100);
     const qui = A("quite"), cor = A("corte"), blo = A("bloqueo");
-    const sub = a => a.bloqueada ? null : "~" + pct(a) + "% · " + a.costo + " guts";
+    const sub = a => a.bloqueada ? null : "~" + pct(a) + "% · " + a.costo + " aguante";
     this.abrirMenuCruz({
       titulo: "🛡 ¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
       /* §6 literal: ATACANTE a la izquierda, defensor a la derecha */
-      izq: { j: rival, esRival: true, guts: st.aguanteRival },
-      der: { j: st.mios[st.ctrl], esRival: false, guts: st.mios[st.ctrl].aguante },
+      izq: { j: rival, esRival: true, aguante: st.aguanteRival },
+      der: { j: st.mios[st.ctrl], esRival: false, aguante: st.mios[st.ctrl].aguante },
       opciones: {
         W: { texto: "✂ CORTE", sub: sub(cor), bloqueada: cor.bloqueada, motivo: cor.motivo, cb: () => this.resolverAccionDefensa(cor) },
         N: { texto: "🦶 QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
         E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
-        S: { texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " guts · el rival sigue", cb: () => this.resolverNoMoverse() }
+        S: { texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", cb: () => this.resolverNoMoverse() }
       },
       /* Feel B6: TU megacosa defensiva — misma gramática que el megatiro */
       centro: (() => {
         const m = this.megaDefensaDisponible(["quite", "bloqueo"], st.mios[st.ctrl]);
         if (!m) return null;
         return {
-          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.guts + " guts · especial",
-          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.guts + " guts", () => {
-            st.mios[st.ctrl].aguante = Math.max(0, st.mios[st.ctrl].aguante - m.guts);
+          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.aguante + " aguante · especial",
+          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.aguante + " aguante", () => {
+            st.mios[st.ctrl].aguante = Math.max(0, st.mios[st.ctrl].aguante - m.aguante);
             const base = m.tipo === "quite" ? qui : blo;
             this.resolverAccionDefensa({ id: base.id, poder: base.poder + (m.bonus || 16), costo: 0 });
           })
@@ -919,11 +919,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       })()
     });
   }
-  /* qué MEGADEFENSA está disponible para ese jugador (data + nivel + guts) */
+  /* qué MEGADEFENSA está disponible para ese jugador (data + nivel + aguante) */
   megaDefensaDisponible(tipos, j) {
     const nivel = this._nivelCarrera || 1;
     const lista = ((this.MEGA && this.MEGA.megadefensas) || []).filter(m =>
-      tipos.indexOf(m.tipo) >= 0 && nivel >= (m.nivel || 1) && j && j.aguante >= (m.guts || 250));
+      tipos.indexOf(m.tipo) >= 0 && nivel >= (m.nivel || 1) && j && j.aguante >= (m.aguante || 250));
     return lista.length ? lista[lista.length - 1] : null;
   }
   abrirMenuArquero() {
@@ -933,8 +933,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const ops = P.opcionesArquero(st);
     this.abrirMenuCruz({
       titulo: "🧤 ¡" + this.nombreRival + " remata! Tu arquero bajo los tres palos…",
-      izq: { j: arq, guts: arq.aguante },
-      der: { j: st.rivales[st.portadorRival], guts: st.aguanteRival },
+      izq: { j: arq, aguante: arq.aguante },
+      der: { j: st.rivales[st.portadorRival], aguante: st.aguanteRival },
       opciones: {
         W: { texto: "🧤 " + ops[0].n, sub: ops[0].riesgo, cb: () => this.resolverArquero(ops[0].id) },
         N: { texto: "👊 " + ops[1].n, sub: ops[1].riesgo, cb: () => this.resolverArquero(ops[1].id) }
@@ -944,9 +944,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const m = this.megaDefensaDisponible(["atajada"], arq);
         if (!m) return null;
         return {
-          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.guts + " guts · especial",
-          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.guts + " guts", () => {
-            arq.aguante = Math.max(0, arq.aguante - m.guts);
+          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.aguante + " aguante · especial",
+          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.aguante + " aguante", () => {
+            arq.aguante = Math.max(0, arq.aguante - m.aguante);
             this.resolverArquero("atajar", m.bonus || 20, m.grito);
           })
         };
@@ -960,7 +960,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B6: si el rival vino con megacosa, pega en este duelo (y la paga) */
     const megaR = this._megaRival; this._megaRival = null;
     const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo, bonusRival: megaR ? megaR.bonus : 0 });
-    if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.guts * (this.BAL.aguante.cpu_factor_costo || 1));
+    if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.aguante * (this.BAL.aguante.cpu_factor_costo || 1));
     /* ANIME B (P2): la GAMBETA se VE — el que encara en pose, el que queda atrás */
     const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
     if (r.win) {
@@ -1041,7 +1041,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   resolverNoMoverse() {
     const st = this.st, P = window.PampaPartido;
     const r = P.esperarDefensa(st);
-    this.mostrarResolucion("Esperás y juntás aire (+" + r.recupero + " guts).\nEl rival sigue…", "#f6efdc", null);
+    this.mostrarResolucion("Esperás y juntás aire (+" + r.recupero + " aguante).\nEl rival sigue…", "#f6efdc", null);
   }
   resolverArquero(id, bonus, grito) {
     const st = this.st, P = window.PampaPartido;
@@ -1088,7 +1088,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const megaR = this._megaRival; this._megaRival = null;
       const acc = P.accionesAtaque(st).find(a => a.id === "tiro");
       const r = P.resolverDuelo(st, { accion: "tiro", poder: acc ? acc.poder : 50, costo: 0, bonusRival: megaR ? megaR.bonus : 0 });
-      if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.guts * (this.BAL.aguante.cpu_factor_costo || 1));
+      if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.aguante * (this.BAL.aguante.cpu_factor_costo || 1));
       if (!r.win) {
         P.perderPelota(st);
         if (megaR) {
@@ -1105,7 +1105,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const mega = (esCalden && typeof esCalden === "object") ? esCalden : (esCalden ? this.megaDisponible() : null);
     if (mega && this.FLAGS.e6_cine) {
       /* FEEL B5 · MEGATIRO: anuncio con cut-in y carga → ejecución exigente → CINE de 5 planos */
-      this.cutInEspecial("¡" + mega.n.toUpperCase() + "!", (mega.sub || "") + " · " + mega.guts + " guts", () => {
+      this.cutInEspecial("¡" + mega.n.toUpperCase() + "!", (mega.sub || "") + " · " + mega.aguante + " aguante", () => {
         this.abrirTiming(mega, (ej) => this.dispararConCine(mega, ej));
       });
     } else {
@@ -1115,7 +1115,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   /* ============ ANIME v4 Bloque F · LA DECISIÓN AÉREA ============
      El pase largo llega ALTO: cabezazo / volea / chilena (o bajarla y jugar).
-     La chilena exige juego aéreo alto y 250 guts — y tiene la escena más
+     La chilena exige juego aéreo alto y 250 aguante — y tiene la escena más
      espectacular del juego. LA DEFINICIÓN aplica con ventanas más chicas. */
   abrirMenuAereo() {
     const st = this.st, P = window.PampaPartido;
@@ -1123,10 +1123,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const acc = P.accionesAereas(st);
     const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
     const cab = A("cabezazo"), vol = A("volea"), chi = A("chilena");
-    const sub = a => a.bloqueada ? null : "~" + Math.round(a.poder) + " de poder · " + a.costo + " guts";
+    const sub = a => a.bloqueada ? null : "~" + Math.round(a.poder) + " de poder · " + a.costo + " aguante";
     this.abrirMenuCruz({
       titulo: "☁ ¡LA PELOTA VIENE ALTA! ¿Cómo la resolvés? (ventanas más exigentes)",
-      izq: { j: st.mios[st.ctrl], guts: st.mios[st.ctrl].aguante },
+      izq: { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante },
       opciones: {
         W: { texto: "🎯 CABEZAZO", sub: sub(cab), bloqueada: cab.bloqueada, motivo: cab.motivo, cb: () => this.resolverTiroAereo("cabezazo") },
         N: { texto: "⚡ VOLEA", sub: sub(vol), bloqueada: vol.bloqueada, motivo: vol.motivo, cb: () => this.resolverTiroAereo("volea") },
@@ -1163,7 +1163,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         prota: { j: tirador, esRival: false, anim: id === "cabezazo" ? "cabezazo" : "volea" },
         protaAngle: id === "chilena" ? -115 : 0,       // la vuelta en el aire
         especial: id === "chilena",
-        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "parado") } : null,
+        /* V6 §1 F2: ante todo tiro al arco el arquero vuela, sin excepciones */
+        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "estirada") } : null,
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : undefined,
@@ -1411,13 +1412,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
 
   /* qué MEGATIRO está disponible: de data (nombre pampeano), desbloqueado por nivel de
-     carrera, pagable con guts y pasada su línea de cancha. Devuelve el más potente. */
+     carrera, pagable con aguante y pasada su línea de cancha. Devuelve el más potente. */
   megaDisponible() {
     const st = this.st, j = st.mios[st.ctrl];
     if (!j || !j.esVos || st.posesion !== "mia") return null;
     const nivel = this._nivelCarrera || 1;
     const lista = ((this.MEGA && this.MEGA.megatiros) || []).filter(m =>
-      nivel >= (m.nivel || 1) && j.aguante >= (m.guts || 300) && j.x > (m.x_min || 680));
+      nivel >= (m.nivel || 1) && j.aguante >= (m.aguante || 300) && j.x > (m.x_min || 680));
     return lista.length ? lista[lista.length - 1] : null;
   }
   /* la BARRA DE TIMING (Feel B5): frenás la aguja en la zona buena — dedo o teclado, jamás mouse obligatorio.
@@ -1502,7 +1503,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.escenaCine({
         etiqueta: "· el remate ·",
         prota: { j: tirador, esRival: false, anim: "tiro" },
-        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "parado") } : null,
+        /* V6 §1 F2: el arquero SIEMPRE se estira — también cuando la pelota se va afuera */
+        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "estirada") } : null,
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : "tiro",
@@ -1679,7 +1681,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     img.setScale(180 / img.height);
     const txt = this.add.text(1150, 258, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "22px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 8 }).setOrigin(0.5);
     const subTxt = this.add.text(1150, 292, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
-    /* Feel B5: CARGA DE GUTS VISIBLE — la barra se llena mientras el anuncio dura */
+    /* Feel B5: CARGA DE AGUANTE VISIBLE — la barra se llena mientras el anuncio dura */
     const cargaBg = this.add.rectangle(560, 330, 340, 14, 0x0a1f13, 0.9).setStrokeStyle(2, 0xf6efdc, 0.8);
     const carga = this.add.rectangle(560 - 168, 330, 4, 10, 0xffd84d, 1).setOrigin(0, 0.5);
     const cargaTxt = this.add.text(560, 348, "cargando guts…", { fontFamily: "monospace", fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
@@ -1793,10 +1795,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const origen = { x: st.mios[st.ctrl].x, y: st.mios[st.ctrl].y };
     const destino = { x: st.mios[rec.idx].x, y: st.mios[rec.idx].y };
     if (alVacio) destino.x = Math.min(destino.x + (this.BAL.partido.vacio_avance || 130), st.W - 60);
+    /* V6 §1 F3: solo puede cortarla quien está GEOMÉTRICAMENTE entre pasador y
+       receptor, dentro del corredor — nunca uno que quedó detrás o al costado */
     let cortador = null, dMin = 60;
+    const pdx = destino.x - origen.x, pdy = destino.y - origen.y, pL2 = pdx * pdx + pdy * pdy || 1;
     st.rivales.forEach((r) => {
       if (r.pos === "ARQ") return;
-      const d = this.distALinea(r, origen, destino);
+      const t = ((r.x - origen.x) * pdx + (r.y - origen.y) * pdy) / pL2;
+      if (t < 0.1 || t > 0.92) return;
+      const d = Math.hypot(r.x - (origen.x + pdx * t), r.y - (origen.y + pdy * t));
       if (d < dMin) { dMin = d; cortador = r; }
     });
     /* la verdad se decide UNA vez en la lógica; el teatro solo la cuenta */
@@ -1996,7 +2003,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const barra = this.add.rectangle(480, 15, 960, 30, 0x0a1f13, 0.85);
     this.txtMarcador = this.add.text(480, 15, "", { fontFamily: "'Press Start 2P',monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
     this.txtReloj = this.add.text(948, 15, "", { fontFamily: "monospace", fontSize: "14px", color: "#ffd84d" }).setOrigin(1, 0.5);
-    /* guts del portador: color por umbral + SIEMPRE el número exacto (no depende del color) */
+    /* aguante del portador: color por umbral + SIEMPRE el número exacto (no depende del color) */
     this.txtGuts = this.add.text(948, 512, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtReloj, this.gutsG, this.txtGuts]);
@@ -2021,7 +2028,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._hudMarc !== marcador) { this._hudMarc = marcador; this.txtMarcador.setText(marcador); }
     const reloj = (m > lim ? lim + "+'" : m + "'") + " " + (st.tiempo === 1 ? "1T" : "2T");
     if (this._hudReloj !== reloj) { this._hudReloj = reloj; this.txtReloj.setText(reloj); }
-    /* barra de guts del PORTADOR (si la tiene el rival, su tanque compartido) */
+    /* barra de aguante del PORTADOR (si la tiene el rival, su tanque compartido) */
     const p = this.portadorActual();
     const max = this.BAL.aguante.max;
     const val = p.esRival ? this.st.aguanteRival : p.j.aguante;
@@ -2032,7 +2039,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillStyle(0x0a1f13, 0.85); g.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
     g.fillStyle(color, 1); g.fillRect(bx, by, bw * frac, bh);
     g.lineStyle(1, 0xf6efdc, 0.8); g.strokeRect(bx, by, bw, bh);
-    const gutsTxt = "GUTS " + Math.round(val);
+    const gutsTxt = "AGUANTE " + Math.round(val);
     if (this._hudGuts !== gutsTxt) { this._hudGuts = gutsTxt; this.txtGuts.setText(gutsTxt); }
     /* Feel B3: el botón ⚡ACCIÓN pulsa cuando hay acciones disponibles */
     if (this._btnPulso) {
@@ -2106,7 +2113,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============================== UPDATE ============================== */
   update(time, delta) {
     const st = this.st, P = window.PampaPartido;
-    /* ETAPA 5: la economía de guts corre con el flag e5_guts; apagado = tanques quietos (sandbox) */
+    /* ETAPA 5: la economía de aguante corre con el flag e5_guts; apagado = tanques quietos (sandbox) */
     if (!this.FLAGS.e5_guts) { st.mios[st.ctrl].aguante = this.BAL.aguante.max; st.aguanteRival = this.BAL.aguante.max; }
 
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
@@ -2129,7 +2136,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
 
     /* input de movimiento: con pelota movés al portador; SIN pelota movés a tu
-       MARCADOR (lo leés en el radar por su anillo — perseguir drena guts, §7) */
+       MARCADOR (lo leés en el radar por su anillo — perseguir drena aguante, §7) */
     let input = null;
     if (this.estado === "LIBRE") {
       const ctrl = st.mios[st.ctrl];
@@ -2160,7 +2167,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this._megaRival = null;
         const F6 = this.BAL.feel || {};
         if (this.FLAGS.e6_cine && st.mios[st.ctrl].x > (F6.mega_x_caliente || 700)) {
-          const defs = ((this.MEGA && this.MEGA.megadefensas) || []).filter(m => (m.tipo === "quite" || m.tipo === "bloqueo") && st.aguanteRival >= (m.guts || 250));
+          const defs = ((this.MEGA && this.MEGA.megadefensas) || []).filter(m => (m.tipo === "quite" || m.tipo === "bloqueo") && st.aguanteRival >= (m.aguante || 250));
           if (defs.length) {
             const semilla = ((st.golesMio + st.golesRival) * 7 + Math.floor(st.minuto * 10)) % 100;
             if (semilla / 100 < (F6.mega_prob_caliente || 0.45)) this._megaRival = defs[semilla % defs.length];

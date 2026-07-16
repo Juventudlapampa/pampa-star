@@ -370,7 +370,7 @@
         <span class="chip">● PUNTOS <b id="wk-puntos">0</b></span>
         <span class="chip">💰 <b id="wk-plata">$0</b></span>
         <span class="chip">🧉 ÁNIMO <b id="wk-animo">70</b></span>
-        <span class="chip">🔋 GUTS PRÓX. <b id="wk-guts">100</b></span>
+        <span class="chip">🔋 AGUANTE PRÓX. <b id="wk-guts">100</b></span>
       </div>
       <div class="wk-grid" id="wk-grid"></div>
       <div class="wk-detail" id="wk-detail">Repartí tus puntos de la semana y cerrala cuando estés.</div>
@@ -389,7 +389,7 @@
       <div class="score"><span class="me" id="hud-me">VOS</span><span class="nm" id="hud-me-n"></span> <span id="hud-gme">0</span>-<span id="hud-grv">0</span> <span class="nm" id="hud-rv">RIVAL</span></div>
       <div class="clockchip"><span id="hud-min">0'</span><span class="hf" id="hud-half">1T</span></div>
       <button class="mutebtn" id="btn-mute">🔊 ON</button>
-      <div class="guts"><span class="lab" id="guts-lab">GUTS</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
+      <div class="guts"><span class="lab" id="guts-lab">AGUANTE</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
     </div>
 
     <div class="mmwrap">
@@ -463,7 +463,7 @@
    PARTIDO COMPLETO: reloj estilizado de 90' en dos tiempos con entretiempo.
    - ATAQUE: movés tu sprite con d-pad hacia el arco rival (derecha). Un defensor
      te cruza -> SE CONGELA -> menú tipo Pokémon (Gambeta/Pase/Pared/Tiro) -> duelo
-     de stats + Guts, sin barra de timing. En el área, duelo con el arquero.
+     de stats + aguante, sin barra de timing. En el área, duelo con el arquero.
    - DEFENSA: el rival avanza hacia TU arco (izquierda). Lo cruzás -> SE CONGELA ->
      menú (Quitar/Cortar pase/Bloquear/Marcar) -> duelo. Ganás: recuperás. Perdés:
      sigue, y si llega al área define contra tu arquero.
@@ -492,14 +492,14 @@ const GUTS_RENDIDO      = 25;     // V4 doc §8: por debajo, solo pasar y correr
 /* — reloj (V4 doc §6) — */
 const SEGUNDOS_POR_MINUTO = 15;   // segundos reales por minuto de juego libre (default del doc)
 const MINUTOS_POR_ACCION = [0,0]; // (v3.1: las acciones ya no saltan el reloj; queda por compat)
-const GUTS_ENTRETIEMPO   = 20;    // Guts que recupera el equipo en el entretiempo (§6: el ARQ solo si le convirtieron)
+const GUTS_ENTRETIEMPO   = 20;    // Aguante que recupera el equipo en el entretiempo (§6: el ARQ solo si le convirtieron)
 /* — córners y pelota aérea (V4.2) — */
 const CORNER_PROB       = 0.35;   // chance de que una atajada mande la pelota al córner
 /* =========================================================================== */
 
 /* ====== TIROS ESPECIALES PAMPEANOS ======
    Subís de NIVEL cada GOLES_POR_NIVEL goles de carrera. Los especiales se desbloquean
-   por nivel, cuestan mucho Guts y tienen mejor chance + animación dramática.
+   por nivel, cuestan mucho aguante y tienen mejor chance + animación dramática.
    Solo el Disparo del Caldén está cableado; Atuel y Tornado quedan definidos pero
    bloqueados (PRÓXIMAMENTE) como desbloqueos futuros. */
 const GOLES_POR_NIVEL = 3;
@@ -518,7 +518,7 @@ function nivelJugador(){ return 1 + Math.floor(((career&&career.goles)||0)/GOLES
    El modelo de datos nace GÉNERO NEUTRO: ningún personaje tiene género cargado
    y los textos evitan él/ella (se usa el nombre o frases neutras). */
 const PUNTOS_SEMANA = 3;          // puntos de energía/tiempo por semana
-const GUTS_BASE_POSPARTIDO = 75;  // con cuánto Guts quedás después de un partido (descansar lo sube)
+const GUTS_BASE_POSPARTIDO = 75;  // con cuánto aguante quedás después de un partido (descansar lo sube)
 const VIVIR_EVENTOS = [
   {t:"Changa de fin de semana: descargaste bolsas en el acopio.", plata:60, animo:-2},
   {t:"Asado en la pensión con todo el equipo. Se quedó hablando de fútbol hasta cualquier hora.", plata:-15, animo:8},
@@ -918,7 +918,7 @@ function renderSeason(){
     }
     const v=ensureVida();
     if(v){
-      $("se-next").insertAdjacentHTML("beforeend", `<div class="subl">🔋 Guts ${v.gutsProximo} · 💰 $${v.plata} · 🧉 Ánimo ${v.animo}</div>`);
+      $("se-next").insertAdjacentHTML("beforeend", `<div class="subl">🔋 Aguante ${v.gutsProximo} · 💰 $${v.plata} · 🧉 Ánimo ${v.animo}</div>`);
       if(v.semanaPendiente) $("btn-jugar").textContent="VIVIR LA SEMANA ▶";
     }
   }
@@ -1007,7 +1007,7 @@ function wkAcciones(){
   const lleno = v.amigos.length>=4;
   return [
     {k:"entrenar",  ico:"🏋️", n:"ENTRENAR",  d:"+1 stat (tuya o del grupo)"},
-    {k:"descansar", ico:"😴", n:"DESCANSAR", d:`+15 Guts para la fecha (hoy ${v.gutsProximo})`},
+    {k:"descansar", ico:"😴", n:"DESCANSAR", d:`+15 aguante para la fecha (hoy ${v.gutsProximo})`},
     {k:"juntarse",  ico:"🤝", n:"JUNTARSE",  d: v.amigos.length? "Subí el vínculo con tu grupo" : "Primero reclutá a alguien"},
     {k:"vivir",     ico:"🧉", n:"VIVIR",     d:"La familia, la changa, el asado"},
     {k:"reclutar",  ico:"➕", n:"RECLUTAR",  d: lleno? "Grupo completo (4/4)" : "Sumá a alguien al grupo", off: lleno},
@@ -1112,7 +1112,7 @@ const WK_HANDLERS = {
     if(!gastarPunto()) return;
     v.gutsProximo=Math.min(100,v.gutsProximo+15);
     v.animo=clamp(v.animo+4,0,100); saveCareer();
-    $("wk-detail").innerHTML=`😴 Siesta larga, mate y tele: <b>+15 Guts</b> para la fecha (🔋 ${v.gutsProximo}) y <b>+4 ánimo</b> (🧉 ${v.animo}).`;
+    $("wk-detail").innerHTML=`😴 Siesta larga, mate y tele: <b>+15 aguante</b> para la fecha (🔋 ${v.gutsProximo}) y <b>+4 ánimo</b> (🧉 ${v.animo}).`;
     renderWeekChips();
   },
   vivir(){
@@ -1289,7 +1289,7 @@ function newState(club, rival){
     paredAutoUsada:false, vincParedes:0, golesAmigos:{},
     escena:null, colaEscenas:[], _t:0, _last:0,                   // V3·2 máquina de escenas
     rivalGuts:100,
-    desc1:rnd(1,3), desc2:rnd(1,4),   // V4·E4: descuento OCULTO de cada tiempo (finales de infarto)                                                // V4·E3: la CPU también se cansa (nada de Guts infinitos)
+    desc1:rnd(1,3), desc2:rnd(1,4),   // V4·E4: descuento OCULTO de cada tiempo (finales de infarto)                                                // V4·E3: la CPU también se cansa (nada de aguante infinito)
   };
 }
 /* V4·E3: fuerza efectiva del rival — baja cuando su equipo se queda sin nafta */

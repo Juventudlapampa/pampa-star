@@ -139,7 +139,7 @@ function partidoNuevo(rng) {
   st.mios[st.ctrl].x = st.W - 100;
   ok(P.puedeTirar(st), "cerca: podés tirar");
   ok(P.puedeCalden(st), "VOS + posición + aguante: Caldén habilitado");
-  st.mios[st.ctrl].aguante = bal.aguante.costo_calden - 1;   // agnóstico de la escala de guts
+  st.mios[st.ctrl].aguante = bal.aguante.costo_calden - 1;   // agnóstico de la escala de aguante
   ok(!P.puedeCalden(st), "sin aguante: Caldén bloqueado");
   st.mios[st.ctrl].aguante = bal.aguante.max;
   var prep = P.prepararRemate(st, true);
@@ -230,31 +230,73 @@ function partidoNuevo(rng) {
   st.mios[lejos].x = st.mios[st.ctrl].x + bal.partido.alto_desde + 60; st.mios[lejos].y = st.mios[st.ctrl].y;
   P.resolverPase(st, lejos, 100, seq([0.0]));
   ok(P.pelotaAltaVigente(st), "el pase largo marca pelota ALTA");
-  /* opciones aéreas: cerca del arco, con stats y guts */
+  /* opciones aéreas: cerca del arco, con stats y aguante */
   var j = st.mios[st.ctrl];
   j.x = st.W - 120; j.aguante = 1000; j.stats.aereo = 80; j.stats.tiro = 70;
   var acc = P.accionesAereas(st);
   ok(acc.length === 3, "3 opciones aéreas");
   var chi = acc.find(function (a) { return a.id === "chilena"; });
   var cab = acc.find(function (a) { return a.id === "cabezazo"; });
-  ok(!chi.bloqueada && !cab.bloqueada, "con aereo 80 y guts: chilena y cabezazo habilitados");
+  ok(!chi.bloqueada && !cab.bloqueada, "con aereo 80 y aguante: chilena y cabezazo habilitados");
   ok(chi.poder > cab.poder, "la chilena pega más fuerte que el cabezazo");
   /* chilena exige juego aéreo */
   j.stats.aereo = 40;
   var chi2 = P.accionesAereas(st).find(function (a) { return a.id === "chilena"; });
   ok(chi2.bloqueada && /AÉREO/.test(chi2.motivo || ""), "sin juego aéreo la chilena se bloquea con motivo");
   j.stats.aereo = 80;
-  /* el remate aéreo consume guts, apaga la pelota alta y da parámetros al duelo */
+  /* el remate aéreo consume aguante, apaga la pelota alta y da parámetros al duelo */
   var g0 = j.aguante;
   var prep = P.prepararRemateAereo(st, "chilena");
   ok(prep.shotPower > 0 && prep.tipo === "chilena", "prepararRemateAereo entrega el remate");
-  ok(j.aguante === g0 - bal.aguante.costo_chilena, "la chilena costó " + bal.aguante.costo_chilena + " guts");
+  ok(j.aguante === g0 - bal.aguante.costo_chilena, "la chilena costó " + bal.aguante.costo_chilena + " aguante");
   ok(!P.pelotaAltaVigente(st), "tras el remate la pelota bajó");
   /* la ventana expira sola */
   st._altaHasta = st._t + 100; st._t += 200;
   ok(!P.pelotaAltaVigente(st), "la ventana de pelota alta expira");
   ok(P.accionesAereas(st).length === 0, "sin pelota alta no hay menú aéreo");
   console.log("[12] pelota alta + tiros situacionales: ok");
+})();
+
+/* ---- 13) V6 §1: fixes urgentes F3/F4/F5/F6 ---- */
+(function () {
+  /* F4: al perder la pelota, el control NO va al que la perdió */
+  var st = partidoNuevo();
+  var perdedor = st.ctrl;
+  st.mios.forEach(function (j) { j.x = 400; j.y = 340; });          // todos igual de cerca
+  st.mios[perdedor].x = 500; st.mios[perdedor].y = 340;             // el que la pierde, pegado a la pelota
+  P.perderPelota(st, seq([0.5]));
+  ok(st.ctrl !== perdedor, "F4: el que la perdió queda excluido del cambio");
+  ok(st._perdioIdx === perdedor && st._perdioHasta > st._t, "F4: la exclusión queda anotada con ventana");
+  /* F3: un rival DETRÁS del pasador no genera riesgo de corte */
+  var st2 = partidoNuevo();
+  var c = st2.mios[st2.ctrl];
+  c.x = 500; c.y = 340;
+  var rec = st2.mios.findIndex(function (j, i) { return i !== st2.ctrl && j.pos !== "ARQ"; });
+  st2.mios.forEach(function (j, i) { if (i !== st2.ctrl && i !== rec) { j.x = 60; j.y = 60; } });   // único receptor en radio
+  st2.mios[rec].x = 700; st2.mios[rec].y = 340;                     // receptor adelante
+  st2.rivales.forEach(function (r) { r.x = 100; r.y = 60; });       // todos lejos
+  st2.rivales[5].x = 480; st2.rivales[5].y = 345;                   // pegado al pasador pero DETRÁS (t<0.1)
+  var pctAtras = P.receptoresPase(st2).find(function (r) { return r.idx === rec; });
+  st2.rivales[5].x = 600; st2.rivales[5].y = 345;                   // ahora sí, en el corredor
+  var pctMedio = P.receptoresPase(st2).find(function (r) { return r.idx === rec; });
+  ok(pctAtras && pctMedio && pctAtras.pct > pctMedio.pct, "F3: el riesgo solo existe EN el corredor (" + pctAtras.pct + " > " + pctMedio.pct + ")");
+  /* F5: un rival libre va a MARCAR a tu receptor adelantado */
+  var st3 = partidoNuevo();
+  st3.cooldown = 9e9; st3.posesion = "mia";
+  var ade = st3.mios.findIndex(function (j, i) { return i !== st3.ctrl && j.pos === "ATA"; });
+  st3.mios[ade].x = st3.W * 0.7; st3.mios[ade].y = 340;
+  var libre = st3.rivales.findIndex(function (j) { return j.pos === "VOL"; });
+  st3.rivales[libre].x = st3.W * 0.7 + 200; st3.rivales[libre].y = 500;
+  var d0 = Math.hypot(st3.rivales[libre].x - st3.mios[ade].x, st3.rivales[libre].y - st3.mios[ade].y);
+  for (var i = 0; i < 40; i++) P.tick(st3, 100, null);
+  var dMin = Math.min.apply(null, st3.rivales.filter(function (r) { return r.pos !== "ARQ"; })
+    .map(function (r) { return Math.hypot(r.x - st3.mios[ade].x, r.y - st3.mios[ade].y); }));
+  ok(dMin < d0 - 30, "F5: hay un rival cerrando al receptor adelantado (d " + Math.round(d0) + "→" + Math.round(dMin) + ")");
+  /* F6: la terminología de terceros no existe en la data */
+  var mega = JSON.parse(fs.readFileSync(path.join(__dirname, "../../data/megacosas.json"), "utf8"));
+  ok(!/guts/i.test(JSON.stringify(mega)), "F6: megacosas.json sin terminología de terceros");
+  ok(!/guts/i.test(JSON.stringify(bal)), "F6: balance.json sin terminología de terceros");
+  console.log("[13] fixes urgentes V6 §1: ok");
 })();
 
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
