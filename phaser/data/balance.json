@@ -61,6 +61,14 @@
     "escala_rival": 2.9
   },
 
+  "intro": {
+    "_nota": "ADDENDUM v6 Parte A: EL OPENING (flag flags.intro_opening; se ve una vez por sesión, salteable con cualquier toque). Duraciones de los 8 planos en ms y los textos. El arte sale de assets/poses/ y assets/ui/: si falta un archivo, el plano se saltea solo.",
+    "planos_ms": [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000],
+    "t_pueblo": "En algún pueblo de La Pampa…",
+    "t_grito": "¡CALDENAZO!",
+    "t_bajada": "DEL POTRERO AL MUNDIAL"
+  },
+
   "musica": {
     "_nota": "ADDENDUM v6 Parte B (reemplaza §6): la DIRECCIÓN musical. El MOTIVO de 4 notas (semitonos: tónica→quinta→sexta→octava) aparece en todos los temas transformado. Cada tema: tónica (Hz), modo, BPM, progresión (grados en semitonos, i–VI–III–VII heroica / cromática descendente para el rival), percusión (0-1) y variante del motivo. viento = la capa pampeana sutil. Todo afinable acá, sin código.",
     "vol": 0.5,

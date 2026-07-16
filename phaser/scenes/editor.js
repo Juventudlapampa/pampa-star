@@ -90,6 +90,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     };
     btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
     btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.scene.start("match"); });
+    /* Addendum v6 A.2: repetir el opening a gusto */
+    const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
+    vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.scene.start("intro"); });
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: "monospace", fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
 
     this.refrescar();
