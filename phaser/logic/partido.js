@@ -338,9 +338,14 @@
   }
 
   /* ---------- aguante ---------- */
-  function poderRival(st) {    // la fuerza de la CPU cae con su tanque (no energía infinita)
-    var base = 52;
-    return base * (0.86 + 0.14 * clamp(st.aguanteRival / st.bal.aguante.max, 0, 1));   // fracción: sirve en cualquier escala
+  /* V6 §5: la CPU tiene aguante "infinito" pero con un LÍMITE INVISIBLE —
+     nunca se le bloquean acciones, pero pasado el umbral sus habilidades
+     caen EN PICADA. El rival se desgasta solo, sin que administres nada. */
+  function poderRival(st) {
+    var base = 52, A = st.bal.aguante;
+    var frac = clamp(st.aguanteRival / A.max, 0, 1);
+    if (frac < (A.cpu_umbral_frac != null ? A.cpu_umbral_frac : 0.3)) return base * (A.cpu_picada != null ? A.cpu_picada : 0.62);
+    return base * (0.86 + 0.14 * frac);   // fracción: sirve en cualquier escala
   }
   function gastar(st, quien, costo) {
     if (quien === "rival") st.aguanteRival = clamp(st.aguanteRival - costo * st.bal.aguante.cpu_factor_costo, 0, st.bal.aguante.max);

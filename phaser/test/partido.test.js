@@ -302,6 +302,33 @@ function partidoNuevo(rng) {
   console.log("[13] fixes urgentes V6 §1: ok");
 })();
 
+/* ---- 15) V6 §5: el balance del aguante contra el original ---- */
+(function () {
+  var A = bal.aguante;
+  /* la regla de oro es ARITMÉTICA: dos tiros top y chau */
+  ok(A.costo_calden * 2 <= A.max && A.costo_calden * 3 > A.max, "§5: el Caldén (450) se usa exactamente DOS veces");
+  ok(A.costo_calden === 450 && A.umbral_rendido === 110, "§5: Caldén 450, umbral de inutilidad 110");
+  ok(A.costo_pared === 120 && A.costo_gambeta === 90 && A.costo_tiro === 90, "§5: pared 120, gambeta 90, tiro 90");
+  ok(A.costo_quite === 50 && A.costo_pase === 20 && A.costo_chilena === 180 && A.costo_cabezazo === 200, "§5: quite 50, pase 20, chilena 180, cabezazo 200");
+  /* el entretiempo recupera ALTO: el crack que gastó su Caldén vuelve cerca de 800 */
+  var st = partidoNuevo();
+  st.mios.forEach(function (j) { j.aguante = 480; });
+  P.entretiempo(st);
+  ok(st.mios[0].aguante >= 800, "§5: entretiempo alto — el crack vuelve a " + Math.round(st.mios[0].aguante));
+  /* la CPU: límite invisible — pasado el umbral cae EN PICADA */
+  var st2 = partidoNuevo();
+  st2.aguanteRival = A.max;
+  var pAlto = P.poderRival(st2);
+  st2.aguanteRival = A.max * (A.cpu_umbral_frac - 0.05);
+  var pPicada = P.poderRival(st2);
+  ok(pPicada < pAlto * 0.72, "§5: la CPU en picada pierde MUCHO (" + pAlto.toFixed(1) + "→" + pPicada.toFixed(1) + ")");
+  /* la data de megacosas acompaña la tabla */
+  var mega = JSON.parse(fs.readFileSync(path.join(__dirname, "../../data/megacosas.json"), "utf8"));
+  var porId = {}; mega.megatiros.forEach(function (t) { porId[t.id] = t.aguante; });
+  ok(porId.calden === 450 && porId.atuel >= 250 && porId.atuel <= 280 && porId.tornado >= 250 && porId.tornado <= 280, "§5: megacosas.json en la escala del doc");
+  console.log("[15] balance del aguante v6: ok");
+})();
+
 /* ---- 14) V6 §2: modelo de saltos, separación, reloj por momentos ---- */
 (function () {
   /* R4: el reloj avanza EN BLOQUES fijos por momento */
