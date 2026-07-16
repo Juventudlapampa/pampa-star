@@ -113,6 +113,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     this._nivelCarrera = 1;
     try { const c = JSON.parse(localStorage.getItem("pampa_star_v1")); if (c && c.nivel) this._nivelCarrera = c.nivel | 0; } catch (e) { }
+    /* V6 §8 MODO MASTER: dificultad FIJA por división + perfil de IA por rival
+       (flag v6_master; la carrera de temporadas sigue viviendo en el clásico) */
+    this._division = null;
+    if (this.FLAGS.v6_master !== false && window.PampaMaster) {
+      const Ma = window.PampaMaster;
+      this._division = Ma.divisionPorNivel(this._nivelCarrera);
+      this._perfilRival = Ma.perfilRival(this.nombreRival);
+      Ma.aplicar(this.st, this._division, this._perfilRival);
+    }
 
     /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
        capa de HUD (radar + marcador + aguante) y capa de MENÚ: solo la cámara de UI fija */
@@ -215,6 +224,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       ? window.PampaRelator.crear(this.game.registry.get("relatos") || {}, {})
       : null;
     this.relatar("saque", { rival: this.nombreRival });
+    /* §8: el rival tiene identidad — que se sepa a qué juega */
+    if (this._perfilRival) this.avisar("⚔ " + this.nombreRival + " juega " + this._perfilRival.n);
   }
   /* el ticker del relator: una frase por vez, abajo, sin tapar el juego */
   relatar(situacion, ctx) {
@@ -2338,7 +2349,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   refrescarHUD() {
     const st = this.st;
     const m = Math.floor(st.minuto), lim = st.tiempo === 1 ? 45 : 90;
-    const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival;
+    const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival +
+      (this._division ? "  ·  " + this._division.n : "");
     if (this._hudMarc !== marcador) { this._hudMarc = marcador; this.txtMarcador.setText(marcador); }
     const reloj = (m > lim ? lim + "+'" : m + "'") + " " + (st.tiempo === 1 ? "1T" : "2T");
     if (this._hudReloj !== reloj) { this._hudReloj = reloj; this.txtReloj.setText(reloj); }
