@@ -302,6 +302,35 @@ function partidoNuevo(rng) {
   console.log("[13] fixes urgentes V6 §1: ok");
 })();
 
+/* ---- 16) V6 §2 R3: el medidor de ENVIÓN (mérito acumulado) ---- */
+(function () {
+  var st = partidoNuevo();
+  ok(st.envion === 0, "R3: arranca vacío");
+  /* ganar duelos lo llena; perder no */
+  var antes = st.envion;
+  st.posesion = "mia";
+  P.resolverDuelo(st, { accion: "gambeta", costo: 0, rng: seq([0.9, 0.0]) });   // rng2 bajo = gano
+  ok(st.envion === antes + bal.envion.gana_duelo, "R3: ganar un duelo suma " + bal.envion.gana_duelo);
+  var conEnvion = st.envion;
+  P.resolverDuelo(st, { accion: "gambeta", poder: -999, costo: 0, rng: seq([0.0, 0.99]) });   // pierdo seguro
+  ok(st.envion === conEnvion, "R3: perder no suma");
+  /* lleno → potenciar da bonus temporal y se gasta */
+  st.envion = bal.envion.max;
+  ok(P.envionLleno(st), "R3: lleno al llegar al máximo");
+  ok(P.gastarEnvionPotencia(st) && st.envion === 0 && P.envionActivo(st), "R3: potenciar gasta a 0 y activa el buff");
+  st._t += bal.envion.potencia_ms + 1;
+  ok(!P.envionActivo(st), "R3: el buff expira solo");
+  /* súper defensa: solo con el medidor lleno */
+  ok(!P.gastarEnvionSuper(st), "R3: sin envión no hay súper defensa");
+  st.envion = bal.envion.max;
+  ok(P.gastarEnvionSuper(st) && st.envion === 0, "R3: la súper defensa gasta el mérito entero");
+  /* nunca pasa del máximo */
+  st.envion = bal.envion.max - 2;
+  P.sumarEnvion(st, 999);
+  ok(st.envion === bal.envion.max, "R3: acotado al máximo");
+  console.log("[16] medidor de envión: ok");
+})();
+
 /* ---- 15) V6 §5: el balance del aguante contra el original ---- */
 (function () {
   var A = bal.aguante;

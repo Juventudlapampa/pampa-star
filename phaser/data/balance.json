@@ -61,6 +61,14 @@
     "escala_rival": 2.9
   },
 
+  "envion": {
+    "_nota": "V6 §2 R3: el MEDIDOR DE ENVIÓN — mérito acumulado, no reflejo. Se llena ganando duelos (gana_duelo por victoria); lleno se gasta en POTENCIAR al equipo (potencia_bonus a todos los duelos por potencia_ms) o en la SÚPER DEFENSA (bloqueo seguro de un remate). Siempre se muestra con NÚMERO además de la barra.",
+    "max": 100,
+    "gana_duelo": 18,
+    "potencia_bonus": 10,
+    "potencia_ms": 20000
+  },
+
   "definicion": {
     "_nota": "V6 §4: LA DEFINICIÓN v2 (flag v6_definicion). Fase 1: los defensores se acercan a def_acercan_px_s (más esperás, mejor ángulo, más cerca los tenés; al contacto te la sacan). Fase 2: el duelo de 6 zonas (coincide/a_una/a_dos modulan al arquero) + timing (dulce/floja/pasada). Bloqueo del defensor en línea. Achicar del arquero: gana abajo, vendido al ángulo alto. Defensiva: carga_ms = cuánto tarda el rival en cargar el remate.",
     "def_acercan_px_s": 34,

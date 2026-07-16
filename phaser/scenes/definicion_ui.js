@@ -188,6 +188,14 @@
       this.defBoton(xs + paso, "🦵 BARRIDA", A.costo_quite + " · a todo o nada", 0xff8c3a, function () { self.defBarrida(); });
       this.defBoton(xs + paso * 2, "🧤 ACHICAR", "el arquero SALE", 0xf6efdc, function () { self._def.plan = "achicar"; self._def.arq.y = 190; self.avisarDef("Tu arquero achica el ángulo"); });
       this.defBoton(xs + paso * 3, "📏 LÍNEA", "margen de reacción", 0xf6efdc, function () { self._def.plan = "linea"; self._def.arq.y = 150; self.avisarDef("Tu arquero espera en la línea"); });
+      /* V6 R3: la SÚPER DEFENSA del envión lleno — bloqueo SEGURO, mérito gastado */
+      if (window.PampaPartido.envionLleno(st)) {
+        this.defBoton(xs + paso * 4, "🌟 SÚPER DEF.", "ENVIÓN lleno · segura", 0xffd84d, function () {
+          self._def.superDef = true;
+          self.avisarDef("🌟 ¡SÚPER DEFENSA lista! Este remate NO entra");
+        });
+        return;
+      }
       var m = this.megaDefensaDisponible(["atajada"], st.mios.find(function (x) { return x.pos === "ARQ"; }));
       if (m) this.defBoton(xs + paso * 4, "🔥 " + m.n.toUpperCase().slice(0, 10), m.aguante + " · segura", 0xffd84d, function () { self._def.mega = m; self.avisarDef("¡" + m.n.toUpperCase() + " lista!"); });
       else this.defBoton(xs + paso * 4, "⏳ QUIETO", "+" + A.recupera_no_moverse + " de aguante", 0xdcd6c2, function () {
@@ -374,6 +382,8 @@
         pBloqueo = D.chanceBloqueo(1, dLinea * (this._def.plantado ? 0.5 : 0.9), DL);
       }
       var bloqueado = Math.random() < pBloqueo;
+      /* V6 R3: la SÚPER DEFENSA gasta el envión y bloquea SEGURO */
+      if (this._def.superDef && P.gastarEnvionSuper(st)) bloqueado = true;
       var bonus = D.bonusArqueroPorZona(dz, DL) + (tim.enZona ? (DL.dulce_bonus || 8) : -8);
       var ach = this._def.plan === "achicar" ? D.efectoAchicar(this._def.zonaTiro, DL) : { dArquero: 0 };
       bonus += ach.dArquero;

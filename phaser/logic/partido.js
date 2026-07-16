@@ -71,6 +71,7 @@
       desc1: bal.ritmo.descuento_min + Math.floor(rng() * (bal.ritmo.descuento_max - bal.ritmo.descuento_min + 1)),
       desc2: bal.ritmo.descuento_min + Math.floor(rng() * (bal.ritmo.descuento_max - bal.ritmo.descuento_min + 1)),
       golesMio: 0, golesRival: 0,
+      envion: 0, _envionHasta: 0,               // V6 §2 R3: mérito acumulado (0..envion.max)
       posesion: "mia", modo: "juego",
       ctrl: idxDelVos(null), pelota: { x: W / 2, y: H / 2 },
       portadorRival: 0,
@@ -394,6 +395,25 @@
     return claves[claves.length - 1];
   }
 
+  /* ---------- V6 §2 R3: el MEDIDOR DE ENVIÓN (mérito acumulado, no reflejo) ----------
+     Se llena ganando quites, gambetas y duelos. Lleno, se gasta en POTENCIAR
+     al equipo unos momentos o en una SÚPER DEFENSA que bloquea seguro. */
+  function envionCfg(st) { return st.bal.envion || { max: 100, gana_duelo: 18, potencia_bonus: 10, potencia_ms: 20000 }; }
+  function sumarEnvion(st, n) { st.envion = clamp((st.envion || 0) + n, 0, envionCfg(st).max); }
+  function envionLleno(st) { return (st.envion || 0) >= envionCfg(st).max; }
+  function envionActivo(st) { return !!(st._envionHasta && st._t < st._envionHasta); }
+  function gastarEnvionPotencia(st) {
+    if (!envionLleno(st)) return false;
+    st.envion = 0;
+    st._envionHasta = st._t + envionCfg(st).potencia_ms;
+    return true;
+  }
+  function gastarEnvionSuper(st) {
+    if (!envionLleno(st)) return false;
+    st.envion = 0;
+    return true;
+  }
+
   /* MATRIZ DE VENTAJAS: quite>gambeta · corte>pase(y pared) · bloqueo>tiro */
   var CONTRA = { gambeta: "quite", pase: "corte", pared: "corte", tiro: "bloqueo" };
 
@@ -401,9 +421,11 @@
   function resolverDuelo(st, opts) {
     var rng = opts.rng || Math.random, bal = st.bal, B = bal.partido.matriz_bonus;
     var win, accionRival, matriz;
+    /* R3: el ENVIÓN activo potencia al equipo entero unos momentos */
+    var envBonus = envionActivo(st) ? (envionCfg(st).potencia_bonus || 10) : 0;
     if (st.posesion === "mia") {
       accionRival = eleccionCPU(st, rng);
-      var atk = (opts.poder != null ? opts.poder : statCtrl(st, opts.accion === "tiro" ? "tiro" : opts.accion === "gambeta" ? "gambeta" : "pase")) + bonusAguante(st);
+      var atk = (opts.poder != null ? opts.poder : statCtrl(st, opts.accion === "tiro" ? "tiro" : opts.accion === "gambeta" ? "gambeta" : "pase")) + bonusAguante(st) + envBonus;
       var def = poderRival(st);
       if (CONTRA[opts.accion] === accionRival) { def += B; matriz = "leyeron"; }   // te adivinaron
       else { atk += B * 0.6; matriz = "zafaste"; }                                  // esquivaste la marca equivocada
@@ -413,13 +435,14 @@
     } else {
       /* defiendo: la CPU "ataca" con intención oculta */
       accionRival = ["gambeta", "pase", "tiro"][Math.floor(rng() * 3)];
-      var defMio = (opts.poder != null ? opts.poder : 50) + bonusAguante(st);
+      var defMio = (opts.poder != null ? opts.poder : 50) + bonusAguante(st) + envBonus;
       var atkRiv = poderRival(st) + 4;
       if (CONTRA[accionRival] === opts.accion) { defMio += B; matriz = "leiste"; }  // le adivinaste la intención
       else { atkRiv += B * 0.6; matriz = "teEngano"; }
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
       win = rng() < Duel.duelChance(defMio, atkRiv, bal.duelo);
     }
+    if (win) sumarEnvion(st, envionCfg(st).gana_duelo);   // R3: el mérito se ACUMULA ganando
     saltoReloj(st, rng);
     return { win: win, accionRival: accionRival, matriz: matriz };
   }
@@ -693,6 +716,8 @@
     poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota,
     mejorMarcador: mejorMarcador, segPorMinuto: segPorMinuto,
     pelotaAltaVigente: pelotaAltaVigente, accionesAereas: accionesAereas,
-    prepararRemateAereo: prepararRemateAereo, bajarla: bajarla
+    prepararRemateAereo: prepararRemateAereo, bajarla: bajarla,
+    sumarEnvion: sumarEnvion, envionLleno: envionLleno, envionActivo: envionActivo,
+    gastarEnvionPotencia: gastarEnvionPotencia, gastarEnvionSuper: gastarEnvionSuper
   };
 });

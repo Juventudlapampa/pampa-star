@@ -81,7 +81,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._zonaTema = null;        // el tema del avance (propio/rival) arranca de cero
     this._megaRival = null;
     this._timing = null;
-    this._hudMarc = this._hudReloj = this._hudGuts = null;   // caches del HUD: el restart los recrea vacíos
+    this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = null;   // caches del HUD: el restart los recrea vacíos
+    this._btnEnvion = null;
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null;
     this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
@@ -2145,6 +2146,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.txtGuts = this.add.text(948, 512, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtReloj, this.gutsG, this.txtGuts]);
+    /* V6 §2 R3: el MEDIDOR DE ENVIÓN — barra + NÚMERO siempre (accesibilidad) */
+    this.envionG = this.add.graphics();
+    this.txtEnvion = this.add.text(948, 494, "", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc" }).setOrigin(1, 0.5);
+    this.hudLayer.add([this.envionG, this.txtEnvion]);
+    const be = this.add.rectangle(866, 396, 150, 48, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const bet = this.add.text(866, 396, "🌟 POTENCIAR", { fontFamily: "monospace", fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
+    this.hudLayer.add([be, bet]);
+    this._btnEnvion = [be, bet];
+    be.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
+      const P = window.PampaPartido;
+      if (P.gastarEnvionPotencia(this.st)) {
+        this.avisar("🌟 ¡EQUIPO ENCENDIDO! (+bonus un rato)");
+        this.SFX && this.SFX.goal && this.SFX.crowd && this.SFX.crowd(900);
+      }
+    });
     /* ANIME E: el ticker del RELATOR (una línea abajo, no tapa el juego) */
     this.tickerTxt = this.add.text(480, 520, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0);
     this.hudLayer.add(this.tickerTxt);
@@ -2189,6 +2206,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._btnCambiar) {
       const verlo = this.estado === "LIBRE" && st.posesion === "rival";
       this._btnCambiar.forEach(o => o.setVisible(verlo));
+    }
+    /* V6 R3: barra de ENVIÓN (mérito) + número SIEMPRE; el botón aparece llena y atacando */
+    if (this.envionG) {
+      const P6 = window.PampaPartido;
+      const E = this.BAL.envion || { max: 100 };
+      const fracE = Phaser.Math.Clamp((st.envion || 0) / E.max, 0, 1);
+      const ex = 948 - 170, ey = 505, ew = 170, eh = 8;
+      const ge = this.envionG; ge.clear();
+      ge.fillStyle(0x0a1f13, 0.85); ge.fillRect(ex - 2, ey - 2, ew + 4, eh + 4);
+      ge.fillStyle(0xf9a825, 1); ge.fillRect(ex, ey, ew * fracE, eh);
+      ge.lineStyle(1, 0xf6efdc, 0.8); ge.strokeRect(ex, ey, ew, eh);
+      const etxt = "ENVIÓN " + Math.round(st.envion || 0) + (P6.envionActivo(st) ? " ⚡EN USO" : (fracE >= 1 ? " ¡LLENO!" : ""));
+      if (this._hudEnvion !== etxt) { this._hudEnvion = etxt; this.txtEnvion.setText(etxt); }
+      if (this._btnEnvion) {
+        const verE = this.estado === "LIBRE" && st.posesion === "mia" && P6.envionLleno(st);
+        this._btnEnvion.forEach(o => o.setVisible(verE));
+      }
     }
     /* E6: los ÚLTIMOS 5 MINUTOS se anuncian (tictac + reloj marcado con ⏰, no solo color).
        TODO el bloque bajo el flag: apagado = reloj plano de la Etapa 5. */
