@@ -21,6 +21,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       Object.keys(man.poses).forEach(id => {
         if (!this.textures.exists("pose_" + id) && man.poses[id].archivo) this.load.image("pose_" + id, "../" + base + man.poses[id].archivo);
       });
+      if (man.fondos) Object.keys(man.fondos).forEach(id => {
+        if (!this.textures.exists("fondo_" + id) && man.fondos[id].archivo) this.load.image("fondo_" + id, "../" + base + man.fondos[id].archivo);
+      });
     }
   }
 
@@ -146,13 +149,20 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   temblor(spr) { if (spr) this.tweens.add({ targets: spr, x: "+=2", y: "-=2", duration: 44, yoyo: true, repeat: -1 }); }
 
   /* --- los 8 planos (A.3) --- */
-  p1(dur) {   // EL POTRERO: el pueblo, el viento, el texto que se escribe
+  p1(dur) {   // EL POTRERO: la tribuna LEJANA detrás, el pueblo delante (parallax de capas §3.1)
+    if (this.textures.exists("fondo_tribuna")) {
+      const tr = this.add.image(480, 200, "fondo_tribuna");
+      const escT = Math.max(960 / tr.width, 400 / tr.height);
+      tr.setScale(escT).setAlpha(0.85);
+      this.capa.add(tr);
+      this.tweens.add({ targets: tr, scale: escT * 1.03, duration: dur, ease: "Sine.easeOut" });   // el fondo lejano, casi quieto
+    }
     if (this.textures.exists("i_pueblo")) {
-      const f = this.add.image(480, 270, "i_pueblo");
-      const esc = Math.max(960 / f.width, 540 / f.height);
+      const f = this.add.image(480, 540, "i_pueblo").setOrigin(0.5, 1);
+      const esc = Math.max(960 / f.width, 380 / f.height);
       f.setScale(esc);
       this.capa.add(f);
-      this.tweens.add({ targets: f, scale: esc * 1.08, duration: dur, ease: "Sine.easeOut" });
+      this.tweens.add({ targets: f, scale: esc * 1.08, duration: dur, ease: "Sine.easeOut" });     // el cerca, más rápido
     }
     this.letraPorLetra(480, 470, this.I.t_pueblo || "En algún pueblo de La Pampa…",
       { fontFamily: "'Press Start 2P',monospace", fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5 }, 60);

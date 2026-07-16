@@ -44,6 +44,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const p = poses.poses[id];
         if (p && p.archivo) this.load.image("pose_" + id, "../" + base + p.archivo);
       });
+      /* ARTE 2: los fondos del manifest (la tribuna detrás del arco) */
+      if (poses.fondos) Object.keys(poses.fondos).forEach(id => {
+        const f = poses.fondos[id];
+        if (f && f.archivo) this.load.image("fondo_" + id, "../" + base + f.archivo);
+      });
       this.load.on("loaderror", (file) => { /* el fallback del poseSprite cubre el hueco */ });
     }
   }
@@ -1069,6 +1074,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.escenaCine({
           etiqueta: "· la gambeta ·",
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
+          pose: "gambeta_gana",                                // ARTE 2: el quiebre limpio
           rival: { j: rivalJ, esRival: true, anim: "pase" },   // el rival queda barrido atrás
           gana: true, sfx: "whoosh",
           titulo: "¡LO DEJASTE PAGANDO!", sub: r.matriz === "zafaste" ? "le erraron a la marca y seguís de largo" : "puro coraje: seguís de largo",
@@ -1088,12 +1094,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     } else {
       P.perderPelota(st);
       if (a.id === "gambeta" && this.hayEscenas() && rivalJ) {
-        /* la variante "perdés": el defensor se planta y te la saca */
+        /* la variante "perdés": VOS trastabillando (gambeta_pierde), la barrida atrás */
         this.escenaCine({
           etiqueta: "· la gambeta ·",
-          prota: { j: rivalJ, esRival: true, anim: "pase" },
-          rival: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
-          gana: true, color: 0xe3503e, sfx: "gloves",
+          prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
+          pose: "gambeta_pierde",                              // ARTE 2: el trastabille
+          rival: { j: rivalJ, esRival: true, anim: "pase" },
+          gana: false, color: 0xe3503e, sfx: "gloves",
           titulo: r.matriz === "leyeron" ? "¡TE LEYERON!" : "TE LA SACARON",
           sub: r.matriz === "leyeron" ? "el quite estaba preparado · pelota rival" : "se plantó justo · pelota rival",
           alFinal: () => this.relatar("gambeta_lose")
@@ -1111,12 +1118,26 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (r.win) {
       P.ganarDefensa(st);
       if (a.id === "quite" && this.hayEscenas() && rivalJ) {
+        /* "la defendés": el RIVAL trastabilla (gambeta_pierde ESPEJADA) y vos abajo */
         this.escenaCine({
           etiqueta: "· el quite ·",
-          prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },   // la barrida baja
-          rival: { j: rivalJ, esRival: true, anim: "gambeta" },
-          gana: true, sfx: "gloves",
+          prota: { j: rivalJ, esRival: true, anim: "gambeta" },
+          pose: "gambeta_pierde", poseFlip: true,              // ARTE 2: espejo — pierde él
+          rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          gana: true, color: 0x7ee08a, sfx: "gloves",
           titulo: "¡RECUPERASTE!", sub: r.matriz === "leiste" ? "le leíste la intención y te tiraste al piso" : "llegaste primero a la pelota"
+        });
+        return;
+      }
+      if (a.id === "bloqueo" && this.hayEscenas()) {
+        /* ARTE 2: el BLOQUEO defensivo plantado tiene su pose propia */
+        this.escenaCine({
+          etiqueta: "· el bloqueo ·",
+          prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          pose: "bloqueo",
+          rival: rivalJ ? { j: rivalJ, esRival: true, anim: "tiro" } : null,
+          gana: true, sfx: "gloves",
+          titulo: "¡BLOQUEADO!", sub: r.matriz === "leiste" ? "sabías que venía el tiro" : "pusiste el cuerpo donde dolía"
         });
         return;
       }
@@ -1125,9 +1146,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     else {
       P.perderDefensa(st);
       if (a.id === "quite" && this.hayEscenas() && rivalJ) {
+        /* "te la hacen": el rival QUIEBRA para el otro lado (gambeta_gana ESPEJADA) */
         this.escenaCine({
           etiqueta: "· te la hicieron ·",
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
+          pose: "gambeta_gana", poseFlip: true,                // ARTE 2: espejo — gana él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           gana: true, color: 0xe3503e, sfx: "whoosh",
           titulo: r.matriz === "teEngano" ? "¡TE AMAGÓ!" : "SE TE ESCAPÓ",
@@ -1727,14 +1750,24 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        protagonista es UNA imagen quieta, grande — el movimiento lo pone todo
        lo demás (sacudida, líneas, rayas barriendo, flash, freeze). */
     const escProta = (F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1);
-    const poseId = this.poseParaEscena(cfg.prota);
+    /* ARTE tanda 2: cfg.pose fuerza una pose puntual (las 4 gambetas, la pared,
+       el bloqueo, la corrida) y cfg.poseFlip la espeja según quién gana */
+    const poseId = cfg.pose || this.poseParaEscena(cfg.prota);
     let sp;
     if (poseId && this.poseKey(poseId)) {
       sp = this.add.image(-200, H * 0.52, this.poseKey(poseId));
       sp.setScale((cfg.especial ? 420 : 360) / sp.height);
+      if (cfg.poseFlip) sp.setFlipX(true);
       sp._esPose = true;
     } else {
       sp = this.add.sprite(-140, H * 0.58, this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 1)).setScale(escProta);
+    }
+    /* aviso de arte conocido: en pose_corriendo la pelota ilustrada va atrás del
+       pie — la pelota DEL JUEGO se dibuja al pie encima */
+    if (cfg.pelotaAlPie && this.textures.exists("ball")) {
+      const bb = this.add.sprite(-200, H * 0.52 + 150, "ball").setScale(2.4);
+      this.cineContent.add(bb);
+      this.tweens.add({ targets: bb, x: W * 0.3 + 78, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
     }
     if (cfg.protaAngle && !sp._esPose) sp.setAngle(cfg.protaAngle);   // la chilena ilustrada ya viene dada vuelta
     this.cineContent.add(sp);
@@ -1780,9 +1813,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (sp.active && sp._esPose) {
         /* la pose final ilustrada (festejo / arquero que atajó), si existe */
         const finId = this.poseParaEscena(cfg.prota, cfg.poseFinalProta || cfg.prota.anim);
-        if (finId && this.poseKey(finId) && finId !== poseId) {
+        if (finId && this.poseKey(finId) && finId !== poseId && !cfg.pose) {
           sp.setTexture(this.poseKey(finId));
           sp.setScale(360 / sp.height);
+        }
+        /* pelota naranja de arquero_ataja_v2: la del juego encima (aviso de arte) */
+        const actual = sp.texture && sp.texture.key;
+        if (actual === "pose_arquero_ataja" && this.textures.exists("ball")) {
+          const bb = this.add.sprite(sp.x + sp.displayWidth * 0.26, sp.y - sp.displayHeight * 0.09, "ball").setScale(2.2);
+          this.cineContent.add(bb);
         }
       } else if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
       if (sr && sr.active && cfg.rival) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
@@ -1866,6 +1905,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.escenaCine({
           etiqueta: "· MEGACORRIDA " + (k + 1) + "/" + eslabones + " ·",
           prota: { j, esRival: false, anim: "gambeta" },
+          pose: "corriendo", pelotaAlPie: true,   // ARTE 2: la corrida a fondo (pelota del juego al pie)
           rival: { j: rv.r, esRival: true, anim: "pase" },
           gana: true, sfx: "whoosh",
           titulo: "¡SIGUE LA CORRIDA!", sub: "va quedando gente atrás (" + (k + 1) + " de " + eslabones + ")",
@@ -1906,6 +1946,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.escenaCine({
       etiqueta: "· JUGADA COMBINADA ·",
       prota: { j, esRival: false, anim: "pase" }, rival: null,
+      pose: "pared",                              // ARTE 2: el toque de primera
       gana: true, sfx: "kick",
       titulo: "¡PARED Y SE SUMA " + ((st.mios[rec.idx].nombre || "EL COMPA").toUpperCase().slice(0, 10)) + "!",
       sub: "elegí cómo termina",

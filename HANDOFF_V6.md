@@ -27,6 +27,25 @@ TODO integrado (saltos+ceguera+definición+secuencias+master), **0 errores**.
 Revisión adversarial inline por bloque (hallazgos y fixes en cada commit).
 Nada quedó en working tree.
 
+## ⬆ ARTE TANDA 2 (17/jul): las 7 poses nuevas + tribuna + arqueros sin marcas
+Las 14 poses llegaron con **transparencia nativa** (reemplazan a las chroma-key
+de la tanda 1) + `fondo_tribuna.png`. Optimizadas a ≤900px PNG8 (~2MB las 15).
+**Qué pose quedó cableada a qué escena:**
+
+| Pose | Escena |
+|---|---|
+| `gambeta_gana` | Gambeta GANADA (ataque win) · "te la hacen" (defensa lose, **espejada**) |
+| `gambeta_pierde` | Gambeta PERDIDA (ataque lose, vos trastabillando) · "la defendés" (defensa win, **espejada**) |
+| `pared` | La escena de la JUGADA COMBINADA ("¡PARED Y SE SUMA…!") |
+| `bloqueo` | BLOQUEO defensivo ganado (escena nueva) · INTERPONERSE/Súper Defensa en el desenlace bloqueado de la Definición · "me bloquearon" ofensivo |
+| `corriendo` | Los eslabones de la MEGACORRIDA (+ la pelota DEL JUEGO al pie: aviso de arte) |
+| `arquero_vuela` → **_v2** | Estirada en vuelo (Definición F3, escenas de tiro) — mangas lisas, §11 ✔ |
+| `arquero_ataja` → **_v2** | Atajada/desenlace (+ la pelota DEL JUEGO superpuesta: la ilustrada salió naranja) |
+| `fondo_tribuna` | Capa lejana del OPENING plano 1 (parallax con el pueblo) + detrás del arco en la DEFINICIÓN (of y def) |
+
+Las viejas `pose_arquero_*.png` quedan en el repo, fuera del manifest. Manifest
+con bloque `fondos` nuevo, mismo fallback tolerante.
+
 ## Estado por bloque (§9)
 
 | # | Bloque | Estado | Commit |

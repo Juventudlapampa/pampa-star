@@ -1,16 +1,23 @@
 {
   "_schema": "pampa-star/poses@1",
   "_doc": "MAESTRO v6 §3.2: mapa acción→pose ilustrada (assets/poses/, PNG con alpha). FALLBACK TOLERANTE: el código carga solo lo que exista; si falta un archivo o una clave, cae a la pose de código anterior (sprites heroicos) y nada crashea. Rodri agrega poses nuevas acá sin tocar código: nueva clave + nuevo archivo y listo.",
-  "_procesado": "Las 7 originales llegaron 1600×1600 con fondo magenta (sin alpha): se les aplicó chroma→alpha con descontaminación de borde, recorte al bounding box y compresión PNG8 (16/jul/2026). Fuentes crudas en Downloads/pampa_star_poses/.",
+  "_tanda2": "ARTE COMPLETO (17/jul/2026): 14 poses con transparencia NATIVA (reemplazan a las chroma-key de la tanda 1) + fondo_tribuna. Los arqueros _v2 (mangas lisas, cumplimiento §11) REEMPLAZAN a los viejos en el mapa; pose_arquero_vuela.png y pose_arquero_ataja.png quedan en el repo pero fuera del manifest. Avisos de arte conocidos: la pelota de arquero_ataja_v2 salió naranja y la de corriendo va atrás del pie — el juego superpone su pelota cuando hace falta.",
   "base": "assets/poses/",
   "poses": {
     "remate": { "archivo": "pose_remate.png", "quien": "heroe", "n": "Remate de derecha" },
     "chilena": { "archivo": "pose_chilena.png", "quien": "heroe", "n": "Chilena invertida" },
     "cabezazo": { "archivo": "pose_cabezazo.png", "quien": "heroe", "n": "Salto de cabeza" },
     "barrida": { "archivo": "pose_barrida.png", "quien": "defensor", "n": "Defensor barriéndose" },
-    "arquero_vuela": { "archivo": "pose_arquero_vuela.png", "quien": "arquero", "n": "Estirada en vuelo" },
-    "arquero_ataja": { "archivo": "pose_arquero_ataja.png", "quien": "arquero", "n": "Atajó, de rodillas" },
-    "festejo": { "archivo": "pose_festejo.png", "quien": "heroe", "n": "Festejo de gol" }
+    "arquero_vuela": { "archivo": "pose_arquero_vuela_v2.png", "quien": "arquero", "n": "Estirada en vuelo (v2 mangas lisas)" },
+    "arquero_ataja": { "archivo": "pose_arquero_ataja_v2.png", "quien": "arquero", "n": "Atajó, de rodillas (v2 mangas lisas)" },
+    "festejo": { "archivo": "pose_festejo.png", "quien": "heroe", "n": "Festejo de gol" },
+    "gambeta_gana": { "archivo": "pose_gambeta_gana.png", "quien": "heroe", "n": "Gambeta ganada — quiebre limpio" },
+    "gambeta_pierde": { "archivo": "pose_gambeta_pierde.png", "quien": "heroe", "n": "Gambeta perdida — trastabillando" },
+    "pared": { "archivo": "pose_pared.png", "quien": "heroe", "n": "Pared — toque de primera" },
+    "bloqueo": { "archivo": "pose_bloqueo.png", "quien": "defensor", "n": "Bloqueo plantado" },
+    "corriendo": { "archivo": "pose_corriendo.png", "quien": "heroe", "n": "La corrida a fondo" }
   },
-  "_pendientes": "Poses que Rodri entrega mañana (usar ESTOS ids como clave nueva): gambeta_win, gambeta_lose, pared, bloqueo, corrida. Deuda de arte anotada en v6 §11: mangas del arquero con rayas a regenerar lisas."
+  "fondos": {
+    "tribuna": { "archivo": "fondo_tribuna.png", "n": "La tribuna (capa lejana: opening y definición)" }
+  }
 }

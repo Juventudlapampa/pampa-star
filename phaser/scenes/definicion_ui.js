@@ -129,16 +129,26 @@
 
     selloDef() { /* cineLayer la mira solo uiCam (ya sellado en create); nada extra */ },
 
-    /* ============ FONDO ¾: cielo, tribuna, ARCO al fondo, pasto ============ */
+    /* ============ FONDO ¾: cielo, TRIBUNA ilustrada, ARCO al fondo, pasto ============ */
     defFondo(esMiArco) {
       var g = this.cineBG;
       g.clear();
       g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, 120);                       // cielo
-      g.fillStyle(0x0e2c44, 1); g.fillRect(0, 78, W, 42);                       // tribuna
-      g.fillStyle(0xf6efdc, 0.3); for (var x = 8; x < W; x += 26) g.fillRect(x, 86 + (x % 3) * 6, 4, 4);   // gente
+      /* ARTE 2: la tribuna ILUSTRADA como capa lejana detrás del arco (fallback: la de código) */
+      if (this.textures.exists("fondo_tribuna")) {
+        var trib = this.add.image(W / 2, 128, "fondo_tribuna").setOrigin(0.5, 1);
+        trib.setScale(W / trib.width);
+        this.cineContent.add(trib);
+      } else {
+        g.fillStyle(0x0e2c44, 1); g.fillRect(0, 78, W, 42);
+        g.fillStyle(0xf6efdc, 0.3); for (var x = 8; x < W; x += 26) g.fillRect(x, 86 + (x % 3) * 6, 4, 4);
+      }
       g.fillStyle(0x2e7d32, 1); g.fillRect(0, 120, W, H - 120);                 // pasto
       g.fillStyle(0x388e3c, 1); for (var y = 120; y < H; y += 64) g.fillRect(0, y, W, 32);
-      /* EL ARCO al fondo (grande, seis zonas viven acá en fase 2) */
+      /* EL ARCO al fondo (grande, seis zonas viven acá en fase 2) — en su propio
+         graphics DENTRO de cineContent para quedar DELANTE de la tribuna */
+      g = this.add.graphics();
+      this.cineContent.add(g);
       g.fillStyle(0xffffff, 1);
       g.fillRect(W / 2 - 190, 96, 10, 88); g.fillRect(W / 2 + 180, 96, 10, 88); g.fillRect(W / 2 - 190, 90, 380, 8);
       g.fillStyle(0xdfeef6, 0.35);
@@ -415,7 +425,10 @@
       this.cineBG.fillTriangle(0, 0, W * 0.66, 0, W * 0.34, H); this.cineBG.fillTriangle(0, 0, W * 0.34, H, 0, H);
       this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, H * 0.82, W, H * 0.18);
       /* LA POSE ilustrada (quieta, grande) — todo lo demás se mueve */
-      var poseId = o.ofensiva ? o.poseTiro : (o.bloqueado ? "barrida" : "remate");
+      /* ARTE 2: el INTERPONERSE plantado usa pose_bloqueo; la barrida, su pose */
+      var poseId = o.ofensiva
+        ? (o.bloqueado ? "bloqueo" : o.poseTiro)
+        : (o.bloqueado ? (this._def.plantado ? "bloqueo" : "barrida") : "remate");
       var jj = o.ofensiva ? this.st.mios[this.st.ctrl] : (this._def.tirador || this.st.rivales[0]);
       var spr = this.poseSprite(poseId, W * 0.34, H * 0.52, 400, function () {
         var b = (o.ofensiva ? "h_mio" + self.st.ctrl : "h_riv" + ((jj.numero || 1) - 1));
@@ -453,10 +466,13 @@
       this.cineBG.fillStyle(0x081c10, 0.6); this.cineBG.fillRect(0, 0, W, H);
       var titulo, sub, color, poseId, jr;
       if (o.bloqueado) {
+        /* ARTE 2: el que se PLANTÓ (interponerse/súper defensa) usa pose_bloqueo;
+           el que se tiró, la barrida */
+        var plantado = this._def && (this._def.plantado || this._def.superDef);
         titulo = o.ofensiva ? "¡BLOQUEADO!" : "¡LA SACÓ TU DEFENSA!";
-        sub = o.ofensiva ? "se tiró con todo y la desvió" : "la barrida que salva el día";
+        sub = o.ofensiva ? "se plantó con todo y la desvió" : (plantado ? "el bloqueo que salva el día" : "la barrida que salva el día");
         color = o.ofensiva ? 0xe3503e : 0x7ee08a;
-        poseId = "barrida";
+        poseId = o.ofensiva ? "bloqueo" : (plantado ? "bloqueo" : "barrida");
       } else if (o.ofensiva) {
         titulo = o.gol ? "¡GOOOL!" : (o.res.outcome === "atajada" ? "¡LA SACÓ!" : "¡AFUERA!");
         sub = o.gol ? (o.dz >= 2 ? "el arquero fue al otro palo · ¡GRITALO!" : "la clavaste igual") : (o.res.outcome === "atajada" ? (o.dz === 0 ? "te adivinó la zona" : "voló y llegó") : "se fue por centímetros");
@@ -471,6 +487,13 @@
       var spr = this.poseSprite(poseId, W * 0.5, H * 0.48, 420, function () { return null; });
       this.cineContent.add(spr);
       spr.setAlpha(0); this.tweens.add({ targets: spr, alpha: 1, duration: 120 });
+      /* aviso de arte conocido: la pelota de arquero_ataja_v2 salió NARANJA (se
+         camufla con la camiseta) — la pelota del juego se superpone encima */
+      if (poseId === "arquero_ataja" && this.textures.exists("ball") && spr.displayWidth) {
+        var bb = this.add.sprite(spr.x + spr.displayWidth * 0.26, spr.y - spr.displayHeight * 0.09, "ball").setScale(2.6).setAlpha(0);
+        this.cineContent.add(bb);
+        this.tweens.add({ targets: bb, alpha: 1, duration: 120 });
+      }
       this.lineasVelocidad(W / 2, H * 0.45, 1.4, color);
       this.punch(titulo, sub, color);
       this.uiCam.flash(110, 255, 255, 255);
