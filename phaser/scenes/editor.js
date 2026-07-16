@@ -66,21 +66,36 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       { k: "ojos", n: "OJOS" }, { k: "cejas", n: "CEJAS" }, { k: "boca", n: "BOCA" },
       { k: "acc", n: "ACCESORIO" }, { k: "camiseta", n: "CAMISETA" }
     ];
-    this.filas = {};
+    /* V7-1 fix: los glifos ◀/▶ se rompían en las fuentes del celu (dos ▶ por
+       fila) — las flechas ahora se DIBUJAN (triángulos, independientes de la
+       fuente), los botones miden 48px+, y hay TECLADO: ↑↓ elige la fila
+       (resaltada), ◄► cicla en ambas direcciones. */
+    this.filas = {}; this.filaRects = []; this.CATS = CATS; this.filaSel = 0;
     let fy = 122;
-    CATS.forEach(c => {
+    CATS.forEach((c, ci) => {
       const cx = 690;
-      this.add.text(cx - 235, fy - 1, c.n, { fontFamily: "monospace", fontSize: "11px", color: "#f6c11d" }).setOrigin(0, 0.5);
-      const mk = (x, txt, d) => {
-        const r = this.add.rectangle(x, fy, 44, 38, 0xf6efdc, 1).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-        this.add.text(x, fy, txt, { fontFamily: "monospace", fontSize: "16px", color: "#0a1f13" }).setOrigin(0.5);
-        r.on("pointerdown", () => this.mover(c.k, d));
+      const lbl = this.add.text(cx - 235, fy - 1, c.n, { fontFamily: "monospace", fontSize: "11px", color: "#f6c11d" }).setOrigin(0, 0.5);
+      const mk = (x, d) => {
+        const r = this.add.rectangle(x, fy, 52, 44, 0xf6efdc, 1).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+        const g = this.add.graphics();
+        g.fillStyle(0x0a1f13, 1);
+        if (d < 0) g.fillTriangle(x - 9, fy, x + 7, fy - 10, x + 7, fy + 10);   // ◄ dibujado, no glifo
+        else g.fillTriangle(x + 9, fy, x - 7, fy - 10, x - 7, fy + 10);        // ► dibujado
+        r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this.filaSel = ci; this.mover(c.k, d); });
         return r;
       };
-      mk(cx - 90, "◀", -1); mk(cx + 210, "▶", 1);
+      mk(cx - 92, -1); mk(cx + 212, 1);
       this.filas[c.k] = this.add.text(cx + 60, fy, "", { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+      this.filaRects.push(lbl);
       fy += 46;
     });
+    /* teclado: ↑↓ fila, ◄► ciclan (con wrap en ambas direcciones) */
+    if (this.input.keyboard) {
+      this.input.keyboard.on("keydown-UP", () => { this.filaSel = (this.filaSel + CATS.length - 1) % CATS.length; this.refrescar(); });
+      this.input.keyboard.on("keydown-DOWN", () => { this.filaSel = (this.filaSel + 1) % CATS.length; this.refrescar(); });
+      this.input.keyboard.on("keydown-LEFT", () => this.mover(CATS[this.filaSel].k, -1));
+      this.input.keyboard.on("keydown-RIGHT", () => this.mover(CATS[this.filaSel].k, 1));
+    }
 
     /* ---- abajo: guardar + a la cancha ---- */
     const btn = (x, w, texto, bg, cb) => {
@@ -121,7 +136,12 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.imgCara.setTexture("ed_cara");
     this.imgCancha.setTexture("ed_cancha_idle");
     this.txtLabel.setText(A.lookLabel(p.look));
-    /* etiquetas de los steppers (cada variante con NOMBRE) */
+    /* etiquetas de los steppers (cada variante con NOMBRE) + la fila activa
+       del teclado marcada con ► y color (forma + color, no solo color) */
+    if (this.filaRects) this.filaRects.forEach((lbl, i) => {
+      lbl.setColor(i === this.filaSel ? "#ffd84d" : "#f6c11d");
+      lbl.setText((i === this.filaSel ? "► " : "") + this.CATS[i].n);
+    });
     const r = A.resolver(p.look);
     this.filas.piel.setText(r.piel.n);
     this.filas.corte.setText(r.corte.n);
