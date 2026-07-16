@@ -480,7 +480,7 @@
         else if (!o.ofensiva && o.gol) snd.golEnContra && snd.golEnContra();
         else { snd.gloves(); if (!o.ofensiva) { snd.crowd && snd.crowd(1400); this.time.delayedCall(120, function () { snd.goal(); }); } }   // la atajada SE GRITA
       }
-      if (esFiesta) this.burst(W * 0.5, H * 0.4);
+      if (esFiesta) { this.burst(W * 0.5, H * 0.4); this.tribunaSaltando(); }   // V6 P5: la tribuna salta
       this.relatar(o.ofensiva ? (o.gol ? "gol" : (o.bloqueado || o.res.outcome === "atajada" ? "atajada" : "afuera")) : (o.gol ? "gol_rival" : "arquero_mio"));
       this.time.delayedCall(this.msV(1250), function () { self.salirDefinicion(); });
     },

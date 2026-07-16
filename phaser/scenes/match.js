@@ -1255,6 +1255,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         sub: gol ? (id === "chilena" ? "el momento más épico del potrero · " + fb : fb) : fb,
         color: gol ? 0xffd84d : (res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e),
         sfx: gol ? "goal" : (res.outcome === "atajada" ? "gloves" : "afuera"),
+        hinchada: gol,
         alFinal: () => {
           if (gol) this.efectoGol(false);
           this.relatar(gol ? "gol" : (res.outcome === "atajada" ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
@@ -1595,6 +1596,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         sub: gol ? fb : (res.outcome === "atajada" ? "el arquero voló y la manoteó · " + fb : "se fue por centímetros · " + fb),
         color: gol ? 0xffd84d : (res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e),
         sfx: gol ? "goal" : (res.outcome === "atajada" ? "gloves" : "afuera"),
+        hinchada: gol,
         alFinal: () => {
           if (gol) this.efectoGol(false);
           this.relatar(gol ? "gol" : (res.outcome === "atajada" ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
@@ -1764,6 +1766,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1) * 1.12); this.burst(sp.x, sp.y - 70); }
       else if (sr) sr.setScale((F.escala_rival || 2.9) * 1.12);
       if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
+      if (cfg.hinchada) this.tribunaSaltando();   // V6 P5: la tribuna SALTA en el gol
       this.punch(cfg.titulo, cfg.sub || "", cfg.color != null ? cfg.color : (cfg.gana ? 0xffd84d : 0xe3503e));
       if (snd) {
         if (cfg.sfx === "goal") { snd.net(); this.time.delayedCall(90, () => snd.goal()); }
@@ -1807,29 +1810,77 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   hayEscenas() { return this.FLAGS.v4_escenas && this.FLAGS.e6_cine; }
 
   /* ============ ETAPA 6 · pulido cinematográfico ============ */
+  /* V6 §3.3 P4: el anuncio de MEGACOSA ya no es una franjita — es una ESCENA
+     del gestor a pantalla completa: pose ilustrada, rayas barriendo, grito
+     grande, carga de aguante visible, y corte seco al siguiente paso. */
   cutInEspecial(titulo, sub, cb, jRet, esRivalRet) {
     if (typeof sub === "function") { cb = sub; sub = null; }   // compat con la firma vieja
-    this.estado = "RESOLUCION";
-    this.limpiarMenu();
+    this.quitarDuelo(); this.limpiarMenu();
+    this.estado = "ESCENA";
+    this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
+    this.cineLayer.setVisible(true);
+    this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
+    this.limpiarContenido();
     const j = jRet || this.st.mios[this.st.ctrl];
-    const franja = this.add.rectangle(480, 270, 1100, 190, esRivalRet ? 0x2a0b0b : 0x2a130b, 0.94).setStrokeStyle(4, esRivalRet ? 0xff8a50 : 0xffd84d).setAngle(-4);
-    /* ANIME C: el que carga un especial va TRIUNFANTE (o el rival, desafiante = frustrado) */
-    const img = this.add.image(-140, 270, this.retratoKey(j, !!esRivalRet, esRivalRet ? "frustrado" : "triunfante"));
-    img.setScale(180 / img.height);
-    const txt = this.add.text(1150, 258, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "22px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 8 }).setOrigin(0.5);
-    const subTxt = this.add.text(1150, 292, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+    const g = this.cineBG; g.clear();
+    g.fillStyle(0x081c10, 1); g.fillRect(0, 0, 960, 540);
+    g.fillStyle(esRivalRet ? 0x2a0b0b : 0x0b1c2a, 1);
+    g.fillTriangle(0, 0, 634, 0, 326, 540); g.fillTriangle(0, 0, 326, 540, 0, 540);
+    /* pose ilustrada del dueño (mía = remate, rival = barrida); si no, el retrato grande */
+    const spr = this.poseSprite(esRivalRet ? "barrida" : "remate", -220, 290, 380, () => {
+      const im = this.add.image(0, 0, this.retratoKey(j, !!esRivalRet, esRivalRet ? "frustrado" : "triunfante"));
+      im.setScale(300 / im.height);
+      return im;
+    });
+    this.cineContent.add(spr);
+    this.tweens.add({ targets: spr, x: 300, duration: this.msV(300), ease: "Back.easeOut" });
+    for (let rk = 0; rk < 3; rk++) {
+      const ry = this.add.rectangle(960 + rk * 320, 110 + rk * 160, 620, 26, 0xffffff, 0.08).setAngle(-24);
+      this.cineContent.add(ry);
+      this.tweens.add({ targets: ry, x: -400, duration: 800 + rk * 200, repeat: -1 });
+    }
+    this.lineasVelocidad(480, 250, 1.3, esRivalRet ? 0xff8a50 : 0xffd84d);
+    const txt = this.add.text(1300, 210, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "24px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5);
+    const subTxt = this.add.text(1300, 252, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: "monospace", fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
+    this.cineContent.add(txt); this.cineContent.add(subTxt);
+    this.tweens.add({ targets: [txt, subTxt], x: 620, duration: this.msV(300), ease: "Back.easeOut" });
     /* Feel B5: CARGA DE AGUANTE VISIBLE — la barra se llena mientras el anuncio dura */
-    const cargaBg = this.add.rectangle(560, 330, 340, 14, 0x0a1f13, 0.9).setStrokeStyle(2, 0xf6efdc, 0.8);
-    const carga = this.add.rectangle(560 - 168, 330, 4, 10, 0xffd84d, 1).setOrigin(0, 0.5);
-    const cargaTxt = this.add.text(560, 348, "cargando guts…", { fontFamily: "monospace", fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
-    this.menuLayer.add([franja, img, txt, subTxt, cargaBg, carga, cargaTxt]);
-    this.selloMenu();
-    this.tweens.add({ targets: img, x: 200, duration: 260, ease: "Back.easeOut" });
-    this.tweens.add({ targets: [txt, subTxt], x: 560, duration: 260, ease: "Back.easeOut" });
-    this.tweens.add({ targets: carga, width: 336, duration: 820, ease: "Sine.easeIn" });
-    this.cameras.main.flash(120, 255, 216, 77);
-    this.SFX && this.SFX.whoosh(700);
-    this.time.delayedCall(this.msV(1050), () => { this.limpiarMenu(); cb(); });
+    const cargaBg = this.add.rectangle(620, 320, 340, 14, 0x0a1f13, 0.9).setStrokeStyle(2, 0xf6efdc, 0.8);
+    const carga = this.add.rectangle(620 - 168, 320, 4, 10, 0xffd84d, 1).setOrigin(0, 0.5);
+    const cargaTxt = this.add.text(620, 340, "cargando aguante…", { fontFamily: "monospace", fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
+    this.cineContent.add(cargaBg); this.cineContent.add(carga); this.cineContent.add(cargaTxt);
+    this.tweens.add({ targets: carga, width: 336, duration: this.msV(820), ease: "Sine.easeIn" });
+    this.uiCam.flash(120, 255, 216, 77);
+    this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(this.msV(1050) / 1000);
+    this.time.delayedCall(this.msV(1150), () => {
+      /* corte seco y el flujo sigue (timing del megatiro / resolución de la megadefensa) */
+      this.limpiarContenido();
+      this.cineBlack.setAlpha(1);
+      this.time.delayedCall(60, () => {
+        this.cineBlack.setAlpha(0);
+        this.cineLayer.setVisible(false);
+        this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
+        this.estado = "RESOLUCION";
+        cb();
+      });
+    });
+  }
+  /* V6 §3.3 P5: LA HINCHADA ANIMADA — tribuna de siluetas que SALTAN en el gol */
+  tribunaSaltando() {
+    const g = this.add.graphics();
+    g.fillStyle(0x0e2c44, 1); g.fillRect(0, 0, 960, 96);
+    this.cineContent.add(g);
+    for (let f = 0; f < 2; f++) {
+      for (let k = 0; k < 20; k++) {
+        const x = 24 + k * 48 + (f % 2) * 24, y = 34 + f * 34;
+        const tono = [0xf6efdc, 0xffd84d, 0x4fc3f7, 0xff8a50][(k + f) % 4];
+        const cab = this.add.circle(x, y, 7, tono, 0.9);
+        const cue = this.add.rectangle(x, y + 13, 12, 14, tono, 0.75);
+        this.cineContent.add(cab); this.cineContent.add(cue);
+        const salto = 8 + ((k * 7 + f * 5) % 8);
+        this.tweens.add({ targets: [cab, cue], y: "-=" + salto, duration: 210 + (k % 4) * 40, yoyo: true, repeat: -1, delay: (k % 5) * 60 });
+      }
+    }
   }
   /* la RED se sacude: sacudón + chispas en la boca del arco.
      El gol EN CONTRA se distingue también por sonido (notas que bajan) y chispas frías. */
