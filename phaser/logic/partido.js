@@ -115,11 +115,15 @@
     return mejor;
   }
 
-  /* ANIME v4 Bloque G: jugadores lentos, PARTIDO CORTO. Si balance trae
-     tempo.duracion_real_min, el reloj corre para que 90' quepan en esos
-     minutos REALES de juego libre (los saltos de acción lo acortan más).
-     Sin tempo, cae al seg_por_minuto clásico. */
+  /* V6 §2 R1: MODELO DE SALTOS — el partido es una sucesión de MOMENTOS.
+     Con modo_saltos, el portador va rápido y esquemático (no hay carrera que
+     valga: al rival con pelota no lo alcanzás por atrás, lo ANTICIPÁS). */
+  function esSaltos(bal) { return !!(bal.ritmo && bal.ritmo.modo_saltos); }
+
+  /* reloj continuo (solo entre momentos): con el reloj a saltos de R4 el
+     goteo es lento — el grueso del tiempo lo ponen los BLOQUES por momento */
   function segPorMinuto(bal) {
+    if (bal.tempo && bal.tempo.minutos_por_momento > 0) return bal.tempo.goteo_seg_por_minuto || 8;
     if (bal.tempo && bal.tempo.duracion_real_min > 0) return (bal.tempo.duracion_real_min * 60) / 90;
     return bal.ritmo.seg_por_minuto;
   }
@@ -161,7 +165,11 @@
     if (input && (input.dx || input.dy)) {
       var m = Math.hypot(input.dx, input.dy) || 1;
       var vel, drena = 0;
-      if (st.posesion === "mia") { vel = V.portador_con_pelota; drena = bal.conduccion.aguante_por_segundo; }
+      /* R1: en modo saltos el desplazamiento CON pelota es rápido y esquemático.
+         El marcador SIN pelota NO escala: al rival no lo alcanzás corriendo —
+         lo anticipás (test de corrección del §0: si podés perseguir, está mal). */
+      var multSaltos = esSaltos(bal) ? (V.saltos_vel_mult || 2.4) : 1;
+      if (st.posesion === "mia") { vel = V.portador_con_pelota * multSaltos; drena = bal.conduccion.aguante_por_segundo; }
       else {
         vel = V.perseguidor_sin_pelota; drena = bal.persecucion.aguante_por_segundo;
         if (ctrl.aguante < bal.persecucion.aguante_minimo_para_correr) vel *= bal.persecucion.factor_trote;   // rendido: trota
@@ -199,8 +207,15 @@
       st.pelota.x += (ctrl.x + 12 - st.pelota.x) * Math.min(1, dt * 10);
       st.pelota.y += (ctrl.y - st.pelota.y) * Math.min(1, dt * 10);
       /* los N rivales más cercanos te CIERRAN (más rápidos que vos: te alcanzan) */
+      /* R1: en modo saltos NADIE te corre por atrás — te CORTAN EL PASO los que
+         están adelante (entre vos y el arco rival). El cruce es emboscada, no carrera. */
       var caza = st.rivales.map(function (j, i) { return { i: i, d: dist(j.x, j.y, ctrl.x, ctrl.y) }; })
-        .filter(function (o) { return st.rivales[o.i].pos !== "ARQ"; })
+        .filter(function (o) {
+          var r = st.rivales[o.i];
+          if (r.pos === "ARQ") return false;
+          if (esSaltos(bal) && r.x < ctrl.x - 40) return false;   // quedó atrás: fuera de la jugada
+          return true;
+        })
         .sort(function (a, b) { return a.d - b.d; }).slice(0, R.persecutores);
       /* V6 §1 F5: la defensa MARCA — cada receptor tuyo adelantado tiene un rival
          encima cerrándole la línea (el libre más cercano), no mirando de lejos */
@@ -262,7 +277,10 @@
       }
       if (st.esperaRival > 0) { st.esperaRival = Math.max(0, st.esperaRival - dtMs); }
       else {
-        pr.x = clamp(pr.x - V.rival_con_pelota * dt, 20, st.W - 20);
+        /* R1: el rival con pelota también va a saltos — no lo alcanzás corriéndolo,
+           lo esperás con el marcador bien parado (la ceguera lo vuelve una apuesta) */
+        var velR = V.rival_con_pelota * (esSaltos(bal) ? (V.saltos_vel_mult || 2.4) : 1);
+        pr.x = clamp(pr.x - velR * dt, 20, st.W - 20);
         pr.y = clamp(pr.y + Math.sin(pr.x * 0.02) * 26 * dt, 20, st.H - 20);
       }
       st.pelota.x += (pr.x - 12 - st.pelota.x) * Math.min(1, dt * 10);
@@ -284,11 +302,16 @@
     return ev;
   }
 
-  /* ---------- reloj a saltos ---------- */
+  /* ---------- reloj a saltos ----------
+     V6 §2 R4: cada MOMENTO consume un bloque fijo de minutos (la perilla única
+     TEMPO.MINUTOS_POR_MOMENTO define duración, decisiones y ritmo de una vez).
+     Sin la perilla, cae al salto aleatorio clásico. */
   function saltoReloj(st, rng) {
     rng = rng || Math.random;
-    var R = st.bal.ritmo;
-    var salto = R.salto_accion_min + rng() * (R.salto_accion_max - R.salto_accion_min);
+    var R = st.bal.ritmo, T = st.bal.tempo || {};
+    var salto = T.minutos_por_momento > 0
+      ? T.minutos_por_momento
+      : R.salto_accion_min + rng() * (R.salto_accion_max - R.salto_accion_min);
     st.minuto += salto;
     /* el tiempo que SALTA también recupera (si no, la regen del §7 es simbólica:
        el partido tiene ~10 min reales de juego libre y ~60' de saltos) */
@@ -396,10 +419,15 @@
     return { win: win, accionRival: accionRival, matriz: matriz };
   }
 
-  /* efectos de mundo tras el duelo de ataque */
-  function ganarAtaque(st, accion) {
+  /* efectos de mundo tras el duelo de ataque.
+     V6 §2 R2: SEPARACIÓN POST-DUELO — el perdedor queda NOTABLEMENTE lejos,
+     como el gambeteado del anime que queda tirado metros atrás. */
+  function ganarAtaque(st, accion, rivalIdx) {
     var c = st.mios[st.ctrl];
-    c.x = clamp(c.x + (accion === "pared" ? 60 : accion === "gambeta" ? 46 : 30), 14, st.W - 14);
+    var sep = st.bal.partido.separacion_duelo || 90;
+    c.x = clamp(c.x + (accion === "pared" ? sep * 0.7 : accion === "gambeta" ? sep : sep * 0.4), 14, st.W - 14);
+    if (rivalIdx != null && st.rivales[rivalIdx])
+      st.rivales[rivalIdx].x = clamp(st.rivales[rivalIdx].x + sep * 0.8, 20, st.W - 20);   // queda pagando, atrás
     st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
   }
   function perderPelota(st, rng) {
@@ -409,6 +437,11 @@
     var c = st.mios[st.ctrl], mejor = 0, md = 1e9;
     st.rivales.forEach(function (j, i) { if (j.pos === "ARQ") return; var d = dist(j.x, j.y, c.x, c.y); if (d < md) { md = d; mejor = i; } });
     st.portadorRival = mejor;
+    /* V6 §2 R1+R2: tras el robo, corte — la pelota YA está lejos, en poder del
+       rival en su próximo momento. No hay persecución que valga. */
+    var pr2 = st.rivales[mejor];
+    pr2.x = clamp(pr2.x - (st.bal.partido.separacion_duelo || 90) * 0.6, 20, st.W - 20);
+    st.pelota.x = pr2.x - 12; st.pelota.y = pr2.y;
     /* V6 §1 F4: el control pasa al MEJOR posicionado, EXCLUYENDO al que la perdió
        (y lo recuerda un rato para que el automático tampoco vuelva a él) */
     st._perdioIdx = st.ctrl;
@@ -419,12 +452,16 @@
   }
   function ganarDefensa(st) {
     st.posesion = "mia"; st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
-    /* recuperaste: seguís con el que marcó */
+    /* recuperaste: seguís con el que marcó; el gambeteado queda ATRÁS (R2) */
+    var sep = st.bal.partido.separacion_duelo || 90;
+    var pr = st.rivales[st.portadorRival];
+    if (pr) pr.x = clamp(pr.x + sep * 0.8, 20, st.W - 20);
     st.pelota.x = st.mios[st.ctrl].x + 12; st.pelota.y = st.mios[st.ctrl].y;
   }
   function perderDefensa(st) {
     var pr = st.rivales[st.portadorRival];
-    pr.x = clamp(pr.x - 60, 20, st.W - 20);   // te dejó atrás: gana metros
+    var sep = st.bal.partido.separacion_duelo || 90;
+    pr.x = clamp(pr.x - sep, 20, st.W - 20);   // R2: te dejó pagando, gana metros de verdad
     st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
   }
 

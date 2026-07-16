@@ -42,11 +42,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
     this.VI = this.BAL.vista || {};
+    /* V6 §2 R5: la ceguera (con la vista táctica; el radar es la fuente de verdad) */
+    this._ceguera = this._vista4 && this.VI.ceguera_rival !== false;
     this.estado = "LIBRE";               // LIBRE_CORRIENDO | MENU (pausa) | PASE (apuntando) | RESOLUCION (doc §9)
     /* ETAPA 1 — constantes de cámara y mundo (números del doc §2; se afinan
        por criterio del doc: chico→más zoom, encajonado→más deadzone,
@@ -71,6 +73,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._hudMarc = this._hudReloj = this._hudGuts = null;   // caches del HUD: el restart los recrea vacíos
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null;
+    this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
   }
 
   create() {
@@ -143,6 +146,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._punteroListo = false;
     this.input.on("pointerdown", (p) => {
       this._punteroListo = true;
+      /* V6 R4 · SKIP: un toque durante la escena adelanta al desenlace */
+      if (this.estado === "ESCENA") { this._escSkip && this._escSkip(); return; }
       /* Anime A: sin radar, el PASE se toca DIRECTO sobre la cancha */
       if (this._vista4 && this.estado === "PASE") { this.onCanchaTapPase(p); return; }
       this.apuntar(p);
@@ -182,8 +187,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
     this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
 
-    /* Feel B3: tutorial de 3 pasos la primera vez (flag en el save) */
-    this.tutorialSiHaceFalta();
+    /* V6 §2 R4: ANTES del partido se elige el TEMPO (presets) y la VELOCIDAD.
+       Al confirmar, sigue el tutorial de 3 pasos si hace falta. */
+    this.menuTempoSiCorresponde();
 
     /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
     if (!this._vista4) this.st._noAutoHasta = 9e15;
@@ -452,12 +458,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st, p = this.portadorActual();
     const paso = Math.floor(this.time.now / 240) % 2;
     const escF = this.VI.escala_ficha || 1.3;
+    /* V6 §2 R5 · LA CEGUERA: los rivales no se dibujan en la cancha — solo el
+       radar sabe dónde están. radio_revelacion > 0 = perilla de rescate. */
+    const cieg = this._ceguera, radioRev = this.VI.radio_revelacion || 0;
     const upd = (arr, js, esRival) => js.forEach((j, i) => {
       const F = arr[i]; if (!F) return;
       const esPortador = (esRival === p.esRival) && i === p.idx;
-      F.spr.setVisible(!esPortador);
-      F.num.setVisible(!esPortador && !!mostrarNums);
-      if (esPortador) return;
+      const oculto = esRival && cieg &&
+        (radioRev <= 0 || Math.hypot(j.x - st.pelota.x, j.y - st.pelota.y) > radioRev);
+      F.spr.setVisible(!esPortador && !oculto);
+      F.num.setVisible(!esPortador && !oculto && !!mostrarNums);
+      if (esPortador || oculto) return;
       const w = this.aRender(j.x, j.y);
       const movio = Math.hypot(j.x - F.lx, j.y - F.ly) > 0.6; F.lx = j.x; F.ly = j.y;
       const e = escF * this.escalaEn(j.y);
@@ -642,6 +653,59 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       });
     }
   }
+  /* V6 §2 R4: la VELOCIDAD (Normal/Rápida) solo acorta animaciones y tiempos muertos */
+  msV(x) { return this._velRapida ? Math.round(x * 0.62) : x; }
+  /* V6 §2 R4: EL TEMPO se elige ANTES de cada partido — tres presets, una perilla.
+     Recuerda la última elección (resaltada); teclas 1/2/3 en la compu. */
+  menuTempoSiCorresponde() {
+    const T = this.BAL.tempo;
+    if (!this.FLAGS.v6_tempo || !T || !T.presets) { this.tutorialSiHaceFalta(); return; }
+    let ult = null;
+    try { ult = JSON.parse(localStorage.getItem("pampa_tempo") || "null"); } catch (e) { }
+    ult = ult || { preset: "intermedio", rapida: false };
+    this._velRapida = !!ult.rapida;
+    this.estado = "TEMPO_MENU";
+    this.st.modo = "congelado";
+    const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.72).setInteractive();
+    const tit = this.add.text(480, 74, "⏱ ¿QUÉ PARTIDO JUGAMOS?", { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
+    const sub = this.add.text(480, 104, "el reloj avanza POR MOMENTOS: cada jugada consume minutos del partido", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    this.menuLayer.add([velo, tit, sub]);
+    const PRESETS = [
+      { k: "relampago", n: "⚡ RELÁMPAGO", d: "≈8-10 momentos por tiempo · para un rato corto" },
+      { k: "intermedio", n: "★ INTERMEDIO", d: "≈16-18 momentos por tiempo · recomendado" },
+      { k: "largo", n: "🕰 LARGO", d: "≈35 momentos por tiempo · el clásico entero" }
+    ];
+    const elegir = (k) => {
+      if (this.estado !== "TEMPO_MENU") return;
+      T.minutos_por_momento = T.presets[k] || 2.5;
+      try { localStorage.setItem("pampa_tempo", JSON.stringify({ preset: k, rapida: this._velRapida })); } catch (e) { }
+      this.limpiarMenu();
+      this.estado = "LIBRE";
+      this.st.modo = "juego";
+      this.avisar("Tempo " + k.toUpperCase() + " · " + T.minutos_por_momento + "' por momento");
+      this.tutorialSiHaceFalta();
+    };
+    PRESETS.forEach((p, i) => {
+      const y = 176 + i * 92;
+      const r = this.add.rectangle(480, y, 500, 72, p.k === ult.preset ? 0xffd84d : 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const t = this.add.text(480, y - 13, (i + 1) + " · " + p.n + " (" + T.presets[p.k] + "' por momento)", { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      const d = this.add.text(480, y + 14, p.d, { fontFamily: "monospace", fontSize: "11px", color: "#365a41" }).setOrigin(0.5);
+      this.menuLayer.add([r, t, d]);
+      r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; elegir(p.k); });
+    });
+    const vr = this.add.rectangle(480, 470, 420, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const vt = this.add.text(480, 470, "", { fontFamily: "monospace", fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
+    const pintarVel = () => vt.setText("🎬 VELOCIDAD: " + (this._velRapida ? "RÁPIDA — animaciones cortas" : "NORMAL"));
+    pintarVel();
+    this.menuLayer.add([vr, vt]);
+    vr.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this._velRapida = !this._velRapida; pintarVel(); });
+    if (this.input.keyboard) {
+      this.input.keyboard.once("keydown-ONE", () => elegir("relampago"));
+      this.input.keyboard.once("keydown-TWO", () => elegir("intermedio"));
+      this.input.keyboard.once("keydown-THREE", () => elegir("largo"));
+    }
+    this.selloMenu();
+  }
   /* Feel B3: la PRIMERA vez que se juega, tres pasos superpuestos al juego real */
   tutorialSiHaceFalta() {
     let visto = false;
@@ -717,7 +781,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B6: si viene una MEGACOSA rival, el beat SE ALARGA y el sonido cambia:
        sabés que viene algo grande (pero no cuál) */
     const megaViene = !!this._megaRival;
-    const durBeat = megaViene ? (F.beat_mega_ms || 1400) : (F.beat_encuentro_ms || 750);
+    const durBeat = this.msV(megaViene ? (F.beat_mega_ms || 1400) : (F.beat_encuentro_ms || 750));
     this.estado = "BEAT";
     this.materializarDuelo(j, esRival, texturaFija);
     if (this.sprDuelo) {
@@ -964,7 +1028,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ANIME B (P2): la GAMBETA se VE — el que encara en pose, el que queda atrás */
     const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
     if (r.win) {
-      P.ganarAtaque(st, a.id);
+      P.ganarAtaque(st, a.id, rivalIdx);   // R2: el gambeteado queda pagando atrás
       if (a.id === "gambeta" && !megaR && this.hayEscenas() && rivalJ) {
         this.escenaCine({
           etiqueta: "· la gambeta ·",
@@ -1626,27 +1690,38 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.lineasVelocidad(W / 2, H * 0.45, 0.9, rivProta ? 0xff8a50 : 0xffd84d);
     this.uiCam.flash(90, 255, 255, 220);
     const snd = this.SFX; snd && snd.whoosh && snd.whoosh(F.entrada_ms || 420);
-    /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall) */
-    const tPose = (F.entrada_ms || 420) + (F.pose_ms || 650);
-    const silencio = feel.silencio_ms || 500;
-    this.time.delayedCall(tPose, () => {
-      if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2));
-      this.musicaDuck(silencio);   // ANIME D: la música CALLA en el silencio pre-desenlace
-    });
-    this.time.delayedCall(tPose + silencio, () => {
+    /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall, idempotente:
+       V6 R4 el SKIP —un toque durante la escena— adelanta a la revelación y cierra) */
+    const tPose = this.msV((F.entrada_ms || 420) + (F.pose_ms || 650));
+    const silencio = feel.silencio_ms || 500;   // el silencio es sagrado: no se acorta
+    const esc = { revelado: false, cerrado: false };
+    const revelar = () => {
+      if (esc.revelado) return; esc.revelado = true;
       if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
       if (sr && sr.active && cfg.rival) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
       if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1) * 1.12); this.burst(sp.x, sp.y - 70); }
-      if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
       else if (sr) sr.setScale((F.escala_rival || 2.9) * 1.12);
+      if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
       this.punch(cfg.titulo, cfg.sub || "", cfg.color != null ? cfg.color : (cfg.gana ? 0xffd84d : 0xe3503e));
       if (snd) {
         if (cfg.sfx === "goal") { snd.net(); this.time.delayedCall(90, () => snd.goal()); }
         else if (cfg.sfx && snd[cfg.sfx]) snd[cfg.sfx]();
       }
       this.uiCam.shake(200, cfg.gana ? 0.008 : 0.005);
+    };
+    const cerrarYa = () => {
+      if (esc.cerrado) return; esc.cerrado = true;
+      this._escSkip = null;
+      this.cerrarEscena(cfg.alFinal);
+    };
+    this._escSkip = () => { if (!esc.revelado) revelar(); else cerrarYa(); };
+    this.time.delayedCall(tPose, () => {
+      if (esc.revelado) return;
+      if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2));
+      this.musicaDuck(silencio);   // ANIME D: la música CALLA en el silencio pre-desenlace
     });
-    this.time.delayedCall(tPose + silencio + (F.hold_ms || 1150), () => this.cerrarEscena(cfg.alFinal));
+    this.time.delayedCall(tPose + silencio, revelar);
+    this.time.delayedCall(tPose + silencio + this.msV(F.hold_ms || 1150), cerrarYa);
   }
   cerrarEscena(alFinal) {
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
@@ -1692,7 +1767,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.tweens.add({ targets: carga, width: 336, duration: 820, ease: "Sine.easeIn" });
     this.cameras.main.flash(120, 255, 216, 77);
     this.SFX && this.SFX.whoosh(700);
-    this.time.delayedCall(1050, () => { this.limpiarMenu(); cb(); });
+    this.time.delayedCall(this.msV(1050), () => { this.limpiarMenu(); cb(); });
   }
   /* la RED se sacude: sacudón + chispas en la boca del arco.
      El gol EN CONTRA se distingue también por sonido (notas que bajan) y chispas frías. */
@@ -1920,7 +1995,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
     this.animarResolucion(animCfg);
     /* FEEL B1: NINGUNA resolución devuelve el control antes del mínimo (teatro obligatorio) */
-    this.time.delayedCall((this.BAL.feel && this.BAL.feel.resolucion_min_ms) || 1600, () => {
+    this.time.delayedCall(this.msV((this.BAL.feel && this.BAL.feel.resolucion_min_ms) || 1600), () => {
       if (this.estado !== "RESOLUCION") return;
       this.quitarDuelo();
       this.limpiarMenu();
@@ -2226,8 +2301,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         .setTexture(this._base + (corriendo && Math.floor(time / 110) % 2 ? "_run" : "_idle"));
     }
     this.sprPortador.setPosition(wx, wy);
+    /* R5: si la pelota la tiene el rival, con la ceguera NO lo ves — ves la
+       pelota "fantasma" moviéndose y el radar. Le ves la cara recién en el cruce. */
+    const fantasma = p.esRival && this._ceguera;
+    this.sprPortador.setVisible(!fantasma);
     const wb = this.aRender(st.pelota.x, st.pelota.y);
     this.sprPelota.setPosition(wb.x, wb.y + 34 - (this._botePelota || 0)).setScale(1.6 * this.escalaEn(st.pelota.y));
+    this.marker.setVisible(!fantasma);
     this.marker.setText("▼ " + (p.j.esVos ? "VOS" : (p.j.nombre || "").toUpperCase().slice(0, 10)))
       .setPosition(wx, wy - 62);
     /* Feel B8: el tema del avance crece al CRUZAR al campo rival (con la pelota) */

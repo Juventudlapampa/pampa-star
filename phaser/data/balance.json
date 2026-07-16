@@ -22,6 +22,9 @@
     "persecutores": 1,
     "marcadores": 2,
     "marca_vel_mult": 1.3,
+    "modo_saltos": true,
+    "saltos_vel_mult": 2.4,
+    "_saltos": "V6 §2 R1: el partido es una sucesión de MOMENTOS. Con modo_saltos, portador y rival van rápido y esquemático (×saltos_vel_mult), nadie caza por atrás (los cruces son emboscadas de los que están adelante) y tras un robo hay separación real. Apagalo y vuelve el flujo continuo v4.",
     "arranque_rival_ms": 1500,
     "_reaccion": "cooldown largo = respirás entre cruces; 1 solo perseguidor = hay espacio; arranque_rival_ms = cuando pierden/reciben la pelota, el rival la pisa un momento antes de arrancar (tenés tiempo de reaccionar y elegir marcador).",
     "seg_por_minuto": 16,
@@ -43,7 +46,10 @@
     "cambio_auto": true,
     "escala_portador": 0.6,
     "escala_ficha": 1.3,
-    "zoom_beat_mult": 3
+    "zoom_beat_mult": 3,
+    "ceguera_rival": true,
+    "radio_revelacion": 0,
+    "_ceguera": "V6 §2 R5 (decisión de Rodri, va sí o sí): los rivales NO se dibujan en la cancha — existen, marcan e interceptan, pero solo se ven en el radar, en el cruce y en las escenas. La tensión no viene de perseguir: viene de no saber. radio_revelacion > 0 = perilla de rescate (revela rivales a esa distancia de la pelota)."
   },
 
   "escena": {
@@ -56,7 +62,10 @@
   },
 
   "tempo": {
-    "_nota": "ANIME v4 Bloque G: acciones lentas, PARTIDO CORTO. duracion_real_min = cuántos minutos REALES de juego libre dura el partido completo (los saltos de acción lo comprimen más). Si se borra la clave, vuelve el seg_por_minuto de ritmo.",
+    "_nota": "V6 §2 R4: EL RELOJ A SALTOS (perilla única). minutos_por_momento = cuántos minutos de partido consume cada momento de decisión; el reloj entre momentos solo GOTEA (goteo_seg_por_minuto segundos reales por minuto de juego). Presets elegibles antes del partido. Si se borra minutos_por_momento, vuelve el reloj continuo v4 (duracion_real_min).",
+    "minutos_por_momento": 2.5,
+    "goteo_seg_por_minuto": 8,
+    "presets": { "relampago": 5, "intermedio": 2.5, "largo": 1.2 },
     "duracion_real_min": 10
   },
 
@@ -133,6 +142,7 @@
     "dist_remate_rival": 200,
     "pase_radio": 380,
     "pase_penal_lejano": 0.05,
+    "separacion_duelo": 90,
     "matriz_bonus": 12,
     "cpu_pesos": { "quite": 0.4, "corte": 0.3, "bloqueo": 0.3 },
     "calden": { "x_min": 680, "mult": 1.3 },

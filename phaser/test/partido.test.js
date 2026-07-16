@@ -180,7 +180,10 @@ function partidoNuevo(rng) {
 
 /* ---- 10) ANIME v4 G: tempo — jugadores lentos, PARTIDO CORTO ---- */
 (function () {
-  ok(Math.abs(P.segPorMinuto(bal) - (bal.tempo.duracion_real_min * 60) / 90) < 1e-9, "tempo manda: seg/min = duracion_real_min*60/90");
+  /* V6: con reloj a saltos, el continuo es solo GOTEO; la jerarquía de fallbacks se sostiene */
+  ok(P.segPorMinuto(bal) === bal.tempo.goteo_seg_por_minuto, "con minutos_por_momento el continuo es el goteo");
+  var soloDur = JSON.parse(JSON.stringify(bal)); delete soloDur.tempo.minutos_por_momento;
+  ok(Math.abs(P.segPorMinuto(soloDur) - (bal.tempo.duracion_real_min * 60) / 90) < 1e-9, "sin momentos cae a duracion_real_min (v4)");
   var sinTempo = JSON.parse(JSON.stringify(bal)); delete sinTempo.tempo;
   ok(P.segPorMinuto(sinTempo) === bal.ritmo.seg_por_minuto, "sin tempo cae al seg_por_minuto clásico");
   var st = partidoNuevo();
@@ -297,6 +300,57 @@ function partidoNuevo(rng) {
   ok(!/guts/i.test(JSON.stringify(mega)), "F6: megacosas.json sin terminología de terceros");
   ok(!/guts/i.test(JSON.stringify(bal)), "F6: balance.json sin terminología de terceros");
   console.log("[13] fixes urgentes V6 §1: ok");
+})();
+
+/* ---- 14) V6 §2: modelo de saltos, separación, reloj por momentos ---- */
+(function () {
+  /* R4: el reloj avanza EN BLOQUES fijos por momento */
+  var st = partidoNuevo();
+  var m0 = st.minuto;
+  P.saltoReloj(st, seq([0.5]));
+  ok(Math.abs((st.minuto - m0) - bal.tempo.minutos_por_momento) < 1e-9,
+    "R4: cada momento consume exactamente " + bal.tempo.minutos_por_momento + " minutos");
+  /* R4: entre momentos el reloj solo GOTEA */
+  st.cooldown = 9e9; m0 = st.minuto;
+  P.tick(st, 1000, null);
+  ok(Math.abs((st.minuto - m0) - 1 / bal.tempo.goteo_seg_por_minuto) < 1e-6, "R4: goteo lento entre momentos");
+  /* R4: la aritmética cierra — 45' = ~18 momentos INTERMEDIO */
+  ok(Math.round(45 / bal.tempo.presets.intermedio) === 18, "R4: INTERMEDIO da 18 momentos por tiempo");
+  /* R1: en modo saltos el portador va rápido y esquemático */
+  ok(bal.ritmo.modo_saltos === true, "R1: modo_saltos encendido");
+  var st2 = partidoNuevo(); st2.cooldown = 9e9;
+  var x0 = st2.mios[st2.ctrl].x;
+  P.tick(st2, 1000, { dx: 1, dy: 0 });
+  var avance = st2.mios[st2.ctrl].x - x0;
+  ok(Math.abs(avance - bal.ritmo.portador_con_pelota * bal.ritmo.saltos_vel_mult) < 2,
+    "R1: el portador avanza a velocidad de salto (" + Math.round(avance) + " px/s)");
+  /* R1 test de corrección §0: NO podés perseguir al rival que te robó — él escala, vos no */
+  ok(bal.ritmo.rival_con_pelota * bal.ritmo.saltos_vel_mult > bal.ritmo.perseguidor_sin_pelota,
+    "R1: el rival con pelota es inalcanzable corriendo (se lo anticipa)");
+  /* R1: nadie te caza desde ATRÁS — un rival pegado atrás no dispara encuentro */
+  var st3 = partidoNuevo(); st3.cooldown = 0;
+  var c3 = st3.mios[st3.ctrl]; c3.x = 600; c3.y = 340;
+  st3.rivales.forEach(function (r) { r.x = 100; r.y = 60; });
+  var atras = st3.rivales.findIndex(function (r) { return r.pos !== "ARQ"; });
+  st3.rivales[atras].x = 570; st3.rivales[atras].y = 340;   // a 30px pero DETRÁS
+  var evs = P.tick(st3, 16, null);
+  ok(!evs.some(function (e) { return e.tipo === "encuentro"; }), "R1: el que quedó atrás no te embosca");
+  st3.rivales[atras].x = 625;                                // ahora ADELANTE, a 25px
+  evs = P.tick(st3, 16, null);
+  ok(evs.some(function (e) { return e.tipo === "encuentro"; }), "R1: el cruce llega de ADELANTE");
+  /* R2: separación post-duelo — el perdedor queda lejos */
+  var st4 = partidoNuevo();
+  var rIdx = st4.rivales.findIndex(function (r) { return r.pos !== "ARQ"; });
+  var rx0 = st4.rivales[rIdx].x, cx0 = st4.mios[st4.ctrl].x;
+  P.ganarAtaque(st4, "gambeta", rIdx);
+  ok(st4.mios[st4.ctrl].x - cx0 >= bal.partido.separacion_duelo - 1, "R2: el ganador gana metros de verdad");
+  ok(st4.rivales[rIdx].x > rx0 + 40, "R2: el gambeteado queda pagando atrás");
+  /* R2: tras un robo la pelota YA está lejos (no se persigue) */
+  var st5 = partidoNuevo();
+  var px0 = st5.pelota.x;
+  P.perderPelota(st5, seq([0.5]));
+  ok(st5.pelota.x < px0, "R2: tras el robo la pelota se fue con el rival, lejos");
+  console.log("[14] modelo de saltos + separación + reloj v6: ok");
 })();
 
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
