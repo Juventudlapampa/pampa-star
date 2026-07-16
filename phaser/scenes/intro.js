@@ -32,19 +32,62 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       this.scene.start("editor");
       return;
     }
+    const pedida = this.game.registry.get("introPedida");
     this.game.registry.set("introVista", true);
     this.game.registry.set("introPedida", false);
     this._fin = false;
+    this._arranco = false;
     this.SFX = window.PampaSFX;
     if (this.SFX && this.SFX.configurarMusica) this.SFX.configurarMusica(BAL.musica);
     this.cameras.main.setBackgroundColor("#000000");
-    /* SALTEABLE con cualquier toque o tecla (obligatorio) */
-    this.input.on("pointerdown", () => this.salir());
-    if (this.input.keyboard) this.input.keyboard.on("keydown", () => this.salir());
-    const skip = this.add.text(948, 526, "tocá para saltear ▸", { fontFamily: "monospace", fontSize: "10px", color: "#f6efdc88" }).setOrigin(1, 1).setDepth(99);
-    /* la secuencia corre por RELOJ propio: cada plano agenda el siguiente */
     this.capa = this.add.container(0, 0);
     this.fxG = this.add.graphics().setDepth(50);
+    /* FIX del opening mudo: el navegador exige un GESTO para habilitar audio,
+       y cualquier gesto salteaba la intro → LA COMPUERTA: una pantalla previa
+       cuyo toque desbloquea el audio Y dispara el opening CON sonido desde el
+       primer plano. Si la intro se pidió desde el editor, el gesto ya ocurrió. */
+    if (this.I.compuerta === false || pedida) this.arrancarOpening();
+    else this.compuerta();
+  }
+
+  /* --- LA COMPUERTA: negro, el logo, y "TOCÁ PARA EMPEZAR" pulsando --- */
+  compuerta() {
+    if (this.textures.exists("i_logo")) {
+      const l = this.add.image(480, 210, "i_logo");
+      l.setScale(Math.min(1, 540 / l.width));
+      this.capa.add(l);
+    } else {
+      const t = this.add.text(480, 200, "PAMPA STAR", { fontFamily: "'Press Start 2P',monospace", fontSize: "40px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 10 }).setOrigin(0.5);
+      this.capa.add(t);
+    }
+    const toca = this.add.text(480, 400, this.I.t_compuerta || "👆 TOCÁ PARA EMPEZAR",
+      { fontFamily: "'Press Start 2P',monospace", fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
+    this.capa.add(toca);
+    this.tweens.add({ targets: toca, alpha: 0.35, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+    if (this.input.keyboard && !this.sys.game.device.input.touch) {
+      const tk = this.add.text(480, 442, this.I.t_compuerta_teclado || "(o apretá cualquier tecla)",
+        { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc99" }).setOrigin(0.5);
+      this.capa.add(tk);
+    }
+    const go = () => {
+      if (this._arranco || this._fin) return;
+      this._arranco = true;
+      this.SFX && this.SFX.unlock && this.SFX.unlock();   // EL GESTO: el audio queda habilitado
+      this.arrancarOpening();
+    };
+    this.input.once("pointerdown", go);
+    if (this.input.keyboard) this.input.keyboard.once("keydown", go);
+  }
+
+  /* --- el opening en sí (recién acá cualquier toque SALTEA) --- */
+  arrancarOpening() {
+    this._arranco = true;
+    this.corteSeco();
+    this._gestoTs = this.time.now;
+    this.input.on("pointerdown", () => this.salir());
+    if (this.input.keyboard) this.input.keyboard.on("keydown", () => this.salir());
+    this.add.text(948, 526, "tocá para saltear ▸", { fontFamily: "monospace", fontSize: "10px", color: "#f6efdc88" }).setOrigin(1, 1).setDepth(99);
+    /* la secuencia corre por RELOJ propio: cada plano agenda el siguiente */
     const D = this.I.planos_ms || [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000];
     const planos = [this.p1, this.p2, this.p3, this.p4, this.p5, this.p6, this.p7, this.p8];
     let t = 60;
@@ -59,6 +102,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   corteSeco() { this.capa.removeAll(true); this.fxG.clear(); this.tweens.killAll(); }
   salir() {
     if (this._fin) return;
+    if (this._gestoTs != null && this.time.now - this._gestoTs < 180) return;   // el gesto de la compuerta no saltea
     this._fin = true;
     this.SFX && this.SFX.musicaTema && this.SFX.musicaTema(null);   // corta el audio limpio
     this.scene.start("editor");

@@ -64,9 +64,13 @@
   "intro": {
     "_nota": "ADDENDUM v6 Parte A: EL OPENING (flag flags.intro_opening; se ve una vez por sesión, salteable con cualquier toque). Duraciones de los 8 planos en ms y los textos. El arte sale de assets/poses/ y assets/ui/: si falta un archivo, el plano se saltea solo.",
     "planos_ms": [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000],
+    "compuerta": true,
+    "t_compuerta": "👆 TOCÁ PARA EMPEZAR",
+    "t_compuerta_teclado": "(o apretá cualquier tecla)",
     "t_pueblo": "En algún pueblo de La Pampa…",
     "t_grito": "¡CALDENAZO!",
-    "t_bajada": "DEL POTRERO AL MUNDIAL"
+    "t_bajada": "DEL POTRERO AL MUNDIAL",
+    "_compuerta": "La pantalla previa cuyo TOQUE desbloquea el audio del navegador y dispara el opening CON sonido desde el primer plano (sin ella, el opening automático sería siempre mudo). compuerta:false la saca."
   },
 
   "musica": {
