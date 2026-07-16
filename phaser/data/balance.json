@@ -61,6 +61,29 @@
     "escala_rival": 2.9
   },
 
+  "definicion": {
+    "_nota": "V6 §4: LA DEFINICIÓN v2 (flag v6_definicion). Fase 1: los defensores se acercan a def_acercan_px_s (más esperás, mejor ángulo, más cerca los tenés; al contacto te la sacan). Fase 2: el duelo de 6 zonas (coincide/a_una/a_dos modulan al arquero) + timing (dulce/floja/pasada). Bloqueo del defensor en línea. Achicar del arquero: gana abajo, vendido al ángulo alto. Defensiva: carga_ms = cuánto tarda el rival en cargar el remate.",
+    "def_acercan_px_s": 34,
+    "contacto_px": 34,
+    "jugador_px_s": 160,
+    "angulo_peso": 16,
+    "zona_timing": 0.2,
+    "dulce_bonus": 8,
+    "floja_penal": 22,
+    "pasada_fuera_mult": 1.6,
+    "pasada_fuera_max": 0.55,
+    "coincide": 55,
+    "a_una": 10,
+    "a_dos": -25,
+    "bloqueo_base": 0.18,
+    "bloqueo_radio": 120,
+    "bloqueo_cercania": 0.25,
+    "bloqueo_max": 0.6,
+    "achicar_bonus": 14,
+    "achicar_vendido": 18,
+    "carga_ms": 4200
+  },
+
   "tempo": {
     "_nota": "V6 §2 R4: EL RELOJ A SALTOS (perilla única). minutos_por_momento = cuántos minutos de partido consume cada momento de decisión; el reloj entre momentos solo GOTEA (goteo_seg_por_minuto segundos reales por minuto de juego). Presets elegibles antes del partido. Si se borra minutos_por_momento, vuelve el reloj continuo v4 (duracion_real_min).",
     "minutos_por_momento": 2.5,

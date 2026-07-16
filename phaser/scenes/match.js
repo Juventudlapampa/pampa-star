@@ -35,6 +35,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         (r.arquetipo === "rival" ? this._retratos.rival : this._retratos.companero).push(key);
       });
     }
+    /* V6 §3.2: las POSES ILUSTRADAS del manifest — fallback tolerante: se carga
+       lo que exista; lo que falte cae al sprite heroico de código, nada crashea */
+    const poses = this.game.registry.get("poses");
+    if (poses && poses.poses) {
+      const base = poses.base || "assets/poses/";
+      Object.keys(poses.poses).forEach(id => {
+        const p = poses.poses[id];
+        if (p && p.archivo) this.load.image("pose_" + id, "../" + base + p.archivo);
+      });
+      this.load.on("loaderror", (file) => { /* el fallback del poseSprite cubre el hueco */ });
+    }
   }
 
   init() {
@@ -42,7 +53,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -74,6 +85,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null;
     this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
+    this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
   }
 
   create() {
@@ -1167,6 +1179,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
     }
     const mega = (esCalden && typeof esCalden === "object") ? esCalden : (esCalden ? this.megaDisponible() : null);
+    /* V6 §4: el TIRO normal entra a LA DEFINICIÓN (4 fases). El MEGATIRO
+       conserva su ceremonia propia (cut-in + barra exigente + cine de 5 planos). */
+    if (!mega && this.FLAGS.v6_definicion) {
+      this.entrarDefinicionOf({ rivalIdx: rivalIdx, libre: libre });
+      return;
+    }
     if (mega && this.FLAGS.e6_cine) {
       /* FEEL B5 · MEGATIRO: anuncio con cut-in y carga → ejecución exigente → CINE de 5 planos */
       this.cutInEspecial("¡" + mega.n.toUpperCase() + "!", (mega.sub || "") + " · " + mega.aguante + " aguante", () => {
@@ -1924,9 +1942,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       linea.destroy();
       if (win && this.FLAGS.v4_aereo && this.FLAGS.e3_menus &&
         window.PampaPartido.pelotaAltaVigente(this.st) && window.PampaPartido.puedeTirar(this.st)) {
-        /* ANIME F: el pase largo LLEGA ALTO cerca del arco — se abre la decisión aérea */
+        /* ANIME F: el pase largo LLEGA ALTO cerca del arco — se abre la decisión aérea.
+           V6 §4: con LA DEFINICIÓN activa, la decisión vive ADENTRO (botones CABEZA/CHILENA). */
         this.quitarDuelo();
-        this.abrirMenuAereo();
+        if (this.FLAGS.v6_definicion) this.entrarDefinicionOf({ libre: true });
+        else this.abrirMenuAereo();
       } else if (win && !peligro) {
         /* pase seguro: fluye sin fricción — aviso chico y a jugar */
         this.quitarDuelo();
@@ -2194,6 +2214,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
     if (this.estado === "CINE") { this.updateViaje(delta); return; }
     if (this.estado === "ESCENA") return;   // Anime B: la viñeta corre por reloj propio
+    if (this.estado === "DEFINICION") { this.updateDefinicion(delta); return; }   // V6 §4
     if (this.estado === "TIMING") {
       this.dibujarTiming();
       if (this.keyEnter && Phaser.Input.Keyboard.JustDown(this.keyEnter)) this.pararAguja();
@@ -2252,7 +2273,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
       else if (ev.tipo === "encuentroDef") this.beatDeTension(st.mios[st.ctrl], false, null, () => this.abrirMenuDefensa());
       else if (ev.tipo === "rivalTira") {
-        if (this.FLAGS.e3_menus) {
+        if (this.FLAGS.v6_definicion) {
+          /* V6 §4.2: atajar da tanta adrenalina como meterla — la escena completa */
+          const arq = st.mios.find(j => j.pos === "ARQ");
+          this.beatDeTension(arq, false, "keeper_mio", () => this.entrarDefinicionDef());
+        }
+        else if (this.FLAGS.e3_menus) {
           const arq = st.mios.find(j => j.pos === "ARQ");
           this.beatDeTension(arq, false, "keeper_mio", () => this.abrirMenuArquero());
         }
