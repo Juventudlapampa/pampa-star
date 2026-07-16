@@ -53,7 +53,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true, v6_secuencias: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -953,11 +953,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " aguante", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
           cb: () => libre ? this.reanudarLibre() : this.resolverAccionAtaque(gam, rivalIdx)
         },
-        S: { texto: "🔁 UNO-DOS", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
+        S: (() => {
+          /* V6 §3.4: con la progresión, el uno-dos crece a JUGADA COMBINADA (el compa define) */
+          const sec = this.secuenciaDisponible("combinada");
+          if (sec && !par.bloqueada) return { texto: "🤝 COMBINADA", sub: sec.costo + " aguante · él define", cb: () => this.secuenciaCombinada() };
+          return { texto: "🔁 UNO-DOS", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) };
+        })(),
         E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
-      /* el MEGATIRO (de data, con nombre pampeano) convive con el tiro normal — va al centro */
-      centro: megaListo ? { texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15), sub: megaListo.aguante + " aguante · especial", cb: () => this.resolverTiro(megaListo, rivalIdx, libre) } : null,
+      /* el MEGATIRO (de data, con nombre pampeano) convive con el tiro normal — va al centro.
+         V6 §3.4: sin megatiro listo, el centro ofrece la MEGACORRIDA (secuencia) */
+      centro: megaListo
+        ? { texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15), sub: megaListo.aguante + " aguante · especial", cb: () => this.resolverTiro(megaListo, rivalIdx, libre) }
+        : (() => {
+          const sec = this.secuenciaDisponible("megacorrida");
+          return sec ? { texto: "🌀 MEGACORRIDA", sub: sec.costo + " aguante · el techo", cb: () => this.secuenciaMegacorrida() } : null;
+        })(),
       volver: libre ? () => this.reanudarLibre() : null
     });
   }
@@ -1802,12 +1813,109 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.cineLayer.setVisible(false);
       this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
       this.zoomBase();
-      this.estado = "LIBRE";
+      /* el alFinal corre ANTES de liberar: si encadena (otra escena, un menú,
+         la definición) fija su estado y NO hay ventana LIBRE donde la sim
+         pueda meter un evento encima (carrera real cazada en la combinada) */
+      this.estado = "RESOLUCION";
       alFinal && alFinal();
+      if (this.estado === "RESOLUCION") this.estado = "LIBRE";
     });
   }
   /* ¿la capa cinemática está activa? (flag B + el sonido/pulido de la E6 acompañan) */
   hayEscenas() { return this.FLAGS.v4_escenas && this.FLAGS.e6_cine; }
+
+  /* ============ V6 §3.4 · LAS SECUENCIAS (el techo de espectáculo) ============
+     Jugadas que ENCADENAN escenas del gestor en una sola acción épica.
+     Costo alto de aguante, desbloqueo por progresión, firma del crack (VOS). */
+  secuenciaDisponible(tipo) {
+    const S = this.BAL.secuencias || {};
+    const st = this.st, j = st.mios[st.ctrl];
+    if (!this.FLAGS.v6_secuencias || !this.hayEscenas() || !j || !j.esVos || st.posesion !== "mia") return null;
+    if (tipo === "megacorrida") {
+      const costo = S.megacorrida_aguante || 300;
+      return (this._nivelCarrera >= (S.megacorrida_nivel || 2) && j.aguante >= costo) ? { costo } : null;
+    }
+    const costoC = S.combinada_aguante || 160;
+    return (this._nivelCarrera >= (S.combinada_nivel || 2) && j.aguante >= costoC && window.PampaPartido.receptoresPase(st).some(r => r.adelante)) ? { costo: costoC } : null;
+  }
+  /* MEGACORRIDA: se te van quedando rivales atrás uno a uno, y rematás */
+  secuenciaMegacorrida() {
+    const st = this.st, P = window.PampaPartido, S = this.BAL.secuencias || {};
+    const j = st.mios[st.ctrl];
+    j.aguante = Math.max(0, j.aguante - (S.megacorrida_aguante || 300));
+    const eslabones = S.megacorrida_rivales || 2;
+    const delante = st.rivales.map((r, i) => ({ r, i })).filter(o => o.r.pos !== "ARQ" && o.r.x > j.x - 40).sort((a, b) => a.r.x - b.r.x);
+    const paso = (k) => {
+      if (k >= eslabones || k >= delante.length) { this.entrarDefinicionOf({ libre: true }); return; }   // el remate, con el arquero estirándose
+      const rv = delante[k];
+      const r = P.resolverDuelo(st, { accion: "gambeta", poder: (j.stats.gambeta || 50) + (S.bonus_duelo || 8), costo: 0 });
+      if (r.win) {
+        P.ganarAtaque(st, "gambeta", rv.i);
+        this.escenaCine({
+          etiqueta: "· MEGACORRIDA " + (k + 1) + "/" + eslabones + " ·",
+          prota: { j, esRival: false, anim: "gambeta" },
+          rival: { j: rv.r, esRival: true, anim: "pase" },
+          gana: true, sfx: "whoosh",
+          titulo: "¡SIGUE LA CORRIDA!", sub: "va quedando gente atrás (" + (k + 1) + " de " + eslabones + ")",
+          alFinal: () => { this.relatar("gambeta_win"); paso(k + 1); }
+        });
+      } else {
+        P.perderPelota(st);
+        this.escenaCine({
+          etiqueta: "· la corrida murió ·",
+          prota: { j: rv.r, esRival: true, anim: "pase" },
+          rival: { j, esRival: false, anim: "gambeta" },
+          gana: true, color: 0xe3503e, sfx: "gloves",
+          titulo: "¡TE FRENARON!", sub: "la megacorrida murió en el eslabón " + (k + 1),
+          alFinal: () => this.relatar("gambeta_lose")
+        });
+      }
+    };
+    paso(0);
+  }
+  /* JUGADA COMBINADA: pared, se suma un compañero, elegís, y ÉL define */
+  secuenciaCombinada() {
+    const st = this.st, P = window.PampaPartido, S = this.BAL.secuencias || {};
+    const j = st.mios[st.ctrl];
+    j.aguante = Math.max(0, j.aguante - (S.combinada_aguante || 160));
+    const r = P.resolverDuelo(st, { accion: "pared", poder: (j.stats.pase || 50) + (S.bonus_duelo || 8), costo: 0 });
+    if (!r.win) {
+      P.perderPelota(st);
+      this.escenaCine({
+        etiqueta: "· la combinada ·",
+        prota: { j: st.rivales[st.portadorRival], esRival: true, anim: "pase" }, rival: null,
+        gana: true, color: 0xe3503e, sfx: "gloves",
+        titulo: "¡CORTARON LA PARED!", sub: "leyeron la jugada combinada",
+        alFinal: () => this.relatar("corte")
+      });
+      return;
+    }
+    const rec = P.receptoresPase(st).filter(x => x.adelante)[0] || P.receptoresPase(st)[0];
+    this.escenaCine({
+      etiqueta: "· JUGADA COMBINADA ·",
+      prota: { j, esRival: false, anim: "pase" }, rival: null,
+      gana: true, sfx: "kick",
+      titulo: "¡PARED Y SE SUMA " + ((st.mios[rec.idx].nombre || "EL COMPA").toUpperCase().slice(0, 10)) + "!",
+      sub: "elegí cómo termina",
+      alFinal: () => {
+        /* el compañero recibe y elige: CENTRO (llega alta) o AL PIE */
+        st.ctrl = rec.idx;
+        const c = st.mios[rec.idx];
+        c.x = Math.min(c.x + 60, st.W - 90);
+        st.pelota.x = c.x + 12; st.pelota.y = c.y;
+        this.st.modo = "congelado";
+        this.abrirMenuCruz({
+          titulo: "🤝 ¡" + (c.nombre || "EL COMPA").toUpperCase() + " LA RECIBE EN EL ÁREA!",
+          izq: { j: c, guts: c.aguante },
+          opciones: {
+            W: { texto: "🎯 AL PIE", sub: "define de remate", cb: () => this.entrarDefinicionOf({ libre: true }) },
+            E: { texto: "☁ CENTRO", sub: "la pide ARRIBA (cabeza/chilena)", cb: () => { st._altaHasta = st._t + 6000; this.entrarDefinicionOf({ libre: true }); } }
+          },
+          volver: null
+        });
+      }
+    });
+  }
 
   /* ============ ETAPA 6 · pulido cinematográfico ============ */
   /* V6 §3.3 P4: el anuncio de MEGACOSA ya no es una franjita — es una ESCENA

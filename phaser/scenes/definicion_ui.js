@@ -282,6 +282,7 @@
     /* --- FASE 2: el duelo de SEIS ZONAS + la aguja --- */
     defElegirTiro(tipo, costo) {
       var st = this.st;
+      if (!this._def || this._def.fase !== 1) return;   // guard: fuera de la fase de posición no hay tiro
       this._def.tiroTipo = tipo;
       this._def.costo = costo;
       this._def.fase = 2;
@@ -324,7 +325,7 @@
       this._def.zonaCPU = D.eleccionCPU();
     },
     defConfirmarZona(id) {
-      if (this._def.fase !== 2 || this._def.zonaMia) return;
+      if (!this._def || this._def.fase !== 2 || this._def.zonaMia) return;
       this._def.zonaMia = id;
       var F = this.BAL.feel || {};
       var periodo = F.barra_periodo_ms || 900;
@@ -405,8 +406,8 @@
     defTeatroFinal(o) {
       var self = this, F = this.BAL.feel || {}, D = window.PampaDefinicion;
       this._def.fase = 4;
-      if (this._def.zonasG) this._def.zonasG.clear();
-      (this._def.zonaRects || []).forEach(function (r) { r.disableInteractive(); });
+      if (this._def.zonasG && this._def.zonasG.active) this._def.zonasG.clear();
+      (this._def.zonaRects || []).forEach(function (r) { if (r.active) r.disableInteractive(); });
       this.limpiarContenido();
       this.cineBG.clear();
       this.cineBG.fillStyle(0x081c10, 1); this.cineBG.fillRect(0, 0, W, H);

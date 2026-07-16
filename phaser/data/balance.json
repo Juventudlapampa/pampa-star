@@ -61,6 +61,16 @@
     "escala_rival": 2.9
   },
 
+  "secuencias": {
+    "_nota": "V6 §3.4: las SECUENCIAS encadenan escenas en una sola acción épica (flag v6_secuencias, firma del crack). MEGACORRIDA: N rivales quedan atrás uno a uno y rematás (si un duelo se pierde, muere ahí). COMBINADA: pared, se suma el compañero, elegís CENTRO o AL PIE y ÉL define. Desbloqueo por nivel de carrera, costo alto a propósito.",
+    "megacorrida_nivel": 2,
+    "megacorrida_aguante": 300,
+    "megacorrida_rivales": 2,
+    "combinada_nivel": 2,
+    "combinada_aguante": 160,
+    "bonus_duelo": 8
+  },
+
   "envion": {
     "_nota": "V6 §2 R3: el MEDIDOR DE ENVIÓN — mérito acumulado, no reflejo. Se llena ganando duelos (gana_duelo por victoria); lleno se gasta en POTENCIAR al equipo (potencia_bonus a todos los duelos por potencia_ms) o en la SÚPER DEFENSA (bloqueo seguro de un remate). Siempre se muestra con NÚMERO además de la barra.",
     "max": 100,
