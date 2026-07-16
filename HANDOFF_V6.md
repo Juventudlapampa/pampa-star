@@ -12,10 +12,13 @@ gol en contra construidos sobre el motivo. TODO en `balance.json → musica`.
 **Parte A (`65a4bc5`)**: `scenes/intro.js` — el opening de 8 planos (~20s, cortes
 secos, salteable con cualquier toque, una vez por sesión, botón "▶ VER INTRO" en
 el editor, tiempos y textos en `balance.json → intro`, tolerante a assets
-faltantes). ⚠ La PRIMERA vista de la sesión puede ser muda (autoplay del
-navegador); desde "VER INTRO" suena entera. **Checklist celu**: recargá la
-página → el opening corre solo; tocá y salteás; en el editor "▶ VER INTRO" la
-repite con música. Criterio A.5: ¿da ganas de jugar? Lo firmás vos.
+faltantes). **FIX del mudo (`c3273ba`) — LA COMPUERTA**: antes del opening,
+pantalla negra con el logo y "👆 TOCÁ PARA EMPEZAR" pulsando; ese toque
+desbloquea el audio del navegador Y dispara el opening CON sonido desde el
+primer plano (los toques posteriores saltean). Knob `intro.compuerta`.
+**Checklist celu**: recargá → la compuerta espera; tocá → el opening ENTERO
+con música; tocá de nuevo → salteás al editor; "▶ VER INTRO" va directo a los
+planos. Criterio A.5: ¿da ganas de jugar? Lo firmás vos.
 
 `docs/DISENO_MAESTRO_V6.md` ejecutado **en el orden del §9, completo, sin saltear
 ni reordenar**. Suite final: **2.322 asserts, 0 fallas** (8 suites; nuevas:
