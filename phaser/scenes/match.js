@@ -58,13 +58,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true, v6_secuencias: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true, v6_secuencias: true, pantalla_partida: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
     this.VI = this.BAL.vista || {};
-    /* V6 §2 R5: la ceguera (con la vista táctica; el radar es la fuente de verdad) */
-    this._ceguera = this._vista4 && this.VI.ceguera_rival !== false;
+    /* V7-1: PANTALLA PARTIDA — arriba la escena, abajo el mapa. La ceguera MURIÓ:
+       la reemplaza la IMPRECISIÓN del rival en el mapa (retardo + ruido). */
+    this._split = !!this.FLAGS.pantalla_partida;
+    this._ceguera = false;
+    this._imprec = null;
+    this._panelReveal = null;
     this.estado = "LIBRE";               // LIBRE_CORRIENDO | MENU (pausa) | PASE (apuntando) | RESOLUCION (doc §9)
     /* ETAPA 1 — constantes de cámara y mundo (números del doc §2; se afinan
        por criterio del doc: chico→más zoom, encajonado→más deadzone,
@@ -92,6 +96,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.ringG = this.paseG = null; this._btnCambiar = null;
     this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
+    this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
+    this.panelSil = null; this._panelPrev = null;
   }
 
   create() {
@@ -137,7 +143,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     this.buildCancha();
     this.buildPortador();
-    this.buildFichas();
+    if (!this.FLAGS.pantalla_partida) this.buildFichas();   // V7-1: el mundo no se dibuja
 
     /* --- LA CÁMARA (Anime v4 §0: ELEVADA para navegar; la épica vive en las escenas) ---
        v4_vista ON: zoom que muestra la cancha (cobertura afinable) + scroll suave mínimo.
@@ -154,10 +160,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     cam.setZoom(this._zoomBase);
     cam.roundPixels = true;       // scroll sin temblor (equivale al roundPixels del config, sin tocar index.html)
 
+    /* --- V7-1 PANTALLA PARTIDA: el mundo estilo FIFA se APAGA; arriba vive el
+       panel de ESCENA (ilustración con parallax) y abajo EL MAPA grande, que
+       es la superficie de navegación principal. --- */
+    if (this._split) {
+      this.mundoLayer.setVisible(false);
+      this.buildPanelEscena();
+      this.children.sendToBack(this.panelLayer);
+      cam.ignore(this.panelLayer);
+    }
     /* --- ETAPA 2: RADAR + HUD en cámara fija (doc §3/§4) ---
-       V6 §1 F1: el radar VUELVE siempre (Anime A lo había sacado: error).
-       Con la ceguera (§2 R5) pasa a ser LA fuente de información del rival.
-       El pase dirigido acepta las dos: tocar la cancha o tocar el radar. */
+       V6 §1 F1: el radar VUELVE siempre. En pantalla partida es EL MAPA:
+       grande, con los dos equipos, y ahí se corre y se apunta. --- */
     this.buildRadar();
     this.buildHUD();
     this.buildBotonAccion();
@@ -459,6 +473,108 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.mundoLayer.add([this.trailG, this.sprPortador, this.sprPelota, this.marker]);
   }
 
+  /* ============ V7-1 · EL PANEL DE ESCENA (arriba): el que corre, GRANDE ============
+     Ilustración quieta + parallax (cielo quieto, tribuna lenta, pasto rápido),
+     la pelota del juego al pie, bob de carrera, flip por dirección. Los rivales
+     cercanos entran como SILUETAS y se revelan recién en el cruce. */
+  buildPanelEscena() {
+    const Arte = window.PampaAvatarArte;
+    this.panelLayer = this.add.container(0, 0);
+    const g = this.add.graphics();
+    g.fillStyle(0x123a5a, 1); g.fillRect(0, 30, 960, 92);          // cielo (quieto)
+    this.panelLayer.add(g);
+    if (this.textures.exists("fondo_tribuna")) {
+      this.panelTribuna = this.add.tileSprite(480, 121, 1920, 90, "fondo_tribuna");
+      this.panelTribuna.setTileScale(0.5);
+      this.panelTribuna.tilePositionY = 270;
+      this.panelLayer.add(this.panelTribuna);
+    } else {
+      const t = this.add.rectangle(480, 121, 960, 90, 0x0e2c44, 1);
+      this.panelLayer.add(t);
+      this.panelTribuna = null;
+    }
+    if (!this.textures.exists("pasto_tile")) Arte.bake(this, "pasto_tile", 64, 64, (gg) => {
+      gg.fillStyle(0x2e7d32, 1); gg.fillRect(0, 0, 32, 64);
+      gg.fillStyle(0x388e3c, 1); gg.fillRect(32, 0, 32, 64);
+      gg.fillStyle(0xffffff, 0.05); gg.fillRect(0, 30, 64, 2);
+    });
+    this.panelPasto = this.add.tileSprite(480, 231, 960, 146, "pasto_tile");
+    this.panelLayer.add(this.panelPasto);
+    /* siluetas de rivales cercanos (pool), DETRÁS del que corre */
+    this.panelSil = [];
+    for (let k = 0; k < 3; k++) {
+      const s = this.add.image(0, 0, "__WHITE").setVisible(false);
+      this.panelLayer.add(s);
+      this.panelSil.push(s);
+    }
+    /* EL QUE CORRE (pose/identidad se resuelve por frame) + su pelota + su nombre */
+    this.panelJug = this.add.image(430, 232, "__WHITE").setVisible(false);
+    this.panelLayer.add(this.panelJug);
+    this.panelPelota = this.add.sprite(482, 296, "ball").setScale(2);
+    this.panelLayer.add(this.panelPelota);
+    this.panelNombre = this.add.text(430, 122, "", { fontFamily: "monospace", fontSize: "12px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#f6efdc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+    this.panelLayer.add(this.panelNombre);
+    this._panelPrev = null;
+  }
+  /* qué ilustración corre arriba (los bloques de identidades/recolor la afinan) */
+  poseDelPanel(p) {
+    return this.poseKey("corriendo");
+  }
+  updatePanelEscena(delta) {
+    if (!this._split || !this.panelJug) return;
+    const st = this.st, p = this.portadorActual(), j = p.j;
+    const prev = this._panelPrev || { x: j.x, y: j.y, clave: p.clave };
+    const mismo = prev.clave === p.clave;
+    const vx = mismo ? j.x - prev.x : 0, vy = mismo ? j.y - prev.y : 0;
+    this._panelPrev = { x: j.x, y: j.y, clave: p.clave };
+    const corriendo = Math.abs(vx) + Math.abs(vy) > 0.04;
+    /* PARALLAX: pasto rápido, tribuna lenta, cielo quieto */
+    this.panelPasto.tilePositionX += vx * 2.4;
+    this.panelPasto.tilePositionY += vy * 1.1;
+    if (this.panelTribuna) this.panelTribuna.tilePositionX += vx * 0.6;
+    /* la ilustración del portador (rival sin revelar = SILUETA) */
+    const key = this.poseDelPanel(p);
+    if (key && this.panelJug.texture.key !== key) {
+      this.panelJug.setTexture(key);
+      this.panelJug.setScale(200 / this.panelJug.height);
+      this.panelJug.setVisible(true);
+    }
+    const revelado = this._panelReveal && this._panelReveal.clave === p.clave && this.time.now < this._panelReveal.hasta;
+    if (p.esRival && !revelado) this.panelJug.setTintFill(0x101820);   // la silueta: no sabés QUIÉN es
+    else this.panelJug.clearTint();
+    const dirIzq = p.esRival ? vx > 0.02 : vx < -0.02;   // el rival ataca hacia tu arco
+    this.panelJug.setFlipX(dirIzq);
+    this.panelJug.y = 232 + (corriendo ? Math.sin(this.time.now * 0.02) * 3 : 0);
+    this.panelJug.x = 430 + (corriendo ? Math.cos(this.time.now * 0.013) * 2 : 0);
+    /* la pelota del juego al pie */
+    const dir = this.panelJug.flipX ? -1 : 1;
+    this.panelPelota.setPosition(430 + 56 * dir, 298 - (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * 7 : 0));
+    if (corriendo) this.panelPelota.rotation += 0.14 * dir;
+    /* quién corre (etiqueta, accesibilidad) */
+    const nom = p.esRival && !revelado ? "▲ RIVAL" : ("▼ " + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10)));
+    if (this.panelNombre.text !== nom) this.panelNombre.setText(nom);
+    /* SILUETAS de rivales dentro de radio_silueta (posición relativa al portador) */
+    const radio = this.VI.radio_silueta || 260;
+    let usados = 0;
+    const kSil = this.poseKey("corriendo");
+    for (let i = 0; i < st.rivales.length && usados < this.panelSil.length; i++) {
+      const r = st.rivales[i];
+      if (r.pos === "ARQ" || (p.esRival && i === p.idx)) continue;
+      const dx = r.x - j.x, dy = r.y - j.y;
+      const d = Math.hypot(dx, dy);
+      if (d > radio || d < 8) continue;
+      const s = this.panelSil[usados++];
+      if (kSil && s.texture.key !== kSil) { s.setTexture(kSil); }
+      s.setScale((120 - 40 * (d / radio)) / s.height);
+      s.setTintFill(0x101820);
+      s.setAlpha(0.85);
+      s.setPosition(430 + Phaser.Math.Clamp(dx, -radio, radio) * 1.3, 236 + Phaser.Math.Clamp(dy * 0.25, -34, 40));
+      s.setFlipX(dx < 0);
+      s.setVisible(true);
+    }
+    for (let k = usados; k < this.panelSil.length; k++) this.panelSil[k].setVisible(false);
+  }
+
   /* ============ ANIME v4 Bloque A · LAS 22 FICHAS ============
      Con la vista elevada, TODOS los jugadores se ven a la vez como sprites
      simples de alta legibilidad (los toscos de la E1: liso vs RAYAS por diseño,
@@ -563,7 +679,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      míos = CÍRCULOS #4FC3F7 · rivales = TRIÁNGULOS #FF8A50 · pelota = ROMBO
      blanco con borde negro · anillo blanco en quien controlás. */
   buildRadar() {
-    const rw = 264, rh = 132, rx = 12, ry = 540 - rh - 12;
+    /* V7-1: en pantalla partida el radar ES el mapa — grande, abajo, protagonista */
+    const rw = this._split ? 640 : 264, rh = this._split ? 198 : 132;
+    const rx = this._split ? 105 : 12, ry = this._split ? 322 : 540 - rh - 12;
     this.radar = { x: rx, y: ry, w: rw, h: rh };
     const marco = this.add.rectangle(rx + rw / 2, ry + rh / 2, rw + 6, rh + 6, 0x0b3d0b, 0.92).setStrokeStyle(2, 0xf6efdc, 0.7);
     this.radarG = this.add.graphics();
@@ -590,6 +708,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   onRadarTap(p) {
     const st = this.st, P = window.PampaPartido, w = this.radarAMundo(p);
+    /* V7-1: el mapa es LA superficie de navegación — tocarlo en LIBRE = correr ahí */
+    if (this._split && this.estado === "LIBRE" && st.posesion === "mia") {
+      this.target = { x: Phaser.Math.Clamp(w.x, 14, st.W - 14), y: Phaser.Math.Clamp(w.y, 14, st.H - 14) };
+      return;
+    }
     if (this.estado === "PASE") {
       /* PASE DIRIGIBLE (doc §7): tocás el destino en el radar. El receptor es el
          más cercano al punto; si tocaste MÁS ALLÁ de él (hacia el arco), es AL VACÍO. */
@@ -748,7 +871,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const PASOS = [
       "1/3 · Movés con el DEDO sobre la cancha\n(o con las flechas / WASD)",
       "2/3 · ⚡ ACCIÓN abre el menú de jugadas\n(en teclado: ESPACIO)",
-      this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda"
+      this._split ? "3/3 · Te movés y pasás TOCANDO\nEL MAPA de abajo" : (this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
     const ANILLOS = [null, { x: 866, y: 456, w: 210, h: 90 },
       this._vista4 ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 }];
@@ -830,9 +953,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: aviso, scale: 1.12, duration: 300, yoyo: true, repeat: 3 });
     }
     const cam = this.cameras.main;
-    /* en la vista elevada el beat se ACERCA más (si no, el zoom no se siente) */
-    const extraBeat = (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1) * (this._vista4 ? (this.VI.zoom_beat_mult || 3) : 1);
-    cam.zoomTo(this._zoomBase * (1 + extraBeat), durBeat, "Sine.easeInOut");
+    /* V7-1: la REVELACIÓN — el rival deja de ser silueta en el panel de escena */
+    if (this._split) {
+      const pAct = this.portadorActual();
+      this._panelReveal = { clave: pAct.clave, hasta: this.time.now + durBeat + 4000 };
+    } else {
+      /* en la vista elevada el beat se ACERCA más (si no, el zoom no se siente) */
+      const extraBeat = (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1) * (this._vista4 ? (this.VI.zoom_beat_mult || 3) : 1);
+      cam.zoomTo(this._zoomBase * (1 + extraBeat), durBeat, "Sine.easeInOut");
+    }
     if (this.FLAGS.e6_cine) {
       if (megaViene) this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(durBeat / 1000);
       else this.SFX && this.SFX.riser && this.SFX.riser(durBeat / 1000);
@@ -1367,7 +1496,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const volver = () => {
       if (hecho) return; hecho = true;
       this.cineLayer.setVisible(false);
-      this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
+      this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
       this.uiCam.fadeIn(ms, 0, 0, 0);
       this.zoomBase();
       this.estado = "LIBRE";
@@ -1862,7 +1991,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.time.delayedCall(70, () => {
       this.cineBlack.setAlpha(0);
       this.cineLayer.setVisible(false);
-      this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
+      this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
       this.zoomBase();
       /* el alFinal corre ANTES de liberar: si encadena (otra escena, un menú,
          la definición) fija su estado y NO hay ventana LIBRE donde la sim
@@ -2020,7 +2149,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.time.delayedCall(60, () => {
         this.cineBlack.setAlpha(0);
         this.cineLayer.setVisible(false);
-        this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
+        this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
         this.estado = "RESOLUCION";
         cb();
       });
@@ -2109,13 +2238,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "PASE";
     this._receptores = rs; this._recSel = 0;
     this._paseOrigen = { rivalIdx, libre };
-    /* Anime A: sin radar el destino se toca sobre la CANCHA; el hint baja al pie */
-    const hx = this._vista4 ? 480 : this.radar.x + this.radar.w / 2;
-    const hy = this._vista4 ? 528 : this.radar.y - 26;
+    /* V7-1: el destino del pase se toca EN EL MAPA; sin split, sobre la cancha */
+    const hx = this._split ? this.radar.x + this.radar.w / 2 : (this._vista4 ? 480 : this.radar.x + this.radar.w / 2);
+    const hy = this._split ? this.radar.y - 14 : (this._vista4 ? 528 : this.radar.y - 26);
     const hint = this.add.text(hx, hy,
-      this._vista4
-        ? "➡ PASE: tocá el DESTINO sobre la cancha (□ = receptores; más allá = AL VACÍO · ◀▶ + ENTER, ▲ = al vacío, ESC = volver)"
-        : "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
+      this._split
+        ? "➡ PASE: tocá el DESTINO en el MAPA (□ = receptores; más allá = AL VACÍO · ◄► + ENTER, ▲ = al vacío, ESC = volver)"
+        : this._vista4
+          ? "➡ PASE: tocá el DESTINO sobre la cancha (□ = receptores; más allá = AL VACÍO · ◀▶ + ENTER, ▲ = al vacío, ESC = volver)"
+          : "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
       { fontFamily: "monospace", fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
     this._paseCancelar = () => {
       if (this._paseOrigen.libre) this.reanudarLibre(); else this.abrirMenuAtaque(this._paseOrigen.rivalIdx, false);
@@ -2312,10 +2443,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
   }
   dibujarRadar() {
-    if (!this.radar) return;   // Anime A: en la vista elevada no hay radar
+    if (!this.radar) return;
     const g = this.radarG, R = this.radar, st = this.st;
     g.clear();
     const mx = wx => R.x + wx / st.W * R.w, my = wy => R.y + wy / st.H * R.h;
+    /* V7-1: EL MAPA es protagonista — cancha completa dibujada (pasto, líneas, áreas) */
+    if (this._split) {
+      g.fillStyle(0x1e6b33, 1); g.fillRect(R.x, R.y, R.w, R.h);
+      g.fillStyle(0x236f38, 1);
+      for (let fx = 0; fx < 6; fx++) g.fillRect(R.x + fx * R.w / 6, R.y, R.w / 12, R.h);
+      g.lineStyle(2, 0xeafff0, 0.6);
+      g.strokeRect(R.x + 2, R.y + 2, R.w - 4, R.h - 4);
+      g.strokeCircle(mx(st.W / 2), my(st.H / 2), R.h * 0.18);
+      g.strokeRect(R.x + 2, my(st.H / 2) - R.h * 0.26, R.w * 0.13, R.h * 0.52);
+      g.strokeRect(R.x + R.w - 2 - R.w * 0.13, my(st.H / 2) - R.h * 0.26, R.w * 0.13, R.h * 0.52);
+    }
     g.lineStyle(1, 0xeafff0, 0.35);
     g.beginPath(); g.moveTo(mx(st.W / 2), R.y + 2); g.lineTo(mx(st.W / 2), R.y + R.h - 2); g.strokePath();
     /* rivales: TRIÁNGULOS #FF8A50 */
@@ -2459,6 +2601,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (p.clave === this._portadorClave) return;
     this._portadorClave = p.clave;
     this.target = null;               // cambió el dueño: el destino viejo no vale
+    /* V7-1: sin mundo no hay cámara ni bake — solo el tema musical del lado */
+    if (this._split) {
+      if (this.FLAGS.e6_cine) {
+        const lado7 = p.esRival ? "rival" : "mia";
+        if (lado7 !== this._ladoTema) {
+          this._ladoTema = lado7;
+          this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado7);
+          this.musica(lado7 === "rival" ? "rival" : "propia");
+        }
+      }
+      return;
+    }
     this._base = this.bakePortador(p);
     /* sin flipX: el dorsal horneado debe leerse derecho (accesibilidad) */
     this.sprPortador.setTexture(this._base + (this._esHeroico ? this._animIdle + "1" : "_idle")).setScale(this._escalaBase).setFlipX(false);
@@ -2487,6 +2641,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.estado !== "LIBRE") return;                                // en menú/pase/resolución no se corre
     if (this.time.now - (this._uiTocado || 0) < 80) return;             // acaba de tocar UI (radar/botones)
     const R = this.radar;
+    /* V7-1: en pantalla partida SOLO el MAPA navega (tap o arrastre sobre él) */
+    if (this._split) {
+      if (R && p.x >= R.x && p.x <= R.x + R.w && p.y >= R.y && p.y <= R.y + R.h) {
+        const w = this.radarAMundo(p);
+        this.target = { x: Phaser.Math.Clamp(w.x, 14, this.st.W - 14), y: Phaser.Math.Clamp(w.y, 14, this.st.H - 14) };
+      }
+      return;
+    }
     if (R && p.x > R.x - 8 && p.x < R.x + R.w + 8 && p.y > R.y - 8) return;   // sobre el radar
     if (this.FLAGS.e3_menus && p.x > 790 && p.y > (this._vista4 ? 360 : 420)) return;   // botones ⚡/⇄ (si existen)
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
@@ -2516,8 +2678,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this.estado === "MENU" || this.estado === "PASE") this.teclasDeMenu();
       this.dibujarRadar();
       this.refrescarHUD();
-      this.updateFichas(true);        // Anime A: pausado = DORSALES visibles
-      this.dibujarPaseCancha();       // receptores del pase sobre la cancha
+      if (this._split) this.updatePanelEscena(delta);   // V7-1: el panel no se congela feo
+      else { this.updateFichas(true); this.dibujarPaseCancha(); }
       return;
     }
 
@@ -2578,13 +2740,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       else if (ev.tipo === "final") this.finDelPartido();
     }
 
-    /* el portador (y SOLO él) se dibuja; si la pelota cambió de dueño, corte de plano */
+    /* el portador (y SOLO él) se dibuja; si la pelota cambió de dueño, corte de plano.
+       V7-1: con pantalla partida el mundo está apagado — nada de esto se dibuja. */
     this.seguirPortador();
     const p = this.portadorActual();
     const wr = this.aRender(p.j.x, p.j.y);
     const wx = wr.x, wy = wr.y;
     const corriendo = (!p.esRival && !!input) || (p.esRival && st.esperaRival <= 0);
-    if (this._esHeroico) {
+    if (this._split) { /* el panel de escena reemplaza al mundo */ }
+    else if (this._esHeroico) {
       /* Feel B7: ciclo de correr de 6 FRAMES + escala por profundidad */
       const esCorrer = this._animIdle === "_correr_";
       const nF = esCorrer ? 6 : 4;
@@ -2616,16 +2780,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.sprPortador.setPosition(wx, wy)
         .setTexture(this._base + (corriendo && Math.floor(time / 110) % 2 ? "_run" : "_idle"));
     }
-    this.sprPortador.setPosition(wx, wy);
-    /* R5: si la pelota la tiene el rival, con la ceguera NO lo ves — ves la
-       pelota "fantasma" moviéndose y el radar. Le ves la cara recién en el cruce. */
-    const fantasma = p.esRival && this._ceguera;
-    this.sprPortador.setVisible(!fantasma);
-    const wb = this.aRender(st.pelota.x, st.pelota.y);
-    this.sprPelota.setPosition(wb.x, wb.y + 34 - (this._botePelota || 0)).setScale(1.6 * this.escalaEn(st.pelota.y));
-    this.marker.setVisible(!fantasma);
-    this.marker.setText("▼ " + (p.j.esVos ? "VOS" : (p.j.nombre || "").toUpperCase().slice(0, 10)))
-      .setPosition(wx, wy - 62);
+    if (!this._split) {
+      this.sprPortador.setPosition(wx, wy);
+      const wb = this.aRender(st.pelota.x, st.pelota.y);
+      this.sprPelota.setPosition(wb.x, wb.y + 34 - (this._botePelota || 0)).setScale(1.6 * this.escalaEn(st.pelota.y));
+      this.marker.setText("▼ " + (p.j.esVos ? "VOS" : (p.j.nombre || "").toUpperCase().slice(0, 10)))
+        .setPosition(wx, wy - 62);
+    }
     /* Feel B8: el tema del avance crece al CRUZAR al campo rival (con la pelota) */
     if (this.FLAGS.e6_cine && st.posesion === "mia") {
       const zona = st.mios[st.ctrl].x > st.W / 2 ? "rival" : "propio";
@@ -2640,11 +2801,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._panVivo && cam.panEffect.isRunning) cam.panEffect.destination.set(wx, wy);
     if (aviso) this.avisar(aviso);
 
-    /* ETAPA 2: radar + HUD, siempre al día (Anime A: fichas en lugar de radar) */
+    /* ETAPA 2: radar + HUD, siempre al día (V7-1: panel de escena en lugar del mundo) */
     this.dibujarRadar();
     this.refrescarHUD();
-    this.updateFichas(false);
-    this.dibujarPaseCancha();
+    if (this._split) this.updatePanelEscena(delta);
+    else { this.updateFichas(false); this.dibujarPaseCancha(); }
   }
 
   /* aviso breve anclado al PORTADOR (a donde la cámara va, no de donde viene) */

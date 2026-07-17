@@ -513,7 +513,7 @@
       this._def = null;
       this.limpiarContenido();
       this.cineLayer.setVisible(false);
-      this.mundoLayer.setVisible(true); this.hudLayer.setVisible(true);
+      this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
       this.uiCam.fadeIn(this.BAL.cine.corte_ms, 0, 0, 0);
       this.zoomBase();
       if (alFinal) { alFinal(); return; }

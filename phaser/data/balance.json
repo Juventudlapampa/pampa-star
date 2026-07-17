@@ -47,9 +47,11 @@
     "escala_portador": 0.6,
     "escala_ficha": 1.3,
     "zoom_beat_mult": 3,
-    "ceguera_rival": true,
-    "radio_revelacion": 0,
-    "_ceguera": "V6 §2 R5 (decisión de Rodri, va sí o sí): los rivales NO se dibujan en la cancha — existen, marcan e interceptan, pero solo se ven en el radar, en el cruce y en las escenas. La tensión no viene de perseguir: viene de no saber. radio_revelacion > 0 = perilla de rescate (revela rivales a esa distancia de la pelota)."
+    "panel_escena_frac": 0.55,
+    "imprecision_ms": 750,
+    "imprecision_radio": 60,
+    "radio_silueta": 260,
+    "_v7": "CORRECCIÓN V7-1 (flag pantalla_partida): se elimina la cancha estilo FIFA. ARRIBA la escena (portador grande en ilustración con parallax), ABAJO el mapa de cancha completa — LA superficie de navegación. La ceguera MUERE: la reemplaza la IMPRECISIÓN — los rivales se ven en el mapa pero su posición se actualiza cada imprecision_ms con desvío de hasta imprecision_radio px; los tuyos y la pelota, precisos. radio_silueta: a esa distancia los rivales entran a la escena como SILUETAS (se revelan en el cruce)."
   },
 
   "escena": {
