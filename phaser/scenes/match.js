@@ -1988,12 +1988,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     } else {
       sp = this.add.sprite(-140, H * 0.58, this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 1)).setScale(escProta);
     }
-    /* aviso de arte conocido: en pose_corriendo la pelota ilustrada va atrás del
-       pie — la pelota DEL JUEGO se dibuja al pie encima */
-    if (cfg.pelotaAlPie && this.textures.exists("ball")) {
-      const bb = this.add.sprite(-200, H * 0.52 + 150, "ball").setScale(2.4);
+    /* V7 §0.1: las poses ya NO traen pelota dibujada (recortadas de los PNG) —
+       la pelota es SIEMPRE la del juego. El manifest declara dónde iba
+       (pelota:{x,y,r}) y acá se dibuja el sprite "ball" ahí, con ese tamaño,
+       espejado si la pose va en flip, entrando pegado a la pose. */
+    let posePel = null;
+    if (sp._esPose) {
+      const pm = this.game.registry.get("poses");
+      const defP = pm && pm.poses && pm.poses[poseId];
+      if (defP && defP.pelota) posePel = defP.pelota;
+    }
+    if ((posePel || cfg.pelotaAlPie) && this.textures.exists("ball")) {
+      const dW = sp.width * sp.scaleX, dH = sp.height * sp.scaleY;
+      const offX = posePel ? (posePel.x - 0.5) * dW * (cfg.poseFlip ? -1 : 1) : 78;
+      const offY = posePel ? (posePel.y - 0.5) * dH : 150;
+      const ballH = this.textures.get("ball").getSourceImage().height || 16;
+      const esc = posePel && posePel.r ? Math.max(1.6, (posePel.r * 2 * dH) / ballH) : 2.4;
+      const bb = this.add.sprite(-200 + offX, H * 0.52 + offY, "ball").setScale(esc);
       this.cineContent.add(bb);
-      this.tweens.add({ targets: bb, x: W * 0.3 + 78, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
+      this.tweens.add({ targets: bb, x: W * 0.3 + offX, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
     }
     if (cfg.protaAngle && !sp._esPose) sp.setAngle(cfg.protaAngle);   // la chilena ilustrada ya viene dada vuelta
     this.cineContent.add(sp);

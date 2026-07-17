@@ -1,26 +1,28 @@
 {
   "_schema": "pampa-star/poses@1",
   "_doc": "MAESTRO v6 §3.2: mapa acción→pose ilustrada (assets/poses/, PNG con alpha). FALLBACK TOLERANTE: el código carga solo lo que exista; si falta un archivo o una clave, cae a la pose de código anterior (sprites heroicos) y nada crashea. Rodri agrega poses nuevas acá sin tocar código: nueva clave + nuevo archivo y listo.",
-  "_tanda2": "ARTE COMPLETO (17/jul/2026): 14 poses con transparencia NATIVA (reemplazan a las chroma-key de la tanda 1) + fondo_tribuna. Los arqueros _v2 (mangas lisas, cumplimiento §11) REEMPLAZAN a los viejos en el mapa; pose_arquero_vuela.png y pose_arquero_ataja.png quedan en el repo pero fuera del manifest. Avisos de arte conocidos: la pelota de arquero_ataja_v2 salió naranja y la de corriendo va atrás del pie — el juego superpone su pelota cuando hace falta.",
+  "_tanda2": "ARTE COMPLETO (17/jul/2026): 14 poses con transparencia NATIVA (reemplazan a las chroma-key de la tanda 1) + fondo_tribuna. Los arqueros _v2 (mangas lisas, cumplimiento §11) REEMPLAZAN a los viejos en el mapa; pose_arquero_vuela.png y pose_arquero_ataja.png quedan en el repo pero fuera del manifest.",
+  "_pelota": "V7 §0.1: las pelotas ILUSTRADAS fueron RECORTADAS de los PNG (playtest de Rodri: al teñir siluetas se teñía la pelota y había 3 en pantalla). La pelota la dibuja SIEMPRE el juego. El campo 'pelota' {x,y,r} (normalizado; r respecto al ALTO) dice dónde iba en cada pose: las escenas dibujan ahí el sprite del juego, con ese tamaño, espejado si la pose va en flip.",
   "base": "assets/poses/",
   "poses": {
-    "remate": { "archivo": "pose_remate.png", "quien": "heroe", "n": "Remate de derecha" },
-    "chilena": { "archivo": "pose_chilena.png", "quien": "heroe", "n": "Chilena invertida" },
-    "cabezazo": { "archivo": "pose_cabezazo.png", "quien": "heroe", "n": "Salto de cabeza" },
+    "remate": { "archivo": "pose_remate.png", "quien": "heroe", "n": "Remate de derecha", "pelota": { "x": 0.884, "y": 0.737, "r": 0.126 } },
+    "chilena": { "archivo": "pose_chilena.png", "quien": "heroe", "n": "Chilena invertida", "pelota": { "x": 0.891, "y": 0.131, "r": 0.135 } },
+    "cabezazo": { "archivo": "pose_cabezazo.png", "quien": "heroe", "n": "Salto de cabeza", "pelota": { "x": 0.736, "y": 0.135, "r": 0.135 } },
     "barrida": { "archivo": "pose_barrida.png", "quien": "defensor", "n": "Defensor barriéndose" },
     "arquero_vuela": { "archivo": "pose_arquero_vuela_v2.png", "quien": "arquero", "n": "Estirada en vuelo (v2 mangas lisas)" },
-    "arquero_ataja": { "archivo": "pose_arquero_ataja_v2.png", "quien": "arquero", "n": "Atajó, de rodillas (v2 mangas lisas)" },
+    "arquero_ataja": { "archivo": "pose_arquero_ataja_v2.png", "quien": "arquero", "n": "Atajó, de rodillas (v2 mangas lisas)", "pelota": { "x": 0.775, "y": 0.405, "r": 0.108 } },
     "festejo": { "archivo": "pose_festejo.png", "quien": "heroe", "n": "Festejo de gol" },
-    "gambeta_gana": { "archivo": "pose_gambeta_gana.png", "quien": "heroe", "n": "Gambeta ganada — quiebre limpio" },
+    "gambeta_gana": { "archivo": "pose_gambeta_gana.png", "quien": "heroe", "n": "Gambeta ganada — quiebre limpio", "pelota": { "x": 0.902, "y": 0.872, "r": 0.105 } },
     "gambeta_pierde": { "archivo": "pose_gambeta_pierde.png", "quien": "heroe", "n": "Gambeta perdida — trastabillando" },
-    "pared": { "archivo": "pose_pared.png", "quien": "heroe", "n": "Pared — toque de primera" },
+    "pared": { "archivo": "pose_pared.png", "quien": "heroe", "n": "Pared — toque de primera", "pelota": { "x": 0.811, "y": 0.909, "r": 0.097 } },
     "bloqueo": { "archivo": "pose_bloqueo.png", "quien": "defensor", "n": "Bloqueo plantado" },
     "corriendo": {
       "archivo": "pose_corriendo.png", "quien": "heroe", "n": "La corrida a fondo",
       "_tonos": "V7-1 §4 recolor por pinta: tonos base planos del PNG (muestreados). pelo_y1 limita la regla del pelo a la banda de arriba (los botines también son negros).",
       "tonos": { "pelo": "#0c2424", "piel": "#fccca4", "camiseta": "#54bcec" },
       "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
-      "pelo_y1": 0.45
+      "pelo_y1": 0.45,
+      "pelota": { "x": 0.276, "y": 0.908, "r": 0.099 }
     }
   },
   "fondos": {

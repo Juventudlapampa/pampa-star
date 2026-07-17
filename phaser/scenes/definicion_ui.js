@@ -487,10 +487,16 @@
       var spr = this.poseSprite(poseId, W * 0.5, H * 0.48, 420, function () { return null; });
       this.cineContent.add(spr);
       spr.setAlpha(0); this.tweens.add({ targets: spr, alpha: 1, duration: 120 });
-      /* aviso de arte conocido: la pelota de arquero_ataja_v2 salió NARANJA (se
-         camufla con la camiseta) — la pelota del juego se superpone encima */
-      if (poseId === "arquero_ataja" && this.textures.exists("ball") && spr.displayWidth) {
-        var bb = this.add.sprite(spr.x + spr.displayWidth * 0.26, spr.y - spr.displayHeight * 0.09, "ball").setScale(2.6).setAlpha(0);
+      /* V7 §0.1: la pelota ilustrada fue recortada del PNG — la del JUEGO se
+         dibuja donde el manifest dice que iba (abrazada por el arquero) */
+      var pmD = this.game.registry.get("poses");
+      var defD = pmD && pmD.poses && pmD.poses[poseId];
+      if (defD && defD.pelota && this.textures.exists("ball") && spr.displayWidth) {
+        var ballH = this.textures.get("ball").getSourceImage().height || 16;
+        var escB = Math.max(1.6, (defD.pelota.r * 2 * spr.displayHeight) / ballH);
+        var bb = this.add.sprite(
+          spr.x + (defD.pelota.x - 0.5) * spr.displayWidth * (spr.flipX ? -1 : 1),
+          spr.y + (defD.pelota.y - 0.5) * spr.displayHeight, "ball").setScale(escB).setAlpha(0);
         this.cineContent.add(bb);
         this.tweens.add({ targets: bb, alpha: 1, duration: 120 });
       }
