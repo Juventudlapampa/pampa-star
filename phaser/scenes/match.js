@@ -2502,9 +2502,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     g.lineStyle(1, 0xeafff0, 0.35);
     g.beginPath(); g.moveTo(mx(st.W / 2), R.y + 2); g.lineTo(mx(st.W / 2), R.y + R.h - 2); g.strokePath();
+    /* V7-1 §2.2: IMPRECISIÓN — los rivales SÍ se ven, pero su posición en el
+       mapa solo se actualiza cada imprecision_ms y con un desvío de hasta
+       imprecision_radio (px de mundo). Los tuyos y la pelota, exactos y fluidos. */
+    let posRiv = st.rivales;
+    if (this._split) {
+      const V = this.BAL.vista || {};
+      const ahora = this.time.now;
+      if (!this._imprec || ahora >= this._imprec.hasta || this._imprec.pos.length !== st.rivales.length) {
+        const rad = V.imprecision_radio != null ? V.imprecision_radio : 60;
+        this._imprec = {
+          hasta: ahora + (V.imprecision_ms != null ? V.imprecision_ms : 750),
+          pos: st.rivales.map(j => {
+            const a = Math.random() * Math.PI * 2, d = Math.random() * rad;
+            return { x: Phaser.Math.Clamp(j.x + Math.cos(a) * d, 8, st.W - 8), y: Phaser.Math.Clamp(j.y + Math.sin(a) * d, 8, st.H - 8) };
+          })
+        };
+      }
+      posRiv = this._imprec.pos;
+    }
     /* rivales: TRIÁNGULOS #FF8A50 */
     st.rivales.forEach((j, i) => {
-      const x = mx(j.x), y = my(j.y);
+      const p = posRiv[i] || j;
+      const x = mx(p.x), y = my(p.y);
       g.fillStyle(0xff8a50, 1); g.fillTriangle(x, y - 6, x + 5.5, y + 4.5, x - 5.5, y + 4.5);
       g.lineStyle(1, 0x0a1f13, 0.9); g.strokeTriangle(x, y - 6, x + 5.5, y + 4.5, x - 5.5, y + 4.5);
       this.radarNumsRiv[i].setPosition(x, y + 0.5);
