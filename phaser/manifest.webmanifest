@@ -1,0 +1,16 @@
+{
+  "name": "PAMPA STAR",
+  "short_name": "PAMPA STAR",
+  "description": "Del potrero al Mundial — la carrera de un pibe pampeano, partido por comandos.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#06120b",
+  "theme_color": "#06120b",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

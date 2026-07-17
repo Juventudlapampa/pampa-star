@@ -3,6 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#06120b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>PAMPA STAR (Phaser) — tu pinta + el partido</title>
 <style>
   html,body{margin:0;height:100%;background:#06120b;overflow:hidden;
@@ -79,6 +83,11 @@
      a fallo). Así no hace falta escena boot con transición async: match es la
      primera escena y ya tiene la data en el registry. */
   window.addEventListener("pointerdown", ()=>{ try{ window.PampaSFX && window.PampaSFX.unlock(); }catch(e){} });
+  /* V7 §5 PWA: el juego se instala y abre OFFLINE (sw.js, solo https/localhost;
+     con file:// no aplica y no molesta) */
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+    window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+  }
   /* balance + roster (los dos tolerantes a fallo: el juego abre igual sin server) */
   const pBal = fetch("data/balance.json").then(r=>r.ok?r.json():Promise.reject()).catch(()=>BALANCE_FALLBACK);
   const pRoster = fetch("../data/roster_pampeano.json").then(r=>r.ok?r.json():null).catch(()=>null);

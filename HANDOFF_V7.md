@@ -110,6 +110,23 @@ El botón **🏆 CARRERA** (editor, arriba a la derecha) abre el Modo Master:
   Phaser. El puente viejo (JUGAR FECHA del clásico → ?partido_phaser=1) sigue
   funcionando igual que antes.
 
+## §5 — PWA (hecho): PAMPA STAR se INSTALA en el celu
+- `phaser/manifest.webmanifest` + íconos propios (el sol pampeano + la pelota,
+  diseño nuestro, sin marcas) + `phaser/sw.js`.
+- **Offline**: el service worker precachea el juego entero (31 archivos:
+  motor, escenas, lógica, data) al primer load; las poses/caras/identidades
+  entran al cache la primera vez que se ven y quedan (cache-first para
+  assets pesados).
+- **Tus deploys LLEGAN**: código, data y html van NETWORK-FIRST — con red
+  siempre baja lo último de Pages; sin red, responde el cache y el juego
+  abre igual. No hay que "vaciar cache" nunca.
+- El scope es `phaser/` — el clásico de la raíz ni se entera.
+- **Instalar en el celu**: abrí https://juventudlapampa.github.io/pampa-star/phaser/
+  en Chrome → menú ⋮ → "Agregar a pantalla principal" / "Instalar app".
+  Abre a pantalla completa, apaisado, con su ícono.
+- Si algún día cambiás assets pesados ya cacheados: subí `VERSION` en
+  `phaser/sw.js` (una línea) y el cache viejo se barre solo.
+
 ## Decisiones que te esperan
 - **[DECISIÓN MÍA] §0.3**: bajé `intermedio` a 2.2' por momento (~20 jugadas
   por tiempo). Si lo sentís largo, volvé a 2.5 en `tempo.presets`.
