@@ -1,5 +1,32 @@
 # HANDOFF V6 — "El anime jugando" (tanda del 16-17/jul/2026)
 
+## ⬆⬆ EDITOR v2 (17/jul): caras ilustradas + tintes — COMPLETO (`8db6246`)
+Los 8 bustos de `pampa_star_caras.zip` → `assets/poses/caras/` (PNG8 ≤560px) +
+`data/caras_manifest.json` con **nombres legibles** (Clásico · Rulos · Melena ·
+Rapado · Colorado · Flequillo · Mohicano · Tranqui), los tonos base de cada PNG
+sampleados una sola vez al manifest, y 3 tonos de camiseta con nombre (Celeste
+titular / Celeste profundo / Blanco pampa).
+
+- **El editor cambió**: stepper grande "◀ CARA: Rulos ▶" con el busto de 300px
+  al lado, + 3 tintes (PIEL / COLOR DE PELO / CAMISETA) que recolorean el busto
+  en vivo (`tenirImagen` reemplaza tonos planos preservando luminancia).
+  Ojos/cejas/boca desaparecieron del editor; el avatar de bloques quedó SOLO
+  como fallback si el manifest/PNG no cargan.
+- **Consistencia total**: la MISMA cara teñida aparece en los duelos, los
+  cut-ins y el primer plano del esfuerzo (`_bustoIlustrado()` en match.js,
+  enchufado a `retratoKey()` y `texturaCineJugador()`). El rival la lleva con
+  camiseta NARANJA (sufijo `_r` en el cache).
+- **Roster 50**: mapea determinista a las 8 caras (hash del nombre — mismo id,
+  misma cara, siempre).
+- **Saves retrocompatibles**: `look.cara` nuevo en `validarLook` — pinta vieja
+  sin el campo → Clásico (0) + sus tintes de siempre. Verificado con el save real.
+- Flag `v7_caras` (FLAGS de match.js). Accesibilidad: cara por NOMBRE en texto,
+  fila activa con "►" además del resalte, tintes con nombre.
+- **Checklist celu**: editor → la cara grande con su nombre; tocá ◀/▶ de CARA
+  (ciclan las 8); cambiá PIEL/PELO/CAMISETA (el busto se tiñe al toque);
+  guardá → jugá → en el primer duelo tu cara elegida aparece en el panel
+  (la del rival, de naranja).
+
 ## ⬆ ADDENDUM (post-tanda, misma noche): OPENING + MÚSICA — COMPLETO
 `docs/ADDENDUM_V6_OPENING_Y_MUSICA.md` (`f7561cf`). **Parte B (reemplazó al §6,
 `3fb413a`)**: la música ahora tiene DIRECCIÓN — EL MOTIVO de 4 notas
