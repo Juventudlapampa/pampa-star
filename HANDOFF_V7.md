@@ -94,6 +94,22 @@ El botón **🏆 CARRERA** (editor, arriba a la derecha) abre el Modo Master:
 - **[DECISIÓN MÍA]** sin el doc: arrancás siempre en la B; el ascenso es solo
   para el campeón; nadie desciende; 10 equipos por división. Todo discutible.
 
+## §3 — La mudanza con backup (hecho; el GATE pasó verde)
+- **El gate**: soak de **8 fechas de carrera seguidas** (8 partidos enteros
+  master→partido→resultado→master, tabla PJ 8, persistencia estable) con
+  **0 errores de consola** — recién ahí se hizo la mudanza.
+- **Backup**: antes de que la carrera Phaser escriba por PRIMERA vez, el save
+  clásico entero se copia a `pampa_star_v1_backup_pre_v7` (una sola vez,
+  nunca se pisa). El clásico sigue INTACTO y jugable en la raíz.
+- **Importación**: si tu save clásico tiene carrera, la pantalla de elección
+  ofrece "⬆ IMPORTAR TU CARRERA (nivel N → división)" — tu nivel de allá te
+  ubica en el escalón que corresponde (divisionPorNivel), y tu pueblo de
+  origen arranca pre-elegido en el stepper.
+- **[DECISIÓN MÍA]**: la mudanza NO toca el index.html clásico (queda de
+  referencia y en vivo); la "entrada nueva" es el botón 🏆 CARRERA del editor
+  Phaser. El puente viejo (JUGAR FECHA del clásico → ?partido_phaser=1) sigue
+  funcionando igual que antes.
+
 ## Decisiones que te esperan
 - **[DECISIÓN MÍA] §0.3**: bajé `intermedio` a 2.2' por momento (~20 jugadas
   por tiempo). Si lo sentís largo, volvé a 2.5 en `tempo.presets`.

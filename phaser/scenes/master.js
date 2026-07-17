@@ -44,6 +44,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   guardar() {
     try { localStorage.setItem("pampa_master_v1", JSON.stringify(this.save)); } catch (e) { }
   }
+  /* V7 §3 LA MUDANZA: antes de que la carrera Phaser escriba por primera vez,
+     el save CLÁSICO entero se respalda UNA vez (nunca se pisa el backup) */
+  backupClasico() {
+    try {
+      const c = localStorage.getItem("pampa_star_v1");
+      if (c && !localStorage.getItem("pampa_star_v1_backup_pre_v7")) {
+        localStorage.setItem("pampa_star_v1_backup_pre_v7", c);
+      }
+    } catch (e) { }
+  }
 
   /* ---- botón grande accesible (texto + borde, no solo color) ---- */
   boton(x, y, w, texto, bg, cb) {
@@ -90,21 +100,31 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
     this.pintarPueblo();
 
-    this.boton(W / 2, H - 120, 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => {
+    const arrancarEn = (divId) => {
+      this.backupClasico();   // V7 §3: la mudanza respalda el clásico primero
       const club = "Club " + this.pueblos[this.pSel];
-      const div = this.Ma.DIVISIONES[0];
       this.save = {
-        v: 1, club, division: div.id, temporadaN: 1, titulos: [],
+        v: 1, club, division: divId, temporadaN: 1, titulos: [],
         temporada: this.T.crear({
-          division: div.id, miClub: club,
-          rivales: this.DIV.divisiones[div.id].rivales,
+          division: divId, miClub: club,
+          rivales: this.DIV.divisiones[divId].rivales,
           semilla: this.Ma.hashClub(club) * 31 + 1
         })
       };
       this.guardar();
       this.scene.restart();
-    });
-    this.boton(W / 2, H - 56, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.scene.start("editor"));
+    };
+    this.boton(W / 2, H - 156, 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id));
+    /* V7 §3 LA MUDANZA: si el clásico tiene carrera, se puede IMPORTAR — tu
+       nivel de allá te ubica en la división que corresponde (con backup) */
+    let clasico = null;
+    try { clasico = JSON.parse(localStorage.getItem("pampa_star_v1")); } catch (e) { }
+    if (clasico && clasico.nivel) {
+      const divImp = this.Ma.divisionPorNivel(clasico.nivel | 0);
+      this.boton(W / 2, H - 100, 480, "⬆ IMPORTAR TU CARRERA (nivel " + (clasico.nivel | 0) + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id));
+      this.add.text(W / 2, H - 72, "el save del clásico queda RESPALDADO (pampa_star_v1_backup_pre_v7) y no se toca", { fontFamily: "monospace", fontSize: "10px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+    }
+    this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.scene.start("editor"));
   }
   pintarPueblo() {
     const p = this.pueblos[this.pSel];
