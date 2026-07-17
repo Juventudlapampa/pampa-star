@@ -59,6 +59,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
       this.load.on("loaderror", (file) => { /* el fallback del poseSprite cubre el hueco */ });
     }
+    /* V7-1 §3: las IDENTIDADES de corrida — manifest propio, cargado acá mismo
+       (el loader acepta encolar imágenes al completarse el json); fallback
+       tolerante: sin manifest/archivo, el panel usa pose_corriendo */
+    this.load.json("identidades_man", "../data/identidades_manifest.json");
+    this.load.on("filecomplete-json-identidades_man", (k, t, man) => {
+      if (!man || !Array.isArray(man.identidades)) return;
+      this._identMan = man;
+      const baseI = man.base || "assets/poses/identidades/";
+      man.identidades.forEach(d => {
+        if (d && d.id && d.archivo) this.load.image("ident_" + d.id, "../" + baseI + d.archivo);
+      });
+    });
   }
 
   init() {
@@ -524,8 +536,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
   }
-  /* qué ilustración corre arriba (los bloques de identidades/recolor la afinan) */
+  /* V7-1 §3: qué ilustración corre arriba — VOS llevás la pose del héroe;
+     compañeros y rivales llevan SU identidad, determinista por nombre
+     (mismo nombre, misma cara siempre). Fallback: pose_corriendo. */
+  identidadDe(j, esRival) {
+    const man = this._identMan;
+    if (!man || !Array.isArray(man.identidades)) return null;
+    const del = man.identidades.filter(d => d.equipo === (esRival ? "rival" : "mio"));
+    if (!del.length) return null;
+    const d = del[window.PampaAvatar.hashSemilla(j.nombre || "x") % del.length];
+    return this.textures.exists("ident_" + d.id) ? "ident_" + d.id : null;
+  }
   poseDelPanel(p) {
+    if (!p.j.esVos) {
+      const k = this.identidadDe(p.j, p.esRival);
+      if (k) return k;
+    }
     return this.poseKey("corriendo");
   }
   updatePanelEscena(delta) {
@@ -564,7 +590,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* SILUETAS de rivales dentro de radio_silueta (posición relativa al portador) */
     const radio = this.VI.radio_silueta || 260;
     let usados = 0;
-    const kSil = this.poseKey("corriendo");
     for (let i = 0; i < st.rivales.length && usados < this.panelSil.length; i++) {
       const r = st.rivales[i];
       if (r.pos === "ARQ" || (p.esRival && i === p.idx)) continue;
@@ -572,6 +597,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const d = Math.hypot(dx, dy);
       if (d > radio || d < 8) continue;
       const s = this.panelSil[usados++];
+      /* V7-1 §3: la silueta lleva la FORMA de su identidad (quién es, recién en el cruce) */
+      const kSil = this.identidadDe(r, true) || this.poseKey("corriendo");
       if (kSil && s.texture.key !== kSil) { s.setTexture(kSil); }
       s.setScale((120 - 40 * (d / radio)) / s.height);
       s.setTintFill(0x101820);
