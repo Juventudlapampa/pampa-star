@@ -591,10 +591,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const vx = mismo ? j.x - prev.x : 0, vy = mismo ? j.y - prev.y : 0;
     this._panelPrev = { x: j.x, y: j.y, clave: p.clave };
     const corriendo = Math.abs(vx) + Math.abs(vy) > 0.04;
-    /* PARALLAX: pasto rápido, tribuna lenta, cielo quieto */
-    this.panelPasto.tilePositionX += vx * 2.4;
-    this.panelPasto.tilePositionY += vy * 1.1;
-    if (this.panelTribuna) this.panelTribuna.tilePositionX += vx * 0.6;
+    /* PARALLAX: pasto rápido, tribuna lenta, cielo quieto — V7 §0.3: los
+       factores son diales de balance.vista (la corrida tiene que LEERSE) */
+    this.panelPasto.tilePositionX += vx * (this.VI.parallax_pasto != null ? this.VI.parallax_pasto : 1.4);
+    this.panelPasto.tilePositionY += vy * (this.VI.parallax_pasto_y != null ? this.VI.parallax_pasto_y : 0.7);
+    if (this.panelTribuna) this.panelTribuna.tilePositionX += vx * (this.VI.parallax_tribuna != null ? this.VI.parallax_tribuna : 0.35);
     /* la ilustración del portador (rival sin revelar = SILUETA) */
     const key = this.poseDelPanel(p);
     if (key && this.panelJug.texture.key !== key) {

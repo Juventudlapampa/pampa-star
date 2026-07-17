@@ -1,14 +1,12 @@
 {
   "_schema": "pampa-star/balance@1",
   "_notas": "Constantes de balance del motor Phaser, AFUERA del código (portable a Godot). Afinás un número, recargás, probás. Unidades: velocidades en px de mundo por segundo; distancias/radios en px de mundo (mundo lógico 1050x680 = 105x68 m). El motor las lee de este JSON.",
-
   "mundo": {
     "ancho": 1050,
     "alto": 680,
     "arco_medio": 55,
     "comentario": "arco_medio = media boca del arco en px (decisión de legibilidad, no escala FIFA exacta)"
   },
-
   "ritmo": {
     "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR. FEEL v3 Bloque 1: TODO baja un cambio (~35% menos que la v2 — Tsubasa es drama lento); el reloj compensa con seg_por_minuto para que el partido dure lo mismo en minutos reales. Velocidades en px de mundo por segundo.",
     "portador_con_pelota": 55,
@@ -23,7 +21,7 @@
     "marcadores": 2,
     "marca_vel_mult": 1.3,
     "modo_saltos": true,
-    "saltos_vel_mult": 2.4,
+    "saltos_vel_mult": 1.8,
     "_saltos": "V6 §2 R1: el partido es una sucesión de MOMENTOS. Con modo_saltos, portador y rival van rápido y esquemático (×saltos_vel_mult), nadie caza por atrás (los cruces son emboscadas de los que están adelante) y tras un robo hay separación real. Apagalo y vuelve el flujo continuo v4.",
     "arranque_rival_ms": 1500,
     "_reaccion": "cooldown largo = respirás entre cruces; 1 solo perseguidor = hay espacio; arranque_rival_ms = cuando pierden/reciben la pelota, el rival la pisa un momento antes de arrancar (tenés tiempo de reaccionar y elegir marcador).",
@@ -34,9 +32,9 @@
     "descuento_max": 3,
     "zoom_encuentro": 1.22,
     "zoom_encuentro_ms": 380,
-    "_zoom": "al congelar un encuentro la cámara se ACERCA suave al cruce (lectura con calma, se ve a los de alrededor); al resolver vuelve igual de suave."
+    "_zoom": "al congelar un encuentro la cámara se ACERCA suave al cruce (lectura con calma, se ve a los de alrededor); al resolver vuelve igual de suave.",
+    "_v7_tempo": "V7 §0.3: saltos_vel_mult bajó de 2.4 a 1.8 (la corrida del panel se lee, no pasa volando)."
   },
-
   "vista": {
     "_nota": "ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA. La cámara sube hasta ver la cancha (cobertura = fracción del alto del mundo visible; 1.0 = cancha entera). Los 22 se ven como fichas simples; el radar desaparece y el pase se toca sobre la cancha. cambio_auto: marcador automático en defensa (histéresis en la lógica).",
     "cobertura": 0.85,
@@ -51,21 +49,33 @@
     "imprecision_ms": 750,
     "imprecision_radio": 60,
     "radio_silueta": 260,
-    "_v7": "CORRECCIÓN V7-1 (flag pantalla_partida): se elimina la cancha estilo FIFA. ARRIBA la escena (portador grande en ilustración con parallax), ABAJO el mapa de cancha completa — LA superficie de navegación. La ceguera MUERE: la reemplaza la IMPRECISIÓN — los rivales se ven en el mapa pero su posición se actualiza cada imprecision_ms con desvío de hasta imprecision_radio px; los tuyos y la pelota, precisos. radio_silueta: a esa distancia los rivales entran a la escena como SILUETAS (se revelan en el cruce)."
+    "_v7": "CORRECCIÓN V7-1 (flag pantalla_partida): se elimina la cancha estilo FIFA. ARRIBA la escena (portador grande en ilustración con parallax), ABAJO el mapa de cancha completa — LA superficie de navegación. La ceguera MUERE: la reemplaza la IMPRECISIÓN — los rivales se ven en el mapa pero su posición se actualiza cada imprecision_ms con desvío de hasta imprecision_radio px; los tuyos y la pelota, precisos. radio_silueta: a esa distancia los rivales entran a la escena como SILUETAS (se revelan en el cruce).",
+    "parallax_pasto": 1.4,
+    "parallax_pasto_y": 0.7,
+    "parallax_tribuna": 0.35,
+    "_parallax": "V7 §0.3: factores del parallax del panel de escena (pasto rápido, tribuna lenta, cielo quieto) — bajados para que la corrida se LEA. Subilos si lo querés más vertiginoso."
   },
-
   "escena": {
     "_nota": "ANIME v4 Bloque B: LA CAPA CINEMÁTICA (flag v4_escenas). Toda acción significativa corta a una viñeta a pantalla: entrada del protagonista, pose, SILENCIO (feel.silencio_ms) y desenlace. Tiempos en ms; escalas de los sprites heroicos en el panel.",
-    "entrada_ms": 420,
-    "pose_ms": 650,
-    "hold_ms": 1150,
+    "entrada_ms": 500,
+    "pose_ms": 800,
+    "hold_ms": 1300,
     "escala_prota": 3.4,
-    "escala_rival": 2.9
+    "escala_rival": 2.9,
+    "_v7": "V7 §0.3: entrada/pose/hold alargados ~15-20% para que las viñetas respiren."
   },
-
   "intro": {
     "_nota": "ADDENDUM v6 Parte A: EL OPENING (flag flags.intro_opening; se ve una vez por sesión, salteable con cualquier toque). Duraciones de los 8 planos en ms y los textos. El arte sale de assets/poses/ y assets/ui/: si falta un archivo, el plano se saltea solo.",
-    "planos_ms": [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000],
+    "planos_ms": [
+      3000,
+      2000,
+      4000,
+      2000,
+      1000,
+      1500,
+      2000,
+      4000
+    ],
     "compuerta": true,
     "t_compuerta": "👆 TOCÁ PARA EMPEZAR",
     "t_compuerta_teclado": "(o apretá cualquier tecla)",
@@ -74,23 +84,88 @@
     "t_bajada": "DEL POTRERO AL MUNDIAL",
     "_compuerta": "La pantalla previa cuyo TOQUE desbloquea el audio del navegador y dispara el opening CON sonido desde el primer plano (sin ella, el opening automático sería siempre mudo). compuerta:false la saca."
   },
-
   "musica": {
     "_nota": "ADDENDUM v6 Parte B (reemplaza §6): la DIRECCIÓN musical. El MOTIVO de 4 notas (semitonos: tónica→quinta→sexta→octava) aparece en todos los temas transformado. Cada tema: tónica (Hz), modo, BPM, progresión (grados en semitonos, i–VI–III–VII heroica / cromática descendente para el rival), percusión (0-1) y variante del motivo. viento = la capa pampeana sutil. Todo afinable acá, sin código.",
     "vol": 0.5,
     "viento": 0.014,
-    "motivo": [0, 7, 9, 12],
+    "motivo": [
+      0,
+      7,
+      9,
+      12
+    ],
     "temas": {
-      "propia_propio": { "tonica": 220, "modo": "menor", "bpm": 92, "prog": [0, 8, 3, 10], "percusion": 0.35, "motivo": "insinuado" },
-      "propia_rival": { "tonica": 261.63, "modo": "mayor", "bpm": 112, "prog": [0, 9, 5, 7], "percusion": 1, "motivo": "completo" },
-      "rival": { "tonica": 220, "modo": "menor", "bpm": 100, "prog": [0, -1, -2, -3], "percusion": 0.8, "motivo": "invertido", "segunda_menor": true },
-      "urgente": { "tonica": 220, "modo": "menor", "bpm": 138, "prog": [0, 8, 3, 10], "percusion": 1, "motivo": "completo", "tictac": true },
-      "opening": { "tonica": 220, "modo": "menor_a_mayor", "bpm": 140, "prog": [0, 8, 3, 10], "percusion": 1, "motivo": "principal" }
+      "propia_propio": {
+        "tonica": 220,
+        "modo": "menor",
+        "bpm": 92,
+        "prog": [
+          0,
+          8,
+          3,
+          10
+        ],
+        "percusion": 0.35,
+        "motivo": "insinuado"
+      },
+      "propia_rival": {
+        "tonica": 261.63,
+        "modo": "mayor",
+        "bpm": 112,
+        "prog": [
+          0,
+          9,
+          5,
+          7
+        ],
+        "percusion": 1,
+        "motivo": "completo"
+      },
+      "rival": {
+        "tonica": 220,
+        "modo": "menor",
+        "bpm": 100,
+        "prog": [
+          0,
+          -1,
+          -2,
+          -3
+        ],
+        "percusion": 0.8,
+        "motivo": "invertido",
+        "segunda_menor": true
+      },
+      "urgente": {
+        "tonica": 220,
+        "modo": "menor",
+        "bpm": 138,
+        "prog": [
+          0,
+          8,
+          3,
+          10
+        ],
+        "percusion": 1,
+        "motivo": "completo",
+        "tictac": true
+      },
+      "opening": {
+        "tonica": 220,
+        "modo": "menor_a_mayor",
+        "bpm": 140,
+        "prog": [
+          0,
+          8,
+          3,
+          10
+        ],
+        "percusion": 1,
+        "motivo": "principal"
+      }
     },
     "gol_bpm": 150,
     "lamento_bpm": 70
   },
-
   "secuencias": {
     "_nota": "V6 §3.4: las SECUENCIAS encadenan escenas en una sola acción épica (flag v6_secuencias, firma del crack). MEGACORRIDA: N rivales quedan atrás uno a uno y rematás (si un duelo se pierde, muere ahí). COMBINADA: pared, se suma el compañero, elegís CENTRO o AL PIE y ÉL define. Desbloqueo por nivel de carrera, costo alto a propósito.",
     "megacorrida_nivel": 2,
@@ -100,7 +175,6 @@
     "combinada_aguante": 160,
     "bonus_duelo": 8
   },
-
   "envion": {
     "_nota": "V6 §2 R3: el MEDIDOR DE ENVIÓN — mérito acumulado, no reflejo. Se llena ganando duelos (gana_duelo por victoria); lleno se gasta en POTENCIAR al equipo (potencia_bonus a todos los duelos por potencia_ms) o en la SÚPER DEFENSA (bloqueo seguro de un remate). Siempre se muestra con NÚMERO además de la barra.",
     "max": 100,
@@ -108,7 +182,6 @@
     "potencia_bonus": 10,
     "potencia_ms": 20000
   },
-
   "definicion": {
     "_nota": "V6 §4: LA DEFINICIÓN v2 (flag v6_definicion). Fase 1: los defensores se acercan a def_acercan_px_s (más esperás, mejor ángulo, más cerca los tenés; al contacto te la sacan). Fase 2: el duelo de 6 zonas (coincide/a_una/a_dos modulan al arquero) + timing (dulce/floja/pasada). Bloqueo del defensor en línea. Achicar del arquero: gana abajo, vendido al ángulo alto. Defensiva: carga_ms = cuánto tarda el rival en cargar el remate.",
     "def_acercan_px_s": 34,
@@ -131,15 +204,18 @@
     "achicar_vendido": 18,
     "carga_ms": 4200
   },
-
   "tempo": {
     "_nota": "V6 §2 R4: EL RELOJ A SALTOS (perilla única). minutos_por_momento = cuántos minutos de partido consume cada momento de decisión; el reloj entre momentos solo GOTEA (goteo_seg_por_minuto segundos reales por minuto de juego). Presets elegibles antes del partido. Si se borra minutos_por_momento, vuelve el reloj continuo v4 (duracion_real_min).",
-    "minutos_por_momento": 2.5,
+    "minutos_por_momento": 2.2,
     "goteo_seg_por_minuto": 8,
-    "presets": { "relampago": 5, "intermedio": 2.5, "largo": 1.2 },
-    "duracion_real_min": 10
+    "presets": {
+      "relampago": 5,
+      "intermedio": 2.2,
+      "largo": 1.2
+    },
+    "duracion_real_min": 10,
+    "_v7": "V7 §0.3: intermedio 2.5→2.2 minutos por momento (unas 20 jugadas por tiempo — el partido rinde más)."
   },
-
   "feel": {
     "_nota": "FEEL v3 (docs/DISENO_FEEL_TSUBASA_V3.md): timing del drama. Cada jugada clave se ANUNCIA (beat), se decide, se ejecuta y se resuelve con teatro — si dura menos de 3s entre anuncio y resolución, está mal.",
     "beat_encuentro_ms": 750,
@@ -156,7 +232,6 @@
     "mega_prob_caliente": 0.45,
     "comentario": "beat_encuentro_ms: aviso de tensión ANTES de abrir el menú (600-900). beat_mega_ms: cuando viene una megacosa rival, el beat se alarga. beat_zoom_extra: cuánto se acerca la cámara en el beat. resolucion_min_ms: NINGUNA resolución devuelve el control antes de esto. silencio_ms: el silencio previo a revelar un tiro/duelo grande (Bloque 8)."
   },
-
   "persecucion": {
     "_nota": "Perseguir sin pelota drena aguante: no podés correr infinito.",
     "aguante_por_segundo": 12,
@@ -164,12 +239,10 @@
     "factor_trote": 0.6,
     "comentario": "por debajo de aguante_minimo_para_correr, el jugador TROTA: su velocidad cae a factor_trote (60%)"
   },
-
   "conduccion": {
     "aguante_por_segundo": 0.3,
     "comentario": "v2 §7: mantener la gambeta consume ~3 aguante cada 10 segundos"
   },
-
   "aguante": {
     "_nota": "V6 §5: economía calibrada contra los NÚMEROS DEL ORIGINAL sobre tanque 1000. El tiro top (Caldén 450) se usa EXACTAMENTE dos veces y chau — el 'dos' no es una regla, es aritmética. Regla de oro: el crack te puede ganar UN partido y no puede ganarte dos. Bajo 110 el jugador queda inútil (rendido). El entretiempo recupera ALTO: el crack vuelve cerca de 800.",
     "max": 1000,
@@ -194,17 +267,37 @@
     "cpu_picada": 0.62,
     "comentario": "cpu_umbral_frac/cpu_picada: la CPU tiene aguante infinito pero con un LÍMITE INVISIBLE — pasado el umbral, sus habilidades caen en picada (trampa deliberada y elegante del original). Todo afinable acá; la lógica lee estas claves, nada hardcodeado."
   },
-
   "partido": {
     "_nota": "HITO 2: el partido completo. Mundo lógico 1050×680 (x = avance hacia el arco rival, y = lateral). 11 por lado, formación 1-4-3-3 (anclas del v4 clásico, ya afinadas jugando).",
     "jugadores_por_lado": 11,
     "formacion": [
-      { "pos": "ARQ", "n": 1, "ax": 30 },
-      { "pos": "DEF", "n": 4, "ax": 190 },
-      { "pos": "VOL", "n": 3, "ax": 460 },
-      { "pos": "ATA", "n": 3, "ax": 730 }
+      {
+        "pos": "ARQ",
+        "n": 1,
+        "ax": 30
+      },
+      {
+        "pos": "DEF",
+        "n": 4,
+        "ax": 190
+      },
+      {
+        "pos": "VOL",
+        "n": 3,
+        "ax": 460
+      },
+      {
+        "pos": "ATA",
+        "n": 3,
+        "ax": 730
+      }
     ],
-    "elasticidad": { "ARQ": 0.02, "DEF": 0.25, "VOL": 0.45, "ATA": 0.6 },
+    "elasticidad": {
+      "ARQ": 0.02,
+      "DEF": 0.25,
+      "VOL": 0.45,
+      "ATA": 0.6
+    },
     "dist_tiro": 525,
     "tiro_lejos_desde": 380,
     "tiro_lejos_penal": 0.06,
@@ -217,44 +310,93 @@
     "pase_penal_lejano": 0.05,
     "separacion_duelo": 90,
     "matriz_bonus": 12,
-    "cpu_pesos": { "quite": 0.4, "corte": 0.3, "bloqueo": 0.3 },
-    "calden": { "x_min": 680, "mult": 1.3 },
+    "cpu_pesos": {
+      "quite": 0.4,
+      "corte": 0.3,
+      "bloqueo": 0.3
+    },
+    "calden": {
+      "x_min": 680,
+      "mult": 1.3
+    },
     "alto_desde": 240,
     "alto_ventana_ms": 6000,
     "cabezazo_mult": 0.95,
     "volea_mult": 1.15,
-    "chilena": { "aereo_min": 65, "mult": 1.35 },
+    "chilena": {
+      "aereo_min": 65,
+      "mult": 1.35
+    },
     "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: línea que habilita el Caldén (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.)"
   },
-
   "duelo": {
     "spread": 58,
     "min": 0.07,
     "max": 0.95,
     "shot_power": 66,
-    "keeper_skill": { "normal": 46, "figura": 92 },
+    "keeper_skill": {
+      "normal": 46,
+      "figura": 92
+    },
     "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?'). shot_power = fuerza del remate; keeper_skill = capacidad del arquero (normal/figura del toggle)."
   },
-
   "tiro": {
     "_zonas": "LEGADO (Hito 1/2): las 6 zonas tocables. Desde el Bloque B el remate se define con tiro_ejecucion (logic/tiro.js genera la zona dinámica); quedan de referencia para comparar números.",
     "zonas": [
-      { "id": "alto_izq",   "n": "Ángulo alto", "bonus": 6,  "fuera": 0.14, "gy": -44 },
-      { "id": "alto_centro","n": "Alto al medio","bonus": -2, "fuera": 0.03, "gy": 0 },
-      { "id": "alto_der",   "n": "Ángulo alto", "bonus": 6,  "fuera": 0.14, "gy": 44 },
-      { "id": "bajo_izq",   "n": "Palo bajo",   "bonus": 4,  "fuera": 0.08, "gy": -38 },
-      { "id": "bajo_centro","n": "Al medio",    "bonus": -4, "fuera": 0.01, "gy": 0 },
-      { "id": "bajo_der",   "n": "Palo bajo",   "bonus": 4,  "fuera": 0.08, "gy": 38 }
+      {
+        "id": "alto_izq",
+        "n": "Ángulo alto",
+        "bonus": 6,
+        "fuera": 0.14,
+        "gy": -44
+      },
+      {
+        "id": "alto_centro",
+        "n": "Alto al medio",
+        "bonus": -2,
+        "fuera": 0.03,
+        "gy": 0
+      },
+      {
+        "id": "alto_der",
+        "n": "Ángulo alto",
+        "bonus": 6,
+        "fuera": 0.14,
+        "gy": 44
+      },
+      {
+        "id": "bajo_izq",
+        "n": "Palo bajo",
+        "bonus": 4,
+        "fuera": 0.08,
+        "gy": -38
+      },
+      {
+        "id": "bajo_centro",
+        "n": "Al medio",
+        "bonus": -4,
+        "fuera": 0.01,
+        "gy": 0
+      },
+      {
+        "id": "bajo_der",
+        "n": "Palo bajo",
+        "bonus": 4,
+        "fuera": 0.08,
+        "gy": 38
+      }
     ]
   },
-
   "tiro_ejecucion": {
     "_nota": "TIRO HÍBRIDO (Bloque B): la construcción sigue siendo por decisión, pero el REMATE lo ejecutás VOS (New-Star-style). Apuntás en el arco, cargás potencia y le das comba. La lógica vive en logic/tiro.js; acá SOLO las perillas.",
     "peso_destreza": 0.65,
     "_peso": "0 = la ejecución no pesa nada (todo stats) … 1 = la ejecución manda. Con 0.65 la destreza pesa pero un crack sigue teniendo más margen.",
     "ruido_max": 0.38,
     "_ruido": "temblor máximo de la puntería con stat de tiro 30; con stat 90 el pulso es firme (ruido→0). ASÍ pesan los stats: margen de error.",
-    "potencia_dulce": [0.6, 0.88],
+    "potencia_dulce": [
+      0.6,
+      0.88
+    ],
     "penal_potencia_floja": 26,
     "fuera_potencia_pasada": 0.5,
     "bonus_esquina": 14,
@@ -270,7 +412,6 @@
     "_teclado": "tecla_paso: cuánto mueve la mira cada toque de flecha. tecla_osc_ms: período de la barra de potencia (ESPACIO mantenido) y del medidor de comba (más largo = más fácil clavar el timing).",
     "comentario": "Solo para TIRO y TIRO ESPECIAL (Caldén). El resto de los comandos sigue siendo por decisión/lectura."
   },
-
   "juego": {
     "_nota": "MODO JUEGO: cancha 3/4 (arco al fondo). Movés al jugador hacia el arco; velocidades en px de PANTALLA por segundo (la escena es 960x540).",
     "vel_jugador": 210,
@@ -278,10 +419,11 @@
     "zona_remate_y": 250,
     "comentario": "vel_jugador: cuánto te movés al arrastrar. vel_avance_auto: el jugador sube solo despacio hacia el arco. zona_remate_y: por encima de esta Y (más cerca del arco) aparece ¡REMATÁ!"
   },
-
   "cine": {
     "_nota": "MODO CINE: la secuencia de PLANOS que cortan como película. La pelota viaja HACIA ADENTRO (perspectiva, profundidad). Tiempos en ms. persp.k = fuerza de la perspectiva.",
-    "persp": { "k": 3.2 },
+    "persp": {
+      "k": 3.2
+    },
     "plano_pie_ms": 460,
     "plano_viaje_ms": 1050,
     "plano_esfuerzo_ms": 360,
@@ -302,7 +444,6 @@
     "impacto_afuera_ms": 420,
     "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: fracción del viaje donde entra el slow-motion. zoom_viaje: acercamiento en el momento clave. drift_mult: cuánto se curva la pelota al palo apuntado. pelota_escala_*: tamaño de la pelota cerca (base+span) y lejos (base). impacto_*_ms: duración del viaje de la pelota al desenlace."
   },
-
   "epica": {
     "_nota": "Tiempos de efectos (ms): shake, flash, red, rebote. Afinables para que el remate emocione.",
     "corrida_ms": 620,
