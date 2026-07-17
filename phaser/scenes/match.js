@@ -49,6 +49,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const f = poses.fondos[id];
         if (f && f.archivo) this.load.image("fondo_" + id, "../" + base + f.archivo);
       });
+      /* EDITOR v2: los 8 bustos ilustrados (para duelos y cut-ins, teñidos) */
+      const CM = this.game.registry.get("caras");
+      if (CM && CM.caras) {
+        const baseC = CM.base || "assets/poses/caras/";
+        CM.caras.forEach(c => {
+          if (c.archivo && !this.textures.exists("cara_" + c.id)) this.load.image("cara_" + c.id, "../" + baseC + c.archivo);
+        });
+      }
       this.load.on("loaderror", (file) => { /* el fallback del poseSprite cubre el hueco */ });
     }
   }
@@ -751,7 +759,37 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   _exprPorGuts(gutsVal) {
     return gutsVal < this.BAL.aguante.umbral_rendido ? "dolorido" : "concentrado";
   }
+  /* EDITOR v2: el busto ILUSTRADO teñido con la pinta — la MISMA cara en el
+     editor, los duelos, los cut-ins y los primeros planos. El roster mapea
+     determinista a las 8 caras (mismo id, misma cara). Rival = camiseta naranja. */
+  _bustoIlustrado(j, esRival) {
+    const CM = this.game.registry.get("caras");
+    if (this.FLAGS.v7_caras === false || !CM || !CM.caras || !CM.caras.length) return null;
+    const A = window.PampaAvatar, Arte = window.PampaAvatarArte;
+    const look = A.validarLook(j.look || {});
+    const idx = (!esRival && (j.esVos || j.esAmigo))
+      ? look.cara % CM.caras.length
+      : A.hashSemilla((j.nombre || "x") + (esRival ? "|r" : "|m")) % CM.caras.length;
+    const cara = CM.caras[idx];
+    if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
+    const r = A.resolver(look);
+    const camMia = (CM.camisetas && CM.camisetas[look.camiseta % CM.camisetas.length]) ? CM.camisetas[look.camiseta % CM.camisetas.length].hex : "#4FC3F7";
+    const key = "caraB_" + idx + "_" + look.piel + "_" + look.colorPelo + "_" + (look.camiseta % 3) + (esRival ? "_r" : "");
+    if (!this.textures.exists(key)) {
+      const hx = s => parseInt(String(s).slice(1), 16);
+      const T = cara.tonos || {}, tol = CM.tolerancias || {};
+      const mapa = [];
+      if (T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(r.colorPelo.hex), tol: tol.pelo || 70 });
+      if (T.piel) mapa.push({ de: hx(T.piel), a: hx(r.piel.hex), tol: tol.piel || 85 });
+      if (T.camiseta) mapa.push({ de: hx(T.camiseta), a: esRival ? 0xFF8A50 : hx(camMia), tol: tol.camiseta || 95 });
+      Arte.tenirImagen(this, "cara_" + cara.id, key, mapa);
+    }
+    return this.textures.exists(key) ? key : null;
+  }
   retratoKey(j, esRival, expresion) {
+    /* EDITOR v2 primero: el busto ilustrado teñido (consistencia total) */
+    const busto = j ? this._bustoIlustrado(j, !!esRival) : null;
+    if (busto) return busto;
     /* ANIME C: el camino nuevo es el MODULAR (flag v4_retratos64, default ON) —
        cara generable y determinista para TODO el roster, con expresión. */
     if (this.FLAGS.v4_retratos64 && j && j.look) return this._retrato64(j, expresion);
@@ -1475,7 +1513,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   texturaCineJugador() {
     const j = this.st.mios[this.st.ctrl];
-    if (!j || !j.look || !window.PampaAvatarArte) return "cine_jugador";
+    if (!j) return "cine_jugador";
+    /* EDITOR v2: el primer plano del esfuerzo es TU busto ilustrado teñido */
+    const busto = this._bustoIlustrado(j, false);
+    if (busto) return busto;
+    if (!j.look || !window.PampaAvatarArte) return "cine_jugador";
     const key = "cine_look_" + this.st.ctrl;
     window.PampaAvatarArte.cineJugador(this, key, j.look);
     return key;

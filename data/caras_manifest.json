@@ -1,0 +1,21 @@
+{
+  "_schema": "pampa-star/caras@1",
+  "_doc": "EDITOR v2: los 8 bustos ilustrados (assets/poses/caras/, PNG con alpha). Cada cara con su NOMBRE legible y sus TONOS BASE (sampleados una vez de cada PNG) para el TINTE por código: piel, pelo y camiseta se tiñen reemplazando estos tonos por los elegidos en el editor, preservando la luminancia (las sombras duras sobreviven). FALLBACK: si falta el manifest o un PNG, vuelve el avatar de bloques — nada crashea.",
+  "base": "assets/poses/caras/",
+  "caras": [
+    { "id": "clasico", "n": "Clásico", "archivo": "cara_clasico.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
+    { "id": "rulos", "n": "Rulos", "archivo": "cara_rulos.png", "tonos": { "pelo": "#332222", "piel": "#cc9966", "camiseta": "#44bbff" } },
+    { "id": "melena", "n": "Melena", "archivo": "cara_melena.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
+    { "id": "rapado", "n": "Rapado", "archivo": "cara_rapado.png", "tonos": { "pelo": "#885533", "piel": "#885533", "camiseta": "#44bbff" } },
+    { "id": "colorado", "n": "Colorado", "archivo": "cara_colorado.png", "tonos": { "pelo": "#ff4422", "piel": "#ffeedd", "camiseta": "#44bbff" } },
+    { "id": "flequillo", "n": "Flequillo", "archivo": "cara_flequillo.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
+    { "id": "mohicano", "n": "Mohicano", "archivo": "cara_mohicano.png", "tonos": { "pelo": "#113344", "piel": "#bb9955", "camiseta": "#44bbff" } },
+    { "id": "tranqui", "n": "Tranqui", "archivo": "cara_tranqui.png", "tonos": { "pelo": "#222222", "piel": "#eebb88", "camiseta": "#44bbff" } }
+  ],
+  "camisetas": [
+    { "n": "Celeste titular", "hex": "#4FC3F7" },
+    { "n": "Celeste profundo", "hex": "#2FA8E0" },
+    { "n": "Blanco pampa", "hex": "#E8F4FA" }
+  ],
+  "tolerancias": { "pelo": 70, "piel": 85, "camiseta": 95 }
+}

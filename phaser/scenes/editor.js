@@ -11,6 +11,19 @@
 window.PampaEditor = class PampaEditor extends Phaser.Scene {
   constructor() { super("editor"); }
 
+  /* EDITOR v2: los 8 bustos ilustrados del manifest (tolerante: sin manifest
+     o sin PNG, vuelve el avatar de bloques y nada crashea) */
+  preload() {
+    this.load.on("loaderror", () => { });
+    const CM = this.game.registry.get("caras");
+    if (CM && CM.caras) {
+      const base = CM.base || "assets/poses/caras/";
+      CM.caras.forEach(c => {
+        if (c.archivo && !this.textures.exists("cara_" + c.id)) this.load.image("cara_" + c.id, "../" + base + c.archivo);
+      });
+    }
+  }
+
   create() {
     const W = this.scale.width, H = this.scale.height;
     this.W = W; this.H = H;
@@ -60,12 +73,21 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.imgCancha = this.add.image(300, 250, "__WHITE").setScale(2.4);
     this.txtLabel = this.add.text(210, 372, "", { fontFamily: "monospace", fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 330 } }).setOrigin(0.5);
 
-    /* ---- steppers (derecha): ◀ NOMBRE ▶ por categoría ---- */
-    const CATS = [
-      { k: "piel", n: "PIEL" }, { k: "corte", n: "CORTE DE PELO" }, { k: "colorPelo", n: "COLOR DE PELO" },
-      { k: "ojos", n: "OJOS" }, { k: "cejas", n: "CEJAS" }, { k: "boca", n: "BOCA" },
-      { k: "acc", n: "ACCESORIO" }, { k: "camiseta", n: "CAMISETA" }
-    ];
+    /* ---- steppers (derecha) ----
+       EDITOR v2: el creador de caras por rectángulos SE RETIRA — stepper grande
+       de CARA (busto ilustrado) + los TINTES que se mantienen: PIEL, COLOR DE
+       PELO y CAMISETA (tiñen los tonos planos del PNG). Ojos/cejas/boca
+       desaparecen: la expresión ya viene en la ilustración. Sin manifest o sin
+       PNGs → vuelve el editor de bloques completo (fallback tolerante). */
+    this.CM = this.game.registry.get("caras");
+    this._v2 = !!(this.CM && this.CM.caras && this.CM.caras.length && this.textures.exists("cara_" + this.CM.caras[0].id));
+    const CATS = this._v2
+      ? [{ k: "cara", n: "CARA" }, { k: "piel", n: "PIEL" }, { k: "colorPelo", n: "COLOR DE PELO" }, { k: "camiseta", n: "CAMISETA" }]
+      : [
+        { k: "piel", n: "PIEL" }, { k: "corte", n: "CORTE DE PELO" }, { k: "colorPelo", n: "COLOR DE PELO" },
+        { k: "ojos", n: "OJOS" }, { k: "cejas", n: "CEJAS" }, { k: "boca", n: "BOCA" },
+        { k: "acc", n: "ACCESORIO" }, { k: "camiseta", n: "CAMISETA" }
+      ];
     /* V7-1 fix: los glifos ◀/▶ se rompían en las fuentes del celu (dos ▶ por
        fila) — las flechas ahora se DIBUJAN (triángulos, independientes de la
        fuente), los botones miden 48px+, y hay TECLADO: ↑↓ elige la fila
@@ -116,9 +138,32 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
   mover(campo, d) {
     const A = window.PampaAvatar;
     const p = this.personajes[this.sel];
-    const n = A.CATALOGO[A.CAMPOS[campo]].length;
-    p.look[campo] = (p.look[campo] + d + n) % n;
+    /* v2: CARA cicla sobre el manifest; CAMISETA sobre los tonos del manifest */
+    const n = campo === "cara" ? this.CM.caras.length
+      : (this._v2 && campo === "camiseta" && this.CM.camisetas) ? this.CM.camisetas.length
+        : A.CATALOGO[A.CAMPOS[campo]].length;
+    p.look[campo] = (((p.look[campo] || 0) + d) % n + n) % n;
     this.refrescar();
+  }
+  /* el busto elegido, TEÑIDO con la pinta actual (cacheado por combinación) */
+  bustoTenido(look) {
+    const A = window.PampaAvatar, Arte = window.PampaAvatarArte;
+    const l = A.validarLook(look);
+    const cara = this.CM.caras[l.cara % this.CM.caras.length];
+    if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
+    const r = A.resolver(l);
+    const camHex = (this.CM.camisetas && this.CM.camisetas[l.camiseta % this.CM.camisetas.length]) ? this.CM.camisetas[l.camiseta % this.CM.camisetas.length].hex : "#4FC3F7";
+    const key = "caraB_" + l.cara + "_" + l.piel + "_" + l.colorPelo + "_" + (l.camiseta % 3);
+    if (!this.textures.exists(key)) {
+      const hx = s => parseInt(String(s).slice(1), 16);
+      const T = cara.tonos || {}, tol = this.CM.tolerancias || {};
+      const mapa = [];
+      if (T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(r.colorPelo.hex), tol: tol.pelo || 70 });
+      if (T.piel) mapa.push({ de: hx(T.piel), a: hx(r.piel.hex), tol: tol.piel || 85 });
+      if (T.camiseta) mapa.push({ de: hx(T.camiseta), a: hx(camHex), tol: tol.camiseta || 95 });
+      Arte.tenirImagen(this, "cara_" + cara.id, key, mapa);
+    }
+    return this.textures.exists(key) ? key : null;
   }
 
   refrescar() {
@@ -130,27 +175,42 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       tb.t.setColor(i === this.sel ? "#ffd84d" : "#f6efdc");
       tb.t.setText((i === this.sel ? "► " : "") + (i === 0 ? "★ " : "♥ ") + this.personajes[i].nombre.toUpperCase());
     });
-    /* re-horneo las vistas previas con el look actual */
-    Arte.cara(this, "ed_cara", p.look);
+    const l = A.validarLook(p.look);
+    if (this._v2) {
+      /* EDITOR v2: el busto ilustrado TEÑIDO, grande — la cara que sos en todos lados */
+      const key = this.bustoTenido(p.look);
+      if (key) {
+        this.imgCara.setTexture(key);
+        this.imgCara.setScale(300 / this.imgCara.height).setPosition(190, 235);
+      }
+    } else {
+      Arte.cara(this, "ed_cara", p.look);
+      this.imgCara.setTexture("ed_cara").setScale(1.5);
+    }
     Arte.jugador(this, "ed_cancha", p.look, false);
-    this.imgCara.setTexture("ed_cara");
     this.imgCancha.setTexture("ed_cancha_idle");
-    this.txtLabel.setText(A.lookLabel(p.look));
+    const r = A.resolver(p.look);
+    this.txtLabel.setText(this._v2
+      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · " + r.piel.n + " · " + r.colorPelo.n)
+      : A.lookLabel(p.look));
     /* etiquetas de los steppers (cada variante con NOMBRE) + la fila activa
        del teclado marcada con ► y color (forma + color, no solo color) */
     if (this.filaRects) this.filaRects.forEach((lbl, i) => {
       lbl.setColor(i === this.filaSel ? "#ffd84d" : "#f6c11d");
       lbl.setText((i === this.filaSel ? "► " : "") + this.CATS[i].n);
     });
-    const r = A.resolver(p.look);
-    this.filas.piel.setText(r.piel.n);
-    this.filas.corte.setText(r.corte.n);
-    this.filas.colorPelo.setText(r.colorPelo.n);
-    this.filas.ojos.setText(r.ojos.n);
-    this.filas.cejas.setText(r.cejas.n);
-    this.filas.boca.setText(r.boca.n);
-    this.filas.acc.setText(r.acc.n);
-    this.filas.camiseta.setText(r.camiseta.n);
+    /* solo las filas del set ACTIVO (v2 = cara/piel/colorPelo/camiseta) */
+    if (this.filas.cara) this.filas.cara.setText(this.CM.caras[l.cara % this.CM.caras.length].n);
+    if (this.filas.piel) this.filas.piel.setText(r.piel.n);
+    if (this.filas.corte) this.filas.corte.setText(r.corte.n);
+    if (this.filas.colorPelo) this.filas.colorPelo.setText(r.colorPelo.n);
+    if (this.filas.ojos) this.filas.ojos.setText(r.ojos.n);
+    if (this.filas.cejas) this.filas.cejas.setText(r.cejas.n);
+    if (this.filas.boca) this.filas.boca.setText(r.boca.n);
+    if (this.filas.acc) this.filas.acc.setText(r.acc.n);
+    if (this.filas.camiseta) this.filas.camiseta.setText(this._v2 && this.CM.camisetas
+      ? this.CM.camisetas[l.camiseta % this.CM.camisetas.length].n
+      : r.camiseta.n);
   }
 
   /* guarda RETROCOMPATIBLE: solo AGREGA career.avatares (el clásico lo ignora) */

@@ -428,5 +428,46 @@ window.PampaAvatarArte = (function () {
     return key;
   }
 
-  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, KITS: KITS, bake: bake };
+  /* ============ EDITOR v2 · TINTE de ilustraciones por tonos planos ============
+     Reemplaza los tonos base declarados (manifest) por los del editor,
+     PRESERVANDO la luminancia relativa: las sombras duras sobreviven al tinte.
+     mapa: [{de: 0xRRGGBB, a: 0xRRGGBB, tol: px}] — cacheado por dstKey. */
+  function tenirImagen(scene, srcKey, dstKey, mapa) {
+    if (scene.textures.exists(dstKey)) return dstKey;
+    if (!scene.textures.exists(srcKey)) return null;
+    var src = scene.textures.get(srcKey).getSourceImage();
+    var cv = scene.textures.createCanvas(dstKey, src.width, src.height);
+    var c2 = cv.getContext();
+    c2.drawImage(src, 0, 0);
+    var img = c2.getImageData(0, 0, src.width, src.height);
+    var d = img.data;
+    var reglas = (mapa || []).map(function (m) {
+      var r = (m.de >> 16) & 255, g = (m.de >> 8) & 255, b = m.de & 255;
+      return {
+        r: r, g: g, b: b,
+        tr: (m.a >> 16) & 255, tg: (m.a >> 8) & 255, tb: m.a & 255,
+        tol2: (m.tol || 70) * (m.tol || 70),
+        luma: Math.max(10, 0.299 * r + 0.587 * g + 0.114 * b)
+      };
+    });
+    for (var i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 40) continue;
+      var r = d[i], g = d[i + 1], b = d[i + 2];
+      for (var k = 0; k < reglas.length; k++) {
+        var R = reglas[k];
+        var dr = r - R.r, dg = g - R.g, db = b - R.b;
+        if (dr * dr + dg * dg + db * db > R.tol2) continue;
+        var f = (0.299 * r + 0.587 * g + 0.114 * b) / R.luma;
+        d[i] = Math.max(0, Math.min(255, R.tr * f));
+        d[i + 1] = Math.max(0, Math.min(255, R.tg * f));
+        d[i + 2] = Math.max(0, Math.min(255, R.tb * f));
+        break;
+      }
+    }
+    c2.putImageData(img, 0, 0);
+    cv.refresh();
+    return dstKey;
+  }
+
+  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, KITS: KITS, bake: bake };
 })();

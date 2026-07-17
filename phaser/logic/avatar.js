@@ -81,6 +81,9 @@
       var v = typeof l[k] === "number" && isFinite(l[k]) ? Math.abs(Math.floor(l[k])) : base[k];
       out[k] = v % n;
     });
+    /* EDITOR v2: la CARA ilustrada (0-7 del manifest de bustos). Look viejo sin
+       cara → 0 (Clásico): retrocompatible. El campo viaja con el look siempre. */
+    out.cara = typeof l.cara === "number" && isFinite(l.cara) ? Math.abs(Math.floor(l.cara)) % 8 : 0;
     return out;
   }
 
