@@ -552,7 +552,35 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const k = this.identidadDe(p.j, p.esRival);
       if (k) return k;
     }
+    /* V7-1 §4: el que corre arriba TENÉS QUE SER VOS — la pose del héroe
+       teñida con tu pinta guardada (piel/pelo del catálogo + tono de camiseta
+       del editor v2). Fallback: la pose tal cual. */
+    if (p.j.esVos) {
+      const k = this.poseHeroeTenida(p.j);
+      if (k) return k;
+    }
     return this.poseKey("corriendo");
+  }
+  poseHeroeTenida(j) {
+    const src = this.poseKey("corriendo");
+    const poses = this.game.registry.get("poses");
+    const def = poses && poses.poses && poses.poses.corriendo;
+    if (!src || !def || !def.tonos || this.FLAGS.v7_caras === false || !j.look || !window.PampaAvatarArte) return null;
+    const A = window.PampaAvatar;
+    const look = A.validarLook(j.look);
+    const key = "poseV_" + look.piel + "_" + look.colorPelo + "_" + (look.camiseta % 3);
+    if (this.textures.exists(key)) return key;
+    const r = A.resolver(look);
+    const CM = this.game.registry.get("caras");
+    const camHex = (CM && CM.camisetas && CM.camisetas[look.camiseta % CM.camisetas.length]) ? CM.camisetas[look.camiseta % CM.camisetas.length].hex : "#4FC3F7";
+    const hx = s => parseInt(String(s).slice(1), 16);
+    const T = def.tonos, tol = def.tolerancias || {};
+    const mapa = [];
+    if (T.pelo) mapa.push({ de: hx(T.pelo), a: hx(r.colorPelo.hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
+    if (T.piel) mapa.push({ de: hx(T.piel), a: hx(r.piel.hex), tol: tol.piel || 80 });
+    if (T.camiseta) mapa.push({ de: hx(T.camiseta), a: hx(camHex), tol: tol.camiseta || 95 });
+    window.PampaAvatarArte.tenirImagen(this, src, key, mapa);
+    return this.textures.exists(key) ? key : null;
   }
   updatePanelEscena(delta) {
     if (!this._split || !this.panelJug) return;

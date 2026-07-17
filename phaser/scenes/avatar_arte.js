@@ -447,14 +447,21 @@ window.PampaAvatarArte = (function () {
         r: r, g: g, b: b,
         tr: (m.a >> 16) & 255, tg: (m.a >> 8) & 255, tb: m.a & 255,
         tol2: (m.tol || 70) * (m.tol || 70),
-        luma: Math.max(10, 0.299 * r + 0.587 * g + 0.114 * b)
+        luma: Math.max(10, 0.299 * r + 0.587 * g + 0.114 * b),
+        /* V7-1: banda vertical opcional (0-1) — p.ej. el pelo negro solo ARRIBA,
+           así los botines negros de abajo no se tiñen con el color de pelo */
+        y0: Math.round((m.y0 || 0) * src.height),
+        y1: Math.round((m.y1 == null ? 1 : m.y1) * src.height)
       };
     });
+    var fila = src.width * 4;
     for (var i = 0; i < d.length; i += 4) {
       if (d[i + 3] < 40) continue;
       var r = d[i], g = d[i + 1], b = d[i + 2];
+      var py = (i / fila) | 0;
       for (var k = 0; k < reglas.length; k++) {
         var R = reglas[k];
+        if (py < R.y0 || py >= R.y1) continue;
         var dr = r - R.r, dg = g - R.g, db = b - R.b;
         if (dr * dr + dg * dg + db * db > R.tol2) continue;
         var f = (0.299 * r + 0.587 * g + 0.114 * b) / R.luma;

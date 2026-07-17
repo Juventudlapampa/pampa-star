@@ -15,7 +15,13 @@
     "gambeta_pierde": { "archivo": "pose_gambeta_pierde.png", "quien": "heroe", "n": "Gambeta perdida — trastabillando" },
     "pared": { "archivo": "pose_pared.png", "quien": "heroe", "n": "Pared — toque de primera" },
     "bloqueo": { "archivo": "pose_bloqueo.png", "quien": "defensor", "n": "Bloqueo plantado" },
-    "corriendo": { "archivo": "pose_corriendo.png", "quien": "heroe", "n": "La corrida a fondo" }
+    "corriendo": {
+      "archivo": "pose_corriendo.png", "quien": "heroe", "n": "La corrida a fondo",
+      "_tonos": "V7-1 §4 recolor por pinta: tonos base planos del PNG (muestreados). pelo_y1 limita la regla del pelo a la banda de arriba (los botines también son negros).",
+      "tonos": { "pelo": "#0c2424", "piel": "#fccca4", "camiseta": "#54bcec" },
+      "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+      "pelo_y1": 0.45
+    }
   },
   "fondos": {
     "tribuna": { "archivo": "fondo_tribuna.png", "n": "La tribuna (capa lejana: opening y definición)" }
