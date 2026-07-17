@@ -115,6 +115,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null;
     this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
+    this._cineSkip = null; this._cineSaltado = false; this._cineTimer = null;   // V7 §1: skip del cine de 5 planos
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
     this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
     this.panelSil = null; this._panelPrev = null;
@@ -209,6 +210,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this._punteroListo = true;
       /* V6 R4 · SKIP: un toque durante la escena adelanta al desenlace */
       if (this.estado === "ESCENA") { this._escSkip && this._escSkip(); return; }
+      /* V7 §1: el cine de 5 planos del megatiro también se saltea con un toque */
+      if (this.estado === "CINE") { this._cineSkip && this._cineSkip(); return; }
       /* Anime A: sin radar, el PASE se toca DIRECTO sobre la cancha */
       if (this._vista4 && this.estado === "PASE") { this.onCanchaTapPase(p); return; }
       this.apuntar(p);
@@ -1595,6 +1598,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
     this.cineLayer.setVisible(true);
     this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
+    /* V7 §1 · SKIP: un toque adelanta directo al desenlace (idempotente) */
+    this._cineSaltado = false;
+    this._cineSkip = () => {
+      if (this._cineSaltado) return; this._cineSaltado = true;
+      if (this._cineTimer) { this._cineTimer.remove(false); this._cineTimer = null; }
+      if (this.viajeState) this.viajeState.activo = false;
+      this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
+      this.corte(() => this.planoDesenlace());
+    };
   }
   salirCine() {
     this.viajeState = null;
@@ -1625,7 +1637,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX && this.SFX.kick();
     this.uiCam.flash(90, 255, 255, 220);
     this.lineasVelocidad(W / 2, H / 2, 1, 0xffd84d);
-    this.time.delayedCall(C.plano_pie_ms + 240, () => this.corte(() => this.planoViaje()));
+    this._cineTimer = this.time.delayedCall(this.msV(C.plano_pie_ms + 240), () => this.corte(() => this.planoViaje()));
   }
   planoViaje() {
     const W = 960, H = 540, C = this.BAL.cine;
@@ -1637,8 +1649,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const trail = this.add.particles(0, 0, "spark_sol", { lifespan: 300, speed: 0, scale: { start: 1.2, end: 0 }, alpha: { start: 0.6, end: 0 }, frequency: 18, follow: ball }); this.cineContent.add(trail);
     this.SFX && this.SFX.whoosh(C.plano_viaje_ms);
     const cfg = { k: C.persp.k, vpX: vp.x, vpY: vp.y, nearY, driftX: (this.zona.gy || 0) * C.drift_mult };
-    this.viajeState = { activo: true, elapsed: 0, dur: C.plano_viaje_ms, ball, trail, cfg, vp, zoomed: false };
-    this.time.delayedCall(C.plano_viaje_ms, () => {
+    this.viajeState = { activo: true, elapsed: 0, dur: this.msV(C.plano_viaje_ms), ball, trail, cfg, vp, zoomed: false };
+    this._cineTimer = this.time.delayedCall(this.msV(C.plano_viaje_ms), () => {
       if (trail && trail.stop) trail.stop();
       if (this.viajeState) this.viajeState.activo = false;
       this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
@@ -1695,7 +1707,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineContent.add(jug);
     this.tweens.add({ targets: jug, scale: 3.4, angle: -3, duration: C.plano_esfuerzo_ms, ease: "Sine.easeOut" });
     this.SFX && this.SFX.crowd(400);
-    this.time.delayedCall(C.plano_esfuerzo_ms, () => this.corte(() => this.planoArquero()));
+    this._cineTimer = this.time.delayedCall(this.msV(C.plano_esfuerzo_ms), () => this.corte(() => this.planoArquero()));
   }
   planoArquero() {
     const W = 960, H = 540, C = this.BAL.cine;
@@ -1710,9 +1722,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineContent.add(ball);
     this.tweens.add({ targets: ball, x: W / 2 + 120, y: H / 2 - 20, scale: 1.9, duration: C.plano_arquero_ms, ease: "Sine.easeIn" });
     this.SFX && this.SFX.crowd(500);
-    this.time.delayedCall(C.plano_arquero_ms, () => this.corte(() => this.planoDesenlace()));
+    this._cineTimer = this.time.delayedCall(this.msV(C.plano_arquero_ms), () => this.corte(() => this.planoDesenlace()));
   }
   planoDesenlace() {
+    /* V7 §1: acá se RESUELVE el remate — el skip muere (un toque no puede
+       re-entrar y duplicar el gol) */
+    this._cineSkip = null; this._cineTimer = null;
     const W = 960, H = 540, C = this.BAL.cine, EP = this.BAL.epica, res = this.res, st = this.st, P = window.PampaPartido;
     this.limpiarContenido();
     this.cineBG.clear(); this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
@@ -1760,7 +1775,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         P.tiroFallado(st);
       });
     }
-    this.time.delayedCall(C.impacto_gol_ms + silencio + C.desenlace_hold_ms, () => this.salirCine());
+    /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */
+    this.time.delayedCall(C.impacto_gol_ms + silencio + this.msV(C.desenlace_hold_ms), () => this.salirCine());
   }
   punch(big, sub, colorNum) {
     const hex = "#" + colorNum.toString(16).padStart(6, "0");

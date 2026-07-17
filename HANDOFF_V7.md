@@ -55,7 +55,25 @@ usa si el fetch del JSON falla — si tocás balance.json, con eso alcanza).
 4. Una escena de remate/chilena/cabezazo: la pelota del juego aparece donde
    iba la ilustrada (con su estela).
 
+## §1 — Deudas técnicas (hechas)
+1. **Definición fase 1**: los defensores en el camino son la pose ILUSTRADA
+   del bloqueo (el rival plantado, 96px) — las siluetas de código quedaron de
+   fallback. El arquero rival bajo los palos es una ficha HUMANA (su sprite
+   heroico naranja), no un rectángulo.
+2. **SKIP del cine de 5 planos** (megatiro): un toque adelanta directo al
+   desenlace — idempotente, el gol se cuenta UNA vez (el skip muere al entrar
+   al desenlace).
+3. **Velocidad RÁPIDA** ahora también acorta los 5 planos (pie/viaje/esfuerzo/
+   arquero y el hold del desenlace). El silencio sagrado NO se toca.
+4. **Camiseta forma vs tono**: elegir el TONO de camiseta del busto ya no pisa
+   la FORMA (lisa/banda/cuello) del kit de cancha.
+5. El assert del tempo se actualizó (intermedio 2.2' → ~20 momentos).
+
 ## Decisiones que te esperan
 - **[DECISIÓN MÍA] §0.3**: bajé `intermedio` a 2.2' por momento (~20 jugadas
   por tiempo). Si lo sentís largo, volvé a 2.5 en `tempo.presets`.
-- El doc del V7 no llegó — lo que sigue (§1-§5) va sobre tu índice + el GDD.
+- **[PENDIENTE SIN DOC] roster `especiales`**: la regla del V6 §5 ("los que
+  tienen especiales arrancan con stats base más bajas") sigue sin campo en
+  `roster_pampeano.json` — decidir QUIÉNES tienen especiales es diseño tuyo;
+  lo cableo en cuanto lo definas (o llegue el doc del V7).
+- El doc del V7 no llegó — lo que sigue (§2-§5) va sobre tu índice + el GDD.

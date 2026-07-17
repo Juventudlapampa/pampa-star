@@ -370,8 +370,8 @@ function partidoNuevo(rng) {
   st.cooldown = 9e9; m0 = st.minuto;
   P.tick(st, 1000, null);
   ok(Math.abs((st.minuto - m0) - 1 / bal.tempo.goteo_seg_por_minuto) < 1e-6, "R4: goteo lento entre momentos");
-  /* R4: la aritmética cierra — 45' = ~18 momentos INTERMEDIO */
-  ok(Math.round(45 / bal.tempo.presets.intermedio) === 18, "R4: INTERMEDIO da 18 momentos por tiempo");
+  /* R4: la aritmética cierra — V7 §0.3 bajó intermedio a 2.2' → ~20 momentos */
+  ok(Math.round(45 / bal.tempo.presets.intermedio) === 20, "R4: INTERMEDIO da ~20 momentos por tiempo");
   /* R1: en modo saltos el portador va rápido y esquemático */
   ok(bal.ritmo.modo_saltos === true, "R1: modo_saltos encendido");
   var st2 = partidoNuevo(); st2.cooldown = 9e9;

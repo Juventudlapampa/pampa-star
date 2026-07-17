@@ -164,7 +164,10 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
         while (!this.tinteValido(cara, v) && vueltas++ < nT) v = ((v + (d > 0 ? 1 : -1)) % nT + nT) % nT;
       }
       p.look[T] = v;
-      if (v > 0) p.look[campo] = v - 1;   // el resto del juego (cancha, bloques) sigue la elección
+      /* V7 §1: piel/pelo se sincronizan al catálogo (cancha y bloques siguen la
+         elección); la CAMISETA no — look.camiseta es la FORMA (lisa/banda/cuello)
+         del kit de cancha, y el tono del busto no la pisa */
+      if (v > 0 && campo !== "camiseta") p.look[campo] = v - 1;
       this.refrescar();
       return;
     }

@@ -59,19 +59,38 @@
       var base = this.bakePortador(this.portadorActual());
       this._def.spr = this.add.sprite(this._def.jug.x, this._def.jug.y, base + "_correr_2").setScale(2.1);
       this.cineContent.add(this._def.spr);
-      /* defensores REALES en el camino (mín 1 si el cruce venía con rival) */
+      /* defensores REALES en el camino (mín 1 si el cruce venía con rival).
+         V7 §1: con la pose ILUSTRADA del bloqueo (el rival plantado) — las
+         siluetas de código quedan de fallback si falta el arte. */
       var nDefs = Math.max(opts.rivalIdx != null ? 1 : 0, Math.min(n, 3));
+      var kBloq = this.poseKey("bloqueo");
       for (var k = 0; k < nDefs; k++) {
         var dx = W * (0.3 + 0.2 * k), dy = H * (0.34 + 0.06 * (k % 2));
-        var g = this.add.graphics();
-        g.fillStyle(0x1a0d08, 0.9); g.fillEllipse(0, -30, 34, 34); g.fillRoundedRect(-20, -16, 40, 66, 10);
-        g.fillStyle(0xff8a50, 0.9); g.fillRect(-20, -6, 40, 8);   // franja rival (forma+color)
-        var cont = this.add.container(dx, dy, [g]);
-        this.cineContent.add(cont);
-        this._def.defs.push({ spr: cont, x: dx, y: dy, vivo: true });
+        var spr;
+        if (kBloq) {
+          spr = this.add.image(dx, dy, kBloq);
+          spr.setScale(96 / spr.height);
+        } else {
+          var g = this.add.graphics();
+          g.fillStyle(0x1a0d08, 0.9); g.fillEllipse(0, -30, 34, 34); g.fillRoundedRect(-20, -16, 40, 66, 10);
+          g.fillStyle(0xff8a50, 0.9); g.fillRect(-20, -6, 40, 8);   // franja rival (forma+color)
+          spr = this.add.container(dx, dy, [g]);
+        }
+        this.cineContent.add(spr);
+        this._def.defs.push({ spr: spr, x: dx, y: dy, vivo: true });
       }
-      /* el arquero rival, chiquito bajo los palos */
-      this._def.arq = this.add.rectangle(W / 2, 148, 26, 44, 0xf6c11d).setStrokeStyle(2, 0x0a1f13);
+      /* V7 §1: el arquero rival bajo los palos es una FICHA humana (el sprite
+         heroico del arquero, naranja) — el rectángulo queda de fallback */
+      var arqR = st.rivales.find(function (x) { return x.pos === "ARQ"; });
+      this._def.arq = null;
+      if (arqR && window.PampaAvatarArte) {
+        try {
+          var baseA = "defarq_riv";
+          window.PampaAvatarArte.jugador(this, baseA, arqR.look || window.PampaAvatar.crearLook(), true);
+          this._def.arq = this.add.sprite(W / 2, 148, baseA + "_idle").setScale(1.5);
+        } catch (e) { }
+      }
+      if (!this._def.arq) this._def.arq = this.add.rectangle(W / 2, 148, 26, 44, 0xf6c11d).setStrokeStyle(2, 0x0a1f13);
       this.cineContent.add(this._def.arq);
       this.cineLabel.setText("· LA DEFINICIÓN · buscá el ángulo, los defensores se acercan");
       this.defBotonesOf(opts);
