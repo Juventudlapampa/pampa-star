@@ -33,11 +33,13 @@
   <script src="logic/relator.js"></script>
   <script src="logic/definicion.js"></script>
   <script src="logic/master.js"></script>
+  <script src="logic/temporada.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/sprites.js"></script>
   <script src="scenes/avatar_arte.js"></script>
   <script src="scenes/intro.js"></script>
   <script src="scenes/editor.js"></script>
+  <script src="scenes/master.js"></script>
   <script src="scenes/match.js"></script>
   <script src="scenes/definicion_ui.js"></script>
   <script>
@@ -85,20 +87,21 @@
   const pRelatos = fetch("../data/relatos.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pPoses = fetch("../data/poses_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pCaras = fetch("../data/caras_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras]).then(([bal, roster, retratos, mega, relatos, poses, caras])=>{
+  const pDivisiones = fetch("../data/divisiones.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones])=>{
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;
-    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras);
+    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones);
   });
-  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras){
+  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones){
     const config = {
       type: Phaser.AUTO,
       parent: "game",
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); } },
-      scene: [ window.PampaIntro, window.PampaEditor, window.PampaMatch ]   // OPENING (salteable) → editor de pinta → ¡A LA CANCHA!
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); } },
+      scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);
   }

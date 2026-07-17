@@ -1,0 +1,26 @@
+{
+  "_schema": "pampa-star/divisiones@1",
+  "_doc": "V7 §2 MODO MASTER: los rivales de cada división de la escalera (9 por división + vos = 10 equipos, 18 fechas ida y vuelta). Los ids calzan con logic/master.js (dificultad fija + perfil de IA determinista por nombre). Primera B = los MISMOS 9 clubes públicos de la Liga Cultural que usa el clásico (consistencia). Primera A = clubes FICTICIOS sobre localidades pampeanas públicas. Regional/Nacional = equipos ficticios de región. Mundial = selecciones por país (nombres de países, sin marcas). §11: sin clubes profesionales reales, sin marcas, sin nombres de personas.",
+  "divisiones": {
+    "primera_b": {
+      "n": "PRIMERA B",
+      "rivales": ["Deportivo Winifreda", "El Pampero", "Centro Oeste", "Atlético Carro Quemado", "Deportivo Luan Toro", "Cochico FC", "Deportivo Telén", "Atlético Caleufú", "Cultural Argentino"]
+    },
+    "primera_a": {
+      "n": "PRIMERA A",
+      "rivales": ["Sportivo General Acha", "Unión de Realicó", "Ferrocarril de Castex", "Estrella de General Pico", "Capital de Santa Rosa", "Camino de Victorica", "Sal y Cal de Macachín", "Alvear Fútbol", "Quemú Unido"]
+    },
+    "regional": {
+      "n": "REGIONAL",
+      "rivales": ["Bahía del Sur", "Del Valle Neuquino", "Rionegrino Central", "Puntano de San Luis", "Cuyo Andino", "Costa Atlántica", "Sierras de Córdoba", "Litoral Norte", "Patagonia Austral"]
+    },
+    "nacional": {
+      "n": "NACIONAL",
+      "rivales": ["Norte Grande", "Cuyo Unido", "Litoral Grande", "Puerto Central", "La Docta", "Comarca Andina", "Estepa Dorada", "Pampa Húmeda", "Capital Federal FC"]
+    },
+    "mundial": {
+      "n": "EL MUNDIAL",
+      "rivales": ["Brasil", "Alemania", "Italia", "Francia", "Japón", "México", "Países Bajos", "Uruguay", "Inglaterra"]
+    }
+  }
+}

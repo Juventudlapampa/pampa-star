@@ -145,12 +145,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     this._nivelCarrera = 1;
     try { const c = JSON.parse(localStorage.getItem("pampa_star_v1")); if (c && c.nivel) this._nivelCarrera = c.nivel | 0; } catch (e) { }
+    /* V7 §2: si venimos del MODO MASTER, el rival y la división los manda la
+       carrera (fecha real del fixture) — pisa al pedido del clásico */
+    this._masterPartido = this.game.registry.get("masterPartido") || null;
+    if (this._masterPartido && this._masterPartido.rival) {
+      this.nombreRival = String(this._masterPartido.rival).toUpperCase().slice(0, 14);
+      this._pedido = null;   // la carrera Phaser manda; el puente clásico no aplica acá
+    }
     /* V6 §8 MODO MASTER: dificultad FIJA por división + perfil de IA por rival
-       (flag v6_master; la carrera de temporadas sigue viviendo en el clásico) */
+       (flag v6_master; sin carrera Phaser, la división sale del nivel del clásico) */
     this._division = null;
     if (this.FLAGS.v6_master !== false && window.PampaMaster) {
       const Ma = window.PampaMaster;
-      this._division = Ma.divisionPorNivel(this._nivelCarrera);
+      this._division = (this._masterPartido && Ma.DIVISIONES.find(d => d.id === this._masterPartido.division))
+        || Ma.divisionPorNivel(this._nivelCarrera);
       this._perfilRival = Ma.perfilRival(this.nombreRival);
       Ma.aplicar(this.st, this._division, this._perfilRival);
     }
@@ -2346,9 +2354,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.quitarDuelo();
     this.limpiarMenu();
     const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5);
+    this.menuLayer.add(t);
+    /* V7 §2: la fecha del MODO MASTER devuelve el resultado a la carrera */
+    if (this._masterPartido) {
+      const b3 = this.add.rectangle(480, 330, 420, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bt3 = this.add.text(480, 330, "▶ SEGUIR LA CARRERA", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      this.menuLayer.add([b3, bt3]);
+      b3.on("pointerdown", () => {
+        this.game.registry.set("masterResultado", { golesMio: st.golesMio, golesRival: st.golesRival });
+        this.game.registry.remove("masterPartido");
+        this.scene.start("master");
+      });
+      this.selloMenu();
+      return;
+    }
     const b = this.add.rectangle(480, 330, 320, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     const bt = this.add.text(480, 330, "↺ OTRO PARTIDO", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
-    this.menuLayer.add([t, b, bt]);
+    this.menuLayer.add([b, bt]);
     b.on("pointerdown", () => this.scene.restart());
     /* FUSIÓN: el resultado vuelve a la carrera clásica (mismo formato pampa_star_v1
        vía aplicarFecha del clásico — acá solo se deja el resultado y se vuelve) */

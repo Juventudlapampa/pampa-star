@@ -69,6 +69,31 @@ usa si el fetch del JSON falla — si tocás balance.json, con eso alcanza).
    la FORMA (lisa/banda/cuello) del kit de cancha.
 5. El assert del tempo se actualizó (intermedio 2.2' → ~20 momentos).
 
+## §2 — MODO MASTER: la carrera ADENTRO del Phaser (hecho)
+El botón **🏆 CARRERA** (editor, arriba a la derecha) abre el Modo Master:
+- **Elegís tu club**: stepper con los 10 pueblos del roster (con el apodo del
+  crack local); arrancás en la PRIMERA B. Si tu save clásico tiene localidad
+  de origen, arranca ahí.
+- **La temporada**: fixture REAL de 18 fechas (ida y vuelta, método del
+  círculo — el mismo esquema del clásico), tabla completa PJ G E P GF GC DG
+  PTS con tu fila marcada ►, y la próxima fecha te dice el rival, la localía
+  y su PERFIL de IA ("un equipo de toque / pura garra / de pelotazo / con una
+  ESTRELLA") — sabés a qué venís.
+- **JUGAR LA FECHA** → el partido de siempre (motor completo, división y
+  perfil aplicados) → al final "▶ SEGUIR LA CARRERA" te devuelve con el
+  resultado cargado; el resto de la fecha se simula DETERMINISTA (misma
+  temporada, mismos resultados — resumible tras recargar).
+- **Fin de temporada**: el CAMPEÓN sube el escalón (B → A → Regional →
+  Nacional → EL MUNDIAL, dificultad FIJA de logic/master.js). Nadie
+  desciende. Campeón del Mundial = LA GLORIA (y podés seguir).
+- **Data**: `data/divisiones.json` (9 rivales por división: la B usa los
+  MISMOS 9 clubes públicos del clásico; A ficticios de localidades pampeanas;
+  Regional/Nacional ficticios de región; Mundial selecciones por país).
+- **Save propio** `pampa_master_v1` — NO toca el clásico ni los avatares.
+- Lógica pura en `logic/temporada.js` (+ test temporada.test.js, 142 asserts).
+- **[DECISIÓN MÍA]** sin el doc: arrancás siempre en la B; el ascenso es solo
+  para el campeón; nadie desciende; 10 equipos por división. Todo discutible.
+
 ## Decisiones que te esperan
 - **[DECISIÓN MÍA] §0.3**: bajé `intermedio` a 2.2' por momento (~20 jugadas
   por tiempo). Si lo sentís largo, volvé a 2.5 en `tempo.presets`.
