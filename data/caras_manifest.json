@@ -1,13 +1,14 @@
 {
   "_schema": "pampa-star/caras@1",
   "_doc": "EDITOR v2: los 8 bustos ilustrados (assets/poses/caras/, PNG con alpha). Cada cara con su NOMBRE legible y sus TONOS BASE (sampleados una vez de cada PNG) para el TINTE por código: piel, pelo y camiseta se tiñen reemplazando estos tonos por los elegidos en el editor, preservando la luminancia (las sombras duras sobreviven). FALLBACK: si falta el manifest o un PNG, vuelve el avatar de bloques — nada crashea.",
+  "_tintes": "V7 §0.2: los tintes son OPCIONALES — la primera opción de cada stepper es 'Original' (la ilustración con sus colores propios). Si una cara no admite bien un tinte, se declara acá y el stepper lo saltea: 'tintes_pelo': false = esa cara no tiñe el pelo (ej. rapado, pelo==piel); 'tintes_pelo_excluye': [ids de colores_pelo] = esos colores puntuales se saltean (ej. colorado + rubio/canoso da pelo bicolor).",
   "base": "assets/poses/caras/",
   "caras": [
     { "id": "clasico", "n": "Clásico", "archivo": "cara_clasico.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
     { "id": "rulos", "n": "Rulos", "archivo": "cara_rulos.png", "tonos": { "pelo": "#332222", "piel": "#cc9966", "camiseta": "#44bbff" } },
     { "id": "melena", "n": "Melena", "archivo": "cara_melena.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
-    { "id": "rapado", "n": "Rapado", "archivo": "cara_rapado.png", "tonos": { "pelo": "#885533", "piel": "#885533", "camiseta": "#44bbff" } },
-    { "id": "colorado", "n": "Colorado", "archivo": "cara_colorado.png", "tonos": { "pelo": "#ff4422", "piel": "#ffeedd", "camiseta": "#44bbff" } },
+    { "id": "rapado", "n": "Rapado", "archivo": "cara_rapado.png", "tonos": { "pelo": "#885533", "piel": "#885533", "camiseta": "#44bbff" }, "tintes_pelo": false },
+    { "id": "colorado", "n": "Colorado", "archivo": "cara_colorado.png", "tonos": { "pelo": "#ff4422", "piel": "#ffeedd", "camiseta": "#44bbff" }, "tintes_pelo_excluye": ["rubio", "canoso"] },
     { "id": "flequillo", "n": "Flequillo", "archivo": "cara_flequillo.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
     { "id": "mohicano", "n": "Mohicano", "archivo": "cara_mohicano.png", "tonos": { "pelo": "#113344", "piel": "#bb9955", "camiseta": "#44bbff" } },
     { "id": "tranqui", "n": "Tranqui", "archivo": "cara_tranqui.png", "tonos": { "pelo": "#222222", "piel": "#eebb88", "camiseta": "#44bbff" } }

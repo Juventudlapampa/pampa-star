@@ -568,17 +568,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!src || !def || !def.tonos || this.FLAGS.v7_caras === false || !j.look || !window.PampaAvatarArte) return null;
     const A = window.PampaAvatar;
     const look = A.validarLook(j.look);
-    const key = "poseV_" + look.piel + "_" + look.colorPelo + "_" + (look.camiseta % 3);
+    /* V7 §0.2: tintes OPCIONALES — todos en Original: la pose queda tal cual */
+    if (!look.tPiel && !look.tPelo && !look.tCam) return null;
+    const key = "poseV_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
     if (this.textures.exists(key)) return key;
-    const r = A.resolver(look);
+    const CAT = A.CATALOGO;
     const CM = this.game.registry.get("caras");
-    const camHex = (CM && CM.camisetas && CM.camisetas[look.camiseta % CM.camisetas.length]) ? CM.camisetas[look.camiseta % CM.camisetas.length].hex : "#4FC3F7";
     const hx = s => parseInt(String(s).slice(1), 16);
     const T = def.tonos, tol = def.tolerancias || {};
     const mapa = [];
-    if (T.pelo) mapa.push({ de: hx(T.pelo), a: hx(r.colorPelo.hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
-    if (T.piel) mapa.push({ de: hx(T.piel), a: hx(r.piel.hex), tol: tol.piel || 80 });
-    if (T.camiseta) mapa.push({ de: hx(T.camiseta), a: hx(camHex), tol: tol.camiseta || 95 });
+    if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
+    if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80 });
+    if (look.tCam > 0 && T.camiseta && CM && CM.camisetas) mapa.push({ de: hx(T.camiseta), a: hx(CM.camisetas[(look.tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
     window.PampaAvatarArte.tenirImagen(this, src, key, mapa);
     return this.textures.exists(key) ? key : null;
   }
@@ -822,24 +823,34 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.FLAGS.v7_caras === false || !CM || !CM.caras || !CM.caras.length) return null;
     const A = window.PampaAvatar, Arte = window.PampaAvatarArte;
     const look = A.validarLook(j.look || {});
-    const idx = (!esRival && (j.esVos || j.esAmigo))
+    const esMioElegido = !esRival && (j.esVos || j.esAmigo);
+    const idx = esMioElegido
       ? look.cara % CM.caras.length
       : A.hashSemilla((j.nombre || "x") + (esRival ? "|r" : "|m")) % CM.caras.length;
     const cara = CM.caras[idx];
     if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
-    const r = A.resolver(look);
-    const camMia = (CM.camisetas && CM.camisetas[look.camiseta % CM.camisetas.length]) ? CM.camisetas[look.camiseta % CM.camisetas.length].hex : "#4FC3F7";
-    const key = "caraB_" + idx + "_" + look.piel + "_" + look.colorPelo + "_" + (look.camiseta % 3) + (esRival ? "_r" : "");
+    /* V7 §0.2: tintes OPCIONALES — el roster va con la ilustración ORIGINAL
+       (cada cara ya trae su color propio); VOS/amigos con los tintes elegidos.
+       Un tinte de pelo que esta cara no admite (manifest) se trata como Original.
+       El RIVAL siempre lleva la camiseta teñida a naranja (identidad de bando). */
+    const peloOk = cara.tintes_pelo !== false &&
+      !(Array.isArray(cara.tintes_pelo_excluye) && look.tPelo > 0 && cara.tintes_pelo_excluye.indexOf(A.CATALOGO.colores_pelo[look.tPelo - 1].id) >= 0);
+    const tPiel = esMioElegido ? look.tPiel : 0;
+    const tPelo = esMioElegido && peloOk ? look.tPelo : 0;
+    const tCam = esMioElegido ? look.tCam : 0;
+    if (!tPiel && !tPelo && !tCam && !esRival) return "cara_" + cara.id;   // Original puro
+    const key = "caraT_" + idx + "_" + tPiel + "_" + tPelo + "_" + tCam + (esRival ? "_r" : "");
     if (!this.textures.exists(key)) {
       const hx = s => parseInt(String(s).slice(1), 16);
       const T = cara.tonos || {}, tol = CM.tolerancias || {};
+      const CAT = A.CATALOGO;
       const mapa = [];
-      if (T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(r.colorPelo.hex), tol: tol.pelo || 70 });
-      if (T.piel) mapa.push({ de: hx(T.piel), a: hx(r.piel.hex), tol: tol.piel || 85 });
-      if (T.camiseta) mapa.push({ de: hx(T.camiseta), a: esRival ? 0xFF8A50 : hx(camMia), tol: tol.camiseta || 95 });
+      if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 70 });
+      if (tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[tPiel - 1].hex), tol: tol.piel || 85 });
+      if (T.camiseta && (esRival || tCam > 0)) mapa.push({ de: hx(T.camiseta), a: esRival ? 0xFF8A50 : hx(CM.camisetas[(tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
       Arte.tenirImagen(this, "cara_" + cara.id, key, mapa);
     }
-    return this.textures.exists(key) ? key : null;
+    return this.textures.exists(key) ? key : "cara_" + cara.id;
   }
   retratoKey(j, esRival, expresion) {
     /* EDITOR v2 primero: el busto ilustrado teñido (consistencia total) */

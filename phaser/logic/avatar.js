@@ -84,6 +84,13 @@
     /* EDITOR v2: la CARA ilustrada (0-7 del manifest de bustos). Look viejo sin
        cara → 0 (Clásico): retrocompatible. El campo viaja con el look siempre. */
     out.cara = typeof l.cara === "number" && isFinite(l.cara) ? Math.abs(Math.floor(l.cara)) % 8 : 0;
+    /* V7 §0.2: los TINTES de la cara ilustrada son OPCIONALES — 0 = "Original"
+       (respeta los colores propios de la ilustración), k>0 = catálogo[k-1].
+       tCam cicla los tonos de camiseta del manifest de caras (3) + Original. */
+    var tin = function (v, n) { return typeof v === "number" && isFinite(v) ? Math.abs(Math.floor(v)) % n : 0; };
+    out.tPiel = tin(l.tPiel, CATALOGO.pieles.length + 1);
+    out.tPelo = tin(l.tPelo, CATALOGO.colores_pelo.length + 1);
+    out.tCam = tin(l.tCam, 4);
     return out;
   }
 

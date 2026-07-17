@@ -135,35 +135,71 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.refrescar();
   }
 
+  /* V7 §0.2: ¿este color de pelo vale para esta cara? (0 = Original vale siempre;
+     el manifest declara caras que no tiñen el pelo o excluyen colores puntuales) */
+  tinteValido(cara, tPelo) {
+    if (tPelo === 0) return true;
+    if (cara.tintes_pelo === false) return false;
+    if (Array.isArray(cara.tintes_pelo_excluye)) {
+      const id = window.PampaAvatar.CATALOGO.colores_pelo[tPelo - 1].id;
+      if (cara.tintes_pelo_excluye.indexOf(id) >= 0) return false;
+    }
+    return true;
+  }
   mover(campo, d) {
     const A = window.PampaAvatar;
     const p = this.personajes[this.sel];
-    /* v2: CARA cicla sobre el manifest; CAMISETA sobre los tonos del manifest */
+    /* V7 §0.2 (v2): los TINTES son opcionales — ciclan n+1 valores con el 0 =
+       "Original"; editan tPiel/tPelo/tCam y sincronizan el campo viejo (>0)
+       para que el jugador de cancha/bloques refleje la elección. */
+    const T = this._v2 ? { piel: "tPiel", colorPelo: "tPelo", camiseta: "tCam" }[campo] : null;
+    if (T) {
+      const nT = campo === "camiseta"
+        ? ((this.CM.camisetas ? this.CM.camisetas.length : 3) + 1)
+        : A.CATALOGO[A.CAMPOS[campo]].length + 1;
+      let v = (((p.look[T] || 0) + d) % nT + nT) % nT;
+      if (T === "tPelo") {
+        const cara = this.CM.caras[(p.look.cara || 0) % this.CM.caras.length];
+        let vueltas = 0;
+        while (!this.tinteValido(cara, v) && vueltas++ < nT) v = ((v + (d > 0 ? 1 : -1)) % nT + nT) % nT;
+      }
+      p.look[T] = v;
+      if (v > 0) p.look[campo] = v - 1;   // el resto del juego (cancha, bloques) sigue la elección
+      this.refrescar();
+      return;
+    }
+    /* v2: CARA cicla sobre el manifest; fallback: catálogo completo */
     const n = campo === "cara" ? this.CM.caras.length
-      : (this._v2 && campo === "camiseta" && this.CM.camisetas) ? this.CM.camisetas.length
-        : A.CATALOGO[A.CAMPOS[campo]].length;
+      : A.CATALOGO[A.CAMPOS[campo]].length;
     p.look[campo] = (((p.look[campo] || 0) + d) % n + n) % n;
+    /* al cambiar de cara, un tinte de pelo que esa cara no admite vuelve a Original */
+    if (campo === "cara" && this._v2) {
+      const cara = this.CM.caras[p.look.cara % this.CM.caras.length];
+      if (!this.tinteValido(cara, p.look.tPelo || 0)) p.look.tPelo = 0;
+    }
     this.refrescar();
   }
-  /* el busto elegido, TEÑIDO con la pinta actual (cacheado por combinación) */
+  /* V7 §0.2: el busto elegido — SIN teñir si los tintes están en Original
+     (la ilustración manda); teñido solo en lo elegido (cacheado por combinación) */
   bustoTenido(look) {
     const A = window.PampaAvatar, Arte = window.PampaAvatarArte;
     const l = A.validarLook(look);
     const cara = this.CM.caras[l.cara % this.CM.caras.length];
     if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
-    const r = A.resolver(l);
-    const camHex = (this.CM.camisetas && this.CM.camisetas[l.camiseta % this.CM.camisetas.length]) ? this.CM.camisetas[l.camiseta % this.CM.camisetas.length].hex : "#4FC3F7";
-    const key = "caraB_" + l.cara + "_" + l.piel + "_" + l.colorPelo + "_" + (l.camiseta % 3);
+    const CAT = A.CATALOGO;
+    const tPelo = this.tinteValido(cara, l.tPelo) ? l.tPelo : 0;
+    if (!l.tPiel && !tPelo && !l.tCam) return "cara_" + cara.id;   // Original puro
+    const key = "caraT_" + l.cara + "_" + l.tPiel + "_" + tPelo + "_" + l.tCam;
     if (!this.textures.exists(key)) {
       const hx = s => parseInt(String(s).slice(1), 16);
       const T = cara.tonos || {}, tol = this.CM.tolerancias || {};
       const mapa = [];
-      if (T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(r.colorPelo.hex), tol: tol.pelo || 70 });
-      if (T.piel) mapa.push({ de: hx(T.piel), a: hx(r.piel.hex), tol: tol.piel || 85 });
-      if (T.camiseta) mapa.push({ de: hx(T.camiseta), a: hx(camHex), tol: tol.camiseta || 95 });
+      if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 70 });
+      if (l.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[l.tPiel - 1].hex), tol: tol.piel || 85 });
+      if (l.tCam > 0 && T.camiseta && this.CM.camisetas) mapa.push({ de: hx(T.camiseta), a: hx(this.CM.camisetas[(l.tCam - 1) % this.CM.camisetas.length].hex), tol: tol.camiseta || 95 });
       Arte.tenirImagen(this, "cara_" + cara.id, key, mapa);
     }
-    return this.textures.exists(key) ? key : null;
+    return this.textures.exists(key) ? key : "cara_" + cara.id;
   }
 
   refrescar() {
@@ -190,8 +226,11 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     Arte.jugador(this, "ed_cancha", p.look, false);
     this.imgCancha.setTexture("ed_cancha_idle");
     const r = A.resolver(p.look);
+    /* V7 §0.2: los tintes con NOMBRE — "Original" respeta la ilustración */
+    const CAT = A.CATALOGO;
+    const nTin = (v, lista) => v > 0 ? lista[v - 1].n : "Original";
     this.txtLabel.setText(this._v2
-      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · " + r.piel.n + " · " + r.colorPelo.n)
+      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · piel " + nTin(l.tPiel, CAT.pieles).toLowerCase() + " · pelo " + nTin(l.tPelo, CAT.colores_pelo).toLowerCase())
       : A.lookLabel(p.look));
     /* etiquetas de los steppers (cada variante con NOMBRE) + la fila activa
        del teclado marcada con ► y color (forma + color, no solo color) */
@@ -199,17 +238,17 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       lbl.setColor(i === this.filaSel ? "#ffd84d" : "#f6c11d");
       lbl.setText((i === this.filaSel ? "► " : "") + this.CATS[i].n);
     });
-    /* solo las filas del set ACTIVO (v2 = cara/piel/colorPelo/camiseta) */
+    /* solo las filas del set ACTIVO (v2 = cara + tintes con "Original") */
     if (this.filas.cara) this.filas.cara.setText(this.CM.caras[l.cara % this.CM.caras.length].n);
-    if (this.filas.piel) this.filas.piel.setText(r.piel.n);
+    if (this.filas.piel) this.filas.piel.setText(this._v2 ? nTin(l.tPiel, CAT.pieles) : r.piel.n);
     if (this.filas.corte) this.filas.corte.setText(r.corte.n);
-    if (this.filas.colorPelo) this.filas.colorPelo.setText(r.colorPelo.n);
+    if (this.filas.colorPelo) this.filas.colorPelo.setText(this._v2 ? nTin(l.tPelo, CAT.colores_pelo) : r.colorPelo.n);
     if (this.filas.ojos) this.filas.ojos.setText(r.ojos.n);
     if (this.filas.cejas) this.filas.cejas.setText(r.cejas.n);
     if (this.filas.boca) this.filas.boca.setText(r.boca.n);
     if (this.filas.acc) this.filas.acc.setText(r.acc.n);
     if (this.filas.camiseta) this.filas.camiseta.setText(this._v2 && this.CM.camisetas
-      ? this.CM.camisetas[l.camiseta % this.CM.camisetas.length].n
+      ? nTin(l.tCam, this.CM.camisetas)
       : r.camiseta.n);
   }
 
