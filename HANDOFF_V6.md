@@ -1,5 +1,41 @@
 # HANDOFF V6 — "El anime jugando" (tanda del 16-17/jul/2026)
 
+## ⬆⬆⬆ V7-1 PANTALLA PARTIDA (17/jul): TANDA COMPLETA (bloques 1-5)
+`docs/CORRECCION_V7-1_PANTALLA_PARTIDA.md` (transcripción del brief — si aparece
+el .md original, lo reemplaza). Los cinco bloques, en orden, un commit cada uno:
+
+| # | Bloque | Commit |
+|---|---|---|
+| 1 | FIX EDITOR — flechas dibujadas (triángulos, no glifos) + teclado | `b07c4e2` |
+| 2 | PANTALLA PARTIDA — arriba LA ESCENA (portador grande + parallax + siluetas), abajo EL MAPA navegable; cancha FIFA eliminada | `a45aed7` |
+| 3 | IMPRECISIÓN — la ceguera MURIÓ; los rivales se ven pero su posición en el mapa refresca cada `vista.imprecision_ms` con desvío ≤ `vista.imprecision_radio`; los tuyos y la pelota, exactos | `5a4cdaa` |
+| 4 | IDENTIDADES — `data/identidades_manifest.json` (6, nombres legibles); asignación determinista por nombre; el panel muestra la identidad del portador y las siluetas llevan su FORMA | `1e6ca47` |
+| 5 | RECOLOR POR PINTA — la pose del héroe teñida con tu avatar (tonos base en `poses_manifest → corriendo.tonos`; el pelo solo en la banda de arriba para no teñir botines) | `fe9b411` |
+
+- Flag `pantalla_partida` ON (en FLAGS; se apaga desde `balance.json → flags`).
+- Diales: `balance.json → vista` (`panel_escena_frac`, `imprecision_ms` 750,
+  `imprecision_radio` 60, `radio_silueta` 260).
+- Soak de cierre: partido COMPLETO al 93' (2 tiempos, definiciones, escenas,
+  panel + mapa + identidades + recolor activos), **0 errores de consola**.
+  Suite: **2.376 asserts** (identidades.test.js nuevo: 54).
+- Saves intactos (nada nuevo se escribe; `look.cara` ya venía del editor v2).
+
+**Checklist celu (V7-1):**
+1. Editor → tocá cada ◀/▶ (ciclan y responden; también con flechas del teclado).
+2. Partido → arriba corre TU pose con TUS colores (pelo/piel/camiseta del
+   editor); el nombre dice "▼ VOS".
+3. Pasásela a un compañero → arriba corre SU identidad (Rulos/Melena/Rapado/
+   Colorado) con su nombre.
+4. Cuando roba el rival → arriba corre una SILUETA oscura ("▲ RIVAL") que
+   recién muestra la cara (Flequillo/Mohicano, naranja) en el cruce.
+5. En el mapa de abajo: tus círculos celestes y la pelota se mueven fluido;
+   los triángulos naranjas "saltan" cada ~¾ de segundo y no están exactos.
+6. Tocá el mapa → tu jugador corre ahí; los pases se apuntan ahí mismo.
+
+**Lo que queda del V7 (NO arrancado, orden explícita — "a las 21 con tanque
+lleno"):** Modo Master completo (pantalla de elección + persistencia), mudanza
+de la carrera al Phaser, revisión adversarial multi-agente, PWA.
+
 ## ⬆⬆ EDITOR v2 (17/jul): caras ilustradas + tintes — COMPLETO (`8db6246`)
 Los 8 bustos de `pampa_star_caras.zip` → `assets/poses/caras/` (PNG8 ≤560px) +
 `data/caras_manifest.json` con **nombres legibles** (Clásico · Rulos · Melena ·
