@@ -614,9 +614,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.panelJug.setScale(200 / this.panelJug.height);
       this.panelJug.setVisible(true);
     }
-    const revelado = this._panelReveal && this._panelReveal.clave === p.clave && this.time.now < this._panelReveal.hasta;
-    if (p.esRival && !revelado) this.panelJug.setTintFill(0x101820);   // la silueta: no sabés QUIÉN es
-    else this.panelJug.clearTint();
+    /* V7 §0.1 (playtest): el PORTADOR está SIEMPRE revelado — verlo es el
+       drama. Sea tuyo o rival: su identidad, su cara y su nombre. Las
+       siluetas quedan SOLO para los rivales SIN pelota (el pool de abajo). */
+    this.panelJug.clearTint();
     const dirIzq = p.esRival ? vx > 0.02 : vx < -0.02;   // el rival ataca hacia tu arco
     this.panelJug.setFlipX(dirIzq);
     this.panelJug.y = 232 + (corriendo ? Math.sin(this.time.now * 0.02) * 3 : 0);
@@ -625,8 +626,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const dir = this.panelJug.flipX ? -1 : 1;
     this.panelPelota.setPosition(430 + 56 * dir, 298 - (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * 7 : 0));
     if (corriendo) this.panelPelota.rotation += 0.14 * dir;
-    /* quién corre (etiqueta, accesibilidad) */
-    const nom = p.esRival && !revelado ? "▲ RIVAL" : ("▼ " + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10)));
+    /* quién corre: bando por FORMA (▲ rival / ▼ mío) + el NOMBRE siempre */
+    const nom = (p.esRival ? "▲ " : "▼ ") + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10));
     if (this.panelNombre.text !== nom) this.panelNombre.setText(nom);
     /* SILUETAS de rivales dentro de radio_silueta (posición relativa al portador) */
     const radio = this.VI.radio_silueta || 260;
@@ -1069,10 +1070,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: aviso, scale: 1.12, duration: 300, yoyo: true, repeat: 3 });
     }
     const cam = this.cameras.main;
-    /* V7-1: la REVELACIÓN — el rival deja de ser silueta en el panel de escena */
     if (this._split) {
-      const pAct = this.portadorActual();
-      this._panelReveal = { clave: pAct.clave, hasta: this.time.now + durBeat + 4000 };
+      /* V7 §0.1 (playtest): el portador va SIEMPRE revelado — el beat ya no
+         necesita revelación en el panel (quedó solo el riser + el aviso) */
     } else {
       /* en la vista elevada el beat se ACERCA más (si no, el zoom no se siente) */
       const extraBeat = (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1) * (this._vista4 ? (this.VI.zoom_beat_mult || 3) : 1);
