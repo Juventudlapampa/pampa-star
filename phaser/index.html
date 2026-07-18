@@ -9,8 +9,13 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>PAMPA STAR (Phaser) — tu pinta + el partido</title>
 <style>
+  /* V7 §0.3 TIPOGRAFÍA: dos fuentes self-hosteadas (OFL, assets/fonts/ + README):
+     DISPLAY = Press Start 2P (títulos/botones) · TEXTO = VT323 (cuerpo).
+     Familias configurables en balance.json → tipografia. */
+  @font-face{font-family:'Press Start 2P';src:url('../assets/fonts/PressStart2P-Regular.ttf') format('truetype');font-display:swap;}
+  @font-face{font-family:'VT323';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');font-display:swap;}
   html,body{margin:0;height:100%;background:#06120b;overflow:hidden;
-    font-family:'JetBrains Mono',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
+    font-family:'VT323',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
   #game{width:100vw;height:100dvh;display:flex;align-items:center;justify-content:center;}
   #game canvas{max-width:100vw;max-height:100dvh;}
   /* aviso de rotar en vertical (mobile-first APAISADO) */
@@ -28,6 +33,11 @@
   <div id="rotate"><div class="ico">📱↻</div><b>Girá el celular</b><div>PAMPA STAR se juega apaisado (horizontal).</div></div>
   <div id="boot-msg">Hito 1 · rebanada épica — el HTML clásico sigue en <a href="../index.html" style="color:#7ee08a">../index.html</a></div>
 
+  <script>
+  /* V7 §0.3: las DOS familias del juego, ANTES de las escenas (los estilos las
+     leen en runtime). El balance puede pisarlas (tipografia.display/texto). */
+  window.PF = { display: "'Press Start 2P','VT323',monospace", texto: "'VT323',monospace" };
+  </script>
   <script src="vendor/phaser.min.js"></script>
   <script src="logic/duel.js"></script>
   <script src="logic/perspectiva.js"></script>
@@ -73,6 +83,7 @@
     secuencias:{megacorrida_nivel:2,megacorrida_aguante:300,megacorrida_rivales:2,combinada_nivel:2,combinada_aguante:160,bonus_duelo:8},
     definicion:{def_acercan_px_s:34,contacto_px:34,jugador_px_s:160,angulo_peso:16,zona_timing:0.2,dulce_bonus:8,floja_penal:22,pasada_fuera_mult:1.6,pasada_fuera_max:0.55,coincide:55,a_una:10,a_dos:-25,bloqueo_base:0.18,bloqueo_radio:120,bloqueo_cercania:0.25,bloqueo_max:0.6,achicar_bonus:14,achicar_vendido:18,carga_ms:4200},
     tempo:{minutos_por_momento:2.2,goteo_seg_por_minuto:8,presets:{relampago:5,intermedio:2.2,largo:1.2},duracion_real_min:10},
+    tipografia:{display:"'Press Start 2P','VT323',monospace",texto:"'VT323',monospace"},
     persecucion:{aguante_por_segundo:12,aguante_minimo_para_correr:100,factor_trote:0.6},
     conduccion:{aguante_por_segundo:0.3},
     aguante:{max:1000,umbral_rendido:110,costo_gambeta:90,costo_pase:20,costo_pared:120,costo_tiro:90,costo_quite:50,costo_corte:60,costo_bloqueo:70,costo_calden:450,costo_cabezazo:200,costo_volea:90,costo_chilena:180,recupera_no_moverse:30,recuperacion_por_segundo:0.2,recuperacion_por_minuto_salto:6,recuperacion_entretiempo_frac:0.375,cpu_factor_costo:0.75,cpu_umbral_frac:0.3,cpu_picada:0.62},
@@ -97,9 +108,20 @@
   const pPoses = fetch("../data/poses_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pCaras = fetch("../data/caras_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pDivisiones = fetch("../data/divisiones.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones])=>{
+  /* V7 §0.3: esperar las DOS fuentes antes de crear textos (si tardan >2.5s se
+     arranca igual con el fallback — nunca se bloquea el juego) */
+  const pFuentes = Promise.race([
+    Promise.all([document.fonts.load("12px 'Press Start 2P'"), document.fonts.load("12px 'VT323'")]),
+    new Promise(r=>setTimeout(r, 2500))
+  ]).catch(()=>null);
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones])=>{
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;
+    /* las familias del balance mandan (Rodri las afina en tipografia) */
+    if (bal && bal.tipografia) {
+      if (bal.tipografia.display) window.PF.display = bal.tipografia.display;
+      if (bal.tipografia.texto) window.PF.texto = bal.tipografia.texto;
+    }
     arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones);
   });
   function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones){

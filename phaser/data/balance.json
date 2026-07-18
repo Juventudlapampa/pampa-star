@@ -465,5 +465,10 @@
     "fanfarria_delay_ms": 90,
     "red_vida_frames": 90,
     "camara_reset_ms": 420
+  },
+  "tipografia": {
+    "_nota": "V7 §0.3: el sistema tipográfico — DOS fuentes self-hosteadas (assets/fonts/, OFL, README con licencias). display = títulos/botones/nombres de duelo/marcador (pixel chunky). texto = relator/descripciones/tabla/cuerpo. Los NÚMEROS (aguante, envión, reloj) van en las mismas familias: si alguna no se lee, cambiala acá — la accesibilidad manda.",
+    "display": "'Press Start 2P','VT323',monospace",
+    "texto": "'VT323',monospace"
   }
 }

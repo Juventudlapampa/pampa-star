@@ -7,7 +7,7 @@
    toque assets. El scope es phaser/ (el clásico de la raíz no se toca).
    ========================================================================== */
 "use strict";
-const VERSION = "pampa-star-v7-1";
+const VERSION = "pampa-star-v7-2";
 const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
@@ -25,7 +25,8 @@ const PRECACHE = [
   "../data/roster_pampeano.json", "../data/portraits_manifest.json",
   "../data/megacosas.json", "../data/relatos.json",
   "../data/poses_manifest.json", "../data/caras_manifest.json",
-  "../data/divisiones.json", "../data/identidades_manifest.json"
+  "../data/divisiones.json", "../data/identidades_manifest.json",
+  "../assets/fonts/PressStart2P-Regular.ttf", "../assets/fonts/VT323-Regular.ttf"
 ];
 
 self.addEventListener("install", (e) => {

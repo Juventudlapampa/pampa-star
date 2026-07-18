@@ -55,14 +55,14 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.sel = 0;
 
     /* ---- título + pestañas ---- */
-    this.add.text(W / 2, 24, "✎ TU PINTA", { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 46, "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
+    this.add.text(W / 2, 24, "✎ TU PINTA", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 46, "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
     this.tabs = [];
     const tw = Math.min(170, (W - 40) / this.personajes.length - 8);
     let tx0 = W / 2 - (this.personajes.length * (tw + 8) - 8) / 2 + tw / 2;
     this.personajes.forEach((p, i) => {
       const r = this.add.rectangle(tx0, 78, tw, 40, 0x0d2a18, 1).setStrokeStyle(2, 0xf6c11d, 0.7).setInteractive({ useHandCursor: true });
-      const t = this.add.text(tx0, 78, (i === 0 ? "★ " : "♥ ") + p.nombre.toUpperCase(), { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+      const t = this.add.text(tx0, 78, (i === 0 ? "★ " : "♥ ") + p.nombre.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
       r.on("pointerdown", () => { this.sel = i; this.refrescar(); });
       this.tabs.push({ r, t });
       tx0 += tw + 8;
@@ -71,7 +71,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* ---- vista previa (izquierda): cara grande + jugador de cancha ---- */
     this.imgCara = this.add.image(170, 240, "__WHITE").setScale(1.5);
     this.imgCancha = this.add.image(300, 250, "__WHITE").setScale(2.4);
-    this.txtLabel = this.add.text(210, 372, "", { fontFamily: "monospace", fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 330 } }).setOrigin(0.5);
+    this.txtLabel = this.add.text(210, 372, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 330 } }).setOrigin(0.5);
 
     /* ---- steppers (derecha) ----
        EDITOR v2: el creador de caras por rectángulos SE RETIRA — stepper grande
@@ -96,7 +96,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     let fy = 122;
     CATS.forEach((c, ci) => {
       const cx = 690;
-      const lbl = this.add.text(cx - 235, fy - 1, c.n, { fontFamily: "monospace", fontSize: "11px", color: "#f6c11d" }).setOrigin(0, 0.5);
+      const lbl = this.add.text(cx - 235, fy - 1, c.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6c11d" }).setOrigin(0, 0.5);
       const mk = (x, d) => {
         const r = this.add.rectangle(x, fy, 52, 44, 0xf6efdc, 1).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
         const g = this.add.graphics();
@@ -107,7 +107,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
         return r;
       };
       mk(cx - 92, -1); mk(cx + 212, 1);
-      this.filas[c.k] = this.add.text(cx + 60, fy, "", { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+      this.filas[c.k] = this.add.text(cx + 60, fy, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
       this.filaRects.push(lbl);
       fy += 46;
     });
@@ -122,19 +122,19 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* ---- abajo: guardar + a la cancha ---- */
     const btn = (x, w, texto, bg, cb) => {
       const r = this.add.rectangle(x, H - 40, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(x, H - 40, texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(x, H - 40, texto, { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
       r.on("pointerdown", cb);
     };
     btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
     btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.scene.start("match"); });
     /* V7 §2: la CARRERA vive en el Phaser — el Modo Master con temporada y escalera */
     const bc = this.add.rectangle(W - 110, 12 + 22, 200, 44, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
     bc.on("pointerdown", () => { this.guardar(); this.scene.start("master"); });
     /* Addendum v6 A.2: repetir el opening a gusto */
-    const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
+    const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
     vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.scene.start("intro"); });
-    this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: "monospace", fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
+    this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
 
     this.refrescar();
   }

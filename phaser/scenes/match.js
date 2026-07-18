@@ -254,7 +254,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const j = this.portadorActual().j;
     const wj = this.aRender(j.x, j.y);
     const hint = this.add.text(wj.x, wj.y + 70, "tocá la cancha (o flechas) para correr",
-      { fontFamily: "monospace", fontSize: Math.round(11 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
+      { fontFamily: window.PF.texto, fontSize: Math.round(11 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
     this.mundoLayer.add(hint);
     this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
     this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
@@ -497,7 +497,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* marca de control clara: ▼ + nombre (forma + etiqueta, no solo color).
        En la vista elevada el texto del mundo se agranda para leerse igual. */
     const fsM = this._vista4 ? 22 : 11;
-    this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: "monospace", fontSize: fsM + "px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: this._vista4 ? 6 : 4 })
+    this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: window.PF.texto, fontSize: fsM + "px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: this._vista4 ? 6 : 4 })
       .setOrigin(0.5).setDepth(12);
     this.trailG = this.add.graphics().setDepth(8);   // estelas de velocidad (E4)
     this._trail = [];
@@ -543,7 +543,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelLayer.add(this.panelJug);
     this.panelPelota = this.add.sprite(482, 296, "ball").setScale(2);
     this.panelLayer.add(this.panelPelota);
-    this.panelNombre = this.add.text(430, 122, "", { fontFamily: "monospace", fontSize: "12px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#f6efdc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+    this.panelNombre = this.add.text(430, 122, "", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#f6efdc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
   }
@@ -665,7 +665,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       Arte.jugador(this, base, j.look || window.PampaAvatar.crearLook(), esRival);
       ["_idle", "_run"].forEach(s => this.textures.get(base + s).setFilter(Phaser.Textures.FilterMode.NEAREST));
       const spr = this.add.sprite(0, 0, base + "_idle");
-      const num = this.add.text(0, 0, String(j.numero), { fontFamily: "monospace", fontSize: "20px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 5, fontStyle: "bold" }).setOrigin(0.5).setVisible(false).setDepth(9);
+      const num = this.add.text(0, 0, String(j.numero), { fontFamily: window.PF.texto, fontSize: "20px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 5, fontStyle: "bold" }).setOrigin(0.5).setVisible(false).setDepth(9);
       this.mundoLayer.add([spr, num]);
       if (this.uiCam) { this.uiCam.ignore(spr); this.uiCam.ignore(num); }   // se crean antes de uiCam: el create re-sella
       return { spr, num, lx: j.x, ly: j.y, base };
@@ -765,7 +765,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.hudLayer.add([marco, this.radarG]);
     /* números de camiseta: 22 textos chiquitos que siguen a su ficha */
     const mkNum = (n) => {
-      const t = this.add.text(0, 0, String(n), { fontFamily: "monospace", fontSize: "9px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5).setDepth(1);
+      const t = this.add.text(0, 0, String(n), { fontFamily: window.PF.texto, fontSize: "9px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5).setDepth(1);
       this.hudLayer.add(t); return t;
     };
     this.radarNumsMios = this.st.mios.map(j => mkNum(j.numero));
@@ -883,13 +883,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const img = this.add.image(x, 386, key);
     const esc = 132 / img.height; img.setScale(esc);
     const marco = this.add.rectangle(x, 386, img.width * esc + 10, 142, 0x0a1f13, 0.55).setStrokeStyle(2, esRival ? 0xff8a50 : 0x4fc3f7);
-    const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", fontStyle: "bold" }).setOrigin(0.5);
+    const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", fontStyle: "bold" }).setOrigin(0.5);
     /* §6: nombre + BARRA de aguante (color por umbral) + número SIEMPRE */
     const max = this.BAL.aguante.max, frac = Phaser.Math.Clamp(gutsVal / max, 0, 1);
     const barCol = frac > 0.5 ? 0x2e7d32 : frac > 0.25 ? 0xf9a825 : 0xc62828;
     const barBg = this.add.rectangle(x, 480, 96, 9, 0x0a1f13, 0.9).setStrokeStyle(1, 0xf6efdc, 0.7);
     const bar = this.add.rectangle(x - 48 + 48 * frac, 480, 96 * frac, 7, barCol, 1);
-    const aguante = this.add.text(x, 495, "AGUANTE " + Math.round(gutsVal), { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    const aguante = this.add.text(x, 495, "AGUANTE " + Math.round(gutsVal), { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
     this.menuLayer.add([marco, img, nom, barBg, bar, aguante]);
   }
 
@@ -899,20 +899,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B3: 64px o más, etiqueta ⚡ ACCIÓN y PULSO sutil cuando hay acciones */
     const cont = this.add.container(866, 456);
     const r = this.add.rectangle(0, 0, 188, 68, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: "'Press Start 2P',monospace", fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
+    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
     cont.add([r, this.txtBotonAccion]);
     this.hudLayer.add(cont);
     this._btnAccionCont = cont;
     this._btnPulso = this.tweens.add({ targets: cont, scale: 1.06, duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut", paused: true });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
-      this._hintEspacio = this.add.text(866, 498, "ESPACIO = ACCIÓN", { fontFamily: "monospace", fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
+      this._hintEspacio = this.add.text(866, 498, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
       this.hudLayer.add(this._hintEspacio);
     }
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
     /* Anime A: botón secundario CHICO de ciclado manual en defensa (48px, mobile) */
     if (this._vista4) {
       const bc = this.add.rectangle(866, 396, 92, 48, 0xdcd6c2, 0.92).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bct = this.add.text(866, 396, "⇄ OTRO", { fontFamily: "monospace", fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
+      const bct = this.add.text(866, 396, "⇄ OTRO", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
       this.hudLayer.add([bc, bct]);
       this._btnCambiar = [bc, bct];
       bc.on("pointerdown", (p, x, y, ev) => {
@@ -937,8 +937,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "TEMPO_MENU";
     this.st.modo = "congelado";
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.72).setInteractive();
-    const tit = this.add.text(480, 74, "⏱ ¿QUÉ PARTIDO JUGAMOS?", { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
-    const sub = this.add.text(480, 104, "el reloj avanza POR MOMENTOS: cada jugada consume minutos del partido", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    const tit = this.add.text(480, 74, "⏱ ¿QUÉ PARTIDO JUGAMOS?", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
+    const sub = this.add.text(480, 104, "el reloj avanza POR MOMENTOS: cada jugada consume minutos del partido", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
     this.menuLayer.add([velo, tit, sub]);
     const PRESETS = [
       { k: "relampago", n: "⚡ RELÁMPAGO", d: "≈8-10 momentos por tiempo · para un rato corto" },
@@ -958,13 +958,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     PRESETS.forEach((p, i) => {
       const y = 176 + i * 92;
       const r = this.add.rectangle(480, y, 500, 72, p.k === ult.preset ? 0xffd84d : 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const t = this.add.text(480, y - 13, (i + 1) + " · " + p.n + " (" + T.presets[p.k] + "' por momento)", { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      const d = this.add.text(480, y + 14, p.d, { fontFamily: "monospace", fontSize: "11px", color: "#365a41" }).setOrigin(0.5);
+      const t = this.add.text(480, y - 13, (i + 1) + " · " + p.n + " (" + T.presets[p.k] + "' por momento)", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      const d = this.add.text(480, y + 14, p.d, { fontFamily: window.PF.texto, fontSize: "11px", color: "#365a41" }).setOrigin(0.5);
       this.menuLayer.add([r, t, d]);
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; elegir(p.k); });
     });
     const vr = this.add.rectangle(480, 470, 420, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const vt = this.add.text(480, 470, "", { fontFamily: "monospace", fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
+    const vt = this.add.text(480, 470, "", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
     const pintarVel = () => vt.setText("🎬 VELOCIDAD: " + (this._velRapida ? "RÁPIDA — animaciones cortas" : "NORMAL"));
     pintarVel();
     this.menuLayer.add([vr, vt]);
@@ -996,8 +996,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.st.modo = "congelado";
     let paso = 0;
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.55).setInteractive();
-    const caja = this.add.text(480, 150, "", { fontFamily: "monospace", fontSize: "16px", color: "#f6efdc", backgroundColor: "#0a1f13ee", padding: { x: 16, y: 12 }, align: "center", lineSpacing: 6 }).setOrigin(0.5);
-    const pie = this.add.text(480, 210, "tocá para seguir ▸", { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    const caja = this.add.text(480, 150, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", backgroundColor: "#0a1f13ee", padding: { x: 16, y: 12 }, align: "center", lineSpacing: 6 }).setOrigin(0.5);
+    const pie = this.add.text(480, 210, "tocá para seguir ▸", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
     const anillo = this.add.graphics();
     this.menuLayer.add([velo, caja, pie, anillo]);
     this.selloMenu();
@@ -1030,8 +1030,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st;
     this.cameras.main.fadeIn(700, 6, 18, 11);
     const banda = this.add.rectangle(480, 200, 960, 84, 0x0a1f13, 0.9);
-    const t = this.add.text(480, 190, "⏸ ENTRETIEMPO", { fontFamily: "'Press Start 2P',monospace", fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
-    const m = this.add.text(480, 218, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival + " · el descanso recupera aguante", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    const t = this.add.text(480, 190, "⏸ ENTRETIEMPO", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
+    const m = this.add.text(480, 218, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival + " · el descanso recupera aguante", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
     this.hudLayer.add([banda, t, m]);
     this.cameras.main.ignore([banda, t, m]);
     this.tweens.add({ targets: [banda, t, m], alpha: 0, delay: 2100, duration: 500, onComplete: () => { banda.destroy(); t.destroy(); m.destroy(); } });
@@ -1064,7 +1064,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (megaViene) {
       this.relatar("peligro");   // Anime E: el relator también lo huele
-      const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: "'Press Start 2P',monospace", fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
+      const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: window.PF.display, fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.menuLayer.add(aviso);
       this.selloMenu();
       this.tweens.add({ targets: aviso, scale: 1.12, duration: 300, yoyo: true, repeat: 3 });
@@ -1129,7 +1129,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "MENU";
     this.limpiarMenu();
     const strip = this.add.rectangle(480, 404, 960, 216, 0x0a1f13, 0.42);
-    const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: "monospace", fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
+    const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
     this.menuLayer.add([strip, tit]);
     if (cfg.izq) this.retratoPanel(104, cfg.izq.j, !!cfg.izq.esRival, cfg.izq.aguante);
     if (cfg.der) this.retratoPanel(856, cfg.der.j, cfg.der.esRival !== false, cfg.der.aguante);
@@ -1144,9 +1144,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* bloqueado se ve por TEXTURA (rayado ▨) + motivo escrito, no solo por el gris */
       const r = this.add.rectangle(x, y, 176, 50, bg, 0.97).setStrokeStyle(2, 0x0a1f13);
       const subTxt = op.bloqueada ? ("▨ " + (op.motivo || "no disponible")) : op.sub;
-      const t = this.add.text(x, y - (subTxt ? 9 : 0), op.texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: op.bloqueada ? "#9aa59d" : "#0a1f13" }).setOrigin(0.5);
+      const t = this.add.text(x, y - (subTxt ? 9 : 0), op.texto, { fontFamily: window.PF.display, fontSize: "10px", color: op.bloqueada ? "#9aa59d" : "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([r, t]);
-      if (subTxt) { const s = this.add.text(x, y + 13, subTxt, { fontFamily: "monospace", fontSize: "10px", color: op.bloqueada ? "#c76a5e" : "#365a41" }).setOrigin(0.5); this.menuLayer.add(s); }
+      if (subTxt) { const s = this.add.text(x, y + 13, subTxt, { fontFamily: window.PF.texto, fontSize: "10px", color: op.bloqueada ? "#c76a5e" : "#365a41" }).setOrigin(0.5); this.menuLayer.add(s); }
       if (!op.bloqueada) {
         r.setInteractive({ useHandCursor: true });
         r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; op.cb(); });
@@ -1156,15 +1156,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* opción del CENTRO (p.ej. 🔥 CALDÉN cuando está disponible, sin pisar el TIRO) */
     if (cfg.centro) {
       const c = this.add.rectangle(480, 405, 150, 50, 0xff8c3a, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const ct = this.add.text(480, 398, cfg.centro.texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      const cs = this.add.text(480, 416, cfg.centro.sub || "", { fontFamily: "monospace", fontSize: "10px", color: "#5a2d12" }).setOrigin(0.5);
+      const ct = this.add.text(480, 398, cfg.centro.texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      const cs = this.add.text(480, 416, cfg.centro.sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#5a2d12" }).setOrigin(0.5);
       this.menuLayer.add([c, ct, cs]);
       c.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.centro.cb(); });
     }
     if (cfg.volver) {
       this._menuVolver = cfg.volver;
       const v = this.add.rectangle(906, 306, 64, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const vt = this.add.text(906, 306, "✕", { fontFamily: "monospace", fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
+      const vt = this.add.text(906, 306, "✕", { fontFamily: window.PF.texto, fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([v, vt]);
       v.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.volver(); });
     }
@@ -1567,9 +1567,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineBG = this.add.graphics(); this.cineLayer.add(this.cineBG);
     this.cineContent = this.add.container(0, 0); this.cineLayer.add(this.cineContent);
     this.cineFX = this.add.graphics(); this.cineLayer.add(this.cineFX);
-    this.cineBig = this.add.text(W / 2, H / 2 - 20, "", { fontFamily: "'Press Start 2P',monospace", fontSize: "48px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineBig);
-    this.cineSub = this.add.text(W / 2, H / 2 + 34, "", { fontFamily: "monospace", fontSize: "16px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineSub);
-    this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
+    this.cineBig = this.add.text(W / 2, H / 2 - 20, "", { fontFamily: window.PF.display, fontSize: "48px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineBig);
+    this.cineSub = this.add.text(W / 2, H / 2 + 34, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineSub);
+    this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
     this.cineBlack = this.add.rectangle(W / 2, H / 2, W, H, 0x000000).setAlpha(0); this.cineLayer.add(this.cineBlack);
   }
   limpiarContenido() { this.cineContent.removeAll(true); this.cineFX.clear(); }
@@ -1828,8 +1828,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.3).setInteractive();
     const tit = this.add.text(480, 226, mega ? "⚡ ¡PARÁ LA AGUJA EN LA ZONA! (ventana exigente)" : "🎯 ¡PARÁ LA AGUJA EN LA ZONA!",
-      { fontFamily: "monospace", fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 5 } }).setOrigin(0.5);
-    const ayuda = this.add.text(480, 356, "tocá la pantalla (o ESPACIO / ENTER)", { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+      { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 5 } }).setOrigin(0.5);
+    const ayuda = this.add.text(480, 356, "tocá la pantalla (o ESPACIO / ENTER)", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
     this._timingG = this.add.graphics();
     this.menuLayer.add([velo, tit, ayuda, this._timingG]);
     this.selloMenu();
@@ -1848,7 +1848,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillStyle(0x2e7d32, 1); g.fillRect(zx, by, zw, bh);
     g.lineStyle(2, 0xffffff, 1); g.strokeRect(zx, by, zw, bh);
     if (!this._timingTxtJusto) {
-      this._timingTxtJusto = this.add.text(480, by + bh + 16, "▲ JUSTO ACÁ", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc" }).setOrigin(0.5);
+      this._timingTxtJusto = this.add.text(480, by + bh + 16, "▲ JUSTO ACÁ", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc" }).setOrigin(0.5);
       this.menuLayer.add(this._timingTxtJusto);
       this.selloMenu();
     }
@@ -2003,7 +2003,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         g.fillStyle(0x0a1f13, 0.75);
         g.fillEllipse(sx, sy - 58 * e, 24 * e, 24 * e); g.fillRoundedRect(sx - 15 * e, sy - 46 * e, 30 * e, 60 * e, 8);
       }
-      const tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
+      const tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
       this.cineContent.add(tS);
     }
     this.cineLabel.setText(cfg.etiqueta || "");
@@ -2069,7 +2069,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* nombres con placa del bando (celeste vs naranja + texto: forma y palabra, no solo color) */
     const placa = (x, j, esRival) => {
       const t = this.add.text(x, H * 0.84, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)),
-        { fontFamily: "monospace", fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+        { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
       this.cineContent.add(t);
     };
     placa(W * 0.3, cfg.prota.j, cfg.prota.esRival);
@@ -2276,14 +2276,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: ry, x: -400, duration: 800 + rk * 200, repeat: -1 });
     }
     this.lineasVelocidad(480, 250, 1.3, esRivalRet ? 0xff8a50 : 0xffd84d);
-    const txt = this.add.text(1300, 210, titulo, { fontFamily: "'Press Start 2P',monospace", fontSize: "24px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5);
-    const subTxt = this.add.text(1300, 252, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: "monospace", fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
+    const txt = this.add.text(1300, 210, titulo, { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5);
+    const subTxt = this.add.text(1300, 252, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
     this.cineContent.add(txt); this.cineContent.add(subTxt);
     this.tweens.add({ targets: [txt, subTxt], x: 620, duration: this.msV(300), ease: "Back.easeOut" });
     /* Feel B5: CARGA DE AGUANTE VISIBLE — la barra se llena mientras el anuncio dura */
     const cargaBg = this.add.rectangle(620, 320, 340, 14, 0x0a1f13, 0.9).setStrokeStyle(2, 0xf6efdc, 0.8);
     const carga = this.add.rectangle(620 - 168, 320, 4, 10, 0xffd84d, 1).setOrigin(0, 0.5);
-    const cargaTxt = this.add.text(620, 340, "cargando aguante…", { fontFamily: "monospace", fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
+    const cargaTxt = this.add.text(620, 340, "cargando aguante…", { fontFamily: window.PF.texto, fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
     this.cineContent.add(cargaBg); this.cineContent.add(carga); this.cineContent.add(cargaTxt);
     this.tweens.add({ targets: carga, width: 336, duration: this.msV(820), ease: "Sine.easeIn" });
     this.uiCam.flash(120, 255, 216, 77);
@@ -2353,12 +2353,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.relatar("final");
     this.quitarDuelo();
     this.limpiarMenu();
-    const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5);
+    const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5);
     this.menuLayer.add(t);
     /* V7 §2: la fecha del MODO MASTER devuelve el resultado a la carrera */
     if (this._masterPartido) {
       const b3 = this.add.rectangle(480, 330, 420, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bt3 = this.add.text(480, 330, "▶ SEGUIR LA CARRERA", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      const bt3 = this.add.text(480, 330, "▶ SEGUIR LA CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([b3, bt3]);
       b3.on("pointerdown", () => {
         this.game.registry.set("masterResultado", { golesMio: st.golesMio, golesRival: st.golesRival });
@@ -2369,14 +2369,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       return;
     }
     const b = this.add.rectangle(480, 330, 320, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const bt = this.add.text(480, 330, "↺ OTRO PARTIDO", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    const bt = this.add.text(480, 330, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
     this.menuLayer.add([b, bt]);
     b.on("pointerdown", () => this.scene.restart());
     /* FUSIÓN: el resultado vuelve a la carrera clásica (mismo formato pampa_star_v1
        vía aplicarFecha del clásico — acá solo se deja el resultado y se vuelve) */
     if (this._pedido) {
       const b2 = this.add.rectangle(480, 398, 460, 54, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bt2 = this.add.text(480, 398, "▶ APLICAR Y VOLVER A LA CARRERA", { fontFamily: "'Press Start 2P',monospace", fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      const bt2 = this.add.text(480, 398, "▶ APLICAR Y VOLVER A LA CARRERA", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([b2, bt2]);
       b2.on("pointerdown", () => {
         try {
@@ -2407,14 +2407,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         : this._vista4
           ? "➡ PASE: tocá el DESTINO sobre la cancha (□ = receptores; más allá = AL VACÍO · ◀▶ + ENTER, ▲ = al vacío, ESC = volver)"
           : "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
-      { fontFamily: "monospace", fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
+      { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
     this._paseCancelar = () => {
       if (this._paseOrigen.libre) this.reanudarLibre(); else this.abrirMenuAtaque(this._paseOrigen.rivalIdx, false);
     };
     const cx = this._vista4 ? 906 : this.radar.x + this.radar.w + 36;
     const cy = this._vista4 ? 306 : this.radar.y + 24;
     const cancel = this.add.rectangle(cx, cy, 56, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const ct = this.add.text(cx, cy, "✕", { fontFamily: "monospace", fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
+    const ct = this.add.text(cx, cy, "✕", { fontFamily: window.PF.texto, fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
     this.menuLayer.add([hint, cancel, ct]);
     cancel.on("pointerdown", (p, x, y, ev) => {
       ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
@@ -2556,7 +2556,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   mostrarResolucion(texto, colorHex, animCfg) {
     this.estado = "RESOLUCION";
     this.limpiarMenu();
-    const t = this.add.text(480, 226, texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "13px", color: colorHex, stroke: "#0a1f13", strokeThickness: 5, align: "center", lineSpacing: 8 }).setOrigin(0.5).setScale(0.3);
+    const t = this.add.text(480, 226, texto, { fontFamily: window.PF.display, fontSize: "13px", color: colorHex, stroke: "#0a1f13", strokeThickness: 5, align: "center", lineSpacing: 8 }).setOrigin(0.5).setScale(0.3);
     this.menuLayer.add(t);
     this.selloMenu();
     this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
@@ -2674,18 +2674,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============ ETAPA 2 · HUD fijo (doc §4) ============ */
   buildHUD() {
     const barra = this.add.rectangle(480, 15, 960, 30, 0x0a1f13, 0.85);
-    this.txtMarcador = this.add.text(480, 15, "", { fontFamily: "'Press Start 2P',monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
-    this.txtReloj = this.add.text(948, 15, "", { fontFamily: "monospace", fontSize: "14px", color: "#ffd84d" }).setOrigin(1, 0.5);
+    this.txtMarcador = this.add.text(480, 15, "", { fontFamily: window.PF.display, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    this.txtReloj = this.add.text(948, 15, "", { fontFamily: window.PF.texto, fontSize: "14px", color: "#ffd84d" }).setOrigin(1, 0.5);
     /* aguante del portador: color por umbral + SIEMPRE el número exacto (no depende del color) */
-    this.txtGuts = this.add.text(948, 512, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
+    this.txtGuts = this.add.text(948, 512, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtReloj, this.gutsG, this.txtGuts]);
     /* V6 §2 R3: el MEDIDOR DE ENVIÓN — barra + NÚMERO siempre (accesibilidad) */
     this.envionG = this.add.graphics();
-    this.txtEnvion = this.add.text(948, 494, "", { fontFamily: "monospace", fontSize: "11px", color: "#f6efdc" }).setOrigin(1, 0.5);
+    this.txtEnvion = this.add.text(948, 494, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.hudLayer.add([this.envionG, this.txtEnvion]);
     const be = this.add.rectangle(866, 396, 150, 48, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const bet = this.add.text(866, 396, "🌟 POTENCIAR", { fontFamily: "monospace", fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
+    const bet = this.add.text(866, 396, "🌟 POTENCIAR", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
     this.hudLayer.add([be, bet]);
     this._btnEnvion = [be, bet];
     be.on("pointerdown", (p, x, y, ev) => {
@@ -2697,7 +2697,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
     });
     /* ANIME E: el ticker del RELATOR (una línea abajo, no tapa el juego) */
-    this.tickerTxt = this.add.text(480, 520, "", { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0);
+    this.tickerTxt = this.add.text(480, 520, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0);
     this.hudLayer.add(this.tickerTxt);
     /* ANIME D: botón SONIDO de verdad (48px, PC y mobile) — mismo mute que el clásico */
     const mb = this.add.rectangle(36, 62, 48, 48, 0x0a1f13, 0.72).setStrokeStyle(2, 0xf6efdc, 0.7).setInteractive({ useHandCursor: true });
@@ -2991,7 +2991,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* aviso breve anclado al PORTADOR (a donde la cámara va, no de donde viene) */
   avisar(txt) {
     const fs = this._vista4 ? 24 : 12;   // texto del mundo: legible también en la vista elevada
-    const t = this.add.text(this.sprPortador.x, this.sprPortador.y - 96, txt, { fontFamily: "monospace", fontSize: fs + "px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }, align: "center" })
+    const t = this.add.text(this.sprPortador.x, this.sprPortador.y - 96, txt, { fontFamily: window.PF.texto, fontSize: fs + "px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }, align: "center" })
       .setOrigin(0.5).setDepth(5000);
     this.mundoLayer.add(t);
     if (this.uiCam) this.uiCam.ignore(t);   // hijo dinámico: re-ignorar a mano

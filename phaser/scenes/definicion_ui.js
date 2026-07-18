@@ -155,7 +155,7 @@
         this._def.sprTirador = this.add.sprite(W * 0.5, H * 0.76, baseR + "_tiro_1").setScale(2.3);
       }
       this.cineContent.add(this._def.sprTirador);
-      var placa = this.add.text(W * 0.5, H * 0.94, "⚔ " + (tirador.nombre || "EL RIVAL").toUpperCase() + " CARGA EL REMATE", { fontFamily: "monospace", fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+      var placa = this.add.text(W * 0.5, H * 0.94, "⚔ " + (tirador.nombre || "EL RIVAL").toUpperCase() + " CARGA EL REMATE", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 8, y: 3 } }).setOrigin(0.5);
       this.cineContent.add(placa);
       /* TU defensor (movible) y TU arquero (posicionable) — V7 §0.2: los dos
          con figura HUMANA (defensor = pose del héroe teñida; arquero = ficha
@@ -220,7 +220,7 @@
       /* área */
       g.lineStyle(4, 0xeafff0, 0.7); g.strokeRect(W / 2 - 260, 128, 520, 210);
       if (esMiArco) {
-        var t = this.add.text(16, 128, "⚠ TU ARCO", { fontFamily: "'Press Start 2P',monospace", fontSize: "11px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 4 });
+        var t = this.add.text(16, 128, "⚠ TU ARCO", { fontFamily: window.PF.display, fontSize: "11px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 4 });
         this.cineContent.add(t);
       }
     },
@@ -228,8 +228,8 @@
     /* ============ BOTONES contextuales (48px+, costo en NÚMERO) ============ */
     defBoton(x, texto, sub, color, cb) {
       var r = this.add.rectangle(x, H - 34, 148, 52, color || 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(x, H - 42, texto, { fontFamily: "'Press Start 2P',monospace", fontSize: "9px", color: "#0a1f13" }).setOrigin(0.5);
-      var s = this.add.text(x, H - 24, sub || "", { fontFamily: "monospace", fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
+      var t = this.add.text(x, H - 42, texto, { fontFamily: window.PF.display, fontSize: "9px", color: "#0a1f13" }).setOrigin(0.5);
+      var s = this.add.text(x, H - 24, sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
       this.cineContent.add(r); this.cineContent.add(t); this.cineContent.add(s);
       var self = this;
       r.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
@@ -278,7 +278,7 @@
     },
     avisarDef(txt) {
       if (this._def && this._def.aviso && this._def.aviso.active) this._def.aviso.destroy();
-      var t = this.add.text(W / 2, H * 0.16, txt, { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+      var t = this.add.text(W / 2, H * 0.16, txt, { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
       this.cineContent.add(t);
       this._def.aviso = t;
       this.tweens.add({ targets: t, alpha: 0, delay: 1500, duration: 400 });
@@ -382,7 +382,7 @@
       D.ZONAS.forEach(function (z, i) {
         var zx = x0 + z.col * cw, zy = y0 + z.fila * ch;
         var r = self.add.rectangle(zx + cw / 2, zy + ch / 2, cw - 6, ch - 6, 0xf6efdc, 0.14).setStrokeStyle(2, 0xffffff, 0.9).setInteractive({ useHandCursor: true });
-        var t = self.add.text(zx + cw / 2, zy + ch / 2, z.n, { fontFamily: "monospace", fontSize: "11px", fontStyle: "bold", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
+        var t = self.add.text(zx + cw / 2, zy + ch / 2, z.n, { fontFamily: window.PF.texto, fontSize: "11px", fontStyle: "bold", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
         self.cineContent.add(r); self.cineContent.add(t);
         r.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; self.defConfirmarZona(z.id); });
         self._def.zonaRects.push(r);
@@ -390,7 +390,7 @@
       var ayuda = this.add.text(W / 2, H - 86, ofensiva
         ? "☝ TOCÁ LA ZONA (eso frena la aguja) — el arquero eligió la suya A CIEGAS"
         : "☝ TOCÁ TU ZONA (eso frena tu reacción) — el rival ya eligió la suya",
-        { fontFamily: "monospace", fontSize: "11px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+        { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
       this.cineContent.add(ayuda);
       this._def.agujaG = this.add.graphics();
       this.cineContent.add(this._def.agujaG);

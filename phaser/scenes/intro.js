@@ -60,16 +60,16 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       l.setScale(Math.min(1, 540 / l.width));
       this.capa.add(l);
     } else {
-      const t = this.add.text(480, 200, "PAMPA STAR", { fontFamily: "'Press Start 2P',monospace", fontSize: "40px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 10 }).setOrigin(0.5);
+      const t = this.add.text(480, 200, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 10 }).setOrigin(0.5);
       this.capa.add(t);
     }
     const toca = this.add.text(480, 400, this.I.t_compuerta || "👆 TOCÁ PARA EMPEZAR",
-      { fontFamily: "'Press Start 2P',monospace", fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
+      { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
     this.capa.add(toca);
     this.tweens.add({ targets: toca, alpha: 0.35, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
       const tk = this.add.text(480, 442, this.I.t_compuerta_teclado || "(o apretá cualquier tecla)",
-        { fontFamily: "monospace", fontSize: "12px", color: "#f6efdc99" }).setOrigin(0.5);
+        { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc99" }).setOrigin(0.5);
       this.capa.add(tk);
     }
     const go = () => {
@@ -89,7 +89,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this._gestoTs = this.time.now;
     this.input.on("pointerdown", () => this.salir());
     if (this.input.keyboard) this.input.keyboard.on("keydown", () => this.salir());
-    this.add.text(948, 526, "tocá para saltear ▸", { fontFamily: "monospace", fontSize: "10px", color: "#f6efdc88" }).setOrigin(1, 1).setDepth(99);
+    this.add.text(948, 526, "tocá para saltear ▸", { fontFamily: window.PF.texto, fontSize: "10px", color: "#f6efdc88" }).setOrigin(1, 1).setDepth(99);
     /* la secuencia corre por RELOJ propio: cada plano agenda el siguiente */
     const D = this.I.planos_ms || [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000];
     const planos = [this.p1, this.p2, this.p3, this.p4, this.p5, this.p6, this.p7, this.p8];
@@ -165,7 +165,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       this.tweens.add({ targets: f, scale: esc * 1.08, duration: dur, ease: "Sine.easeOut" });     // el cerca, más rápido
     }
     this.letraPorLetra(480, 470, this.I.t_pueblo || "En algún pueblo de La Pampa…",
-      { fontFamily: "'Press Start 2P',monospace", fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5 }, 60);
+      { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5 }, 60);
     this.SFX && this.SFX.crowd && this.SFX.crowd(dur);   // el viento lejano
     this.SFX && this.SFX.kick && this.SFX.kick();        // el bombo lejano
   }
@@ -196,7 +196,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const s = this.poseImg("remate", 480, 260, 460);
     if (s) this.tweens.add({ targets: s, scale: s.scale * 1.15, y: 300, duration: 1900, ease: "Sine.easeOut" });
     const g = this.add.text(480, 700, this.I.t_grito || "¡CALDENAZO!",
-      { fontFamily: "'Press Start 2P',monospace", fontSize: "40px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 10 }).setOrigin(0.5);
+      { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 10 }).setOrigin(0.5);
     this.capa.add(g);
     this.tweens.add({ targets: g, y: 440, duration: 340, ease: "Back.easeOut" });
     this.cameras.main.shake(280, 0.012);
@@ -211,7 +211,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       const b = this.add.circle(480, 250, 26, 0xffffff).setStrokeStyle(3, 0x000000);   // la pelota congelada en el aire
       this.capa.add(b);
     }
-    const t = this.add.text(480, 420, "…", { fontFamily: "monospace", fontSize: "26px", color: "#f6efdc" }).setOrigin(0.5);
+    const t = this.add.text(480, 420, "…", { fontFamily: window.PF.texto, fontSize: "26px", color: "#f6efdc" }).setOrigin(0.5);
     this.capa.add(t);
   }
   p6() {   // EL ARQUERO: la estirada contra el blanco, la música vuelve de golpe
@@ -241,13 +241,13 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       this.tweens.add({ targets: l, y: 230, duration: 520, ease: "Bounce.easeOut" });
       this.time.delayedCall(540, () => { if (!this._fin) { this.cameras.main.shake(200, 0.01); this.SFX && this.SFX.net && this.SFX.net(); } });
     } else {
-      const t = this.add.text(480, 220, "PAMPA STAR", { fontFamily: "'Press Start 2P',monospace", fontSize: "44px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 10 }).setOrigin(0.5);
+      const t = this.add.text(480, 220, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "44px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 10 }).setOrigin(0.5);
       this.capa.add(t);
     }
     this.time.delayedCall(700, () => {
       if (this._fin) return;
       this.letraPorLetra(480, 380, this.I.t_bajada || "DEL POTRERO AL MUNDIAL",
-        { fontFamily: "'Press Start 2P',monospace", fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 6 }, 55);
+        { fontFamily: window.PF.display, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 6 }, 55);
     });
     this.time.delayedCall(dur - 500, () => { if (!this._fin) this.cameras.main.fadeOut(480, 0, 0, 0); });   // el ÚNICO fundido: al título
   }
