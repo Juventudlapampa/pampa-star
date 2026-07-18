@@ -28,7 +28,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.save = null;
     try { const r = localStorage.getItem("pampa_master_v1"); if (r) this.save = JSON.parse(r); } catch (e) { }
 
-    /* ¿volvemos de un partido de la fecha? el resultado viene por el registry */
+    /* ¿volvemos de un partido de la fecha? el resultado viene por el registry.
+       (§4 inline: scene.restart() reusa la instancia — _ultimo se limpia acá
+       para que el cartel del resultado viejo no reaparezca tras un restart) */
+    this._ultimo = null;
     const res = this.game.registry.get("masterResultado");
     if (res && this.save && this.save.temporada) {
       this.game.registry.remove("masterResultado");

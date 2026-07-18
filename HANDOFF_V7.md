@@ -127,6 +127,46 @@ El botón **🏆 CARRERA** (editor, arriba a la derecha) abre el Modo Master:
 - Si algún día cambiás assets pesados ya cacheados: subí `VERSION` en
   `phaser/sw.js` (una línea) y el cache viejo se barre solo.
 
+## PLAYTEST 2 — tus 3 fixes (hechos, al frente de la cola)
+1. **El portador SIEMPRE revelado** (`bb34518`): el que corre arriba con la
+   pelota muestra su identidad, su cara y su NOMBRE ("▲ DYLAN"), sea tuyo o
+   rival — verlo es el drama. Las siluetas quedan SOLO para los rivales sin
+   pelota del fondo. En la Definición: rematador y arqueros siempre
+   revelados; los defensores que llegan son siluetas y se revelan al entrar
+   al cruce (`8e166dc`).
+2. **La Definición con el ARTE** (`8e166dc`): tu jugador movible es la pose
+   ilustrada con tu pinta; el rematador rival lleva pose_remate teñida a
+   NARANJA; los dos arqueros son fichas humanas (el rectángulo murió); el
+   vuelo muestra al que patea con su pose (remate/chilena/cabezazo); el
+   desenlace ya usaba festejo/ataja/vuela/bloqueo/barrida.
+3. **Tipografía** (`7f4fe70`): DOS fuentes self-hosteadas OFL en
+   `assets/fonts/` (README con licencias) — **Press Start 2P** (display:
+   títulos, botones, duelos, marcador) y **VT323** (texto: relator,
+   descripciones, tabla). Familias en `balance.json → tipografia` para que
+   las afines. Precacheadas en la PWA; el juego las espera (tope 2,5s).
+
+## §4 — Revisión adversarial (INLINE; el multi-agente chocó con el límite)
+El workflow multi-agente de 5 lentes + refutadores se lanzó pero murió por
+límite de sesión (resetea 22:10) — como en la v4.2, la revisión se hizo
+INLINE sobre los riesgos de la tanda: registro de teclado en restart de la
+escena master (los limpia el shutdown de Phaser ✓), doble resolución del
+skip del cine (guard verificado ✓), fecha libre en temporada.js (✓),
+tintado naranja de medias (intencional: uniforme ✓), y UN bug real
+arreglado: `_ultimo` sobrevivía al restart y el cartel del resultado viejo
+reaparecía tras NUEVA TEMPORADA. **Si querés la pasada multi-agente
+completa, pedila después de las 22:10** — el script quedó guardado y se
+relanza con un comando.
+
+## Checklist celu (playtest 2)
+1. Partido → cuando el rival lleva la pelota arriba, se le ve la CARA y el
+   NOMBRE (no más bulto negro); las sombras son solo los que se acercan.
+2. Definición ofensiva → corrés con TU pose ilustrada; los defensores
+   llegan como sombras y se revelan cerca; el arquero rival es humano.
+3. Te rematan → el rival carga con SU pose naranja; tu arquero es humano.
+4. Los títulos y botones se ven PIXEL (chunky); el relator y la tabla en la
+   redonda legible. Números de aguante/marcador bien legibles. Si algo no
+   te gusta: `balance.json → tipografia`.
+
 ## Decisiones que te esperan
 - **[DECISIÓN MÍA] §0.3**: bajé `intermedio` a 2.2' por momento (~20 jugadas
   por tiempo). Si lo sentís largo, volvé a 2.5 en `tempo.presets`.
