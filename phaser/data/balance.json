@@ -8,7 +8,7 @@
     "comentario": "arco_medio = media boca del arco en px (decisión de legibilidad, no escala FIFA exacta)"
   },
   "ritmo": {
-    "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR. FEEL v3 Bloque 1: TODO baja un cambio (~35% menos que la v2 — Tsubasa es drama lento); el reloj compensa con seg_por_minuto para que el partido dure lo mismo en minutos reales. Velocidades en px de mundo por segundo.",
+    "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR. FEEL v3 Bloque 1: TODO baja un cambio (~35% menos que la v2 — el drama por comandos es LENTO); el reloj compensa con seg_por_minuto para que el partido dure lo mismo en minutos reales. Velocidades en px de mundo por segundo.",
     "portador_con_pelota": 55,
     "defensor_cerrando": 68,
     "perseguidor_sin_pelota": 61,
@@ -217,7 +217,7 @@
     "_v7": "V7 §0.3: intermedio 2.5→2.2 minutos por momento (unas 20 jugadas por tiempo — el partido rinde más)."
   },
   "feel": {
-    "_nota": "FEEL v3 (docs/DISENO_FEEL_TSUBASA_V3.md): timing del drama. Cada jugada clave se ANUNCIA (beat), se decide, se ejecuta y se resuelve con teatro — si dura menos de 3s entre anuncio y resolución, está mal.",
+    "_nota": "FEEL v3 (ver el doc de Feel v3 en docs/): timing del drama. Cada jugada clave se ANUNCIA (beat), se decide, se ejecuta y se resuelve con teatro — si dura menos de 3s entre anuncio y resolución, está mal.",
     "beat_encuentro_ms": 750,
     "beat_mega_ms": 1400,
     "beat_zoom_extra": 0.12,

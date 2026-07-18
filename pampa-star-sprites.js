@@ -1,6 +1,6 @@
 /* ============================================================================
    PAMPA STAR — Módulo de arte (pixel-art ORIGINAL generado por código)
-   Ver ARTE.md (biblia de arte). Nada de assets de terceros ni de Tecmo.
+   Ver ARTE.md (biblia de arte). Nada de assets de terceros: todo el arte es original y generado por código.
    Regla dura: variantes con nombre/etiqueta o FORMA, nunca solo color. HEX siempre.
    ========================================================================== */
 "use strict";
