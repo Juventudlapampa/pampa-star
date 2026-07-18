@@ -167,6 +167,23 @@ relanza con un comando.
    redonda legible. Números de aguante/marcador bien legibles. Si algo no
    te gusta: `balance.json → tipografia`.
 
+## FIXES PRE-PRUEBA (tu mensaje de las 3 cosas)
+1. **§11**: ya estaba hecho del turno anterior (`dfdf0fb`) — tu mensaje se
+   cruzó. Re-verificado: meta nueva en vivo, cero residuos de marcas en el
+   producto versionado (los identificadores de save `guts*` quedan: son keys
+   retrocompatibles no visibles; la UI dice AGUANTE).
+2. **El muñequito del editor — elegí la (a)**: ahora REFLEJA la pinta.
+   Deriva de la cara elegida + tintes (`lookParaBloques` en logic/avatar.js,
+   testeado): piel y pelo de tus tintes — o, en Original, los colores de la
+   ILUSTRACIÓN (tono más cercano del catálogo) — y el CORTE que más se parece
+   a la cara (`corte_bloques` en caras_manifest, editable: Rulos→rulos,
+   Melena→melena, Rapado→rapado, Colorado→corto, Mohicano→colita…). Le puse
+   la etiqueta "así te ves de lejos" para que se explique solo.
+3. **El mapa del partido**: tus CÍRCULOS toman el TONO de camiseta que
+   elegiste en el editor (Original = celeste titular). Seguís reconociéndote
+   por color de equipo + NÚMERO + anillo del controlado; el rival sigue
+   TRIÁNGULO naranja — el bando nunca depende del tono (daltonismo ✓).
+
 ## Decisiones que te esperan
 - **[DECISIÓN MÍA] §0.3**: bajé `intermedio` a 2.2' por momento (~20 jugadas
   por tiempo). Si lo sentís largo, volvé a 2.5 en `tempo.presets`.

@@ -157,6 +157,40 @@
     });
   }
 
+  /* V7: el look de BLOQUES derivado de la cara ilustrada + tintes — el
+     muñequito del mapa/editor INSINÚA lo elegido. caraDef = la entrada del
+     caras_manifest (tonos + corte_bloques). Tintes en 0 (Original) → los
+     colores salen de la ILUSTRACIÓN (tono más cercano del catálogo). */
+  function hexDist2(a, b) {
+    var pa = parseInt(String(a).replace("#", ""), 16), pb = parseInt(String(b).replace("#", ""), 16);
+    var dr = ((pa >> 16) & 255) - ((pb >> 16) & 255), dg = ((pa >> 8) & 255) - ((pb >> 8) & 255), db = (pa & 255) - (pb & 255);
+    return dr * dr + dg * dg + db * db;
+  }
+  function masCercano(hex, lista) {
+    var mejor = 0, d = Infinity;
+    for (var i = 0; i < lista.length; i++) {
+      var di = hexDist2(hex, lista[i].hex);
+      if (di < d) { d = di; mejor = i; }
+    }
+    return mejor;
+  }
+  function lookParaBloques(look, caraDef) {
+    var l = validarLook(look);
+    var out = {};
+    Object.keys(l).forEach(function (k) { out[k] = l[k]; });
+    var T = caraDef && caraDef.tonos ? caraDef.tonos : null;
+    if (l.tPiel > 0) out.piel = l.tPiel - 1;
+    else if (T && T.piel) out.piel = masCercano(T.piel, CATALOGO.pieles);
+    if (l.tPelo > 0) out.colorPelo = l.tPelo - 1;
+    else if (T && T.pelo && T.pelo !== T.piel) out.colorPelo = masCercano(T.pelo, CATALOGO.colores_pelo);
+    if (caraDef && caraDef.corte_bloques) {
+      for (var c = 0; c < CATALOGO.cortes.length; c++) {
+        if (CATALOGO.cortes[c].id === caraDef.corte_bloques) { out.corte = c; break; }
+      }
+    }
+    return validarLook(out);
+  }
+
   /* etiqueta corta legible ("Piel morena · Rulos negro · Vincha") */
   function lookLabel(look) {
     var r = resolver(look);
@@ -172,6 +206,7 @@
     CATALOGO: CATALOGO, CAMPOS: CAMPOS,
     crearLook: crearLook, validarLook: validarLook, resolver: resolver,
     migrarDelClasico: migrarDelClasico, lookProcedural: lookProcedural,
-    lookLabel: lookLabel, hexNum: hexNum, hashSemilla: hashSemilla
+    lookLabel: lookLabel, hexNum: hexNum, hashSemilla: hashSemilla,
+    lookParaBloques: lookParaBloques, masCercano: masCercano
   };
 });

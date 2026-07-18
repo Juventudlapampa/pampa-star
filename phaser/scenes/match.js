@@ -116,6 +116,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.ringG = this.paseG = null; this._btnCambiar = null;
     this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
     this._cineSkip = null; this._cineSaltado = false; this._cineTimer = null;   // V7 §1: skip del cine de 5 planos
+    this._colorMapaMio = null;                               // V7 fix: el tono del mapa se recalcula por partido
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
     this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
     this.panelSil = null; this._panelPrev = null;
@@ -2647,10 +2648,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       g.lineStyle(1, 0x0a1f13, 0.9); g.strokeTriangle(x, y - 6, x + 5.5, y + 4.5, x - 5.5, y + 4.5);
       this.radarNumsRiv[i].setPosition(x, y + 0.5);
     });
-    /* míos: CÍRCULOS #4FC3F7 (+ anillo blanco en el controlado) */
+    /* míos: CÍRCULOS con el TONO de camiseta que elegiste en el editor
+       (Original = celeste titular) — en el mapa te reconocés por tu color de
+       equipo + el NÚMERO + el anillo del controlado (forma, no solo color).
+       El rival sigue naranja y TRIÁNGULO: el bando nunca depende del tono. */
+    if (this._colorMapaMio == null) {
+      this._colorMapaMio = 0x4fc3f7;
+      const CMm = this.game.registry.get("caras");
+      const vosJ = st.mios.find(jj => jj.esVos);
+      if (CMm && CMm.camisetas && vosJ && vosJ.look) {
+        const lv = window.PampaAvatar.validarLook(vosJ.look);
+        if (lv.tCam > 0) this._colorMapaMio = parseInt(String(CMm.camisetas[(lv.tCam - 1) % CMm.camisetas.length].hex).slice(1), 16);
+      }
+    }
     st.mios.forEach((j, i) => {
       const x = mx(j.x), y = my(j.y);
-      g.fillStyle(0x4fc3f7, 1); g.fillCircle(x, y, 5.5);
+      g.fillStyle(this._colorMapaMio, 1); g.fillCircle(x, y, 5.5);
       g.lineStyle(1, 0x0a1f13, 0.9); g.strokeCircle(x, y, 5.5);
       if (i === st.ctrl) { g.lineStyle(2, 0xffffff, 1); g.strokeCircle(x, y, 8); }
       this.radarNumsMios[i].setPosition(x, y);

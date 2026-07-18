@@ -71,6 +71,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* ---- vista previa (izquierda): cara grande + jugador de cancha ---- */
     this.imgCara = this.add.image(170, 240, "__WHITE").setScale(1.5);
     this.imgCancha = this.add.image(300, 250, "__WHITE").setScale(2.4);
+    /* V7 fix editor: el muñequito REFLEJA la pinta (deriva de la cara + tintes)
+       y se explica solo — es cómo te ves en el mapa y de lejos */
+    this.txtMini = this.add.text(300, 300, "así te ves\nde lejos", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", align: "center" }).setOrigin(0.5).setAlpha(0.75);
     this.txtLabel = this.add.text(210, 372, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 330 } }).setOrigin(0.5);
 
     /* ---- steppers (derecha) ----
@@ -230,7 +233,13 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       Arte.cara(this, "ed_cara", p.look);
       this.imgCara.setTexture("ed_cara").setScale(1.5);
     }
-    Arte.jugador(this, "ed_cancha", p.look, false);
+    /* V7 fix editor: el muñequito de bloques INSINÚA lo elegido — piel/pelo de
+       los tintes (u Original: los colores de la ilustración) + el corte que
+       más se parece a la cara (corte_bloques del manifest) */
+    const lookMini = this._v2
+      ? A.lookParaBloques(p.look, this.CM.caras[l.cara % this.CM.caras.length])
+      : p.look;
+    Arte.jugador(this, "ed_cancha", lookMini, false);
     this.imgCancha.setTexture("ed_cancha_idle");
     const r = A.resolver(p.look);
     /* V7 §0.2: los tintes con NOMBRE — "Original" respeta la ilustración */

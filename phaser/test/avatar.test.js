@@ -74,5 +74,28 @@ function ok(c, m) { if (c) pass++; else { fail++; console.error("  ✗ " + m); }
   console.log("[5] resolver/label/hex: ok");
 })();
 
+/* [6] V7 fix editor: lookParaBloques — el muñequito insinúa la cara + tintes */
+(function () {
+  var caraRulos = { tonos: { pelo: "#332222", piel: "#cc9966" }, corte_bloques: "rulos" };
+  var caraColorado = { tonos: { pelo: "#ff4422", piel: "#ffeedd" }, corte_bloques: "corto" };
+  var caraRapado = { tonos: { pelo: "#885533", piel: "#885533" }, corte_bloques: "rapado" };
+  /* Original puro: piel/pelo salen de la ILUSTRACIÓN (tono más cercano) */
+  var b1 = A.lookParaBloques({ cara: 1, tPiel: 0, tPelo: 0 }, caraRulos);
+  ok(A.CATALOGO.cortes[b1.corte].id === "rulos", "bloques: corte insinúa la cara (rulos)");
+  ok(A.CATALOGO.pieles[b1.piel].id === "triguena", "bloques: piel de la ilustración (cc9966→trigueña)");
+  var b2 = A.lookParaBloques({ cara: 4, tPiel: 0, tPelo: 0 }, caraColorado);
+  ok(A.CATALOGO.colores_pelo[b2.colorPelo].id === "colorado", "bloques: pelo de la ilustración (ff4422→colorado)");
+  /* tintes elegidos MANDAN sobre la ilustración */
+  var b3 = A.lookParaBloques({ cara: 1, tPiel: 4, tPelo: 3 }, caraRulos);
+  ok(b3.piel === 3 && b3.colorPelo === 2, "bloques: los tintes elegidos mandan");
+  /* rapado (pelo==piel): la regla de pelo no aplica, el corte sí */
+  var b4 = A.lookParaBloques({ cara: 3, tPiel: 0, tPelo: 0 }, caraRapado);
+  ok(A.CATALOGO.cortes[b4.corte].id === "rapado", "bloques: rapado conserva su corte");
+  /* sin manifest: no crashea, devuelve el look validado */
+  var b5 = A.lookParaBloques({ piel: 2 }, null);
+  ok(b5.piel === 2, "bloques: sin caraDef devuelve el look tal cual");
+  console.log("[6] lookParaBloques: ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);

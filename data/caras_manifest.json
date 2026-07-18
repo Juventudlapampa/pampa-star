@@ -4,19 +4,118 @@
   "_tintes": "V7 §0.2: los tintes son OPCIONALES — la primera opción de cada stepper es 'Original' (la ilustración con sus colores propios). Si una cara no admite bien un tinte, se declara acá y el stepper lo saltea: 'tintes_pelo': false = esa cara no tiñe el pelo (ej. rapado, pelo==piel); 'tintes_pelo_excluye': [ids de colores_pelo] = esos colores puntuales se saltean (ej. colorado + rubio/canoso da pelo bicolor).",
   "base": "assets/poses/caras/",
   "caras": [
-    { "id": "clasico", "n": "Clásico", "archivo": "cara_clasico.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
-    { "id": "rulos", "n": "Rulos", "archivo": "cara_rulos.png", "tonos": { "pelo": "#332222", "piel": "#cc9966", "camiseta": "#44bbff" } },
-    { "id": "melena", "n": "Melena", "archivo": "cara_melena.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
-    { "id": "rapado", "n": "Rapado", "archivo": "cara_rapado.png", "tonos": { "pelo": "#885533", "piel": "#885533", "camiseta": "#44bbff" }, "tintes_pelo": false },
-    { "id": "colorado", "n": "Colorado", "archivo": "cara_colorado.png", "tonos": { "pelo": "#ff4422", "piel": "#ffeedd", "camiseta": "#44bbff" }, "tintes_pelo_excluye": ["rubio", "canoso"] },
-    { "id": "flequillo", "n": "Flequillo", "archivo": "cara_flequillo.png", "tonos": { "pelo": "#113344", "piel": "#ffeecc", "camiseta": "#44bbff" } },
-    { "id": "mohicano", "n": "Mohicano", "archivo": "cara_mohicano.png", "tonos": { "pelo": "#113344", "piel": "#bb9955", "camiseta": "#44bbff" } },
-    { "id": "tranqui", "n": "Tranqui", "archivo": "cara_tranqui.png", "tonos": { "pelo": "#222222", "piel": "#eebb88", "camiseta": "#44bbff" } }
+    {
+      "id": "clasico",
+      "n": "Clásico",
+      "archivo": "cara_clasico.png",
+      "tonos": {
+        "pelo": "#113344",
+        "piel": "#ffeecc",
+        "camiseta": "#44bbff"
+      },
+      "corte_bloques": "corto"
+    },
+    {
+      "id": "rulos",
+      "n": "Rulos",
+      "archivo": "cara_rulos.png",
+      "tonos": {
+        "pelo": "#332222",
+        "piel": "#cc9966",
+        "camiseta": "#44bbff"
+      },
+      "corte_bloques": "rulos"
+    },
+    {
+      "id": "melena",
+      "n": "Melena",
+      "archivo": "cara_melena.png",
+      "tonos": {
+        "pelo": "#113344",
+        "piel": "#ffeecc",
+        "camiseta": "#44bbff"
+      },
+      "corte_bloques": "melena"
+    },
+    {
+      "id": "rapado",
+      "n": "Rapado",
+      "archivo": "cara_rapado.png",
+      "tonos": {
+        "pelo": "#885533",
+        "piel": "#885533",
+        "camiseta": "#44bbff"
+      },
+      "tintes_pelo": false,
+      "corte_bloques": "rapado"
+    },
+    {
+      "id": "colorado",
+      "n": "Colorado",
+      "archivo": "cara_colorado.png",
+      "tonos": {
+        "pelo": "#ff4422",
+        "piel": "#ffeedd",
+        "camiseta": "#44bbff"
+      },
+      "tintes_pelo_excluye": [
+        "rubio",
+        "canoso"
+      ],
+      "corte_bloques": "corto"
+    },
+    {
+      "id": "flequillo",
+      "n": "Flequillo",
+      "archivo": "cara_flequillo.png",
+      "tonos": {
+        "pelo": "#113344",
+        "piel": "#ffeecc",
+        "camiseta": "#44bbff"
+      },
+      "corte_bloques": "flequillo"
+    },
+    {
+      "id": "mohicano",
+      "n": "Mohicano",
+      "archivo": "cara_mohicano.png",
+      "tonos": {
+        "pelo": "#113344",
+        "piel": "#bb9955",
+        "camiseta": "#44bbff"
+      },
+      "corte_bloques": "colita"
+    },
+    {
+      "id": "tranqui",
+      "n": "Tranqui",
+      "archivo": "cara_tranqui.png",
+      "tonos": {
+        "pelo": "#222222",
+        "piel": "#eebb88",
+        "camiseta": "#44bbff"
+      },
+      "corte_bloques": "corto"
+    }
   ],
   "camisetas": [
-    { "n": "Celeste titular", "hex": "#4FC3F7" },
-    { "n": "Celeste profundo", "hex": "#2FA8E0" },
-    { "n": "Blanco pampa", "hex": "#E8F4FA" }
+    {
+      "n": "Celeste titular",
+      "hex": "#4FC3F7"
+    },
+    {
+      "n": "Celeste profundo",
+      "hex": "#2FA8E0"
+    },
+    {
+      "n": "Blanco pampa",
+      "hex": "#E8F4FA"
+    }
   ],
-  "tolerancias": { "pelo": 70, "piel": 85, "camiseta": 95 }
+  "tolerancias": {
+    "pelo": 70,
+    "piel": 85,
+    "camiseta": 95
+  },
+  "_bloques": "V7 fix editor: corte_bloques = con qué CORTE del catálogo de bloques se insinúa cada cara en el muñequito del mapa/editor (ids de logic/avatar.js cortes). Editable sin código."
 }
