@@ -31,6 +31,16 @@
       if (fb) { fb.setPosition(x, y); return fb; }
       return this.add.rectangle(x, y, alturaDeseada * 0.5, alturaDeseada, 0x0a1f13, 0.8);
     },
+    /* V7 §0.2: la pose del héroe teñida al NARANJA rival (la camiseta celeste
+       del arte base pasa al color de bando; piel y pelo quedan). Cacheada. */
+    poseRivalNaranja(id) {
+      var src = this.poseKey(id);
+      if (!src || !window.PampaAvatarArte || !window.PampaAvatarArte.tenirImagen) return src;
+      var key = "poseR_" + id;
+      if (this.textures.exists(key)) return key;
+      window.PampaAvatarArte.tenirImagen(this, src, key, [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }]);
+      return this.textures.exists(key) ? key : src;
+    },
 
     /* ============ ENTRADAS ============ */
     entrarDefinicionOf(opts) {
@@ -55,9 +65,16 @@
         botones: [], shakeSpr: null
       };
       this.defFondo(false);
-      /* tu jugador: heroico movible buscando el ángulo */
-      var base = this.bakePortador(this.portadorActual());
-      this._def.spr = this.add.sprite(this._def.jug.x, this._def.jug.y, base + "_correr_2").setScale(2.1);
+      /* V7 §0.2: tu jugador movible es la POSE ILUSTRADA del héroe con tu
+         pinta (el heroico de bloques queda de fallback) — SIEMPRE revelado */
+      var kCorr = this.poseHeroeTenida ? (this.poseHeroeTenida(st.mios[st.ctrl]) || this.poseKey("corriendo")) : this.poseKey("corriendo");
+      if (kCorr) {
+        this._def.spr = this.add.image(this._def.jug.x, this._def.jug.y, kCorr);
+        this._def.spr.setScale(150 / this._def.spr.height);
+      } else {
+        var base = this.bakePortador(this.portadorActual());
+        this._def.spr = this.add.sprite(this._def.jug.x, this._def.jug.y, base + "_correr_2").setScale(2.1);
+      }
       this.cineContent.add(this._def.spr);
       /* defensores REALES en el camino (mín 1 si el cruce venía con rival).
          V7 §1: con la pose ILUSTRADA del bloqueo (el rival plantado) — las
@@ -70,6 +87,9 @@
         if (kBloq) {
           spr = this.add.image(dx, dy, kBloq);
           spr.setScale(96 / spr.height);
+          /* V7 §0.1: los que llegan son SILUETAS hasta entrar al cruce
+             (el rematador y los arqueros van SIEMPRE revelados) */
+          spr.setTintFill(0x101820);
         } else {
           var g = this.add.graphics();
           g.fillStyle(0x1a0d08, 0.9); g.fillEllipse(0, -30, 34, 34); g.fillRoundedRect(-20, -16, 40, 66, 10);
@@ -121,20 +141,44 @@
         botones: []
       };
       this.defFondo(true);
-      /* EL REMATADOR: con la ceguera, recién acá le ves la cara (revelación) */
-      var baseR = "h_riv" + ((tirador.numero || 1) - 1);
-      window.PampaAvatarArte.heroico(this, baseR, tirador.look || window.PampaAvatar.crearLook(), "rival", tirador.numero, undefined, !this._bakes.has(baseR));
-      this._bakes.add(baseR);
-      this._def.sprTirador = this.add.sprite(W * 0.5, H * 0.76, baseR + "_tiro_1").setScale(2.3);
+      /* V7 §0.2: EL REMATADOR rival con la POSE ILUSTRADA del remate teñida a
+         NARANJA (bando) — SIEMPRE revelado, con su nombre en la placa */
+      var kRem = this.poseRivalNaranja("remate");
+      if (kRem) {
+        this._def.sprTirador = this.add.image(W * 0.5, H * 0.72, kRem);
+        this._def.sprTirador.setScale(180 / this._def.sprTirador.height);
+        this._def.sprTirador.setFlipX(true);   // remata hacia TU arco (al fondo)
+      } else {
+        var baseR = "h_riv" + ((tirador.numero || 1) - 1);
+        window.PampaAvatarArte.heroico(this, baseR, tirador.look || window.PampaAvatar.crearLook(), "rival", tirador.numero, undefined, !this._bakes.has(baseR));
+        this._bakes.add(baseR);
+        this._def.sprTirador = this.add.sprite(W * 0.5, H * 0.76, baseR + "_tiro_1").setScale(2.3);
+      }
       this.cineContent.add(this._def.sprTirador);
       var placa = this.add.text(W * 0.5, H * 0.94, "⚔ " + (tirador.nombre || "EL RIVAL").toUpperCase() + " CARGA EL REMATE", { fontFamily: "monospace", fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 8, y: 3 } }).setOrigin(0.5);
       this.cineContent.add(placa);
-      /* TU defensor (movible) y TU arquero (posicionable) */
+      /* TU defensor (movible) y TU arquero (posicionable) — V7 §0.2: los dos
+         con figura HUMANA (defensor = pose del héroe teñida; arquero = ficha
+         heroica tuya); el rectángulo murió */
       var arq = st.mios.find(function (x) { return x.pos === "ARQ"; });
-      var baseD = this.bakePortador({ j: st.mios[st.ctrl], idx: st.ctrl, esRival: false, clave: "m" + st.ctrl });
-      this._def.spr = this.add.sprite(this._def.jug.x, this._def.jug.y, baseD + "_correr_2").setScale(1.7);
+      var kDef = this.poseHeroeTenida ? (this.poseHeroeTenida(st.mios[st.ctrl]) || this.poseKey("corriendo")) : this.poseKey("corriendo");
+      if (kDef) {
+        this._def.spr = this.add.image(this._def.jug.x, this._def.jug.y, kDef);
+        this._def.spr.setScale(120 / this._def.spr.height);
+        this._def.spr.setFlipX(true);   // defendés mirando a tu arco
+      } else {
+        var baseD = this.bakePortador({ j: st.mios[st.ctrl], idx: st.ctrl, esRival: false, clave: "m" + st.ctrl });
+        this._def.spr = this.add.sprite(this._def.jug.x, this._def.jug.y, baseD + "_correr_2").setScale(1.7);
+      }
       this.cineContent.add(this._def.spr);
-      this._def.arq = this.add.rectangle(W / 2, 150, 28, 46, 0x1d4fd6).setStrokeStyle(2, 0xffffff);
+      this._def.arq = null;
+      if (arq && window.PampaAvatarArte) {
+        try {
+          window.PampaAvatarArte.jugador(this, "defarq_mio", arq.look || window.PampaAvatar.crearLook(), false);
+          this._def.arq = this.add.sprite(W / 2, 150, "defarq_mio_idle").setScale(1.5);
+        } catch (e) { }
+      }
+      if (!this._def.arq) this._def.arq = this.add.rectangle(W / 2, 150, 28, 46, 0x1d4fd6).setStrokeStyle(2, 0xffffff);
       this.cineContent.add(this._def.arq);
       /* barra de CARGA del rematador (la tensión es de reloj) */
       this._def.cargaG = this.add.graphics();
@@ -463,6 +507,11 @@
       /* la pelota viaja a la zona; el arquero VUELA con su pose */
       var z = D.zona(o.ofensiva ? this._def.zonaMia : this._def.zonaTiro);
       var bx = W / 2 - 180 + z.col * 120 + 60, by = 98 + z.fila * 43 + 21;
+      /* V7 §0.2: EL QUE PATEA con su pose ilustrada (remate/chilena/cabezazo
+         según el tiro elegido) — el momento más importante lleva el arte */
+      var poseTiro = { remate: "remate", chilena: "chilena", cabezazo: "cabezazo", volea: "remate" }[this._def.tiroTipo] || "remate";
+      var sprPat = this.poseSprite(poseTiro, W * 0.2, H * 0.6, 240, function () { return null; });
+      this.cineContent.add(sprPat);
       var ball = this.add.sprite(W * 0.42, H * 0.6, "ball").setScale(2.2);
       this.cineContent.add(ball);
       this.tweens.add({ targets: ball, x: bx, y: by, scale: 0.9, duration: this.msV(520), ease: "Quad.easeIn" });
@@ -587,6 +636,8 @@
             var dd = Math.hypot(d.spr.x - df.spr.x, d.spr.y - df.spr.y) || 1;
             df.spr.x += (d.spr.x - df.spr.x) / dd * vAc;
             df.spr.y += (d.spr.y - df.spr.y) / dd * vAc;
+            /* V7 §0.1: la silueta se REVELA al entrar al cruce */
+            if (dd < 170 && df.spr.clearTint && df.spr.isTinted) df.spr.clearTint();
             if (dd < (DL.contacto_px || 34)) {   // te alcanzaron: te la sacan
               var st = this.st, P = window.PampaPartido, self = this;
               P.perderPelota(st);
