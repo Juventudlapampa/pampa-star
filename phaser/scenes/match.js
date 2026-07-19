@@ -118,6 +118,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._cineSkip = null; this._cineSaltado = false; this._cineTimer = null;   // V7 §1: skip del cine de 5 planos
     this._colorMapaMio = null;                               // V7 fix: el tono del mapa se recalcula por partido
     this._pulsoAcum = 0; this._pulsoMovioHasta = 0;          // V8 §1: el acumulador del latido, limpio por partido
+    this._panelFlip = false;                                 // V8 §3: la memoria del flip del panel
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
     this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
     this.panelSil = null; this._panelPrev = null;
@@ -622,16 +623,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        drama. Sea tuyo o rival: su identidad, su cara y su nombre. Las
        siluetas quedan SOLO para los rivales SIN pelota (el pool de abajo). */
     this.panelJug.clearTint();
-    const dirIzq = p.esRival ? vx > 0.02 : vx < -0.02;   // el rival ataca hacia tu arco
-    this.panelJug.setFlipX(dirIzq);
+    /* V8 §3: el flip sigue la dirección REAL del movimiento y tiene MEMORIA —
+       entre latidos (vx=0) conserva la última; nunca corre de espaldas */
+    if (Math.abs(vx) > 0.02) this._panelFlip = vx < 0;
+    this.panelJug.setFlipX(!!this._panelFlip);
+    /* V8 §3: la ZANCADA al latido — la pose se inclina alternando con el
+       tuc-tuc (animación limitada estilo consola vieja: dos cuadros) */
+    const latidoMs = (this.BAL.pulso && this.BAL.pulso.latido_ms) || 380;
+    this.panelJug.setAngle(corriendo ? (Math.floor(this.time.now / latidoMs) % 2 ? 3.5 : -3.5) : 0);
     this.panelJug.y = 232 + (corriendo ? Math.sin(this.time.now * 0.02) * 3 : 0);
     this.panelJug.x = 430 + (corriendo ? Math.cos(this.time.now * 0.013) * 2 : 0);
     /* la pelota del juego al pie */
     const dir = this.panelJug.flipX ? -1 : 1;
     this.panelPelota.setPosition(430 + 56 * dir, 298 - (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * 7 : 0));
     if (corriendo) this.panelPelota.rotation += 0.14 * dir;
-    /* quién corre: bando por FORMA (▲ rival / ▼ mío) + el NOMBRE siempre */
-    const nom = (p.esRival ? "▲ " : "▼ ") + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10));
+    /* quién corre: bando por FORMA (▲/▼) + NÚMERO + NOMBRE (accesibilidad) */
+    const nom = (p.esRival ? "▲ " : "▼ ") + (j.numero ? j.numero + " · " : "") + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10));
     if (this.panelNombre.text !== nom) this.panelNombre.setText(nom);
     /* SILUETAS de rivales dentro de radio_silueta (posición relativa al portador) */
     const radio = this.VI.radio_silueta || 260;
