@@ -78,7 +78,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX = window.PampaSFX;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
-    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true, v6_secuencias: true, pantalla_partida: true }, this.BAL.flags || {});
+    this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true, v6_secuencias: true, pantalla_partida: true, pulso: true }, this.BAL.flags || {});
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -117,6 +117,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
     this._cineSkip = null; this._cineSaltado = false; this._cineTimer = null;   // V7 §1: skip del cine de 5 planos
     this._colorMapaMio = null;                               // V7 fix: el tono del mapa se recalcula por partido
+    this._pulsoAcum = 0; this._pulsoMovioHasta = 0;          // V8 §1: el acumulador del latido, limpio por partido
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
     this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
     this.panelSil = null; this._panelPrev = null;
@@ -602,7 +603,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const mismo = prev.clave === p.clave;
     const vx = mismo ? j.x - prev.x : 0, vy = mismo ? j.y - prev.y : 0;
     this._panelPrev = { x: j.x, y: j.y, clave: p.clave };
-    const corriendo = Math.abs(vx) + Math.abs(vy) > 0.04;
+    /* V8 §1: con el pulso, entre latidos vx es 0 — el bob de corrida se
+       sostiene mientras el último latido haya movido (no se corta feo) */
+    const corriendo = Math.abs(vx) + Math.abs(vy) > 0.04 || this.time.now < (this._pulsoMovioHasta || 0);
     /* PARALLAX: pasto rápido, tribuna lenta, cielo quieto — V7 §0.3: los
        factores son diales de balance.vista (la corrida tiene que LEERSE) */
     this.panelPasto.tilePositionX += vx * (this.VI.parallax_pasto != null ? this.VI.parallax_pasto : 1.4);
@@ -2897,7 +2900,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* flag e3_menus apagado = sandbox de la E1 (sin cruces, remate rival auto-resuelto) */
     if (!this.FLAGS.e3_menus) st.cooldown = 9e9;
-    const evs = P.tick(st, delta, input);
+    /* V8 §1 · EL PULSO: el partido avanza por LATIDOS discretos (tuc-tuc), no
+       por segundos continuos. Cada latido_ms se corre UN tramo de simulación
+       (dt_ms); entre latidos el mundo está QUIETO — nadie corre fluido como en
+       un FIFA. El input vale el que está apretado AL latido. Flag `pulso`
+       apagado = el tiempo real viejo, solo para comparar. La sim pura
+       (logic/partido.js) no cambia: el pulso es CÓMO se la invoca. */
+    let evs;
+    if (this.FLAGS.pulso !== false) {
+      const PU = this.BAL.pulso || {};
+      this._pulsoAcum = (this._pulsoAcum || 0) + delta;
+      const latido = PU.latido_ms || 380;
+      evs = [];
+      if (this._pulsoAcum >= latido) {
+        this._pulsoAcum -= latido;
+        if (this._pulsoAcum > latido) this._pulsoAcum = 0;   // tras una pausa larga, un solo latido
+        evs = P.tick(st, PU.dt_ms || 300, input);
+        if (input) this._pulsoMovioHasta = this.time.now + latido + 80;   // el bob del panel no se corta entre latidos
+      }
+    } else {
+      evs = P.tick(st, delta, input);
+    }
     let aviso = null;
     for (const ev of evs) {
       /* FEEL B1: los cruces se ANUNCIAN con un beat de tensión ANTES del menú
