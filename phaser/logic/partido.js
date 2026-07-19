@@ -191,12 +191,47 @@
       st.aguanteRival = clamp(st.aguanteRival + regen * dt, 0, bal.aguante.max);
     }
 
-    /* --- posicionales de ambos lados (escenografía viva, elástica a la pelota) --- */
+    /* --- posicionales de ambos lados ---
+       V8 §2 · LA IA DE LOS 21: cada uno hace lo de su PUESTO según la
+       SITUACIÓN (posesión + altura de la pelota) — nadie es una hormiga.
+       DEF: marcan la zona y quedan SIEMPRE entre la pelota y su arco (en
+       ataque apoyan hasta media cancha). VOL: circulan siguiendo el juego.
+       ATA: en ataque se DESCUELGAN a recibir y se abren a las bandas; en
+       defensa presionan poco. El perfil del club rival (partido.ia_linea,
+       del Modo Master) adelanta o repliega su línea entera. Con ia.v8=false
+       vuelve la elasticidad vieja, solo para comparar. */
     var empuje = (st.pelota.x - st.W / 2);
+    var IA = bal.ia || {};
     function moverPosicional(j, esMio, i) {
-      var el = P.elasticidad[j.pos] != null ? P.elasticidad[j.pos] : 0.4;
-      var tx = clamp(j.ax + empuje * el * (esMio ? 1 : 1), 20, st.W - 20);
-      var ty = clamp(st.pelota.y, j.banda[0], j.banda[1]) + Math.sin(st._t * 0.003 + j.idle) * 3;
+      var tx, ty;
+      if (IA.v8 === false || (j.pos !== "DEF" && j.pos !== "VOL" && j.pos !== "ATA")) {
+        var el = P.elasticidad[j.pos] != null ? P.elasticidad[j.pos] : 0.4;
+        tx = clamp(j.ax + empuje * el, 20, st.W - 20);
+        ty = clamp(st.pelota.y, j.banda[0], j.banda[1]) + Math.sin(st._t * 0.003 + j.idle) * 3;
+      } else {
+        var ataco = esMio ? (st.posesion === "mia") : (st.posesion === "rival");
+        /* coordenadas DE EQUIPO: adelante = hacia el arco rival (espejo limpio) */
+        var eq = function (x) { return esMio ? x : st.W - x; };
+        var axE = eq(j.ax), pxE = eq(st.pelota.x);
+        var linea = !esMio ? (P.ia_linea || 0) : 0;
+        var txE;
+        if (j.pos === "DEF") {
+          if (ataco) txE = Math.min(axE + (IA.def_apoyo || 90) + linea, st.W * 0.55);
+          else txE = Math.max(Math.min(axE + linea, pxE - (IA.def_colchon || 60)), 30);   // la espalda SIEMPRE cubierta
+        } else if (j.pos === "VOL") {
+          var s = IA.vol_sigue || 0.7;
+          txE = pxE * s + axE * (1 - s) + linea;
+        } else {   // ATA
+          if (ataco) txE = Math.min(Math.max(axE, pxE + (IA.ata_descuelga || 120)) + linea, st.W - 70);
+          else txE = Math.max(axE - (IA.ata_baja || 140), st.W * 0.42);
+        }
+        tx = clamp(eq(txE), 20, st.W - 20);
+        ty = clamp(st.pelota.y, j.banda[0], j.banda[1]) + Math.sin(st._t * 0.003 + j.idle) * 3;
+        if (j.pos === "ATA" && ataco) {
+          var abre = (i % 2 === 0 ? -1 : 1) * (IA.ata_abre || 70);   // se ofrecen a las bandas
+          ty = clamp(ty + abre, j.banda[0], j.banda[1]);
+        }
+      }
       var v = V.posicionales_por_segundo || 55;
       j.x += clamp(tx - j.x, -v * dt, v * dt);
       j.y += clamp(ty - j.y, -v * dt, v * dt);

@@ -475,5 +475,14 @@
     "_nota": "V8 §1 EL PULSO: el partido avanza por LATIDOS discretos, no tiempo real. latido_ms = cadencia del tuc-tuc (más bajo = más ágil); dt_ms = cuánta simulación corre cada latido (define el TAMAÑO del tramo: portador ~55px/s × saltos 1.8 × dt). Flag flags.pulso=false = tiempo real viejo, solo para comparar.",
     "latido_ms": 380,
     "dt_ms": 300
+  },
+  "ia": {
+    "_nota": "V8 §2 LA IA DE LOS 21 (sobre el pulso): cada puesto hace lo suyo según la situación. def_colchon = px que el DEF se guarda ENTRE la pelota y su arco al defender; def_apoyo = cuánto sube el DEF en ataque; vol_sigue = cuánto sigue el VOL a la pelota (0-1); ata_descuelga = cuánto se adelanta el ATA a recibir; ata_baja = cuánto baja el ATA a defender; ata_abre = apertura a las bandas al ofrecerse. ia.v8=false = la elasticidad vieja, solo para comparar.",
+    "def_colchon": 60,
+    "def_apoyo": 90,
+    "vol_sigue": 0.7,
+    "ata_descuelga": 120,
+    "ata_baja": 140,
+    "ata_abre": 70
   }
 }

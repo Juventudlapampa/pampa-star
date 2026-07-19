@@ -27,11 +27,14 @@
   }
 
   /* perfiles de IA: determinista por club → mismo rival, misma identidad SIEMPRE */
+  /* V8 §2: `linea` = cuánto adelanta (o repliega, negativo) la línea entera
+     del club en px de equipo — un club de garra presiona arriba, uno de
+     pelotazo se mete atrás. Lo consume la IA de los 21 (partido.ia_linea). */
   var PERFILES = [
-    { id: "garra", n: "pura garra", cpu_pesos: { quite: 0.55, corte: 0.25, bloqueo: 0.2 }, persecutores: 2, mult: 1.0 },
-    { id: "toque", n: "de toque", cpu_pesos: { quite: 0.25, corte: 0.5, bloqueo: 0.25 }, persecutores: 1, mult: 1.0 },
-    { id: "pelotazo", n: "de pelotazo", cpu_pesos: { quite: 0.3, corte: 0.25, bloqueo: 0.45 }, persecutores: 1, mult: 0.96 },
-    { id: "estrella", n: "con una ESTRELLA", cpu_pesos: { quite: 0.34, corte: 0.33, bloqueo: 0.33 }, persecutores: 2, mult: 1.1 }
+    { id: "garra", n: "pura garra", cpu_pesos: { quite: 0.55, corte: 0.25, bloqueo: 0.2 }, persecutores: 2, mult: 1.0, linea: 30 },
+    { id: "toque", n: "de toque", cpu_pesos: { quite: 0.25, corte: 0.5, bloqueo: 0.25 }, persecutores: 1, mult: 1.0, linea: 0 },
+    { id: "pelotazo", n: "de pelotazo", cpu_pesos: { quite: 0.3, corte: 0.25, bloqueo: 0.45 }, persecutores: 1, mult: 0.96, linea: -40 },
+    { id: "estrella", n: "con una ESTRELLA", cpu_pesos: { quite: 0.34, corte: 0.33, bloqueo: 0.33 }, persecutores: 2, mult: 1.1, linea: 15 }
   ];
   function hashClub(nombre) {
     var h = 0, s = String(nombre || "rival");
@@ -55,7 +58,7 @@
     /* SIN mutar el balance compartido: se reasigna una copia solo para este partido */
     if (st.bal && perfil.cpu_pesos) {
       st.bal = Object.assign({}, st.bal, {
-        partido: Object.assign({}, st.bal.partido, { cpu_pesos: perfil.cpu_pesos }),
+        partido: Object.assign({}, st.bal.partido, { cpu_pesos: perfil.cpu_pesos, ia_linea: perfil.linea || 0 }),
         ritmo: Object.assign({}, st.bal.ritmo, { persecutores: perfil.persecutores || st.bal.ritmo.persecutores })
       });
     }
