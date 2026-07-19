@@ -119,6 +119,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._colorMapaMio = null;                               // V7 fix: el tono del mapa se recalcula por partido
     this._pulsoAcum = 0; this._pulsoMovioHasta = 0;          // V8 §1: el acumulador del latido, limpio por partido
     this._panelFlip = false;                                 // V8 §3: la memoria del flip del panel
+    this._hudFichas = null; this.txtFichas = null;           // V8 §3: las fichas del jugadón, limpias por partido
+    this._jg = null; this._jgLogica = null;                  // V8 §3: la plataforma muere con la escena
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
     this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
     this.panelSil = null; this._panelPrev = null;
@@ -1244,6 +1246,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         })(),
       volver: libre ? () => this.reanudarLibre() : null
     });
+    /* V8 §3: las FICHAS del jugadón — el recurso épico, arriba del menú */
+    if (this.botonJugadon && this.jugadonFichas) {
+      const F = this.jugadonFichas();
+      if (puedeT && F.tiros > 0) {
+        this.botonJugadon("🌟 SÚPER TIRO (quedan " + F.tiros + ")", "elegís la ZONA — la física decide contra el arquero", () => {
+          if (window.PampaJugadon.gastarFicha(F, "tiros")) this.entrarJugadonTiro();
+        });
+      } else if (rivalIdx != null && F.gambetas > 0) {
+        this.botonJugadon("🌟 GAMBETA DEL JUGADÓN (quedan " + F.gambetas + ")", "la plataforma: leé el cierre y elegí tu movida", () => {
+          if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx);
+        });
+      }
+    }
   }
   abrirMenuDefensa() {
     const st = this.st, P = window.PampaPartido;
@@ -1279,6 +1294,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         };
       })()
     });
+    /* V8 §3: el SÚPER QUITE del jugadón (ficha defensiva) */
+    if (this.botonJugadon && this.jugadonFichas) {
+      const F = this.jugadonFichas();
+      if (F.quites > 0) {
+        this.botonJugadon("🌟 SÚPER QUITE (quedan " + F.quites + ")", "te metés en su jugada: leé su movida y cerrale el camino", () => {
+          if (window.PampaJugadon.gastarFicha(F, "quites")) this.entrarJugadonQuite();
+        });
+      }
+    }
   }
   /* qué MEGADEFENSA está disponible para ese jugador (data + nivel + aguante) */
   megaDefensaDisponible(tipos, j) {
@@ -2754,6 +2778,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.lineStyle(1, 0xf6efdc, 0.8); g.strokeRect(bx, by, bw, bh);
     const gutsTxt = "AGUANTE " + Math.round(val);
     if (this._hudGuts !== gutsTxt) { this._hudGuts = gutsTxt; this.txtGuts.setText(gutsTxt); }
+    /* V8 §3: las FICHAS del jugadón, siempre a la vista (letra + número) */
+    if (this.jugadonFichas) {
+      const F = this.jugadonFichas();
+      const fTxt = "🌟 QUITES " + F.quites + " · GAMBETAS " + F.gambetas + " · TIROS " + F.tiros;
+      if (this._hudFichas !== fTxt) {
+        this._hudFichas = fTxt;
+        if (!this.txtFichas) { this.txtFichas = this.add.text(14, 512, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 2 } }).setOrigin(0, 0.5); this.hudLayer.add(this.txtFichas); }
+        this.txtFichas.setText(fTxt);
+      }
+    }
     /* Feel B3: el botón ⚡ACCIÓN pulsa cuando hay acciones disponibles */
     if (this._btnPulso) {
       const activo = this.estado === "LIBRE" && st.posesion === "mia";
@@ -2869,6 +2903,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
     if (this.estado === "CINE") { this.updateViaje(delta); return; }
     if (this.estado === "ESCENA") return;   // Anime B: la viñeta corre por reloj propio
+    if (this.estado === "JUGADON") return;  // V8 §3: la plataforma corre por botones y reloj propio
     if (this.estado === "DEFINICION") { this.updateDefinicion(delta); return; }   // V6 §4
     if (this.estado === "TIMING") {
       this.dibujarTiming();
