@@ -13,9 +13,10 @@
      DISPLAY = Press Start 2P (títulos/botones) · TEXTO = VT323 (cuerpo).
      Familias configurables en balance.json → tipografia. */
   @font-face{font-family:'Press Start 2P';src:url('../assets/fonts/PressStart2P-Regular.ttf') format('truetype');font-display:swap;}
+  @font-face{font-family:'Pixelify Sans';src:url('../assets/fonts/PixelifySans-Regular.ttf') format('truetype');font-display:swap;}
   @font-face{font-family:'VT323';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');font-display:swap;}
   html,body{margin:0;height:100%;background:#06120b;overflow:hidden;
-    font-family:'VT323',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
+    font-family:'Pixelify Sans','VT323',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
   #game{width:100vw;height:100dvh;display:flex;align-items:center;justify-content:center;}
   #game canvas{max-width:100vw;max-height:100dvh;}
   /* aviso de rotar en vertical (mobile-first APAISADO) */
@@ -36,7 +37,7 @@
   <script>
   /* V7 §0.3: las DOS familias del juego, ANTES de las escenas (los estilos las
      leen en runtime). El balance puede pisarlas (tipografia.display/texto). */
-  window.PF = { display: "'Press Start 2P','VT323',monospace", texto: "'VT323',monospace" };
+  window.PF = { display: "'Press Start 2P','Pixelify Sans',monospace", texto: "'Pixelify Sans','VT323',monospace" };
   </script>
   <script src="vendor/phaser.min.js"></script>
   <script src="logic/duel.js"></script>
@@ -85,7 +86,7 @@
     secuencias:{megacorrida_nivel:2,megacorrida_aguante:300,megacorrida_rivales:2,combinada_nivel:2,combinada_aguante:160,bonus_duelo:8},
     definicion:{def_acercan_px_s:34,contacto_px:34,jugador_px_s:160,angulo_peso:16,zona_timing:0.2,dulce_bonus:8,floja_penal:22,pasada_fuera_mult:1.6,pasada_fuera_max:0.55,coincide:55,a_una:10,a_dos:-25,bloqueo_base:0.18,bloqueo_radio:120,bloqueo_cercania:0.25,bloqueo_max:0.6,achicar_bonus:14,achicar_vendido:18,carga_ms:4200},
     tempo:{minutos_por_momento:2.2,goteo_seg_por_minuto:8,presets:{relampago:5,intermedio:2.2,largo:1.2},duracion_real_min:10},
-    tipografia:{display:"'Press Start 2P','VT323',monospace",texto:"'VT323',monospace"},
+    tipografia:{display:"'Press Start 2P','Pixelify Sans',monospace",texto:"'Pixelify Sans','VT323',monospace"},
     pulso:{latido_ms:380,dt_ms:300},
     ia:{def_colchon:60,def_apoyo:90,vol_sigue:0.7,ata_descuelga:120,ata_baja:140,ata_abre:70},
     persecucion:{aguante_por_segundo:12,aguante_minimo_para_correr:100,factor_trote:0.6},
@@ -112,12 +113,28 @@
   const pPoses = fetch("../data/poses_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pCaras = fetch("../data/caras_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pDivisiones = fetch("../data/divisiones.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  /* V7 §0.3: esperar las DOS fuentes antes de crear textos (si tardan >2.5s se
-     arranca igual con el fallback — nunca se bloquea el juego) */
+  /* V8 §5: esperar las fuentes antes de crear textos — tope 8s (en celu con
+     red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
+     fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
+     RE-RASTERIZA todos los textos vivos. */
   const pFuentes = Promise.race([
-    Promise.all([document.fonts.load("12px 'Press Start 2P'"), document.fonts.load("12px 'VT323'")]),
-    new Promise(r=>setTimeout(r, 2500))
+    Promise.all([document.fonts.load("12px 'Press Start 2P'"), document.fonts.load("12px 'Pixelify Sans'"), document.fonts.load("12px 'VT323'")]),
+    new Promise(r=>setTimeout(r, 8000))
   ]).catch(()=>null);
+  /* la red del fix: cuando las fuentes terminan de llegar (aunque sea tarde),
+     cada Text vivo de Phaser se re-rasteriza — los acentos nunca quedan rotos */
+  document.fonts.ready.then(()=>{
+    try{
+      if (!window.PAMPA_GAME) return;
+      window.PAMPA_GAME.scene.scenes.forEach(s=>{
+        if (!s.sys || !s.sys.displayList) return;
+        s.sys.displayList.list.forEach(function refrescarTexto(o){
+          if (o && o.type === "Text" && o.updateText) o.updateText();
+          if (o && o.list) o.list.forEach(refrescarTexto);
+        });
+      });
+    }catch(e){}
+  });
   Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones])=>{
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;

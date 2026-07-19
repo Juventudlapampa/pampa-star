@@ -467,9 +467,9 @@
     "camara_reset_ms": 420
   },
   "tipografia": {
-    "_nota": "V7 §0.3: el sistema tipográfico — DOS fuentes self-hosteadas (assets/fonts/, OFL, README con licencias). display = títulos/botones/nombres de duelo/marcador (pixel chunky). texto = relator/descripciones/tabla/cuerpo. Los NÚMEROS (aguante, envión, reloj) van en las mismas familias: si alguna no se lee, cambiala acá — la accesibilidad manda.",
-    "display": "'Press Start 2P','VT323',monospace",
-    "texto": "'VT323',monospace"
+    "_nota": "V8 §5: DISPLAY = Press Start 2P (chunky, acentos verificados EN PANTALLA) · TEXTO = Pixelify Sans (pixel redondeada con peso, latino completo — el carácter del original; reemplaza a VT323 de terminal, que queda de reserva). Las tres self-hosteadas OFL en assets/fonts/. Los acentos á é í ó ú ñ ¿ ¡ se verificaron por render de bitmap en las tres. Si una fuente tarda en el celu, el juego espera hasta 8s y ADEMÁS re-rasteriza los textos vivos al llegar — los acentos nunca quedan rotos.",
+    "display": "'Press Start 2P','Pixelify Sans',monospace",
+    "texto": "'Pixelify Sans','VT323',monospace"
   },
   "pulso": {
     "_nota": "V8 §1 EL PULSO: el partido avanza por LATIDOS discretos, no tiempo real. latido_ms = cadencia del tuc-tuc (más bajo = más ágil); dt_ms = cuánta simulación corre cada latido (define el TAMAÑO del tramo: portador ~55px/s × saltos 1.8 × dt). Flag flags.pulso=false = tiempo real viejo, solo para comparar.",
