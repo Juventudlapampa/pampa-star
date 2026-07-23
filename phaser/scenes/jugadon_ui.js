@@ -16,14 +16,16 @@
       if (!this.st.fichas) this.st.fichas = window.PampaJugadon.fichasNuevas();
       return this.st.fichas;
     },
-    /* el botón EXTRA sobre el menú de cruz (una fila arriba de todo) */
-    botonJugadon(texto, sub, cb) {
-      var b = this.add.rectangle(480, 66, 470, 46, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(480, 58, texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      var s = this.add.text(480, 76, sub, { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
+    /* el botón EXTRA sobre el menú de cruz — fila 0 y fila 1 (V8 fix 1: las
+       fichas se OFRECEN SIEMPRE que queden, así que puede haber dos) */
+    botonJugadon(texto, sub, cb, fila) {
+      var y = 66 + (fila || 0) * 52;
+      var b = this.add.rectangle(480, y, 470, 46, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      var t = this.add.text(480, y - 8, texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      var s = this.add.text(480, y + 10, sub, { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
       this.menuLayer.add([b, t, s]);
       var self = this;
-      b.on("pointerdown", function (p, x, y, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
+      b.on("pointerdown", function (p, x, y2, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
     },
 
     /* ---- armado común de la plataforma (cancha ANCHA arriba, botones abajo) ---- */

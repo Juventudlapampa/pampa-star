@@ -1246,17 +1246,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         })(),
       volver: libre ? () => this.reanudarLibre() : null
     });
-    /* V8 §3: las FICHAS del jugadón — el recurso épico, arriba del menú */
+    /* V8 fix 1 (auditoría de Rodri): las FICHAS se OFRECEN SIEMPRE que queden
+       — el recurso épico no depende del momento justo. La GAMBETA con la
+       pelota siempre (haya o no rival pegado); el SÚPER TIRO desde campo
+       rival (aunque no sea la zona ideal). Pueden verse los DOS botones. */
     if (this.botonJugadon && this.jugadonFichas) {
       const F = this.jugadonFichas();
-      if (puedeT && F.tiros > 0) {
-        this.botonJugadon("🌟 SÚPER TIRO (quedan " + F.tiros + ")", "elegís la ZONA — la física decide contra el arquero", () => {
-          if (window.PampaJugadon.gastarFicha(F, "tiros")) this.entrarJugadonTiro();
-        });
-      } else if (rivalIdx != null && F.gambetas > 0) {
+      let fila = 0;
+      if (F.gambetas > 0) {
         this.botonJugadon("🌟 GAMBETA DEL JUGADÓN (quedan " + F.gambetas + ")", "la plataforma: leé el cierre y elegí tu movida", () => {
           if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx);
-        });
+        }, fila++);
+      }
+      if (F.tiros > 0 && st.mios[st.ctrl].x > st.W / 2) {
+        this.botonJugadon("🌟 SÚPER TIRO (quedan " + F.tiros + ")", "elegís la ZONA — la física decide contra el arquero", () => {
+          if (window.PampaJugadon.gastarFicha(F, "tiros")) this.entrarJugadonTiro();
+        }, fila++);
       }
     }
   }
