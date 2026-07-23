@@ -12,7 +12,7 @@
     "portador_con_pelota": 55,
     "defensor_cerrando": 68,
     "perseguidor_sin_pelota": 61,
-    "rival_con_pelota": 38,
+    "rival_con_pelota": 64,
     "posicionales_por_segundo": 36,
     "_regla": "defensor_cerrando > portador → te alcanzan, pero con AIRE para jugar antes.",
     "radio_encuentro": 26,
@@ -21,7 +21,7 @@
     "marcadores": 2,
     "marca_vel_mult": 1.3,
     "modo_saltos": true,
-    "saltos_vel_mult": 1.8,
+    "saltos_vel_mult": 1,
     "_saltos": "V6 §2 R1: el partido es una sucesión de MOMENTOS. Con modo_saltos, portador y rival van rápido y esquemático (×saltos_vel_mult), nadie caza por atrás (los cruces son emboscadas de los que están adelante) y tras un robo hay separación real. Apagalo y vuelve el flujo continuo v4.",
     "arranque_rival_ms": 1500,
     "_reaccion": "cooldown largo = respirás entre cruces; 1 solo perseguidor = hay espacio; arranque_rival_ms = cuando pierden/reciben la pelota, el rival la pisa un momento antes de arrancar (tenés tiempo de reaccionar y elegir marcador).",
@@ -33,7 +33,8 @@
     "zoom_encuentro": 1.22,
     "zoom_encuentro_ms": 380,
     "_zoom": "al congelar un encuentro la cámara se ACERCA suave al cruce (lectura con calma, se ve a los de alrededor); al resolver vuelve igual de suave.",
-    "_v7_tempo": "V7 §0.3: saltos_vel_mult bajó de 2.4 a 1.8 (la corrida del panel se lee, no pasa volando)."
+    "_v7_tempo": "V7 §0.3: saltos_vel_mult bajó de 2.4 a 1.8 (la corrida del panel se lee, no pasa volando).",
+    "_v8_fix": "V8 playtest: saltos_vel_mult 1.8->1.0 - el multiplicador solo pega en los PORTADORES y con 1.8 tu latido era 3x el del resto (30px vs 11px). Con 1.0: tu tramo ~17px, cazador ~20px, posicionales ~11px - parejo. rival_con_pelota 38->64: con mult 1.0 el rival quedaba cazable (regla R1 rota); a 64 sigue inalcanzable (perseguidor 61) y su tramo (~19px) queda parejo con el tuyo (~17px)."
   },
   "vista": {
     "_nota": "ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA. La cámara sube hasta ver la cancha (cobertura = fracción del alto del mundo visible; 1.0 = cancha entera). Los 22 se ven como fichas simples; el radar desaparece y el pase se toca sobre la cancha. cambio_auto: marcador automático en defensa (histéresis en la lógica).",
@@ -472,8 +473,8 @@
     "texto": "'Pixelify Sans','VT323',monospace"
   },
   "pulso": {
-    "_nota": "V8 §1 EL PULSO: el partido avanza por LATIDOS discretos, no tiempo real. latido_ms = cadencia del tuc-tuc (más bajo = más ágil); dt_ms = cuánta simulación corre cada latido (define el TAMAÑO del tramo: portador ~55px/s × saltos 1.8 × dt). Flag flags.pulso=false = tiempo real viejo, solo para comparar.",
-    "latido_ms": 380,
+    "_nota": "V8 EL PULSO - LA PERILLA DE VELOCIDAD ES ESTA: latido_ms = cadencia del tuc-tuc (mas ALTO = mas pausado; probá 380-500). dt_ms = cuanta simulacion corre cada latido (define el tamanio del tramo). El tercer dial es ritmo.saltos_vel_mult (velocidad del portador; 1.0 = pareja con el resto). flags.pulso=false = tiempo real viejo para comparar.",
+    "latido_ms": 440,
     "dt_ms": 300
   },
   "ia": {
