@@ -72,6 +72,29 @@ const yo = st.mios[8];
 const dDespues = Math.min(...st.rivales.filter(r => r.pos !== "ARQ").map(r => Math.hypot(r.x - yo.x, r.y - yo.y)));
 assert(dDespues < 100, "avanzando SIEMPRE hay un rival cerrándome (quedó a " + dDespues.toFixed(0) + "px — no existe el 'avanzo y no pasa nada')");
 
+/* --- 5b) V8 fix playtest: un delantero NUNCA retrocede cuando su equipo ataca ---
+   (el destino se recalcula por latido y podía quedar detrás de su posición) */
+st = partidoNuevo();
+st.cooldown = 9e9;
+st.posesion = "mia"; st.ctrl = 5;
+st.mios[5].x = 850; st.pelota.x = 850; st.pelota.y = 340;   // jugada adelantada
+latidos(st, 30);
+const ataArriba = st.mios.filter(j => j.pos === "ATA").map(j => j.x);
+st.mios[5].x = 400; st.pelota.x = 400;   // la pelota RETROCEDE (pase atrás)
+latidos(st, 30);
+st.mios.forEach((j, i) => {
+  if (j.pos !== "ATA") return;
+  const antes = ataArriba[st.mios.filter(x => x.pos === "ATA").indexOf(j)];
+  assert(j.x >= antes - 1, "ATA " + j.nombre + " NO retrocede en ataque (estaba " + antes.toFixed(0) + ", quedó " + j.x.toFixed(0) + ")");
+});
+/* y al PERDER la posesión, sí baja (no queda clavado arriba para siempre) */
+st.posesion = "rival"; st.portadorRival = 5; st.esperaRival = 9e9;
+st.rivales[5].x = 500; st.pelota.x = 500;
+const ataAntesDef = st.mios.filter(j => j.pos === "ATA").map(j => j.x);
+latidos(st, 40);
+const bajoAlguno = st.mios.filter(j => j.pos === "ATA").some((j, k) => j.x < ataAntesDef[k] - 20);
+assert(bajoAlguno, "al defender los ATA sí bajan (el piso es solo en ataque)");
+
 /* --- 6) el PERFIL del club modula la línea (garra presiona, pelotazo se mete atrás) --- */
 function lineaMediaRival(perfilId) {
   const s = partidoNuevo(JSON.parse(JSON.stringify(bal)));

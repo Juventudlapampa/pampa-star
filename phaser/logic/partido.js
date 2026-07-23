@@ -222,7 +222,15 @@
           var s = IA.vol_sigue || 0.7;
           txE = pxE * s + axE * (1 - s) + linea;
         } else {   // ATA
-          if (ataco) txE = Math.min(Math.max(axE, pxE + (IA.ata_descuelga || 120)) + linea, st.W - 70);
+          if (ataco) {
+            txE = Math.min(Math.max(axE, pxE + (IA.ata_descuelga || 120)) + linea, st.W - 70);
+            /* V8 fix (playtest): PISO anti-retroceso — el destino se recalcula
+               cada latido y podía quedar DETRÁS de donde el delantero ya
+               estaba parado (se veía caminando para atrás en pleno ataque).
+               Un delantero NUNCA retrocede cuando su equipo ataca: sube o
+               se queda. Al perder la posesión, baja normal. */
+            txE = Math.max(txE, eq(j.x));
+          }
           else txE = Math.max(axE - (IA.ata_baja || 140), st.W * 0.42);
         }
         tx = clamp(eq(txE), 20, st.W - 20);
