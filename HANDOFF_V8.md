@@ -1,5 +1,28 @@
 # HANDOFF V8 — "El pulso y el jugadón" (tanda del 18-19/jul/2026)
 
+## ⬆ FIXES POST-AUDITORÍA + PLAYTEST (19/jul) — los 3, verificados EN VIVO
+
+**Tu pregunta ("¿qué encontré invertido?"): NADA estaba espejado.** Eran dos
+calibraciones y un cableado estrecho:
+
+1. **El jugadón casi no se podía invocar** (`4155f5a`): los botones dorados
+   pedían el momento exacto. Ahora las fichas se OFRECEN SIEMPRE que queden:
+   ⚡ACCIÓN con la pelota te muestra 🌟 GAMBETA siempre (haya o no rival
+   pegado) y 🌟 SÚPER TIRO desde campo rival — pueden verse los dos.
+   Verificado en vivo: ACCIÓN → botón dorado → la plataforma abre.
+2. **El pulso disparejo** (`e9818f1`): el multiplicador de saltos solo pegaba
+   en los portadores — tu latido era 3× el del resto (30px vs 11px). Ahora:
+   `saltos_vel_mult` 1.0 (tu tramo ~17px ≈ todos), `latido_ms` 440 (más
+   pausado), y `rival_con_pelota` 64 para que la regla "al rival no se lo
+   caza corriendo" siga valiendo. **LA PERILLA está en `balance.pulso`**
+   (la _nota explica los 3 diales: latido_ms, dt_ms, saltos_vel_mult).
+3. **Los delanteros para atrás** (`defb31f`): el destino del ATA se recalcula
+   cada latido sin memoria y podía quedar DETRÁS de su posición (jugada
+   adelantada + referencia que baja). Piso anti-retroceso: **en ataque el
+   delantero solo sube o se queda**; al defender baja normal. Verificado en
+   vivo (pelota de 860 a 420, los ATA clavados) + 4 asserts nuevos.
+
+
 `docs/REDISENO_V8_PULSO_Y_JUGADON.md` ejecutado **en el orden estricto del
 §7, completo** (los 5 bloques). Corrección de ARQUITECTURA: el tiempo real
 murió — el partido ahora es por comandos y PULSO. Suite: **13 archivos de
