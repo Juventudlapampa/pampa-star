@@ -1,5 +1,57 @@
 # HANDOFF V8 — "El pulso y el jugadón" (tanda del 18-19/jul/2026)
 
+## 🔍 INFORME DE AUDITORÍA ADVERSARIAL (19/jul, sobre 2fdb22b)
+
+**Nota de método**: el workflow multi-agente se lanzó DOS veces y murió las
+dos por límites de la sesión (la segunda por **límite de gasto MENSUAL** —
+lo gestionás vos con /usage-credits si querés la pasada con subagentes).
+La auditoría se ejecutó INLINE con los mismos 6 lentes; los de lógica
+corrieron de verdad en node.
+
+### Qué se probó
+- **ROMPER**: 12 clases de basura contra validarLook/migrar/lookParaBloques,
+  planteles rotos, doble resolución de gambeta/quite/tiro, fichas con tipos
+  inventados y null, temporada con 4 equipos y división inventada, delta de
+  30s (foco perdido) contra el guard del pulso.
+- **SOAK**: la ESCALERA ENTERA B→Mundial→GLORIA en 5 temporadas (90 fechas,
+  tablas siempre consistentes) + 9 partidos completos a puro latido (3 por
+  preset de tempo, 128-442 latidos c/u): todos terminan, goles 0-5, reloj
+  nunca clavado, nadie fuera de cancha, sin NaN.
+- **FÍSICA**: 2000 semillas por caso borde — fuerza 200 vs manos 1: 2000/2000
+  goles; tiro mínimo vs arquero máximo: 1992/2000 atajadas y 0 rebotes
+  imposibles; matriz con vencedor y vencido por cada cierre; distribución de
+  cierres sana; pulso sin deriva en 9000 latidos.
+- **A11Y + §11 + MOBILE**: barridos de código, pesos (primer load 4,9MB),
+  precache vs scripts, guards de caché de tinte (todos presentes).
+
+### Hallazgos confirmados y ARREGLADOS
+1. **§11 (media)**: dos "GUTS" VISIBLES en la UI del clásico que el F6 no
+   cazó (banner del subidón + costo de especiales) → AGUANTE (`9ee169d`).
+2. **PWA (media)**: `jugadon_ui.js` no estaba en el precache — offline el
+   jugadón desaparecía → agregado + VERSION v8-3 (`22b32cb`).
+3. **A11Y (media)**: el jugadón era tap-only → botones numerados con teclas
+   1-9 + arco con 6 zonas numeradas (teclas 1-6) + sello anti-doble-tiro
+   (`5d8927a`). Verificado en vivo por teclado.
+
+### Refutados / falsos positivos
+- "Rionegrino Central / Puerto Central parecen clubes reales": no —
+  "Central" es genérico; no existen clubes profesionales con esos nombres.
+
+### Queda anotado (baja, pulido posterior)
+- `fondo_tribuna.png` 396KB: comprimible (~40% menos con paleta reducida).
+- Primer load 4,9MB total (1,15MB es el motor): razonable para PWA (baja
+  una vez y queda cacheado), pero si molesta en gama baja, el precache
+  puede pasar a lazy para las poses.
+
+### Reintegración (tu pedido, mismo cierre — `5d8927a`)
+- Megacosas y hinchada: **verificadas cableadas** (cutInEspecial en 5
+  puntos; tribuna en goles y Definición).
+- **Escenas con el arte por bando**: el rival protagonista con su pose
+  NARANJA; VOS con tu pinta en la corrida — alcanza a megacorrida,
+  combinada y gambetas.
+- **El gol del jugadón con pulido cinematográfico**: festejo ilustrado
+  entrando + explosión + la hinchada saltando + relator.
+
 ## ⬆ FIXES POST-AUDITORÍA + PLAYTEST (19/jul) — los 3, verificados EN VIVO
 
 **Tu pregunta ("¿qué encontré invertido?"): NADA estaba espejado.** Eran dos
