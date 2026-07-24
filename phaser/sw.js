@@ -7,7 +7,7 @@
    toque assets. El scope es phaser/ (el clásico de la raíz no se toca).
    ========================================================================== */
 "use strict";
-const VERSION = "pampa-star-v8-2";
+const VERSION = "pampa-star-v8-3";
 const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
@@ -21,7 +21,7 @@ const PRECACHE = [
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
-  "./scenes/definicion_ui.js",
+  "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js",
   "./data/balance.json",
   "../data/roster_pampeano.json", "../data/portraits_manifest.json",
   "../data/megacosas.json", "../data/relatos.json",
