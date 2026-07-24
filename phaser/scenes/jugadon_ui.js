@@ -49,6 +49,7 @@
     },
     jugadonCerrar(alFinal) {
       var self = this;
+      this.jugadonLimpiarBotones();   // a11y: los listeners de teclado mueren acá
       this.limpiarContenido();
       this.cineLayer.setVisible(false);
       this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
@@ -59,11 +60,22 @@
       this.dibujarRadar(); this.refrescarHUD();
     },
     jugadonBoton(x, y, wpx, texto, bg, cb) {
+      /* auditoría a11y: cada botón lleva su NÚMERO y responde a esa tecla
+         (1..9) — el jugadón es operable solo-dedo Y solo-teclado */
+      var num = (this._jg.nBotones = (this._jg.nBotones || 0) + 1);
       var b = this.add.rectangle(x, y, wpx, 54, bg, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(x, y, texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      var t = this.add.text(x, y, num + "·" + texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
       this.cineContent.add(b); this.cineContent.add(t);
       var self = this;
-      b.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
+      var disparar = function () { self._uiTocado = self.time.now; cb(); };
+      b.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); disparar(); });
+      if (this.input.keyboard && num <= 9) {
+        var teclas = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE"];
+        var handler = function () { if (self.estado === "JUGADON" && b.active) disparar(); };
+        this.input.keyboard.on("keydown-" + teclas[num - 1], handler);
+        this._jg.teclas = this._jg.teclas || [];
+        this._jg.teclas.push({ ev: "keydown-" + teclas[num - 1], fn: handler });
+      }
       this._jg.botones.push(b, t);
       return b;
     },
@@ -71,6 +83,9 @@
       var self = this;
       (this._jg.botones || []).forEach(function (o) { if (o && o.destroy) o.destroy(); });
       this._jg.botones = [];
+      (this._jg.teclas || []).forEach(function (t) { self.input.keyboard && self.input.keyboard.off(t.ev, t.fn); });
+      this._jg.teclas = [];
+      this._jg.nBotones = 0;
     },
     /* el globo de INTENCIÓN (lectura mutua: texto + flecha, accesible) */
     jugadonGlobo(x, y, texto) {
@@ -239,6 +254,26 @@
         var ly = (ayPiso - p.y) / 1.8;                 // → 0..140
         self.jugadonTirar({ x: lx, y: ly }, ax, ayPiso, AW, AH);
       });
+      /* a11y (auditoría): el arco TAMBIÉN por teclado — 6 zonas numeradas */
+      var ZT = [
+        { n: "1", x: -185, y: 120, tag: "ángulo izq" }, { n: "2", x: 0, y: 120, tag: "alto medio" }, { n: "3", x: 185, y: 120, tag: "ángulo der" },
+        { n: "4", x: -175, y: 25, tag: "palo bajo izq" }, { n: "5", x: 0, y: 20, tag: "al medio" }, { n: "6", x: 175, y: 25, tag: "palo bajo der" }
+      ];
+      ZT.forEach(function (z) {
+        var lz = self.add.text(ax + z.x * 1.8, ayPiso - z.y * 1.8, z.n, { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5).setAlpha(0.85);
+        self.cineContent.add(lz);
+      });
+      var tTeclas = this.add.text(ax, ayPiso + 38, "teclado: 1-6 = la zona numerada · o tocá el arco donde quieras", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.85);
+      this.cineContent.add(tTeclas);
+      if (this.input.keyboard) {
+        var teclas = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX"];
+        this._jg.teclas = this._jg.teclas || [];
+        ZT.forEach(function (z, i) {
+          var fn = function () { if (self.estado === "JUGADON" && zonaHit.active) { self._uiTocado = self.time.now; self.jugadonTirar({ x: z.x, y: z.y }, ax, ayPiso, AW, AH); } };
+          self.input.keyboard.on("keydown-" + teclas[i], fn);
+          self._jg.teclas.push({ ev: "keydown-" + teclas[i], fn: fn });
+        });
+      }
       this.musica && this.musica("urgente");
     },
     jugadonFuerza() {
@@ -247,6 +282,9 @@
       return tiro + (yo.aguante / this.BAL.aguante.max) * 60;   // la energía suma (doc: fuerza y energía)
     },
     jugadonTirar(zona, ax, ayPiso, AW, AH) {
+      /* auditoría: un solo tiro por ficha — el doble tap no dispara dos veces */
+      if (this._jg.tirado) return;
+      this._jg.tirado = true;
       var st = this.st, J = window.PampaJugadon, self = this;
       var yo = st.mios[st.ctrl];
       var lvl = (this._division && this._division.keeper) || st.rivalKeeperSkill || 50;
@@ -273,7 +311,17 @@
       this.SFX && this.SFX.kick && this.SFX.kick();
       this.time.delayedCall(this.msV(560), function () {
         var msj, color, snd = self.SFX;
-        if (res.outcome === "gol") { msj = d.llego === false ? "¡GOOOL! ¡NO LLEGÓ!" : "¡GOOOL! ¡SE LE ESCAPÓ!"; color = 0xffd84d; snd && snd.net && snd.net(); snd && snd.goal && snd.goal(); }
+        if (res.outcome === "gol") {
+          msj = d.llego === false ? "¡GOOOL! ¡NO LLEGÓ!" : "¡GOOOL! ¡SE LE ESCAPÓ!"; color = 0xffd84d;
+          snd && snd.net && snd.net(); snd && snd.goal && snd.goal();
+          /* REINTEGRACIÓN: el gol del jugadón con el pulido cinematográfico —
+             festejo ilustrado + explosión + LA HINCHADA SALTANDO + relator */
+          var kF = self.poseKey && self.poseKey("festejo");
+          if (kF) { var sf = self.add.image(W * 0.78, 280, kF); sf.setScale(190 / sf.height); sf.setAlpha(0); self.cineContent.add(sf); self.tweens.add({ targets: sf, alpha: 1, y: 260, duration: 260, ease: "Back.easeOut" }); }
+          self.burst && self.burst(W / 2, 250);
+          self.tribunaSaltando && self.tribunaSaltando();
+          self.relatar && self.relatar("gol");
+        }
         else if (res.outcome === "rebote") { msj = "¡LE REVENTASTE LAS MANOS!"; color = 0xff8c3a; snd && snd.gloves && snd.gloves(); }
         else if (res.outcome === "atajada") { msj = "¡LA SACÓ!"; color = 0x5bb8e8; snd && snd.gloves && snd.gloves(); }
         else { msj = "¡AFUERA!"; color = 0xe3503e; snd && snd.afuera && snd.afuera(); }

@@ -2057,7 +2057,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const poseId = cfg.pose || this.poseParaEscena(cfg.prota);
     let sp;
     if (poseId && this.poseKey(poseId)) {
-      sp = this.add.image(-200, H * 0.52, this.poseKey(poseId));
+      /* REINTEGRACIÓN (pedido de Rodri): las escenas llevan el ARTE por bando —
+         el rival con su pose teñida a NARANJA; VOS con tu pinta en la corrida
+         (megacorrida, combinada y gambetas incluidas) */
+      let kPose = this.poseKey(poseId);
+      if (cfg.prota && cfg.prota.esRival && this.poseRivalNaranja) kPose = this.poseRivalNaranja(poseId) || kPose;
+      else if (cfg.prota && cfg.prota.j && cfg.prota.j.esVos && poseId === "corriendo" && this.poseHeroeTenida) kPose = this.poseHeroeTenida(cfg.prota.j) || kPose;
+      sp = this.add.image(-200, H * 0.52, kPose);
       sp.setScale((cfg.especial ? 420 : 360) / sp.height);
       if (cfg.poseFlip) sp.setFlipX(true);
       sp._esPose = true;
