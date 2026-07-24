@@ -2281,7 +2281,7 @@ function startEncounter(type, ref){
   let txt, tag;
   if(type==="def"){ txt=`Te sale al cruce un <b>defensor de ${PS.rival.n}</b>. ¿Qué hacés?`; tag="atk"; }
   else if(type==="gk"){ txt=`¡Quedaste <b>mano a mano con el arquero</b>! Es ahora.`; tag="atk";
-    if(PS._subidon){ PS._subidon=false; setGuts(); banner('⚡ ¡SUBIDÓN!<br><span style="font-size:.55rem;color:var(--ok)">+5 GUTS por la jugada armada</span>'); } }
+    if(PS._subidon){ PS._subidon=false; setGuts(); banner('⚡ ¡SUBIDÓN!<br><span style="font-size:.55rem;color:var(--ok)">+5 de AGUANTE por la jugada armada</span>'); } }
   else { txt=`¡<b>${PS.rival.n}</b> avanza con la pelota! Te toca defender.`; tag="def"; }
   renderCombat(txt, cmds, tag);
 }
@@ -2353,7 +2353,7 @@ function renderCombat(txt, cmds, tag){
       const ch = cm.submenu ? null : (cm.pctFijo!=null ? cm.pctFijo : Math.round(duelChance(cm.my, cm.def)*100));
       const cls = ch==null?"mid":ch>=66?"hi":ch>=40?"mid":"lo";
       b.className = cm.especial ? "cmd special" : "cmd";
-      b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch ${cls}">${ch==null?"elegir receptor":ch+"%"}${cm.especial?" · -"+cm.cost+" GUTS":""}</div>${cm.sub?`<div class="csub">${cm.sub}</div>`:""}`;
+      b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch ${cls}">${ch==null?"elegir receptor":ch+"%"}${cm.especial?" · -"+cm.cost+" AGUANTE":""}</div>${cm.sub?`<div class="csub">${cm.sub}</div>`:""}`;
       b.addEventListener("click", ()=> chooseCommand(cm), {once:true});
     }
     grid.appendChild(b);
