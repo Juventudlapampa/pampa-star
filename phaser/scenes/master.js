@@ -37,6 +37,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.game.registry.remove("masterResultado");
       this.T.jugarFecha(this.save.temporada, res.golesMio | 0, res.golesRival | 0);
       this._ultimo = res;
+      /* V8 A1: la racha alimenta los eventos condicionales; el modificador de
+         la fecha se LIMPIA acá (nunca se arrastra al partido siguiente) */
+      const dif = (res.golesMio | 0) - (res.golesRival | 0);
+      this.save.racha = dif > 0 ? Math.max(1, (this.save.racha | 0) + 1) : dif < 0 ? Math.min(-1, (this.save.racha | 0) - 1) : 0;
+      if (window.PampaVida) window.PampaVida.limpiar(this.save);
       this.guardar();
     }
 
@@ -105,9 +110,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     const arrancarEn = (divId) => {
       this.backupClasico();   // V7 §3: la mudanza respalda el clásico primero
+      /* V8 A1 · EL ORIGEN: tres preguntas antes de la primera fecha */
+      this.vistaOrigen(divId);
+    };
+    this._crearCarrera = (divId, origen) => {
       const club = "Club " + this.pueblos[this.pSel];
       this.save = {
-        v: 1, club, division: divId, temporadaN: 1, titulos: [],
+        v: 1, club, pueblo: this.pueblos[this.pSel], division: divId, temporadaN: 1, titulos: [],
+        origen: origen || null, bolsaEventos: [], modFecha: null, racha: 0,
         temporada: this.T.crear({
           division: divId, miClub: club,
           rivales: this.DIV.divisiones[divId].rivales,
@@ -135,6 +145,68 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const apodo = roster && roster.clubes_por_pueblo && roster.clubes_por_pueblo[p] ? roster.clubes_por_pueblo[p].apodo : "";
     this.txtPueblo.setText("◀ Club " + p + " ▶");
     this.txtApodo.setText(apodo ? '"' + apodo + '" juega acá' : "");
+  }
+
+  /* ============ V8 A1 · PARTE 1: DE DÓNDE SALÍS (3 pantallas, una vez) ============
+     Elegís por identificación: los números NO se muestran. Cada elección deja
+     stats y una frase que el relator cita después. */
+  vistaOrigen(divId, paso, elegidas) {
+    const W = this.scale.width, H = this.scale.height;
+    const V = window.PampaVida, D = this.game.registry.get("vida");
+    if (!V || !D || !D.origen) { this._crearCarrera(divId, null); return; }
+    paso = paso || 0; elegidas = elegidas || [];
+    this.children.removeAll();
+    const p = D.origen[paso];
+    this.add.text(W / 2, 48, "TU HISTORIA · " + (paso + 1) + " de 3", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
+    p.opciones.forEach((o, i) => {
+      const y = 150 + i * 88;
+      const r = this.add.rectangle(W / 2, y, 720, 74, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      this.add.text(W / 2, y - 12, (i + 1) + " · " + o.t, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(W / 2, y + 16, o.sub || "", { fontFamily: window.PF.texto, fontSize: "14px", color: "#365a41" }).setOrigin(0.5);
+      const elegir = () => {
+        const nuevas = elegidas.concat([i]);
+        if (paso < D.origen.length - 1) this.vistaOrigen(divId, paso + 1, nuevas);
+        else this._crearCarrera(divId, V.aplicarOrigen(D, nuevas));
+      };
+      r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
+      if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO", "THREE", "FOUR"][i], elegir);
+    });
+    this.add.text(W / 2, H - 26, "elegí con el dedo o con las teclas 1-4 · no hay opción mala", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+  }
+
+  /* ============ V8 A1 · PARTE 2: LA SEMANA (antes de cada fecha) ============ */
+  vistaEvento(rival, alJugar) {
+    const W = this.scale.width, H = this.scale.height;
+    const V = window.PampaVida, D = this.game.registry.get("vida"), t = this.save.temporada;
+    if (!V || !D || !D.eventos) { alJugar(); return; }
+    const pos = this.T.posiciones(t);
+    const idxMio = pos.findIndex(f => f.equipo === t.miClub), idxRival = pos.findIndex(f => f.equipo === rival);
+    const ctx = {
+      fecha: t.fecha, division: this.save.division,
+      clasico: (this.save.pueblo && rival.indexOf(this.save.pueblo) >= 0) || false,
+      posMia: idxMio + 1, posRival: idxRival + 1, racha: this.save.racha | 0,
+      marcas: (this.save.origen && this.save.origen.marcas) || []
+    };
+    const sel = V.elegirEvento(D, this.save.bolsaEventos || [], ctx, this.Ma.hashClub(this.save.club) + t.fecha * 7919 + this.save.temporadaN * 13);
+    if (!sel) { alJugar(); return; }
+    this.save.bolsaEventos = sel.vistos;
+    this.children.removeAll();
+    this.add.text(W / 2, 54, "LA SEMANA", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 132, sel.evento.texto, { fontFamily: window.PF.texto, fontSize: "20px", color: "#f6efdc", align: "center", wordWrap: { width: 780 }, lineSpacing: 8 }).setOrigin(0.5);
+    sel.evento.opciones.forEach((o, i) => {
+      const y = 280 + i * 92;
+      const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      this.add.text(W / 2, y, (i + 1) + " · " + o.texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      const elegir = () => {
+        this.save.modFecha = V.aplicarEleccion(sel.evento, i);
+        this.guardar();
+        alJugar();
+      };
+      r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
+      if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO"][i], elegir);
+    });
+    this.add.text(W / 2, H - 26, "dos toques y a la cancha (teclas 1-2)", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
   }
 
   /* ============ VISTA 2: LA TEMPORADA ============ */
@@ -176,8 +248,15 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.add.text(W / 2, H - 150, fechaTxt + " · vs " + rival.toUpperCase() + " " + localia, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
         this.add.text(W / 2, H - 128, "un equipo " + perfil.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#7ee08a" }).setOrigin(0.5);
         this.boton(W / 2 - 170, H - 80, 300, "▶ JUGAR LA FECHA", 0x7ee08a, () => {
-          this.game.registry.set("masterPartido", { rival, division: this.save.division });
-          this.scene.start("match");
+          /* V8 A1: primero LA SEMANA (dos toques), después la cancha */
+          this.vistaEvento(rival, () => {
+            this.game.registry.set("masterPartido", {
+              rival, division: this.save.division,
+              mod: this.save.modFecha || null,
+              origen: this.save.origen || null
+            });
+            this.scene.start("match");
+          });
         });
       } else {
         this.add.text(W / 2, H - 140, fechaTxt + " · FECHA LIBRE (descansás)", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);

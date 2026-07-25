@@ -50,6 +50,7 @@
   <script src="logic/master.js"></script>
   <script src="logic/temporada.js"></script>
   <script src="logic/jugadon.js"></script>
+  <script src="logic/vida.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/sprites.js"></script>
   <script src="scenes/avatar_arte.js"></script>
@@ -113,6 +114,7 @@
   const pPoses = fetch("../data/poses_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pCaras = fetch("../data/caras_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pDivisiones = fetch("../data/divisiones.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  const pVida = fetch("../data/eventos_temporada.json").then(r=>r.ok?r.json():null).catch(()=>null);
   /* V8 §5: esperar las fuentes antes de crear textos — tope 8s (en celu con
      red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
@@ -135,7 +137,8 @@
       });
     }catch(e){}
   });
-  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones])=>{
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida])=>{
+    window.__PAMPA_VIDA = vida;
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;
     /* las familias del balance mandan (Rodri las afina en tipografia) */
@@ -143,16 +146,16 @@
       if (bal.tipografia.display) window.PF.display = bal.tipografia.display;
       if (bal.tipografia.texto) window.PF.texto = bal.tipografia.texto;
     }
-    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones);
+    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida);
   });
-  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones){
+  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida){
     const config = {
       type: Phaser.AUTO,
       parent: "game",
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);

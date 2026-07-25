@@ -456,8 +456,15 @@ window.PampaAvatarArte = (function () {
     });
     var fila = src.width * 4;
     for (var i = 0; i < d.length; i += 4) {
-      if (d[i + 3] < 40) continue;
+      /* A4 (playtest): el borde recortado se veía sucio porque los píxeles
+         semitransparentes del contorno también se teñían — ahora solo se tiñe
+         lo OPACO (alpha >= 128); el antialias del borde queda como está. */
+      if (d[i + 3] < 128) continue;
       var r = d[i], g = d[i + 1], b = d[i + 2];
+      /* A4: LA TINTA NO SE TIÑE — los contornos negros del dibujo (luma < 30)
+         quedan intactos; si no, el tinte de pelo "sangraba" por las líneas de
+         la cara y terminaba pintando media ilustración. */
+      if (0.299 * r + 0.587 * g + 0.114 * b < 30) continue;
       var py = (i / fila) | 0;
       for (var k = 0; k < reglas.length; k++) {
         var R = reglas[k];

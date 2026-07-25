@@ -1,0 +1,179 @@
+{
+  "_schema": "pampa-star/vida@1",
+  "_doc": "LA VIDA DE LA CARRERA (V8 A1). PARTE 1 'origen': tres pantallas al crear la carrera — elegís por identificación, no por optimizar (los números no se muestran). PARTE 2 'eventos': la SEMANA entre fechas, un evento corto en voz de cancha con dos respuestas y un modificador CHICO para ESA fecha. Dos toques y a la cancha. §11: cero gestión, cero plata, cero apuestas ni temáticas; pueblos reales (públicos), personas inventadas y sin nombre propio.",
+  "_efectos": "Vocabulario cerrado (todo opcional, todo chico). aguante: puntos del tanque inicial (max 1000). envion: puntos del medidor al arrancar (max 100). duelo: bonus al poder de TUS acciones. keeper: bonus a tu arquero. tiro/pase/gambeta: bonus a esa stat tuya. recuperacion: multiplicador de regeneración. arranque: bonus en el 1er tiempo (se apaga en el 2º). final: bonus en el 2º tiempo. Rango sano: 3-8 en bonus de stat, 40-90 en aguante, 20-45 en envión.",
+  "origen": [
+    {
+      "id": "donde",
+      "pregunta": "¿Dónde aprendiste a jugar?",
+      "opciones": [
+        { "t": "En el potrero, contra los más grandes", "sub": "te pegaban y volvías", "stats": { "gambeta": 6, "resistencia": 5 }, "frase": "el que aprendió en el potrero" },
+        { "t": "En la escuelita del club, con botines prestados", "sub": "primero la técnica", "stats": { "pase": 6, "tiro": 3 }, "frase": "el de la escuelita del club" },
+        { "t": "Solo, pateando contra la pared del galpón", "sub": "mil tiros por tarde", "stats": { "tiro": 8, "pase": -3 }, "frase": "el que le pegaba a la pared del galpón" },
+        { "t": "Con mi hermano mayor, que era el crack del pueblo", "sub": "aprendiste mirándolo", "stats": { "caracter": 6, "aereo": 5 }, "frase": "el hermano del crack" }
+      ]
+    },
+    {
+      "id": "afuera",
+      "pregunta": "¿Qué hacés cuando no jugás?",
+      "opciones": [
+        { "t": "Laburo en el campo desde temprano", "sub": "manos duras, piernas hechas", "stats": { "resistencia": 8, "fisico": 4 }, "frase": "el que labura el campo", "marca": "cosecha" },
+        { "t": "Estoy en la escuela y me cuelgo con el celu", "sub": "descansado pero blando", "stats": { "velocidad": 5, "resistencia": -4 }, "frase": "el pibe de la escuela" },
+        { "t": "Changas donde salga", "sub": "un poco de todo", "stats": { "fisico": 3, "caracter": 3 }, "frase": "el de las changas" },
+        { "t": "Ayudo en el taller de mi viejo", "sub": "fuerza de tornillo", "stats": { "tiro": 6, "fisico": 3 }, "frase": "el del taller" }
+      ]
+    },
+    {
+      "id": "consejo",
+      "pregunta": "¿Qué te dijo el que te enseñó?",
+      "opciones": [
+        { "t": "Que la pelota se acaricia", "sub": "nunca se patea de bronca", "stats": { "pase": 5, "tiro": 3 }, "frase": "al que le enseñaron a acariciarla" },
+        { "t": "Que al que duda lo pasan por arriba", "sub": "encarar siempre", "stats": { "gambeta": 7 }, "frase": "al que le enseñaron a encarar" },
+        { "t": "Que el equipo primero", "sub": "la pared antes que la gambeta", "stats": { "pase": 5, "caracter": 4 }, "frase": "el que juega para el equipo" },
+        { "t": "Que si no te tienen miedo, no existís", "sub": "que te sientan", "stats": { "caracter": 7, "fisico": 3 }, "frase": "al que le enseñaron a hacerse sentir" }
+      ]
+    }
+  ],
+  "eventos": [
+    { "id": "pampero", "categoria": "clima", "texto": "Se largó el pampero. La cancha del club es un pañuelo y el viento cruza de lado a lado.",
+      "opciones": [
+        { "texto": "Me la banco de frente", "efecto": { "tiro": 6 }, "frase_relator": "Le pegó toda la semana contra el viento: hoy la pelota le sale como un misil." },
+        { "texto": "Juego al ras del piso", "efecto": { "pase": 6, "tiro": -3 }, "frase_relator": "Nada por arriba: hoy la va a hacer correr por el piso." }
+      ] },
+    { "id": "barro", "categoria": "clima", "texto": "Llovió tres días. La cancha está pesada, hay barro hasta en el círculo central.",
+      "opciones": [
+        { "texto": "Me pongo los tapones largos", "efecto": { "aguante": 70 }, "frase_relator": "Con los tapones largos anda como si el barro no existiera." },
+        { "texto": "Juego liviano, sin pelear", "efecto": { "gambeta": 6, "fisico": -3 }, "frase_relator": "Eligió no chocar: hoy se va a escapar por los costados." }
+      ] },
+    { "id": "calor", "categoria": "clima", "texto": "Sol rajante, cuarenta grados a la sombra. Y no hay sombra.",
+      "opciones": [
+        { "texto": "Tomo agua y aflojo", "efecto": { "recuperacion": 1.5 }, "frase_relator": "Se cuidó del calor: va a estar entero hasta el final." },
+        { "texto": "Salgo a matar los primeros veinte", "efecto": { "arranque": 8, "final": -4 }, "frase_relator": "Sale a quemarlo todo temprano, después Dios dirá." }
+      ] },
+    { "id": "helada", "categoria": "clima", "texto": "Heló anoche. El pasto está duro como una chapa y la pelota pica raro.",
+      "opciones": [
+        { "texto": "Piso firme, no arriesgo", "efecto": { "pase": 5 }, "frase_relator": "Va a jugar simple, sin regalar nada en el piso duro." },
+        { "texto": "La pelota va a picar rara: la aprovecho", "efecto": { "tiro": 6, "pase": -2 }, "frase_relator": "Le va a pegar buscando ese pique raro que hoy nadie controla." }
+      ] },
+    { "id": "milanesas", "categoria": "pueblo", "texto": "Tu vieja hizo milanesas antes de salir. Comiste dos de más.",
+      "opciones": [
+        { "texto": "Igual voy", "efecto": { "arranque": -4, "envion": 30 }, "frase_relator": "Salió pesado pero con el alma llena." },
+        { "texto": "Las dejo para la vuelta", "efecto": {}, "frase_relator": "Las milanesas lo esperan: eso también es motivación." }
+      ] },
+    { "id": "micro", "categoria": "pueblo", "texto": "Fletaron el micro de la hinchada. Van treinta del pueblo a verte.",
+      "opciones": [
+        { "texto": "Salgo a jugar para ellos", "efecto": { "envion": 40 }, "frase_relator": "Con los treinta del pueblo en la tribuna, entra encendido." },
+        { "texto": "Trato de no pensarlo", "efecto": {}, "frase_relator": "Prefiere no mirar a la tribuna: a lo suyo." }
+      ] },
+    { "id": "hermanito", "categoria": "pueblo", "texto": "Tu hermanito te pidió ir a la cancha por primera vez.",
+      "opciones": [
+        { "texto": "Lo llevo", "efecto": { "envion": 35, "caracter": 3 }, "frase_relator": "Lo trajo al hermanito: si hace un gol ya sabemos para quién es." },
+        { "texto": "Que vaya el domingo que viene", "efecto": {}, "frase_relator": "Lo deja para la próxima, cuando esté más tranquilo." }
+      ] },
+    { "id": "botines", "categoria": "pueblo", "texto": "El almacenero te fió los botines nuevos. Todavía están duros.",
+      "opciones": [
+        { "texto": "Los estreno hoy", "efecto": { "tiro": 7, "arranque": -4 }, "frase_relator": "Estrena botines: le va a pegar fuerte aunque le cuesten al principio." },
+        { "texto": "Voy con los viejos", "efecto": {}, "frase_relator": "Los de siempre, los que ya conocen el pie." }
+      ] },
+    { "id": "asado", "categoria": "pueblo", "texto": "Hay asado en el club después del partido, ganen o pierdan.",
+      "opciones": [
+        { "texto": "Juego tranquilo", "efecto": { "recuperacion": 1.4 }, "frase_relator": "Sabe que después hay asado: juega suelto." },
+        { "texto": "Me lo quiero ganar", "efecto": { "envion": 35 }, "frase_relator": "Quiere sentarse a la mesa habiendo ganado." }
+      ] },
+    { "id": "nueve", "categoria": "equipo", "texto": "El nueve anda dulce: metió tres el domingo pasado.",
+      "opciones": [
+        { "texto": "Lo busco a él", "efecto": { "pase": 7 }, "frase_relator": "Hoy la va a buscar siempre para el nueve, que anda con la mano caliente." },
+        { "texto": "Yo también quiero la mía", "efecto": { "tiro": 6, "pase": -3 }, "frase_relator": "Hoy no la da: quiere la suya." }
+      ] },
+    { "id": "tecnico", "categoria": "equipo", "texto": "El técnico te llamó aparte durante la semana.",
+      "opciones": [
+        { "texto": "Escucho y hago caso", "efecto": { "duelo": 5 }, "frase_relator": "Viene con la lección aprendida del técnico." },
+        { "texto": "Yo sé lo que tengo que hacer", "efecto": { "gambeta": 6, "pase": -2 }, "frase_relator": "Va a jugar a lo suyo, guste o no." }
+      ] },
+    { "id": "capitan", "categoria": "equipo", "texto": "Se lesionó el capitán. Alguien tiene que hablar en el vestuario.",
+      "opciones": [
+        { "texto": "Hablo yo", "efecto": { "envion": 45, "caracter": 4 }, "frase_relator": "Habló él en el vestuario: el equipo salió otro." },
+        { "texto": "No es mi lugar", "efecto": {}, "frase_relator": "Prefirió el silencio y dejar que hablen los de más años." }
+      ] },
+    { "id": "pelea", "categoria": "equipo", "texto": "Dos compañeros se pelearon en el entrenamiento del jueves.",
+      "opciones": [
+        { "texto": "Los junto", "efecto": { "envion": 30, "pase": 3 }, "frase_relator": "Los sentó a los dos y arreglaron: se nota en la cancha." },
+        { "texto": "Que se arreglen", "efecto": { "duelo": 5, "envion": -15 }, "frase_relator": "No se metió: está en lo suyo, bien concentrado." }
+      ] },
+    { "id": "clasico", "categoria": "rival", "condicion": "clasico", "texto": "Es el clásico. Ellos andan diciendo que este año te comen crudo.",
+      "opciones": [
+        { "texto": "Que hablen", "efecto": { "duelo": 6 }, "frase_relator": "No contestó nada en la semana. Va a contestar acá." },
+        { "texto": "Me caliento", "efecto": { "fisico": 6, "pase": -4 }, "frase_relator": "Viene caliente de la semana: ojo con los primeros cruces." }
+      ] },
+    { "id": "puntero", "categoria": "rival", "condicion": "rival_arriba", "texto": "El rival viene puntero e invicto. En el pueblo dicen que es imposible.",
+      "opciones": [
+        { "texto": "Me guardo para el contragolpe", "efecto": { "final": 7, "arranque": -3 }, "frase_relator": "Plan claro: aguantar y salir de contra." },
+        { "texto": "Voy a buscarlo desde el arranque", "efecto": { "arranque": 8, "final": -3 }, "frase_relator": "Sale a buscarlo de entrada, sin respetar nada." }
+      ] },
+    { "id": "descendido", "categoria": "rival", "condicion": "rival_abajo", "texto": "El rival viene último y enojado. Vienen a dejar todo para no perder de nuevo.",
+      "opciones": [
+        { "texto": "Ojo que muerden: paciencia", "efecto": { "duelo": 5, "arranque": -2 }, "frase_relator": "Sabe que el que está último es el más peligroso." },
+        { "texto": "A estos hay que matarlos temprano", "efecto": { "arranque": 7 }, "frase_relator": "Quiere liquidarlo antes de que se ilusionen." }
+      ] },
+    { "id": "veedor", "categoria": "rival", "texto": "Vino un veedor de un club grande de Santa Rosa a ver el partido.",
+      "opciones": [
+        { "texto": "Juego para él", "efecto": { "tiro": 7, "pase": -4 }, "frase_relator": "Sabe que lo están mirando: hoy va a querer la de él." },
+        { "texto": "Juego para el equipo", "efecto": { "pase": 5, "envion": 25 }, "frase_relator": "Dijo que lo miren jugando para los compañeros." }
+      ] },
+    { "id": "cosecha", "categoria": "vida", "condicion": "campo", "texto": "Es la cosecha. Venís de doce horas arriba de la máquina.",
+      "opciones": [
+        { "texto": "Igual juego", "efecto": { "aguante": -90, "envion": 40 }, "frase_relator": "Viene de doce horas de máquina y está igual acá: el vestuario lo respeta." },
+        { "texto": "Pido salir en el segundo tiempo", "efecto": { "final": -5, "recuperacion": 1.3 }, "frase_relator": "Avisó que va a aguantar lo que pueda." }
+      ] },
+    { "id": "examen", "categoria": "vida", "texto": "Tenés examen el lunes y no estudiaste nada.",
+      "opciones": [
+        { "texto": "Estudio antes del partido", "efecto": { "duelo": -4, "aguante": 40 }, "frase_relator": "Viene con la cabeza en el examen del lunes." },
+        { "texto": "Estudio después", "efecto": {}, "frase_relator": "El examen puede esperar: ahora hay partido." }
+      ] },
+    { "id": "fiesta", "categoria": "vida", "texto": "Es la fiesta del pueblo el mismo día del partido.",
+      "opciones": [
+        { "texto": "Voy después del partido", "efecto": { "envion": 30 }, "frase_relator": "Después hay fiesta: quiere llegar con algo para festejar." },
+        { "texto": "Me la pierdo, estoy enfocado", "efecto": { "duelo": 5 }, "frase_relator": "Se perdió la fiesta del pueblo por este partido." }
+      ] },
+    { "id": "colectivo", "categoria": "vida", "texto": "Se rompió el colectivo camino al partido. Llegaron sobre la hora.",
+      "opciones": [
+        { "texto": "Entro en frío", "efecto": { "arranque": -6, "final": 5 }, "frase_relator": "Sin precalentar, entra en frío: ojo los primeros minutos." },
+        { "texto": "Pido entrar más adelante", "efecto": { "aguante": 60, "arranque": -3 }, "frase_relator": "Prefirió esperar un rato antes de meterse de lleno." }
+      ] },
+    { "id": "arquero", "categoria": "equipo", "texto": "El arquero se quedó hasta tarde atajando penales contra el paredón del club.",
+      "opciones": [
+        { "texto": "Me quedo a patearle", "efecto": { "keeper": 8 }, "frase_relator": "Le pateó hasta que oscureció: el arquero llega afiladísimo." },
+        { "texto": "Me voy a descansar", "efecto": { "aguante": 70 }, "frase_relator": "Durmió como un tronco y se le nota." }
+      ] },
+    { "id": "chicos", "categoria": "pueblo", "texto": "Los pibes de la escuela te esperan en la puerta para que les firmes la pelota.",
+      "opciones": [
+        { "texto": "Me quedo a jugar un rato con ellos", "efecto": { "envion": 35, "aguante": -30 }, "frase_relator": "Se quedó jugando con los pibes: se acordó de por qué juega." },
+        { "texto": "Firmo y sigo a entrenar", "efecto": { "duelo": 3 }, "frase_relator": "Firmó, saludó y se fue a entrenar. Puntual como siempre." }
+      ] },
+    { "id": "radio", "categoria": "pueblo", "texto": "La radio del pueblo te quiere hacer una nota en vivo el sábado a la tarde.",
+      "opciones": [
+        { "texto": "Voy y hablo del equipo", "efecto": { "envion": 30 }, "frase_relator": "En la radio nombró a todos: los muchachos se agrandaron." },
+        { "texto": "Que vaya el capitán", "efecto": { "aguante": 55 }, "frase_relator": "Mandó al capitán y se guardó la tarde." }
+      ] },
+    { "id": "cancha_rival", "categoria": "rival", "texto": "Fuiste a ver cómo está el piso de la cancha del rival. Está duro y pica alto.",
+      "opciones": [
+        { "texto": "Pruebo los botines viejos", "efecto": { "duelo": 4 }, "frase_relator": "Fue a probar el piso durante la semana: hoy está bien parado." },
+        { "texto": "Le aviso al arquero cómo pica", "efecto": { "keeper": 6 }, "frase_relator": "El arquero ya sabe cómo pica acá: se lo avisaron." }
+      ] },
+    { "id": "racha", "categoria": "equipo", "condicion": "racha_buena", "texto": "El equipo viene invicto y en el pueblo ya hablan de campeonato.",
+      "opciones": [
+        { "texto": "Pido pies en la tierra", "efecto": { "duelo": 5 }, "frase_relator": "Pidió humildad en el vestuario: nadie se cree nada." },
+        { "texto": "Que sueñen, total ganamos", "efecto": { "envion": 40, "duelo": -3 }, "frase_relator": "Salen convencidos de que no los para nadie." }
+      ] },
+    { "id": "mala_racha", "categoria": "equipo", "condicion": "racha_mala", "texto": "Hace tres fechas que no ganan y el vestuario está pesado.",
+      "opciones": [
+        { "texto": "Los junto y hablamos", "efecto": { "envion": 45 }, "frase_relator": "Habló de frente en el vestuario: hoy salen a romperla." },
+        { "texto": "Cada uno que se haga cargo", "efecto": { "duelo": 6, "envion": -20 }, "frase_relator": "Cada uno con lo suyo: él va a hacerse cargo de lo que le toca." }
+      ] },
+    { "id": "primera_fecha", "categoria": "vida", "condicion": "primera", "texto": "Es tu primera fecha con esta camiseta. No dormiste en toda la noche.",
+      "opciones": [
+        { "texto": "Salgo a comerme la cancha", "efecto": { "arranque": 8, "aguante": -40 }, "frase_relator": "Debuta con toda la ansiedad encima." },
+        { "texto": "Voy de a poco, a entrar en el partido", "efecto": { "final": 6 }, "frase_relator": "Empieza tranquilo, sabiendo que el partido es largo." }
+      ] }
+  ]
+}

@@ -167,6 +167,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this._perfilRival = Ma.perfilRival(this.nombreRival);
       Ma.aplicar(this.st, this._division, this._perfilRival);
     }
+    /* V8 A1 · LA VIDA: el ORIGEN (stats de por vida) y el MODIFICADOR de ESTA
+       fecha (lo que pasó en la semana). Chicos a propósito: dan sabor. */
+    this._vidaFicha = null;
+    if (this._masterPartido) {
+      const vos = this.st.mios.find(j => j.esVos) || this.st.mios[this.st.ctrl];
+      const or = this._masterPartido.origen;
+      if (or && or.stats && vos && vos.stats) {
+        Object.keys(or.stats).forEach(k => { if (vos.stats[k] != null) vos.stats[k] = Phaser.Math.Clamp(vos.stats[k] + or.stats[k], 20, 99); });
+      }
+      const md = this._masterPartido.mod;
+      if (md && md.mod) {
+        const M = md.mod, A = this.BAL.aguante;
+        if (M.aguante) this.st.mios.forEach(j => { j.aguante = Phaser.Math.Clamp(j.aguante + M.aguante, 60, A.max); });
+        if (M.envion) this.st.envion = Phaser.Math.Clamp((this.st.envion || 0) + M.envion, 0, (this.BAL.envion && this.BAL.envion.max) || 100);
+        if (M.keeper) this.st.mios.forEach(j => { if (j.pos === "ARQ" && j.stats) j.stats.quite = Phaser.Math.Clamp((j.stats.quite || 50) + M.keeper, 20, 99); });
+        ["tiro", "pase", "gambeta", "fisico", "caracter"].forEach(k => {
+          if (M[k] && vos && vos.stats && vos.stats[k] != null) vos.stats[k] = Phaser.Math.Clamp(vos.stats[k] + M[k], 20, 99);
+        });
+        this._modVida = M;   // duelo/arranque/final/recuperación se leen en juego
+        this._vidaFicha = md.frase || "";
+      }
+    }
 
     /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
        capa de HUD (radar + marcador + aguante) y capa de MENÚ: solo la cámara de UI fija */
@@ -871,7 +893,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const T = cara.tonos || {}, tol = CM.tolerancias || {};
       const CAT = A.CATALOGO;
       const mapa = [];
-      if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 70 });
+      if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 46, y1: cara.pelo_y1 != null ? cara.pelo_y1 : 0.5 });
       if (tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[tPiel - 1].hex), tol: tol.piel || 85 });
       if (T.camiseta && (esRival || tCam > 0)) mapa.push({ de: hx(T.camiseta), a: esRival ? 0xFF8A50 : hx(CM.camisetas[(tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
       Arte.tenirImagen(this, "cara_" + cara.id, key, mapa);
@@ -966,6 +988,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.estado = "LIBRE";
       this.st.modo = "juego";
       this.avisar("Tempo " + k.toUpperCase() + " · " + T.minutos_por_momento + "' por momento");
+      /* V8 A1: LA FICHA DEL PARTIDO — por qué hoy te cuesta (o te sobra) */
+      if (this._vidaFicha) this.time.delayedCall(1400, () => this.avisar("📋 " + this._vidaFicha));
       this.tutorialSiHaceFalta();
     };
     PRESETS.forEach((p, i) => {
@@ -2673,7 +2697,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._split) {
       const V = this.BAL.vista || {};
       const ahora = this.time.now;
-      if (!this._imprec || ahora >= this._imprec.hasta || this._imprec.pos.length !== st.rivales.length) {
+      /* A2 (playtest): con un MENÚ abierto el mundo se congela ENTERO — la
+         imprecisión del mapa dejaba a los rivales saltando mientras leías */
+      const congelado = this.estado !== "LIBRE" && this.estado !== "BEAT";
+      if (!congelado && (!this._imprec || ahora >= this._imprec.hasta || this._imprec.pos.length !== st.rivales.length)) {
         const rad = V.imprecision_radio != null ? V.imprecision_radio : 60;
         this._imprec = {
           hasta: ahora + (V.imprecision_ms != null ? V.imprecision_ms : 750),
@@ -2927,7 +2954,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this.estado === "MENU" || this.estado === "PASE") this.teclasDeMenu();
       this.dibujarRadar();
       this.refrescarHUD();
-      if (this._split) this.updatePanelEscena(delta);   // V7-1: el panel no se congela feo
+      /* A2: con menú abierto NADA se mueve — ni el bob del panel (la escena
+         queda clavada como una viñeta mientras decidís) */
+      if (this._split && this.estado !== "MENU" && this.estado !== "PASE") this.updatePanelEscena(delta);
       else { this.updateFichas(true); this.dibujarPaseCancha(); }
       return;
     }

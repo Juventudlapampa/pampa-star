@@ -13,7 +13,8 @@
         "piel": "#ffeecc",
         "camiseta": "#44bbff"
       },
-      "corte_bloques": "corto"
+      "corte_bloques": "corto",
+      "pelo_y1": 0.5
     },
     {
       "id": "rulos",
@@ -24,7 +25,8 @@
         "piel": "#cc9966",
         "camiseta": "#44bbff"
       },
-      "corte_bloques": "rulos"
+      "corte_bloques": "rulos",
+      "pelo_y1": 0.62
     },
     {
       "id": "melena",
@@ -35,7 +37,8 @@
         "piel": "#ffeecc",
         "camiseta": "#44bbff"
       },
-      "corte_bloques": "melena"
+      "corte_bloques": "melena",
+      "pelo_y1": 0.62
     },
     {
       "id": "rapado",
@@ -47,7 +50,8 @@
         "camiseta": "#44bbff"
       },
       "tintes_pelo": false,
-      "corte_bloques": "rapado"
+      "corte_bloques": "rapado",
+      "pelo_y1": 0.5
     },
     {
       "id": "colorado",
@@ -62,7 +66,8 @@
         "rubio",
         "canoso"
       ],
-      "corte_bloques": "corto"
+      "corte_bloques": "corto",
+      "pelo_y1": 0.5
     },
     {
       "id": "flequillo",
@@ -73,7 +78,8 @@
         "piel": "#ffeecc",
         "camiseta": "#44bbff"
       },
-      "corte_bloques": "flequillo"
+      "corte_bloques": "flequillo",
+      "pelo_y1": 0.5
     },
     {
       "id": "mohicano",
@@ -84,7 +90,8 @@
         "piel": "#bb9955",
         "camiseta": "#44bbff"
       },
-      "corte_bloques": "colita"
+      "corte_bloques": "colita",
+      "pelo_y1": 0.5
     },
     {
       "id": "tranqui",
@@ -95,7 +102,8 @@
         "piel": "#eebb88",
         "camiseta": "#44bbff"
       },
-      "corte_bloques": "corto"
+      "corte_bloques": "corto",
+      "pelo_y1": 0.5
     }
   ],
   "camisetas": [
@@ -113,9 +121,10 @@
     }
   ],
   "tolerancias": {
-    "pelo": 70,
+    "pelo": 46,
     "piel": 85,
     "camiseta": 95
   },
-  "_bloques": "V7 fix editor: corte_bloques = con qué CORTE del catálogo de bloques se insinúa cada cara en el muñequito del mapa/editor (ids de logic/avatar.js cortes). Editable sin código."
+  "_bloques": "V7 fix editor: corte_bloques = con qué CORTE del catálogo de bloques se insinúa cada cara en el muñequito del mapa/editor (ids de logic/avatar.js cortes). Editable sin código.",
+  "_a4": "V8 A4 (playtest): el tinte de pelo sangraba a la cara. Ahora cada cara declara pelo_y1 (hasta qué altura, 0-1, se aplica la regla del pelo) y la tolerancia del pelo bajó a 46. Además tenirImagen NO toca contornos (luma<30) ni el antialias del borde (alpha<128)."
 }
