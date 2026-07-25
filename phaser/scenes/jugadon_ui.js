@@ -95,16 +95,19 @@
       return t;
     },
 
-    /* ============ LA GAMBETA (2 fichas) ============ */
+    /* ============ LA GAMBETA — EL MINIJUEGO (V8 C) ============
+       Entorno APARTE, cancha más ancha que larga: MOVÉS a tu jugador (dedo o
+       flechas), los rivales VIENEN a cerrarte y, cuando uno te alcanza, se
+       abre el duelo de LECTURA (tu movida contra su cierre insinuado). Si los
+       pasás a todos o llegás al fondo, la jugada TERMINA en remate. */
     entrarJugadonGambeta(rivalIdx) {
       var st = this.st, J = window.PampaJugadon, self = this;
       var yo = st.mios[st.ctrl];
-      /* ves cuántos vienen: el del cruce + otro si está cerca */
       var defs = [];
       if (rivalIdx != null) defs.push(st.rivales[rivalIdx]);
       st.rivales.forEach(function (r, i) {
         if (defs.length >= 2 || i === rivalIdx || r.pos === "ARQ") return;
-        if (Math.hypot(r.x - yo.x, r.y - yo.y) < 180) defs.push(r);
+        if (Math.hypot(r.x - yo.x, r.y - yo.y) < 220) defs.push(r);
       });
       if (!defs.length) defs.push({ nombre: "RIVAL", stats: { quite: 55 } });
       this._jgLogica = J.crearGambeta({
@@ -113,71 +116,145 @@
         atacante: { gambeta: (yo.stats && yo.stats.gambeta) || 55 },
         defensores: defs.map(function (d) { return { quite: (d.stats && d.stats.quite) || 55, nombre: d.nombre }; })
       });
-      this.jugadonAbrir("🌟 EL JUGADÓN · vienen " + defs.length + " — leé el cierre y elegí tu movida");
-      /* VOS abajo (tu pose con tu pinta), los que vienen arriba */
+      this.jugadonAbrir("🌟 EL JUGADÓN · movete y esquivalos — llegá arriba para definir");
+      var B = this.BAL.jugadon || {};
+      this._jgMini = {
+        x: W / 2, y: 380, vel: B.vel_jugador || 320, metaY: B.meta_y || 110,
+        rivales: [], duelo: null, terminado: false, t: 0
+      };
       var kYo = this.poseHeroeTenida ? (this.poseHeroeTenida(yo) || this.poseKey("corriendo")) : this.poseKey("corriendo");
-      if (kYo) { var sy = this.add.image(480, 350, kYo); sy.setScale(130 / sy.height); this.cineContent.add(sy); this._jg.yo = sy; }
-      this.jugadonPintarDefensores();
-      this.jugadonPintarOpciones();
+      var sy = kYo ? this.add.image(this._jgMini.x, this._jgMini.y, kYo) : this.add.rectangle(this._jgMini.x, this._jgMini.y, 40, 90, 0x4fc3f7);
+      if (sy.height) sy.setScale(112 / sy.height);
+      this.cineContent.add(sy);
+      this._jgMini.spr = sy;
+      var bola = this.add.sprite(this._jgMini.x + 34, this._jgMini.y + 46, "ball").setScale(1.9);
+      this.cineContent.add(bola);
+      this._jgMini.bola = bola;
+      var kR = this.poseRivalNaranja ? this.poseRivalNaranja("bloqueo") : this.poseKey("bloqueo");
+      this._jgLogica.defensores.forEach(function (d, i) {
+        var rx = W / 2 + (i === 0 ? -110 : 140), ry = 150 - i * 55;
+        var sr = kR ? self.add.image(rx, ry, kR) : self.add.rectangle(rx, ry, 40, 90, 0xff8a50);
+        if (sr.height) sr.setScale(100 / sr.height);
+        self.cineContent.add(sr);
+        var nom = self.add.text(rx, ry - 62, "▲ " + (d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
+        self.cineContent.add(nom);
+        self._jgMini.rivales.push({ spr: sr, nom: nom, idx: i, vivo: true, vel: (B.vel_rival || 118) + i * 14 });
+      });
+      /* controles: DEDO (tap/arrastre) y FLECHAS — los dos, siempre */
+      this._jgMini.target = null;
+      var zona = this.add.rectangle(W / 2, 240, W, 400, 0xffffff, 0.001).setInteractive();
+      this.cineContent.add(zona);
+      zona.on("pointerdown", function (pp) { self._jgMini.target = { x: pp.x, y: pp.y }; });
+      zona.on("pointermove", function (pp) { if (pp.isDown && self._jgMini) self._jgMini.target = { x: pp.x, y: pp.y }; });
+      this._jgMini.cursores = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
+      var ayuda = this.add.text(W / 2, H - 26, "movete con el DEDO o las FLECHAS · llegá arriba para definir", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
+      this.cineContent.add(ayuda);
       this.musica && this.musica("urgente");
     },
-    jugadonPintarDefensores() {
-      var g = this._jgLogica, self = this;
-      (this._jg.sprites || []).forEach(function (o) { o.destroy(); });
-      this._jg.sprites = [];
-      var kR = this.poseRivalNaranja ? this.poseRivalNaranja("bloqueo") : this.poseKey("bloqueo");
-      g.defensores.forEach(function (d, i) {
-        if (i < g.paso) return;   // ya quedó atrás
-        var sx = 300 + i * 360, sy = 140 + i * 30;
-        var s = kR ? self.add.image(sx, sy, kR) : self.add.rectangle(sx, sy, 40, 90, 0x1a0d08);
-        if (s.setScale && s.height) s.setScale(100 / s.height);
-        self.cineContent.add(s);
-        self._jg.sprites.push(s);
-        /* VIENEN hacia vos (tween corto, la amenaza se siente) */
-        self.tweens.add({ targets: s, y: sy + 26, duration: 700, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
-        if (i === g.paso) {
-          var nom = (d.nombre || "RIVAL").toUpperCase().slice(0, 12);
-          self._jg.sprites.push(self.jugadonGlobo(sx, sy - 60, "▼ " + nom + ": " + d.cierre.n));
-        }
+
+    /* el latido del minijuego (lo llama el update: el partido está quieto) */
+    updateJugadonMini(delta) {
+      var m = this._jgMini, self = this;
+      if (!m || m.terminado || m.duelo || !m.spr || !m.spr.active) return;
+      var dt = Math.min(0.05, delta / 1000);
+      m.t += delta;
+      var vx = 0, vy = 0;
+      if (m.cursores) {
+        if (m.cursores.left.isDown) vx -= 1;
+        if (m.cursores.right.isDown) vx += 1;
+        if (m.cursores.up.isDown) vy -= 1;
+        if (m.cursores.down.isDown) vy += 1;
+        if (vx || vy) m.target = null;
+      }
+      if (!vx && !vy && m.target) {
+        var dx = m.target.x - m.x, dy = m.target.y - m.y, d = Math.hypot(dx, dy);
+        if (d > 6) { vx = dx / d; vy = dy / d; } else m.target = null;
+      }
+      if (vx || vy) {
+        var n = Math.hypot(vx, vy) || 1;
+        m.x = Math.max(60, Math.min(W - 60, m.x + vx / n * m.vel * dt));
+        m.y = Math.max(m.metaY - 20, Math.min(410, m.y + vy / n * m.vel * dt));
+        m.spr.setFlipX(vx < 0);
+        m.spr.setAngle(Math.floor(m.t / 160) % 2 ? 3 : -3);
+      } else m.spr.setAngle(0);
+      m.spr.setPosition(m.x, m.y);
+      m.bola.setPosition(m.x + (m.spr.flipX ? -34 : 34), m.y + 46);
+      if (vx || vy) m.bola.rotation += 0.16;
+      m.rivales.forEach(function (r) {
+        if (!r.vivo || !r.spr.active) return;
+        var rdx = m.x - r.spr.x, rdy = m.y - r.spr.y, rd = Math.hypot(rdx, rdy) || 1;
+        r.spr.x += rdx / rd * r.vel * dt;
+        r.spr.y += rdy / rd * r.vel * dt;
+        r.nom.setPosition(r.spr.x, r.spr.y - 62);
+        if (rd < ((self.BAL.jugadon && self.BAL.jugadon.contacto) || 78)) self.jugadonDuelo(r);
+      });
+      if (!m.duelo && !m.terminado && m.y <= m.metaY) self.jugadonRemate();
+    },
+
+    /* TE ALCANZÓ: el minijuego se congela y elegís tu movida contra su cierre */
+    jugadonDuelo(r) {
+      var self = this, g = this._jgLogica, m = this._jgMini;
+      if (!m || m.duelo || m.terminado) return;
+      m.duelo = r;
+      var d = g.defensores[Math.min(r.idx, g.defensores.length - 1)];
+      this._jg.sprites.push(this.jugadonGlobo(r.spr.x, r.spr.y - 84, d.cierre.n));
+      this.SFX && this.SFX.whoosh && this.SFX.whoosh(220);
+      var ops = g.opciones, wpx = Math.min(180, (W - 40) / ops.length - 10);
+      ops.forEach(function (mv, i) {
+        var x = W / 2 + (i - (ops.length - 1) / 2) * (wpx + 10);
+        self.jugadonBoton(x, H - 60, wpx, mv.n, 0xf6efdc, function () { self.jugadonMovida(mv.id, r); });
       });
     },
-    jugadonPintarOpciones() {
-      var g = this._jgLogica, self = this;
-      this.jugadonLimpiarBotones();
-      var n = g.opciones.length, wpx = Math.min(180, (W - 40) / n - 10);
-      g.opciones.forEach(function (m, i) {
-        var x = W / 2 + (i - (n - 1) / 2) * (wpx + 10);
-        self.jugadonBoton(x, H - 60, wpx, m.n, 0xf6efdc, function () { self.jugadonMovida(m.id); });
-      });
-    },
-    jugadonMovida(movidaId) {
-      var st = this.st, J = window.PampaJugadon, self = this;
+
+    jugadonMovida(movidaId, r) {
+      var st = this.st, J = window.PampaJugadon, self = this, m = this._jgMini;
       var res = J.cruceGambeta(this._jgLogica, movidaId);
       if (!res) return;
+      this.jugadonLimpiarBotones();
+      (this._jg.sprites || []).forEach(function (o) { if (o && o.destroy) o.destroy(); });
+      this._jg.sprites = [];
       this.SFX && this.SFX.whoosh && this.SFX.whoosh(300);
-      if (res.gana && !this._jgLogica.terminado) {
+      if (res.gana) {
         this.avisoJugadon("¡LO PASASTE!", 0x7ee08a);
-        this.jugadonPintarDefensores();
+        if (r) {
+          r.vivo = false;
+          this.tweens.add({ targets: [r.spr, r.nom], y: "+=170", alpha: 0.25, angle: -60, duration: 420 });
+        }
+        if (m) m.duelo = null;
+        if (m && m.rivales.every(function (x) { return !x.vivo; })) this.time.delayedCall(this.msV(520), function () { self.jugadonRemate(); });
         return;
       }
-      var exito = this._jgLogica.exito;
-      this.jugadonLimpiarBotones();
-      this.avisoJugadon(exito ? "¡LOS DEJASTE ATRÁS!" : "¡" + ((res.defensor && res.defensor.nombre) || "TE") + " TE LEYÓ!", exito ? 0xffd84d : 0xe3503e);
-      this.time.delayedCall(this.msV(1000), function () {
+      if (m) m.terminado = true;
+      this.avisoJugadon("¡TE LO LEYÓ!", 0xe3503e);
+      this.time.delayedCall(this.msV(900), function () {
         self.jugadonCerrar(function () {
-          var P = window.PampaPartido;
-          if (exito) {
-            P.ganarAtaque(st, "gambeta", null);
-            var yo = st.mios[st.ctrl];
-            yo.x = Math.min(st.W - 40, yo.x + 150);   // la ventaja: quedaste lanzado
-            self.relatar && self.relatar("gambeta_win");
-          } else {
-            P.perderPelota(st);
-            self.relatar && self.relatar("gambeta_lose");
-          }
+          window.PampaPartido.perderPelota(st);
+          self.relatar && self.relatar("gambeta_lose");
         });
       });
     },
+
+    /* pasaste a todos (o llegaste al fondo): la jugada TERMINA en remate */
+    jugadonRemate() {
+      var self = this, m = this._jgMini, st = this.st;
+      if (!m || m.terminado) return;
+      m.terminado = true;
+      this.jugadonLimpiarBotones();
+      this.avisoJugadon("¡QUEDÓ DE FRENTE AL ARCO!", 0xffd84d);
+      var F = this.jugadonFichas();
+      this.time.delayedCall(this.msV(820), function () {
+        st.mios[st.ctrl].x = Math.min(st.W - 60, st.W - 130);   // quedaste en el área
+        if (F.tiros > 0 && window.PampaJugadon.gastarFicha(F, "tiros")) {
+          self._jgMini = null;
+          self.entrarJugadonTiro();
+        } else {
+          self.jugadonCerrar(function () { self.tiroPorComandos(null); });
+        }
+      });
+    },
+    jugadonPintarDefensores() { /* V8 C: los rivales viven en updateJugadonMini */ },
+    jugadonPintarOpciones() { /* V8 C: las movidas aparecen SOLO en el duelo */ },
+
     avisoJugadon(texto, color) {
       var t = this.add.text(W / 2, 250, texto, { fontFamily: window.PF.display, fontSize: "22px", color: "#" + color.toString(16).padStart(6, "0"), stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5).setScale(0.3);
       this.cineContent.add(t);

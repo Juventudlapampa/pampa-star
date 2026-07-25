@@ -498,5 +498,12 @@
     "ata_descuelga": 120,
     "ata_baja": 140,
     "ata_abre": 70
+  },
+  "jugadon": {
+    "_nota": "V8 C EL MINIJUEGO DE GAMBETA: vel_jugador = tu velocidad en la plataforma (px/s); vel_rival = la de los que te vienen a cerrar (que sea MENOR o los esquivás sin gracia); contacto = a qué distancia te alcanzan y se abre el duelo de lectura; meta_y = la altura del fondo (llegar ahí = definir).",
+    "vel_jugador": 320,
+    "vel_rival": 118,
+    "contacto": 78,
+    "meta_y": 110
   }
 }

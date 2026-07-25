@@ -3021,7 +3021,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
     if (this.estado === "CINE") { this.updateViaje(delta); return; }
     if (this.estado === "ESCENA") return;   // Anime B: la viñeta corre por reloj propio
-    if (this.estado === "JUGADON") return;  // V8 §3: la plataforma corre por botones y reloj propio
+    /* V8 C: el JUGADÓN es un MINIJUEGO — corre su propio latido (movimiento
+       libre, rivales que vienen); el partido de abajo sigue congelado */
+    if (this.estado === "JUGADON") { if (this.updateJugadonMini) this.updateJugadonMini(delta); return; }
     if (this.estado === "DEFINICION") { this.updateDefinicion(delta); return; }   // V6 §4
     if (this.estado === "TIMING") {
       this.dibujarTiming();
