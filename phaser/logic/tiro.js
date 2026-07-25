@@ -70,7 +70,7 @@
     };
   }
 
-  /* ============ V8 B · EL TIRO TSUBASA (sin minijuego, sin elegir zona) ============
+  /* ============ V8 B · EL TIRO POR COMANDOS (sin minijuego, sin elegir zona) ============
      El remate común es: elijo → ANIMACIÓN → INTRIGA → resultado. La zona la
      decide el JUEGO, no una pantalla: sale de DÓNDE disparaste (ángulo y
      distancia), el CANSANCIO del que patea, su puntería y los defensores en el

@@ -2038,7 +2038,7 @@ function startPlay(club, rival){
   const cv = $("pitch"); PS.ctx = cv.getContext("2d"); PS.ctx.imageSmoothingEnabled=false;
   PS.equipo = buildEquipo();            // V2: 5v5 con amigos reales + canteranos
   PS.rivales = buildRivales();
-  $("guts-lab").textContent = "GUTS·"+String(career.name).toUpperCase().slice(0,7);  // el HUD dice de QUIÉN es el Guts
+  $("guts-lab").textContent = "AGUANTE·"+String(career.name).toUpperCase().slice(0,7);  // el HUD dice de QUIÉN es el Guts
   kickoff("mia");
   PS.state="run";
   SFX("whistle",1); MUSICA("posesion");
@@ -2322,7 +2322,7 @@ function buildCommands(type){
     for(const e of TIROS_ESPECIALES){
       if(nv < e.nivel)        base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"NIVEL "+e.nivel});
       else if(!e.funcional)   base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"PRÓXIMAMENTE"});
-      else if(PS.guts<e.guts) base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"GUTS "+e.guts});
+      else if(PS.guts<e.guts) base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"AGUANTE "+e.guts});
       else base.push({k:e.id, cn:e.cn, ico:e.ico, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:g+8, on:"tiroGol", especial:e});
     }
     return base;
@@ -2858,7 +2858,7 @@ function setGuts(){
   g=clamp(g,0,100);
   $("guts-fill").style.width=g+"%";
   $("guts-fill").style.background = g>55?"linear-gradient(90deg,#7ee08a,#3fbf63)":g>25?"linear-gradient(90deg,#f6c11d,#ffaf3a)":"linear-gradient(90deg,#e3503e,#ff7a5e)";
-  if(nom) $("guts-lab").textContent="GUTS·"+String(nom).toUpperCase().slice(0,7);   // el HUD dice de QUIÉN es el Guts
+  if(nom) $("guts-lab").textContent="AGUANTE·"+String(nom).toUpperCase().slice(0,7);   // el HUD dice de QUIÉN es el Guts
   if(typeof refreshActionBtns==="function") refreshActionBtns();
 }
 function showScreen(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $(id).classList.add("active"); }
@@ -2920,8 +2920,8 @@ function refreshActionBtns(){
   if(nivelJugador()<e.nivel) sub="NIVEL "+e.nivel;
   else if(!puedo) sub="sin pelota";
   else if(!yoCtrl) sub="si llegás VOS";
-  else if(PS.guts<e.guts) sub="GUTS "+e.guts;
-  else { sub="-"+e.guts+" GUTS · tecla E"; off=false; }
+  else if(PS.guts<e.guts) sub="AGUANTE "+e.guts;
+  else { sub="-"+e.guts+" AGUANTE · tecla E"; off=false; }
   be.classList.toggle("off", off);
   $("especial-sub").textContent=sub;
 }

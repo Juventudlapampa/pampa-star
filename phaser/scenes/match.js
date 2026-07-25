@@ -216,7 +216,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     cam.setZoom(this._zoomBase);
     cam.roundPixels = true;       // scroll sin temblor (equivale al roundPixels del config, sin tocar index.html)
 
-    /* --- V7-1 PANTALLA PARTIDA: el mundo estilo FIFA se APAGA; arriba vive el
+    /* --- V7-1 PANTALLA PARTIDA: el mundo estilo simulador moderno se APAGA; arriba vive el
        panel de ESCENA (ilustración con parallax) y abajo EL MAPA grande, que
        es la superficie de navegación principal. --- */
     if (this._split) {
@@ -1547,12 +1547,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
     }
     const mega = (esCalden && typeof esCalden === "object") ? esCalden : (esCalden ? this.megaDisponible() : null);
-    /* V8 B (playtest): EL TIRO NORMAL VUELVE A SER TSUBASA — sin posicionarse,
+    /* V8 B (playtest): EL TIRO NORMAL VUELVE A SER POR COMANDOS — sin posicionarse,
        sin elegir zona, sin barra. Elijo → ANIMACIÓN → INTRIGA (la pelota
        viajando) → resultado. Lo decisivo es DESDE DÓNDE disparaste; la zona la
-       elige el juego (logic/tiro.js tiroAuto). El flag v8_tiro_tsubasa=false
+       elige el juego (logic/tiro.js tiroAuto). El flag v8_tiro_comandos=false
        devuelve LA DEFINICIÓN de 4 fases, para comparar. */
-    if (!mega && this.FLAGS.v8_tiro_tsubasa !== false) { this.tiroTsubasa(rivalIdx); return; }
+    if (!mega && this.FLAGS.v8_tiro_comandos !== false) { this.tiroPorComandos(rivalIdx); return; }
     if (!mega && this.FLAGS.v6_definicion) {
       this.entrarDefinicionOf({ rivalIdx: rivalIdx, libre: libre });
       return;
@@ -2005,10 +2005,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
   }
   /* MEGATIRO: el resultado se decide UNA vez (bug del arquero cerrado) y el CINE lo cuenta */
-  /* ============ V8 B · EL TIRO TSUBASA ============
+  /* ============ V8 B · EL TIRO POR COMANDOS ============
      Un solo toque: la escena del REMATE (animación), el viaje de la pelota
      (la intriga) y el desenlace. Sin zonas ni barra: la ubicación manda. */
-  tiroTsubasa(rivalIdx) {
+  tiroPorComandos(rivalIdx) {
     const st = this.st, P = window.PampaPartido, Tiro = window.PampaTiro;
     const j = st.mios[st.ctrl];
     /* cuántos rivales están entre vos y el arco (los que "estorban") */
@@ -2785,7 +2785,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           })
         };
       }
-      posRiv = this._imprec.pos;
+      /* A2: si el menú abrió ANTES del primer latido todavía no hay foto —
+         se dibuja con las posiciones reales (nunca null) */
+      posRiv = (this._imprec && this._imprec.pos.length === st.rivales.length) ? this._imprec.pos : st.rivales;
     }
     /* rivales: TRIÁNGULOS #FF8A50 */
     st.rivales.forEach((j, i) => {
@@ -3067,7 +3069,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V8 §1 · EL PULSO: el partido avanza por LATIDOS discretos (tuc-tuc), no
        por segundos continuos. Cada latido_ms se corre UN tramo de simulación
        (dt_ms); entre latidos el mundo está QUIETO — nadie corre fluido como en
-       un FIFA. El input vale el que está apretado AL latido. Flag `pulso`
+       un simulador moderno. El input vale el que está apretado AL latido. Flag `pulso`
        apagado = el tiempo real viejo, solo para comparar. La sim pura
        (logic/partido.js) no cambia: el pulso es CÓMO se la invoca. */
     let evs;

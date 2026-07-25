@@ -5,7 +5,7 @@
     "ancho": 1050,
     "alto": 680,
     "arco_medio": 55,
-    "comentario": "arco_medio = media boca del arco en px (decisión de legibilidad, no escala FIFA exacta)"
+    "comentario": "arco_medio = media boca del arco en px (decisión de legibilidad, no escala simulador moderno exacta)"
   },
   "ritmo": {
     "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR. FEEL v3 Bloque 1: TODO baja un cambio (~35% menos que la v2 — el drama por comandos es LENTO); el reloj compensa con seg_por_minuto para que el partido dure lo mismo en minutos reales. Velocidades en px de mundo por segundo.",
@@ -50,7 +50,7 @@
     "imprecision_ms": 750,
     "imprecision_radio": 60,
     "radio_silueta": 260,
-    "_v7": "CORRECCIÓN V7-1 (flag pantalla_partida): se elimina la cancha estilo FIFA. ARRIBA la escena (portador grande en ilustración con parallax), ABAJO el mapa de cancha completa — LA superficie de navegación. La ceguera MUERE: la reemplaza la IMPRECISIÓN — los rivales se ven en el mapa pero su posición se actualiza cada imprecision_ms con desvío de hasta imprecision_radio px; los tuyos y la pelota, precisos. radio_silueta: a esa distancia los rivales entran a la escena como SILUETAS (se revelan en el cruce).",
+    "_v7": "CORRECCIÓN V7-1 (flag pantalla_partida): se elimina la cancha estilo simulador moderno. ARRIBA la escena (portador grande en ilustración con parallax), ABAJO el mapa de cancha completa — LA superficie de navegación. La ceguera MUERE: la reemplaza la IMPRECISIÓN — los rivales se ven en el mapa pero su posición se actualiza cada imprecision_ms con desvío de hasta imprecision_radio px; los tuyos y la pelota, precisos. radio_silueta: a esa distancia los rivales entran a la escena como SILUETAS (se revelan en el cruce).",
     "parallax_pasto": 1.4,
     "parallax_pasto_y": 0.7,
     "parallax_tribuna": 0.35,

@@ -322,7 +322,7 @@
       if (st.esperaRival > 0) { st.esperaRival = Math.max(0, st.esperaRival - dtMs); }
       else {
         /* R1: el rival con pelota también va a saltos — no lo alcanzás corriéndolo,
-           lo esperás con el marcador bien parado (la ceguera lo vuelve una apuesta) */
+           lo esperás con el marcador bien parado (la ceguera lo vuelve una adivinanza) */
         var velR = V.rival_con_pelota * (esSaltos(bal) ? (V.saltos_vel_mult || 2.4) : 1);
         pr.x = clamp(pr.x - velR * dt, 20, st.W - 20);
         pr.y = clamp(pr.y + Math.sin(pr.x * 0.02) * 26 * dt, 20, st.H - 20);
