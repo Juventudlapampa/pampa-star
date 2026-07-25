@@ -1535,8 +1535,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
     }
     const mega = (esCalden && typeof esCalden === "object") ? esCalden : (esCalden ? this.megaDisponible() : null);
-    /* V6 §4: el TIRO normal entra a LA DEFINICIÓN (4 fases). El MEGATIRO
-       conserva su ceremonia propia (cut-in + barra exigente + cine de 5 planos). */
+    /* V8 B (playtest): EL TIRO NORMAL VUELVE A SER TSUBASA — sin posicionarse,
+       sin elegir zona, sin barra. Elijo → ANIMACIÓN → INTRIGA (la pelota
+       viajando) → resultado. Lo decisivo es DESDE DÓNDE disparaste; la zona la
+       elige el juego (logic/tiro.js tiroAuto). El flag v8_tiro_tsubasa=false
+       devuelve LA DEFINICIÓN de 4 fases, para comparar. */
+    if (!mega && this.FLAGS.v8_tiro_tsubasa !== false) { this.tiroTsubasa(rivalIdx); return; }
     if (!mega && this.FLAGS.v6_definicion) {
       this.entrarDefinicionOf({ rivalIdx: rivalIdx, libre: libre });
       return;
@@ -1989,6 +1993,49 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
   }
   /* MEGATIRO: el resultado se decide UNA vez (bug del arquero cerrado) y el CINE lo cuenta */
+  /* ============ V8 B · EL TIRO TSUBASA ============
+     Un solo toque: la escena del REMATE (animación), el viaje de la pelota
+     (la intriga) y el desenlace. Sin zonas ni barra: la ubicación manda. */
+  tiroTsubasa(rivalIdx) {
+    const st = this.st, P = window.PampaPartido, Tiro = window.PampaTiro;
+    const j = st.mios[st.ctrl];
+    /* cuántos rivales están entre vos y el arco (los que "estorban") */
+    const defs = st.rivales.filter(r => r.pos !== "ARQ" && r.x > j.x && Math.abs(r.y - j.y) < 150).length;
+    const auto = Tiro.tiroAuto({
+      x: j.x, y: j.y, W: st.W, H: st.H, arcoMedio: this.BAL.mundo.arco_medio,
+      statTiro: (j.stats && j.stats.tiro) || 55,
+      aguanteFrac: j.aguante / this.BAL.aguante.max,
+      defensores: defs
+    });
+    const prep = P.prepararRemate(st, null);
+    this.res = window.PampaDuel.resolveShot({
+      shotPower: prep.shotPower + auto.ajustePoder + (this._modVida && this._modVida.duelo || 0),
+      keeperSkill: prep.keeperSkill,
+      zone: auto.zona,
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+    });
+    this.zona = auto.zona;
+    this._megaGrito = "¡GOOOL!";
+    /* la ESCENA del remate (pose ilustrada + el rival que se tira) y recién
+       después el viaje: primero se ve pegarle, después la intriga */
+    const rival = rivalIdx != null ? st.rivales[rivalIdx] : null;
+    const nDefs = auto.lectura.defensores;
+    this.escenaCine({
+      etiqueta: "· EL REMATE ·",
+      prota: { j, esRival: false, anim: "tiro" },
+      pose: "remate", pelotaAlPie: false,
+      rival: rival ? { j: rival, esRival: true, anim: "gambeta" } : null,
+      siluetas: nDefs > 0 ? nDefs : null,
+      gana: true, sfx: "kick",
+      titulo: "¡LE PEGA " + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase()) + "!",
+      sub: auto.lectura.dist < 220 ? "de frente al arco, sin pensarlo" : (nDefs ? "entre " + nDefs + " y desde lejos" : "desde afuera del área"),
+      alFinal: () => {
+        this.SFX && this.SFX.kick();
+        this.entrarCine();
+        this.planoViaje();   // LA INTRIGA: la pelota viaja y no sabés si entra
+      }
+    });
+  }
   dispararConCine(mega, ej) {
     const st = this.st, P = window.PampaPartido;
     const prep = P.prepararRemate(st, mega);
