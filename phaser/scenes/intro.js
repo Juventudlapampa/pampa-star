@@ -60,11 +60,11 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       l.setScale(Math.min(1, 540 / l.width));
       this.capa.add(l);
     } else {
-      const t = this.add.text(480, 200, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 10 }).setOrigin(0.5);
+      const t = this.add.text(480, 200, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.capa.add(t);
     }
     const toca = this.add.text(480, 400, this.I.t_compuerta || "👆 TOCÁ PARA EMPEZAR",
-      { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
+      { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
     this.capa.add(toca);
     this.tweens.add({ targets: toca, alpha: 0.35, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
@@ -165,7 +165,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       this.tweens.add({ targets: f, scale: esc * 1.08, duration: dur, ease: "Sine.easeOut" });     // el cerca, más rápido
     }
     this.letraPorLetra(480, 470, this.I.t_pueblo || "En algún pueblo de La Pampa…",
-      { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5 }, 60);
+      { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }, 60);
     this.SFX && this.SFX.crowd && this.SFX.crowd(dur);   // el viento lejano
     this.SFX && this.SFX.kick && this.SFX.kick();        // el bombo lejano
   }
@@ -196,7 +196,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const s = this.poseImg("remate", 480, 260, 460);
     if (s) this.tweens.add({ targets: s, scale: s.scale * 1.15, y: 300, duration: 1900, ease: "Sine.easeOut" });
     const g = this.add.text(480, 700, this.I.t_grito || "¡CALDENAZO!",
-      { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 10 }).setOrigin(0.5);
+      { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 5 }).setOrigin(0.5);
     this.capa.add(g);
     this.tweens.add({ targets: g, y: 440, duration: 340, ease: "Back.easeOut" });
     this.cameras.main.shake(280, 0.012);
@@ -241,13 +241,13 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       this.tweens.add({ targets: l, y: 230, duration: 520, ease: "Bounce.easeOut" });
       this.time.delayedCall(540, () => { if (!this._fin) { this.cameras.main.shake(200, 0.01); this.SFX && this.SFX.net && this.SFX.net(); } });
     } else {
-      const t = this.add.text(480, 220, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "44px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 10 }).setOrigin(0.5);
+      const t = this.add.text(480, 220, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "44px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.capa.add(t);
     }
     this.time.delayedCall(700, () => {
       if (this._fin) return;
       this.letraPorLetra(480, 380, this.I.t_bajada || "DEL POTRERO AL MUNDIAL",
-        { fontFamily: window.PF.display, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 6 }, 55);
+        { fontFamily: window.PF.display, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }, 55);
     });
     this.time.delayedCall(dur - 500, () => { if (!this._fin) this.cameras.main.fadeOut(480, 0, 0, 0); });   // el ÚNICO fundido: al título
   }

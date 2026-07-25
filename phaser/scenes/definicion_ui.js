@@ -220,7 +220,7 @@
       /* área */
       g.lineStyle(4, 0xeafff0, 0.7); g.strokeRect(W / 2 - 260, 128, 520, 210);
       if (esMiArco) {
-        var t = this.add.text(16, 128, "⚠ TU ARCO", { fontFamily: window.PF.display, fontSize: "11px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 4 });
+        var t = this.add.text(16, 128, "⚠ TU ARCO", { fontFamily: window.PF.display, fontSize: "11px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 2 });
         this.cineContent.add(t);
       }
     },
@@ -382,7 +382,7 @@
       D.ZONAS.forEach(function (z, i) {
         var zx = x0 + z.col * cw, zy = y0 + z.fila * ch;
         var r = self.add.rectangle(zx + cw / 2, zy + ch / 2, cw - 6, ch - 6, 0xf6efdc, 0.14).setStrokeStyle(2, 0xffffff, 0.9).setInteractive({ useHandCursor: true });
-        var t = self.add.text(zx + cw / 2, zy + ch / 2, z.n, { fontFamily: window.PF.texto, fontSize: "11px", fontStyle: "bold", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
+        var t = self.add.text(zx + cw / 2, zy + ch / 2, z.n, { fontFamily: window.PF.texto, fontSize: "11px", fontStyle: "bold", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 2 }).setOrigin(0.5);
         self.cineContent.add(r); self.cineContent.add(t);
         r.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; self.defConfirmarZona(z.id); });
         self._def.zonaRects.push(r);

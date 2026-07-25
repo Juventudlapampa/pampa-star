@@ -215,7 +215,9 @@
       "largo": 1.2
     },
     "duracion_real_min": 10,
-    "_v7": "V7 §0.3: intermedio 2.5→2.2 minutos por momento (unas 20 jugadas por tiempo — el partido rinde más)."
+    "_v7": "V7 §0.3: intermedio 2.5→2.2 minutos por momento (unas 20 jugadas por tiempo — el partido rinde más).",
+    "tramo_seg": 15,
+    "_v8_reloj": "V8 E: el reloj del HUD muestra MM:SS y los segundos avanzan de a tramo_seg (10 o 15) para que se vea correr el partido."
   },
   "feel": {
     "_nota": "FEEL v3 (ver el doc de Feel v3 en docs/): timing del drama. Cada jugada clave se ANUNCIA (beat), se decide, se ejecuta y se resuelve con teatro — si dura menos de 3s entre anuncio y resolución, está mal.",
@@ -468,9 +470,20 @@
     "camara_reset_ms": 420
   },
   "tipografia": {
-    "_nota": "V8 §5: DISPLAY = Press Start 2P (chunky, acentos verificados EN PANTALLA) · TEXTO = Pixelify Sans (pixel redondeada con peso, latino completo — el carácter del original; reemplaza a VT323 de terminal, que queda de reserva). Las tres self-hosteadas OFL en assets/fonts/. Los acentos á é í ó ú ñ ¿ ¡ se verificaron por render de bitmap en las tres. Si una fuente tarda en el celu, el juego espera hasta 8s y ADEMÁS re-rasteriza los textos vivos al llegar — los acentos nunca quedan rotos.",
-    "display": "'Press Start 2P','Pixelify Sans',monospace",
-    "texto": "'Pixelify Sans','VT323',monospace"
+    "_nota": "V8 F: EL SISTEMA TIPOGRÁFICO, todo desde acá. display = títulos/botones; texto = cuerpo. stroke_display/stroke_texto = grosor del contorno (0 = sin contorno; era 4-7 y se veía embarrado). sombra = {x,y,blur,color,alpha} o null. letras = espaciado entre letras (px). Cambiá acá y recargá: no hay que tocar código.",
+    "display": "'Pixelify Sans','Press Start 2P',monospace",
+    "texto": "'Pixelify Sans','VT323',monospace",
+    "stroke_display": 0,
+    "stroke_texto": 0,
+    "stroke_color": "#0a1f13",
+    "sombra": {
+      "x": 2,
+      "y": 2,
+      "blur": 0,
+      "color": "#0a1f13",
+      "alpha": 0.55
+    },
+    "letras": 1
   },
   "pulso": {
     "_nota": "V8 EL PULSO - LA PERILLA DE VELOCIDAD ES ESTA: latido_ms = cadencia del tuc-tuc (mas ALTO = mas pausado; probá 380-500). dt_ms = cuanta simulacion corre cada latido (define el tamanio del tramo). El tercer dial es ritmo.saltos_vel_mult (velocidad del portador; 1.0 = pareja con el resto). flags.pulso=false = tiempo real viejo para comparar.",

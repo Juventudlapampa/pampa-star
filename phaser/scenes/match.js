@@ -700,7 +700,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       Arte.jugador(this, base, j.look || window.PampaAvatar.crearLook(), esRival);
       ["_idle", "_run"].forEach(s => this.textures.get(base + s).setFilter(Phaser.Textures.FilterMode.NEAREST));
       const spr = this.add.sprite(0, 0, base + "_idle");
-      const num = this.add.text(0, 0, String(j.numero), { fontFamily: window.PF.texto, fontSize: "20px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 5, fontStyle: "bold" }).setOrigin(0.5).setVisible(false).setDepth(9);
+      const num = this.add.text(0, 0, String(j.numero), { fontFamily: window.PF.texto, fontSize: "20px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 3, fontStyle: "bold" }).setOrigin(0.5).setVisible(false).setDepth(9);
       this.mundoLayer.add([spr, num]);
       if (this.uiCam) { this.uiCam.ignore(spr); this.uiCam.ignore(num); }   // se crean antes de uiCam: el create re-sella
       return { spr, num, lx: j.x, ly: j.y, base };
@@ -972,7 +972,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "TEMPO_MENU";
     this.st.modo = "congelado";
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.72).setInteractive();
-    const tit = this.add.text(480, 74, "⏱ ¿QUÉ PARTIDO JUGAMOS?", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
+    const tit = this.add.text(480, 74, "⏱ ¿QUÉ PARTIDO JUGAMOS?", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
     const sub = this.add.text(480, 104, "el reloj avanza POR MOMENTOS: cada jugada consume minutos del partido", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
     this.menuLayer.add([velo, tit, sub]);
     const PRESETS = [
@@ -1101,7 +1101,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (megaViene) {
       this.relatar("peligro");   // Anime E: el relator también lo huele
-      const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: window.PF.display, fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
+      const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: window.PF.display, fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
       this.menuLayer.add(aviso);
       this.selloMenu();
       this.tweens.add({ targets: aviso, scale: 1.12, duration: 300, yoyo: true, repeat: 3 });
@@ -1450,6 +1450,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         });
         return;
       }
+      if (this.hayEscenas()) {
+        /* V8 D: el CORTE también se VE arriba (antes se resolvía en texto) */
+        this.escenaCine({
+          etiqueta: "· el corte ·",
+          prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          pose: "barrida", rapida: true,
+          rival: rivalJ ? { j: rivalJ, esRival: true, anim: "pase" } : null,
+          gana: true, color: 0x7ee08a, sfx: "gloves",
+          titulo: "¡LA CORTASTE!", sub: r.matriz === "leiste" ? "le leíste la línea de pase" : "metiste la pierna a tiempo"
+        });
+        return;
+      }
       this.mostrarResolucion("¡RECUPERASTE!" + (r.matriz === "leiste" ? "\n(le leíste la intención)" : ""), "#7ee08a", { anim: "quite", gana: true });
     }
     else {
@@ -1635,7 +1647,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineBG = this.add.graphics(); this.cineLayer.add(this.cineBG);
     this.cineContent = this.add.container(0, 0); this.cineLayer.add(this.cineContent);
     this.cineFX = this.add.graphics(); this.cineLayer.add(this.cineFX);
-    this.cineBig = this.add.text(W / 2, H / 2 - 20, "", { fontFamily: window.PF.display, fontSize: "48px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineBig);
+    this.cineBig = this.add.text(W / 2, H / 2 - 20, "", { fontFamily: window.PF.display, fontSize: "48px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 4 }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineBig);
     this.cineSub = this.add.text(W / 2, H / 2 + 34, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineSub);
     this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
     this.cineBlack = this.add.rectangle(W / 2, H / 2, W, H, 0x000000).setAlpha(0); this.cineLayer.add(this.cineBlack);
@@ -2196,7 +2208,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const snd = this.SFX; snd && snd.whoosh && snd.whoosh(F.entrada_ms || 420);
     /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall, idempotente:
        V6 R4 el SKIP —un toque durante la escena— adelanta a la revelación y cierra) */
-    const tPose = this.msV((F.entrada_ms || 420) + (F.pose_ms || 650));
+    /* V8 D: cfg.rapida = viñeta corta (pases y robos, que pasan seguido) */
+    const multR = cfg.rapida ? 0.55 : 1;
+    const tPose = this.msV(((F.entrada_ms || 420) + (F.pose_ms || 650)) * multR);
     const silencio = feel.silencio_ms || 500;   // el silencio es sagrado: no se acorta
     const esc = { revelado: false, cerrado: false };
     const revelar = () => {
@@ -2393,7 +2407,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: ry, x: -400, duration: 800 + rk * 200, repeat: -1 });
     }
     this.lineasVelocidad(480, 250, 1.3, esRivalRet ? 0xff8a50 : 0xffd84d);
-    const txt = this.add.text(1300, 210, titulo, { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 8 }).setOrigin(0.5);
+    const txt = this.add.text(1300, 210, titulo, { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 4 }).setOrigin(0.5);
     const subTxt = this.add.text(1300, 252, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
     this.cineContent.add(txt); this.cineContent.add(subTxt);
     this.tweens.add({ targets: [txt, subTxt], x: 620, duration: this.msV(300), ease: "Back.easeOut" });
@@ -2470,7 +2484,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.relatar("final");
     this.quitarDuelo();
     this.limpiarMenu();
-    const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5);
+    const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 3, align: "center" }).setOrigin(0.5);
     this.menuLayer.add(t);
     /* V7 §2: la fecha del MODO MASTER devuelve el resultado a la carrera */
     if (this._masterPartido) {
@@ -2612,9 +2626,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (this.FLAGS.v6_definicion) this.entrarDefinicionOf({ libre: true });
         else this.abrirMenuAereo();
       } else if (win && !peligro) {
-        /* pase seguro: fluye sin fricción — aviso chico y a jugar */
+        /* V8 D (playtest): el pase TAMBIÉN se ve arriba — viñeta CORTA con la
+           pose de la pared; ninguna acción se resuelve solo con texto */
         this.quitarDuelo();
         this.zoomBase();
+        if (this.hayEscenas()) {
+          const rec = this.st.mios[this.st.ctrl];
+          this.escenaCine({
+            etiqueta: alVacio ? "· al vacío ·" : "· el pase ·",
+            prota: { j: rec, esRival: false, anim: "pase" },
+            pose: "pared", rapida: true,
+            rival: null, gana: true, color: 0x7ee08a, sfx: "whoosh",
+            titulo: texto.split("\n")[0],
+            sub: alVacio ? "la puso en el camino y el pibe pica" : "toque y a seguir",
+            alFinal: () => { this.estado = "LIBRE"; }
+          });
+          return;
+        }
         this.estado = "LIBRE";
         this.avisar(texto.split("\n")[0]);
       } else if (!win && this.hayEscenas()) {
@@ -2673,7 +2701,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   mostrarResolucion(texto, colorHex, animCfg) {
     this.estado = "RESOLUCION";
     this.limpiarMenu();
-    const t = this.add.text(480, 226, texto, { fontFamily: window.PF.display, fontSize: "13px", color: colorHex, stroke: "#0a1f13", strokeThickness: 5, align: "center", lineSpacing: 8 }).setOrigin(0.5).setScale(0.3);
+    const t = this.add.text(480, 226, texto, { fontFamily: window.PF.display, fontSize: "13px", color: colorHex, stroke: "#0a1f13", strokeThickness: 3, align: "center", lineSpacing: 8 }).setOrigin(0.5).setScale(0.3);
     this.menuLayer.add(t);
     this.selloMenu();
     this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
@@ -2848,7 +2876,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival +
       (this._division ? "  ·  " + this._division.n : "");
     if (this._hudMarc !== marcador) { this._hudMarc = marcador; this.txtMarcador.setText(marcador); }
-    const reloj = (m > lim ? lim + "+'" : m + "'") + " " + (st.tiempo === 1 ? "1T" : "2T");
+    /* V8 E (playtest): el reloj se VE — MINUTOS:SEGUNDOS, con los segundos
+       redondeados al tramo (balance.tempo.tramo_seg) para que se sienta correr */
+    const tramo = (this.BAL.tempo && this.BAL.tempo.tramo_seg) || 15;
+    const segs = Math.floor((st.minuto % 1) * 60 / tramo) * tramo;
+    const mm = (m > lim ? lim : m), ss = ("0" + segs).slice(-2);
+    const reloj = mm + ":" + ss + (m > lim ? "+" : "") + " " + (st.tiempo === 1 ? "1T" : "2T");
     if (this._hudReloj !== reloj) { this._hudReloj = reloj; this.txtReloj.setText(reloj); }
     /* barra de aguante del PORTADOR (si la tiene el rival, su tanque compartido) */
     const p = this.portadorActual();

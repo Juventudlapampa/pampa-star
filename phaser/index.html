@@ -37,9 +37,40 @@
   <script>
   /* V7 §0.3: las DOS familias del juego, ANTES de las escenas (los estilos las
      leen en runtime). El balance puede pisarlas (tipografia.display/texto). */
-  window.PF = { display: "'Press Start 2P','Pixelify Sans',monospace", texto: "'Pixelify Sans','VT323',monospace" };
+  window.PF = {
+    display: "'Pixelify Sans','Press Start 2P',monospace",
+    texto: "'Pixelify Sans','VT323',monospace",
+    strokeDisplay: 0, strokeTexto: 0, strokeColor: "#0a1f13",
+    sombra: { x: 2, y: 2, blur: 0, color: "#0a1f13", alpha: 0.55 }, letras: 1
+  };
   </script>
   <script src="vendor/phaser.min.js"></script>
+  <script>
+  /* V8 F · EL SISTEMA TIPOGRÁFICO EN UN SOLO LUGAR: se re-registra la
+     fábrica de Text de Phaser para que TODO texto del juego nazca con el
+     contorno, la sombra y el interletrado de balance.tipografia. Un estilo
+     que declara stroke/shadow explícito manda (nada se pisa a la fuerza). */
+  (function(){
+    var orig = Phaser.GameObjects.GameObjectFactory.prototype.text;
+    Phaser.GameObjects.GameObjectFactory.register("text", function (x, y, text, style) {
+      style = style || {};
+      var esDisplay = String(style.fontFamily || "").indexOf("Press Start") >= 0 ||
+        (window.PF && style.fontFamily === window.PF.display);
+      if (style.stroke === undefined && style.strokeThickness === undefined) {
+        var gr = esDisplay ? window.PF.strokeDisplay : window.PF.strokeTexto;
+        if (gr > 0) { style.stroke = window.PF.strokeColor; style.strokeThickness = gr; }
+      }
+      if (style.shadow === undefined && window.PF.sombra) {
+        style.shadow = { offsetX: window.PF.sombra.x, offsetY: window.PF.sombra.y, color: window.PF.sombra.color,
+          blur: window.PF.sombra.blur || 0, stroke: false, fill: true };
+      }
+      if (style.letterSpacing === undefined && window.PF.letras) style.letterSpacing = window.PF.letras;
+      var t = new Phaser.GameObjects.Text(this.scene, x, y, text, style);
+      this.displayList.add(t); this.updateList.add(t);
+      return t;
+    });
+  })();
+  </script>
   <script src="logic/duel.js"></script>
   <script src="logic/perspectiva.js"></script>
   <script src="logic/tiro.js"></script>
@@ -86,8 +117,8 @@
     musica:{vol:0.5,viento:0.014,motivo:[0,7,9,12],temas:{propia_propio:{tonica:220,modo:"menor",bpm:92,prog:[0,8,3,10],percusion:0.35,motivo:"insinuado"},propia_rival:{tonica:261.63,modo:"mayor",bpm:112,prog:[0,9,5,7],percusion:1,motivo:"completo"},rival:{tonica:220,modo:"menor",bpm:100,prog:[0,-1,-2,-3],percusion:0.8,motivo:"invertido",segunda_menor:true},urgente:{tonica:220,modo:"menor",bpm:138,prog:[0,8,3,10],percusion:1,motivo:"completo",tictac:true},opening:{tonica:220,modo:"menor_a_mayor",bpm:140,prog:[0,8,3,10],percusion:1,motivo:"principal"}},gol_bpm:150,lamento_bpm:70},
     secuencias:{megacorrida_nivel:2,megacorrida_aguante:300,megacorrida_rivales:2,combinada_nivel:2,combinada_aguante:160,bonus_duelo:8},
     definicion:{def_acercan_px_s:34,contacto_px:34,jugador_px_s:160,angulo_peso:16,zona_timing:0.2,dulce_bonus:8,floja_penal:22,pasada_fuera_mult:1.6,pasada_fuera_max:0.55,coincide:55,a_una:10,a_dos:-25,bloqueo_base:0.18,bloqueo_radio:120,bloqueo_cercania:0.25,bloqueo_max:0.6,achicar_bonus:14,achicar_vendido:18,carga_ms:4200},
-    tempo:{minutos_por_momento:2.2,goteo_seg_por_minuto:8,presets:{relampago:5,intermedio:2.2,largo:1.2},duracion_real_min:10},
-    tipografia:{display:"'Press Start 2P','Pixelify Sans',monospace",texto:"'Pixelify Sans','VT323',monospace"},
+    tempo:{minutos_por_momento:2.2,tramo_seg:15,goteo_seg_por_minuto:8,presets:{relampago:5,intermedio:2.2,largo:1.2},duracion_real_min:10},
+    tipografia:{display:"'Pixelify Sans','Press Start 2P',monospace",texto:"'Pixelify Sans','VT323',monospace",stroke_display:0,stroke_texto:0,stroke_color:"#0a1f13",sombra:{x:2,y:2,blur:0,color:"#0a1f13",alpha:0.55},letras:1},
     pulso:{latido_ms:440,dt_ms:300},
     ia:{def_colchon:60,def_apoyo:90,vol_sigue:0.7,ata_descuelga:120,ata_baja:140,ata_abre:70},
     persecucion:{aguante_por_segundo:12,aguante_minimo_para_correr:100,factor_trote:0.6},
@@ -143,8 +174,14 @@
     window.__PAMPA_ROSTER = roster;
     /* las familias del balance mandan (Rodri las afina en tipografia) */
     if (bal && bal.tipografia) {
-      if (bal.tipografia.display) window.PF.display = bal.tipografia.display;
-      if (bal.tipografia.texto) window.PF.texto = bal.tipografia.texto;
+      const TP = bal.tipografia;
+      if (TP.display) window.PF.display = TP.display;
+      if (TP.texto) window.PF.texto = TP.texto;
+      if (TP.stroke_display !== undefined) window.PF.strokeDisplay = TP.stroke_display;
+      if (TP.stroke_texto !== undefined) window.PF.strokeTexto = TP.stroke_texto;
+      if (TP.stroke_color) window.PF.strokeColor = TP.stroke_color;
+      if (TP.sombra !== undefined) window.PF.sombra = TP.sombra;
+      if (TP.letras !== undefined) window.PF.letras = TP.letras;
     }
     arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida);
   });

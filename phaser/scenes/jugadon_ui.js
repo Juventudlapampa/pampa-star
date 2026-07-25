@@ -179,7 +179,7 @@
       });
     },
     avisoJugadon(texto, color) {
-      var t = this.add.text(W / 2, 250, texto, { fontFamily: window.PF.display, fontSize: "22px", color: "#" + color.toString(16).padStart(6, "0"), stroke: "#0a1f13", strokeThickness: 7 }).setOrigin(0.5).setScale(0.3);
+      var t = this.add.text(W / 2, 250, texto, { fontFamily: window.PF.display, fontSize: "22px", color: "#" + color.toString(16).padStart(6, "0"), stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5).setScale(0.3);
       this.cineContent.add(t);
       this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
     },
@@ -260,7 +260,7 @@
         { n: "4", x: -175, y: 25, tag: "palo bajo izq" }, { n: "5", x: 0, y: 20, tag: "al medio" }, { n: "6", x: 175, y: 25, tag: "palo bajo der" }
       ];
       ZT.forEach(function (z) {
-        var lz = self.add.text(ax + z.x * 1.8, ayPiso - z.y * 1.8, z.n, { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5).setAlpha(0.85);
+        var lz = self.add.text(ax + z.x * 1.8, ayPiso - z.y * 1.8, z.n, { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 2 }).setOrigin(0.5).setAlpha(0.85);
         self.cineContent.add(lz);
       });
       var tTeclas = this.add.text(ax, ayPiso + 38, "teclado: 1-6 = la zona numerada · o tocá el arco donde quieras", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.85);
