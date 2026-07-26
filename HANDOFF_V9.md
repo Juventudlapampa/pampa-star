@@ -94,6 +94,24 @@ chequeo de claves), `partido` (93, con el cambio de lado).
 
 ---
 
+## 3 bis · EL SOAK (lo que cazó, y lo que quedó abierto)
+
+Partido entero a 4.000 frames, tocando botones cada 20 frames. Resultado final:
+**0 errores**, minuto 46 (2T, `ladoVisual=2`), 20 frases distintas del relator, 630 frames en
+escenas de animación y 223 en la Definición.
+
+Dos cosas que encontró el soak anterior y se arreglaron acá:
+
+- **La Definición se colgaba** (2.477 frames de 3.000 en el mismo estado). Era mío: al sacar la
+  barra de carga del rival, nada forzaba la resolución si el jugador no decidía. Ahora hay un
+  **reloj de paciencia invisible** (`definicion.espera_ms`, 9 s): si te quedás mirando, el rival
+  patea igual y avisa *"¡Te quedaste mirando! El rival define"*. Sin barra en pantalla.
+- **`Cannot read properties of null (reading 'cut')`** — apareció UNA vez en 3.000 frames del
+  soak viejo y **no volvió a reproducirse** en 4.000 frames del nuevo. `cut` es de `Frame` de
+  Phaser: es un sprite renderizado con `frame` en null (textura inexistente o objeto destruido
+  a mitad de frame). Muy probablemente era consecuencia del cuelgue anterior. **Queda anotado
+  como no reproducible**: si vuelve, el sospechoso es un `setTexture` con key que no existe.
+
 ## 4 · LO QUE QUEDA (con severidad)
 
 1. **[media] Tiro tapado en el cruce** — sigue resolviéndose con cartel salvo que el rival

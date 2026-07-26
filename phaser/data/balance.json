@@ -214,7 +214,8 @@
     "bloqueo_max": 0.6,
     "achicar_bonus": 14,
     "achicar_vendido": 18,
-    "carga_ms": 4200
+    "espera_ms": 9000,
+    "_espera": "V9 §6: sin barra de carga, pero el rival no espera para siempre — si no decidís en espera_ms, patea igual y la jugada se resuelve."
   },
   "tempo": {
     "_nota": "V6 §2 R4: EL RELOJ A SALTOS (perilla única). minutos_por_momento = cuántos minutos de partido consume cada momento de decisión; el reloj entre momentos solo GOTEA (goteo_seg_por_minuto segundos reales por minuto de juego). Presets elegibles antes del partido. Si se borra minutos_por_momento, vuelve el reloj continuo v4 (duracion_real_min).",

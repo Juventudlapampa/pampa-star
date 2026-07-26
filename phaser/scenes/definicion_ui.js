@@ -134,6 +134,7 @@
         tirador: tirador,
         jug: { x: W * 0.42, y: H * 0.5 },      // TU defensor, movible
         carga: 0, cargaMs: this.msV(DL.carga_ms || 4200),
+        espera: 0, esperaMax: this.msV(DL.espera_ms || 9000),   // V9 §6: si no decidís, el rival patea igual
         plan: "linea",                          // linea | achicar (arquero)
         plantado: false, barridaHecha: false, defensorVivo: true,
         aguja: { t0: 0, p: 0, parada: false },
@@ -719,6 +720,19 @@
              presión de la escena y empujaba a spamear botones antes de que
              llegara al 100%. Ahora el remate sale cuando VOS decidís: queda
              solo la línea de tiro punteada, para saber dónde meterse. */
+          /* V9 §6: no hay barra, pero el rival TAMPOCO espera para siempre —
+             si te quedás mirando, patea y la jugada se resuelve sola */
+          if (!d.decidido) {
+            d.espera += delta;
+            if (d.espera >= d.esperaMax) {
+              d.decidido = true;
+              (d.botones || []).forEach(function (b) { if (b.active) b.destroy(); });
+              d.botones = [];
+              this.avisarDef('¡Te quedaste mirando! El rival define');
+              this.defResolverDefensa();
+              return;
+            }
+          }
           var g = d.cargaG; g.clear();
           g.lineStyle(2, 0xffffff, 0.35);
           for (var yy = H * 0.72; yy > 170; yy -= 24) { g.beginPath(); g.moveTo(W * 0.5, yy); g.lineTo(W * 0.5, yy - 12); g.strokePath(); }
