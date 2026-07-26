@@ -432,7 +432,7 @@
       else if (Math.random() < tim.fueraProb) res = { outcome: "afuera" };
       else res = Duel.resolveShot({ shotPower: poder, keeperSkill: keeper, zone: { bonus: 0, fuera: dz >= 2 ? 0.04 : 0.08, gy: D.zona(this._def.zonaMia).gy }, cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max } });
       var gol = res.outcome === "gol";
-      if (!bloqueado) { if (gol) P.golMio(st); else P.tiroFallado(st); }
+      if (!bloqueado) { if (gol) this.golPropio(); else P.tiroFallado(st); }
       else P.tiroFallado(st);
       this.defTeatroFinal({
         ofensiva: true, gol: gol, bloqueado: bloqueado, res: res, dz: dz, tim: tim,

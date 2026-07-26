@@ -305,16 +305,33 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* §8: el rival tiene identidad — que se sepa a qué juega */
     if (this._perfilRival) this.avisar("⚔ " + this.nombreRival + " juega " + this._perfilRival.n);
   }
-  /* el ticker del relator: una frase por vez, abajo, sin tapar el juego */
+  /* el ticker del relator: una frase por vez, en su franja, sin tapar el juego.
+     V9 §8 · LA COLA: el HUD se apaga durante el cine, la Definición y el
+     Jugadón. Las frases emitidas ahí se escribían sobre una capa invisible y
+     se consumían solas — la jugada de peligro, en la práctica, NUNCA se veía.
+     Ahora si la capa está apagada la frase ESPERA y sale cuando vuelve. */
   relatar(situacion, ctx) {
     if (!this.REL) return;
     const c = Object.assign({ rival: this.nombreRival, pueblo: this._puebloMio || "La Pampa" }, ctx || {});
     if (!c.jugador) { const j = this.st && this.st.mios[this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "el pibe"; }
+    if (!this.tickerTxt) return;
     const f = this.REL.frase(situacion, c);
-    if (!f || !this.tickerTxt) return;
+    if (!f) return;
+    if (this.hudLayer && !this.hudLayer.visible) { this._relPendiente = f; return; }
+    this._pintarRelato(f);
+  }
+  _pintarRelato(f) {
+    if (!this.tickerTxt) return;
+    const R = this.BAL.relator || {};
     this.tweens.killTweensOf(this.tickerTxt);
     this.tickerTxt.setText("🎙 " + f).setAlpha(1);
-    this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: 2800, duration: 500 });
+    this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: R.hold_ms || 2800, duration: R.fade_ms || 500 });
+  }
+  /* lo llama el update cuando el HUD vuelve: la frase guardada sale ahí */
+  soltarRelatoPendiente() {
+    if (!this._relPendiente || !this.hudLayer || !this.hudLayer.visible) return;
+    const f = this._relPendiente; this._relPendiente = null;
+    this._pintarRelato(f);
   }
   /* helpers de música (flag v4_musica; el mute vive en SFX, compartido con el clásico) */
   musica(tema) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(tema); }
@@ -551,6 +568,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.panelLayer.add(t);
       this.panelTribuna = null;
     }
+    /* V9 §9 · LA HINCHADA VIVA: la tribuna era una ilustración quieta con
+       parallax. Ahora una capa de siluetas simples se mueve SUAVE todo el
+       partido, se agita cuando la jugada se calienta y explota (o se hunde)
+       en el gol. Sin arte nuevo: círculo + rectángulo, como en el cine. */
+    this.crearHinchadaPanel();
     if (!this.textures.exists("pasto_tile")) Arte.bake(this, "pasto_tile", 64, 64, (gg) => {
       gg.fillStyle(0x2e7d32, 1); gg.fillRect(0, 0, 32, 64);
       gg.fillStyle(0x388e3c, 1); gg.fillRect(32, 0, 32, 64);
@@ -636,6 +658,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelPasto.tilePositionX += vx * (this.VI.parallax_pasto != null ? this.VI.parallax_pasto : 1.4);
     this.panelPasto.tilePositionY += vy * (this.VI.parallax_pasto_y != null ? this.VI.parallax_pasto_y : 0.7);
     if (this.panelTribuna) this.panelTribuna.tilePositionX += vx * (this.VI.parallax_tribuna != null ? this.VI.parallax_tribuna : 0.35);
+    /* V9 §9: la tribuna respira siempre y se agita cuando la jugada quema
+       (alguien con la pelota en el último cuarto, para cualquiera de los dos) */
+    if (this.latirHinchada) {
+      const pel = st.pelota, caliente = pel && (pel.x > st.W * 0.74 || pel.x < st.W * 0.26);
+      this.latirHinchada(delta, !!caliente);
+    }
     /* la ilustración del portador (rival sin revelar = SILUETA) */
     const key = this.poseDelPanel(p);
     if (key && this.panelJug.texture.key !== key) {
@@ -1379,16 +1407,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
     if (r.win) {
       P.ganarAtaque(st, a.id, rivalIdx);   // R2: el gambeteado queda pagando atrás
-      if (a.id === "gambeta" && !megaR && this.hayEscenas() && rivalJ) {
-        this.escenaCine({
-          etiqueta: "· la gambeta ·",
-          prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
-          pose: "gambeta_gana",                                // ARTE 2: el quiebre limpio
+      /* V9 §3: la gambeta ganada SIEMPRE tiene su viñeta (antes, si el rival
+         venía con megacosa, se comía la escena y quedaba un cartel), y la
+         PARED tiene la suya en vez de resolverse en texto */
+      if ((a.id === "gambeta" || a.id === "pared") && this.hayEscenas() && rivalJ) {
+        const esPared = a.id === "pared";
+        const mostrar = () => this.escenaCine({
+          etiqueta: esPared ? "· la pared ·" : "· la gambeta ·",
+          prota: { j: st.mios[st.ctrl], esRival: false, anim: esPared ? "pase" : "gambeta" },
+          pose: esPared ? "pared" : "gambeta_gana",            // ARTE 2: el quiebre limpio
           rival: { j: rivalJ, esRival: true, anim: "pase" },   // el rival queda barrido atrás
           gana: true, sfx: "whoosh",
-          titulo: "¡LO DEJASTE PAGANDO!", sub: r.matriz === "zafaste" ? "le erraron a la marca y seguís de largo" : "puro coraje: seguís de largo",
+          titulo: esPared ? "¡PARED Y A SEGUIR!" : (megaR ? "¡LE GANASTE AL " + megaR.n.toUpperCase() + "!" : "¡LO DEJASTE PAGANDO!"),
+          sub: this.subConPorQue(esPared ? "toque, devolución y seguís de largo"
+            : (r.matriz === "zafaste" ? "le erraron a la marca y seguís de largo" : "puro coraje: seguís de largo"), r),
           alFinal: () => this.relatar("gambeta_win")
         });
+        /* con megacosa rival: primero el cut-in del rival, después la viñeta */
+        if (megaR) this.cutInEspecial("¡" + megaR.n.toUpperCase() + "!", megaR.grito, mostrar, rivalJ, true);
+        else mostrar();
         return;
       }
       const texto = megaR ? "¡LE GANASTE AL " + megaR.n.toUpperCase() + "!\nMomento para el recuerdo." : (a.id === "pared" ? "¡PARED Y SEGUÍS DE LARGO!" : "¡GAMBETA Y DE LARGO!" + (r.matriz === "zafaste" ? "\n(le erraron a la marca)" : ""));
@@ -1434,7 +1471,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           pose: "gambeta_pierde", poseFlip: true,              // ARTE 2: espejo — pierde él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           gana: true, color: 0x7ee08a, sfx: "gloves",
-          titulo: "¡RECUPERASTE!", sub: r.matriz === "leiste" ? "le leíste la intención y te tiraste al piso" : "llegaste primero a la pelota"
+          titulo: "¡RECUPERASTE!",
+          sub: this.subConPorQue(r.matriz === "leiste" ? "le leíste la intención y te tiraste al piso" : "llegaste primero a la pelota", r),
+          alFinal: () => this.relatar("quite_win")   // V9 §8: recuperar ya no es mudo
         });
         return;
       }
@@ -1446,7 +1485,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           pose: "bloqueo",
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "tiro" } : null,
           gana: true, sfx: "gloves",
-          titulo: "¡BLOQUEADO!", sub: r.matriz === "leiste" ? "sabías que venía el tiro" : "pusiste el cuerpo donde dolía"
+          titulo: "¡BLOQUEADO!",
+          sub: this.subConPorQue(r.matriz === "leiste" ? "sabías que venía el tiro" : "pusiste el cuerpo donde dolía", r),
+          alFinal: () => this.relatar("quite_win")
         });
         return;
       }
@@ -1458,7 +1499,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           pose: "barrida", rapida: true,
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "pase" } : null,
           gana: true, color: 0x7ee08a, sfx: "gloves",
-          titulo: "¡LA CORTASTE!", sub: r.matriz === "leiste" ? "le leíste la línea de pase" : "metiste la pierna a tiempo"
+          titulo: "¡LA CORTASTE!",
+          sub: this.subConPorQue(r.matriz === "leiste" ? "le leíste la línea de pase" : "metiste la pierna a tiempo", r),
+          alFinal: () => this.relatar("quite_win")
         });
         return;
       }
@@ -1466,16 +1509,37 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     else {
       P.perderDefensa(st);
-      if (a.id === "quite" && this.hayEscenas() && rivalJ) {
-        /* "te la hacen": el rival QUIEBRA para el otro lado (gambeta_gana ESPEJADA) */
+      /* V9 §3 · TODA defensa fallada se VE — antes solo el quite tenía escena
+         y el BLOQUEO FALLIDO (el peor caso: te tirás y el rival se te va) se
+         resolvía con un renglón de texto sobre el panel congelado. Mismo molde
+         para las tres: el rival de protagonista, quebrando para el otro lado. */
+      if (this.hayEscenas() && rivalJ) {
+        const T = {
+          quite: {
+            et: "· te la hicieron ·",
+            ti: r.matriz === "teEngano" ? "¡TE AMAGÓ!" : "SE TE ESCAPÓ",
+            su: r.matriz === "teEngano" ? "el amague te dejó pagando" : "te ganó por velocidad pura"
+          },
+          bloqueo: {
+            et: "· el bloqueo ·",
+            ti: "¡SE TE FUE!",
+            su: "te tiraste al bloqueo y te la sacó del pie"
+          },
+          corte: {
+            et: "· el corte ·",
+            ti: "¡TE LA PEINÓ!",
+            su: "metiste la pierna tarde y la pelota siguió"
+          }
+        };
+        const t = T[a.id] || { et: "· te la hicieron ·", ti: "SE TE ESCAPÓ", su: "quedaste atrás de la jugada" };
         this.escenaCine({
-          etiqueta: "· te la hicieron ·",
+          etiqueta: t.et,
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
           pose: "gambeta_gana", poseFlip: true,                // ARTE 2: espejo — gana él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           gana: true, color: 0xe3503e, sfx: "whoosh",
-          titulo: r.matriz === "teEngano" ? "¡TE AMAGÓ!" : "SE TE ESCAPÓ",
-          sub: r.matriz === "teEngano" ? "el amague te dejó pagando" : "te ganó por velocidad pura"
+          titulo: t.ti, sub: this.subConPorQue(t.su, r),
+          alFinal: () => this.relatar("gambeta_lose")
         });
         return;
       }
@@ -1607,7 +1671,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     snd && snd.kick();
     const gol = res.outcome === "gol";
-    if (gol) P.golMio(st); else P.tiroFallado(st);
+    if (gol) this.golPropio(); else P.tiroFallado(st);
     const NOM = { cabezazo: "CABEZAZO", volea: "VOLEA", chilena: "CHILENA" };
     const fb = ej.enZona ? "¡Ejecución justa!" : "la aguja se te escapó…";
     if (this.hayEscenas()) {
@@ -1844,7 +1908,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.SFX && this.SFX.net(); this.time.delayedCall(EP.fanfarria_delay_ms, () => this.SFX && this.SFX.goal());
         this.burst(ball.x, ball.y);
         this.punch(this._megaGrito || "¡GOOOL!", "¡La clavaste donde el viento no la saca!", 0xffd84d);
-        P.golMio(st);
+        this.golPropio();   // V9: la fiesta completa (tribuna + efecto + saque relatado)
       });
     } else if (res.outcome === "atajada") {
       this.tweens.add({ targets: ball, x: gx - 30, y: gy - 20, scale: 1.7, duration: C.impacto_atajada_ms, ease: "Quad.easeIn" });
@@ -1970,7 +2034,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const arqR = st.rivales.find(jj => jj.pos === "ARQ");
       const enCamino = this.rivalesEnElCamino(tirador);
       const gol = res.outcome === "gol";
-      if (gol) P.golMio(st); else P.tiroFallado(st);   // la verdad UNA vez; la escena la cuenta
+      if (gol) this.golPropio(); else P.tiroFallado(st);   // la verdad UNA vez; la escena la cuenta
       const fb = ej.enZona ? "¡Ejecución justa!" : "la aguja se te escapó…";
       this.escenaCine({
         etiqueta: "· el remate ·",
@@ -1999,7 +2063,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (silencio) this.musicaDuck(silencio);
     this.time.delayedCall(silencio, () => {
       const fb = ej.enZona ? "¡EJECUCIÓN JUSTA!\n" : "la aguja se te escapó…\n";
-      if (res.outcome === "gol") { P.golMio(st); this.efectoGol(false); this.mostrarResolucion(fb + (mega ? mega.grito : "¡GOOOL!"), "#ffd84d", { anim: "tiro", gana: true }); }
+      if (res.outcome === "gol") { this.golPropio(); this.mostrarResolucion(fb + (mega ? mega.grito : "¡GOOOL!"), "#ffd84d", { anim: "tiro", gana: true }); }
       else if (res.outcome === "atajada") { P.tiroFallado(st); snd && snd.gloves(); this.mostrarResolucion(fb + "¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
       else { P.tiroFallado(st); snd && snd.afuera(); this.mostrarResolucion(fb + "¡AFUERA!", "#e3503e", { anim: "tiro", gana: false }); }
     });
@@ -2858,8 +2922,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.SFX && this.SFX.goal && this.SFX.crowd && this.SFX.crowd(900);
       }
     });
-    /* ANIME E: el ticker del RELATOR (una línea abajo, no tapa el juego) */
-    this.tickerTxt = this.add.text(480, 520, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0);
+    /* ANIME E: el ticker del RELATOR · V9 §8: SUBIDO. En y=520 pisaba la banda
+       de abajo del mapa (el radar en pantalla partida llega a y≈521) justo
+       donde se dibujan las fichas pegadas a la línea de fondo. Ahora vive en
+       la franja libre entre el panel de escena (termina en 122) y el marco del
+       mapa (arranca en 320), que además es donde está mirando el ojo. */
+    const REL = this.BAL.relator || {};
+    this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
     this.hudLayer.add(this.tickerTxt);
     /* ANIME D: botón SONIDO de verdad (48px, PC y mobile) — mismo mute que el clásico */
     const mb = this.add.rectangle(36, 62, 48, 48, 0x0a1f13, 0.72).setStrokeStyle(2, 0xf6efdc, 0.7).setInteractive({ useHandCursor: true });
@@ -3019,6 +3088,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st, P = window.PampaPartido;
     /* ETAPA 5: la economía de aguante corre con el flag e5_guts; apagado = tanques quietos (sandbox) */
     if (!this.FLAGS.e5_guts) { st.mios[st.ctrl].aguante = this.BAL.aguante.max; st.aguanteRival = this.BAL.aguante.max; }
+    /* V9 §8: la frase emitida con el HUD apagado (cine, Definición, Jugadón)
+       espera y sale acá, apenas la capa vuelve. Va ANTES de los returns por
+       estado justo para que no dependa de en qué estado esté el partido. */
+    if (this._relPendiente && this.soltarRelatoPendiente) this.soltarRelatoPendiente();
 
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
     if (this.estado === "CINE") { this.updateViaje(delta); return; }
@@ -3118,7 +3191,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         }
         else { const res = P.resolverAtajada(st, Math.random() < 0.5 ? "atajar" : "despejar"); aviso = res.golRival ? "GOL DE " + this.nombreRival : "¡La sacó tu arquero!"; }
       }
-      else if (ev.tipo === "entretiempo") { P.entretiempo(st); this.transicionEntretiempo(); this.relatar("entretiempo"); aviso = "ENTRETIEMPO — saca " + this.nombreRival; }
+      else if (ev.tipo === "entretiempo") {
+        P.entretiempo(st); this.transicionEntretiempo(); this.relatar("entretiempo");
+        aviso = "ENTRETIEMPO — saca " + this.nombreRival;
+        /* V9 §8+§10: el 2T ARRANCA de verdad — se anuncia el cambio de lado */
+        this.time.delayedCall(this.msV(2400), () => this.relatar("arranca_2t"));
+      }
       else if (ev.tipo === "final") this.finDelPartido();
     }
 

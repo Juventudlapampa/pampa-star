@@ -54,7 +54,18 @@
     "parallax_pasto": 1.4,
     "parallax_pasto_y": 0.7,
     "parallax_tribuna": 0.35,
-    "_parallax": "V7 §0.3: factores del parallax del panel de escena (pasto rápido, tribuna lenta, cielo quieto) — bajados para que la corrida se LEA. Subilos si lo querés más vertiginoso."
+    "_parallax": "V7 §0.3: factores del parallax del panel de escena (pasto rápido, tribuna lenta, cielo quieto) — bajados para que la corrida se LEA. Subilos si lo querés más vertiginoso.",
+    "hinchada": {
+      "_doc": "V9 §9 · LA HINCHADA VIVA del panel de juego. Tres estados: respira siempre (amp_base), se agita cuando la pelota entra a un último cuarto (amp_caliente) y estalla en el gol propio (amp_gol) o se hunde en el gol en contra (hundida). activa:false la apaga.",
+      "activa": true,
+      "siluetas": 26,
+      "y": 108,
+      "amp_base": 2,
+      "amp_caliente": 6,
+      "amp_gol": 16,
+      "hundida": 5,
+      "estallido_ms": 1800
+    }
   },
   "escena": {
     "_nota": "ANIME v4 Bloque B: LA CAPA CINEMÁTICA (flag v4_escenas). Toda acción significativa corta a una viñeta a pantalla: entrada del protagonista, pose, SILENCIO (feel.silencio_ms) y desenlace. Tiempos en ms; escalas de los sprites heroicos en el panel.",
@@ -511,5 +522,11 @@
     "entrada_ms": 340,
     "viaje_ms": 620,
     "hold_ms": 900
+  },
+  "relator": {
+    "_doc": "V9 §8 · EL RELATOR. y: la franja del ticker (subida de 520 a 300: en 520 pisaba la banda de abajo del mapa). hold_ms/fade_ms: cuánto queda la frase y cuánto tarda en irse.",
+    "y": 300,
+    "hold_ms": 2800,
+    "fade_ms": 500
   }
 }

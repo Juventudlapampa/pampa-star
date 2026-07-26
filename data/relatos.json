@@ -46,7 +46,7 @@
     }
   ],
   "relator": {
-    "_doc": "ANIME v4 Bloque E: frases del RELATOR en vivo (sistema PampaRelator). Variantes por situación; {jugador}/{rival}/{pueblo} se reemplazan; el sistema no repite la última frase de cada situación. Tono pampeano de cancha, ficticio y original.",
+    "_doc": "ANIME v4 Bloque E + V9 §8: frases del RELATOR en vivo (sistema PampaRelator). Variantes por situación; {jugador}/{rival}/{pueblo} se reemplazan. El sistema sirve por BOLSA BARAJADA: recorre todas las variantes de una situación antes de repetir ninguna. Tono pampeano de cancha, ficticio y original.",
     "saque": [
       "¡Arranca el partido en el potrero grande! Viento cruzado, como siempre.",
       "Rueda la pelota. Acá no hay tribunas de cemento: hay caldenes.",
@@ -57,63 +57,101 @@
       "¡Cuidado que se viene algo grande!",
       "Se arma… se arma… ¡atención en el área!",
       "Huele a peligro: hasta el viento se calló para mirar.",
-      "¡Ojo! Esto termina en grito o en suspiro."
+      "¡Ojo! Esto termina en grito o en suspiro.",
+      "Se acerca el peligro: se calla el mate.",
+      "Atención que esto se pone caliente."
     ],
     "gambeta_win": [
       "¡Lo sentó en el pasto! Qué cintura, familia.",
       "¡Pasó uno {jugador}! La lleva atada.",
-      "Amague, quiebre y adiós: puro potrero."
+      "Amague, quiebre y adiós: puro potrero.",
+      "¡Se la llevó de taquito para adelante! No lo agarran más.",
+      "Enganche corto, salida larga: quedó solo.",
+      "Lo pasó como si fuera un cono de entrenamiento."
     ],
     "gambeta_lose": [
       "Se la sacaron con lo justo. Duele, pero se sigue.",
       "Ahí no: el defensor dijo que por ahí no pasa nadie.",
-      "La quiso de más y se la comieron."
+      "La quiso de más y se la comieron.",
+      "Lo esperó parado y le sacó la pelota sin faltar.",
+      "Se le fue larga y el defensor no perdona.",
+      "Quiso el caño y le quedó la pierna atrás. A recuperar."
     ],
     "corte": [
       "¡Cortada! Le leyeron el pase de punta a punta.",
       "Esa iba con nombre y apellido, y se la devoraron en el camino.",
-      "El pase quedó corto y {rival} dijo gracias."
+      "El pase quedó corto y {rival} dijo gracias.",
+      "Estaba parado justo ahí. Pase leído, pelota perdida.",
+      "Ese pase lo vio venir todo el mundo, hasta el alambrado.",
+      "Le tiró la pierna y la sacó al lateral del pensamiento."
     ],
     "gol": [
       "¡GOOOL! ¡GRITALO, {pueblo}!",
       "¡Golazo, papá! ¡Se escuchó hasta en la ruta 35!",
-      "¡La clavó donde el viento no la saca! ¡GOL de {jugador}!"
+      "¡La clavó donde el viento no la saca! ¡GOL de {jugador}!",
+      "¡Explotó todo! ¡Gol de los nuestros!"
     ],
     "gol_rival": [
       "Gol de {rival}… silencio en el potrero.",
       "La metieron ellos. A levantar la cabeza, que queda partido.",
-      "Golpe duro. El viento sopla en contra, como siempre."
+      "Golpe duro. El viento sopla en contra, como siempre.",
+      "Se adelantan ellos. A no bajar los brazos."
     ],
     "atajada": [
       "¡La sacó el arquero de ellos! Qué manos, por favor.",
       "¡Voló el arquero rival y la manoteó! Se salvaron.",
-      "El arquero dijo que no: esa no entraba ni con permiso."
+      "El arquero dijo que no: esa no entraba ni con permiso.",
+      "La sacó de las manos del gol. Aplauso para el arquero rival."
     ],
     "afuera": [
       "¡Afuera! Por un jeme, como dicen los viejos.",
       "Se fue besando el palo. Uf.",
-      "La tiró a las casuarinas. Habrá otra."
+      "La tiró a las casuarinas. Habrá otra.",
+      "Se fue arriba, a la altura de los pájaros."
     ],
     "arquero_mio": [
       "¡ATAJADÓN NUESTRO! Abrácenlo que no es de goma.",
       "¡La retuvo el uno! Tranquilidad para el fondo.",
-      "¡Qué arquero tenemos, mamita querida!"
+      "¡Qué arquero tenemos, mamita querida!",
+      "¡Manotazo salvador! Sigue todo igual."
     ],
     "urgente": [
       "¡Últimos minutos! Corazón en la boca, se define todo.",
-      "El reloj aprieta y el descuento es un misterio, como siempre."
+      "El reloj aprieta y el descuento es un misterio, como siempre.",
+      "Se va el tiempo y todavía hay partido para dar vuelta.",
+      "Minutos finales: acá se define de un pelotazo."
     ],
     "entretiempo": [
       "Entretiempo: mate, naranja y a pensar el segundo tiempo.",
-      "Se va el primer tiempo. Lo que no se corrió, se corre ahora."
+      "Se va el primer tiempo. Lo que no se corrió, se corre ahora.",
+      "Quince minutos de descanso y a volver con otra cara.",
+      "Primer tiempo terminado: se charla en la ronda y se vuelve."
     ],
     "final": [
       "¡Final del partido! Lo dado, dado está.",
       "Pitó el árbitro y se terminó. A la ducha fría, como siempre.",
       "Se acabó. El fútbol pampeano no perdona ni regala."
+    ],
+    "quite_win": [
+      "¡Se la sacó de raíz! Quite pampeano, sin vueltas.",
+      "¡Uh, qué manera de meter la pierna! Pelota nuestra.",
+      "Le adivinó la intención y se la robó limpita.",
+      "¡Recuperó abajo! De eso también se hace un partido.",
+      "Metió el cuerpo y la pelota cambió de dueño."
+    ],
+    "saque_gol": [
+      "Del medio otra vez, que el partido no terminó.",
+      "Pelota al centro y a empezar de nuevo.",
+      "Se acomodan, saca el otro, y la historia sigue.",
+      "Vuelve a rodar: acá nadie se guarda nada."
+    ],
+    "arranca_2t": [
+      "¡Arranca el segundo tiempo! Cambio de lado y a dar vuelta la tarde.",
+      "Se juega la segunda parte. Ahora atacamos para el otro lado.",
+      "Segundo tiempo: mismo viento, distinta cancha.",
+      "Vuelven del vestuario y ahora el arco a defender es el otro."
     ]
   },
-
   "escenas": {
     "vestuario_dt": [
       "DT: Muchachos, no tenemos botines nuevos, tenemos 90 minutos.",

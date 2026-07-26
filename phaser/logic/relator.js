@@ -17,13 +17,32 @@
     opts = opts || {};
     var rng = opts.rng || Math.random;
     var R = (data && data.relator) || {};
-    var ultima = {};    // última frase servida por situación (no repetir dos veces seguidas)
+    var ultima = {};    // última frase servida por situación (compatibilidad + anti-repetición)
+    var bolsas = {};    // V9 §8: BOLSA BARAJADA por situación
     var oyentes = [];
+    /* V9 §8 · LA BOLSA: se recorren TODAS las variantes en orden aleatorio antes
+       de repetir ninguna, y al rebarajar la primera nunca es la última servida.
+       Antes solo se evitaba la repetición inmediata: con 3 frases se escuchaba
+       A,B,A,B y con 2 la secuencia era determinista. */
+    function sacarDeLaBolsa(situacion, lista) {
+      var b = bolsas[situacion];
+      if (!b || !b.length) {
+        b = lista.map(function (_, k) { return k; });
+        for (var k = b.length - 1; k > 0; k--) {           // Fisher-Yates
+          var s = Math.floor(rng() * (k + 1));
+          var t = b[k]; b[k] = b[s]; b[s] = t;
+        }
+        if (b.length > 1 && b[b.length - 1] === ultima[situacion]) {
+          var tmp = b[b.length - 1]; b[b.length - 1] = b[0]; b[0] = tmp;
+        }
+        bolsas[situacion] = b;
+      }
+      return b.pop();
+    }
     function frase(situacion, ctx) {
       var lista = R[situacion];
       if (!lista || !lista.length) return null;
-      var i = Math.floor(rng() * lista.length) % lista.length;
-      if (lista.length > 1 && i === ultima[situacion]) i = (i + 1) % lista.length;
+      var i = sacarDeLaBolsa(situacion, lista);
       ultima[situacion] = i;
       ctx = ctx || {};
       var f = String(lista[i])

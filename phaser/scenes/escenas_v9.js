@@ -82,6 +82,86 @@
     },
 
     /* ======================================================================
+       §9 · LA HINCHADA VIVA (en el panel de juego, todo el partido)
+       Tres estados, uno solo por vez: RESPIRA (siempre, 2px), SE AGITA (la
+       jugada se pone caliente, 6px y más rápido) y ESTALLA (gol propio: 16px
+       y saltan; gol en contra: se hunden y se quedan quietas).
+       ====================================================================== */
+    crearHinchadaPanel() {
+      var V = (this.BAL.vista || {}), cfg = V.hinchada || {};
+      if (cfg.activa === false) { this._hin = null; return; }
+      var n = cfg.siluetas || 26, y0 = cfg.y || 108, tonos = [0x0a1f13, 0x143224, 0x1d2f3f, 0x24374a];
+      var g = this.add.graphics();
+      this.panelLayer.add(g);
+      this._hin = { g: g, n: n, y0: y0, t: 0, amp: cfg.amp_base != null ? cfg.amp_base : 2, ampObj: cfg.amp_base != null ? cfg.amp_base : 2, hundida: 0, tonos: tonos, vel: 1 };
+      /* posiciones fijas (no se recalculan por frame): x, fase y tono */
+      this._hin.gente = [];
+      for (var k = 0; k < n; k++) {
+        this._hin.gente.push({
+          x: 14 + k * (932 / n) + (k % 2) * 8,
+          fase: (k % 7) * 0.9 + (k % 3) * 0.4,
+          tono: tonos[k % tonos.length],
+          alto: 9 + (k % 3) * 2
+        });
+      }
+    },
+    /* la llama updatePanelEscena, una vez por frame */
+    latirHinchada(delta, caliente) {
+      var h = this._hin;
+      if (!h || !h.g) return;
+      var cfg = (this.BAL.vista || {}).hinchada || {};
+      h.t += delta * 0.001 * h.vel;
+      /* objetivo de amplitud: respira / se agita — el estallido lo pone hinchadaEstalla */
+      if (!h.estallando) {
+        h.ampObj = caliente ? (cfg.amp_caliente || 6) : (cfg.amp_base != null ? cfg.amp_base : 2);
+        h.vel = caliente ? 2.2 : 1;
+      }
+      h.amp += (h.ampObj - h.amp) * Math.min(1, delta * 0.006);      // se acomoda suave
+      var g = h.g;
+      g.clear();
+      for (var k = 0; k < h.gente.length; k++) {
+        var p = h.gente[k];
+        var salto = Math.abs(Math.sin(h.t * 3 + p.fase)) * h.amp;
+        var y = h.y0 - salto + h.hundida;
+        g.fillStyle(p.tono, 0.9);
+        g.fillRect(p.x - 3, y, 6, p.alto);                            // el cuerpo
+        g.fillCircle(p.x, y - 2, 3);                                  // la cabeza
+      }
+    },
+    /* signo 1 = gol propio (explotan) · -1 = gol en contra (se hunden y callan) */
+    hinchadaEstalla(signo) {
+      var h = this._hin, self = this;
+      if (!h) return;
+      var cfg = (this.BAL.vista || {}).hinchada || {};
+      h.estallando = true;
+      if (signo < 0) { h.ampObj = 0; h.vel = 0.4; h.hundida = cfg.hundida || 5; }
+      else { h.ampObj = cfg.amp_gol || 16; h.vel = 3.4; h.hundida = 0; }
+      this.time.delayedCall(this.msV(cfg.estallido_ms || 1800), function () {
+        if (!self._hin) return;
+        self._hin.estallando = false; self._hin.hundida = 0; self._hin.vel = 1;
+      });
+    },
+
+    /* ======================================================================
+       §8+§9 · TODO GOL PROPIO PASA POR ACÁ. Antes la fiesta dependía del
+       camino: el gol del cine (el del megatiro, el mejor filmado) no llamaba
+       ni a la tribuna ni a efectoGol, y después de un gol el relator no volvía
+       a hablar nunca — "saque" sonaba una sola vez, en el minuto 0.
+       ====================================================================== */
+    golPropio() {
+      var self = this, st = this.st;
+      window.PampaPartido.golMio(st);
+      if (this.efectoGol) this.efectoGol(false);
+      if (this.cineLayer && this.cineLayer.visible && this.tribunaSaltando) this.tribunaSaltando();
+      if (this.hinchadaEstalla) this.hinchadaEstalla(1);          // la del panel de juego
+      this.time.delayedCall(this.msV(1600), function () { self.relatar("saque_gol"); });
+    },
+    golEnContraDeLosNuestros() {
+      if (this.hinchadaEstalla) this.hinchadaEstalla(-1);         // se hunde la tribuna
+      this.time.delayedCall(this.msV(1600), function () { }, [], this);
+    },
+
+    /* ======================================================================
        §7 · POR QUÉ SALIÓ ASÍ — la línea corta bajo el desenlace.
        La lógica pura ya devuelve el término que decidió (motivo); acá solo se
        traduce a cancha. Nunca inventa: si no hay motivo, no dice nada.
@@ -100,6 +180,13 @@
         parejo: ""
       };
       return M[res.motivo] || "";
+    },
+    /* el sub de la escena: lo que pasó + por qué, sin repetirse ni quedar vacío */
+    subConPorQue(base, res) {
+      var p = this.porQueDuelo(res);
+      if (!p) return base || "";
+      if (!base) return p;
+      return base + " · " + p;
     },
     porQuePase(res, cortador, alVacio, win) {
       var m = res && res.motivo;

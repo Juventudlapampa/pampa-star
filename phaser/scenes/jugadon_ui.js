@@ -406,7 +406,7 @@
         self.time.delayedCall(self.msV(1100), function () {
           self.jugadonCerrar(function () {
             var P = window.PampaPartido;
-            if (res.outcome === "gol") P.golMio(st);
+            if (res.outcome === "gol") self.golPropio();
             else if (res.outcome === "rebote") {
               /* el rebote queda VIVO: la pelota es tuya pegada al área (la segunda chance épica) */
               st.posesion = "mia";

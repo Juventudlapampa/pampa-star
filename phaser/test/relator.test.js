@@ -58,5 +58,41 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
   console.log("[4] hook streamer: ok");
 })();
 
+/* ---- 5) V9 §8 · TODA clave que el código pide TIENE que existir en el JSON ----
+   "quite_win" se llamaba desde el jugadón y no estaba en relatos.json: ganar la
+   pelota era el único desenlace mudo del juego, y nada lo cazaba. Ahora sí. */
+(function () {
+  var fs = require("fs"), path = require("path");
+  var dir = path.join(__dirname, "..", "scenes");
+  var claves = {};
+  fs.readdirSync(dir).filter(function (f) { return f.endsWith(".js"); }).forEach(function (f) {
+    var s = fs.readFileSync(path.join(dir, f), "utf8");
+    var re = /relatar\(\s*["'`]([a-z0-9_]+)["'`]/gi, m;
+    while ((m = re.exec(s))) claves[m[1]] = (claves[m[1]] || []).concat(f);
+  });
+  var pedidas = Object.keys(claves);
+  ok(pedidas.length >= 10, "el barrido encuentra las claves que pide el código (" + pedidas.length + ")");
+  pedidas.forEach(function (k) {
+    var lista = data.relator[k];
+    ok(Array.isArray(lista) && lista.length >= 2,
+      "§8 la clave '" + k + "' (la pide " + claves[k][0] + ") existe en relatos.json con 2+ variantes");
+  });
+  console.log("[5] claves del código ⊂ relatos.json: ok (" + pedidas.length + " claves)");
+})();
+
+/* ---- 6) V9 §8 · LA BOLSA: recorre todas antes de repetir ninguna ---- */
+(function () {
+  var i = 0;
+  var rng = function () { i++; return ((i * 37) % 100) / 100; };
+  var rel = R.crear(data, { rng: rng });
+  var n = data.relator.gambeta_win.length;
+  var vistas = {}, seguidas = [];
+  for (var k = 0; k < n; k++) { var f = rel.frase("gambeta_win"); vistas[f] = 1; seguidas.push(f); }
+  ok(Object.keys(vistas).length === n, "en " + n + " tiradas salieron las " + n + " variantes, sin repetir (" + Object.keys(vistas).length + ")");
+  var siguiente = rel.frase("gambeta_win");
+  ok(siguiente !== seguidas[seguidas.length - 1], "al rebarajar, la primera no es la última que sonó");
+  console.log("[6] bolsa barajada: ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);
