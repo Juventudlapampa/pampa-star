@@ -2578,6 +2578,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (d < dMin) { dMin = d; cortador = r; }
     });
     /* la verdad se decide UNA vez en la lógica; el teatro solo la cuenta */
+    /* V9 §2: foto de QUIÉN la toca y QUIÉN la espera — resolverPase le pasa el
+       control al receptor, así que después ya no se sabe quién fue el pasador */
+    const quien = { pateador: st.mios[st.ctrl], receptor: st.mios[rec.idx] };
     let res, texto;
     if (alVacio) {
       res = P.resolverPaseAlVacio(st, rec.idx, rec.pct);
@@ -2586,9 +2589,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       res = P.resolverPase(st, rec.idx, rec.pct);
       texto = res.win ? "AHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase() : "¡INTERCEPTADO!\nLeyeron el pase.";
     }
-    this.animarPase(origen, destino, alVacio, cortador, res.win, texto);
+    this.animarPase(origen, destino, alVacio, cortador, res.win, texto, quien, res);
   }
-  animarPase(origen, destino, alVacio, cortador, win, texto) {
+  animarPase(origen, destino, alVacio, cortador, win, texto, quien, res) {
     this.estado = "RESOLUCION";
     this.limpiarMenu();
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
@@ -2625,43 +2628,40 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.quitarDuelo();
         if (this.FLAGS.v6_definicion) this.entrarDefinicionOf({ libre: true });
         else this.abrirMenuAereo();
-      } else if (win && !peligro) {
-        /* V8 D (playtest): el pase TAMBIÉN se ve arriba — viñeta CORTA con la
-           pose de la pared; ninguna acción se resuelve solo con texto */
+      } else if (this.hayEscenas() && this.escenaPase) {
+        /* V9 §2 · EL PASE SE VE, SIEMPRE Y ENTERO: se acomoda, le pega, la
+           pelota VIAJA y —si hay alguien en la línea— el rival se TIRA a
+           cortarla, con freeze y silencio antes de saber. Antes solo tenía
+           viñeta el caso sin cortador (el menos tenso) y el corte perdido;
+           el pase GANADO con un rival lanzándose moría en un cartel. */
         this.quitarDuelo();
         this.zoomBase();
-        if (this.hayEscenas()) {
-          const rec = this.st.mios[this.st.ctrl];
-          this.escenaCine({
-            etiqueta: alVacio ? "· al vacío ·" : "· el pase ·",
-            prota: { j: rec, esRival: false, anim: "pase" },
-            pose: "pared", rapida: true,
-            rival: null, gana: true, color: 0x7ee08a, sfx: "whoosh",
-            titulo: texto.split("\n")[0],
-            sub: alVacio ? "la puso en el camino y el pibe pica" : "toque y a seguir",
-            alFinal: () => { this.estado = "LIBRE"; }
-          });
-          return;
-        }
-        this.estado = "LIBRE";
-        this.avisar(texto.split("\n")[0]);
-      } else if (!win && this.hayEscenas()) {
-        /* ANIME B (P3): nunca más "perdiste la pelota" solo en el título —
-           el CORTE es una viñeta: el defensor que se lanzó, en primer plano */
-        const cortJ = cortador || this.st.rivales[this.st.portadorRival];
-        this.escenaCine({
-          etiqueta: "· el corte ·",
-          prota: { j: cortJ, esRival: true, anim: "pase" },   // lanzado a cortarla
-          rival: null,
-          gana: true, color: 0xe3503e, sfx: "gloves",
-          titulo: alVacio ? "¡NO LLEGÓ!" : "¡CORTADO!",
-          sub: alVacio ? "la adelantaste demasiado y la leyeron · pelota rival" : "se lanzó a la línea de pase · pelota rival",
-          alFinal: () => this.relatar("corte")
+        const st = this.st;
+        const cortJ = cortador || (!win ? st.rivales[st.portadorRival] : null);
+        this.escenaPase({
+          alVacio: alVacio, cortador: cortJ, win: win,
+          pateador: (quien && quien.pateador) || st.mios[st.ctrl],
+          receptor: (quien && quien.receptor) || st.mios[st.ctrl],
+          titulo: win ? (cortJ ? "¡LE PASÓ POR AL LADO!" : texto.split("\n")[0])
+            : (alVacio ? "¡NO LLEGÓ!" : "¡CORTADO!"),
+          sub: this.porQuePase(res, cortJ, alVacio, win),
+          alFinal: () => {
+            if (!win) this.relatar("corte");
+            this.estado = "LIBRE";
+          }
         });
       } else {
         this.mostrarResolucion(texto, win ? "#7ee08a" : "#e3503e", { anim: "pase", gana: win });
       }
     };
+    /* V9 §2: en pantalla partida el MAPA ESTÁ APAGADO — toda esta coreografía
+       (la pelota viajando, el rival lanzándose, el silencio) se jugaba donde
+       nadie la veía, y encima demoraba el desenlace. Con el mapa oculto se va
+       derecho a la escena de arriba, que la cuenta entera. */
+    if (this._split && this.hayEscenas() && this.escenaPase) {
+      this.time.delayedCall(this.msV(90), cerrar);
+      return;
+    }
     /* LA SECUENCIA AVANZA POR RELOJ (robusto — lección del Hito 1: los tweens
        son solo movimiento visual, jamás el hilo de la historia) */
     if (!peligro) {

@@ -460,34 +460,68 @@
   /* MATRIZ DE VENTAJAS: quite>gambeta · corte>pase(y pared) · bloqueo>tiro */
   var CONTRA = { gambeta: "quite", pase: "corte", pared: "corte", tiro: "bloqueo" };
 
+  /* ---------- V9 §7 · POR QUÉ SALIÓ ASÍ ----------
+     El duelo aplana 4-5 factores en un solo número y hasta ahora devolvía solo
+     el booleano: el término que decidió moría adentro de la función, y por eso
+     el resultado se sentía un dado. Esto NO cambia ningún resultado — nombra
+     el término que más movió la aguja con lo que ya estaba calculado.
+     Vocabulario cerrado (el texto lo pone la UI):
+       ajustado · lectura · cansado · entero · envion · megacosa · rival_fundido · parejo */
+  function motivoDuelo(win, matriz, aporte, chance, roll) {
+    if (!aporte) return "parejo";
+    if (Math.abs(roll - chance) < 0.05) return "ajustado";          // por centímetros
+    var leido = matriz === "leyeron" || matriz === "teEngano";      // te adivinaron
+    if (leido !== win) return "lectura";                            // la matriz explica el resultado
+    if (!win && aporte.aguante <= -2.5) return "cansado";
+    if (win && aporte.aguante >= 2.5) return "entero";
+    if (win && aporte.envion > 0) return "envion";
+    if (!win && aporte.megaRival < 0) return "megacosa";
+    if (win && aporte.rivalFrac < 0.35) return "rival_fundido";     // el tanque de la CPU en el piso
+    return "parejo";
+  }
+
   /* duelo del encuentro (ataque MÍO vs defensa CPU, o al revés) */
   function resolverDuelo(st, opts) {
     var rng = opts.rng || Math.random, bal = st.bal, B = bal.partido.matriz_bonus;
     var win, accionRival, matriz;
     /* R3: el ENVIÓN activo potencia al equipo entero unos momentos */
     var envBonus = envionActivo(st) ? (envionCfg(st).potencia_bonus || 10) : 0;
+    /* V9 §7: el aguante entra ANTES de gastar — se guarda para poder contarlo */
+    var bA = bonusAguante(st);
+    var fracRival = clamp((st.aguanteRival || 0) / bal.aguante.max, 0, 1);
+    var chance = 0, roll = 1, aporte = null;
     if (st.posesion === "mia") {
       accionRival = eleccionCPU(st, rng);
-      var atk = (opts.poder != null ? opts.poder : statCtrl(st, opts.accion === "tiro" ? "tiro" : opts.accion === "gambeta" ? "gambeta" : "pase")) + bonusAguante(st) + envBonus;
+      var atk = (opts.poder != null ? opts.poder : statCtrl(st, opts.accion === "tiro" ? "tiro" : opts.accion === "gambeta" ? "gambeta" : "pase")) + bA + envBonus;
       var def = poderRival(st);
       if (CONTRA[opts.accion] === accionRival) { def += B; matriz = "leyeron"; }   // te adivinaron
       else { atk += B * 0.6; matriz = "zafaste"; }                                  // esquivaste la marca equivocada
       def += opts.bonusRival || 0;   // Feel B6: la megacosa defensiva del rival pega acá
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
-      win = rng() < Duel.duelChance(atk, def, bal.duelo);
+      chance = Duel.duelChance(atk, def, bal.duelo);
+      roll = rng();
+      win = roll < chance;
+      aporte = { aguante: bA, envion: envBonus, matriz: matriz === "leyeron" ? -B : B * 0.6, megaRival: -(opts.bonusRival || 0), rivalFrac: fracRival };
     } else {
       /* defiendo: la CPU "ataca" con intención oculta */
       accionRival = ["gambeta", "pase", "tiro"][Math.floor(rng() * 3)];
-      var defMio = (opts.poder != null ? opts.poder : 50) + bonusAguante(st) + envBonus;
+      var defMio = (opts.poder != null ? opts.poder : 50) + bA + envBonus;
       var atkRiv = poderRival(st) + 4;
       if (CONTRA[accionRival] === opts.accion) { defMio += B; matriz = "leiste"; }  // le adivinaste la intención
       else { atkRiv += B * 0.6; matriz = "teEngano"; }
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
-      win = rng() < Duel.duelChance(defMio, atkRiv, bal.duelo);
+      chance = Duel.duelChance(defMio, atkRiv, bal.duelo);
+      roll = rng();
+      win = roll < chance;
+      aporte = { aguante: bA, envion: envBonus, matriz: matriz === "leiste" ? B : -B * 0.6, megaRival: 0, rivalFrac: fracRival };
     }
     if (win) sumarEnvion(st, envionCfg(st).gana_duelo);   // R3: el mérito se ACUMULA ganando
     saltoReloj(st, rng);
-    return { win: win, accionRival: accionRival, matriz: matriz };
+    return {
+      win: win, accionRival: accionRival, matriz: matriz,
+      chancePct: Math.round(chance * 100), roll: Math.round(roll * 1000) / 1000,
+      aporte: aporte, motivo: motivoDuelo(win, matriz, aporte, chance, roll)
+    };
   }
 
   /* efectos de mundo tras el duelo de ataque.
@@ -537,26 +571,32 @@
   }
 
   /* ---------- pases ---------- */
+  /* riesgo de la LÍNEA DE PASE: quién está parado en el corredor y cuánto pesa.
+     V6 §1 F3: uno que está detrás del pasador o pasado el receptor NO corta.
+     V9 §7: se factorizó para que el pase pueda CONTAR por qué se lo cortaron. */
+  function riesgoLinea(st, receptorIdx) {
+    var c = st.mios[st.ctrl], j = st.mios[receptorIdx];
+    var d = dist(j.x, j.y, c.x, c.y), riesgo = 0, quien = null;
+    st.rivales.forEach(function (r) {
+      if (r.pos === "ARQ") return;
+      var t = ((r.x - c.x) * (j.x - c.x) + (r.y - c.y) * (j.y - c.y)) / (d * d || 1);
+      if (t < 0.1 || t > 0.92) return;
+      var px = c.x + (j.x - c.x) * t, py = c.y + (j.y - c.y) * t;
+      var dr = dist(r.x, r.y, px, py);
+      if (dr < 60 && (60 - dr) * 0.5 > riesgo) { riesgo = (60 - dr) * 0.5; quien = r; }
+    });
+    return { riesgo: riesgo, quien: quien, d: d };
+  }
   function receptoresPase(st) {
     var bal = st.bal, c = st.mios[st.ctrl], out = [];
     st.mios.forEach(function (j, i) {
       if (i === st.ctrl || j.pos === "ARQ") return;
       var d = dist(j.x, j.y, c.x, c.y);
       if (d > bal.partido.pase_radio) return;
-      /* riesgo: rival EN EL CORREDOR de la línea de pase.
-         V6 §1 F3: uno que está detrás del pasador o pasado el receptor NO corta. */
-      var riesgo = 0;
-      st.rivales.forEach(function (r) {
-        if (r.pos === "ARQ") return;
-        var t = ((r.x - c.x) * (j.x - c.x) + (r.y - c.y) * (j.y - c.y)) / (d * d || 1);
-        if (t < 0.1 || t > 0.92) return;
-        var px = c.x + (j.x - c.x) * t, py = c.y + (j.y - c.y) * t;
-        var dr = dist(r.x, r.y, px, py);
-        if (dr < 60) riesgo = Math.max(riesgo, (60 - dr) * 0.5);
-      });
+      var riesgo = riesgoLinea(st, i).riesgo;
       var pct = 68 + (statCtrl(st, "pase") - 50) * 0.5 + ((j.stats.pase || 50) - 50) * 0.2 + (j.vinculo || 0) * 0.12 - riesgo;
       if (d > 200) pct -= (d - 200) * bal.partido.pase_penal_lejano;
-      out.push({ idx: i, nombre: j.nombre, pos: j.pos, adelante: j.x > c.x + 20, pct: clamp(Math.round(pct), 15, 95), d: Math.round(d) });
+      out.push({ idx: i, nombre: j.nombre, pos: j.pos, adelante: j.x > c.x + 20, pct: clamp(Math.round(pct), 15, 95), d: Math.round(d), riesgo: Math.round(riesgo) });
     });
     out.sort(function (a, b) { return b.pct + (b.adelante ? 6 : 0) - (a.pct + (a.adelante ? 6 : 0)); });
     return out.slice(0, 4);
@@ -565,9 +605,11 @@
     rng = rng || Math.random;
     var o = st.mios[st.ctrl];
     var dPase = dist(o.x, o.y, st.mios[receptorIdx].x, st.mios[receptorIdx].y);
+    var rl = riesgoLinea(st, receptorIdx);          // V9 §7: quién estaba en la línea
     gastar(st, "mio", st.bal.aguante.costo_pase);
     saltoReloj(st, rng);
-    var win = rng() * 100 < pct;
+    var roll = rng() * 100;
+    var win = roll < pct;
     if (win) {
       st.ctrl = receptorIdx;                       // el control VIAJA con el pase
       var r = st.mios[receptorIdx];
@@ -577,7 +619,11 @@
     } else {
       perderPelota(st, rng);
     }
-    return { win: win };
+    /* V9 §7: el pase cuenta POR QUÉ salió así — tapado (había uno en la línea),
+       largo (la distancia se comió el porcentaje) o ajustado (por centímetros) */
+    var motivo = Math.abs(roll - pct) < 8 ? "ajustado"
+      : (rl.riesgo >= 12 ? "tapado" : (dPase > 200 ? "largo" : "limpio"));
+    return { win: win, pct: Math.round(pct), riesgo: Math.round(rl.riesgo), motivo: motivo };
   }
 
   /* ---------- PASE AL VACÍO (v2 §7 "Through") ----------
@@ -752,6 +798,7 @@
     resolverDuelo: resolverDuelo, ganarAtaque: ganarAtaque, perderPelota: perderPelota,
     ganarDefensa: ganarDefensa, perderDefensa: perderDefensa,
     receptoresPase: receptoresPase, resolverPase: resolverPase,
+    riesgoLinea: riesgoLinea, motivoDuelo: motivoDuelo,
     puedeTirar: puedeTirar, puedeCalden: puedeCalden, prepararRemate: prepararRemate,
     golMio: golMio, tiroFallado: tiroFallado,
     opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,

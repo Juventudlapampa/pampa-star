@@ -505,5 +505,11 @@
     "vel_rival": 118,
     "contacto": 78,
     "meta_y": 110
+  },
+  "escena_pase": {
+    "_doc": "V9 §2 · LA ESCENA DEL PASE: se acomoda, le pega, la pelota viaja y —si hay alguien en la línea— el rival se tira a cortarla (freeze + silencio antes de saber). entrada_ms: el que la toca entra al plano. viaje_ms: cuánto tarda la pelota en cruzar. hold_ms: cuánto queda el desenlace en pantalla.",
+    "entrada_ms": 340,
+    "viaje_ms": 620,
+    "hold_ms": 900
   }
 }
