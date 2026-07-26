@@ -517,7 +517,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   escalaHeroico() { return this.V2.ESCALA_HEROICO * (this._vista4 ? (this.VI.escala_portador || 0.6) : 1); }
   /* sim → mundo de RENDER: con la cancha en perspectiva (E4) el rectángulo de la
      simulación se remapea AL TRAPECIO dibujado (nadie pisa el cielo ni las cuñas) */
+  /* ============ V9 §10 · EL CAMBIO DE LADO ============
+     En el segundo tiempo los equipos se dan vuelta. La SIMULACIÓN no se toca
+     (seguís atacando a +x: la IA de los 21, los 17 umbrales de partido.js,
+     el Jugadón y la Definición quedan intactos, y con ellos sus tests): lo que
+     se espeja es el RENDER. fx() es el único punto de verdad y lo usan aRender,
+     aSim y el radar — si se espejara solo uno, el pase tocado en el mapa iría
+     al lado equivocado. */
+  fx(jx) { return (this.st && this.st.ladoVisual === 2) ? this.st.W - jx : jx; }
   aRender(jx, jy) {
+    jx = this.fx(jx);
     if (!this.FLAGS.e4_arte || !this._persp) return { x: jx * this.SX, y: jy * this.SY };
     const P = this._persp;
     const y = P.yTop + 16 + (jy / this.st.H) * (P.yBot - P.yTop - 30);
@@ -775,12 +784,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   /* pantalla→simulación: la INVERSA de aRender (para tocar el pase sobre la cancha) */
   aSim(wx, wy) {
-    if (!this.FLAGS.e4_arte || !this._persp) return { x: wx / this.SX, y: wy / this.SY };
+    if (!this.FLAGS.e4_arte || !this._persp) return { x: this.fx(wx / this.SX), y: wy / this.SY };
     const P = this._persp;
     const t = Phaser.Math.Clamp((wy - P.yTop - 16) / (P.yBot - P.yTop - 30), 0, 1);
     const xi = P.insTop + (P.insBot - P.insTop) * t;
     const jx = Phaser.Math.Clamp((wx - xi - 16) / (this.V2.MUNDO_W - 2 * xi - 32), 0, 1) * this.st.W;
-    return { x: jx, y: t * this.st.H };
+    return { x: this.fx(jx), y: t * this.st.H };   // V9 §10: la inversa también espeja
   }
   /* PASE DIRIGIBLE sobre la cancha (Anime A): mismo criterio que el radar de la v2 —
      receptor más cercano al toque; MÁS ALLÁ de él (hacia el arco) = AL VACÍO */
@@ -1095,9 +1104,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const banda = this.add.rectangle(480, 200, 960, 84, 0x0a1f13, 0.9);
     const t = this.add.text(480, 190, "⏸ ENTRETIEMPO", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
     const m = this.add.text(480, 218, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival + " · el descanso recupera aguante", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
-    this.hudLayer.add([banda, t, m]);
-    this.cameras.main.ignore([banda, t, m]);
-    this.tweens.add({ targets: [banda, t, m], alpha: 0, delay: 2100, duration: 500, onComplete: () => { banda.destroy(); t.destroy(); m.destroy(); } });
+    /* V9 §10: el cambio de lado SE ANUNCIA — si no, darse vuelta se lee como un bug */
+    const c = this.add.text(480, 242, "⇄ CAMBIO DE LADO · ahora atacás para el otro arco", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+    this.hudLayer.add([banda, t, m, c]);
+    this.cameras.main.ignore([banda, t, m, c]);
+    /* la cancha se da vuelta a la vista: medio segundo de giro y ya está */
+    this.tweens.add({ targets: c, scaleX: { from: 0.2, to: 1 }, duration: 420, ease: "Back.easeOut" });
+    this.tweens.add({ targets: [banda, t, m, c], alpha: 0, delay: 2100, duration: 500, onComplete: () => { banda.destroy(); t.destroy(); m.destroy(); c.destroy(); } });
   }
   onBotonAccion() {
     const st = this.st, P = window.PampaPartido;
@@ -2822,7 +2835,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.radar) return;
     const g = this.radarG, R = this.radar, st = this.st;
     g.clear();
-    const mx = wx => R.x + wx / st.W * R.w, my = wy => R.y + wy / st.H * R.h;
+    const mx = wx => R.x + this.fx(wx) / st.W * R.w, my = wy => R.y + wy / st.H * R.h;
+    /* V9 §10: con el cambio de lado hay que DECIR cuál arco defendés — texto y
+       posición, nunca solo el color. Sin esto, darse vuelta se lee como un bug. */
+    if (!this._radarTuArco) {
+      this._radarTuArco = this.add.text(0, 0, "◄ TU ARCO", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#4FC3F7", padding: { x: 4, y: 1 } }).setOrigin(0, 0).setDepth(30);
+      this.hudLayer.add(this._radarTuArco);
+    }
+    const izq = st.ladoVisual !== 2;
+    this._radarTuArco.setText(izq ? "◄ TU ARCO" : "TU ARCO ►")
+      .setOrigin(izq ? 0 : 1, 0)
+      .setPosition(izq ? R.x + 3 : R.x + R.w - 3, R.y + 3)
+      .setVisible(true);
     /* V7-1: EL MAPA es protagonista — cancha completa dibujada (pasto, líneas, áreas) */
     if (this._split) {
       g.fillStyle(0x1e6b33, 1); g.fillRect(R.x, R.y, R.w, R.h);

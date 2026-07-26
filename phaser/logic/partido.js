@@ -66,7 +66,7 @@
       rivales: armarLado(opts.rivales || [], false),
       aguanteRival: bal.aguante.max,             // la CPU comparte tanque (pero GASTA, no es infinita)
       rivalKeeperSkill: opts.rivalKeeperSkill != null ? opts.rivalKeeperSkill : bal.duelo.keeper_skill.normal,
-      minuto: 0, tiempo: 1,
+      minuto: 0, tiempo: 1, ladoVisual: 1,   // V9 §10: 2 en el segundo tiempo (solo render)
       /* descuento OCULTO e impredecible por tiempo (doc §6: nadie sabe cuándo pita) */
       desc1: bal.ritmo.descuento_min + Math.floor(rng() * (bal.ritmo.descuento_max - bal.ritmo.descuento_min + 1)),
       desc2: bal.ritmo.descuento_min + Math.floor(rng() * (bal.ritmo.descuento_max - bal.ritmo.descuento_min + 1)),
@@ -375,6 +375,11 @@
   }
   function entretiempo(st) {
     st.tiempo = 2; st.minuto = 45;
+    /* V9 §10 · CAMBIO DE LADO. Dato INFORMATIVO para el render: la simulación
+       sigue atacando a +x (no se espeja ni una regla, ni un umbral, ni la IA
+       de los 21 — sus tests siguen valiendo). El que se da vuelta es el
+       dibujo: aRender, aSim y el radar leen esto y espejan la cancha. */
+    st.ladoVisual = 2;
     var rec = st.bal.aguante.max * st.bal.aguante.recuperacion_entretiempo_frac;
     st.mios.forEach(function (j) { j.aguante = clamp(j.aguante + rec, 0, st.bal.aguante.max); });
     st.aguanteRival = clamp(st.aguanteRival + rec, 0, st.bal.aguante.max);

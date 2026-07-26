@@ -45,6 +45,16 @@ function partidoNuevo(rng) {
   ok(evs.length && evs[0].tipo === "entretiempo", "pita el entretiempo tras 45+descuento (evento: " + (evs[0] && evs[0].tipo) + ")");
   P.entretiempo(st);
   ok(st.tiempo === 2 && st.minuto === 45 && st.posesion === "rival", "2T: saca el rival, minuto 45");
+  /* V9 §10 · CAMBIO DE LADO: es dato de RENDER. La sim no se espeja — si se
+     espejara, la IA y los 17 umbrales de "yo ataco a +x" quedarían al revés. */
+  ok(st.ladoVisual === 2, "2T: el lado VISUAL se da vuelta (ladoVisual=2)");
+  ok(st.mios.every(function (j) { return j.x <= st.W / 2 + 1; }), "2T: los míos siguen en su mitad de SIMULACIÓN");
+  ok(st.rivales.every(function (j) { return j.x >= st.W / 2 - 1; }), "2T: los rivales siguen en la suya");
+  st.ctrl = st.mios.findIndex(function (j) { return j.pos !== "ARQ"; });
+  st.mios[st.ctrl].x = 100;
+  ok(!P.puedeTirar(st), "2T: desde campo propio sigue sin poder tirar (la sim no se dio vuelta)");
+  st.posesion = "mia"; st.mios[st.ctrl].x = st.W - 60;
+  ok(P.puedeTirar(st), "2T: pegado al arco rival sí puede tirar");
   st.cooldown = 9e9;
   st.minuto = 89.9 + st.desc2;
   evs = [];
