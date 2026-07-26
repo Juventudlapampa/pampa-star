@@ -226,8 +226,8 @@
     },
 
     /* ============ BOTONES contextuales (48px+, costo en NÚMERO) ============ */
-    defBoton(x, texto, sub, color, cb) {
-      var r = this.add.rectangle(x, H - 34, 148, 52, color || 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+    defBoton(x, texto, sub, color, cb, ancho) {
+      var r = this.add.rectangle(x, H - 34, ancho || 148, 52, color || 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
       var t = this.add.text(x, H - 42, texto, { fontFamily: window.PF.display, fontSize: "9px", color: "#0a1f13" }).setOrigin(0.5);
       var s = this.add.text(x, H - 24, sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
       this.cineContent.add(r); this.cineContent.add(t); this.cineContent.add(s);
@@ -254,27 +254,75 @@
       }
       this.defBoton(xs + paso * 3, "➡ PASE", "salir del momento", 0xdcd6c2, function () { self.salirDefinicion(function () { self.iniciarPaseDirigido(null, true); }); });
     },
+    /* ============ V9 §6 · UNA DECISIÓN, NO UNA CHECKLIST ============
+       Había cinco botones (PLANTARSE / BARRIDA / ACHICAR / LÍNEA / QUIETO):
+       ninguno salvo BARRIDA costaba nada, ninguno excluía a los otros y
+       ninguno cerraba la fase, así que la jugada óptima era tocarlos todos
+       mientras corría la barra de carga —cero tensión, cero trade-off—.
+       Ahora son TRES, se elige UNA, cuesta y RESUELVE: decidís y ves qué pasó.
+       Quién ataja no lo decide un reflejo: lo deciden dónde está tu defensor,
+       el nivel de tu arquero y el cansancio. */
     defBotonesDef() {
       var st = this.st, A = this.BAL.aguante, self = this;
-      var xs = 100, paso = 152;
-      this.defBoton(xs, "🧱 PLANTARSE", "en la línea · " + (A.costo_bloqueo || 70), 0xf6efdc, function () { self._def.plantado = true; self.avisarDef("Te plantás en la línea de tiro"); });
-      this.defBoton(xs + paso, "🦵 BARRIDA", A.costo_quite + " · a todo o nada", 0xff8c3a, function () { self.defBarrida(); });
-      this.defBoton(xs + paso * 2, "🧤 ACHICAR", "el arquero SALE", 0xf6efdc, function () { self._def.plan = "achicar"; self._def.arq.y = 190; self.avisarDef("Tu arquero achica el ángulo"); });
-      this.defBoton(xs + paso * 3, "📏 LÍNEA", "margen de reacción", 0xf6efdc, function () { self._def.plan = "linea"; self._def.arq.y = 150; self.avisarDef("Tu arquero espera en la línea"); });
-      /* V6 R3: la SÚPER DEFENSA del envión lleno — bloqueo SEGURO, mérito gastado */
+      var w = 250, xs = W / 2 - (w + 14);
+      var elegir = function (fn) {
+        return function () {
+          if (self._def.decidido) return;      // una sola vez: es LA decisión
+          self._def.decidido = true;
+          (self._def.botones || []).forEach(function (b) { if (b.active) b.destroy(); });
+          self._def.botones = [];
+          fn();
+        };
+      };
+      this.defBoton(xs, "🦵 ME TIRO", A.costo_quite + " · a todo o nada", 0xff8c3a, elegir(function () {
+        self.defBarrida();
+      }), w);
+      this.defBoton(xs + w + 14, "🧤 SALGO A ACHICAR", "el arquero le achica el ángulo", 0xf6efdc, elegir(function () {
+        self._def.plan = "achicar";
+        if (self._def.arq) self._def.arq.y = 190;
+        self.avisarDef("Tu arquero SALE a achicar");
+        self.time.delayedCall(self.msV(520), function () { self.defResolverDefensa(); });
+      }), w);
+      this.defBoton(xs + (w + 14) * 2, "🧱 AGUANTO", "en la línea · juntás aire", 0xf6efdc, elegir(function () {
+        self._def.plantado = true;
+        st.mios[st.ctrl].aguante = Math.min(A.max, st.mios[st.ctrl].aguante + Math.round((A.recupera_no_moverse || 30) * 0.5));
+        self.avisarDef("Te plantás en la línea y juntás aire");
+        self.time.delayedCall(self.msV(520), function () { self.defResolverDefensa(); });
+      }), w);
+      /* los EXTRA no compiten por el mismo lugar: van arriba y no consumen la decisión */
       if (window.PampaPartido.envionLleno(st)) {
-        this.defBoton(xs + paso * 4, "🌟 SÚPER DEF.", "ENVIÓN lleno · segura", 0xffd84d, function () {
+        this.defBoton(W / 2, H - 108, 300, "🌟 SÚPER DEFENSA · ENVIÓN lleno", 0xffd84d, function () {
           self._def.superDef = true;
           self.avisarDef("🌟 ¡SÚPER DEFENSA lista! Este remate NO entra");
-        });
-        return;
+        }, 300);
+      } else {
+        var m = this.megaDefensaDisponible(["atajada"], st.mios.find(function (x) { return x.pos === "ARQ"; }));
+        if (m) this.defBoton(W / 2, H - 108, 300, "🔥 " + m.n.toUpperCase().slice(0, 14) + " · " + m.aguante, 0xffd84d, function () {
+          self._def.mega = m; self.avisarDef("¡" + m.n.toUpperCase() + " lista!");
+        }, 300);
       }
-      var m = this.megaDefensaDisponible(["atajada"], st.mios.find(function (x) { return x.pos === "ARQ"; }));
-      if (m) this.defBoton(xs + paso * 4, "🔥 " + m.n.toUpperCase().slice(0, 10), m.aguante + " · segura", 0xffd84d, function () { self._def.mega = m; self.avisarDef("¡" + m.n.toUpperCase() + " lista!"); });
-      else this.defBoton(xs + paso * 4, "⏳ QUIETO", "+" + A.recupera_no_moverse + " de aguante", 0xdcd6c2, function () {
-        st.mios[st.ctrl].aguante = Math.min(A.max, st.mios[st.ctrl].aguante + A.recupera_no_moverse);
-        self.avisarDef("Juntás aire (+" + A.recupera_no_moverse + ")");
-      });
+    },
+    /* V9 §6 · la zona a la que se tira TU ARQUERO. No la elegís en una grilla:
+       la elige él, y tu decisión la inclina — si salió a achicar cubre abajo y
+       al medio, si te plantaste queda con margen para lo alto. El nivel del
+       arquero decide cuánto acierta. */
+    zonaDelArquero() {
+      var D = window.PampaDefinicion, st = this.st;
+      var arq = st.mios.find(function (x) { return x.pos === "ARQ"; });
+      var nivel = ((arq && arq.stats && arq.stats.keeper) || 55) / 100;
+      var pref = this._def.plan === "achicar"
+        ? ["bajo_centro", "bajo_izq", "bajo_der", "alto_centro"]
+        : ["alto_centro", "alto_izq", "alto_der", "bajo_centro"];
+      /* cuanto mejor el arquero, más chance de leer LA zona real del rival */
+      if (Math.random() < 0.25 + nivel * 0.4) return this._def.zonaCPU;
+      return pref[Math.floor(Math.random() * pref.length)];
+    },
+    /* elegida la decisión, el remate se resuelve solo (sin grilla ni aguja) */
+    defResolverDefensa() {
+      if (!this._def || this._def.fase >= 3) return;
+      this._def.fase = 3;
+      this._def.zonaCPU = window.PampaDefinicion.eleccionCPU();   // el rival elige a ciegas
+      this.defVueloDef();
     },
     avisarDef(txt) {
       if (this._def && this._def.aviso && this._def.aviso.active) this._def.aviso.destroy();
@@ -349,6 +397,8 @@
         this._def.defensorVivo = false;
         this.tweens.add({ targets: this._def.spr, x: this._def.spr.x - 130, angle: -80, alpha: 0.4, duration: 420 });
         this.avisarDef("¡Te pasó de largo! Quedaste fuera de la jugada");
+        var selfB = this;
+        this.time.delayedCall(this.msV(700), function () { selfB.defResolverDefensa(); });
       }
     },
 
@@ -364,46 +414,48 @@
       this._def.botones = [];
       this.defZonas(true);
     },
-    defCargaLista() {   // defensiva: el rival ya cargó — te toca elegir zona
-      this._def.fase = 2;
-      this._def.aguja.t0 = this.time.now;
-      this._def.botones.forEach(function (b) { b.destroy(); });
-      this._def.botones = [];
-      this.defZonas(false);
-    },
+    /* compatibilidad: si algo todavía llama a defCargaLista, resuelve como la
+       decisión nueva (V9 §6) en vez de abrir una grilla que ya no existe */
+    defCargaLista() { this.defResolverDefensa(); },
+    /* ============ V9 §5+§6 · TRES DECISIONES, NO UNA GRILLA ============
+       Había seis rectángulos sobre el arco y, encima, tocar uno frenaba la
+       aguja: la decisión táctica pagaba un impuesto de reflejo invisible.
+       Quedan las tres que un jugador piensa de verdad —al palo, al medio, al
+       ángulo—, las MISMAS del súper tiro del jugadón. La zona interna sigue
+       siendo la de logic/definicion.js (gy manda adónde vuela la pelota), así
+       que la lógica y sus tests no se tocan. */
     defZonas(ofensiva) {
-      var D = window.PampaDefinicion, self = this;
-      var g = this.add.graphics();
-      this.cineContent.add(g);
-      this._def.zonasG = g;
-      this._def.zonaSel = 4;
+      var self = this, st = this.st, D = window.PampaDefinicion;
       this._def.zonaRects = [];
-      var x0 = W / 2 - 180, y0 = 98, cw = 120, ch = 43;
-      D.ZONAS.forEach(function (z, i) {
-        var zx = x0 + z.col * cw, zy = y0 + z.fila * ch;
-        var r = self.add.rectangle(zx + cw / 2, zy + ch / 2, cw - 6, ch - 6, 0xf6efdc, 0.14).setStrokeStyle(2, 0xffffff, 0.9).setInteractive({ useHandCursor: true });
-        var t = self.add.text(zx + cw / 2, zy + ch / 2, z.n, { fontFamily: window.PF.texto, fontSize: "11px", fontStyle: "bold", color: "#ffffff", stroke: "#0a1f13", strokeThickness: 2 }).setOrigin(0.5);
-        self.cineContent.add(r); self.cineContent.add(t);
-        r.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; self.defConfirmarZona(z.id); });
+      var j = st.mios[st.ctrl];
+      var lado = (j && j.y > st.H / 2) ? "izq" : "der";     // cruzado al palo lejano
+      var OPC = [
+        { t: "🎯 AL PALO", sub: "el más seguro", zona: "bajo_" + lado },
+        { t: "💥 AL MEDIO", sub: "a reventarla", zona: "bajo_centro" },
+        { t: "⚡ AL ÁNGULO", sub: "donde no llega nadie", zona: "alto_" + lado }
+      ];
+      var w = 250;
+      OPC.forEach(function (o, i) {
+        var r = self.defBoton(W / 2 + (i - 1) * (w + 14), o.t, o.sub, 0xffd84d, function () {
+          self.defConfirmarZona(o.zona);
+        }, w);
         self._def.zonaRects.push(r);
       });
-      var ayuda = this.add.text(W / 2, H - 86, ofensiva
-        ? "☝ TOCÁ LA ZONA (eso frena la aguja) — el arquero eligió la suya A CIEGAS"
-        : "☝ TOCÁ TU ZONA (eso frena tu reacción) — el rival ya eligió la suya",
-        { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+      var ayuda = this.add.text(W / 2, H - 86, "¿DÓNDE la ponés? — el arquero ya eligió su palo, a ciegas",
+        { fontFamily: window.PF.texto, fontSize: "12px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
       this.cineContent.add(ayuda);
-      this._def.agujaG = this.add.graphics();
-      this.cineContent.add(this._def.agujaG);
+      this._def.botones.push(ayuda);
       /* elección secreta del otro lado, decidida YA (una sola vez) */
       this._def.zonaCPU = D.eleccionCPU();
     },
     defConfirmarZona(id) {
       if (!this._def || this._def.fase !== 2 || this._def.zonaMia) return;
       this._def.zonaMia = id;
-      var F = this.BAL.feel || {};
-      var periodo = F.barra_periodo_ms || 900;
-      var fase = ((this.time.now - this._def.aguja.t0) % periodo) / periodo;
-      this._def.aguja.p = fase < 0.5 ? fase * 2 : 2 - fase * 2;
+      /* V9 §4: la "ejecución" ya no la mide una aguja — sale del que patea:
+         su stat de tiro y lo que le queda de aguante. Elegir es elegir. */
+      var jr = this.st.mios[this.st.ctrl];
+      var pun = ((jr.stats && jr.stats.tiro) || 55) / 100 * 0.6 + (jr.aguante / this.BAL.aguante.max) * 0.4;
+      this._def.aguja.p = 0.5 + (0.5 - pun) * 0.5;
       this._def.fase = 3;
       if (this._def.modo === "of") this.defVueloOf(); else this.defVueloDef();
     },
@@ -445,8 +497,17 @@
       var st = this.st, P = window.PampaPartido, D = window.PampaDefinicion, self = this;
       var DL = this.BAL.definicion || {};
       this._def.zonaTiro = this._def.zonaCPU;   // dónde patea el rival (ya decidido)
+      /* V9 §6: TU "zona" ya no se toca en una grilla: la elige tu arquero según
+         su nivel y tu decisión (achicar tapa abajo y al medio; aguantar deja
+         margen de reacción arriba). La adivinanza sigue existiendo — la resuelve
+         el arquero, que para eso está. */
+      if (!this._def.zonaMia) this._def.zonaMia = this.zonaDelArquero();
       var dz = D.distZonas(this._def.zonaMia, this._def.zonaTiro);
-      var off = this._def.aguja.p - 0.5;
+      /* y el "timing" sale del arquero, no de una aguja: reflejos + cansancio */
+      var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
+      var nivelArq = ((arqM && arqM.stats && arqM.stats.keeper) || 55) / 100;
+      var fatiga = st.mios[st.ctrl].aguante / this.BAL.aguante.max;
+      var off = (0.5 - (nivelArq * 0.6 + fatiga * 0.4)) * 0.5;
       var tim = D.efectoTiming(off, DL.zona_timing || 0.2, DL);
       /* bloqueo previo de TU defensor si quedó plantado/vivo cerca de la línea */
       var pBloqueo = 0;
@@ -654,34 +715,16 @@
             }
           }
         } else {
-          /* defensiva: la CARGA del rematador avanza; al 100% patea */
-          d.carga = Math.min(1, d.carga + delta / d.cargaMs);
+          /* V9 §4+§6: la BARRA DE CARGA del rival murió. Era el único reloj de
+             presión de la escena y empujaba a spamear botones antes de que
+             llegara al 100%. Ahora el remate sale cuando VOS decidís: queda
+             solo la línea de tiro punteada, para saber dónde meterse. */
           var g = d.cargaG; g.clear();
-          g.fillStyle(0x0a1f13, 0.9); g.fillRect(W / 2 - 152, H * 0.86, 304, 16);
-          g.fillStyle(d.carga > 0.75 ? 0xc62828 : 0xf9a825, 1); g.fillRect(W / 2 - 150, H * 0.86 + 2, 300 * d.carga, 12);
-          g.lineStyle(2, 0xf6efdc, 0.9); g.strokeRect(W / 2 - 152, H * 0.86, 304, 16);
-          /* línea de tiro punteada (rematador → arco) para saber dónde meterse */
           g.lineStyle(2, 0xffffff, 0.35);
           for (var yy = H * 0.72; yy > 170; yy -= 24) { g.beginPath(); g.moveTo(W * 0.5, yy); g.lineTo(W * 0.5, yy - 12); g.strokePath(); }
-          if (d.carga >= 1) this.defCargaLista();
         }
-      } else if (d.fase === 2 && d.agujaG && !d.zonaMia) {
-        /* la aguja del timing corre mientras elegís zona */
-        var F = this.BAL.feel || {};
-        var periodo = F.barra_periodo_ms || 900;
-        var fase = ((this.time.now - d.aguja.t0) % periodo) / periodo;
-        d.aguja.p = fase < 0.5 ? fase * 2 : 2 - fase * 2;
-        var ga = d.agujaG, bx = W / 2 - 180, by = H - 62, bw = 360, bh = 22;
-        ga.clear();
-        ga.fillStyle(0x0a1f13, 0.92); ga.fillRect(bx - 4, by - 4, bw + 8, bh + 8);
-        ga.fillStyle(0x333d36, 1); ga.fillRect(bx, by, bw, bh);
-        var zw = bw * ((this.BAL.definicion && this.BAL.definicion.zona_timing) || 0.2);
-        ga.fillStyle(0x2e7d32, 1); ga.fillRect(bx + bw / 2 - zw / 2, by, zw, bh);
-        ga.lineStyle(2, 0xffffff, 1); ga.strokeRect(bx + bw / 2 - zw / 2, by, zw, bh);
-        var ax = bx + bw * d.aguja.p;
-        ga.fillStyle(0xffd84d, 1); ga.fillRect(ax - 3, by - 7, 6, bh + 14);
-        ga.fillTriangle(ax - 8, by - 12, ax + 8, by - 12, ax, by - 3);
       }
+
     }
   });
 })();

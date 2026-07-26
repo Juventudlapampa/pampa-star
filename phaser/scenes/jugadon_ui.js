@@ -302,7 +302,7 @@
     /* ============ EL SÚPER TIRO (2 fichas): la física en pantalla ============ */
     entrarJugadonTiro() {
       var st = this.st, J = window.PampaJugadon, self = this;
-      this.jugadonAbrir("🌟 SÚPER TIRO · tocá la ZONA del arco — la física decide");
+      this.jugadonAbrir("🌟 SÚPER TIRO · ¿dónde la ponés? — la física decide");
       /* el ARCO grande (400×140 de lógica, ×1.8 en pantalla) */
       var AW = J.ARCO.w * 1.8, AH = J.ARCO.h * 1.8, ax = W / 2, ayPiso = 380;
       var g = this.add.graphics();
@@ -322,35 +322,27 @@
       var lvl = (this._division && this._division.keeper) || st.rivalKeeperSkill || 50;
       var t = this.add.text(ax, ayPiso + 18, "arquero: nivel " + lvl + " · tu fuerza: " + Math.round(this.jugadonFuerza()) + " (tiro + energía)", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
       this.cineContent.add(t);
-      /* la zona se ELIGE tocando el arco */
-      var zonaHit = this.add.rectangle(ax, ayPiso - AH / 2, AW, AH, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
-      this.cineContent.add(zonaHit);
-      zonaHit.on("pointerdown", function (p, xx, yy, ev) {
-        ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now;
-        var lx = (p.x - ax) / 1.8;                     // → -200..200
-        var ly = (ayPiso - p.y) / 1.8;                 // → 0..140
-        self.jugadonTirar({ x: lx, y: ly }, ax, ayPiso, AW, AH);
-      });
-      /* a11y (auditoría): el arco TAMBIÉN por teclado — 6 zonas numeradas */
-      var ZT = [
-        { n: "1", x: -185, y: 120, tag: "ángulo izq" }, { n: "2", x: 0, y: 120, tag: "alto medio" }, { n: "3", x: 185, y: 120, tag: "ángulo der" },
-        { n: "4", x: -175, y: 25, tag: "palo bajo izq" }, { n: "5", x: 0, y: 20, tag: "al medio" }, { n: "6", x: 175, y: 25, tag: "palo bajo der" }
+      /* ============ V9 §5 · NI GRILLA NI ZONAS NUMERADAS ============
+         Acá había un arco partido en 6 zonas numeradas, más un hit-rect
+         continuo que dejaba tocar hasta el travesaño. Eso es una pantalla de
+         apuntado, no un remate. Quedan TRES decisiones de cancha —al palo, al
+         medio, al ángulo—, que es lo único que se piensa antes de reventarla.
+         Los botones ya traen su número y su tecla (jugadonBoton). */
+      var lado = (st.mios[st.ctrl].y > st.H / 2) ? 1 : -1;      // cruzado al palo lejano
+      var OPC = [
+        { t: "🎯 AL PALO", x: 175 * lado, y: 25 },
+        { t: "💥 AL MEDIO", x: 0, y: 20 },
+        { t: "⚡ AL ÁNGULO", x: 185 * lado, y: 120 }
       ];
-      ZT.forEach(function (z) {
-        var lz = self.add.text(ax + z.x * 1.8, ayPiso - z.y * 1.8, z.n, { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 2 }).setOrigin(0.5).setAlpha(0.85);
-        self.cineContent.add(lz);
-      });
-      var tTeclas = this.add.text(ax, ayPiso + 38, "teclado: 1-6 = la zona numerada · o tocá el arco donde quieras", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.85);
-      this.cineContent.add(tTeclas);
-      if (this.input.keyboard) {
-        var teclas = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX"];
-        this._jg.teclas = this._jg.teclas || [];
-        ZT.forEach(function (z, i) {
-          var fn = function () { if (self.estado === "JUGADON" && zonaHit.active) { self._uiTocado = self.time.now; self.jugadonTirar({ x: z.x, y: z.y }, ax, ayPiso, AW, AH); } };
-          self.input.keyboard.on("keydown-" + teclas[i], fn);
-          self._jg.teclas.push({ ev: "keydown-" + teclas[i], fn: fn });
+      var wpx = 250;
+      OPC.forEach(function (o, i) {
+        var bx = W / 2 + (i - 1) * (wpx + 14);
+        self.jugadonBoton(bx, H - 58, wpx, o.t, 0xffd84d, function () {
+          self.jugadonTirar({ x: o.x, y: o.y }, ax, ayPiso, AW, AH);
         });
-      }
+      });
+      var tAyuda = this.add.text(W / 2, H - 96, "elegí DÓNDE la ponés — la física decide si entra", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
+      this.cineContent.add(tAyuda);
       this.musica && this.musica("urgente");
     },
     jugadonFuerza() {

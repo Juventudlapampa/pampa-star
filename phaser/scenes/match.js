@@ -109,7 +109,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._ladoTema = null;        // el motivo musical suena al cambiar el LADO, no en cada pase
     this._zonaTema = null;        // el tema del avance (propio/rival) arranca de cero
     this._megaRival = null;
-    this._timing = null;
     this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = null;   // caches del HUD: el restart los recrea vacíos
     this._btnEnvion = null;
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
@@ -259,7 +258,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* ESPACIO = el botón de acción (doc §8); ESC = cancelar (todo se puede sin mouse) */
       this.input.keyboard.on("keydown-SPACE", (ev) => {
         ev.preventDefault && ev.preventDefault();
-        if (this.estado === "TIMING") { this.pararAguja(); return; }   // Feel B5: ESPACIO para la aguja
         this.onBotonAccion();
       });
       this.input.keyboard.on("keydown-ESC", () => {
@@ -1624,11 +1622,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (mega && this.FLAGS.e6_cine) {
       /* FEEL B5 · MEGATIRO: anuncio con cut-in y carga → ejecución exigente → CINE de 5 planos */
       this.cutInEspecial("¡" + mega.n.toUpperCase() + "!", (mega.sub || "") + " · " + mega.aguante + " aguante", () => {
-        this.abrirTiming(mega, (ej) => this.dispararConCine(mega, ej));
+        this.dispararConCine(mega, this.ejDeLaSituacion(mega));
       });
     } else {
-      /* FEEL B5 · tiro normal (o mega sin cine): LA BARRA DE TIMING — el tiro se EJECUTA */
-      this.abrirTiming(mega, (ej) => this.dispararSimple(mega, ej));
+      this.dispararSimple(mega, this.ejDeLaSituacion(mega));
     }
   }
   /* ============ ANIME v4 Bloque F · LA DECISIÓN AÉREA ============
@@ -1655,9 +1652,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
   }
   resolverTiroAereo(id) {
+    /* V9 §4: sin aguja. Lo que antes era "ventana más chica" (chilena 0.12,
+       aéreo 0.17) ahora es un penal directo a la zona: el remate difícil es
+       difícil por lo que es, no porque te pidan reflejos. */
     const F = this.BAL.feel || {};
-    const zona = id === "chilena" ? (F.barra_zona_chilena || 0.12) : (F.barra_zona_aerea || 0.17);
-    this.abrirTiming(null, (ej) => this.dispararAereo(id, ej), zona);
+    const penal = id === "chilena" ? { bonus: 5, fuera: 0.1 } : { bonus: 3, fuera: 0.06 };
+    this.dispararAereo(id, this.ejDeLaSituacion(null, penal));
   }
   dispararAereo(id, ej) {
     const st = this.st, P = window.PampaPartido;
@@ -1673,7 +1673,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const gol = res.outcome === "gol";
     if (gol) this.golPropio(); else P.tiroFallado(st);
     const NOM = { cabezazo: "CABEZAZO", volea: "VOLEA", chilena: "CHILENA" };
-    const fb = ej.enZona ? "¡Ejecución justa!" : "la aguja se te escapó…";
+    const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
     if (this.hayEscenas()) {
       const arqR = st.rivales.find(jj => jj.pos === "ARQ");
       this.escenaCine({
@@ -1957,66 +1957,42 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       nivel >= (m.nivel || 1) && j.aguante >= (m.aguante || 300) && j.x > (m.x_min || 680));
     return lista.length ? lista[lista.length - 1] : null;
   }
-  /* la BARRA DE TIMING (Feel B5): frenás la aguja en la zona buena — dedo o teclado, jamás mouse obligatorio.
-     zonaOverride (Anime F): los tiros aéreos usan ventanas más exigentes. */
-  abrirTiming(mega, alRematar, zonaOverride) {
-    const F = this.BAL.feel || {};
-    this.estado = "TIMING";
-    this.limpiarMenu();
-    this._timing = {
-      mega, alRematar, zonaOverride,
-      t0: this.time.now,
-      periodo: F.barra_periodo_ms || 900,
-      zona: zonaOverride != null ? zonaOverride : (mega ? (F.barra_zona_mega || 0.13) : (F.barra_zona_normal || 0.24)),
-      p: 0, parada: false
-    };
-    const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.3).setInteractive();
-    const tit = this.add.text(480, 226, mega ? "⚡ ¡PARÁ LA AGUJA EN LA ZONA! (ventana exigente)" : "🎯 ¡PARÁ LA AGUJA EN LA ZONA!",
-      { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 5 } }).setOrigin(0.5);
-    const ayuda = this.add.text(480, 356, "tocá la pantalla (o ESPACIO / ENTER)", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
-    this._timingG = this.add.graphics();
-    this.menuLayer.add([velo, tit, ayuda, this._timingG]);
-    this.selloMenu();
-    velo.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.pararAguja(); });
-  }
-  dibujarTiming() {
-    const T = this._timing; if (!T || !this._timingG || T.parada) return;
-    const g = this._timingG, bx = 480 - 210, by = 288, bw = 420, bh = 30;
-    const fase = ((this.time.now - T.t0) % T.periodo) / T.periodo;
-    T.p = fase < 0.5 ? fase * 2 : 2 - fase * 2;   // la aguja va y viene
-    g.clear();
-    g.fillStyle(0x0a1f13, 0.92); g.fillRect(bx - 4, by - 4, bw + 8, bh + 8);
-    g.fillStyle(0x333d36, 1); g.fillRect(bx, by, bw, bh);
-    /* ZONA BUENA centrada, marcada con borde blanco + etiqueta (forma + texto, no solo color) */
-    const zx = bx + bw * (0.5 - T.zona / 2), zw = bw * T.zona;
-    g.fillStyle(0x2e7d32, 1); g.fillRect(zx, by, zw, bh);
-    g.lineStyle(2, 0xffffff, 1); g.strokeRect(zx, by, zw, bh);
-    if (!this._timingTxtJusto) {
-      this._timingTxtJusto = this.add.text(480, by + bh + 16, "▲ JUSTO ACÁ", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc" }).setOrigin(0.5);
-      this.menuLayer.add(this._timingTxtJusto);
-      this.selloMenu();
-    }
-    const ax = bx + bw * T.p;
-    g.fillStyle(0xffd84d, 1); g.fillRect(ax - 3, by - 8, 6, bh + 16);
-    g.fillTriangle(ax - 8, by - 14, ax + 8, by - 14, ax, by - 4);
-  }
-  pararAguja() {
-    const T = this._timing; if (!T || T.parada) return;
-    T.parada = true;
-    this._timingTxtJusto = null;
-    const st = this.st, stats = st.mios[st.ctrl].stats || {};
-    /* la aguja modula POTENCIA y COLOCACIÓN vía logic/tiro.js (la destreza pesa, los stats también) */
-    const off = T.p - 0.5;
-    const enZona = Math.abs(off) <= T.zona / 2;
-    const potencia = enZona ? 0.75 : (off < 0 ? 0.75 + off * 0.9 : 0.75 + off * 0.5);
-    const ej = window.PampaTiro.evaluarEjecucion({
-      aimX: off * 1.8, aimY: 0.3, potencia: Phaser.Math.Clamp(potencia, 0.1, 1), curva: 0,
-      statTiro: stats.tiro != null ? stats.tiro : 50, cfg: this.BAL.tiro_ejecucion
+  /* ============ V9 §4 · SIN BARRA DE CARGA ============
+     Estaba la BARRA DE TIMING: una aguja que iba y venía y había que frenar
+     en la zona verde. Eso es un QTE de reflejos, no una decisión de fútbol —
+     y encima convivía con otras tres barras. Ahora el equivalente del `ej`
+     (zona + ajuste de poder) sale de la SITUACIÓN, igual que en el tiro por
+     comandos: desde dónde pateás, el ángulo, el cansancio y cuántos tenés en
+     el camino. Mismo contrato de salida, cero input de precisión.
+     penal: los remates difíciles (volea, chilena) pagan acá lo que antes
+     pagaban con una ventana de aguja más chica. */
+  ejDeLaSituacion(mega, penal) {
+    const st = this.st, j = st.mios[st.ctrl];
+    const defs = this.rivalesEnElCamino ? this.rivalesEnElCamino(j) : 0;
+    const auto = window.PampaTiro.tiroAuto({
+      x: j.x, y: j.y, W: st.W, H: st.H, arcoMedio: this.BAL.mundo.arco_medio,
+      statTiro: (j.stats && j.stats.tiro) || 55,
+      aguanteFrac: j.aguante / this.BAL.aguante.max,
+      defensores: defs
     });
-    ej.enZona = enZona;
-    this._timing = null;
-    this.limpiarMenu();
-    T.alRematar(ej);
+    const zona = Object.assign({}, auto.zona);
+    if (penal) { zona.bonus -= (penal.bonus || 0); zona.fuera += (penal.fuera || 0); }
+    if (mega) zona.bonus += ((this.BAL.epica || {}).mega_bonus_zona || 6);
+    return {
+      zona: zona, lectura: auto.lectura, ajustePoder: auto.ajustePoder,
+      enZona: auto.lectura.calidad >= 0.5,
+      /* la frase de LECTURA reemplaza al "la aguja se te escapó…" */
+      lecturaTexto: this.textoDeLectura(auto.lectura)
+    };
+  }
+  textoDeLectura(L) {
+    if (!L) return "";
+    if (L.defensores >= 2) return "entre " + L.defensores + ", como se pueda";
+    if (L.centrado < 0.35) return "desde el costado, sin ángulo";
+    if (L.cerca > 0.8) return "de frente y encima del arco";
+    if (L.cerca < 0.35) return "desde muy lejos";
+    if (L.defensores === 1) return "con uno encima";
+    return "de media distancia";
   }
   dispararSimple(mega, ej) {
     const st = this.st, P = window.PampaPartido;
@@ -2035,7 +2011,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const enCamino = this.rivalesEnElCamino(tirador);
       const gol = res.outcome === "gol";
       if (gol) this.golPropio(); else P.tiroFallado(st);   // la verdad UNA vez; la escena la cuenta
-      const fb = ej.enZona ? "¡Ejecución justa!" : "la aguja se te escapó…";
+      const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
       this.escenaCine({
         etiqueta: "· el remate ·",
         prota: { j: tirador, esRival: false, anim: "tiro" },
@@ -2121,6 +2097,37 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     this.zona = ej.zona;
     this._megaGrito = mega.grito || "¡GOOOL!";
+    /* ============ V9 §5 · LA MEGA ANIMACIÓN ============
+       El súper tiro es el momento más épico del juego y era el que MENOS se
+       veía: cut-in, barra de aguja y directo al cine. Ahora la cadena completa,
+       sin pedir un solo reflejo:
+         cut-in con el retrato (ya vino de resolverTiro)
+         → LA CARGA Y EL IMPACTO: escena especial, pose de remate, doble flash,
+           líneas gruesas y las siluetas de contra cuántos la está pateando
+         → EL VIAJE: la pelota con líneas de velocidad (planoPie → planoViaje)
+         → EL ARQUERO VOLANDO (planoArquero)
+         → FREEZE + medio segundo de silencio + desenlace (planoDesenlace). */
+    const j = st.mios[st.ctrl];
+    const enCamino = this.rivalesEnElCamino(j);
+    if (this.hayEscenas()) {
+      this.escenaCine({
+        etiqueta: "· " + String(mega.n || "EL SÚPER TIRO").toUpperCase() + " ·",
+        prota: { j: j, esRival: false, anim: "tiro" },
+        pose: "remate", especial: true,
+        siluetas: enCamino > 0 ? enCamino : null,
+        gana: true, sfx: "kick",
+        titulo: "¡" + String(mega.n || "SÚPER TIRO").toUpperCase() + "!",
+        sub: (mega.sub || "junta todo lo que le queda") + " · " + (ej.lecturaTexto || ""),
+        color: 0xffd84d,
+        alFinal: () => {
+          this.SFX && this.SFX.kick();
+          this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
+          this.entrarCine();
+          this.planoPie();     // y de acá sale el viaje, el arquero y el desenlace
+        }
+      });
+      return;
+    }
     this.SFX && this.SFX.kick();
     this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
     this.entrarCine();
@@ -3100,11 +3107,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        libre, rivales que vienen); el partido de abajo sigue congelado */
     if (this.estado === "JUGADON") { if (this.updateJugadonMini) this.updateJugadonMini(delta); return; }
     if (this.estado === "DEFINICION") { this.updateDefinicion(delta); return; }   // V6 §4
-    if (this.estado === "TIMING") {
-      this.dibujarTiming();
-      if (this.keyEnter && Phaser.Input.Keyboard.JustDown(this.keyEnter)) this.pararAguja();
-      return;
-    }
     /* §9 EN SERIO: fuera de LIBRE la simulación NO corre (pausa → animación → pausa,
        estados realmente separados — si no, rivalTira/final pisan la resolución) */
     if (this.estado !== "LIBRE") {
