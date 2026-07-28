@@ -1694,7 +1694,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const arqR = st.rivales.find(jj => jj.pos === "ARQ");
       this.escenaCine({
         etiqueta: id === "chilena" ? "· LA CHILENA ·" : "· " + NOM[id].toLowerCase() + " ·",
-        prota: { j: tirador, esRival: false, anim: id === "cabezazo" ? "cabezazo" : "volea" },
+        /* V9 B3: la CHILENA usa la pose de chilena. Antes mandaba anim "volea",
+           que mapea a "remate", y la pose ilustrada de la chilena no se veía nunca */
+        prota: { j: tirador, esRival: false, anim: id },
+        pose: id === "chilena" ? "chilena" : (id === "cabezazo" ? "cabezazo" : "remate"),
         protaAngle: id === "chilena" ? -115 : 0,       // la vuelta en el aire
         especial: id === "chilena",
         /* V6 §1 F2: ante todo tiro al arco el arquero vuela, sin excepciones */
@@ -2176,17 +2179,37 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* V6 §3.1: ¿qué POSE ILUSTRADA le corresponde a este protagonista? El dueño
      importa (el arte es del héroe celeste / defensor rival rayado / arquero):
      si el dueño no coincide o la pose no existe, se cae al heroico de código. */
+  /* V9 B3 · NINGUNA escena cae en el muñequito de bloques. Antes esto devolvía
+     null para varios casos (el rival que remata, cualquiera corriendo o
+     gambeteando) y ahí aparecía el heroico paramétrico mezclado con las
+     ilustraciones. Ahora SIEMPRE hay una pose razonable; el heroico queda solo
+     como red de seguridad si el manifest no cargó. */
   poseParaEscena(p, anim) {
     if (!p || !p.j) return null;
     const a = anim || p.anim;
-    const esArq = p.j.pos === "ARQ";
-    if (esArq) return (a === "atajada" || a === "despeje") ? "arquero_ataja" : "arquero_vuela";
-    if (p.esRival) return a === "pase" ? "barrida" : null;   // la barrida ES el defensor rival
-    if (a === "tiro" || a === "volea") return "remate";
+    if (p.j.pos === "ARQ") return (a === "atajada" || a === "despeje") ? "arquero_ataja" : "arquero_vuela";
+    if (a === "tiro" || a === "volea" || a === "remate") return "remate";
     if (a === "cabezazo") return "cabezazo";
     if (a === "chilena") return "chilena";
     if (a === "festejo") return "festejo";
-    return null;   // gambeta/correr: poses pendientes (Rodri, mañana) → heroico
+    if (a === "bloqueo") return "bloqueo";
+    if (a === "pase") return p.esRival ? "barrida" : "pared";   // la barrida ES el defensor rival
+    if (a === "gambeta") return "gambeta_gana";
+    return "corriendo";   // último recurso: siempre ilustrado, nunca bloques
+  }
+  /* la pose del ANTAGONISTA del plano (el segundo cuerpo). Este era el agujero
+     grande: cfg.rival NUNCA miraba poses, así que el otro cuerpo de la viñeta
+     era siempre paramétrico — y en las escenas donde VOS sos el antagonista
+     (quite ganado, defensa fallada) el rival lucía ilustrado y VOS de bloques. */
+  poseDelAntagonista(cfg) {
+    if (!cfg || !cfg.rival || !cfg.rival.j) return null;
+    const id = cfg.poseRival || this.poseParaEscena(cfg.rival, cfg.rival.anim);
+    if (!id) return null;
+    let k = this.poseKey(id);
+    if (!k) return null;
+    if (cfg.rival.esRival && this.poseRivalNaranja) k = this.poseRivalNaranja(id) || k;
+    else if (!cfg.rival.esRival && cfg.rival.j.esVos && id === "corriendo" && this.poseHeroeTenida) k = this.poseHeroeTenida(cfg.rival.j) || k;
+    return k;
   }
   /* cfg: { etiqueta, prota:{j,esRival,anim}, rival:{j,esRival,anim}|null, gana,
             titulo, sub, color?, sfx?, siluetas?, poseFinalProta?, poseFinalRival?, alFinal } */
@@ -2278,7 +2301,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     let sr = null;
     if (cfg.rival) {
-      sr = this.add.sprite(W + 140, H * 0.62, this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.rival.anim, 0)).setScale(F.escala_rival || 2.9).setFlipX(true);
+      /* V9 B3: el ANTAGONISTA también va ilustrado (naranja si es rival, con tu
+         pinta si sos vos). Antes salía siempre por texturaEscena y por eso el
+         muñequito de bloques aparecía mezclado con las ilustraciones —incluso
+         del lado tuyo, en las escenas donde el prota es el rival. */
+      const kAnt = this.poseDelAntagonista(cfg);
+      if (kAnt) {
+        sr = this.add.image(W + 140, H * 0.62, kAnt);
+        sr.setScale((F.alto_rival || 250) / sr.height);
+        sr.setFlipX(true);
+        sr._esPose = true;
+      } else {
+        sr = this.add.sprite(W + 140, H * 0.62, this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.rival.anim, 0)).setScale(F.escala_rival || 2.9).setFlipX(true);
+      }
       this.cineContent.add(sr);
       this.tweens.add({ targets: sr, x: W * 0.72, duration: (F.entrada_ms || 420) * 1.15, ease: "Quad.easeOut" });
     }
@@ -2317,7 +2352,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           this.cineContent.add(bb);
         }
       } else if (sp.active) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.poseFinalProta || cfg.prota.anim, 3));
-      if (sr && sr.active && cfg.rival) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
+      /* V9 B3: si el antagonista ya es una pose ilustrada, NO se lo pisa con el
+         heroico paramétrico en la revelación (era el otro camino a los bloques) */
+      if (sr && sr.active && cfg.rival && !sr._esPose) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
       if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1) * 1.12); this.burst(sp.x, sp.y - 70); }
       else if (sr) sr.setScale((F.escala_rival || 2.9) * 1.12);
       if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }

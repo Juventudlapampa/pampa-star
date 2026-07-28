@@ -579,9 +579,9 @@
       var bx = W / 2 - 180 + z.col * 120 + 60, by = 98 + z.fila * 43 + 21;
       /* V7 §0.2: EL QUE PATEA con su pose ilustrada (remate/chilena/cabezazo
          según el tiro elegido) — el momento más importante lleva el arte */
-      var poseTiro = { remate: "remate", chilena: "chilena", cabezazo: "cabezazo", volea: "remate" }[this._def.tiroTipo] || "remate";
-      var sprPat = this.poseSprite(poseTiro, W * 0.2, H * 0.6, 240, function () { return null; });
-      this.cineContent.add(sprPat);
+      /* V9 B2: acá se dibujaba SEGUNDA VEZ la misma pose del mismo jugador
+         (sprPat, alto 240, encima del spr de alto 400): por eso el playtest veía
+         dos veces al mismo. El sprite de arriba ya es el que patea. */
       var ball = this.add.sprite(W * 0.42, H * 0.6, "ball").setScale(2.2);
       this.cineContent.add(ball);
       this.tweens.add({ targets: ball, x: bx, y: by, scale: 0.9, duration: this.msV(520), ease: "Quad.easeIn" });
