@@ -66,9 +66,64 @@
     if (z.fila === 0 && z.col !== 1) return { dArquero: -(cfg.achicar_vendido != null ? cfg.achicar_vendido : 18), vendido: true };
     return { dArquero: cfg.achicar_bonus != null ? cfg.achicar_bonus : 14, vendido: false };
   }
+  /* ============ V9 C1 · TE REMATAN: SE RESUELVE SOLO ============
+     Sin pantalla de gestión defensiva. El rival elige, y lo que pasa lo
+     deciden cuatro cosas que YA construiste jugando: DÓNDE están tus
+     defensores respecto de la línea de tiro, CUÁNTOS son, el NIVEL de tu
+     arquero y el CANSANCIO del equipo. Función pura: recibe la foto de la
+     jugada, devuelve el desenlace y por qué.
+     params = {
+       tirador:{x,y}, arco:{x,y}, defensores:[{x,y,nombre,aguante}],
+       arquero:{nivel,aguante}, aguanteMax, cfg (balance.definicion), rng
+     } */
+  function remateRivalAuto(params) {
+    var p = params || {}, cfg = p.cfg || {}, rng = p.rng || Math.random;
+    var t = p.tirador || { x: 0, y: 0 }, arco = p.arco || { x: 0, y: 0 };
+    var defs = p.defensores || [], aguanteMax = p.aguanteMax || 1000;
+    var dx = arco.x - t.x, dy = arco.y - t.y;
+    var largo = Math.sqrt(dx * dx + dy * dy) || 1;
+    /* 1) QUIÉN está en el camino: proyección sobre la línea tirador→arco */
+    var enLinea = [], dTotal = 0, masCerca = null, dMasCerca = 1e9;
+    for (var i = 0; i < defs.length; i++) {
+      var d = defs[i];
+      var u = ((d.x - t.x) * dx + (d.y - t.y) * dy) / (largo * largo);
+      if (u < 0.02 || u > 1) continue;                       // detrás del tirador o pasado el arco
+      var px = t.x + dx * u, py = t.y + dy * u;
+      var dist = Math.sqrt((d.x - px) * (d.x - px) + (d.y - py) * (d.y - py));
+      if (dist > (cfg.bloqueo_radio || 120)) continue;
+      enLinea.push({ j: d, dist: dist, u: u });
+      dTotal += dist;
+      if (dist < dMasCerca) { dMasCerca = dist; masCerca = d; }
+    }
+    var distMedia = enLinea.length ? dTotal / enLinea.length : 999;
+    var pBloqueo = chanceBloqueo(enLinea.length, distMedia, cfg);
+    var bloqueado = rng() < pBloqueo;
+    /* 2) el ARQUERO: su nivel, su tanque y la distancia del remate */
+    var nivel = clamp((p.arquero && p.arquero.nivel) || 55, 1, 99);
+    var fracArq = clamp(((p.arquero && p.arquero.aguante) != null ? p.arquero.aguante : aguanteMax) / aguanteMax, 0, 1);
+    var lejos = clamp(largo / (cfg.remate_lejos || 420), 0, 1);      // de lejos el arquero llega mejor
+    var bonus = Math.round((nivel - 55) * (cfg.arquero_peso_nivel || 0.6)
+      + (fracArq - 0.5) * (cfg.arquero_peso_aguante || 20)
+      + lejos * (cfg.arquero_peso_lejos || 18));
+    /* 3) POR QUÉ salió así (vocabulario cerrado, lo traduce la UI) */
+    /* el motivo nombra lo que MÁS movió la aguja, no lo primero que se cumple:
+       un arquero en el piso explica más que "quedó solo" (las dos son ciertas) */
+    var motivo = bloqueado ? "bloqueo"
+      : (fracArq < 0.4 ? "arquero_fundido"
+        : (lejos > 0.75 ? "de_lejos"
+          : (enLinea.length === 0 ? "solo_ante_el_arquero" : "mano_a_mano")));
+    return {
+      bloqueado: bloqueado, bonusArquero: bonus, pBloqueo: Math.round(pBloqueo * 100) / 100,
+      defensoresEnLinea: enLinea.length, defensorMasCerca: masCerca,
+      distMedia: Math.round(distMedia), distanciaRemate: Math.round(largo),
+      motivo: motivo
+    };
+  }
+
   return {
     ZONAS: ZONAS, zona: zona, distZonas: distZonas, eleccionCPU: eleccionCPU,
     bonusArqueroPorZona: bonusArqueroPorZona, efectoTiming: efectoTiming,
-    chanceBloqueo: chanceBloqueo, efectoAchicar: efectoAchicar
+    chanceBloqueo: chanceBloqueo, efectoAchicar: efectoAchicar,
+    remateRivalAuto: remateRivalAuto
   };
 });

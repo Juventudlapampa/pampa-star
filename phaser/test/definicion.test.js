@@ -73,5 +73,50 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
   console.log("[6] elección CPU: ok");
 })();
 
+/* ---- 7) V9 C1 · TE REMATAN: se resuelve por posición, cansancio y nivel ---- */
+(function () {
+  var cfg = { bloqueo_radio: 120, bloqueo_base: 0.18, bloqueo_cercania: 0.25, bloqueo_max: 0.6 };
+  var arco = { x: 0, y: 340 };
+  var base = { tirador: { x: 300, y: 340 }, arco: arco, arquero: { nivel: 55, aguante: 1000 }, aguanteMax: 1000, cfg: cfg };
+  function con(defs, extra) {
+    var p = Object.assign({}, base, extra || {});
+    p.defensores = defs;
+    p.rng = p.rng || function () { return 0.99; };   // por defecto: NO bloquea
+    return D.remateRivalAuto(p);
+  }
+  /* nadie en el camino */
+  var solo = con([{ x: 800, y: 100, nombre: "lejos" }]);
+  ok(solo.defensoresEnLinea === 0, "un defensor lejísimos no cuenta como en la línea");
+  ok(solo.pBloqueo === 0, "sin nadie en la línea la chance de bloqueo es 0");
+  ok(solo.motivo === "solo_ante_el_arquero", "y el motivo lo dice (fue: " + solo.motivo + ")");
+  /* tres cruzados y pegados a la línea */
+  var muchos = con([{ x: 250, y: 340, nombre: "a" }, { x: 200, y: 345, nombre: "b" }, { x: 150, y: 335, nombre: "c" }]);
+  ok(muchos.defensoresEnLinea === 3, "tres en el corredor se cuentan (fueron " + muchos.defensoresEnLinea + ")");
+  ok(muchos.pBloqueo > solo.pBloqueo, "más gente en el camino = más chance de bloqueo");
+  ok(muchos.defensorMasCerca && muchos.defensorMasCerca.nombre, "informa QUIÉN es el que está más cerca (para el cartel)");
+  /* uno detrás del tirador no bloquea nada */
+  var atras = con([{ x: 400, y: 340, nombre: "quedó atrás" }]);
+  ok(atras.defensoresEnLinea === 0, "el que quedó detrás del tirador no está en el camino");
+  /* el ARQUERO: nivel y tanque mueven el bonus, y de lejos llega mejor */
+  var flojo = con([], { arquero: { nivel: 30, aguante: 1000 } });
+  var crack = con([], { arquero: { nivel: 90, aguante: 1000 } });
+  ok(crack.bonusArquero > flojo.bonusArquero, "mejor arquero, más bonus (" + flojo.bonusArquero + " vs " + crack.bonusArquero + ")");
+  var fundido = con([], { arquero: { nivel: 55, aguante: 50 } });
+  var entero = con([], { arquero: { nivel: 55, aguante: 1000 } });
+  ok(fundido.bonusArquero < entero.bonusArquero, "arquero fundido ataja menos (" + fundido.bonusArquero + " vs " + entero.bonusArquero + ")");
+  ok(fundido.motivo === "arquero_fundido" || fundido.motivo === "de_lejos", "el motivo nombra al arquero fundido (fue: " + fundido.motivo + ")");
+  var cerca = con([], { tirador: { x: 80, y: 340 } });
+  var lejos = con([], { tirador: { x: 900, y: 340 } });
+  ok(lejos.bonusArquero > cerca.bonusArquero, "de lejos el arquero llega mejor que en el mano a mano");
+  /* el bloqueo SÍ sale cuando la tirada acompaña */
+  var bloquea = con([{ x: 250, y: 340, nombre: "a" }, { x: 220, y: 342, nombre: "b" }], { rng: function () { return 0.01; } });
+  ok(bloquea.bloqueado === true && bloquea.motivo === "bloqueo", "con la tirada a favor, bloquean y el motivo es 'bloqueo'");
+  /* determinismo: mismos datos y mismo rng, mismo resultado */
+  var a1 = con([{ x: 250, y: 340, nombre: "a" }], { rng: function () { return 0.3; } });
+  var a2 = con([{ x: 250, y: 340, nombre: "a" }], { rng: function () { return 0.3; } });
+  ok(a1.bloqueado === a2.bloqueado && a1.bonusArquero === a2.bonusArquero, "determinista con el mismo rng");
+  console.log("[7] te rematan sin pantalla de gestión: ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);

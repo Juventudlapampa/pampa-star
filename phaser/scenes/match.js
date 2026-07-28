@@ -3212,10 +3212,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
       else if (ev.tipo === "encuentroDef") this.beatDeTension(st.mios[st.ctrl], false, null, () => this.abrirMenuDefensa());
       else if (ev.tipo === "rivalTira") {
-        if (this.FLAGS.v6_definicion) {
-          /* V6 §4.2: atajar da tanta adrenalina como meterla — la escena completa */
+        if (this.escenaRemateRival) {
+          /* V9 C1: TE REMATAN sin pantalla de gestión — el rival define, tus
+             defensores saltan, el arquero vuela. Todo por posición, cansancio
+             y nivel, con intriga hasta el final. */
           const arq = st.mios.find(j => j.pos === "ARQ");
-          this.beatDeTension(arq, false, "keeper_mio", () => this.entrarDefinicionDef());
+          this.beatDeTension(arq, false, "keeper_mio", () => this.escenaRemateRival(ev.rivalIdx));
         }
         else if (this.FLAGS.e3_menus) {
           const arq = st.mios.find(j => j.pos === "ARQ");

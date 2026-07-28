@@ -202,6 +202,146 @@
     },
 
     /* ======================================================================
+       C1 · TE REMATAN — Tsubasa puro, sin pantalla de gestión defensiva.
+       El rival define, tus defensores saltan o se tiran, el arquero vuela o
+       no llega. Todo resuelto por posición, cansancio, nivel del arquero y
+       quién está en el camino (logic/definicion.js → remateRivalAuto), con
+       intriga hasta el final: freeze y medio segundo de silencio antes de
+       saber. Cero botones.
+       ====================================================================== */
+    escenaRemateRival(tiradorIdx) {
+      var self = this, st = this.st, P = window.PampaPartido, D = window.PampaDefinicion;
+      var feel = this.BAL.feel || {}, EP = this.BAL.escena_pase || {};
+      var tirador = st.rivales[tiradorIdx != null ? tiradorIdx : st.portadorRival] || st.rivales[0];
+      var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
+      var aguanteMax = this.BAL.aguante.max;
+
+      /* ---- LA VERDAD, UNA SOLA VEZ (antes de dibujar nada) ---- */
+      var lectura = D.remateRivalAuto({
+        tirador: { x: tirador.x, y: tirador.y },
+        arco: { x: 0, y: st.H / 2 },                       // mi arco vive en x=0 de la simulación
+        defensores: st.mios.filter(function (j) { return j.pos !== "ARQ"; })
+          .map(function (j) { return { x: j.x, y: j.y, nombre: j.nombre, esVos: j.esVos, aguante: j.aguante }; }),
+        arquero: { nivel: (arqM && arqM.stats && arqM.stats.keeper) || 55, aguante: arqM ? arqM.aguante : aguanteMax },
+        aguanteMax: aguanteMax,
+        cfg: this.BAL.definicion || {}
+      });
+      var res = lectura.bloqueado
+        ? { golRival: false, bloqueado: true }
+        : P.resolverAtajada(st, "atajar", null, lectura.bonusArquero);
+      if (lectura.bloqueado) {
+        P.saltoReloj(st);
+        st.posesion = "mia";
+        var idxDef = st.mios.findIndex(function (x) { return x.pos === "DEF"; });
+        st.ctrl = idxDef >= 0 ? idxDef : st.ctrl;
+        st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+      }
+
+      /* ---- EL TEATRO ---- */
+      this._abrirEscena("· te rematan ·");
+      var horizonte = this.fondoDeCancha(true);
+      var tEntrada = this.msV(EP.entrada_ms || 340);
+      var silencio = feel.silencio_ms || 500;
+      var tHold = this.msV(EP.hold_ms || 900);
+
+      /* el rematador rival, grande, pegándole */
+      var rem = this.figuraDePlano("remate", tirador, true, 300, Math.round(H * 0.66), 300, false);
+      this.placaDePlano(300, H * 0.92, tirador, true);
+      var bola = this.add.sprite(360, H * 0.66 + 70, "ball").setScale(2.4);
+      this.cineContent.add(bola);
+      this.tweens.add({ targets: rem, x: 260, duration: tEntrada, ease: "Quad.easeOut" });
+
+      /* MIS defensores en el camino: saltan o se tiran (los reales, con nombre) */
+      var enLinea = Math.min(3, lectura.defensoresEnLinea);
+      var figs = [];
+      for (var k = 0; k < enLinea; k++) {
+        var jd = lectura.defensorMasCerca && k === 0 ? lectura.defensorMasCerca : null;
+        var f = this.figuraDePlano(k === 0 ? "bloqueo" : "barrida", jd, false, 560 + k * 90, Math.round(H * 0.6) - k * 20, 230 - k * 22, true);
+        figs.push(f);
+        if (jd) this.placaDePlano(560, H * 0.9, jd, false);
+      }
+      /* el arquero, al fondo */
+      var arqSpr = this.figuraDePlano("arquero_vuela", arqM, false, 840, Math.round(H * 0.46), 190, true);
+
+      var esc = { revelado: false, cerrado: false };
+      /* la pelota sale disparada hacia el arco */
+      this.time.delayedCall(tEntrada, function () {
+        self.uiCam.flash(70, 255, 200, 120);
+        self.SFX && self.SFX.kick && self.SFX.kick();
+        self.lineasVelocidad(360, H * 0.6, 1.1, 0xff8a50);
+        var destinoX = lectura.bloqueado ? 560 : 830;
+        self.tweens.add({ targets: bola, x: destinoX, y: H * 0.5, angle: 900, duration: self.msV(520), ease: "Sine.easeIn" });
+        figs.forEach(function (f, i) {
+          self.tweens.add({ targets: f, y: "-=" + (30 + i * 8), angle: -14, duration: 260, yoyo: true });   // saltan
+        });
+      });
+      /* FREEZE + silencio: no sabés si la frenan */
+      this.time.delayedCall(tEntrada + this.msV(520), function () {
+        self.musicaDuck(silencio);
+        self.cineFX.clear();
+        self.tweens.killTweensOf(bola);
+      });
+
+      var revelar = function () {
+        if (esc.revelado) return; esc.revelado = true;
+        var quien = lectura.defensorMasCerca;
+        if (lectura.bloqueado) {
+          self.uiCam.flash(60, 255, 255, 255);
+          self.SFX && self.SFX.gloves && self.SFX.gloves();
+          if (figs[0] && figs[0].active) self.tweens.add({ targets: figs[0], scale: figs[0].scale * 1.14, duration: 240 });
+          self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
+            "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
+          if (self.tribunaSaltando) self.tribunaSaltando();
+        } else if (!res.golRival) {
+          self.uiCam.flash(60, 255, 255, 255);
+          self.SFX && self.SFX.gloves && self.SFX.gloves();
+          if (arqSpr && arqSpr.active) {
+            var kAt = self.poseDePlano("arquero_ataja", arqM, false);
+            if (kAt && arqSpr.setTexture) { arqSpr.setTexture(kAt); arqSpr.setScale(210 / arqSpr.height); }
+            self.tweens.add({ targets: arqSpr, x: 800, scale: arqSpr.scale * 1.1, duration: 260 });
+          }
+          if (bola.active) bola.setPosition(806, H * 0.5);
+          self.punch("¡ATAJADÓN!", self.porQueRemateRival(lectura, res), 0x5bb8e8);
+          if (self.tribunaSaltando) self.tribunaSaltando();
+          self.SFX && self.SFX.crowd && self.SFX.crowd(900);
+        } else {
+          self.uiCam.shake(280, 0.01);
+          self.SFX && self.SFX.net && self.SFX.net();
+          if (bola.active) self.tweens.add({ targets: bola, x: 880, y: H * 0.42, duration: 220 });
+          self.punch("GOL DE " + String(self.nombreRival || "ELLOS").toUpperCase(), self.porQueRemateRival(lectura, res), 0xe3503e);
+          if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
+          if (self.efectoGol) self.efectoGol(true);
+        }
+      };
+      var cerrarYa = function () {
+        if (esc.cerrado) return; esc.cerrado = true;
+        self._escSkip = null;
+        self.cerrarEscena(function () {
+          self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
+        });
+      };
+      this._escSkip = function () { if (!esc.revelado) revelar(); else cerrarYa(); };
+      var tRevela = tEntrada + this.msV(520) + silencio;
+      this.time.delayedCall(tRevela, revelar);
+      this.time.delayedCall(tRevela + tHold, cerrarYa);
+    },
+    /* la línea corta de por qué (C1 usa el motivo de la lógica pura) */
+    porQueRemateRival(lectura, res) {
+      var M = {
+        bloqueo: "puso el cuerpo en la línea",
+        solo_ante_el_arquero: "quedó solo contra tu arquero",
+        de_lejos: "le pegó de lejos y tu arquero la vio venir",
+        arquero_fundido: "tu arquero venía fundido",
+        mano_a_mano: "mano a mano, cara a cara"
+      };
+      var base = M[lectura.motivo] || "";
+      var extra = lectura.defensoresEnLinea
+        ? " · " + lectura.defensoresEnLinea + (lectura.defensoresEnLinea === 1 ? " tuyo en el camino" : " tuyos en el camino")
+        : " · no había nadie en el camino";
+      return base + extra;
+    },
+
+    /* ======================================================================
        §2 · EL PASE — se acomoda, le pega, la pelota VIAJA, y si hay alguien
        en la línea el rival se TIRA a cortarla: freeze, silencio, desenlace.
        cfg = { alVacio, cortador, receptor, pateador, win, titulo, sub, alFinal }

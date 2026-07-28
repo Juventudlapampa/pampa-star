@@ -119,7 +119,15 @@
       this.relatar("peligro");
     },
 
+    /* V9 C1 · LA PANTALLA DE DEFENSA SE FUE. Rodri la pidió sacar tres veces:
+       botones de gestión (plantarse/achicar/aguantar) no son fútbol. Cualquier
+       caller viejo cae en la escena nueva, que resuelve por posición y nivel.
+       El cuerpo de abajo queda inalcanzable a propósito (referencia histórica). */
     entrarDefinicionDef() {
+      if (this.escenaRemateRival) { this.escenaRemateRival(this.st.portadorRival); return; }
+      return this._entrarDefinicionDefVieja();
+    },
+    _entrarDefinicionDefVieja() {
       var st = this.st, DL = this.BAL.definicion || {};
       this.quitarDuelo(); this.limpiarMenu();
       this.estado = "DEFINICION";
