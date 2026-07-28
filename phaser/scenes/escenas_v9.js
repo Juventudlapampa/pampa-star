@@ -202,7 +202,7 @@
     },
 
     /* ======================================================================
-       C1 · TE REMATAN — Tsubasa puro, sin pantalla de gestión defensiva.
+       C1 · TE REMATAN — como en el original, sin pantalla de gestión defensiva.
        El rival define, tus defensores saltan o se tiran, el arquero vuela o
        no llega. Todo resuelto por posición, cansancio, nivel del arquero y
        quién está en el camino (logic/definicion.js → remateRivalAuto), con
