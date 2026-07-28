@@ -850,8 +850,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
   }
   radarAMundo(p) {   // punto del radar → coordenadas de SIMULACIÓN
+    /* V9 B1: el radar se DIBUJA espejado en el 2T (mx usa fx), así que leer el
+       toque sin espejar mandaba al jugador al arco equivocado — tocabas donde
+       veías el arco rival y corría para atrás. fx() es su propia inversa. */
     const R = this.radar, st = this.st;
-    return { x: (p.x - R.x) / R.w * st.W, y: (p.y - R.y) / R.h * st.H };
+    return { x: this.fx((p.x - R.x) / R.w * st.W), y: (p.y - R.y) / R.h * st.H };
   }
   onRadarTap(p) {
     const st = this.st, P = window.PampaPartido, w = this.radarAMundo(p);
@@ -3111,7 +3114,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     /* Anime A: en la vista elevada el toque se invierte con la MISMA perspectiva
        que el dibujo (aSim) — tocás la franja del fondo y el jugador va al fondo */
-    this.target = this._vista4 ? this.aSim(w.x, w.y) : { x: w.x / this.SX, y: w.y / this.SY };
+    this.target = this._vista4 ? this.aSim(w.x, w.y) : { x: this.fx(w.x / this.SX), y: w.y / this.SY };
   }
 
   /* ============================== UPDATE ============================== */
@@ -3155,6 +3158,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (this.cursors.right.isDown || this.wasd.D.isDown) dx += 1;
         if (this.cursors.up.isDown || this.wasd.W.isDown) dy -= 1;
         if (this.cursors.down.isDown || this.wasd.S.isDown) dy += 1;
+        /* V9 B1: con el lado dado vuelta, "derecha" en pantalla es -x en la
+           simulación. Sin esto, en el 2T ibas al arco y corrías para atrás. */
+        if (st.ladoVisual === 2) dx = -dx;
         if (dx || dy) { input = { dx, dy }; this.target = null; }
       }
       if (!input && this.target) {
