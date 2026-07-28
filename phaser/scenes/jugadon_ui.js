@@ -95,103 +95,154 @@
       return t;
     },
 
-    /* ============ LA GAMBETA — EL MINIJUEGO (V8 C) ============
-       Entorno APARTE, cancha más ancha que larga: MOVÉS a tu jugador (dedo o
-       flechas), los rivales VIENEN a cerrarte y, cuando uno te alcanza, se
-       abre el duelo de LECTURA (tu movida contra su cierre insinuado). Si los
-       pasás a todos o llegás al fondo, la jugada TERMINA en remate. */
-    entrarJugadonGambeta(rivalIdx) {
+    /* ============ C2 · LA CORRIDA VERTICAL (el entorno épico) ============
+       El minijuego dejó de ser una cancha acostada: ahora es LA VISTA EN
+       PROFUNDIDAD —la misma del cine— con el arco al fondo. Venís corriendo
+       hacia el arco, los rivales crecen desde el fondo saliéndote al cruce,
+       los esquivás moviéndote a los lados, y si llegás, REMATÁS. Gambeta y
+       remate en un solo entorno: si te sale, sos el crack; si no, te la sacan.
+
+       La profundidad la calcula logic/perspectiva.js (la misma pura de
+       siempre): d en [0,1], 0 = cerca de la cámara (abajo, grande), 1 = el
+       arco al fondo (arriba, chico). lx en [-1,1] es el corrimiento lateral. */
+    entrarJugadonGambeta(rivalIdx, opts) {
       var st = this.st, J = window.PampaJugadon, self = this;
       var yo = st.mios[st.ctrl];
+      opts = opts || {};
+      var cuantos = opts.marcadores || 2;
       var defs = [];
-      if (rivalIdx != null) defs.push(st.rivales[rivalIdx]);
+      if (rivalIdx != null && st.rivales[rivalIdx]) defs.push(st.rivales[rivalIdx]);
       st.rivales.forEach(function (r, i) {
-        if (defs.length >= 2 || i === rivalIdx || r.pos === "ARQ") return;
-        if (Math.hypot(r.x - yo.x, r.y - yo.y) < 220) defs.push(r);
+        if (defs.length >= cuantos || i === rivalIdx || r.pos === "ARQ") return;
+        if (Math.hypot(r.x - yo.x, r.y - yo.y) < 260) defs.push(r);
       });
-      if (!defs.length) defs.push({ nombre: "RIVAL", stats: { quite: 55 } });
+      while (defs.length < cuantos) defs.push({ nombre: "RIVAL", stats: { quite: 55 } });
       this._jgLogica = J.crearGambeta({
         semilla: (st.golesMio + 1) * 7919 + Math.floor(st.minuto * 100) + st.ctrl,
         marcadores: defs.length,
         atacante: { gambeta: (yo.stats && yo.stats.gambeta) || 55 },
         defensores: defs.map(function (d) { return { quite: (d.stats && d.stats.quite) || 55, nombre: d.nombre }; })
       });
-      this.jugadonAbrir("🌟 EL JUGADÓN · movete y esquivalos — llegá arriba para definir");
+      this._jgMega = opts.mega || null;
+      this.jugadonAbrir(opts.mega
+        ? "🔥 " + String(opts.mega.n || "MEGATIRO").toUpperCase() + " · encará y definí"
+        : "🌟 GAMBETA-TIRO · encará, esquivalos y definí");
+
       var B = this.BAL.jugadon || {};
+      var C = this.BAL.cine || {};
+      var vp = { x: W / 2, y: H * 0.22 }, nearY = H * 0.95;
       this._jgMini = {
-        x: W / 2, y: 380, vel: B.vel_jugador || 320, metaY: B.meta_y || 110,
-        rivales: [], duelo: null, terminado: false, t: 0
+        vertical: true, d: 0, lx: 0, vp: vp, nearY: nearY,
+        k: (C.persp && C.persp.k) || 3,
+        velD: B.vel_avance != null ? B.vel_avance : 0.34,
+        velLx: B.vel_lateral != null ? B.vel_lateral : 1.5,
+        meta: B.meta_d != null ? B.meta_d : 0.92,
+        rivales: [], duelo: null, terminado: false, t: 0, target: null
       };
+      /* el fondo: la cancha en fuga con el arco arriba (la del cine) */
+      this.dibujarCanchaProfunda(vp, nearY);
+
       var kYo = this.poseHeroeTenida ? (this.poseHeroeTenida(yo) || this.poseKey("corriendo")) : this.poseKey("corriendo");
-      var sy = kYo ? this.add.image(this._jgMini.x, this._jgMini.y, kYo) : this.add.rectangle(this._jgMini.x, this._jgMini.y, 40, 90, 0x4fc3f7);
-      if (sy.height) sy.setScale(112 / sy.height);
+      var sy = kYo ? this.add.image(W / 2, nearY, kYo) : this.add.rectangle(W / 2, nearY, 40, 90, 0x4fc3f7);
+      sy._altoBase = sy.height || 90;
       this.cineContent.add(sy);
       this._jgMini.spr = sy;
-      var bola = this.add.sprite(this._jgMini.x + 34, this._jgMini.y + 46, "ball").setScale(1.9);
+      var bola = this.add.sprite(W / 2, nearY, "ball").setScale(2.2);
       this.cineContent.add(bola);
       this._jgMini.bola = bola;
-      var kR = this.poseRivalNaranja ? this.poseRivalNaranja("bloqueo") : this.poseKey("bloqueo");
+
+      /* los rivales te esperan escalonados hacia el arco */
+      var kR = this.poseRivalNaranja ? (this.poseRivalNaranja("bloqueo") || this.poseKey("bloqueo")) : this.poseKey("bloqueo");
       this._jgLogica.defensores.forEach(function (d, i) {
-        var rx = W / 2 + (i === 0 ? -110 : 140), ry = 150 - i * 55;
-        var sr = kR ? self.add.image(rx, ry, kR) : self.add.rectangle(rx, ry, 40, 90, 0xff8a50);
-        if (sr.height) sr.setScale(100 / sr.height);
+        var sr = kR ? self.add.image(0, 0, kR) : self.add.rectangle(0, 0, 40, 90, 0xff8a50);
+        sr._altoBase = sr.height || 90;
         self.cineContent.add(sr);
-        var nom = self.add.text(rx, ry - 62, "▲ " + (d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
+        var nom = self.add.text(0, 0, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
         self.cineContent.add(nom);
-        self._jgMini.rivales.push({ spr: sr, nom: nom, idx: i, vivo: true, vel: (B.vel_rival || 118) + i * 14 });
+        self._jgMini.rivales.push({
+          spr: sr, nom: nom, idx: i, vivo: true,
+          d: 0.34 + i * 0.26,
+          lx: i % 2 === 0 ? -0.35 : 0.4,
+          vel: (B.vel_rival_lat != null ? B.vel_rival_lat : 0.5) + i * 0.1
+        });
       });
-      /* controles: DEDO (tap/arrastre) y FLECHAS — los dos, siempre */
-      this._jgMini.target = null;
-      var zona = this.add.rectangle(W / 2, 240, W, 400, 0xffffff, 0.001).setInteractive();
+
+      /* controles: DEDO (arrastre lateral) y FLECHAS — el avance es solo */
+      var zona = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0.001).setInteractive();
       this.cineContent.add(zona);
-      zona.on("pointerdown", function (pp) { self._jgMini.target = { x: pp.x, y: pp.y }; });
-      zona.on("pointermove", function (pp) { if (pp.isDown && self._jgMini) self._jgMini.target = { x: pp.x, y: pp.y }; });
+      zona.on("pointerdown", function (pp) { self._jgMini.target = pp.x; });
+      zona.on("pointermove", function (pp) { if (pp.isDown && self._jgMini) self._jgMini.target = pp.x; });
       this._jgMini.cursores = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
-      var ayuda = this.add.text(W / 2, H - 26, "movete con el DEDO o las FLECHAS · llegá arriba para definir", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
+      var ayuda = this.add.text(W / 2, H - 20, "esquivá con el DEDO o con las FLECHAS · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
       this.cineContent.add(ayuda);
       this.musica && this.musica("urgente");
+      this.pintarCorridaVertical(0);
+    },
+
+    /* dibuja el cuadro: cada figura en su profundidad, con su escala */
+    pintarCorridaVertical(delta) {
+      var m = this._jgMini, P = window.PampaPersp;
+      if (!m || !m.vertical || !m.spr || !m.spr.active) return;
+      var cfg = { k: m.k, vpX: m.vp.x, vpY: m.vp.y, nearY: m.nearY };
+      var anchoEn = function (s) { return 60 + 300 * s.escala; };
+      var yo = P.aPantalla(m.d, cfg);
+      var xYo = yo.x + m.lx * anchoEn(yo);
+      m.spr.setPosition(xYo, yo.y);
+      m.spr.setScale((150 * yo.escala) / m.spr._altoBase);
+      if (m.spr.setDepth) m.spr.setDepth(20);
+      if (m.bola && m.bola.active) {
+        m.bola.setPosition(xYo + 26 * yo.escala, yo.y + 42 * yo.escala);
+        m.bola.setScale(2.4 * yo.escala);
+        m.bola.rotation += 0.12;
+        m.bola.setDepth(21);
+      }
+      m.rivales.forEach(function (r) {
+        if (!r.spr || !r.spr.active) return;
+        var s = P.aPantalla(r.d, cfg);
+        var x = s.x + r.lx * anchoEn(s);
+        r.spr.setPosition(x, s.y);
+        r.spr.setScale((150 * s.escala) / r.spr._altoBase);
+        if (r.spr.setDepth) r.spr.setDepth(Math.round((1 - r.d) * 10));
+        if (r.nom && r.nom.active) {
+          r.nom.setPosition(x, s.y - 78 * s.escala);
+          r.nom.setScale(Math.max(0.6, s.escala));
+          r.nom.setVisible(r.vivo);
+        }
+      });
     },
 
     /* el latido del minijuego (lo llama el update: el partido está quieto) */
     updateJugadonMini(delta) {
       var m = this._jgMini, self = this;
-      if (!m || m.terminado || m.duelo || !m.spr || !m.spr.active) return;
+      if (!m || m.terminado || m.duelo || !m.spr || !m.spr.active || !m.vertical) return;
       var dt = Math.min(0.05, delta / 1000);
       m.t += delta;
-      var vx = 0, vy = 0;
+      var vx = 0;
       if (m.cursores) {
         if (m.cursores.left.isDown) vx -= 1;
         if (m.cursores.right.isDown) vx += 1;
-        if (m.cursores.up.isDown) vy -= 1;
-        if (m.cursores.down.isDown) vy += 1;
-        if (vx || vy) m.target = null;
+        if (vx) m.target = null;
       }
-      if (!vx && !vy && m.target) {
-        var dx = m.target.x - m.x, dy = m.target.y - m.y, d = Math.hypot(dx, dy);
-        if (d > 6) { vx = dx / d; vy = dy / d; } else m.target = null;
+      if (!vx && m.target != null) {
+        var dxT = (m.target - W / 2) / (W / 2) - m.lx;
+        if (Math.abs(dxT) > 0.03) vx = dxT > 0 ? 1 : -1; else m.target = null;
       }
-      if (vx || vy) {
-        var n = Math.hypot(vx, vy) || 1;
-        m.x = Math.max(60, Math.min(W - 60, m.x + vx / n * m.vel * dt));
-        m.y = Math.max(m.metaY - 20, Math.min(410, m.y + vy / n * m.vel * dt));
-        m.spr.setFlipX(vx < 0);
-        m.spr.setAngle(Math.floor(m.t / 160) % 2 ? 3 : -3);
-      } else m.spr.setAngle(0);
-      m.spr.setPosition(m.x, m.y);
-      m.bola.setPosition(m.x + (m.spr.flipX ? -34 : 34), m.y + 46);
-      if (vx || vy) m.bola.rotation += 0.16;
+      m.lx = Math.max(-1, Math.min(1, m.lx + vx * m.velLx * dt));
+      /* la corrida no se frena: siempre vas hacia el arco */
+      m.d = Math.min(1, m.d + m.velD * dt);
+      var B = this.BAL.jugadon || {};
       m.rivales.forEach(function (r) {
-        if (!r.vivo || !r.spr.active) return;
-        var rdx = m.x - r.spr.x, rdy = m.y - r.spr.y, rd = Math.hypot(rdx, rdy) || 1;
-        r.spr.x += rdx / rd * r.vel * dt;
-        r.spr.y += rdy / rd * r.vel * dt;
-        r.nom.setPosition(r.spr.x, r.spr.y - 62);
-        if (rd < ((self.BAL.jugadon && self.BAL.jugadon.contacto) || 78)) self.jugadonDuelo(r);
+        if (!r.vivo) return;
+        var dif = m.lx - r.lx;
+        r.lx += Math.max(-1, Math.min(1, dif)) * r.vel * dt;
+        var cerca = Math.abs(m.d - r.d) < (B.contacto_d != null ? B.contacto_d : 0.055);
+        var encima = Math.abs(m.lx - r.lx) < (B.contacto_lx != null ? B.contacto_lx : 0.3);
+        if (cerca && encima) self.jugadonDuelo(r);
       });
-      if (!m.duelo && !m.terminado && m.y <= m.metaY) self.jugadonRemate();
+      this.pintarCorridaVertical(delta);
+      if (!m.duelo && !m.terminado && m.d >= m.meta) this.jugadonRemate();
     },
 
-    /* TE ALCANZÓ: el minijuego se congela y elegís tu movida contra su cierre */
     jugadonDuelo(r) {
       var self = this, g = this._jgLogica, m = this._jgMini;
       if (!m || m.duelo || m.terminado) return;
@@ -234,22 +285,30 @@
       });
     },
 
-    /* pasaste a todos (o llegaste al fondo): la jugada TERMINA en remate */
+    /* C2: llegaste al fondo de la corrida → EL REMATE, en el mismo envión.
+       Si la jugada era el MEGATIRO, remata con la mega animación (cut-in,
+       impacto, viaje, arquero volando); si era la GAMBETA-TIRO, remate normal.
+       En los dos casos NO hay pantalla de zonas: la ubicación manda. */
     jugadonRemate() {
       var self = this, m = this._jgMini, st = this.st;
       if (!m || m.terminado) return;
       m.terminado = true;
       this.jugadonLimpiarBotones();
-      this.avisoJugadon("¡QUEDÓ DE FRENTE AL ARCO!", 0xffd84d);
-      var F = this.jugadonFichas();
+      var mega = this._jgMega;
+      this.avisoJugadon(mega ? "¡SE ARMA EL " + String(mega.n || "MEGATIRO").toUpperCase() + "!" : "¡QUEDÓ DE FRENTE AL ARCO!", 0xffd84d);
       this.time.delayedCall(this.msV(820), function () {
         st.mios[st.ctrl].x = Math.min(st.W - 60, st.W - 130);   // quedaste en el área
-        if (F.tiros > 0 && window.PampaJugadon.gastarFicha(F, "tiros")) {
-          self._jgMini = null;
-          self.entrarJugadonTiro();
-        } else {
-          self.jugadonCerrar(function () { self.tiroPorComandos(null); });
-        }
+        self._jgMini = null;
+        self._jgMega = null;
+        self.jugadonCerrar(function () {
+          if (mega && self.dispararConCine) {
+            self.cutInEspecial("¡" + String(mega.n).toUpperCase() + "!", mega.sub || "todo lo que le queda", function () {
+              self.dispararConCine(mega, self.ejDeLaSituacion(mega));
+            });
+          } else {
+            self.tiroPorComandos(null);
+          }
+        });
       });
     },
     jugadonPintarDefensores() { /* V8 C: los rivales viven en updateJugadonMini */ },

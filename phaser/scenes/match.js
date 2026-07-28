@@ -1302,32 +1302,36 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         })(),
         E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
-      /* el MEGATIRO (de data, con nombre pampeano) convive con el tiro normal — va al centro.
-         V6 §3.4: sin megatiro listo, el centro ofrece la MEGACORRIDA (secuencia) */
-      centro: megaListo
-        ? { texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15), sub: megaListo.aguante + " aguante · especial", cb: () => this.resolverTiro(megaListo, rivalIdx, libre) }
-        : (() => {
-          const sec = this.secuenciaDisponible("megacorrida");
-          return sec ? { texto: "🌀 MEGACORRIDA", sub: sec.costo + " aguante · el techo", cb: () => this.secuenciaMegacorrida() } : null;
-        })(),
+      /* C3 · LAS TRES OPCIONES DE REMATE, no cuatro ni cinco:
+           TIRO (E, normal) · MEGATIRO (centro) · GAMBETA-TIRO (botón de arriba).
+         El MEGATIRO es la secuencia épica completa: corrida vertical en
+         perspectiva + remate con la mega animación. Gasta ficha de tiro. */
+      centro: (() => {
+        const F = this.jugadonFichas ? this.jugadonFichas() : null;
+        if (!megaListo || !F || F.tiros <= 0) return null;
+        return {
+          texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15),
+          sub: "encarás y definís · ficha (quedan " + F.tiros + ")",
+          cb: () => {
+            if (!window.PampaJugadon.gastarFicha(F, "tiros")) return;
+            this.entrarJugadonGambeta(rivalIdx, { mega: megaListo, marcadores: 3 });
+          }
+        };
+      })(),
       volver: libre ? () => this.reanudarLibre() : null
     });
     /* V8 fix 1 (auditoría de Rodri): las FICHAS se OFRECEN SIEMPRE que queden
        — el recurso épico no depende del momento justo. La GAMBETA con la
        pelota siempre (haya o no rival pegado); el SÚPER TIRO desde campo
        rival (aunque no sea la zona ideal). Pueden verse los DOS botones. */
+    /* C3 · la tercera opción: GAMBETA-TIRO (encarar y definir), gasta ficha.
+       El "súper tiro" suelto se fue: rematar sin encarar ya es el TIRO normal. */
     if (this.botonJugadon && this.jugadonFichas) {
       const F = this.jugadonFichas();
-      let fila = 0;
       if (F.gambetas > 0) {
-        this.botonJugadon("🌟 GAMBETA DEL JUGADÓN (quedan " + F.gambetas + ")", "la plataforma: leé el cierre y elegí tu movida", () => {
-          if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx);
-        }, fila++);
-      }
-      if (F.tiros > 0 && st.mios[st.ctrl].x > st.W / 2) {
-        this.botonJugadon("🌟 SÚPER TIRO (quedan " + F.tiros + ")", "elegís la ZONA — la física decide contra el arquero", () => {
-          if (window.PampaJugadon.gastarFicha(F, "tiros")) this.entrarJugadonTiro();
-        }, fila++);
+        this.botonJugadon("🌟 GAMBETA-TIRO (quedan " + F.gambetas + ")", "encarás en la corrida y definís de frente al arco", () => {
+          if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx, { marcadores: 2 });
+        }, 0);
       }
     }
   }

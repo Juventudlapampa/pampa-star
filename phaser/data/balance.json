@@ -516,10 +516,13 @@
   },
   "jugadon": {
     "_nota": "V8 C EL MINIJUEGO DE GAMBETA: vel_jugador = tu velocidad en la plataforma (px/s); vel_rival = la de los que te vienen a cerrar (que sea MENOR o los esquivás sin gracia); contacto = a qué distancia te alcanzan y se abre el duelo de lectura; meta_y = la altura del fondo (llegar ahí = definir).",
-    "vel_jugador": 320,
-    "vel_rival": 118,
-    "contacto": 78,
-    "meta_y": 110
+    "_doc": "V9 C2 · LA CORRIDA VERTICAL: el jugadón pasó a la vista en profundidad (arco al fondo). vel_avance = cuánta profundidad ganás por segundo (0..1); vel_lateral = qué tan rápido te corrés de lado; meta_d = la profundidad a la que rematás; contacto_d / contacto_lx = qué tan cerca tiene que estar un rival (en profundidad y de costado) para salirte al cruce; vel_rival_lat = cuánto te sigue de lado.",
+    "vel_avance": 0.34,
+    "vel_lateral": 1.5,
+    "meta_d": 0.92,
+    "contacto_d": 0.055,
+    "contacto_lx": 0.3,
+    "vel_rival_lat": 0.5
   },
   "escena_pase": {
     "_doc": "V9 §2 · LA ESCENA DEL PASE: se acomoda, le pega, la pelota viaja y —si hay alguien en la línea— el rival se tira a cortarla (freeze + silencio antes de saber). entrada_ms: el que la toca entra al plano. viaje_ms: cuánto tarda la pelota en cruzar. hold_ms: cuánto queda el desenlace en pantalla.",
