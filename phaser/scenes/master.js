@@ -37,6 +37,20 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.game.registry.remove("masterResultado");
       this.T.jugarFecha(this.save.temporada, res.golesMio | 0, res.golesRival | 0);
       this._ultimo = res;
+      /* ============ LA VIDA v2 · EL LUNES DESPUÉS ============
+         Se recupera energía según lo que costó el partido, el ánimo sube o
+         baja según el resultado, y si te dieron un golpe fuerte arrastrás una
+         molestia que la semana que viene podés curar. Y arranca otra semana. */
+      if (window.PampaSemana) {
+        const cfgS = (this.game.registry.get("balance") || {}).semana || {};
+        const lunes = window.PampaSemana.lunesDespues(this.save, res, cfgS);
+        this.save.animo = lunes.animo;
+        this.save.desgaste = lunes.desgaste;
+        this.save.molestia = lunes.molestia;
+        this.save.semana = null;          // la semana nueva se arma al entrar
+        this.save.semanaResumen = null;
+        this._lunes = lunes;
+      }
       /* V8 A1: la racha alimenta los eventos condicionales; el modificador de
          la fecha se LIMPIA acá (nunca se arrastra al partido siguiente) */
       const dif = (res.golesMio | 0) - (res.golesRival | 0);
@@ -176,6 +190,160 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
 
   /* ============ V8 A1 · PARTE 2: LA SEMANA (antes de cada fecha) ============ */
+  /* ============ LA VIDA v2 · LA SEMANA CON ENERGÍA ============
+     Una sola pantalla: arriba los dos medidores con NÚMERO (nunca solo barra),
+     en el medio las tres ranuras (lunes, miércoles, viernes), abajo el botón
+     de jugar. Tres toques y estás en la cancha. El evento pampeano queda
+     arriba, como sabor, y puede cambiar los costos de la semana. */
+  vistaSemana(rival, alJugar) {
+    const W = this.scale.width, H = this.scale.height;
+    const S = window.PampaSemana, D = this.game.registry.get("semana");
+    if (!S || !D) { this.vistaEvento(rival, alJugar); return; }
+    const cfg = (this.game.registry.get("balance") || {}).semana || {};
+    if (!this.save.semana) this.save.semana = S.nuevaSemana(this.save, cfg);
+    const sem = this.save.semana;
+    this._semRival = rival; this._semJugar = alJugar;
+    this.children.removeAll();
+
+    this.add.text(W / 2, 30, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 54, "contra " + rival, { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
+
+    /* --- LOS DOS MEDIDORES: barra Y número, siempre --- */
+    const medidor = (x, y, etiqueta, valor, color) => {
+      this.add.text(x, y - 16, etiqueta + " " + Math.round(valor) + "/100", { fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
+      const g = this.add.graphics();
+      g.fillStyle(0x0a1f13, 0.9); g.fillRect(x, y, 300, 18);
+      g.fillStyle(color, 1); g.fillRect(x + 2, y + 2, Math.max(0, Math.min(296, 296 * valor / 100)), 14);
+      g.lineStyle(2, 0xf6efdc, 0.8); g.strokeRect(x, y, 300, 18);
+    };
+    medidor(W / 2 - 320, 96, "⚡ ENERGÍA", sem.energia, 0x7ee08a);
+    medidor(W / 2 + 20, 96, "🧠 ÁNIMO", sem.animo, 0x4fc3f7);
+    if (sem.molestia) this.add.text(W / 2, 132, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }).setOrigin(0.5);
+
+    /* --- EL EVENTO DE LA SEMANA (sabor + modificador) --- */
+    if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
+    const ev = this._semEvento;
+    if (ev && ev.texto) {
+      this.add.text(W / 2, 162, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: "14px", color: "#ffd84d", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5);
+    }
+
+    /* --- LAS TRES RANURAS --- */
+    const nombres = ["LUNES", "MIÉRCOLES", "VIERNES"];
+    const anchoR = 250, x0 = W / 2 - anchoR - 14;
+    nombres.forEach((n, i) => {
+      const x = x0 + i * (anchoR + 14), y = 250;
+      const elegida = sem.elegidas[i];
+      const op = elegida ? D.opciones.find(o => o.id === elegida) : null;
+      const r = this.add.rectangle(x, y, anchoR, 108, op ? 0x2e7d32 : 0x0a1f13, op ? 0.9 : 0.55)
+        .setStrokeStyle(3, op ? 0x7ee08a : 0xf6efdc, 0.9);
+      this.add.text(x, y - 38, n, { fontFamily: window.PF.display, fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
+      if (op) {
+        this.add.text(x, y - 4, op.n, { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", align: "center", wordWrap: { width: anchoR - 20 } }).setOrigin(0.5);
+        this.add.text(x, y + 32, this.textoEfecto(op), { fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2", align: "center", wordWrap: { width: anchoR - 20 } }).setOrigin(0.5);
+      } else {
+        r.setInteractive({ useHandCursor: true });
+        this.add.text(x, y + 2, "＋ elegí qué hacés", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc" }).setOrigin(0.5);
+        r.on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); this.vistaElegirDia(i); });
+        if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO", "THREE"][i], () => this.vistaElegirDia(i));
+      }
+    });
+
+    /* --- CÓMO LLEGÁS + JUGAR --- */
+    const llega = S.comoLlegas(sem, cfg);
+    this.add.text(W / 2, 352, "🗓 " + llega.resumen, { fontFamily: window.PF.texto, fontSize: "16px", color: "#7ee08a", align: "center" }).setOrigin(0.5);
+    this.add.text(W / 2, 380, "vas a arrancar el partido con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
+      { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
+    if (sem.espiado) this.add.text(W / 2, 402, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+
+    const listo = sem.elegidas.every(e => e);
+    this.boton(W / 2 - 170, H - 74, 340, listo ? "▶ JUGAR LA FECHA" : "▶ JUGAR ASÍ (te queda semana sin usar)", listo ? 0x7ee08a : 0xdcd6c2, () => {
+      this.cerrarSemana(alJugar);
+    });
+    this.add.text(W / 2, H - 22, "tres toques y a la cancha (teclas 1 · 2 · 3)", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.85);
+  }
+  /* el texto del efecto, en números claros (nunca solo color) */
+  textoEfecto(o) {
+    const t = [];
+    if (o.energia_costo) t.push("−" + o.energia_costo + " energía");
+    if (o.energia_recupera) t.push("+" + o.energia_recupera + " energía");
+    if (o.animo) t.push((o.animo > 0 ? "+" : "") + o.animo + " ánimo");
+    if (o.stat) t.push("+" + (o.stat_mas || 1) + " " + (o.stat === "azar" ? "a una stat al azar" : o.stat));
+    if (o.cura_molestia) t.push("cura la molestia");
+    if (o.espia_rival) t.push("ves cómo juega el rival");
+    if (o.evita) t.push("te sacás el problema de encima");
+    if (o.riesgo_golpe) t.push("riesgo de llegar golpeado");
+    return t.join(" · ");
+  }
+  /* la elección de UN día: las opciones disponibles, con su costo a la vista */
+  vistaElegirDia(ranura) {
+    const W = this.scale.width, H = this.scale.height;
+    const S = window.PampaSemana, D = this.game.registry.get("semana");
+    const cfg = (this.game.registry.get("balance") || {}).balance || {};
+    const bal = (this.game.registry.get("balance") || {}).semana || {};
+    const sem = this.save.semana;
+    const ctx = { origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
+    const ops = S.opcionesPara(D, sem, ctx);
+    this.children.removeAll();
+    this.add.text(W / 2, 34, ["LUNES", "MIÉRCOLES", "VIERNES"][ranura] + " · ¿qué hacés?", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 60, "te quedan " + sem.energia + " de energía", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
+    const porFila = 2, ancho = 380, alto = 74;
+    ops.slice(0, 8).forEach((o, i) => {
+      const cx = W / 2 + (i % porFila === 0 ? -ancho / 2 - 10 : ancho / 2 + 10);
+      const cy = 118 + Math.floor(i / porFila) * (alto + 12);
+      const alcanza = (o.energia_costo || 0) <= sem.energia;
+      const r = this.add.rectangle(cx, cy, ancho, alto, alcanza ? 0xf6efdc : 0x555f57, alcanza ? 0.97 : 0.6).setStrokeStyle(3, 0x0a1f13);
+      this.add.text(cx, cy - 16, o.n, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(cx, cy + 6, o.sub, { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
+      this.add.text(cx, cy + 26, this.textoEfecto(o), { fontFamily: window.PF.texto, fontSize: "12px", color: alcanza ? "#0a1f13" : "#e3503e", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5);
+      if (!alcanza) return;
+      r.setInteractive({ useHandCursor: true });
+      r.on("pointerdown", (pp, xx, yy, e2) => {
+        e2 && e2.stopPropagation && e2.stopPropagation();
+        const nueva = S.elegir(D, sem, ranura, o.id, bal);
+        if (nueva) {
+          this.save.semana = nueva;
+          if (o.riesgo_golpe && Math.random() < o.riesgo_golpe) this.save.semana.molestia = true;
+          this.guardar();
+        }
+        this.vistaSemana(this._semRival, this._semJugar);
+      });
+    });
+    this.boton(W / 2 - 110, H - 60, 220, "◀ VOLVER", 0xdcd6c2, () => this.vistaSemana(this._semRival, this._semJugar));
+  }
+  /* el evento pampeano de la semana: sabor arriba + posible modificador */
+  eventoDeLaSemana(rival) {
+    const V = window.PampaVida, D = this.game.registry.get("vida"), t = this.save.temporada;
+    if (!V || !D || !D.eventos) return null;
+    const pos = this.T.posiciones(t);
+    const idxMio = pos.findIndex(f => f.equipo === t.miClub), idxRival = pos.findIndex(f => f.equipo === rival);
+    const ctx = {
+      fecha: t.fecha, division: this.save.division,
+      clasico: (this.save.pueblo && rival.indexOf(this.save.pueblo) >= 0) || false,
+      posMia: idxMio + 1, posRival: idxRival + 1, racha: this.save.racha | 0,
+      marcas: (this.save.origen && this.save.origen.marcas) || []
+    };
+    const sel = V.elegirEvento(D, this.save.bolsaEventos || [], ctx, this.Ma.hashClub(this.save.club) + t.fecha * 7919 + this.save.temporadaN * 13);
+    if (!sel) return null;
+    this.save.bolsaEventos = sel.vistos;
+    return sel.evento;
+  }
+  /* cerrar la semana: lo que elegiste se convierte en cómo llegás al domingo */
+  cerrarSemana(alJugar) {
+    const S = window.PampaSemana;
+    const cfg = (this.game.registry.get("balance") || {}).semana || {};
+    const sem = this.save.semana || S.nuevaSemana(this.save, cfg);
+    const llega = S.comoLlegas(sem, cfg);
+    /* los permanentes se guardan en la carrera (chiquitos, para siempre) */
+    this.save.mejoras = this.save.mejoras || {};
+    Object.keys(sem.permanentes || {}).forEach(k => {
+      this.save.mejoras[k] = (this.save.mejoras[k] || 0) + sem.permanentes[k];
+    });
+    this.save.semanaResumen = llega;
+    this._semEvento = undefined;
+    this.guardar();
+    alJugar();
+  }
+
   vistaEvento(rival, alJugar) {
     const W = this.scale.width, H = this.scale.height;
     const V = window.PampaVida, D = this.game.registry.get("vida"), t = this.save.temporada;
@@ -249,11 +417,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.add.text(W / 2, H - 128, "un equipo " + perfil.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#7ee08a" }).setOrigin(0.5);
         this.boton(W / 2 - 170, H - 80, 300, "▶ JUGAR LA FECHA", 0x7ee08a, () => {
           /* V8 A1: primero LA SEMANA (dos toques), después la cancha */
-          this.vistaEvento(rival, () => {
+          this.vistaSemana(rival, () => {
             this.game.registry.set("masterPartido", {
               rival, division: this.save.division,
               mod: this.save.modFecha || null,
-              origen: this.save.origen || null
+              origen: this.save.origen || null,
+              semana: this.save.semanaResumen || null,
+              mejoras: this.save.mejoras || null
             });
             this.scene.start("match");
           });

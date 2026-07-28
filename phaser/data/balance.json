@@ -535,5 +535,21 @@
     "y": 300,
     "hold_ms": 2800,
     "fade_ms": 500
+  },
+  "semana": {
+    "_doc": "LA VIDA v2 · LA SEMANA CON ENERGÍA. energia_max: el tope del medidor. animo_inicial: con cuánta cabeza empezás la carrera. aguante_piso_frac: con el tanque de energía en cero, qué fracción del aguante te queda igual (el piso jugable). envion_frac: cuánto del envión máximo puede darte el ánimo. permanente_max_semana: el tope de mejora permanente por semana (chiquito a propósito). penal_molestia: cuánta energía te come arrastrar un golpe. desgaste_max: cuánto puede cansarte un partido. animo_gana/empata/pierde/gol: cómo se mueve la cabeza el lunes.",
+    "energia_max": 100,
+    "animo_inicial": 60,
+    "aguante_max": 1000,
+    "aguante_piso_frac": 0.45,
+    "envion_max": 100,
+    "envion_frac": 0.5,
+    "permanente_max_semana": 3,
+    "penal_molestia": 15,
+    "desgaste_max": 40,
+    "animo_gana": 12,
+    "animo_empata": 2,
+    "animo_pierde": 10,
+    "animo_gol": 6
   }
 }

@@ -187,6 +187,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this._modVida = M;   // duelo/arranque/final/recuperación se leen en juego
         this._vidaFicha = md.frase || "";
       }
+      /* ============ LA VIDA v2 · CÓMO LLEGÁS DE LA SEMANA ============
+         Lo que hiciste de lunes a viernes se siente en la cancha: la ENERGÍA
+         que te quedó es tu aguante inicial, el ÁNIMO es el envión con el que
+         arrancás y cuánto mejor leés los duelos. Esto NO reemplaza el aguante
+         que se gasta jugando: define desde dónde arrancás. */
+      const sem = this._masterPartido.semana;
+      if (sem) {
+        const A = this.BAL.aguante;
+        const vos2 = this.st.mios.find(j => j.esVos);
+        if (vos2) vos2.aguante = Phaser.Math.Clamp(sem.aguanteInicial || A.max, 60, A.max);
+        this.st.envion = Phaser.Math.Clamp(sem.envionInicial || 0, 0, (this.BAL.envion && this.BAL.envion.max) || 100);
+        this._lecturaSemana = sem.lectura || 0;      // ±5 a la lectura de los duelos
+        this._semanaResumen = sem.resumen || "";
+      }
+      /* las mejoras permanentes de las semanas jugadas (chiquitas, acumuladas) */
+      const mej = this._masterPartido.mejoras;
+      if (mej && vos && vos.stats) {
+        Object.keys(mej).forEach(k => {
+          if (k === "azar") return;
+          if (vos.stats[k] != null) vos.stats[k] = Phaser.Math.Clamp(vos.stats[k] + mej[k], 20, 99);
+        });
+        if (mej.resistencia) this.st.mios.forEach(j => { if (j.esVos) j.aguanteMax = (j.aguanteMax || this.BAL.aguante.max) + mej.resistencia * 4; });
+      }
     }
 
     /* capa de MUNDO (cancha + portador): la ve solo la cámara principal con zoom;
@@ -2620,7 +2643,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const bt3 = this.add.text(480, 330, "▶ SEGUIR LA CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([b3, bt3]);
       b3.on("pointerdown", () => {
-        this.game.registry.set("masterResultado", { golesMio: st.golesMio, golesRival: st.golesRival });
+        /* LA VIDA v2: el lunes se calcula con cómo TERMINASTE, no solo con el resultado */
+        const vosF = st.mios.find(j => j.esVos);
+        this.game.registry.set("masterResultado", {
+          golesMio: st.golesMio, golesRival: st.golesRival,
+          hiceGol: !!this._hiceGol,
+          aguanteFinalFrac: vosF ? Math.max(0, Math.min(1, vosF.aguante / this.BAL.aguante.max)) : 0.6,
+          golpeFuerte: !!this._golpeFuerte
+        });
         this.game.registry.remove("masterPartido");
         this.scene.start("master");
       });

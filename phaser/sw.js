@@ -7,7 +7,7 @@
    toque assets. El scope es phaser/ (el clásico de la raíz no se toca).
    ========================================================================== */
 "use strict";
-const VERSION = "pampa-star-v8-3";
+const VERSION = "v10-semana";
 const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
@@ -17,13 +17,13 @@ const PRECACHE = [
   "./logic/duel.js", "./logic/perspectiva.js", "./logic/partido.js",
   "./logic/relator.js", "./logic/definicion.js", "./logic/master.js",
   "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
-  "./logic/jugadon.js",
+  "./logic/jugadon.js", "./logic/vida.js", "./logic/semana.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
   "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/escenas_v9.js",
   "./data/balance.json",
-  "../data/roster_pampeano.json", "../data/portraits_manifest.json",
+  "../data/semana.json", "../data/roster_pampeano.json", "../data/portraits_manifest.json",
   "../data/megacosas.json", "../data/relatos.json",
   "../data/poses_manifest.json", "../data/caras_manifest.json",
   "../data/divisiones.json", "../data/identidades_manifest.json",

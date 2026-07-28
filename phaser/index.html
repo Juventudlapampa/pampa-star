@@ -82,6 +82,7 @@
   <script src="logic/temporada.js"></script>
   <script src="logic/jugadon.js"></script>
   <script src="logic/vida.js"></script>
+  <script src="logic/semana.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/sprites.js"></script>
   <script src="scenes/avatar_arte.js"></script>
@@ -148,6 +149,7 @@
   const pCaras = fetch("../data/caras_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pDivisiones = fetch("../data/divisiones.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pVida = fetch("../data/eventos_temporada.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  const pSemana = fetch("../data/semana.json").then(r=>r.ok?r.json():null).catch(()=>null);
   /* V8 §5: esperar las fuentes antes de crear textos — tope 8s (en celu con
      red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
@@ -170,7 +172,7 @@
       });
     }catch(e){}
   });
-  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida])=>{
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pSemana, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData])=>{
     window.__PAMPA_VIDA = vida;
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;
@@ -185,16 +187,16 @@
       if (TP.sombra !== undefined) window.PF.sombra = TP.sombra;
       if (TP.letras !== undefined) window.PF.letras = TP.letras;
     }
-    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida);
+    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData);
   });
-  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida){
+  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData){
     const config = {
       type: Phaser.AUTO,
       parent: "game",
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);
