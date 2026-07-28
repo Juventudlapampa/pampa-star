@@ -126,5 +126,6 @@
     "camiseta": 95
   },
   "_bloques": "V7 fix editor: corte_bloques = con qué CORTE del catálogo de bloques se insinúa cada cara en el muñequito del mapa/editor (ids de logic/avatar.js cortes). Editable sin código.",
-  "_a4": "V8 A4 (playtest): el tinte de pelo sangraba a la cara. Ahora cada cara declara pelo_y1 (hasta qué altura, 0-1, se aplica la regla del pelo) y la tolerancia del pelo bajó a 46. Además tenirImagen NO toca contornos (luma<30) ni el antialias del borde (alpha<128)."
+  "_a4": "V8 A4 (playtest): el tinte de pelo sangraba a la cara. Ahora cada cara declara pelo_y1 (hasta qué altura, 0-1, se aplica la regla del pelo) y la tolerancia del pelo bajó a 46. Además tenirImagen NO toca contornos (luma<30) ni el antialias del borde (alpha<128).",
+  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Cara nueva = PNG transparente en assets/poses/caras/ + entrada en caras[] con {id, n, archivo, tonos, corte_bloques, pelo_y1}. Camiseta nueva = una línea en camisetas[] con {n, hex}: el nombre tiene que distinguirse por la PALABRA, no solo por el color."
 }
