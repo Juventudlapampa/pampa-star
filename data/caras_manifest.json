@@ -9,101 +9,101 @@
       "n": "Clásico",
       "archivo": "cara_clasico.png",
       "tonos": {
-        "pelo": "#113344",
-        "piel": "#ffeecc",
-        "camiseta": "#44bbff"
+        "pelo": "#183448",
+        "piel": "#fbe1ca",
+        "camiseta": "#4dbff3"
       },
       "corte_bloques": "corto",
-      "pelo_y1": 0.5
+      "pelo_y1": 0.36
     },
     {
       "id": "rulos",
       "n": "Rulos",
       "archivo": "cara_rulos.png",
       "tonos": {
-        "pelo": "#332222",
-        "piel": "#cc9966",
-        "camiseta": "#44bbff"
+        "pelo": "#332925",
+        "piel": "#cc9168",
+        "camiseta": "#4ebef3"
       },
       "corte_bloques": "rulos",
-      "pelo_y1": 0.62
+      "pelo_y1": 0.5
     },
     {
       "id": "melena",
       "n": "Melena",
       "archivo": "cara_melena.png",
       "tonos": {
-        "pelo": "#113344",
-        "piel": "#ffeecc",
-        "camiseta": "#44bbff"
+        "pelo": "#183246",
+        "piel": "#fbe1ca",
+        "camiseta": "#4dbef4"
       },
       "corte_bloques": "melena",
-      "pelo_y1": 0.62
+      "pelo_y1": 0.75
     },
     {
       "id": "rapado",
       "n": "Rapado",
       "archivo": "cara_rapado.png",
       "tonos": {
-        "pelo": "#885533",
-        "piel": "#885533",
-        "camiseta": "#44bbff"
+        "pelo": "#875033",
+        "piel": "#875033",
+        "camiseta": "#4cbff4"
       },
-      "tintes_pelo": false,
       "corte_bloques": "rapado",
-      "pelo_y1": 0.5
+      "pelo_y1": 0.3,
+      "tintes_pelo": false
     },
     {
       "id": "colorado",
       "n": "Colorado",
       "archivo": "cara_colorado.png",
       "tonos": {
-        "pelo": "#ff4422",
-        "piel": "#ffeedd",
-        "camiseta": "#44bbff"
+        "pelo": "#f84824",
+        "piel": "#fee8d9",
+        "camiseta": "#4dbef4"
       },
+      "corte_bloques": "corto",
+      "pelo_y1": 0.35,
       "tintes_pelo_excluye": [
         "rubio",
         "canoso"
-      ],
-      "corte_bloques": "corto",
-      "pelo_y1": 0.5
+      ]
     },
     {
       "id": "flequillo",
       "n": "Flequillo",
       "archivo": "cara_flequillo.png",
       "tonos": {
-        "pelo": "#113344",
-        "piel": "#ffeecc",
-        "camiseta": "#44bbff"
+        "pelo": "#183246",
+        "piel": "#fbe1ca",
+        "camiseta": "#4dbef4"
       },
-      "corte_bloques": "flequillo",
-      "pelo_y1": 0.5
+      "corte_bloques": "corto",
+      "pelo_y1": 0.4
     },
     {
       "id": "mohicano",
       "n": "Mohicano",
       "archivo": "cara_mohicano.png",
       "tonos": {
-        "pelo": "#113344",
-        "piel": "#bb9955",
-        "camiseta": "#44bbff"
+        "pelo": "#183347",
+        "piel": "#b79c55",
+        "camiseta": "#4dbef4"
       },
-      "corte_bloques": "colita",
-      "pelo_y1": 0.5
+      "corte_bloques": "rapado",
+      "pelo_y1": 0.4
     },
     {
       "id": "tranqui",
       "n": "Tranqui",
       "archivo": "cara_tranqui.png",
       "tonos": {
-        "pelo": "#222222",
-        "piel": "#eebb88",
-        "camiseta": "#44bbff"
+        "pelo": "#31292a",
+        "piel": "#eebc89",
+        "camiseta": "#4ebef4"
       },
-      "corte_bloques": "corto",
-      "pelo_y1": 0.5
+      "corte_bloques": "rulos",
+      "pelo_y1": 0.41
     }
   ],
   "camisetas": [
@@ -127,5 +127,6 @@
   },
   "_bloques": "V7 fix editor: corte_bloques = con qué CORTE del catálogo de bloques se insinúa cada cara en el muñequito del mapa/editor (ids de logic/avatar.js cortes). Editable sin código.",
   "_a4": "V8 A4 (playtest): el tinte de pelo sangraba a la cara. Ahora cada cara declara pelo_y1 (hasta qué altura, 0-1, se aplica la regla del pelo) y la tolerancia del pelo bajó a 46. Además tenirImagen NO toca contornos (luma<30) ni el antialias del borde (alpha<128).",
-  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Cara nueva = PNG transparente en assets/poses/caras/ + entrada en caras[] con {id, n, archivo, tonos, corte_bloques, pelo_y1}. Camiseta nueva = una línea en camisetas[] con {n, hex}: el nombre tiene que distinguirse por la PALABRA, no solo por el color."
+  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Cara nueva = PNG transparente en assets/poses/caras/ + entrada en caras[] con {id, n, archivo, tonos, corte_bloques, pelo_y1}. Camiseta nueva = una línea en camisetas[] con {n, hex}: el nombre tiene que distinguirse por la PALABRA, no solo por el color.",
+  "_arte": "TANDA DE ARTE (30/jul): las 8 caras vienen del entregable de Rodri. Llegaron con FONDO MAGENTA (chroma key) y se procesaron una sola vez, offline: magenta -> alpha con despinte del halo, recorte al contenido y alto 700. Los tonos de cada entrada se sacaron con cuentagotas de SU PROPIO PNG (no se copió el mismo bloque en las ocho) y pelo_y1 se MIDIÓ por color, filtrando el contorno de tinta."
 }
