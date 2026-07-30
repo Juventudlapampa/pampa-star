@@ -81,7 +81,41 @@ cambian dentro y fuera de la banda. 12.000-56.000 píxeles teñidos por cara y
 
 ---
 
-## A3 · EL CICLO DE CORRIDA
+## A3 · EL CICLO DE CORRIDA — ⚠ DESACTIVADO, ESPERANDO EL ZIP PROCESADO
+
+**Me equivoqué de zip**: procesé `TODO_TODO_TODO_FINAL.zip` (el original) en vez
+de `PAMPA_STAR_arte_recortado.zip` (el procesado). Los tres cuadros venían
+desalineados de fábrica y **recortarlos con caja común conservó el desajuste**:
+la caja común alinea el **lienzo**, no la **figura**.
+
+Medido en el repo:
+
+| cuadro | pie | alto de figura | centro X |
+|---|---|---|---|
+| pose_corriendo_1.png | y=699 | 699 | 393 |
+| pose_corriendo_2.png | y=631 | 632 | 323 |
+| pose_corriendo_3.png | y=660 | 636 | 362 |
+
+**Deriva de piso 68px (9,7%) · variación de alto 9,6% · deriva de centro 70px.**
+A 120ms eso se lee como rebote, pulso de tamaño y salto lateral — no como
+zancada. Con la figura escalada a 213px en el panel, son ~21px de salto vertical
+y ~20px de pulso, contra los 4px del bob de carrera intencional.
+
+**Qué está hecho mientras tanto:**
+- El ciclo quedó **declarado pero desactivado** (`ciclo_pendiente` en el
+  manifest): el juego usa la pose quieta, que se ve bien. Verificado en vivo
+  mirando la cabeza: se mueve 4px, y esos 4 son el bob, no el rebote.
+- **`phaser/test/ciclos.test.js`**: mide la figura de cada cuadro de cualquier
+  ciclo declarado y falla si el piso difiere más de **4px**, el alto varía más
+  del **3%** o el centro se corre más de **12px**. Con los cuadros actuales
+  fallaba con los tres mensajes; con el ciclo desactivado queda verde y armado
+  para el próximo.
+
+**Para activarlo cuando llegue el zip procesado:** pegar los tres de `run/` tal
+cual (sin recortar, reescalar ni recentrar) sobre `pose_corriendo_1..3.png` y
+renombrar `ciclo_pendiente` → `ciclo`. El test valida solo.
+
+### Lo que se había cableado (queda de referencia)
 
 `assets/poses/` · manifest `data/poses_manifest.json` → `poses.corriendo.ciclo`
 

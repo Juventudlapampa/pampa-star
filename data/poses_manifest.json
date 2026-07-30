@@ -111,15 +111,15 @@
         "y": 0.908,
         "r": 0.099
       },
-      "ciclo": {
+      "_ciclo_nota": "CICLO DESACTIVADO (30/jul). Los tres cuadros que se cablearon salieron del zip ORIGINAL, no del procesado: vienen desalineados de fábrica (piso con 68px de deriva, alto variando 9,6%, centro corrido 70px) y recortarlos con caja común conservó el desajuste — la caja común alinea el LIENZO, no la FIGURA. A 120ms se ve como rebote y pulso de tamaño, no como zancada. Para activarlo: reemplazar pose_corriendo_1..3.png por los de la carpeta run/ del zip PROCESADO (pegarlos como están, sin recortar, reescalar ni recentrar) y renombrar esta clave a \"ciclo\". phaser/test/ciclos.test.js valida la alineación y falla si el piso difiere más de 4px, el alto varía más del 3% o el centro se corre más de 12px.",
+      "ciclo_pendiente": {
         "cuadros": [
           "pose_corriendo_1.png",
           "pose_corriendo_2.png",
           "pose_corriendo_3.png"
         ],
         "ms": 120
-      },
-      "_ciclo_nota": "TANDA DE ARTE A3: los tres cuadros vienen YA alineados (mismo alto, pies en la misma línea, centrados por el torso) y se recortaron con una CAJA COMÚN. No reescalar ni recentrar uno solo: cualquier ajuste individual rompe la alineación y el jugador salta al correr."
+      }
     }
   },
   "fondos": {
