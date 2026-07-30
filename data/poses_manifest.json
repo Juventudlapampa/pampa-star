@@ -110,7 +110,16 @@
         "x": 0.276,
         "y": 0.908,
         "r": 0.099
-      }
+      },
+      "ciclo": {
+        "cuadros": [
+          "pose_corriendo_1.png",
+          "pose_corriendo_2.png",
+          "pose_corriendo_3.png"
+        ],
+        "ms": 120
+      },
+      "_ciclo_nota": "TANDA DE ARTE A3: los tres cuadros vienen YA alineados (mismo alto, pies en la misma línea, centrados por el torso) y se recortaron con una CAJA COMÚN. No reescalar ni recentrar uno solo: cualquier ajuste individual rompe la alineación y el jugador salta al correr."
     }
   },
   "fondos": {

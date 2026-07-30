@@ -43,6 +43,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       Object.keys(poses.poses).forEach(id => {
         const p = poses.poses[id];
         if (p && p.archivo) this.load.image("pose_" + id, "../" + base + p.archivo);
+        /* TANDA DE ARTE A3: los cuadros del CICLO (si el manifest los declara).
+           Sin "ciclo" no cambia nada: se usa la pose quieta de siempre. */
+        if (p && p.ciclo && p.ciclo.cuadros) p.ciclo.cuadros.forEach((f, k) => {
+          this.load.image("pose_" + id + "_c" + k, "../" + base + f);
+        });
       });
       /* ARTE 2: los fondos del manifest (la tribuna detrás del arco) */
       if (poses.fondos) Object.keys(poses.fondos).forEach(id => {
@@ -610,6 +615,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     this.panelPasto = this.add.tileSprite(480, 231, 960, 146, "pasto_tile");
     this.panelLayer.add(this.panelPasto);
+    /* A4 · EL VELO DE FOCO: un negro suave sobre tribuna y pasto que sube
+       cuando el protagonista ACTÚA, para que la figura recorte. Va acá, entre
+       el fondo y las figuras: nunca oscurece al que corre. */
+    /* fillAlpha en 1 y el objeto en alpha 0: en Phaser el sexto parámetro es
+       el fillAlpha, y si queda en 0 el rectángulo NO se ve aunque se anime
+       .alpha (bug cazado midiendo el brillo del frame real) */
+    this.panelVelo = this.add.rectangle(480, 121 + 55, 960, 232, 0x040d08, 1)
+      .setOrigin(0.5, 0.5).setAlpha(0);
+    this.panelLayer.add(this.panelVelo);
+    this._veloObj = 0;
     /* siluetas de rivales cercanos (pool), DETRÁS del que corre */
     this.panelSil = [];
     for (let k = 0; k < 3; k++) {
@@ -622,7 +637,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelLayer.add(this.panelJug);
     this.panelPelota = this.add.sprite(482, 296, "ball").setScale(2);
     this.panelLayer.add(this.panelPelota);
-    this.panelNombre = this.add.text(430, 122, "", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#f6efdc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+    /* A4 · FRANJA PROPIA para el texto: una banda abajo del panel, fuera del
+       cuerpo del sprite. Antes el nombre flotaba a la altura de la cabeza y se
+       superponía con la figura grande. */
+    const VI = this.VI || {};
+    const yFranja = VI.panel_franja_y != null ? VI.panel_franja_y : 292;
+    this.panelFranja = this.add.rectangle(480, yFranja, 960, 24, 0x0a1f13, 0.82);
+    this.panelLayer.add(this.panelFranja);
+    this.panelNombre = this.add.text(14, yFranja, "", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
   }
@@ -637,7 +659,40 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const d = del[window.PampaAvatar.hashSemilla(j.nombre || "x") % del.length];
     return this.textures.exists("ident_" + d.id) ? "ident_" + d.id : null;
   }
-  poseDelPanel(p) {
+  /* TANDA DE ARTE A3 · EL CICLO DE CORRIDA. Si el manifest declara "ciclo"
+     para la pose de correr, el panel alterna sus cuadros mientras el portador
+     se mueve (y vuelve al cuadro quieto cuando frena). Los tres cuadros están
+     recortados con la MISMA caja, así que no hay que recentrar nada acá: se
+     cambia la textura y listo. Sin ciclo declarado, se comporta como antes. */
+  /* A4 · el fondo BAJA cuando el protagonista actúa: en LIBRE se corre y se ve
+     todo; en cuanto se abre un momento (menú, resolución, escena) el velo sube
+     y la figura recorta contra la tribuna y el pasto oscurecidos. */
+  velarPanel(delta) {
+    if (!this.panelVelo || !this.panelVelo.active) return;
+    const V = this.VI || {};
+    const actuando = this.estado !== "LIBRE" && this.estado !== "BEAT";
+    this._veloObj = actuando ? (V.panel_velo_alpha != null ? V.panel_velo_alpha : 0.45) : 0;
+    const paso = Math.min(1, (delta || 16) * 0.006);
+    this.panelVelo.setAlpha(this.panelVelo.alpha + (this._veloObj - this.panelVelo.alpha) * paso);
+  }
+  cuadroDelCiclo(corriendo) {
+    const poses = this.game.registry.get("poses");
+    const def = poses && poses.poses && poses.poses.corriendo;
+    const ciclo = def && def.ciclo;
+    if (!ciclo || !ciclo.cuadros || !ciclo.cuadros.length) return null;
+    if (!corriendo) return this.textures.exists("pose_corriendo_c0") ? "pose_corriendo_c0" : null;
+    const ms = ciclo.ms || 120;
+    const i = Math.floor(this.time.now / ms) % ciclo.cuadros.length;
+    const k = "pose_corriendo_c" + i;
+    return this.textures.exists(k) ? k : null;
+  }
+  poseDelPanel(p, corriendo) {
+    /* VOS corriendo: el ciclo manda (salvo que tengas tintes, que van sobre la
+       pose quieta — el ciclo teñido sería un bake por cuadro y no vale la pena) */
+    if (p.j.esVos && corriendo && !this.poseHeroeTenida(p.j)) {
+      const c = this.cuadroDelCiclo(true);
+      if (c) return c;
+    }
     if (!p.j.esVos) {
       const k = this.identidadDe(p.j, p.esRival);
       if (k) return k;
@@ -695,10 +750,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.latirHinchada(delta, !!caliente);
     }
     /* la ilustración del portador (rival sin revelar = SILUETA) */
-    const key = this.poseDelPanel(p);
+    const key = this.poseDelPanel(p, corriendo);
     if (key && this.panelJug.texture.key !== key) {
       this.panelJug.setTexture(key);
-      this.panelJug.setScale(200 / this.panelJug.height);
+      /* A4 · ESCALA Y ENCUADRE: la figura ocupaba un tercio del panel y sobraba
+         fondo. Ahora ocupa panel_figura_frac del alto útil, anclada por los PIES
+         a la línea del suelo (origin abajo), así nunca se le cortan los pies. */
+      const V = this.VI || {};
+      const altoUtil = (V.panel_suelo_y != null ? V.panel_suelo_y : 300) - (V.panel_techo_y != null ? V.panel_techo_y : 34);
+      const frac = V.panel_figura_frac != null ? V.panel_figura_frac : 0.8;
+      this.panelJug.setOrigin(0.5, 1);
+      this.panelJug.setScale((altoUtil * frac) / this.panelJug.height);
+      this.panelJug.setPosition(this.panelJug.x, V.panel_suelo_y != null ? V.panel_suelo_y : 300);
       this.panelJug.setVisible(true);
     }
     /* V7 §0.1 (playtest): el PORTADOR está SIEMPRE revelado — verlo es el
@@ -713,12 +776,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        tuc-tuc (animación limitada estilo consola vieja: dos cuadros) */
     const latidoMs = (this.BAL.pulso && this.BAL.pulso.latido_ms) || 380;
     this.panelJug.setAngle(corriendo ? (Math.floor(this.time.now / latidoMs) % 2 ? 3.5 : -3.5) : 0);
-    this.panelJug.y = 232 + (corriendo ? Math.sin(this.time.now * 0.02) * 3 : 0);
-    this.panelJug.x = 430 + (corriendo ? Math.cos(this.time.now * 0.013) * 2 : 0);
-    /* la pelota del juego al pie */
+    /* A4: la figura se ancla por los PIES a la línea del suelo; el bob de
+       carrera es un rebote chico de esa línea, no un salto del centro */
+    const Vp = this.VI || {};
+    const suelo = Vp.panel_suelo_y != null ? Vp.panel_suelo_y : 300;
+    const cx = Vp.panel_figura_x != null ? Vp.panel_figura_x : 400;
+    this.panelJug.y = suelo + (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * -4 : 0);
+    this.panelJug.x = cx + (corriendo ? Math.cos(this.time.now * 0.013) * 2 : 0);
+    /* la pelota del juego al pie (a escala de la figura nueva) */
     const dir = this.panelJug.flipX ? -1 : 1;
-    this.panelPelota.setPosition(430 + 56 * dir, 298 - (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * 7 : 0));
+    const anchoFig = this.panelJug.displayWidth || 120;
+    this.panelPelota.setPosition(cx + anchoFig * 0.34 * dir, suelo - 8 - (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * 7 : 0));
     if (corriendo) this.panelPelota.rotation += 0.14 * dir;
+    /* A4 · el fondo BAJA cuando el protagonista actúa: en LIBRE se corre y se
+       ve todo; en cuanto se abre un momento (menú, resolución, beat) el velo
+       sube y la figura recorta contra el fondo oscurecido. */
+    this.velarPanel(delta);
     /* quién corre: bando por FORMA (▲/▼) + NÚMERO + NOMBRE (accesibilidad) */
     const nom = (p.esRival ? "▲ " : "▼ ") + (j.numero ? j.numero + " · " : "") + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10));
     if (this.panelNombre.text !== nom) this.panelNombre.setText(nom);
@@ -3214,6 +3287,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* A2: con menú abierto NADA se mueve — ni el bob del panel (la escena
          queda clavada como una viñeta mientras decidís) */
       if (this._split && this.estado !== "MENU" && this.estado !== "PASE") this.updatePanelEscena(delta);
+      else if (this._split && this.velarPanel) this.velarPanel(delta);   // A4: el velo sí sigue vivo
       else { this.updateFichas(true); this.dibujarPaseCancha(); }
       return;
     }
