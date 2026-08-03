@@ -7,26 +7,36 @@
    A 120ms eso no se lee como zancada: se lee como rebote y pulso de tamaño.
 
    Este test mide la FIGURA de cada cuadro (su caja de píxeles opacos) de
-   cualquier ciclo declarado en un manifest y falla si:
+   cualquier ciclo declarado en un manifest y FALLA si:
      · el PISO difiere más de 4px entre cuadros,
      · el ALTO de figura varía más del 3%,
-     · el CENTRO DE LA CADERA se corre más del 6% del alto de figura.
+     · los LIENZOS no miden todos igual.
+   Esos tres separan un ciclo roto de uno bueno: 68px → 0 y 9,6% → 0,0% entre
+   el set que rebotaba y el alineado.
 
-   Lo de la cadera no es un detalle: la primera versión de este test medía el
-   centro de la CAJA COMPLETA y estaba mal planteado. Al correr, los brazos y
-   las piernas se abren y se cierran, así que la caja se ensancha y se angosta
-   POR DISEÑO y su centro se mueve aunque el cuerpo esté quieto.
+   NO HAY CRITERIO DE ALINEACIÓN HORIZONTAL, y no es un olvido.
+   Se probaron dos: el centro de la CAJA COMPLETA y el centro de la BANDA DE
+   CADERA (42-55% de la altura). Los dos fallan como criterio.
 
-   MEDICIÓN REAL de los dos sets, con la banda de cadera (42-55% del alto):
-     set viejo (el que rebotaba): piso 68px · alto 9,6% · cadera 4,33%
-     set nuevo (alineado)       : piso  0px · alto 0,0% · cadera 4,51%
-   O sea: la cadera se corre CASI IGUAL en los dos. No es lo que separa un
-   ciclo roto de uno bueno — eso lo separan el piso y el alto. Ese ~4,4% es la
-   inclinación del torso, que es dibujo, no defecto: a la escala del panel
-   (figura de 213px) son 9px, medidos en pantalla con el ciclo andando.
-   Por eso el tercer criterio queda con tope 6% y en PORCENTAJE, no en píxeles
-   (los lienzos cambian de tamaño entre entregas: 739x700 vs 1500x1400). Sirve
-   para cazar un cuadro corrido de verdad, no para juzgar la zancada.
+   La caja completa, porque al correr los brazos y las piernas se abren y se
+   cierran: la caja se ensancha POR DISEÑO y su centro se mueve aunque el
+   cuerpo esté quieto.
+
+   La cadera, porque no ORDENA BIEN. Medidos los dos sets:
+                            set ROTO   set BUENO
+     promedio de fila          3,71%      4,59%
+     centro de masa            3,68%      4,33%
+   El set bueno da PEOR que el roto en las dos formas de medir. Con un tope de
+   6% pasan los dos, y bajándolo hasta que muerda, el primero que rechaza es el
+   ciclo bien alineado. Un criterio que ordena al revés no filtra nada: agrega
+   ruido y un falso rojo esperando.
+
+   La razón de fondo es que estos cuadros son ILUSTRACIONES SEPARADAS, no un
+   sprite rasterizado desde un rig. No hay un ancla estable —ni cadera, ni
+   torso, ni cabeza— que se mantenga en el mismo lugar entre dibujos hechos a
+   mano, así que no hay nada que el código pueda medir para decidir.
+   La alineación horizontal SE MIRA A OJO. El número de cadera se imprime como
+   dato, no como veredicto.
 
    Corré:  node phaser/test/ciclos.test.js
    ========================================================================== */
@@ -40,16 +50,10 @@ function assert(cond, msg) { if (cond) ok++; else { mal++; console.error("  ✗ 
 const RAIZ = path.join(__dirname, "..", "..");
 const TOL_PISO = 4;        // px  · el que de verdad separa un ciclo roto de uno bueno
 const TOL_ALTO = 3;        // %   · idem
-/* La CADERA se mide en la banda 42-55% de la altura de figura (no en la caja
-   completa: los brazos y las piernas se abren al correr y mueven ese centro
-   aunque el cuerpo esté quieto).
-   El TOPE va en % del alto de figura, no en píxeles: un mismo salto se ve
-   distinto según el tamaño del lienzo, y estos cuadros vienen a 1500x1400
-   mientras los anteriores venían a 739x700.
-   Calibrado con los dos sets reales (ver el comentario de arriba): los dos dan
-   ~4,4%, así que 6% caza un cuadro DESPLAZADO de verdad sin castigar la
-   inclinación del torso, que es dibujo, no defecto. */
-const TOL_CADERA_PCT = 6;
+/* La banda de CADERA se sigue midiendo, pero SOLO PARA IMPRIMIRLA: no hay tope
+   y no puede hacer fallar el test (ver el encabezado: el criterio ordenaba al
+   revés). Si algún día aparece un ancla estable —cuadros salidos de un rig, no
+   ilustraciones sueltas— acá está la medición lista para volver a ser criterio. */
 const CADERA_DE = 0.42;    // fracción de la altura de figura donde empieza la cintura
 const CADERA_A = 0.55;     // y donde termina
 
@@ -165,23 +169,26 @@ manifests.forEach(({ archivo, entradas }) => {
     const derivaCadera = caderas.length === cajas.length ? Math.max(...caderas) - Math.min(...caderas) : null;
     const detalle = cajas.map(c => c.f.replace(/^.*[\\/]/, "") + "(pie " + c.pie + ", alto " + c.alto + ", cadera " + c.centroCadera + ")").join(" · ");
 
+    /* LOS DOS CRITERIOS QUE FRENAN EL COMMIT */
     assert(derivaPiso <= TOL_PISO,
       "ciclo '" + id + "': el PISO de los cuadros difiere " + derivaPiso + "px (tope " + TOL_PISO + "). Se ve como REBOTE. → " + detalle);
     assert(varAlto <= TOL_ALTO,
       "ciclo '" + id + "': el ALTO de figura varía " + varAlto.toFixed(1) + "% (tope " + TOL_ALTO + "%). Se ve como PULSO DE TAMAÑO. → " + detalle);
-    assert(derivaCadera != null,
-      "ciclo '" + id + "': no se pudo medir la banda de cadera en algún cuadro");
-    const altoMedio = altos.reduce((a, b) => a + b, 0) / altos.length;
-    const caderaPct = derivaCadera != null ? derivaCadera / altoMedio * 100 : 0;
-    if (derivaCadera != null) assert(caderaPct <= TOL_CADERA_PCT,
-      "ciclo '" + id + "': el CENTRO DE LA CADERA se corre " + derivaCadera + "px = " + caderaPct.toFixed(1) +
-      "% del alto de figura (tope " + TOL_CADERA_PCT + "%). Se ve como SALTO LATERAL. → " + detalle);
     /* que todos los lienzos midan igual: si no, el escalado por alto los desiguala */
     const anchos = new Set(cajas.map(c => c.W)), altosL = new Set(cajas.map(c => c.H));
     assert(anchos.size === 1 && altosL.size === 1,
       "ciclo '" + id + "': los cuadros tienen LIENZOS distintos (" + [...anchos].join("/") + " x " + [...altosL].join("/") + ")");
-    if (derivaPiso <= TOL_PISO && varAlto <= TOL_ALTO && derivaCadera != null && caderaPct <= TOL_CADERA_PCT)
-      console.log("  ✓ ciclo '" + id + "': " + cajas.length + " cuadros alineados (piso ±" + derivaPiso + "px, alto ±" + varAlto.toFixed(1) + "%, cadera ±" + derivaCadera + "px = " + caderaPct.toFixed(1) + "%)");
+
+    if (derivaPiso <= TOL_PISO && varAlto <= TOL_ALTO)
+      console.log("  ✓ ciclo '" + id + "': " + cajas.length + " cuadros alineados (piso ±" + derivaPiso + "px, alto ±" + varAlto.toFixed(1) + "%)");
+    /* LA CADERA, SOLO INFORMATIVA — no falla nunca. Ver el encabezado: el número
+       se imprime porque sirve para mirar, no para decidir. */
+    const altoMedio = altos.reduce((a, b) => a + b, 0) / altos.length;
+    if (derivaCadera != null)
+      console.log("    · cadera ±" + derivaCadera + "px (" + (derivaCadera / altoMedio * 100).toFixed(1) +
+        "% del alto) — informativo, no es criterio: la alineación horizontal se mira a ojo");
+    else
+      console.log("    · cadera: no se pudo medir la banda en algún cuadro — informativo, no es criterio");
   });
 });
 

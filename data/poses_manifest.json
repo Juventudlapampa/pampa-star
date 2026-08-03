@@ -111,7 +111,7 @@
         "y": 0.908,
         "r": 0.099
       },
-      "_ciclo_nota": "TANDA DE ARTE A3 (v2, 3/ago): los tres cuadros vienen del zip PROCESADO (PAMPA_STAR_arte_v2_ciclo_alineado.zip, carpeta run/), con máscara binaria y alineados de origen. Se pegaron TAL CUAL: no se recortan, no se reescalan, no se recentran, no pasan por sharp — cualquier reprocesamiento los rompe. phaser/test/ciclos.test.js valida piso (4px), alto (3%) y centro de CADERA (6% del alto de figura, banda 42-55%: la caja completa no sirve porque brazos y piernas se abren al correr, y el tope va en % porque los lienzos cambian de tamaño entre entregas).",
+      "_ciclo_nota": "TANDA DE ARTE A3 (v2, 3/ago): los tres cuadros vienen del zip PROCESADO (PAMPA_STAR_arte_v2_ciclo_alineado.zip, carpeta run/), con máscara binaria y alineados de origen. Se pegaron TAL CUAL: no se recortan, no se reescalan, no se recentran, no pasan por sharp — cualquier reprocesamiento los rompe. phaser/test/ciclos.test.js valida piso (4px), alto (3%) y que los lienzos midan igual. NO valida alineación horizontal: se probó con la caja completa y con la banda de cadera, y ninguna ordena bien (el set bueno puntúa PEOR que el roto). Son ilustraciones separadas, sin ancla estable medible por código: el corrimiento lateral se mira A OJO. El test imprime el número de cadera como dato, no como veredicto.",
       "ciclo": {
         "cuadros": [
           "pose_corriendo_1.png",

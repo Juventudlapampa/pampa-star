@@ -112,60 +112,64 @@ Medido sobre el render real de Phaser (RenderTexture + snapshot), a la escala de
 panel — figura de 183px — con los mismos tres cuadros viejos sacados de git para
 comparar en igualdad de condiciones:
 
-| | piso | alto | cadera |
+| | piso | alto | cadera *(informativo)* |
 |---|---|---|---|
 | **antes** (los que rebotaban) | ±21 px | ±9,4 % | ±7,7 px (3,9 % del alto) |
 | **ahora** (zip v2) | **±1 px** | **±0,5 %** | ±6,7 px (3,7 % del alto) |
 
 El pie apoya en la misma línea en los tres cuadros y el cuerpo no pulsa de
-tamaño. La **cadera** se queda quieta: los 6,7px son la inclinación del torso al
-correr, y giran las piernas alrededor.
+tamaño: eso es lo que dicen las dos primeras columnas, y es lo que se arregló.
+
+La columna de cadera va como dato, no como prueba — acá los dos sets quedan a
+0,2 puntos uno del otro, que es ruido. Ver más abajo por qué no es criterio.
+Lo que sí se mira a ojo, y se vio: la cintura queda quieta y las piernas giran
+alrededor.
 
 ### El test — `phaser/test/ciclos.test.js`
 
-Mide la figura de cada cuadro de cualquier ciclo declarado en el manifest y falla
-si el **piso** difiere más de **4px**, el **alto** varía más del **3%** o el
-**centro de la cadera** se corre más del **6% del alto de figura**.
+Mide la figura de cada cuadro de cualquier ciclo declarado en el manifest.
+**Falla** si el **piso** difiere más de **4px**, si el **alto** de figura varía
+más del **3%**, o si los **lienzos** no miden todos igual.
 
-Dos cosas cambiaron respecto de la primera versión:
+Esos son los que separan un ciclo roto de uno bueno: **68px → 0** y
+**9,6% → 0,0%** entre el set que rebotaba y el alineado. Probado en los dos
+sentidos: con los cuadros viejos puestos en su lugar, el test devuelve exit 1 con
+los dos mensajes.
 
-1. **La banda de cadera reemplazó a la caja completa.** Al correr, los brazos y
-   las piernas se abren y se cierran: la caja se ensancha por diseño y su centro
-   se mueve aunque el cuerpo esté quieto. La cintura (42-55% de la altura de
-   figura) es el eje real del movimiento.
-2. **El tope va en porcentaje, no en píxeles.** Los lienzos cambian de tamaño
-   entre entregas (739×700 la vez pasada, 1500×1400 ahora), así que un tope
-   absoluto significa cosas distintas en cada tanda.
+### ⚠ La alineación horizontal SE MIRA A OJO, no hay test
 
-**Sobre el 6%**: medidos con la banda de cadera, el set roto da 4,33% y el bueno
-4,51% — la cadera **no discrimina** entre uno y otro (ver "Una diferencia con los
-números del pedido", más abajo). Los que sí separan son el piso (68px → 0) y el
-alto (9,6% → 0,0%). El tope quedó en 6% para cazar un cuadro corrido de verdad
-sin castigar la inclinación del torso, que es dibujo y no defecto.
+No es un olvido. Se probaron dos criterios y ninguno sirve:
+
+- **El centro de la caja completa** se mueve por diseño: al correr, los brazos y
+  las piernas se abren y se cierran, así que la caja se ensancha y se angosta.
+- **El centro de la banda de cadera** (42-55% de la altura) **ordena al revés**:
+
+  | | set ROTO | set BUENO |
+  |---|---|---|
+  | promedio de fila | 3,71 % | 4,59 % |
+  | centro de masa | 3,68 % | 4,33 % |
+
+  El set bueno puntúa **peor** que el roto en las dos formas de medir. Con un
+  tope del 6% pasan los dos; bajándolo hasta que muerda, el primero que rechaza
+  es el ciclo bien alineado. Un criterio que ordena al revés no filtra: agrega
+  ruido y deja un falso rojo esperando.
+
+**La razón de fondo**: estos cuadros son *ilustraciones separadas*, no fotogramas
+rasterizados desde un rig. No hay un ancla estable —ni cadera, ni torso, ni
+cabeza— que caiga en el mismo lugar entre dibujos hechos a mano, así que no hay
+nada que el código pueda medir para decidir.
+
+El test **imprime** la deriva de cadera como dato informativo y nunca falla por
+ella. Para el ciclo actual dice `cadera ±54px (4.5% del alto)`.
+
+**Cómo se revisa un ciclo nuevo, entonces**: se abre el juego, se pone al
+protagonista a correr y se mira la cintura. Si la cintura se queda quieta y las
+piernas giran alrededor, está bien. Si el cuerpo entero se corre de costado entre
+cuadro y cuadro, hay que volver a alinear los dibujos. El piso y el alto los
+cubre el test; el corrimiento lateral, el ojo.
 
 *(El spritesheet 4800×1600 no se usó: los tres cuadros sueltos son más fáciles
 de mantener y de reemplazar uno solo.)*
-
-### Una diferencia con los números del pedido
-
-El pedido decía que los cuadros nuevos dan **1px** de deriva de cadera con la
-banda 42-55%. Midiéndolos con cuatro métodos distintos me da bastante más:
-
-| método | deriva |
-|---|---|
-| centro por extremos de cada fila de la banda | 54 px |
-| centro de masa de la banda | 54 px |
-| solo el short, aislado por color | 21 px |
-| la banda excluyendo los tonos de piel | 31 px |
-
-Sobre 1197px de alto de figura, 54px son 4,5% — y en pantalla, a 183px de figura,
-son los 6,7px de la tabla de arriba. Puede ser que el 1px salga de medir el
-**centroide de la máscara completa** o el centro del lienzo en vez del contenido;
-no pude reproducirlo.
-
-**No cambia la conclusión**: el ciclo está bien, y está bien por el piso y el
-alto, que dieron 0. Lo dejo anotado para que no sorprenda que el test imprima
-"cadera ±54px" en verde.
 
 ---
 
