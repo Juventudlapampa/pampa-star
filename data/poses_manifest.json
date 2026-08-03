@@ -111,8 +111,8 @@
         "y": 0.908,
         "r": 0.099
       },
-      "_ciclo_nota": "CICLO DESACTIVADO (30/jul). Los tres cuadros que se cablearon salieron del zip ORIGINAL, no del procesado: vienen desalineados de fábrica (piso con 68px de deriva, alto variando 9,6%, centro corrido 70px) y recortarlos con caja común conservó el desajuste — la caja común alinea el LIENZO, no la FIGURA. A 120ms se ve como rebote y pulso de tamaño, no como zancada. Para activarlo: reemplazar pose_corriendo_1..3.png por los de la carpeta run/ del zip PROCESADO (pegarlos como están, sin recortar, reescalar ni recentrar) y renombrar esta clave a \"ciclo\". phaser/test/ciclos.test.js valida la alineación y falla si el piso difiere más de 4px, el alto varía más del 3% o el centro se corre más de 12px.",
-      "ciclo_pendiente": {
+      "_ciclo_nota": "TANDA DE ARTE A3 (v2, 3/ago): los tres cuadros vienen del zip PROCESADO (PAMPA_STAR_arte_v2_ciclo_alineado.zip, carpeta run/), con máscara binaria y alineados de origen. Se pegaron TAL CUAL: no se recortan, no se reescalan, no se recentran, no pasan por sharp — cualquier reprocesamiento los rompe. phaser/test/ciclos.test.js valida piso (4px), alto (3%) y centro de CADERA (6% del alto de figura, banda 42-55%: la caja completa no sirve porque brazos y piernas se abren al correr, y el tope va en % porque los lienzos cambian de tamaño entre entregas).",
+      "ciclo": {
         "cuadros": [
           "pose_corriendo_1.png",
           "pose_corriendo_2.png",

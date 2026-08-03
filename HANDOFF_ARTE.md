@@ -81,63 +81,91 @@ cambian dentro y fuera de la banda. 12.000-56.000 píxeles teñidos por cara y
 
 ---
 
-## A3 · EL CICLO DE CORRIDA — ⚠ DESACTIVADO, ESPERANDO EL ZIP PROCESADO
-
-**Me equivoqué de zip**: procesé `TODO_TODO_TODO_FINAL.zip` (el original) en vez
-de `PAMPA_STAR_arte_recortado.zip` (el procesado). Los tres cuadros venían
-desalineados de fábrica y **recortarlos con caja común conservó el desajuste**:
-la caja común alinea el **lienzo**, no la **figura**.
-
-Medido en el repo:
-
-| cuadro | pie | alto de figura | centro X |
-|---|---|---|---|
-| pose_corriendo_1.png | y=699 | 699 | 393 |
-| pose_corriendo_2.png | y=631 | 632 | 323 |
-| pose_corriendo_3.png | y=660 | 636 | 362 |
-
-**Deriva de piso 68px (9,7%) · variación de alto 9,6% · deriva de centro 70px.**
-A 120ms eso se lee como rebote, pulso de tamaño y salto lateral — no como
-zancada. Con la figura escalada a 213px en el panel, son ~21px de salto vertical
-y ~20px de pulso, contra los 4px del bob de carrera intencional.
-
-**Qué está hecho mientras tanto:**
-- El ciclo quedó **declarado pero desactivado** (`ciclo_pendiente` en el
-  manifest): el juego usa la pose quieta, que se ve bien. Verificado en vivo
-  mirando la cabeza: se mueve 4px, y esos 4 son el bob, no el rebote.
-- **`phaser/test/ciclos.test.js`**: mide la figura de cada cuadro de cualquier
-  ciclo declarado y falla si el piso difiere más de **4px**, el alto varía más
-  del **3%** o el centro se corre más de **12px**. Con los cuadros actuales
-  fallaba con los tres mensajes; con el ciclo desactivado queda verde y armado
-  para el próximo.
-
-**Para activarlo cuando llegue el zip procesado:** pegar los tres de `run/` tal
-cual (sin recortar, reescalar ni recentrar) sobre `pose_corriendo_1..3.png` y
-renombrar `ciclo_pendiente` → `ciclo`. El test valida solo.
-
-### Lo que se había cableado (queda de referencia)
+## A3 · EL CICLO DE CORRIDA — ✅ ACTIVO (segunda vuelta, 3/ago)
 
 `assets/poses/` · manifest `data/poses_manifest.json` → `poses.corriendo.ciclo`
 
-| Archivo del zip | Queda como | cuadro |
+| Archivo del zip v2 | Queda como | cuadro |
 |---|---|---|
-| run_1_contact.png | pose_corriendo_1.png | contacto |
-| run_2_passing.png | pose_corriendo_2.png | paso |
-| run_3_push_off.png | pose_corriendo_3.png | empuje |
+| run/pose_corriendo_1.png | pose_corriendo_1.png | contacto |
+| run/pose_corriendo_2.png | pose_corriendo_2.png | paso |
+| run/pose_corriendo_3.png | pose_corriendo_3.png | empuje |
 
 ```json
 "ciclo": { "cuadros": ["pose_corriendo_1.png","pose_corriendo_2.png","pose_corriendo_3.png"], "ms": 120 }
 ```
 
-Los tres salen de la **misma caja común**: no se reescaló ni se recentró ninguno
-por separado. El panel alterna los cuadros mientras el portador se mueve y vuelve
-a la pose quieta al frenar.
+Los tres se pegaron **tal cual vienen** de `PAMPA_STAR_arte_v2_ciclo_alineado.zip`
+(1500×1400, PNG RGBA): no se recortaron, no se reescalaron, no se recentraron, no
+pasaron por sharp. Vienen con máscara binaria y alineados de origen.
 
-**Verificado**: la serie corriendo es c0 → c0 → c1 → c1 → c1 → c2 → c2 → c0…,
-y al frenar vuelve a `pose_corriendo`.
+### La primera vuelta, y por qué falló
+
+Se había procesado el zip equivocado (`TODO_TODO_TODO_FINAL.zip`, el original) y
+se recortaron los cuadros con **caja común** — que alinea el **lienzo**, no la
+**figura**. El desajuste quedó intacto: piso 68px, alto 9,6%. A 120ms eso se lee
+como rebote y pulso de tamaño, no como zancada.
+
+### Verificado EN VIVO
+
+Medido sobre el render real de Phaser (RenderTexture + snapshot), a la escala del
+panel — figura de 183px — con los mismos tres cuadros viejos sacados de git para
+comparar en igualdad de condiciones:
+
+| | piso | alto | cadera |
+|---|---|---|---|
+| **antes** (los que rebotaban) | ±21 px | ±9,4 % | ±7,7 px (3,9 % del alto) |
+| **ahora** (zip v2) | **±1 px** | **±0,5 %** | ±6,7 px (3,7 % del alto) |
+
+El pie apoya en la misma línea en los tres cuadros y el cuerpo no pulsa de
+tamaño. La **cadera** se queda quieta: los 6,7px son la inclinación del torso al
+correr, y giran las piernas alrededor.
+
+### El test — `phaser/test/ciclos.test.js`
+
+Mide la figura de cada cuadro de cualquier ciclo declarado en el manifest y falla
+si el **piso** difiere más de **4px**, el **alto** varía más del **3%** o el
+**centro de la cadera** se corre más del **6% del alto de figura**.
+
+Dos cosas cambiaron respecto de la primera versión:
+
+1. **La banda de cadera reemplazó a la caja completa.** Al correr, los brazos y
+   las piernas se abren y se cierran: la caja se ensancha por diseño y su centro
+   se mueve aunque el cuerpo esté quieto. La cintura (42-55% de la altura de
+   figura) es el eje real del movimiento.
+2. **El tope va en porcentaje, no en píxeles.** Los lienzos cambian de tamaño
+   entre entregas (739×700 la vez pasada, 1500×1400 ahora), así que un tope
+   absoluto significa cosas distintas en cada tanda.
+
+**Sobre el 6%**: medidos con la banda de cadera, el set roto da 4,33% y el bueno
+4,51% — la cadera **no discrimina** entre uno y otro (ver "Una diferencia con los
+números del pedido", más abajo). Los que sí separan son el piso (68px → 0) y el
+alto (9,6% → 0,0%). El tope quedó en 6% para cazar un cuadro corrido de verdad
+sin castigar la inclinación del torso, que es dibujo y no defecto.
 
 *(El spritesheet 4800×1600 no se usó: los tres cuadros sueltos son más fáciles
 de mantener y de reemplazar uno solo.)*
+
+### Una diferencia con los números del pedido
+
+El pedido decía que los cuadros nuevos dan **1px** de deriva de cadera con la
+banda 42-55%. Midiéndolos con cuatro métodos distintos me da bastante más:
+
+| método | deriva |
+|---|---|
+| centro por extremos de cada fila de la banda | 54 px |
+| centro de masa de la banda | 54 px |
+| solo el short, aislado por color | 21 px |
+| la banda excluyendo los tonos de piel | 31 px |
+
+Sobre 1197px de alto de figura, 54px son 4,5% — y en pantalla, a 183px de figura,
+son los 6,7px de la tabla de arriba. Puede ser que el 1px salga de medir el
+**centroide de la máscara completa** o el centro del lienzo en vez del contenido;
+no pude reproducirlo.
+
+**No cambia la conclusión**: el ciclo está bien, y está bien por el piso y el
+alto, que dieron 0. Lo dejo anotado para que no sorprenda que el test imprima
+"cadera ±54px" en verde.
 
 ---
 

@@ -10,9 +10,23 @@
    cualquier ciclo declarado en un manifest y falla si:
      · el PISO difiere más de 4px entre cuadros,
      · el ALTO de figura varía más del 3%,
-     · el CENTRO horizontal se corre más de 12px (bonus: el salto lateral se
-       nota tanto como el vertical y es el mismo error de origen).
-   Así ningún ciclo futuro entra desalineado.
+     · el CENTRO DE LA CADERA se corre más del 6% del alto de figura.
+
+   Lo de la cadera no es un detalle: la primera versión de este test medía el
+   centro de la CAJA COMPLETA y estaba mal planteado. Al correr, los brazos y
+   las piernas se abren y se cierran, así que la caja se ensancha y se angosta
+   POR DISEÑO y su centro se mueve aunque el cuerpo esté quieto.
+
+   MEDICIÓN REAL de los dos sets, con la banda de cadera (42-55% del alto):
+     set viejo (el que rebotaba): piso 68px · alto 9,6% · cadera 4,33%
+     set nuevo (alineado)       : piso  0px · alto 0,0% · cadera 4,51%
+   O sea: la cadera se corre CASI IGUAL en los dos. No es lo que separa un
+   ciclo roto de uno bueno — eso lo separan el piso y el alto. Ese ~4,4% es la
+   inclinación del torso, que es dibujo, no defecto: a la escala del panel
+   (figura de 213px) son 9px, medidos en pantalla con el ciclo andando.
+   Por eso el tercer criterio queda con tope 6% y en PORCENTAJE, no en píxeles
+   (los lienzos cambian de tamaño entre entregas: 739x700 vs 1500x1400). Sirve
+   para cazar un cuadro corrido de verdad, no para juzgar la zancada.
 
    Corré:  node phaser/test/ciclos.test.js
    ========================================================================== */
@@ -24,9 +38,20 @@ let ok = 0, mal = 0;
 function assert(cond, msg) { if (cond) ok++; else { mal++; console.error("  ✗ " + msg); } }
 
 const RAIZ = path.join(__dirname, "..", "..");
-const TOL_PISO = 4;        // px
-const TOL_ALTO = 3;        // %
-const TOL_CENTRO = 12;     // px
+const TOL_PISO = 4;        // px  · el que de verdad separa un ciclo roto de uno bueno
+const TOL_ALTO = 3;        // %   · idem
+/* La CADERA se mide en la banda 42-55% de la altura de figura (no en la caja
+   completa: los brazos y las piernas se abren al correr y mueven ese centro
+   aunque el cuerpo esté quieto).
+   El TOPE va en % del alto de figura, no en píxeles: un mismo salto se ve
+   distinto según el tamaño del lienzo, y estos cuadros vienen a 1500x1400
+   mientras los anteriores venían a 739x700.
+   Calibrado con los dos sets reales (ver el comentario de arriba): los dos dan
+   ~4,4%, así que 6% caza un cuadro DESPLAZADO de verdad sin castigar la
+   inclinación del torso, que es dibujo, no defecto. */
+const TOL_CADERA_PCT = 6;
+const CADERA_DE = 0.42;    // fracción de la altura de figura donde empieza la cintura
+const CADERA_A = 0.55;     // y donde termina
 
 /* ---------- lector de PNG mínimo (sin dependencias) ----------
    Solo necesita el canal alfa, así que descomprime los IDAT con zlib y
@@ -71,7 +96,10 @@ function leerPNG(file) {
   return { W, H, px };
 }
 
-/* la CAJA DE LA FIGURA: los píxeles que de verdad se ven */
+/* la CAJA DE LA FIGURA: los píxeles que de verdad se ven.
+   Además devuelve el centro de la BANDA DE CADERA, que es el eje del cuerpo:
+   los brazos y las piernas se abren al correr y mueven el centro de la caja
+   completa; la cintura, no. */
 function cajaFigura(png) {
   const { W, H, px } = png;
   let minX = W, maxX = -1, minY = H, maxY = -1;
@@ -82,7 +110,23 @@ function cajaFigura(png) {
     }
   }
   if (maxY < 0) return null;
-  return { pie: maxY, cabeza: minY, alto: maxY - minY + 1, centroX: Math.round((minX + maxX) / 2), W, H };
+  const alto = maxY - minY + 1;
+  /* el centro de la cintura: promedio de los centros de cada fila de la banda
+     (promediar por fila pesa igual a toda la cintura y no se lo lleva un brazo
+     que asome en una sola línea) */
+  const y0 = Math.round(minY + alto * CADERA_DE), y1 = Math.round(minY + alto * CADERA_A);
+  let suma = 0, filas = 0;
+  for (let y = y0; y <= y1 && y < H; y++) {
+    let a = W, b = -1;
+    for (let x = 0; x < W; x++) if (px[(y * W + x) * 4 + 3] > 32) { if (x < a) a = x; if (x > b) b = x; }
+    if (b >= 0) { suma += (a + b) / 2; filas++; }
+  }
+  return {
+    pie: maxY, cabeza: minY, alto: alto,
+    centroCaja: Math.round((minX + maxX) / 2),
+    centroCadera: filas ? Math.round(suma / filas) : null,
+    W, H
+  };
 }
 
 /* ---------- recorre los manifests buscando ciclos declarados ---------- */
@@ -115,24 +159,29 @@ manifests.forEach(({ archivo, entradas }) => {
 
     const pies = cajas.map(c => c.pie);
     const altos = cajas.map(c => c.alto);
-    const centros = cajas.map(c => c.centroX);
+    const caderas = cajas.map(c => c.centroCadera).filter(v => v != null);
     const derivaPiso = Math.max(...pies) - Math.min(...pies);
     const varAlto = (Math.max(...altos) - Math.min(...altos)) / Math.max(...altos) * 100;
-    const derivaCentro = Math.max(...centros) - Math.min(...centros);
-    const detalle = cajas.map(c => c.f.replace(/^.*[\\/]/, "") + "(pie " + c.pie + ", alto " + c.alto + ", centro " + c.centroX + ")").join(" · ");
+    const derivaCadera = caderas.length === cajas.length ? Math.max(...caderas) - Math.min(...caderas) : null;
+    const detalle = cajas.map(c => c.f.replace(/^.*[\\/]/, "") + "(pie " + c.pie + ", alto " + c.alto + ", cadera " + c.centroCadera + ")").join(" · ");
 
     assert(derivaPiso <= TOL_PISO,
       "ciclo '" + id + "': el PISO de los cuadros difiere " + derivaPiso + "px (tope " + TOL_PISO + "). Se ve como REBOTE. → " + detalle);
     assert(varAlto <= TOL_ALTO,
       "ciclo '" + id + "': el ALTO de figura varía " + varAlto.toFixed(1) + "% (tope " + TOL_ALTO + "%). Se ve como PULSO DE TAMAÑO. → " + detalle);
-    assert(derivaCentro <= TOL_CENTRO,
-      "ciclo '" + id + "': el CENTRO horizontal se corre " + derivaCentro + "px (tope " + TOL_CENTRO + "). Se ve como SALTO LATERAL. → " + detalle);
+    assert(derivaCadera != null,
+      "ciclo '" + id + "': no se pudo medir la banda de cadera en algún cuadro");
+    const altoMedio = altos.reduce((a, b) => a + b, 0) / altos.length;
+    const caderaPct = derivaCadera != null ? derivaCadera / altoMedio * 100 : 0;
+    if (derivaCadera != null) assert(caderaPct <= TOL_CADERA_PCT,
+      "ciclo '" + id + "': el CENTRO DE LA CADERA se corre " + derivaCadera + "px = " + caderaPct.toFixed(1) +
+      "% del alto de figura (tope " + TOL_CADERA_PCT + "%). Se ve como SALTO LATERAL. → " + detalle);
     /* que todos los lienzos midan igual: si no, el escalado por alto los desiguala */
     const anchos = new Set(cajas.map(c => c.W)), altosL = new Set(cajas.map(c => c.H));
     assert(anchos.size === 1 && altosL.size === 1,
       "ciclo '" + id + "': los cuadros tienen LIENZOS distintos (" + [...anchos].join("/") + " x " + [...altosL].join("/") + ")");
-    if (derivaPiso <= TOL_PISO && varAlto <= TOL_ALTO && derivaCentro <= TOL_CENTRO)
-      console.log("  ✓ ciclo '" + id + "': " + cajas.length + " cuadros alineados (piso ±" + derivaPiso + "px, alto ±" + varAlto.toFixed(1) + "%, centro ±" + derivaCentro + "px)");
+    if (derivaPiso <= TOL_PISO && varAlto <= TOL_ALTO && derivaCadera != null && caderaPct <= TOL_CADERA_PCT)
+      console.log("  ✓ ciclo '" + id + "': " + cajas.length + " cuadros alineados (piso ±" + derivaPiso + "px, alto ±" + varAlto.toFixed(1) + "%, cadera ±" + derivaCadera + "px = " + caderaPct.toFixed(1) + "%)");
   });
 });
 
