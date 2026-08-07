@@ -287,9 +287,9 @@
         if (!(o.fillAlpha > 0)) return;                       // zonas invisibles: no son botones
         if (o.width < 60 || o.height < 20) return;            // pastillas y marcas
         /* el tope se calibró MIRANDO los rects reales: los presets del partido
-           son de 500x72 y el velo del menú, que también es interactivo, mide
-           960x540. Entre esos dos está la línea. */
-        if (o.width > 560 || o.height > 100) return;          // velos y paneles de fondo
+           son de 500x72, las ranuras de LA SEMANA de 250x108, y el velo del menú, que
+           también es interactivo, mide 960x540. Entre esos está la línea. */
+        if (o.width > 560 || o.height > 115) return;          // velos y paneles de fondo
         self.vestirBoton(o); n++;
       };
       this.children.list.slice().forEach(visitar);

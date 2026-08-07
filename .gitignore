@@ -6,3 +6,4 @@
 # Lo que sirve se optimiza y se commitea en assets/ y data/.
 assets_drive/
 .assets_tmp/
+.claude/shots/
