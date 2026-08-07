@@ -67,12 +67,13 @@
       "estallido_ms": 1800
     },
     "panel_techo_y": 34,
-    "panel_suelo_y": 300,
-    "panel_figura_frac": 0.8,
+    "panel_suelo_y": 278,
+    "panel_figura_frac": 0.86,
     "panel_figura_x": 400,
     "panel_velo_alpha": 0.45,
     "panel_franja_y": 292,
-    "_panel_encuadre": "TANDA DE ARTE A4 · ENCUADRE DEL PANEL DE CINE. panel_techo_y / panel_suelo_y: el alto útil del panel (la figura se ancla por los PIES al suelo, nunca se le cortan). panel_figura_frac: qué fracción de ese alto ocupa el personaje (0.8 = 80%). panel_figura_x: dónde va parado. panel_velo_alpha: cuánto se oscurecen tribuna y pasto cuando el protagonista actúa. panel_franja_y: la banda del texto, que NUNCA va encima del sprite."
+    "_panel_encuadre": "TANDA DE ARTE A4 · ENCUADRE DEL PANEL DE CINE. panel_techo_y / panel_suelo_y: el alto útil del panel (la figura se ancla por los PIES al suelo, nunca se le cortan). panel_figura_frac: qué fracción de ese alto ocupa el personaje (0.8 = 80%). panel_figura_x: dónde va parado. panel_velo_alpha: cuánto se oscurecen tribuna y pasto cuando el protagonista actúa. panel_franja_y: la banda del texto, que NUNCA va encima del sprite.",
+    "_panel_p8": "TANDA DE PIEL P8: los pies quedaban cortados. No era el borde del panel (el pasto llega a 304) ni una máscara: era la FRANJA DE TEXTO, un rect de 960x24 en y=292 (o sea 280..304) con alpha 0.82, casi opaco, que le pasaba por encima a los pies. Ahora panel_suelo_y=278 deja la figura apoyada JUSTO ARRIBA de la franja, y panel_figura_frac sube a 0.86 para que no se achique al perder alto útil (245*0.86 = 211px, contra los 213 de antes)."
   },
   "escena": {
     "_nota": "ANIME v4 Bloque B: LA CAPA CINEMÁTICA (flag v4_escenas). Toda acción significativa corta a una viñeta a pantalla: entrada del protagonista, pose, SILENCIO (feel.silencio_ms) y desenlace. Tiempos en ms; escalas de los sprites heroicos en el panel.",

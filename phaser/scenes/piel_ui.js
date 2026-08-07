@@ -61,6 +61,34 @@
       return img;
     },
 
+    /* ---------- P7 · LA BALDOSA ESPEJADA ----------
+       La tribuna se repite en horizontal y se ve la costura donde el techo se
+       corta en seco. El PNG (1280x720) es una ILUSTRACIÓN EN PERSPECTIVA: el
+       techo es una cuña que crece de izquierda a derecha, así que el borde
+       izquierdo (marrón de estructura) y el derecho (celeste de cielo) no
+       empalman ni por casualidad — medido, difieren 274 sobre 765 de suma RGB.
+
+       En vez de pedir arte nuevo, se hornea [T | espejo(T)]: la última columna
+       de la baldosa doble es la primera columna de T, así que el empalme del
+       wrap es IDÉNTICO por construcción, no aproximado. Y una cuña de techo que
+       va y vuelve en Λ lee como estadio, no como error. */
+    texturaEspejada: function (srcKey) {
+      var dst = srcKey + "_esp";
+      if (this.textures.exists(dst)) return dst;
+      if (!this.textures.exists(srcKey)) return srcKey;
+      var src = this.textures.get(srcKey).getSourceImage();
+      var w = src.width, h = src.height;
+      var tex = this.textures.createCanvas(dst, w * 2, h);
+      var ctx = tex.getContext();
+      ctx.drawImage(src, 0, 0, w, h);
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(src, -2 * w, 0, w, h);   // la copia espejada, pegada a la derecha
+      ctx.restore();
+      tex.refresh();
+      return dst;
+    },
+
     /* ---------- P2 · EL BOTÓN CON CUERPO ----------
        Tres capas, de atrás para adelante:
          sombra difusa negra   (que despega el botón del fondo)

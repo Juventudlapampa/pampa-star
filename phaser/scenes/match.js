@@ -598,7 +598,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillStyle(0x123a5a, 1); g.fillRect(0, 30, 960, 92);          // cielo (quieto)
     this.panelLayer.add(g);
     if (this.textures.exists("fondo_tribuna")) {
-      this.panelTribuna = this.add.tileSprite(480, 121, 1920, 90, "fondo_tribuna");
+      /* PIEL P7: la baldosa va ESPEJADA. El PNG (1280x720) es una ilustración
+         en perspectiva —el techo es una cuña que crece hacia la derecha— así
+         que su borde izquierdo (marrón de estructura) contra el derecho (cielo)
+         no empalman: eso era el techo "cortándose en seco" a mitad de pantalla,
+         y encima el parallax lo paseaba. Con [T | espejo(T)] el empalme del wrap
+         es idéntico por construcción y el techo va y vuelve como un estadio. */
+      this.panelTribuna = this.add.tileSprite(480, 121, 1920, 90, this.texturaEspejada("fondo_tribuna"));
       this.panelTribuna.setTileScale(0.5);
       this.panelTribuna.tilePositionY = 270;
       this.panelLayer.add(this.panelTribuna);
@@ -761,11 +767,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          fondo. Ahora ocupa panel_figura_frac del alto útil, anclada por los PIES
          a la línea del suelo (origin abajo), así nunca se le cortan los pies. */
       const V = this.VI || {};
-      const altoUtil = (V.panel_suelo_y != null ? V.panel_suelo_y : 300) - (V.panel_techo_y != null ? V.panel_techo_y : 34);
-      const frac = V.panel_figura_frac != null ? V.panel_figura_frac : 0.8;
+      /* PIEL P8: el suelo de la figura sale de panel_suelo_y, que ahora está
+         ARRIBA de la franja de texto (ver balance.vista): los pies apoyan sobre
+         la franja en vez de quedar tapados por ella. */
+      const altoUtil = (V.panel_suelo_y != null ? V.panel_suelo_y : 278) - (V.panel_techo_y != null ? V.panel_techo_y : 34);
+      const frac = V.panel_figura_frac != null ? V.panel_figura_frac : 0.86;
       this.panelJug.setOrigin(0.5, 1);
       this.panelJug.setScale((altoUtil * frac) / this.panelJug.height);
-      this.panelJug.setPosition(this.panelJug.x, V.panel_suelo_y != null ? V.panel_suelo_y : 300);
+      this.panelJug.setPosition(this.panelJug.x, V.panel_suelo_y != null ? V.panel_suelo_y : 278);
       this.panelJug.setVisible(true);
     }
     /* V7 §0.1 (playtest): el PORTADOR está SIEMPRE revelado — verlo es el
