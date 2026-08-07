@@ -1081,7 +1081,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._btnAccionCont = cont;
     this._btnPulso = this.tweens.add({ targets: cont, scale: 1.06, duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut", paused: true });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
-      this._hintEspacio = this.add.text(866, 498, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
+      /* PIEL P5: subido de y=498. Ahí abajo ahora viven las dos filas de
+         medidores (ENVIÓN en 500, AGUANTE en 522) y este chip las pisaba: se
+         acomodó una cosa y se destapó el choque con la otra. Va pegado debajo
+         del botón ⚡ACCIÓN, que es a lo que se refiere. */
+      this._hintEspacio = this.add.text(866, 428, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
       this.hudLayer.add(this._hintEspacio);
     }
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
@@ -3097,16 +3101,37 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============ ETAPA 2 · HUD fijo (doc §4) ============ */
   buildHUD() {
     const barra = this.add.rectangle(480, 15, 960, 30, 0x0a1f13, 0.85);
-    this.txtMarcador = this.add.text(480, 15, "", { fontFamily: window.PF.display, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
-    this.txtReloj = this.add.text(948, 15, "", { fontFamily: window.PF.texto, fontSize: "14px", color: "#ffd84d" }).setOrigin(1, 0.5);
-    /* aguante del portador: color por umbral + SIEMPRE el número exacto (no depende del color) */
-    this.txtGuts = this.add.text(948, 512, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(1, 0.5);
+    /* PIEL · LA JERARQUÍA DEL MARCADOR.
+       Antes el resultado, el rival y la división iban en UN solo texto de 12px,
+       y el reloj (14px) terminaba siendo más grande que el resultado: el ojo no
+       tenía dónde agarrarse. Ahora son tres cosas distintas:
+         RESULTADO  display 17px, crema — lo más grande de la barra
+         división   texto 10px, apagado — abajo, que informa y no compite
+         reloj      display 14px, acento — a la derecha, su esquina de siempre */
+    this.txtMarcador = this.add.text(480, 13, "", { fontFamily: window.PF.display, fontSize: "17px", color: "#f6efdc" }).setOrigin(0.5);
+    this.txtDivision = this.add.text(480, 26, "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#9fb3a5" }).setOrigin(0.5);
+    this.txtReloj = this.add.text(948, 15, "", { fontFamily: window.PF.display, fontSize: "14px", color: "#ffd84d" }).setOrigin(1, 0.5);
+    /* PIEL P5 · LOS DOS MEDIDORES, CADA COSA EN SU LUGAR.
+       Antes el número de AGUANTE estaba en y=512 y la barra de ENVIÓN en
+       y=503-515: el número se dibujaba literalmente ENCIMA de la otra barra.
+       Y la barra de aguante llegaba a y=542 con un canvas de 540, así que
+       además se cortaba contra el borde de abajo.
+       Ahora cada medidor es una fila: ETIQUETA · barra · NÚMERO, las tres cosas
+       una al lado de la otra y ninguna encima de nada. El número siempre a la
+       vista, que la lectura no puede depender del color de la barra. */
+    const MD = this.MEDIDORES = { xEtq: 754, xBarra: 820, xNum: 948, yEnvion: 500, yGuts: 522, wBarra: 84 };
+    this.lblEnvion = this.add.text(MD.xEtq, MD.yEnvion, "ENVIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#9fb3a5" }).setOrigin(0, 0.5);
+    this.lblGuts = this.add.text(MD.xEtq, MD.yGuts, "AGUANTE", { fontFamily: window.PF.texto, fontSize: "10px", color: "#9fb3a5" }).setOrigin(0, 0.5);
+    this.txtGuts = this.add.text(MD.xNum, MD.yGuts, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
-    this.hudLayer.add([barra, this.txtMarcador, this.txtReloj, this.gutsG, this.txtGuts]);
+    this.hudLayer.add([barra, this.txtMarcador, this.txtDivision, this.txtReloj, this.gutsG, this.lblGuts, this.txtGuts]);
     /* V6 §2 R3: el MEDIDOR DE ENVIÓN — barra + NÚMERO siempre (accesibilidad) */
     this.envionG = this.add.graphics();
-    this.txtEnvion = this.add.text(948, 494, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc" }).setOrigin(1, 0.5);
-    this.hudLayer.add([this.envionG, this.txtEnvion]);
+    this.txtEnvion = this.add.text(MD.xNum, MD.yEnvion, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
+    /* el estado del envión (LLENO / EN USO) va en su propia línea arriba: es
+       texto, no color, porque el color solo no alcanza para leerlo */
+    this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#ffd84d" }).setOrigin(0, 0.5);
+    this.hudLayer.add([this.envionG, this.lblEnvion, this.txtEnvion, this.txtEnvionEstado]);
     const be = this.add.rectangle(866, 396, 150, 48, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     const bet = this.add.text(866, 396, "🌟 POTENCIAR", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
     this.hudLayer.add([be, bet]);
@@ -3127,9 +3152,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const REL = this.BAL.relator || {};
     this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
     this.hudLayer.add(this.tickerTxt);
-    /* ANIME D: botón SONIDO de verdad (48px, PC y mobile) — mismo mute que el clásico */
-    const mb = this.add.rectangle(36, 62, 48, 48, 0x0a1f13, 0.72).setStrokeStyle(2, 0xf6efdc, 0.7).setInteractive({ useHandCursor: true });
-    this._muteTxt = this.add.text(36, 62, (this.SFX && this.SFX.isMuted()) ? "🔇" : "🔊", { fontSize: "22px" }).setOrigin(0.5);
+    /* PIEL P6 · EL BOTÓN DE SONIDO, ADENTRO DE LA BARRA DEL MARCADOR.
+       Era una caja de 48x48 con borde crema en (36,62): quedaba flotando ENCIMA
+       de la ilustración del panel (que arranca en y=30) y se leía como una caja
+       blanca enorme tapando el dibujo. Ahora vive en el hueco libre de la
+       izquierda de la barra del marcador (que ocupa y 0..30), sin caja propia.
+       El ÁREA TÁCTIL sigue siendo de 44px aunque el dibujo mida 26: en celular
+       un blanco de 26px no se acierta. */
+    const mb = this.add.rectangle(24, 15, 26, 26, 0x0a1f13, 0)
+      .setInteractive(new Phaser.Geom.Rectangle(-9, -9, 44, 44), Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
+    this._muteTxt = this.add.text(24, 15, (this.SFX && this.SFX.isMuted()) ? "🔇" : "🔊", { fontSize: "15px" }).setOrigin(0.5);
     this.hudLayer.add([mb, this._muteTxt]);
     mb.on("pointerdown", (p, x, y, ev) => {
       ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
@@ -3141,9 +3173,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   refrescarHUD() {
     const st = this.st;
     const m = Math.floor(st.minuto), lim = st.tiempo === 1 ? 45 : 90;
-    const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival +
-      (this._division ? "  ·  " + this._division.n : "");
+    /* PIEL: el RESULTADO va solo y grande; la división abajo, chica */
+    const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival;
     if (this._hudMarc !== marcador) { this._hudMarc = marcador; this.txtMarcador.setText(marcador); }
+    const division = this._division ? this._division.n : "";
+    if (this._hudDiv !== division) { this._hudDiv = division; this.txtDivision.setText(division); }
     /* V8 E (playtest): el reloj se VE — MINUTOS:SEGUNDOS, con los segundos
        redondeados al tramo (balance.tempo.tramo_seg) para que se sienta correr */
     const tramo = (this.BAL.tempo && this.BAL.tempo.tramo_seg) || 15;
@@ -3157,13 +3191,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const val = p.esRival ? this.st.aguanteRival : p.j.aguante;
     const frac = Phaser.Math.Clamp(val / max, 0, 1);
     const color = frac > 0.5 ? 0x2e7d32 : frac > 0.25 ? 0xf9a825 : 0xc62828;
-    const bx = 948 - 170, by = 528, bw = 170, bh = 12;
+    /* PIEL P5: la barra va en su fila, entre la etiqueta y el número, y NO
+       toca el borde de abajo (antes llegaba a y=542 con el canvas en 540). */
+    const MD = this.MEDIDORES;
+    const bx = MD.xBarra, by = MD.yGuts - 5, bw = MD.wBarra, bh = 10;
     const g = this.gutsG; g.clear();
     g.fillStyle(0x0a1f13, 0.85); g.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
     g.fillStyle(color, 1); g.fillRect(bx, by, bw * frac, bh);
     g.lineStyle(1, 0xf6efdc, 0.8); g.strokeRect(bx, by, bw, bh);
-    const gutsTxt = "AGUANTE " + Math.round(val);
+    /* el número solo: la etiqueta "AGUANTE" es un texto fijo al lado */
+    const gutsTxt = String(Math.round(val));
     if (this._hudGuts !== gutsTxt) { this._hudGuts = gutsTxt; this.txtGuts.setText(gutsTxt); }
+    /* PIEL P5: con el menú de duelo abierto, los retratos ya traen el aguante
+       de los dos protagonistas; los medidores del HUD quedaban justo debajo,
+       encimados con el del rival. Se esconden mientras dura el menú. */
+    const menuAbierto = this.estado === "MENU" || this.estado === "TEMPO_MENU" ||
+      (this.menuLayer && this.menuLayer.visible && this.menuLayer.list.length > 0);
+    if (this._medidoresOcultos !== menuAbierto) {
+      this._medidoresOcultos = menuAbierto;
+      [this.gutsG, this.lblGuts, this.txtGuts, this.envionG, this.lblEnvion,
+       this.txtEnvion, this.txtEnvionEstado].forEach(o => o && o.setVisible(!menuAbierto));
+    }
     /* V8 §3: las FICHAS del jugadón, siempre a la vista (letra + número) */
     if (this.jugadonFichas) {
       const F = this.jugadonFichas();
@@ -3190,13 +3238,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const P6 = window.PampaPartido;
       const E = this.BAL.envion || { max: 100 };
       const fracE = Phaser.Math.Clamp((st.envion || 0) / E.max, 0, 1);
-      const ex = 948 - 170, ey = 505, ew = 170, eh = 8;
+      const MDe = this.MEDIDORES;
+      const ex = MDe.xBarra, ey = MDe.yEnvion - 4, ew = MDe.wBarra, eh = 8;
       const ge = this.envionG; ge.clear();
       ge.fillStyle(0x0a1f13, 0.85); ge.fillRect(ex - 2, ey - 2, ew + 4, eh + 4);
       ge.fillStyle(0xf9a825, 1); ge.fillRect(ex, ey, ew * fracE, eh);
       ge.lineStyle(1, 0xf6efdc, 0.8); ge.strokeRect(ex, ey, ew, eh);
-      const etxt = "ENVIÓN " + Math.round(st.envion || 0) + (P6.envionActivo(st) ? " ⚡EN USO" : (fracE >= 1 ? " ¡LLENO!" : ""));
+      /* el número solo; el ESTADO va arriba, en palabras (no en color) */
+      const etxt = String(Math.round(st.envion || 0));
       if (this._hudEnvion !== etxt) { this._hudEnvion = etxt; this.txtEnvion.setText(etxt); }
+      const estado = P6.envionActivo(st) ? "⚡ ENVIÓN EN USO" : (fracE >= 1 ? "🌟 ENVIÓN LLENO" : "");
+      if (this._hudEnvionEst !== estado) { this._hudEnvionEst = estado; this.txtEnvionEstado.setText(estado); }
       if (this._btnEnvion) {
         const verE = this.estado === "LIBRE" && st.posesion === "mia" && P6.envionLleno(st);
         this._btnEnvion.forEach(o => o.setVisible(verE));
