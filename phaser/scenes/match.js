@@ -235,7 +235,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       ? Math.max(960 / this.V2.MUNDO_W, 540 / this.V2.MUNDO_H) / (this.VI.cobertura || 0.85)
       : this.V2.ZOOM;
     const cam = this.cameras.main;
-    cam.setBackgroundColor("#06120b");
+    /* PIEL P1: el marco del partido deja de ser verde plano. El radial va al
+       fondo de todo (depth -10000); la cancha y el pasto se dibujan encima y
+       conservan su verde, que es campo de juego y no se toca. */
+    cam.setBackgroundColor(this.piel().fondo_borde);
+    this.fondoDePiel();
     cam.setBounds(0, 0, this.V2.MUNDO_W, this.V2.MUNDO_H);
     const lerp = this._vista4 ? (this.VI.lerp || 0.08) : this.V2.LERP;
     cam.startFollow(this.sprPortador, true, lerp, lerp);
@@ -926,7 +930,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const rw = this._split ? 640 : 264, rh = this._split ? 198 : 132;
     const rx = this._split ? 105 : 12, ry = this._split ? 322 : 540 - rh - 12;
     this.radar = { x: rx, y: ry, w: rw, h: rh };
-    const marco = this.add.rectangle(rx + rw / 2, ry + rh / 2, rw + 6, rh + 6, 0x0b3d0b, 0.92).setStrokeStyle(2, 0xf6efdc, 0.7);
+    /* PIEL P1: el marco del mapa era 0x0b3d0b, un verde oscuro que lo hacía
+       familia del pasto — de ahí la mancha verde sobre verde. Ahora es el tono
+       de marco de la paleta: el verde queda SOLO adentro, que es la cancha. */
+    const marco = this.add.rectangle(rx + rw / 2, ry + rh / 2, rw + 6, rh + 6, this.piel().n.marco, 0.96).setStrokeStyle(2, 0xf6efdc, 0.7);
     this.radarG = this.add.graphics();
     this.hudLayer.add([marco, this.radarG]);
     /* números de camiseta: 22 textos chiquitos que siguen a su ficha */

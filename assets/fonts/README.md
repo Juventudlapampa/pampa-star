@@ -29,6 +29,12 @@ https://openfontlicense.org
 - **VT323** — Copyright 2011 The VT323 Project Authors
   (peter.hull@oikoi.com).
   Fuente: https://github.com/google/fonts/tree/main/ofl/vt323
+- **Archivo Black** — Copyright 2019 The Archivo Black Project Authors
+  (https://github.com/Omnibus-Type/ArchivoBlack).
+  Fuente: https://github.com/google/fonts/tree/main/ofl/archivoblack
+- **Bowlby One** — Copyright 2011 The Bowlby One Project Authors
+  (https://github.com/vernnobile/BowlbyFont), Reserved Font Name "Bowlby".
+  Fuente: https://github.com/google/fonts/tree/main/ofl/bowlbyone
 
 Los TTF se descargaron sin modificar del repositorio oficial de Google Fonts
 (directorio `ofl/`). Si se reemplaza alguna fuente, mantener este README al

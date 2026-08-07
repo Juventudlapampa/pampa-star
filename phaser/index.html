@@ -15,6 +15,10 @@
   @font-face{font-family:'Press Start 2P';src:url('../assets/fonts/PressStart2P-Regular.ttf') format('truetype');font-display:swap;}
   @font-face{font-family:'Pixelify Sans';src:url('../assets/fonts/PixelifySans-Regular.ttf') format('truetype');font-display:swap;}
   @font-face{font-family:'VT323';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');font-display:swap;}
+  /* TANDA DE PIEL P3: las dos candidatas de DISPLAY, pesadas y anchas. Cuál se
+     usa lo decide balance.tipografia.display — están las dos cableadas. */
+  @font-face{font-family:'Archivo Black';src:url('../assets/fonts/ArchivoBlack-Regular.ttf') format('truetype');font-display:swap;}
+  @font-face{font-family:'Bowlby One';src:url('../assets/fonts/BowlbyOne-Regular.ttf') format('truetype');font-display:swap;}
   html,body{margin:0;height:100%;background:#06120b;overflow:hidden;
     font-family:'Pixelify Sans','VT323',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
   #game{width:100vw;height:100dvh;display:flex;align-items:center;justify-content:center;}
@@ -64,8 +68,35 @@
         style.shadow = { offsetX: window.PF.sombra.x, offsetY: window.PF.sombra.y, color: window.PF.sombra.color,
           blur: window.PF.sombra.blur || 0, stroke: false, fill: true };
       }
-      if (style.letterSpacing === undefined && window.PF.letras) style.letterSpacing = window.PF.letras;
+      /* TANDA DE PIEL P4 · MAYÚSCULAS CON AIRE.
+         Un texto todo en mayúsculas lleva tracking de título (.14-.22em); el
+         resto sigue con el interletrado normal. Se decide por el CONTENIDO, no
+         por la escena, así que vale para los 132 textos del juego sin tocar
+         ninguno. Phaser pide px y el diseño habla em: se convierte con el
+         fontSize real del estilo. */
+      if (style.letterSpacing === undefined) {
+        var em = window.PF.trackingMayus;
+        if (em && window.PampaPiel && window.PampaPiel.esMayusculas(text)) {
+          var px = parseFloat(String(style.fontSize || "12px")) || 12;
+          style.letterSpacing = window.PampaPiel.trackingPx(px, em);
+        } else if (window.PF.letras) {
+          style.letterSpacing = window.PF.letras;
+        }
+      }
       var t = new Phaser.GameObjects.Text(this.scene, x, y, text, style);
+      /* si después le cambian el texto (setText es constante en el HUD), el
+         tracking tiene que seguir la regla: un marcador que pasa de "VOS 0 - 0"
+         a "GOL DE VOS" cambia de categoría. */
+      if (window.PF.trackingMayus && window.PampaPiel) {
+        var setTextOrig = t.setText.bind(t);
+        t.setText = function (v) {
+          var esMay = window.PampaPiel.esMayusculas(v);
+          var pxAhora = parseFloat(String(t.style.fontSize || "12px")) || 12;
+          var quiere = esMay ? window.PampaPiel.trackingPx(pxAhora, window.PF.trackingMayus) : (window.PF.letras || 0);
+          if (t.style.letterSpacing !== quiere) t.setLetterSpacing(quiere);
+          return setTextOrig(v);
+        };
+      }
       this.displayList.add(t); this.updateList.add(t);
       return t;
     });
@@ -83,7 +114,9 @@
   <script src="logic/jugadon.js"></script>
   <script src="logic/vida.js"></script>
   <script src="logic/semana.js"></script>
+  <script src="logic/piel.js"></script>
   <script src="audio/sfx.js"></script>
+  <script src="scenes/piel_ui.js"></script>
   <script src="scenes/sprites.js"></script>
   <script src="scenes/avatar_arte.js"></script>
   <script src="scenes/intro.js"></script>
@@ -93,6 +126,12 @@
   <script src="scenes/definicion_ui.js"></script>
   <script src="scenes/jugadon_ui.js"></script>
   <script src="scenes/escenas_v9.js"></script>
+  <script>
+  /* TANDA DE PIEL: el mixin de piel entra en las cuatro escenas. Va acá, al
+     final, porque necesita que todas las clases estén definidas. */
+  [window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch]
+    .forEach(function (S) { if (S && S.prototype) Object.assign(S.prototype, window.PampaPielUI); });
+  </script>
   <script>
   "use strict";
   // fallback mínimo (mismos números que data/balance.json) para abrir con doble clic sin server
@@ -120,7 +159,8 @@
     secuencias:{megacorrida_nivel:2,megacorrida_aguante:300,megacorrida_rivales:2,combinada_nivel:2,combinada_aguante:160,bonus_duelo:8},
     definicion:{def_acercan_px_s:34,contacto_px:34,jugador_px_s:160,angulo_peso:16,zona_timing:0.2,dulce_bonus:8,floja_penal:22,pasada_fuera_mult:1.6,pasada_fuera_max:0.55,coincide:55,a_una:10,a_dos:-25,bloqueo_base:0.18,bloqueo_radio:120,bloqueo_cercania:0.25,bloqueo_max:0.6,achicar_bonus:14,achicar_vendido:18,carga_ms:4200},
     tempo:{minutos_por_momento:2.2,tramo_seg:15,goteo_seg_por_minuto:8,presets:{relampago:5,intermedio:2.2,largo:1.2},duracion_real_min:10},
-    tipografia:{display:"'Pixelify Sans','Press Start 2P',monospace",texto:"'Pixelify Sans','VT323',monospace",stroke_display:0,stroke_texto:0,stroke_color:"#0a1f13",sombra:{x:2,y:2,blur:0,color:"#0a1f13",alpha:0.55},letras:1},
+    piel:{"_nota":"TANDA DE PIEL (7/ago): LA PALETA, en un solo lugar. Antes los ~250 tonos de marco estaban a mano en 9 archivos. OJO: el VERDE DE LA CANCHA no vive acá — el pasto es campo de juego, no marco, y no se toca desde este bloque.","fondo_centro":"#14301F","fondo_borde":"#060F0A","caja":"#0A1F13","marco":"#0E2A1A","acento":"#F5C400","calido":"#FF6B4A","texto":"#F6EFDC","texto_apagado":"#9FB3A5","_boton":"P2 · el CUERPO del botón: canto = capa sólida del propio color oscurecido canto_oscurece, a canto_px abajo; sombra difusa negra a sombra_alpha. Al presionar el botón baja hunde_px y el canto se achica eso mismo.","canto_px":7,"canto_oscurece":0.3,"sombra_alpha":0.45,"sombra_dy":6,"sombra_blur":10,"radio_caja":10,"hunde_px":4,"_tracking":"P4 · las MAYÚSCULAS llevan aire. tracking_mayus va en em y se aplica solo a los textos que están todos en mayúscula (el resto usa tipografia.letras).","tracking_mayus":0.16,"_escala":"P5 · los tamaños del HUD escalan con el ancho real de pantalla entre esc_min y esc_max. Con Scale.FIT el ancho lógico es fijo (960), así que esto sirve para la vista elevada y para pantallas futuras: el corte de ENVIÓN/AGUANTE se arregló acomodando la maqueta, no escalando.","esc_min":0.85,"esc_max":1.15},
+    tipografia:{display:"'Archivo Black','Pixelify Sans',sans-serif",texto:"'Pixelify Sans','VT323',monospace",stroke_display:0,stroke_texto:0,stroke_color:"#0a1f13",sombra:{x:2,y:2,blur:0,color:"#0a1f13",alpha:0.55},letras:1},
     pulso:{latido_ms:440,dt_ms:300},
     jugadon:{vel_jugador:320,vel_rival:118,contacto:78,meta_y:110},
     ia:{def_colchon:60,def_apoyo:90,vol_sigue:0.7,ata_descuelga:120,ata_baja:140,ata_abre:70},
@@ -186,6 +226,13 @@
       if (TP.stroke_color) window.PF.strokeColor = TP.stroke_color;
       if (TP.sombra !== undefined) window.PF.sombra = TP.sombra;
       if (TP.letras !== undefined) window.PF.letras = TP.letras;
+    }
+    /* TANDA DE PIEL P4/P5: el tracking de las mayúsculas y la escala salen del
+       bloque 'piel'. La fábrica de Text los lee de acá. */
+    if (bal && bal.piel) {
+      window.PF.trackingMayus = bal.piel.tracking_mayus;
+      window.PF.escMin = bal.piel.esc_min;
+      window.PF.escMax = bal.piel.esc_max;
     }
     arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData);
   });

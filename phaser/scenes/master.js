@@ -14,7 +14,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
   create() {
     const W = this.scale.width, H = this.scale.height;
-    this.cameras.main.setBackgroundColor("#06120b");
+    /* PIEL P1: fondo radial (ver editor.js) */
+    this.cameras.main.setBackgroundColor(this.piel().fondo_borde);
+    this.fondoDePiel();
     this.T = window.PampaTemporada;
     this.Ma = window.PampaMaster;
     this.DIV = this.game.registry.get("divisiones");

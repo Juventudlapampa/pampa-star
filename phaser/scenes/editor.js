@@ -28,7 +28,10 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     this.W = W; this.H = H;
     const A = window.PampaAvatar;
-    this.cameras.main.setBackgroundColor("#06120b");
+    /* PIEL P1: fondo radial en vez del verde plano. El color de cámara queda
+       como borde (lo de afuera del lienzo con Scale.FIT). */
+    this.cameras.main.setBackgroundColor(this.piel().fondo_borde);
+    this.fondoDePiel();
 
     /* ---- el save (tolerante): VOS + amigos ---- */
     this.career = null;

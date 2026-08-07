@@ -17,18 +17,19 @@ const PRECACHE = [
   "./logic/duel.js", "./logic/perspectiva.js", "./logic/partido.js",
   "./logic/relator.js", "./logic/definicion.js", "./logic/master.js",
   "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
-  "./logic/jugadon.js", "./logic/vida.js", "./logic/semana.js",
+  "./logic/jugadon.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
-  "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/escenas_v9.js",
+  "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/escenas_v9.js", "./scenes/piel_ui.js",
   "./data/balance.json",
   "../data/semana.json", "../data/roster_pampeano.json", "../data/portraits_manifest.json",
   "../data/megacosas.json", "../data/relatos.json",
   "../data/poses_manifest.json", "../data/caras_manifest.json",
   "../data/divisiones.json", "../data/identidades_manifest.json",
   "../assets/fonts/PressStart2P-Regular.ttf", "../assets/fonts/VT323-Regular.ttf",
-  "../assets/fonts/PixelifySans-Regular.ttf"
+  "../assets/fonts/PixelifySans-Regular.ttf",
+  "../assets/fonts/ArchivoBlack-Regular.ttf", "../assets/fonts/BowlbyOne-Regular.ttf"
 ];
 
 self.addEventListener("install", (e) => {
