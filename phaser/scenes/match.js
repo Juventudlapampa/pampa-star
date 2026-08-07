@@ -1075,8 +1075,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B3: 64px o más, etiqueta ⚡ ACCIÓN y PULSO sutil cuando hay acciones */
     const cont = this.add.container(866, 456);
     const r = this.add.rectangle(0, 0, 188, 68, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
+    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13" }).setOrigin(0.5);
     cont.add([r, this.txtBotonAccion]);
+    /* PIEL P2: canto sólido + sombra difusa. El rect sigue siendo el que recibe
+       el toque; solo deja de pintarse (ver vestirBoton en scenes/piel_ui.js). */
+    this.vestirBoton(r);
     this.hudLayer.add(cont);
     this._btnAccionCont = cont;
     this._btnPulso = this.tweens.add({ targets: cont, scale: 1.06, duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut", paused: true });
@@ -3133,6 +3136,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#ffd84d" }).setOrigin(0, 0.5);
     this.hudLayer.add([this.envionG, this.lblEnvion, this.txtEnvion, this.txtEnvionEstado]);
     const be = this.add.rectangle(866, 396, 150, 48, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    this.vestirBoton(be);   /* PIEL P2 */
     const bet = this.add.text(866, 396, "🌟 POTENCIAR", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
     this.hudLayer.add([be, bet]);
     this._btnEnvion = [be, bet];
@@ -3335,6 +3339,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============================== UPDATE ============================== */
   update(time, delta) {
     const st = this.st, P = window.PampaPartido;
+    /* PIEL P2: los menús del partido nacen en runtime (duelo, remate, tempo,
+       jugadón), así que sus botones se visten acá, apenas aparecen. Cada 6
+       frames y con guard: el trabajo real es solo sobre los recién creados. */
+    if (this.vestirPendientes) this.vestirPendientes(6);
     /* ETAPA 5: la economía de aguante corre con el flag e5_guts; apagado = tanques quietos (sandbox) */
     if (!this.FLAGS.e5_guts) { st.mios[st.ctrl].aguante = this.BAL.aguante.max; st.aguanteRival = this.BAL.aguante.max; }
     /* V9 §8: la frase emitida con el HUD apagado (cine, Definición, Jugadón)

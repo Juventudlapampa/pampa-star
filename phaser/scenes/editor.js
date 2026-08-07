@@ -285,3 +285,19 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.tweens.add({ targets: this.txtToast, alpha: 0, delay: 900, duration: 400 });
   }
 };
+
+/* PIEL P2: las pantallas de esta escena se arman de una sola vez (no hay
+   update que barra), así que se visten los botones al terminar de construir
+   cada vista. Se envuelven los métodos en vez de tocar su cuerpo: así el día
+   que se agregue una vista nueva, basta con sumarla a esta lista. */
+["create", "vistaSemana", "vistaElegirDia", "vistaFecha", "vistaTabla", "vistaResultado"]
+  .forEach(function (n) {
+    var orig = window.PampaEditor.prototype[n];
+    if (typeof orig !== "function") return;
+    window.PampaEditor.prototype[n] = function () {
+      var r = orig.apply(this, arguments);
+      if (this.vestirPendientes) this.vestirPendientes();
+      return r;
+    };
+  });
+

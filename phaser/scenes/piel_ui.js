@@ -151,6 +151,121 @@
       var b = this.botonPiel(x, y, w, h, color, opts);
       if (contenedor) b.capas.forEach(function (o) { contenedor.add(o); });
       return b;
+    },
+
+    /* ---------- VESTIR UN BOTÓN QUE YA EXISTE ----------
+       El juego tiene ~20 botones escritos a mano en 5 archivos, cada uno con
+       sus handlers, su registro de limpieza y su lógica de mostrar/ocultar.
+       Reescribirlos era garantía de romper algo, así que esto los VISTE:
+
+         · el Rectangle original deja de pintarse (alpha 0) pero sigue vivo —
+           conserva TODOS sus listeners, su setVisible y su registro;
+         · encima se dibuja la cara redondeada, el canto y la sombra;
+         · las capas nuevas se insertan JUSTO DEBAJO del rect, así que respetan
+           el orden de inserción del container (donde depth no sirve);
+         · las capas quedan colgadas del rect (rect._pielCapas) y siguen su
+           visible y su destroy: si no, quedan sombras flotando cuando el botón
+           desaparece — que era el bug más probable de toda la tanda.
+
+       Devuelve el rect, para poder encadenar. */
+    vestirBoton: function (rect, opts) {
+      if (!rect || rect._pielCapas) return rect;
+      opts = opts || {};
+      var PP = window.PampaPiel, P = this.piel();
+      var color = opts.color != null ? opts.color : (rect.fillColor != null ? rect.fillColor : P.n.acento);
+      var cfg = PP.capasBoton(color, P);
+      var w = rect.width, h = rect.height;
+      var radio = opts.radio != null ? opts.radio : (opts.pildora ? Math.min(w, h) / 2 : cfg.radio);
+      var cantoPx = opts.canto != null ? opts.canto : cfg.cantoPx;
+      /* el rect puede vivir en un container: las capas van a SU mismo padre y
+         en SUS coordenadas locales */
+      var padre = rect.parentContainer;
+      var x = rect.x, y = rect.y;
+      var ox = (rect.originX != null ? rect.originX : 0.5), oy = (rect.originY != null ? rect.originY : 0.5);
+      var x0 = x - w * ox, y0 = y - h * oy;
+
+      var som = this.add.graphics();
+      var pasos = 4, sa = cfg.sombra.alpha / pasos;
+      for (var i = pasos; i >= 1; i--) {
+        var crece = (i / pasos) * cfg.sombra.blur * 0.5;
+        som.fillStyle(0x000000, sa);
+        som.fillRoundedRect(x0 - crece, y0 + cfg.sombra.dy - crece, w + crece * 2, h + crece * 2, radio + crece);
+      }
+      var canto = this.add.graphics();
+      canto.fillStyle(cfg.canto, 1);
+      canto.fillRoundedRect(x0, y0 + cantoPx, w, h, radio);
+      var cara = this.add.graphics();
+      var alphaCara = rect.fillAlpha != null && rect.fillAlpha > 0 ? rect.fillAlpha : 1;
+      var pintar = function (dy) {
+        cara.clear();
+        cara.fillStyle(color, alphaCara);
+        cara.fillRoundedRect(x0, y0 + dy, w, h, radio);
+      };
+      pintar(0);
+
+      var capas = [som, canto, cara];
+      if (padre) {
+        /* en un Container manda el ORDEN DE INSERCIÓN, no el depth: las capas
+           entran en la posición del rect y lo empujan hacia adelante */
+        var idx = padre.getIndex(rect);
+        capas.forEach(function (o, k) { padre.addAt(o, idx + k); });
+      } else {
+        /* en la display list de la escena alcanza con mandarlas debajo del rect */
+        var lista = this.children;
+        capas.forEach(function (o) { lista.moveBelow(o, rect); });
+      }
+      /* el rect deja de pintarse pero sigue recibiendo el toque */
+      rect.setFillStyle(color, 0);
+      if (rect.setStrokeStyle) rect.setStrokeStyle();
+
+      /* las capas siguen la suerte del botón */
+      var visOrig = rect.setVisible.bind(rect);
+      rect.setVisible = function (v) { capas.forEach(function (o) { o.setVisible(v); }); return visOrig(v); };
+      var destOrig = rect.destroy.bind(rect);
+      rect.destroy = function () { capas.forEach(function (o) { o.destroy(); }); return destOrig(); };
+
+      /* y el hundido, que es lo que se lee como "lo apreté" */
+      rect.on("pointerdown", function () { pintar(cfg.hunde); });
+      rect.on("pointerup", function () { pintar(0); });
+      rect.on("pointerout", function () { pintar(0); });
+
+      rect._pielCapas = capas;
+      rect._pielRepintar = pintar;
+      return rect;
+    },
+
+    /* ---------- VESTIR LOS QUE VAYAN APARECIENDO ----------
+       Los menús del partido (duelo, remate, tempo, jugadón) nacen y mueren en
+       runtime, así que no alcanza con vestir en create(). Esto barre la escena
+       y viste lo que todavía no esté vestido.
+
+       QUÉ CUENTA COMO BOTÓN, para no vestir de más:
+         · Rectangle interactivo (las zonas de toque invisibles quedan afuera
+           porque tienen fillAlpha 0),
+         · con tamaño de botón (ni un velo de pantalla completa ni una pastilla
+           de 4px),
+         · que no esté ya vestido.
+       Barre cada `cada` frames: con el guard, el trabajo real es solo sobre los
+       botones nuevos. */
+    vestirPendientes: function (cada) {
+      this._pielTick = (this._pielTick || 0) + 1;
+      if (cada && (this._pielTick % cada) !== 0) return 0;
+      var self = this, n = 0;
+      var visitar = function (o) {
+        if (!o) return;
+        if (o.type === "Container" || o.type === "Layer") { (o.list || []).slice().forEach(visitar); return; }
+        if (o.type !== "Rectangle" || o._pielCapas) return;
+        if (!o.input || !o.input.enabled) return;
+        if (!(o.fillAlpha > 0)) return;                       // zonas invisibles: no son botones
+        if (o.width < 60 || o.height < 20) return;            // pastillas y marcas
+        /* el tope se calibró MIRANDO los rects reales: los presets del partido
+           son de 500x72 y el velo del menú, que también es interactivo, mide
+           960x540. Entre esos dos está la línea. */
+        if (o.width > 560 || o.height > 100) return;          // velos y paneles de fondo
+        self.vestirBoton(o); n++;
+      };
+      this.children.list.slice().forEach(visitar);
+      return n;
     }
   };
 
