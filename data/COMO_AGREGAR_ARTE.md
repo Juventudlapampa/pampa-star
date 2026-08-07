@@ -57,6 +57,18 @@ Solo eso: nombre visible y color. Aparece en el editor en el orden del array.
 no por el color — "Celeste titular" y "Celeste profundo" está bien; dos "Celeste"
 a secas, no.
 
+Y de verdad es solo eso: el tope lo toma el código del propio manifest
+(`index.html` le pasa el largo a `logic/avatar.js` al arrancar). Hasta agosto de
+2026 no era cierto — `validarLook` tenía el número 4 clavado (3 camisetas +
+Original), así que al pasar de 3 a 9 los índices 4 a 9 se plegaban con módulo y
+el jugador elegía una camiseta y veía otra. Está arreglado y `phaser/test/camisetas.test.js`
+lo cuida: recorre todos los índices que el editor ofrece y falla si alguno se pliega.
+
+**Un tono muy oscuro es válido** (hay "Negro tranquera" #232323): el recolor
+preserva la luminancia, así que la camiseta conserva sus luces y sombras en vez
+de quedar una mancha plana, y la ficha del radar cambia el número y el borde a
+tinta clara cuando el tono es oscuro, para que el número siga leyéndose.
+
 ---
 
 ## 3 · UNA POSE NUEVA (las ilustraciones grandes del cine)

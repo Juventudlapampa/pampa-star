@@ -115,7 +115,7 @@ carpeta y agregar una entrada al JSON, sin tocar código:
 | Lo que falta | Dónde entra | Estado |
 |---|---|---|
 | más caras | `data/caras_manifest.json` → `caras[]` | listo, documentado |
-| más camisetas | `data/caras_manifest.json` → `camisetas[]` | listo, una línea por camiseta |
+| más camisetas | `data/caras_manifest.json` → `camisetas[]` | listo de verdad desde el 7/ago (ver HANDOFF_TANDA_CAMISETAS.md): hasta entonces `validarLook` tenía el tope clavado en 4 y las camisetas nuevas mostraban otra |
 | ciclo de correr / saltar | `data/poses_manifest.json` → `ciclo: {cuadros, ms}` | **campo aceptado**; mientras no exista, se usa la pose quieta |
 | relator/a visible | `data/portraits_manifest.json` → clave `relator` | **hueco declarado**; mientras no exista, sigue la franja de texto |
 | sonidos propios | `assets/audio/` | el manifest no existe aún: avisá cuál efecto y lo cableo |

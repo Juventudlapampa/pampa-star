@@ -190,6 +190,17 @@
     arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData);
   });
   function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData){
+    /* El manifest de caras dice cuántas caras y cuántos tonos de camiseta hay.
+       validarLook (logic/avatar.js) es lógica pura y no lee JSON, así que se lo
+       avisamos acá, una sola vez, antes de crear el juego: si no, los índices
+       que pasan del tope viejo se pliegan con módulo y elegís una camiseta y
+       aparece otra. Agregar arte al manifest ahora alcanza, sin tocar código. */
+    if (window.PampaAvatar && caras) {
+      window.PampaAvatar.setCatalogoManifest({
+        caras: caras.caras && caras.caras.length,
+        camisetas: caras.camisetas && caras.camisetas.length
+      });
+    }
     const config = {
       type: Phaser.AUTO,
       parent: "game",

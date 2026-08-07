@@ -71,6 +71,24 @@
 
   function crearLook() { return { piel: 0, corte: 1, colorPelo: 0, ojos: 0, cejas: 0, boca: 0, acc: 0, camiseta: 0 }; }
 
+  /* CUÁNTO HAY EN EL MANIFEST DE CARAS.
+     validarLook tiene que plegar los índices al rango real, pero este módulo es
+     lógica pura y no lee JSON (los tests lo requieren sin manifest). Así que el
+     que carga el manifest avisa acá cuántas caras y cuántos tonos de camiseta
+     hay, una sola vez, y validarLook deja de tener números clavados.
+     Antes estaban a mano (8 caras, 3+1 camisetas) y agregar arte en el manifest
+     no alcanzaba: los índices nuevos se plegaban con módulo y el jugador elegía
+     una camiseta y veía otra. */
+  var MANIFEST = { caras: 8, camisetas: 3 };
+  function setCatalogoManifest(cfg) {
+    if (!cfg || typeof cfg !== "object") return MANIFEST;
+    ["caras", "camisetas"].forEach(function (k) {
+      var v = cfg[k];
+      if (typeof v === "number" && isFinite(v) && v >= 1) MANIFEST[k] = Math.floor(v);
+    });
+    return MANIFEST;
+  }
+
   /* tolerante: campos faltantes → default; índices fuera de rango → módulo */
   function validarLook(l) {
     var base = crearLook();
@@ -81,16 +99,16 @@
       var v = typeof l[k] === "number" && isFinite(l[k]) ? Math.abs(Math.floor(l[k])) : base[k];
       out[k] = v % n;
     });
-    /* EDITOR v2: la CARA ilustrada (0-7 del manifest de bustos). Look viejo sin
+    /* EDITOR v2: la CARA ilustrada (del manifest de bustos). Look viejo sin
        cara → 0 (Clásico): retrocompatible. El campo viaja con el look siempre. */
-    out.cara = typeof l.cara === "number" && isFinite(l.cara) ? Math.abs(Math.floor(l.cara)) % 8 : 0;
+    out.cara = typeof l.cara === "number" && isFinite(l.cara) ? Math.abs(Math.floor(l.cara)) % MANIFEST.caras : 0;
     /* V7 §0.2: los TINTES de la cara ilustrada son OPCIONALES — 0 = "Original"
        (respeta los colores propios de la ilustración), k>0 = catálogo[k-1].
-       tCam cicla los tonos de camiseta del manifest de caras (3) + Original. */
+       tCam cicla los tonos de camiseta del manifest de caras + Original. */
     var tin = function (v, n) { return typeof v === "number" && isFinite(v) ? Math.abs(Math.floor(v)) % n : 0; };
     out.tPiel = tin(l.tPiel, CATALOGO.pieles.length + 1);
     out.tPelo = tin(l.tPelo, CATALOGO.colores_pelo.length + 1);
-    out.tCam = tin(l.tCam, 4);
+    out.tCam = tin(l.tCam, MANIFEST.camisetas + 1);
     return out;
   }
 
@@ -207,6 +225,7 @@
     crearLook: crearLook, validarLook: validarLook, resolver: resolver,
     migrarDelClasico: migrarDelClasico, lookProcedural: lookProcedural,
     lookLabel: lookLabel, hexNum: hexNum, hashSemilla: hashSemilla,
-    lookParaBloques: lookParaBloques, masCercano: masCercano
+    lookParaBloques: lookParaBloques, masCercano: masCercano,
+    setCatalogoManifest: setCatalogoManifest, MANIFEST: MANIFEST
   };
 });

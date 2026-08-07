@@ -118,6 +118,30 @@
     {
       "n": "Blanco pampa",
       "hex": "#E8F4FA"
+    },
+    {
+      "n": "Verde caldén",
+      "hex": "#2E7D32"
+    },
+    {
+      "n": "Bordó salitral",
+      "hex": "#7B2233"
+    },
+    {
+      "n": "Naranja atardecer",
+      "hex": "#E8712F"
+    },
+    {
+      "n": "Violeta jarilla",
+      "hex": "#6A3FA0"
+    },
+    {
+      "n": "Amarillo trigo",
+      "hex": "#E8C33A"
+    },
+    {
+      "n": "Negro tranquera",
+      "hex": "#232323"
     }
   ],
   "tolerancias": {
@@ -127,6 +151,6 @@
   },
   "_bloques": "V7 fix editor: corte_bloques = con qué CORTE del catálogo de bloques se insinúa cada cara en el muñequito del mapa/editor (ids de logic/avatar.js cortes). Editable sin código.",
   "_a4": "V8 A4 (playtest): el tinte de pelo sangraba a la cara. Ahora cada cara declara pelo_y1 (hasta qué altura, 0-1, se aplica la regla del pelo) y la tolerancia del pelo bajó a 46. Además tenirImagen NO toca contornos (luma<30) ni el antialias del borde (alpha<128).",
-  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Cara nueva = PNG transparente en assets/poses/caras/ + entrada en caras[] con {id, n, archivo, tonos, corte_bloques, pelo_y1}. Camiseta nueva = una línea en camisetas[] con {n, hex}: el nombre tiene que distinguirse por la PALABRA, no solo por el color.",
+  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Cara nueva = PNG transparente en assets/poses/caras/ + entrada en caras[] con {id, n, archivo, tonos, corte_bloques, pelo_y1}. Camiseta nueva = una línea en camisetas[] con {n, hex}: el nombre tiene que distinguirse por la PALABRA, no solo por el color. El TOPE es dinámico: index.html le pasa camisetas.length y caras.length a logic/avatar.js (setCatalogoManifest) al arrancar, así que agregar acá alcanza — antes validarLook tenía 4 clavado y los índices altos se plegaban. Lo cuida phaser/test/camisetas.test.js.",
   "_arte": "TANDA DE ARTE (30/jul): las 8 caras vienen del entregable de Rodri. Llegaron con FONDO MAGENTA (chroma key) y se procesaron una sola vez, offline: magenta -> alpha con despinte del halo, recorte al contenido y alto 700. Los tonos de cada entrada se sacaron con cuentagotas de SU PROPIO PNG (no se copió el mismo bloque en las ocho) y pelo_y1 se MIDIÓ por color, filtrando el contorno de tinta."
 }

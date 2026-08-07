@@ -3051,11 +3051,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const lv = window.PampaAvatar.validarLook(vosJ.look);
         if (lv.tCam > 0) this._colorMapaMio = parseInt(String(CMm.camisetas[(lv.tCam - 1) % CMm.camisetas.length].hex).slice(1), 16);
       }
+      /* CONTRASTE DEL NÚMERO Y EL BORDE.
+         El número del radar y el anillo eran negros fijos: contra los celestes
+         se leían, pero con una camiseta oscura (Negro tranquera, Bordó salitral)
+         quedaban negro sobre negro y la ficha desaparecía del mapa. Se elige por
+         LUMA del tono: oscuro → tinta clara, claro → tinta oscura. El número
+         tiene que leerse siempre, porque en el mapa te reconocés por el número
+         tanto como por el color. */
+      const c = this._colorMapaMio;
+      const luma = 0.2126 * ((c >> 16) & 255) + 0.7152 * ((c >> 8) & 255) + 0.0722 * (c & 255);
+      const claro = luma < 128;
+      this._tintaMapaMio = claro ? 0xf6efdc : 0x0a1f13;
+      this.radarNumsMios.forEach(t => t.setColor(claro ? "#f6efdc" : "#0a1f13"));
     }
     st.mios.forEach((j, i) => {
       const x = mx(j.x), y = my(j.y);
       g.fillStyle(this._colorMapaMio, 1); g.fillCircle(x, y, 5.5);
-      g.lineStyle(1, 0x0a1f13, 0.9); g.strokeCircle(x, y, 5.5);
+      g.lineStyle(1, this._tintaMapaMio, 0.9); g.strokeCircle(x, y, 5.5);
       if (i === st.ctrl) { g.lineStyle(2, 0xffffff, 1); g.strokeCircle(x, y, 8); }
       this.radarNumsMios[i].setPosition(x, y);
     });
