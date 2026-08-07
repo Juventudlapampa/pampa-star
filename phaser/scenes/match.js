@@ -943,6 +943,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        familia del pasto — de ahí la mancha verde sobre verde. Ahora es el tono
        de marco de la paleta: el verde queda SOLO adentro, que es la cancha. */
     const marco = this.add.rectangle(rx + rw / 2, ry + rh / 2, rw + 6, rh + 6, this.piel().n.marco, 0.96).setStrokeStyle(2, 0xf6efdc, 0.7);
+    this.radarMarco = marco;   /* PIEL P9: para poder apagarlo en el final */
     this.radarG = this.add.graphics();
     this.hudLayer.add([marco, this.radarG]);
     /* números de camiseta: 22 textos chiquitos que siguen a su ficha */
@@ -2722,6 +2723,39 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.zoomBase();
     this.estado = "LIBRE";
   }
+  /* PIEL P9 · la pantalla de final: apaga el partido y deja ver la ilustración */
+  pantallaFinal(st) {
+    const P = this.piel();
+    /* 1) SE APAGA LO QUE YA NO SE JUEGA. El radar con sus 22 números, los dos
+       medidores, el botón de acción y el hint del teclado no tienen nada que
+       decir con el partido terminado, y son justo lo que el cartel tapaba. */
+    const apagar = [this.radarG, this.radarZona, this._btnAccionCont, this._hintEspacio,
+      this.gutsG, this.lblGuts, this.txtGuts, this.envionG, this.lblEnvion,
+      this.txtEnvion, this.txtEnvionEstado, this.txtFichas, this.tickerTxt];
+    apagar.push(this.radarMarco, this._radarTuArco);
+    apagar.forEach(o => o && o.setVisible(false));
+    (this.radarNumsMios || []).forEach(t => t.setVisible(false));
+    (this.radarNumsRiv || []).forEach(t => t.setVisible(false));
+    if (this._btnEnvion) this._btnEnvion.forEach(o => o.setVisible(false));
+    if (this._btnCambiar) this._btnCambiar.forEach(o => o.setVisible(false));
+    if (this.radarMarco) this.radarMarco.setVisible(false);
+    this._finalApagado = true;
+
+    /* 2) LA ILUSTRACIÓN QUEDA LIMPIA: el velo del panel baja del todo para que
+       la figura recorte, y no se le escribe nada encima. */
+    if (this.panelVelo) this.panelVelo.setAlpha(0);
+
+    /* 3) EL RESULTADO, EN SU FRANJA. Abajo del panel, en la zona que dejó
+       libre el mapa apagado: no compite con el dibujo. */
+    const gano = st.golesMio > st.golesRival, empate = st.golesMio === st.golesRival;
+    const franja = this.add.rectangle(480, 380, 960, 86, P.n.caja, 0.94);
+    const titulo = this.add.text(480, 356, empate ? "EMPATE" : (gano ? "GANASTE" : "PERDISTE"),
+      { fontFamily: window.PF.display, fontSize: "15px", color: empate ? "#f6efdc" : (gano ? P.acento : P.calido) }).setOrigin(0.5);
+    const cifra = this.add.text(480, 392, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival,
+      { fontFamily: window.PF.display, fontSize: "26px", color: "#f6efdc" }).setOrigin(0.5);
+    const linea = this.add.rectangle(480, 337, 960, 2, P.n.acento, 0.65);
+    this.menuLayer.add([franja, linea, titulo, cifra]);
+  }
   finDelPartido() {
     const st = this.st;
     this.estado = "FINAL";     // estado propio: ningún delayedCall de resolución lo puede barrer
@@ -2731,12 +2765,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.relatar("final");
     this.quitarDuelo();
     this.limpiarMenu();
-    const t = this.add.text(480, 250, "🏁 FINAL: VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival, { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 3, align: "center" }).setOrigin(0.5);
-    this.menuLayer.add(t);
+    /* PIEL P9 · EL FINAL ES UNA PANTALLA, no un cartel encima del partido.
+       Antes el texto caía sobre el torso del jugador y el botón se comía la
+       franja de arriba del mapa, con el radar y los medidores siguiendo vivos
+       debajo. Ahora: se apaga lo que ya no se juega (radar, medidores, botones
+       del partido), la ilustración queda LIMPIA, el resultado va en su franja
+       propia abajo del todo y el botón vive en el HUD, fuera de la cancha. */
+    this.pantallaFinal(st);
     /* V7 §2: la fecha del MODO MASTER devuelve el resultado a la carrera */
     if (this._masterPartido) {
-      const b3 = this.add.rectangle(480, 330, 420, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bt3 = this.add.text(480, 330, "▶ SEGUIR LA CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      const b3 = this.add.rectangle(480, 496, 420, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bt3 = this.add.text(480, 496, "▶ SEGUIR LA CARRERA", { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([b3, bt3]);
       b3.on("pointerdown", () => {
         /* LA VIDA v2: el lunes se calcula con cómo TERMINASTE, no solo con el resultado */
@@ -2753,8 +2792,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.selloMenu();
       return;
     }
-    const b = this.add.rectangle(480, 330, 320, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const bt = this.add.text(480, 330, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    const b = this.add.rectangle(480, 496, 320, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const bt = this.add.text(480, 496, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
     this.menuLayer.add([b, bt]);
     b.on("pointerdown", () => this.scene.restart());
     /* FUSIÓN: el resultado vuelve a la carrera clásica (mismo formato pampa_star_v1
@@ -3003,6 +3042,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   dibujarRadar() {
     if (!this.radar) return;
+    /* PIEL P9: con el partido terminado el mapa se apaga y no se vuelve a
+       dibujar. Sin esta guarda, el update lo repinta en el frame siguiente y
+       la etiqueta "TU ARCO" reaparece sobre la pantalla de final. */
+    if (this._finalApagado) return;
     const g = this.radarG, R = this.radar, st = this.st;
     g.clear();
     const mx = wx => R.x + this.fx(wx) / st.W * R.w, my = wy => R.y + wy / st.H * R.h;
@@ -3218,7 +3261,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* PIEL P5: con el menú de duelo abierto, los retratos ya traen el aguante
        de los dos protagonistas; los medidores del HUD quedaban justo debajo,
        encimados con el del rival. Se esconden mientras dura el menú. */
+    /* ...y con el partido TERMINADO tampoco: la pantalla de final los apaga y
+       refrescarHUD sigue corriendo, así que sin esto los volvería a encender
+       en el frame siguiente. */
     const menuAbierto = this.estado === "MENU" || this.estado === "TEMPO_MENU" ||
+      this.estado === "FINAL" || this._finalApagado ||
       (this.menuLayer && this.menuLayer.visible && this.menuLayer.list.length > 0);
     if (this._medidoresOcultos !== menuAbierto) {
       this._medidoresOcultos = menuAbierto;
