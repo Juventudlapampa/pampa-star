@@ -635,6 +635,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       .setOrigin(0.5, 0.5).setAlpha(0);
     this.panelLayer.add(this.panelVelo);
     this._veloObj = 0;
+    /* EL PANEL RECORTA LO QUE SE SALE. Las siluetas de rivales se posicionan
+       en 236 + clamp(dy*0.25,-34,+40) con hasta 120px de alto: la de mas abajo
+       llegaba a y=336, 32px por debajo del borde del panel (304), derramandose
+       sobre la franja del relator. panelLayer no tenia mascara ninguna.
+       La mascara se arma con la MISMA geometria del panel, asi que si manana la
+       maqueta crece, el recorte la sigue sin tocar nada mas. */
+    const mkPanel = this.make.graphics({ x: 0, y: 0, add: false });
+    mkPanel.fillStyle(0xffffff, 1);
+    mkPanel.fillRect(0, 30, 960, (this.VI && this.VI.panel_fin_y != null ? this.VI.panel_fin_y : 304) - 30);
+    this.panelLayer.setMask(mkPanel.createGeometryMask());
+    this._panelMaskG = mkPanel;
     /* siluetas de rivales cercanos (pool), DETRÁS del que corre */
     this.panelSil = [];
     for (let k = 0; k < 3; k++) {
@@ -936,7 +947,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      blanco con borde negro · anillo blanco en quien controlás. */
   buildRadar() {
     /* V7-1: en pantalla partida el radar ES el mapa — grande, abajo, protagonista */
-    const rw = this._split ? 640 : 264, rh = this._split ? 198 : 132;
+    /* el ancho baja de 640 a 620: el marco llegaba a x=748 y el boton ACCION
+       arranca en 744 (733 con el pulso), o sea se pisaban 15px. */
+    const rw = this._split ? 620 : 264, rh = this._split ? 198 : 132;
     const rx = this._split ? 105 : 12, ry = this._split ? 322 : 540 - rh - 12;
     this.radar = { x: rx, y: ry, w: rw, h: rh };
     /* PIEL P1: el marco del mapa era 0x0b3d0b, un verde oscuro que lo hacía
@@ -3289,7 +3302,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const fTxt = "🌟 QUITES " + F.quites + " · GAMBETAS " + F.gambetas + " · TIROS " + F.tiros;
       if (this._hudFichas !== fTxt) {
         this._hudFichas = fTxt;
-        if (!this.txtFichas) { this.txtFichas = this.add.text(14, 512, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 2 } }).setOrigin(0, 0.5); this.hudLayer.add(this.txtFichas); }
+        if (!this.txtFichas) {
+          /* subido de (14,512): ahi tapaba la esquina inferior izquierda del
+             mapa (133x17px sobre la linea de fondo de tu arco). Las fichas son
+             un dato de estado y viven en la barra de estado. */
+          this.txtFichas = this.add.text(44, 15, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0, 0.5);
+          this.hudLayer.add(this.txtFichas);
+        }
         this.txtFichas.setText(fTxt);
       }
     }
