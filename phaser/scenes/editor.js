@@ -76,7 +76,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        molestaba. Queda SOLO la cara ilustrada, grande y centrada. */
     this.imgCara = this.add.image(250, 240, "__WHITE").setScale(1.5);
     this.imgCancha = null;
-    this.txtLabel = this.add.text(210, 372, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 330 } }).setOrigin(0.5);
+    this.txtLabel = this.add.text(210, 372, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#cfe9d4", align: "center", wordWrap: { width: 320 }, backgroundColor: "#0a1f13e6", padding: { x: 10, y: 6 } }).setOrigin(0.5);
 
     /* ---- steppers (derecha) ----
        EDITOR v2: el creador de caras por rectángulos SE RETIRA — stepper grande
@@ -111,8 +111,12 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
         r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this.filaSel = ci; this.mover(c.k, d); });
         return r;
       };
-      mk(cx - 92, -1); mk(cx + 212, 1);
-      this.filas[c.k] = this.add.text(cx + 60, fy, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+      /* EDITOR: el control se agrupa. Antes las flechas estaban en cx-92 y
+         cx+212 con el valor en cx+60: 152px de aire a cada lado, la fila
+         desparramada de punta a punta. Ahora [◄ valor ►] se lee como una sola
+         cosa, y el grupo entero termina en x=914 (46px de aire al filo). */
+      mk(cx - 18, -1); mk(cx + 198, 1);
+      this.filas[c.k] = this.add.text(cx + 90, fy, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", align: "center" }).setOrigin(0.5);
       this.filaRects.push(lbl);
       fy += 46;
     });
