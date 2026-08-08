@@ -584,5 +584,19 @@
     "_escala": "P5 · los tamaños del HUD escalan con el ancho real de pantalla entre esc_min y esc_max. Con Scale.FIT el ancho lógico es fijo (960), así que esto sirve para la vista elevada y para pantallas futuras: el corte de ENVIÓN/AGUANTE se arregló acomodando la maqueta, no escalando.",
     "esc_min": 0.85,
     "esc_max": 1.15
+  },
+  "legibilidad": {
+    "_nota": "PASE DE LEGIBILIDAD (8/ago). El numero de camiseta del mapa medía 9px lógicos = 6,5 px REALES en un teléfono (844x390, factor 0,7222). Su altura de mayúscula daba 5,8 minutos de arco y el umbral de agudeza 20/20 es 5: estaba por debajo del umbral de RESOLUCIÓN, no de lectura. Y el trazo medía 0,65 px reales, que con pixelArt:true el downscale nearest-neighbour DESCARTA. En el mapa te reconocés por el número tanto como por el color: si el número no se resuelve, queda el color solo.",
+    "num_mapa": 16,
+    "_num_mapa": "px lógicos del número de camiseta en el mapa. El piso son 16, al que convergen dos criterios independientes: agudeza (10 arcmin de altura de mayúscula para lectura al vuelo → ≥15,5) y que el trazo sobreviva al downscale (≥1 px real → ≥13,9).",
+    "ficha_r": 14,
+    "_ficha_r": "radio del círculo de los tuyos. El número de dos dígitos más ancho mide 20x17 lógicos a 16px (medido con la fuente real). A la altura del texto el ancho útil del círculo es 2·√(r²−(alto/2)²): con r=13 daba 19,7 y el número mide 20,0 — se salía por 0,3 y el test lo cazó. Con 14 da 22,3.",
+    "ficha_rival_base": 30,
+    "ficha_rival_alto": 26,
+    "_ficha_rival": "el triángulo del rival es el CASO PEOR: su área útil es la mitad que la de un círculo y el ancho crece hacia la base. El número va al 75% de la altura, donde el ancho disponible es base·0,75.",
+    "tap_min": 61,
+    "_tap_min": "área táctil mínima en px LÓGICOS = 44 CSS px reales (el piso de accesibilidad táctil) dividido por el factor de escala del teléfono, 0,7222. Es el ÁREA, no el dibujo: un botón puede verse de 40 y tener 61 de zona.",
+    "texto_info_min": 12,
+    "_texto_info_min": "px lógicos mínimos para un texto que lleva INFORMACIÓN (no decorativo). 12 lógicos = 8,7 px reales en teléfono. Los títulos y el cuerpo ya están por encima; esto es el piso duro."
   }
 }

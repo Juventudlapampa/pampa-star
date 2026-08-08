@@ -960,8 +960,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.radarG = this.add.graphics();
     this.hudLayer.add([marco, this.radarG]);
     /* números de camiseta: 22 textos chiquitos que siguen a su ficha */
+    /* L1 · EL NÚMERO AL PISO DE LEGIBILIDAD.
+       Medía 9px lógicos = 6,5 px REALES en un teléfono. Su altura de mayúscula
+       daba 5,8 minutos de arco contra un umbral de agudeza 20/20 de 5: estaba
+       por debajo de lo que el ojo RESUELVE. Y el trazo medía 0,65 px reales,
+       que el downscale nearest-neighbour (pixelArt) descarta entero.
+       El piso son 16 lógicos = 11,6 reales. Perilla: balance.legibilidad. */
+    const LEG = this.BAL.legibilidad || {};
+    this.LEG = LEG;
+    const numPx = LEG.num_mapa != null ? LEG.num_mapa : 16;
     const mkNum = (n) => {
-      const t = this.add.text(0, 0, String(n), { fontFamily: window.PF.texto, fontSize: "9px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5).setDepth(1);
+      const t = this.add.text(0, 0, String(n), { fontFamily: window.PF.texto, fontSize: numPx + "px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5).setDepth(1);
       this.hudLayer.add(t); return t;
     };
     this.radarNumsMios = this.st.mios.map(j => mkNum(j.numero));
@@ -3125,9 +3134,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     st.rivales.forEach((j, i) => {
       const p = posRiv[i] || j;
       const x = mx(p.x), y = my(p.y);
-      g.fillStyle(0xff8a50, 1); g.fillTriangle(x, y - 6, x + 5.5, y + 4.5, x - 5.5, y + 4.5);
-      g.lineStyle(1, 0x0a1f13, 0.9); g.strokeTriangle(x, y - 6, x + 5.5, y + 4.5, x - 5.5, y + 4.5);
-      this.radarNumsRiv[i].setPosition(x, y + 0.5);
+      /* L2 · el TRIÁNGULO es el caso peor: su área útil es la mitad que la de
+         un círculo y el ancho crece hacia la base, así que el número va abajo,
+         al 75% de la altura, donde el ancho disponible es base·0,75. */
+      const TB = (this.LEG && this.LEG.ficha_rival_base != null) ? this.LEG.ficha_rival_base : 30;
+      const TH = (this.LEG && this.LEG.ficha_rival_alto != null) ? this.LEG.ficha_rival_alto : 26;
+      const ap = y - TH * 0.55, ba = y + TH * 0.45;
+      g.fillStyle(0xff8a50, 1); g.fillTriangle(x, ap, x + TB / 2, ba, x - TB / 2, ba);
+      g.lineStyle(1.5, 0x0a1f13, 0.9); g.strokeTriangle(x, ap, x + TB / 2, ba, x - TB / 2, ba);
+      this.radarNumsRiv[i].setPosition(x, ap + TH * 0.72);
     });
     /* míos: CÍRCULOS con el TONO de camiseta que elegiste en el editor
        (Original = celeste titular) — en el mapa te reconocés por tu color de
@@ -3154,11 +3169,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this._tintaMapaMio = claro ? 0xf6efdc : 0x0a1f13;
       this.radarNumsMios.forEach(t => t.setColor(claro ? "#f6efdc" : "#0a1f13"));
     }
+    /* L2 · LA FICHA CRECE CON EL NÚMERO. El número de dos dígitos más ancho
+       ("88") mide 20x17 lógicos a 16px — medido con la fuente real, no
+       estimado. Sobre un círculo de radio 5,5 se pintaba AFUERA de su propia
+       ficha. Para que entre centrado hace falta r ≥ 13,1: a la altura del
+       texto (±8,5) el ancho disponible del círculo es 2·√(r²−8,5²). */
+    const RF = (this.LEG && this.LEG.ficha_r != null) ? this.LEG.ficha_r : 13;
     st.mios.forEach((j, i) => {
       const x = mx(j.x), y = my(j.y);
-      g.fillStyle(this._colorMapaMio, 1); g.fillCircle(x, y, 5.5);
-      g.lineStyle(1, this._tintaMapaMio, 0.9); g.strokeCircle(x, y, 5.5);
-      if (i === st.ctrl) { g.lineStyle(2, 0xffffff, 1); g.strokeCircle(x, y, 8); }
+      g.fillStyle(this._colorMapaMio, 1); g.fillCircle(x, y, RF);
+      g.lineStyle(1.5, this._tintaMapaMio, 0.9); g.strokeCircle(x, y, RF);
+      if (i === st.ctrl) { g.lineStyle(3, 0xffffff, 1); g.strokeCircle(x, y, RF + 3.5); }
       this.radarNumsMios[i].setPosition(x, y);
     });
     /* apuntando el pase: CUADRADO (forma) alrededor de cada receptor; grueso = elegido con teclado */
