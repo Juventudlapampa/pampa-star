@@ -262,6 +262,31 @@
       return rect;
     },
 
+    /* ---------- L4 · EL PISO TÁCTIL ----------
+       El piso de accesibilidad táctil es 44 CSS px. En un teléfono apaisado el
+       juego escala 0,7222, así que 44 reales son 61 LÓGICOS. Medido: ningún
+       botón del juego llegaba — el más alto es 54.
+
+       Se agranda el ÁREA, no el dibujo: el botón se sigue viendo igual y el
+       dedo le acierta. El hitArea de Phaser va en coordenadas locales del
+       objeto, con (0,0) en su esquina superior izquierda, así que para crecer
+       centrado hay que correr el origen en negativo. */
+    pisoTactil: function (obj, min) {
+      if (!obj || obj._pisoTactil) return obj;
+      var P = this.piel();
+      var LEG = (this.game.registry.get("balance") || {}).legibilidad || {};
+      var piso = min != null ? min : (LEG.tap_min != null ? LEG.tap_min : 61);
+      var w = obj.width || 0, h = obj.height || 0;
+      if (!(w > 0 && h > 0)) return obj;
+      if (w >= piso && h >= piso) { obj._pisoTactil = true; return obj; }
+      var W = Math.max(w, piso), H = Math.max(h, piso);
+      obj.setInteractive(new Phaser.Geom.Rectangle(-(W - w) / 2, -(H - h) / 2, W, H),
+        Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
+      obj._pisoTactil = true;
+      obj._tapArea = { w: W, h: H };
+      return obj;
+    },
+
     /* ---------- VESTIR LOS QUE VAYAN APARECIENDO ----------
        Los menús del partido (duelo, remate, tempo, jugadón) nacen y mueren en
        runtime, así que no alcanza con vestir en create(). Esto barre la escena
@@ -290,7 +315,9 @@
            son de 500x72, las ranuras de LA SEMANA de 250x108, y el velo del menú, que
            también es interactivo, mide 960x540. Entre esos está la línea. */
         if (o.width > 560 || o.height > 115) return;          // velos y paneles de fondo
-        self.vestirBoton(o); n++;
+        self.vestirBoton(o);
+        self.pisoTactil(o);      /* L4: el área táctil al piso; el dibujo no cambia */
+        n++;
       };
       this.children.list.slice().forEach(visitar);
       return n;
