@@ -1083,7 +1083,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   buildBotonAccion() {
     if (!this.FLAGS.e3_menus) return;   // sin menús (flag apagado) no hay botón de acción
     /* Feel B3: 64px o más, etiqueta ⚡ ACCIÓN y PULSO sutil cuando hay acciones */
-    const cont = this.add.container(866, 456);
+    /* R1: la columna derecha del HUD entra ENTERA. Estaba en x=866 y el botón
+       (188 de ancho) llegaba a 960 clavado: el último píxel del lienzo. Con el
+       canto, la sombra (+5) y el pulso al 106% se iba entre 5 y 15px afuera —
+       invisible cuando era un rect plano, evidente ahora que tiene cuerpo.
+       838 + (94+5)*1.06 = 943, o sea 17px de aire. */
+    const cont = this.add.container(838, 456);
     const r = this.add.rectangle(0, 0, 188, 68, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13" }).setOrigin(0.5);
     cont.add([r, this.txtBotonAccion]);
@@ -1098,14 +1103,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          medidores (ENVIÓN en 500, AGUANTE en 522) y este chip las pisaba: se
          acomodó una cosa y se destapó el choque con la otra. Va pegado debajo
          del botón ⚡ACCIÓN, que es a lo que se refiere. */
-      this._hintEspacio = this.add.text(866, 428, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
+      this._hintEspacio = this.add.text(838, 428, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
       this.hudLayer.add(this._hintEspacio);
     }
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
     /* Anime A: botón secundario CHICO de ciclado manual en defensa (48px, mobile) */
     if (this._vista4) {
-      const bc = this.add.rectangle(866, 396, 92, 48, 0xdcd6c2, 0.92).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bct = this.add.text(866, 396, "⇄ OTRO", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
+      const bc = this.add.rectangle(838, 396, 92, 48, 0xdcd6c2, 0.92).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bct = this.add.text(838, 396, "⇄ OTRO", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
       this.hudLayer.add([bc, bct]);
       this._btnCambiar = [bc, bct];
       bc.on("pointerdown", (p, x, y, ev) => {
@@ -1185,16 +1190,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       "2/3 · ⚡ ACCIÓN abre el menú de jugadas\n(en teclado: ESPACIO)",
       this._split ? "3/3 · Te movés y pasás TOCANDO\nEL MAPA de abajo" : (this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
-    const ANILLOS = [null, { x: 866, y: 456, w: 210, h: 90 },
+    const ANILLOS = [null, { x: 838, y: 456, w: 210, h: 90 },   /* R1: el botón se movió a 838 */
       this._vista4 ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 }];
     this.estado = "TUTORIAL";
     this.st.modo = "congelado";
     let paso = 0;
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.55).setInteractive();
-    const caja = this.add.text(480, 150, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", backgroundColor: "#0a1f13ee", padding: { x: 16, y: 12 }, align: "center", lineSpacing: 6 }).setOrigin(0.5);
-    const pie = this.add.text(480, 210, "tocá para seguir ▸", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    /* R2: la caja iba en y=150, sobre el torso de la ilustración (el panel
+       ocupa 30..304) — el mismo vicio que el cartel de FINAL antes del P9.
+       Misma solución: FRANJA PROPIA abajo, el dibujo queda limpio. El anillo
+       amarillo sí puede subir, porque señala, no escribe. */
+    const franjaTut = this.add.rectangle(480, 372, 960, 92, 0x0a1f13, 0.94);
+    const lineaTut = this.add.rectangle(480, 328, 960, 2, 0xf5c400, 0.65);
+    const caja = this.add.text(480, 362, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center", lineSpacing: 6 }).setOrigin(0.5);
+    const pie = this.add.text(480, 404, "tocá para seguir ▸", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
     const anillo = this.add.graphics();
-    this.menuLayer.add([velo, caja, pie, anillo]);
+    this.menuLayer.add([velo, franjaTut, lineaTut, caja, pie, anillo]);
     this.selloMenu();
     const pintar = () => {
       caja.setText(PASOS[paso]);
@@ -3187,9 +3198,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        texto, no color, porque el color solo no alcanza para leerlo */
     this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#ffd84d" }).setOrigin(0, 0.5);
     this.hudLayer.add([this.envionG, this.lblEnvion, this.txtEnvion, this.txtEnvionEstado]);
-    const be = this.add.rectangle(866, 396, 150, 48, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const be = this.add.rectangle(838, 396, 150, 48, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     this.vestirBoton(be);   /* PIEL P2 */
-    const bet = this.add.text(866, 396, "🌟 POTENCIAR", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
+    const bet = this.add.text(838, 396, "🌟 POTENCIAR", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
     this.hudLayer.add([be, bet]);
     this._btnEnvion = [be, bet];
     be.on("pointerdown", (p, x, y, ev) => {
