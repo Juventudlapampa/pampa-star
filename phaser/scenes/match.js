@@ -727,16 +727,26 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     return this.poseKey("corriendo");
   }
-  poseHeroeTenida(j) {
-    const src = this.poseKey("corriendo");
+  /* B3-D · EL TINTE DE CAMISETA EN LAS ESCENAS.
+     Esta función estaba clavada en la pose 'corriendo': teñía esa y nada más.
+     Como las escenas usan remate, festejo, gambeta, pared…, en TODAS salía el
+     celeste del PNG por más que hubieras elegido Negro tranquera. Ese era el
+     reporte de Rodri.
+     Ahora recibe QUÉ pose teñir. El id por defecto sigue siendo 'corriendo'
+     para que los llamadores viejos anden igual. */
+  poseHeroeTenida(j, poseId) {
+    const id = poseId || "corriendo";
+    const src = this.poseKey(id);
     const poses = this.game.registry.get("poses");
-    const def = poses && poses.poses && poses.poses.corriendo;
+    const def = poses && poses.poses && poses.poses[id];
     if (!src || !def || !def.tonos || this.FLAGS.v7_caras === false || !j.look || !window.PampaAvatarArte) return null;
     const A = window.PampaAvatar;
     const look = A.validarLook(j.look);
     /* V7 §0.2: tintes OPCIONALES — todos en Original: la pose queda tal cual */
     if (!look.tPiel && !look.tPelo && !look.tCam) return null;
-    const key = "poseV_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
+    /* la pose entra en la key: si no, la primera que se tiñe queda cacheada
+       para todas y aparece un remate donde iba un festejo */
+    const key = "poseV_" + id + "_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
     if (this.textures.exists(key)) return key;
     const CAT = A.CATALOGO;
     const CM = this.game.registry.get("caras");
@@ -1558,10 +1568,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (!m) return null;
         return {
           texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.aguante + " aguante · especial",
+          /* B3-E: se pasa el ARQUERO como jRet — sin esto el cut-in mostraba
+             un delantero pateando en la megaatajada. */
           cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.aguante + " aguante", () => {
             arq.aguante = Math.max(0, arq.aguante - m.aguante);
             this.resolverArquero("atajar", m.bonus || 20, m.grito);
-          })
+          }, arq, false)
         };
       })()
     });
@@ -1911,14 +1923,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   texturaCineJugador() {
     const j = this.st.mios[this.st.ctrl];
-    if (!j) return "cine_jugador";
+    /* B3: los dos fallbacks de acá devolvían "cine_jugador", el muñequito de
+       bloques. Era uno de los caminos por los que el bug volvía: cualquier
+       jugador sin look —o un arranque donde PampaAvatarArte todavía no estaba—
+       metía bloques en medio de las ilustraciones. Ahora cae a una pose
+       ilustrada y nunca a bloques. */
+    if (!j) return this.figuraCine("corriendo", "texturaCineJugador(sin jugador)");
     /* EDITOR v2: el primer plano del esfuerzo es TU busto ilustrado teñido */
     const busto = this._bustoIlustrado(j, false);
     if (busto) return busto;
-    if (!j.look || !window.PampaAvatarArte) return "cine_jugador";
-    const key = "cine_look_" + this.st.ctrl;
-    window.PampaAvatarArte.cineJugador(this, key, j.look);
-    return key;
+    if (!j.look) return this.figuraCine("corriendo", "texturaCineJugador(sin look)");
+    /* B3: acá se llamaba a PampaAvatarArte.cineJugador(), que dibuja el
+       muñequito. Si no hay busto ilustrado, el primer plano va con tu pose de
+       corrida TEÑIDA con tu camiseta — sigue siendo vos, sigue siendo dibujo. */
+    return this.poseHeroeTenida(j, "corriendo") || this.figuraCine("corriendo", "texturaCineJugador(sin busto)");
   }
   entrarCine() {
     this.quitarDuelo();
@@ -1959,7 +1977,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.limpiarContenido();
     this.cineBG.clear(); this.cineBG.fillStyle(0x2a130b, 1); this.cineBG.fillRect(0, 0, W, H);
     this.cineLabel.setText("· el pie ·");
-    const pie = this.add.sprite(W / 2, H / 2 + 10, "cine_pie").setScale(0.6).setAngle(-8);
+    /* B3: era "cine_pie", bloques. Ahora el primer plano del pie es la pose de
+       remate ilustrada, encuadrada abajo para que se lea la pierna. */
+    const pie = this.add.sprite(W / 2, H / 2 + 10, this.figuraCine("remate", "planoPie"));
+    pie.setScale((H * 0.72) / pie.height).setAngle(-8);
     this.cineContent.add(pie);
     this.tweens.add({ targets: pie, scale: 5.2, duration: 260, ease: "Back.easeOut" });
     this.SFX && this.SFX.kick();
@@ -2043,7 +2064,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineBG.clear(); this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
     this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, H * 0.62, W, H * 0.38);
     this.cineLabel.setText("· el arquero ·");
-    const arq = this.add.sprite(W / 2 + 40, H / 2, "cine_arquero").setScale(1.2).setAngle(6);
+    /* B3: era "cine_arquero", el muñequito de bloques — ESTA es la figura que
+       Rodri capturó. Ahora es la pose ilustrada de estirada. */
+    const arq = this.add.sprite(W / 2 + 40, H / 2, this.figuraArquero("vuela", "planoArquero"));
+    arq.setScale((H * 0.46) / arq.height).setAngle(6);
     this.cineContent.add(arq);
     this.tweens.add({ targets: arq, scale: 3.0, x: W / 2, angle: 0, duration: C.plano_arquero_ms, ease: "Quad.easeOut" });
     const ball = this.add.sprite(W / 2 - 220, H / 2 - 90, "ball").setScale(0.8);
@@ -2068,7 +2092,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineBG.fillStyle(0xffffff, 1);
     this.cineBG.fillRect(gx - gw / 2 - 6, gy - gh - 6, 8, gh + 6); this.cineBG.fillRect(gx + gw / 2, gy - gh - 6, 8, gh + 6);
     this.cineBG.fillRect(gx - gw / 2 - 6, gy - gh - 6, gw + 14, 8);
-    const arq = this.add.sprite(gx, gy - 20, "cine_arquero").setScale(2.4); this.cineContent.add(arq);
+    /* B3: el otro "cine_arquero". Acá SÍ se sabe cómo terminó, así que el
+       arquero va con la pose que corresponde: atajó de rodillas o se estiró. */
+    const arq = this.add.sprite(gx, gy - 20, this.figuraArquero(res.outcome === "atajada" ? "ataja" : "vuela", "planoDesenlace"));
+    arq.setScale((gh * 1.15) / arq.height); this.cineContent.add(arq);
     const ball = this.add.sprite(gx - 260, gy - 40, "ball").setScale(1.6); this.cineContent.add(ball);
     const targetY = gy - gh * 0.6 + (this.zona.gy || 0) * C.drift_mult;
     /* Feel B8: SILENCIO antes de revelar (el vacío en el estómago) */
@@ -2316,16 +2343,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      escena), efectos y texto. Vive en cineLayer (uiCam, panel de UI): el
      presupuesto de 3 sprites del mundo no se toca. El hilo avanza POR RELOJ
      (lección del Hito 1: los tweens son solo movimiento visual). */
+  /* B3 · ESTE ERA EL CAMINO QUE HACÍA VOLVER EL BUG.
+     escenaCine() cae acá cuando no encuentra pose ilustrada, y acá se horneaba
+     el muñequito paramétrico con PampaAvatarArte.heroico(). Por eso cada vez
+     que se agregaba una escena nueva sin pose asignada, reaparecían los
+     bloques: el arreglo anterior recorría las escenas, pero el AGUJERO estaba
+     debajo de todas ellas.
+     Ahora esta función no sabe dibujar bloques. Traduce a pose ilustrada y
+     delega en figuraCine, que nunca devuelve un muñequito. */
   texturaEscena(j, esRival, anim, frame) {
     const esArq = j.pos === "ARQ";
-    const base = (esRival ? "h_riv" : "h_mio") + ((j.numero || 1) - 1);
-    if (!this._bakes) this._bakes = new Set();
-    const fresco = !this._bakes.has(base); this._bakes.add(base);
-    window.PampaAvatarArte.heroico(this, base, j.look || window.PampaAvatar.crearLook(),
-      esArq ? (esRival ? "arqRival" : "arqMio") : (esRival ? "rival" : "mio"),
-      j.numero, esArq ? ["parado", "estirada", "atajada", "despeje"] : undefined, fresco);
-    const key = base + "_" + anim + "_" + (frame || 0);
-    return this.textures.exists(key) ? key : base + (esArq ? "_parado_0" : "_correr_1");
+    if (esArq) {
+      return this.figuraArquero(anim === "atajada" || anim === "despeje" ? "ataja" : "vuela",
+        "texturaEscena(" + (esRival ? "arquero rival" : "tu arquero") + ")");
+    }
+    /* la acción de la escena → id de pose del manifest, la misma tabla que usa
+       poseParaEscena para que no haya dos criterios distintos */
+    const id = this.poseParaEscena({ j: j, esRival: esRival, anim: anim }, anim);
+    const k = this.figuraCine(id, "texturaEscena(" + anim + ")");
+    /* si sos VOS, la pose va con tu camiseta (B3-D) */
+    if (!esRival && j.esVos && this.poseHeroeTenida) return this.poseHeroeTenida(j, id) || k;
+    if (esRival && this.poseRivalNaranja) return this.poseRivalNaranja(id) || k;
+    return k;
   }
   /* ¿contra cuántos pateás? — rivales de campo entre vos y el arco (info de la decisión) */
   rivalesEnElCamino(j) {
@@ -2365,7 +2404,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     let k = this.poseKey(id);
     if (!k) return null;
     if (cfg.rival.esRival && this.poseRivalNaranja) k = this.poseRivalNaranja(id) || k;
-    else if (!cfg.rival.esRival && cfg.rival.j.esVos && id === "corriendo" && this.poseHeroeTenida) k = this.poseHeroeTenida(cfg.rival.j) || k;
+    else if (!cfg.rival.esRival && cfg.rival.j.esVos && this.poseHeroeTenida) k = this.poseHeroeTenida(cfg.rival.j, id) || k;
     return k;
   }
   /* cfg: { etiqueta, prota:{j,esRival,anim}, rival:{j,esRival,anim}|null, gana,
@@ -2412,7 +2451,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          (megacorrida, combinada y gambetas incluidas) */
       let kPose = this.poseKey(poseId);
       if (cfg.prota && cfg.prota.esRival && this.poseRivalNaranja) kPose = this.poseRivalNaranja(poseId) || kPose;
-      else if (cfg.prota && cfg.prota.j && cfg.prota.j.esVos && poseId === "corriendo" && this.poseHeroeTenida) kPose = this.poseHeroeTenida(cfg.prota.j) || kPose;
+      else if (cfg.prota && cfg.prota.j && cfg.prota.j.esVos && this.poseHeroeTenida) kPose = this.poseHeroeTenida(cfg.prota.j, poseId) || kPose;
       sp = this.add.image(-200, H * 0.52, kPose);
       sp.setScale((cfg.especial ? 420 : 360) / sp.height);
       if (cfg.poseFlip) sp.setFlipX(true);
@@ -2675,7 +2714,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillStyle(esRivalRet ? 0x2a0b0b : 0x0b1c2a, 1);
     g.fillTriangle(0, 0, 634, 0, 326, 540); g.fillTriangle(0, 0, 326, 540, 0, 540);
     /* pose ilustrada del dueño (mía = remate, rival = barrida); si no, el retrato grande */
-    const spr = this.poseSprite(esRivalRet ? "barrida" : "remate", -220, 290, 380, () => {
+    /* B3-E: la pose sale del PUESTO del que hace el especial, no solo del
+       bando. Un arquero que hace una megaatajada tiene que verse atajando. */
+    const idCut = (jRet && jRet.pos === "ARQ") ? "arquero_ataja" : (esRivalRet ? "barrida" : "remate");
+    const spr = this.poseSprite(idCut, -220, 290, 380, () => {
       const im = this.add.image(0, 0, this.retratoKey(j, !!esRivalRet, esRivalRet ? "frustrado" : "triunfante"));
       im.setScale(300 / im.height);
       return im;

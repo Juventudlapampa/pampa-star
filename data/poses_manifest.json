@@ -13,6 +13,14 @@
         "x": 0.884,
         "y": 0.737,
         "r": 0.126
+      },
+      "tonos": {
+        "piel": "#fdd1b5",
+        "camiseta": "#4dc0f6"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
       }
     },
     "chilena": {
@@ -23,6 +31,14 @@
         "x": 0.891,
         "y": 0.131,
         "r": 0.135
+      },
+      "tonos": {
+        "piel": "#fbd0b3",
+        "camiseta": "#4ec1f8"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
       }
     },
     "cabezazo": {
@@ -33,6 +49,14 @@
         "x": 0.736,
         "y": 0.135,
         "r": 0.135
+      },
+      "tonos": {
+        "piel": "#fbd0b5",
+        "camiseta": "#4bc0f8"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
       }
     },
     "barrida": {
@@ -58,7 +82,15 @@
     "festejo": {
       "archivo": "pose_festejo.png",
       "quien": "heroe",
-      "n": "Festejo de gol"
+      "n": "Festejo de gol",
+      "tonos": {
+        "piel": "#fcceb4",
+        "camiseta": "#4bbff8"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
     },
     "gambeta_gana": {
       "archivo": "pose_gambeta_gana.png",
@@ -68,12 +100,28 @@
         "x": 0.902,
         "y": 0.872,
         "r": 0.105
+      },
+      "tonos": {
+        "piel": "#ffcea8",
+        "camiseta": "#4fc2f7"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
       }
     },
     "gambeta_pierde": {
       "archivo": "pose_gambeta_pierde.png",
       "quien": "heroe",
-      "n": "Gambeta perdida — trastabillando"
+      "n": "Gambeta perdida — trastabillando",
+      "tonos": {
+        "piel": "#fecda7",
+        "camiseta": "#4fc2f6"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
     },
     "pared": {
       "archivo": "pose_pared.png",
@@ -83,6 +131,14 @@
         "x": 0.811,
         "y": 0.909,
         "r": 0.097
+      },
+      "tonos": {
+        "piel": "#fdcba5",
+        "camiseta": "#4ebdf1"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
       }
     },
     "bloqueo": {
@@ -128,5 +184,6 @@
       "n": "La tribuna (capa lejana: opening y definición)"
     }
   },
-  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Pose nueva = PNG transparente en assets/poses/ + una entrada acá con {archivo, quien(heroe|defensor|arquero), n, pelota{x,y,r} opcional, tonos opcional}. Para un CICLO de animación agregá ciclo:{cuadros:[...], ms} — mientras no exista, se usa la pose quieta."
+  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Pose nueva = PNG transparente en assets/poses/ + una entrada acá con {archivo, quien(heroe|defensor|arquero), n, pelota{x,y,r} opcional, tonos opcional}. Para un CICLO de animación agregá ciclo:{cuadros:[...], ms} — mientras no exista, se usa la pose quieta.",
+  "_tonos_b3": "B3-D (8/ago): el tinte de camiseta NO llegaba a las escenas — solo la pose 'corriendo' declaraba 'tonos', así que era la única que se podía teñir; en cualquier otra pose salía el celeste del PNG. Ahora las 7 poses del héroe traen sus tonos, sacados con cuentagotas de SU PROPIO PNG (el mismo método de la tanda de arte: se valida contra 'corriendo', que ya estaba verificado, y da #55bcee contra el #54bcec declarado — error menor a 2 por canal). NO se declara 'pelo' a propósito: el tono del pelo y el de los BOTINES son el mismo casi-negro, así que la regla del pelo necesita pelo_y1 (hasta qué altura aplicar) y eso no se puede medir automáticamente — medido, el tono de pelo llega hasta el 104% de la figura, o sea hasta los pies. Sin 'pelo' declarado el tinte de pelo simplemente no se aplica en esas poses: no rompe nada. Queda pendiente ponerle pelo_y1 a mano a cada una, como tiene 'corriendo' (0.45)."
 }

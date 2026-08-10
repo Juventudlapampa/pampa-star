@@ -374,9 +374,14 @@
       this.cineContent.add(g);
       /* el arquero rival, parado al medio (su ficha humana) */
       var arqR = st.rivales.find(function (r) { return r.pos === "ARQ"; });
-      var karq = null;
-      try { window.PampaAvatarArte.jugador(this, "jg_arq", (arqR && arqR.look) || window.PampaAvatar.crearLook(), true); karq = "jg_arq_idle"; } catch (e) { }
-      this._jg.arq = karq ? this.add.sprite(ax, ayPiso - 40, karq).setScale(2.2) : this.add.rectangle(ax, ayPiso - 40, 30, 60, 0xf6c11d);
+      /* B3: el arquero del super tiro salia de BLOQUES durante toda la
+         decision —mientras elegis AL PALO / AL MEDIO / AL ANGULO— y recien se
+         volvia ilustrado en el vuelo. Ahora arranca ilustrado y el tiro solo
+         mueve ese mismo sprite. */
+      var karq = this.figuraArquero("vuela", "jugadon (super tiro)");
+      if (karq && this.poseRivalNaranja) karq = this.poseRivalNaranja("arquero_vuela") || karq;
+      this._jg.arq = karq ? this.add.image(ax, ayPiso - 40, karq) : this.add.rectangle(ax, ayPiso - 40, 30, 60, 0xf6c11d);
+      if (karq) this._jg.arq.setScale(120 / this._jg.arq.height);
       this.cineContent.add(this._jg.arq);
       var lvl = (this._division && this._division.keeper) || st.rivalKeeperSkill || 50;
       var t = this.add.text(ax, ayPiso + 18, "arquero: nivel " + lvl + " · tu fuerza: " + Math.round(this.jugadonFuerza()) + " (tiro + energía)", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);

@@ -19,6 +19,61 @@
       var k = "pose_" + id;
       return this.textures.exists(k) ? k : null;
     },
+
+    /* ================== B3 · LA ÚNICA PUERTA DEL PANEL DE CINE ==================
+       Este bug volvió CINCO veces: una figura del cine sale dibujada con el
+       muñequito paramétrico de bloques en medio de las ilustraciones.
+
+       Las cuatro veces anteriores se arregló recorriendo las escenas una por
+       una. Eso cubre las que existían ese día — no las que se agregan después,
+       ni los caminos que el barrido no miró. Esta vez la quinta aparición NO
+       estaba en las escenas: estaba en la CADENA DE PLANOS del cine viejo
+       (planoPie → planoEsfuerzo → planoArquero → planoDesenlace), que dibujaba
+       "cine_arquero" y "cine_jugador" cableados a mano.
+
+       Así que ahora hay UNA sola función por la que puede entrar una figura al
+       panel, y no sabe devolver bloques:
+         · si la pose pedida existe, la devuelve;
+         · si no existe, cae a una pose GENÉRICA ilustrada (nunca a bloques);
+         · y si tampoco está la genérica, en desarrollo TIRA ERROR con el nombre
+           de quien la pidió, para que se vea en el acto y no dentro de un mes
+           en una captura de Rodri.
+
+       Regla dura: nada dentro de cineContent/cineLayer puede usar una textura
+       que no venga de acá. El test phaser/test/b3_sin_bloques.test.js lo barre. */
+    figuraCine(id, quienLaPide, generica) {
+      var gen = generica || "corriendo";
+      var k = id ? this.poseKey(id) : null;
+      if (k) return k;
+      var g = this.poseKey(gen);
+      if (g) {
+        /* no es un error: es una escena sin pose propia todavía. Se avisa una
+           vez por combinación para que quede en la lista de lo que falta. */
+        this._faltanPoses = this._faltanPoses || {};
+        var marca = (quienLaPide || "?") + ":" + (id || "sin-id");
+        if (!this._faltanPoses[marca]) {
+          this._faltanPoses[marca] = true;
+          if (window.PAMPA_DEV) console.warn("[B3] '" + quienLaPide + "' pidió la pose '" + id +
+            "' y no existe. Va con '" + gen + "'. Agregala a data/poses_manifest.json.");
+        }
+        return g;
+      }
+      /* ni la genérica: esto sí es un error de instalación, y hay que verlo */
+      var msg = "[B3] el panel de cine no tiene NINGUNA pose ilustrada para '" + quienLaPide +
+        "' (pidió '" + id + "', genérica '" + gen + "'). Nunca se cae a bloques: revisá que " +
+        "data/poses_manifest.json esté cargado y que los PNG existan.";
+      if (window.PAMPA_DEV) throw new Error(msg);
+      console.error(msg);
+      return null;   // el caller decide, pero NUNCA con bloques
+    },
+
+    /* la pose del ARQUERO según lo que está haciendo. Existen dos ilustradas:
+       arquero_ataja (la retuvo, de rodillas) y arquero_vuela (estirada). */
+    figuraArquero(accion, quienLaPide) {
+      var id = (accion === "ataja" || accion === "atajada" || accion === "retiene" || accion === "despeje")
+        ? "arquero_ataja" : "arquero_vuela";
+      return this.figuraCine(id, quienLaPide || "arquero", "arquero_vuela");
+    },
     /* sprite de pose con fallback: pose ilustrada grande o heroico escalado */
     poseSprite(id, x, y, alturaDeseada, fallback) {
       var k = this.poseKey(id);
@@ -101,14 +156,17 @@
       }
       /* V7 §1: el arquero rival bajo los palos es una FICHA humana (el sprite
          heroico del arquero, naranja) — el rectángulo queda de fallback */
+      /* B3: acá se dibujaba el arquero rival con el muñequito de bloques, y NO
+         era un fallback — salía siempre, todo el rato que buscás el ángulo, con
+         la tribuna y tu pose ilustradas alrededor. Era el segundo lugar más
+         visible del bug. Ahora es la pose ilustrada, teñida de naranja rival. */
       var arqR = st.rivales.find(function (x) { return x.pos === "ARQ"; });
       this._def.arq = null;
-      if (arqR && window.PampaAvatarArte) {
-        try {
-          var baseA = "defarq_riv";
-          window.PampaAvatarArte.jugador(this, baseA, arqR.look || window.PampaAvatar.crearLook(), true);
-          this._def.arq = this.add.sprite(W / 2, 148, baseA + "_idle").setScale(1.5);
-        } catch (e) { }
+      var kArq = this.figuraArquero("vuela", "definición ofensiva (arquero rival)");
+      if (kArq) {
+        var kNaranja = this.poseRivalNaranja ? (this.poseRivalNaranja("arquero_vuela") || kArq) : kArq;
+        this._def.arq = this.add.image(W / 2, 148, kNaranja);
+        this._def.arq.setScale(96 / this._def.arq.height);
       }
       if (!this._def.arq) this._def.arq = this.add.rectangle(W / 2, 148, 26, 44, 0xf6c11d).setStrokeStyle(2, 0x0a1f13);
       this.cineContent.add(this._def.arq);
@@ -127,76 +185,14 @@
       if (this.escenaRemateRival) { this.escenaRemateRival(this.st.portadorRival); return; }
       return this._entrarDefinicionDefVieja();
     },
+    /* B3: el cuerpo viejo se BORRÓ. No se alcanzaba NUNCA —entrarDefinicionDef
+       sale antes por escenaRemateRival, que siempre existe porque escenas_v9.js
+       se carga después de match.js y se mezcla en el prototipo— y dibujaba dos
+       figuras de bloques que aparecían en toda auditoría como falsos positivos.
+       Si algún día se vuelve a llamar, que se vea en el acto. */
     _entrarDefinicionDefVieja() {
-      var st = this.st, DL = this.BAL.definicion || {};
-      this.quitarDuelo(); this.limpiarMenu();
-      this.estado = "DEFINICION";
-      st.modo = "congelado";
-      this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
-      this.cineLayer.setVisible(true);
-      this.uiCam.setZoom(1); this.uiCam.centerOn(W / 2, H / 2);
-      this.limpiarContenido();
-      var tirador = st.rivales[st.portadorRival];
-      this._def = {
-        modo: "def", fase: 1, t: 0,
-        tirador: tirador,
-        jug: { x: W * 0.42, y: H * 0.5 },      // TU defensor, movible
-        carga: 0, cargaMs: this.msV(DL.carga_ms || 4200),
-        espera: 0, esperaMax: this.msV(DL.espera_ms || 9000),   // V9 §6: si no decidís, el rival patea igual
-        plan: "linea",                          // linea | achicar (arquero)
-        plantado: false, barridaHecha: false, defensorVivo: true,
-        aguja: { t0: 0, p: 0, parada: false },
-        zonaMia: null, zonaTiro: null,
-        botones: []
-      };
-      this.defFondo(true);
-      /* V7 §0.2: EL REMATADOR rival con la POSE ILUSTRADA del remate teñida a
-         NARANJA (bando) — SIEMPRE revelado, con su nombre en la placa */
-      var kRem = this.poseRivalNaranja("remate");
-      if (kRem) {
-        this._def.sprTirador = this.add.image(W * 0.5, H * 0.72, kRem);
-        this._def.sprTirador.setScale(180 / this._def.sprTirador.height);
-        this._def.sprTirador.setFlipX(true);   // remata hacia TU arco (al fondo)
-      } else {
-        var baseR = "h_riv" + ((tirador.numero || 1) - 1);
-        window.PampaAvatarArte.heroico(this, baseR, tirador.look || window.PampaAvatar.crearLook(), "rival", tirador.numero, undefined, !this._bakes.has(baseR));
-        this._bakes.add(baseR);
-        this._def.sprTirador = this.add.sprite(W * 0.5, H * 0.76, baseR + "_tiro_1").setScale(2.3);
-      }
-      this.cineContent.add(this._def.sprTirador);
-      var placa = this.add.text(W * 0.5, H * 0.94, "⚔ " + (tirador.nombre || "EL RIVAL").toUpperCase() + " CARGA EL REMATE", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 8, y: 3 } }).setOrigin(0.5);
-      this.cineContent.add(placa);
-      /* TU defensor (movible) y TU arquero (posicionable) — V7 §0.2: los dos
-         con figura HUMANA (defensor = pose del héroe teñida; arquero = ficha
-         heroica tuya); el rectángulo murió */
-      var arq = st.mios.find(function (x) { return x.pos === "ARQ"; });
-      var kDef = this.poseHeroeTenida ? (this.poseHeroeTenida(st.mios[st.ctrl]) || this.poseKey("corriendo")) : this.poseKey("corriendo");
-      if (kDef) {
-        this._def.spr = this.add.image(this._def.jug.x, this._def.jug.y, kDef);
-        this._def.spr.setScale(120 / this._def.spr.height);
-        this._def.spr.setFlipX(true);   // defendés mirando a tu arco
-      } else {
-        var baseD = this.bakePortador({ j: st.mios[st.ctrl], idx: st.ctrl, esRival: false, clave: "m" + st.ctrl });
-        this._def.spr = this.add.sprite(this._def.jug.x, this._def.jug.y, baseD + "_correr_2").setScale(1.7);
-      }
-      this.cineContent.add(this._def.spr);
-      this._def.arq = null;
-      if (arq && window.PampaAvatarArte) {
-        try {
-          window.PampaAvatarArte.jugador(this, "defarq_mio", arq.look || window.PampaAvatar.crearLook(), false);
-          this._def.arq = this.add.sprite(W / 2, 150, "defarq_mio_idle").setScale(1.5);
-        } catch (e) { }
-      }
-      if (!this._def.arq) this._def.arq = this.add.rectangle(W / 2, 150, 28, 46, 0x1d4fd6).setStrokeStyle(2, 0xffffff);
-      this.cineContent.add(this._def.arq);
-      /* barra de CARGA del rematador (la tensión es de reloj) */
-      this._def.cargaG = this.add.graphics();
-      this.cineContent.add(this._def.cargaG);
-      this.cineLabel.setText("· TE REMATAN · metete en la línea; tu arquero espera tu orden");
-      this.defBotonesDef();
-      this.selloDef();
-      this.musica("rival");
-      this.relatar("peligro");
+      console.error("[B3] _entrarDefinicionDefVieja() no debería llamarse: la definición defensiva la maneja escenaRemateRival().");
+      if (this.escenaRemateRival) return this.escenaRemateRival(0);
     },
 
     selloDef() { /* cineLayer la mira solo uiCam (ya sellado en create); nada extra */ },

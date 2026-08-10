@@ -58,7 +58,9 @@
       var k = this.poseKey(poseId);
       if (!k) return null;
       if (esRival && this.poseRivalNaranja) return this.poseRivalNaranja(poseId) || k;
-      if (j && j.esVos && poseId === "corriendo" && this.poseHeroeTenida) return this.poseHeroeTenida(j) || k;
+      /* B3-D: antes solo teñía la pose 'corriendo' — en el resto salía el
+         celeste del PNG aunque hubieras elegido otra camiseta. */
+      if (j && j.esVos && this.poseHeroeTenida) return this.poseHeroeTenida(j, poseId) || k;
       return k;
     },
     figuraDePlano(poseId, j, esRival, x, y, alto, flip) {
