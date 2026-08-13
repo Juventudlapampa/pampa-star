@@ -160,6 +160,43 @@ así que las capturas de celular son apaisadas: 812×375.
 
 ---
 
+## CÓMO SE CORRE LA SUITE
+
+```bash
+sh test.sh
+```
+
+Estaba en un script suelto en una carpeta temporal del sistema: no se
+versionaba, no viajaba con el zip y se perdía al limpiar temporales. Ahora vive
+en `test.sh`, en la raíz del repo.
+
+Hace dos cosas que conviene saber:
+
+**Respeta los exit codes.** Hubo un commit con la suite en rojo porque el loop
+imprimía "ok" pasara lo que pasara.
+
+**Muestra las deudas.** Un test puede imprimir una línea que arranque con
+`DEUDA:` para dejar a la vista algo que está mal pero que todavía no frena el
+commit. La suite las junta y las muestra siempre al final, falle o no:
+
+```
+── DEUDAS A LA VISTA ──
+  · 36 textos por debajo de 12 px lógicos (8.7 reales en teléfono).
+    El más chico: 9px en definicion_ui.js:236.
+    Por archivo: match 18, master 9, definicion_ui 3, editor 3, jugadon_ui 2, intro 1
+```
+
+El criterio es de Rodri y es el correcto: un test que falla desde el día uno se
+termina desactivando, pero una deuda que no se ve tampoco se paga nunca. Así
+queda enfrente sin frenar el trabajo — y el test **sí** frena si el número
+crece (probado: agregando un texto de 8px la suite corta con "hay 37 y antes
+había 36").
+
+El desglose por archivo está para que la deuda sea accionable: 18 de los 36
+están en `match.js`, así que se puede bajar por tandas en vez de todo junto.
+
+---
+
 ## LO QUE NO ENTRÓ, Y POR QUÉ
 
 - **El HTML de Expo Carreras nunca llegó.** El pedido decía "Rodri va a pasar" y

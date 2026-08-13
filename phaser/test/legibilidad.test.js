@@ -141,7 +141,19 @@ if (previo && typeof previo.textosBajoElPiso === "number") {
   fs.writeFileSync(REGISTRO, JSON.stringify({ textosBajoElPiso: bajos.length, piso: LEG.texto_info_min }, null, 1));
 }
 console.log("[5] textos por debajo de " + LEG.texto_info_min + " lógicos: " + bajos.length +
-  " (deuda registrada; el test falla si CRECE)");
+  " (el test no falla por ellos; falla si el número CRECE)");
+/* La línea DEUDA: la levanta test.sh y la muestra al final de CADA corrida de
+   la suite. Una deuda enterrada en un HANDOFF no se paga: esta se ve siempre. */
+if (bajos.length > 0) {
+  const peor = bajos.slice().sort((a, b) => a.px - b.px)[0];
+  const porArchivo = {};
+  bajos.forEach(b => { porArchivo[b.archivo] = (porArchivo[b.archivo] || 0) + 1; });
+  const detalle = Object.entries(porArchivo).sort((a, b) => b[1] - a[1])
+    .map(([f, n]) => f.replace(".js", "") + " " + n).join(", ");
+  console.log("DEUDA: " + bajos.length + " textos por debajo de " + LEG.texto_info_min +
+    " px lógicos (" + (real(LEG.texto_info_min)).toFixed(1) + " reales en teléfono). " +
+    "El más chico: " + peor.px + "px en " + peor.archivo + ":" + peor.linea + ". Por archivo: " + detalle);
+}
 
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }
