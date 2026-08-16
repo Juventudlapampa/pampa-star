@@ -233,7 +233,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const nombres = ["LUNES", "MIÉRCOLES", "VIERNES"];
     const anchoR = 250, x0 = W / 2 - anchoR - 14;
     nombres.forEach((n, i) => {
-      const x = x0 + i * (anchoR + 14), y = 250;
+      /* O1 · las ranuras vivían en y=250, o sea ARRIBA: el otro de los dos
+         grupos que no caían en la franja de decisión. Bajan al mismo lugar
+         donde se elige en todas las demás pantallas. */
+      const x = x0 + i * (anchoR + 14);
+      const y = Math.round(window.PampaPiel.yDeOpcion(0, 2, 108, (this.game.registry.get("balance") || {}).piel));
       const elegida = sem.elegidas[i];
       const op = elegida ? D.opciones.find(o => o.id === elegida) : null;
       const r = this.add.rectangle(x, y, anchoR, 108, op ? 0x2e7d32 : 0x0a1f13, op ? 0.9 : 0.55)
@@ -252,13 +256,17 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* --- CÓMO LLEGÁS + JUGAR --- */
     const llega = S.comoLlegas(sem, cfg);
-    this.add.text(W / 2, 352, "🗓 " + llega.resumen, { fontFamily: window.PF.texto, fontSize: "16px", color: "#7ee08a", align: "center" }).setOrigin(0.5);
-    this.add.text(W / 2, 380, "vas a arrancar el partido con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
+    this.add.text(W / 2, 206, "🗓 " + llega.resumen, { fontFamily: window.PF.texto, fontSize: "16px", color: "#7ee08a", align: "center" }).setOrigin(0.5);
+    this.add.text(W / 2, 234, "vas a arrancar el partido con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
       { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
-    if (sem.espiado) this.add.text(W / 2, 402, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    if (sem.espiado) this.add.text(W / 2, 258, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
 
     const listo = sem.elegidas.every(e => e);
-    this.boton(W / 2 - 170, H - 74, 340, listo ? "▶ JUGAR LA FECHA" : "▶ JUGAR ASÍ (te queda semana sin usar)", listo ? 0x7ee08a : 0xdcd6c2, () => {
+    /* boton() toma x como CENTRO. Acá había un W/2-170 heredado del layout de
+       DOS botones lado a lado de la vista de temporada, pero en la semana hay
+       uno solo: quedaba corrido a la izquierda. Se ve en la captura vieja. */
+    const yJugar = Math.round(window.PampaPiel.yDeOpcion(1, 2, 92, (this.game.registry.get("balance") || {}).piel));
+    this.boton(W / 2, yJugar, 340, listo ? "▶ JUGAR LA FECHA" : "▶ JUGAR ASÍ (te queda semana sin usar)", listo ? 0x7ee08a : 0xdcd6c2, () => {
       this.cerrarSemana(alJugar);
     });
     this.add.text(W / 2, H - 22, "tres toques y a la cancha (teclas 1 · 2 · 3)", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.85);

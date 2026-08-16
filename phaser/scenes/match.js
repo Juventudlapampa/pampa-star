@@ -1188,15 +1188,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tutorialSiHaceFalta();
     };
     PRESETS.forEach((p, i) => {
-      const y = 176 + i * 92;
-      const r = this.add.rectangle(480, y, 500, 72, p.k === ult.preset ? 0xffd84d : 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const t = this.add.text(480, y - 13, (i + 1) + " · " + p.n + " (" + T.presets[p.k] + "' por momento)", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      const d = this.add.text(480, y + 14, p.d, { fontFamily: window.PF.texto, fontSize: "11px", color: "#365a41" }).setOrigin(0.5);
+      /* O1 · los tres presets arrancaban en y=176, o sea ARRIBA: era uno de los
+         dos grupos de opciones del juego que no caían en la franja de decisión.
+         Ahora se ubican con el helper, que es la misma cuenta en todas las
+         pantallas. */
+      /* cuatro opciones, no tres: el toggle de VELOCIDAD también es elegir, y
+         antes vivía suelto en y=470 pisando al tercer preset apenas se movieron
+         a la franja. Entra en el mismo reparto. */
+      const y = Math.round(window.PampaPiel.yDeOpcion(i, PRESETS.length + 1, 52, this.BAL.piel));
+      const r = this.add.rectangle(480, y, 500, 52, p.k === ult.preset ? 0xffd84d : 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const t = this.add.text(480, y - 9, (i + 1) + " · " + p.n + " (" + T.presets[p.k] + "' por momento)", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      const d = this.add.text(480, y + 11, p.d, { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
       this.menuLayer.add([r, t, d]);
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; elegir(p.k); });
     });
-    const vr = this.add.rectangle(480, 470, 420, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const vt = this.add.text(480, 470, "", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
+    const yVel = Math.round(window.PampaPiel.yDeOpcion(PRESETS.length, PRESETS.length + 1, 52, this.BAL.piel));
+    const vr = this.add.rectangle(480, yVel, 420, 46, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const vt = this.add.text(480, yVel, "", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
     const pintarVel = () => vt.setText("🎬 VELOCIDAD: " + (this._velRapida ? "RÁPIDA — animaciones cortas" : "NORMAL"));
     pintarVel();
     this.menuLayer.add([vr, vt]);

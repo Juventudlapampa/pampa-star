@@ -127,11 +127,61 @@
     };
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     O1 · LA FRANJA DE DECISIÓN — "acá elegís", y siempre en el mismo lugar
+
+     El problema medido: de los 12 grupos de opciones del juego, 10 vivían en la
+     mitad de abajo y 2 arrancaban arriba (los presets de tempo en y=176 y las
+     ranuras de la semana en y=250). El jugador tiene que buscar dónde elegir
+     según la pantalla, que es exactamente lo que no puede pasar.
+
+     Ahora la franja es un DATO, no una coordenada suelta repetida en cada
+     escena. Todo lo que sea "elegir una de varias" se ubica con estas
+     funciones, y el test verifica que ninguna se salga.
+     ══════════════════════════════════════════════════════════════════════ */
+  function franja(P) {
+    P = P || paleta();
+    var f = P.franja_decision || {};
+    var y0 = f.y_min != null ? f.y_min : 296;
+    var y1 = f.y_max != null ? f.y_max : 528;
+    return { y0: y0, y1: y1, alto: y1 - y0, centro: (y0 + y1) / 2, pad: f.pad != null ? f.pad : 10 };
+  }
+
+  /* la Y del centro de la opción i de n, repartidas en la franja.
+     `altoOpcion` es opcional: si se pasa, se garantiza que la opción entera
+     (no solo su centro) entra en la franja. */
+  function yDeOpcion(i, n, altoOpcion, P) {
+    var F = franja(P);
+    n = Math.max(1, n || 1);
+    var h = altoOpcion || 0;
+    var util = F.alto - F.pad * 2;
+    var paso = n > 1 ? (util - h) / (n - 1) : 0;
+    if (paso < 0) return F.centro;
+    return F.y0 + F.pad + h / 2 + i * paso;
+  }
+
+  /* ¿entran n opciones de ese alto sin solaparse? El helper reparte lo que le
+     pidan; decidir cuántas caben es del que dibuja. Sin esto, pedirle 5 de
+     52 px a una franja de 232 devuelve posiciones a 40 px de distancia y las
+     opciones se pisan — pasó, y lo cazó el test de O1. */
+  function caben(n, altoOpcion, P) {
+    var F = franja(P);
+    return (F.alto - F.pad * 2) >= (n || 1) * (altoOpcion || 0);
+  }
+
+  /* ¿este elemento cae dentro de la franja? (lo usa el test) */
+  function enFranja(y, alto, P) {
+    var F = franja(P);
+    var arriba = y - (alto || 0) / 2, abajo = y + (alto || 0) / 2;
+    return arriba >= F.y0 - 0.5 && abajo <= F.y1 + 0.5;
+  }
+
   return {
     DEF: DEF, paleta: paleta, capasBoton: capasBoton,
     num: num, hex: hex, oscurecer: oscurecer, aclarar: aclarar,
     luma: luma, esOscuro: esOscuro, tintaSobre: tintaSobre,
     esMayusculas: esMayusculas, trackingPx: trackingPx,
-    escala: escala, tam: tam
+    escala: escala, tam: tam,
+    franja: franja, yDeOpcion: yDeOpcion, enFranja: enFranja, caben: caben
   };
 });

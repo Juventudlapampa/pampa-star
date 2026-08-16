@@ -559,7 +559,13 @@
     "tracking_mayus": 0.16,
     "_escala": "P5 · los tamaños del HUD escalan con el ancho real de pantalla entre esc_min y esc_max. Con Scale.FIT el ancho lógico es fijo (960), así que esto sirve para la vista elevada y para pantallas futuras: el corte de ENVIÓN/AGUANTE se arregló acomodando la maqueta, no escalando.",
     "esc_min": 0.85,
-    "esc_max": 1.15
+    "esc_max": 1.15,
+    "franja_decision": {
+      "y_min": 296,
+      "y_max": 528,
+      "pad": 10,
+      "_nota": "O1 LA FRANJA DE DECISION. Un solo lugar en pantalla para acá elegís, el mismo en todas las pantallas. Medido antes: de 12 grupos de opciones, 10 ya vivian abajo y 2 arrancaban arriba (presets de tempo y=176, ranuras de la semana y=250). Todo lo que sea elegir una de varias se ubica con piel.yDeOpcion(); el test g_o1 verifica que nada se salga. El lienzo es 960x540: arriba de y_min va lo que se MIRA (la ilustracion, la cancha, la tabla), abajo lo que se TOCA."
+    }
   },
   "legibilidad": {
     "_nota": "PASE DE LEGIBILIDAD (8/ago). El numero de camiseta del mapa medía 9px lógicos = 6,5 px REALES en un teléfono (844x390, factor 0,7222). Su altura de mayúscula daba 5,8 minutos de arco y el umbral de agudeza 20/20 es 5: estaba por debajo del umbral de RESOLUCIÓN, no de lectura. Y el trazo medía 0,65 px reales, que con pixelArt:true el downscale nearest-neighbour DESCARTA. En el mapa te reconocés por el número tanto como por el color: si el número no se resuelve, queda el color solo.",
