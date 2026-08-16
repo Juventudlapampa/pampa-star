@@ -1653,6 +1653,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
           pose: "gambeta_pierde", poseFlip: true,              // ARTE 2: espejo — pierde él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          /* G2: sin esto el defensor salía con pose_pared — el toque de primera,
+             que es una pose de ATAQUE. Medido contando figuras en la escena.
+             Va barrida, que además es lo que dice el subtítulo ("te tiraste al
+             piso"). No hay pose de "quite" en assets/poses: ver pedidos de arte. */
+          poseRival: "barrida",
           gana: true, color: 0x7ee08a, sfx: "gloves",
           titulo: "¡RECUPERASTE!",
           sub: this.subConPorQue(r.matriz === "leiste" ? "le leíste la intención y te tiraste al piso" : "llegaste primero a la pelota", r),
@@ -1681,6 +1686,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           pose: "barrida", rapida: true,
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "pase" } : null,
+          /* G2: los dos salían barriéndose. El que perdió el pase no se barre:
+             queda descolocado. */
+          poseRival: "gambeta_pierde",
           gana: true, color: 0x7ee08a, sfx: "gloves",
           titulo: "¡LA CORTASTE!",
           sub: this.subConPorQue(r.matriz === "leiste" ? "le leíste la línea de pase" : "metiste la pierna a tiempo", r),
@@ -1720,6 +1728,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
           pose: "gambeta_gana", poseFlip: true,                // ARTE 2: espejo — gana él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          /* G2: mismo caso que el quite ganado — el que se quedó pagando salía
+             con la pose de la pared. Barrida en el bloqueo (te tiraste y te la
+             sacó del pie) y en el corte; en el quite fallado quedaste parado. */
+          poseRival: a.id === "quite" ? "corriendo" : "barrida",
           gana: true, color: 0xe3503e, sfx: "whoosh",
           titulo: t.ti, sub: this.subConPorQue(t.su, r),
           alFinal: () => this.relatar("gambeta_lose")
