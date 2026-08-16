@@ -412,6 +412,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         String(f.pj).padStart(2) + " " + String(f.g).padStart(2) + " " + String(f.e).padStart(2) + " " + String(f.p).padStart(2) + "  " +
         String(f.gf).padStart(3) + " " + String(f.gc).padStart(3) + " " + String(dg).padStart(3) + "  " + String(f.pts).padStart(3);
       const y = y0 + 18 + i * 19;
+      /* N3 · el escudo del club, generado por código a partir del nombre.
+         Chico (15 px) va sin inicial a propósito: a ese tamaño la letra no se
+         lee y ensucia — manda la silueta, que es lo que distingue. */
+      if (window.PampaEscudosUI && window.PampaEscudos) {
+        const esc = window.PampaEscudosUI.deClub(this, f.equipo, pos.map(p => p.equipo));
+        /* a la IZQUIERDA del número y no al lado del nombre: la tabla es
+           monospace con padStart y meterle un objeto en el medio le rompe la
+           alineación a todas las columnas. Acá el margen ya estaba libre. */
+        window.PampaEscudosUI.dibujar(this, x0 - 20, y + 6, 15, esc);
+      }
       /* la línea de corte: se ve DÓNDE empieza la zona aunque no leas los ▼.
          Va en y-4 y no en el medio del paso (y-9): el texto tiene origen
          arriba-izquierda, así que a media distancia la línea TACHA la fila
@@ -440,7 +450,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         const rival = mp.local === t.miClub ? mp.visita : mp.local;
         const localia = mp.local === t.miClub ? "(de local)" : "(de visita)";
         const perfil = Ma.perfilRival(rival);
-        this.add.text(W / 2, H - 150, fechaTxt + " · vs " + rival.toUpperCase() + " " + localia, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
+        const tFecha = this.add.text(W / 2 + 16, H - 150, fechaTxt + " · vs " + rival.toUpperCase() + " " + localia, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
+        /* N3 · acá el escudo va GRANDE y con inicial: es el rival del domingo,
+           la única pantalla donde mirás a un club a la cara */
+        if (window.PampaEscudosUI && window.PampaEscudos) {
+          const escR = window.PampaEscudosUI.deClub(this, rival, pos.map(p => p.equipo));
+          window.PampaEscudosUI.dibujar(this, tFecha.x - tFecha.width / 2 - 24, H - 150, 30, escR);
+        }
         this.add.text(W / 2, H - 128, "un equipo " + perfil.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#7ee08a" }).setOrigin(0.5);
         this.boton(W / 2 - 170, H - 80, 300, "▶ JUGAR LA FECHA", 0x7ee08a, () => {
           /* V8 A1: primero LA SEMANA (dos toques), después la cancha */
