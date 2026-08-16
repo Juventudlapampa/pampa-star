@@ -35,6 +35,11 @@
     var base = cfg.energia_max != null ? cfg.energia_max : 100;
     var penalMolestia = cfg.penal_molestia != null ? cfg.penal_molestia : 15;
     var e = base - (save && save.desgaste ? save.desgaste : 0) - (save && save.molestia ? penalMolestia : 0);
+    /* A3: y lo que arrastrás de tu propia semana (0 si no hay resaca) */
+    e -= (save && save.resaca ? save.resaca : 0);
+    /* el piso jugable: la resaca cansa, no te deja tirado */
+    var piso = cfg.resaca_piso != null ? cfg.resaca_piso : 35;
+    if (save && save.resaca) e = Math.max(piso, e);
     return {
       energia: clamp(Math.round(e), 0, base),
       animo: clamp(Math.round((save && save.animo != null) ? save.animo : (cfg.animo_inicial != null ? cfg.animo_inicial : 60)), 0, 100),
@@ -91,6 +96,53 @@
     return out;
   }
 
+  /* ---------- A1 · RENDIMIENTO DECRECIENTE ----------
+     Cuanto más alta está la stat, menos suma cada punto de entrenamiento.
+     Elegida entre las tres opciones porque es la única que sigue significando
+     algo en la temporada cinco: las otras corren el techo más lejos pero no lo
+     resuelven, y "no repetir stat" no cambia nada para el que ya juega mixto.
+     Y tiene una virtud de diseño: la mejora se encarece justo cuando el rival
+     se endurece, así que entrenar nunca se vuelve trámite.
+
+     La curva es lineal sobre lo que FALTA para el techo, con un piso para que
+     nunca deje de sumar del todo:
+        factor = max(piso, (techo - stat) / (techo - inicial))
+     Medido a 90 semanas con esta calibración: entrenando SIEMPRE el mismo stat
+     el techo llega en la semana 71 (temporada 4), y con estrategia mixta no se
+     toca nunca. Los dos criterios pedidos.
+
+     Sin cfg.stats esto devuelve el valor entero y todo se comporta como antes:
+     los llamadores viejos no se enteran. */
+  function rendimiento(cuanto, cfg, stat) {
+    if (!cfg || !cfg.stats || !stat || cfg.stats[stat] == null) return cuanto;
+    if (cfg.rendimiento_decreciente === false) return cuanto;
+    var techo = cfg.stat_techo != null ? cfg.stat_techo : 99;
+    var ini = cfg.stat_inicial != null ? cfg.stat_inicial : 50;
+    var piso = cfg.rendimiento_piso != null ? cfg.rendimiento_piso : 0.15;
+    var margen = (techo - cfg.stats[stat]) / Math.max(1, techo - ini);
+    return cuanto * Math.max(piso, Math.min(1, margen));
+  }
+
+  /* ---------- A3 · LA RESACA DE LA SEMANA ----------
+     lunesDespues no devolvía 'energia', así que con cuánta energía TERMINABAS
+     la semana no arrastraba: podías gastar todo el viernes y el lunes arrancar
+     como si nada. Ahora arrastra, pero SUAVE: la penalización es una fracción
+     de lo que faltó para llenar el tanque, no el total, y tiene un piso para
+     que nunca arranques por debajo de lo jugable.
+        faltante  = energia_max - energia_con_la_que_terminaste
+        penaliza  = faltante * resaca_frac
+        arranque  = max(resaca_piso, energia_max - desgaste - molestia - penaliza)
+     Con resaca_frac 0.33 y piso 35, medido a 90 semanas, "entrenar siempre"
+     —que es el que más gasta— se estabiliza cerca del piso sin quedar
+     injugable, y descansar no lo nota. */
+  function resacaDeLaSemana(energiaFinal, cfg) {
+    cfg = cfg || {};
+    if (energiaFinal == null) return 0;
+    var max = cfg.energia_max != null ? cfg.energia_max : 100;
+    var frac = cfg.resaca_frac != null ? cfg.resaca_frac : 0.33;
+    return Math.round(Math.max(0, max - energiaFinal) * frac);
+  }
+
   /* ---------- elegir ----------
      Devuelve la semana NUEVA (no muta) o null si no se puede (sin energía,
      ranura ocupada, opción desconocida). El costo se cobra siempre; el efecto
@@ -122,7 +174,8 @@
        descontara, entrenar algo inútil te sacaría el permanente de otra cosa. */
     if (o.stat && suma < tope && !statEnElTecho(cfg, o.stat)) {
       var cuanto = Math.min(o.stat_mas || 1, tope - suma);
-      s.permanentes[o.stat] = (s.permanentes[o.stat] || 0) + cuanto;
+      cuanto = rendimiento(cuanto, cfg, o.stat);
+      if (cuanto > 0) s.permanentes[o.stat] = (s.permanentes[o.stat] || 0) + cuanto;
     }
     return s;
   }
@@ -214,6 +267,9 @@
       animo: animo,
       desgaste: clamp(desgaste, 0, cfg.desgaste_max || 40),
       molestia: molestia,
+      /* A3: cuánto te arrastra tu propia semana. save.energiaFinal la pone el
+         llamador con la energía que te quedó el viernes. */
+      resaca: resacaDeLaSemana(save.energiaFinal, cfg),
       fecha: (save.fecha || 1) + 1
     };
   }
@@ -222,6 +278,7 @@
     RANURAS: RANURAS, clamp: clamp,
     nuevaSemana: nuevaSemana, opcionesPara: opcionesPara, elegir: elegir,
     comoLlegas: comoLlegas, resumen: resumen, lunesDespues: lunesDespues,
-    nivelEnergia: nivelEnergia, statEnElTecho: statEnElTecho
+    nivelEnergia: nivelEnergia, statEnElTecho: statEnElTecho,
+    rendimiento: rendimiento, resacaDeLaSemana: resacaDeLaSemana
   };
 });

@@ -10,6 +10,7 @@ let ok = 0, mal = 0;
 function assert(cond, msg) { if (cond) ok++; else { mal++; console.error("✗ " + msg); } }
 
 const DIV = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "data", "divisiones.json"), "utf8"));
+const BAL = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "balance.json"), "utf8"));
 
 /* --- el data de divisiones calza con master.js --- */
 const ids = Ma.DIVISIONES.map(d => d.id);
@@ -68,11 +69,38 @@ const t5 = T.crear({ division: "mundial", miClub: "ARGENTINA PAMPA", rivales: DI
 for (let f = 0; f < 18; f++) T.jugarFecha(t5, 1, 0);
 const v5 = T.veredicto(t5, ids);
 assert(v5.gloria && !v5.asciende && v5.proximaDivision === "mundial", "campeón del Mundial = LA GLORIA");
-/* sin campeonato: misma división */
+/* A4 · DESCENSO: perdiendo todo en una división que tiene otra abajo, se baja */
 const t6 = T.crear({ division: "regional", miClub: "CLUB DE PRUEBA", rivales: DIV.divisiones.regional.rivales, semilla: 3 });
 for (let f = 0; f < 18; f++) T.jugarFecha(t6, 0, 3);   // pierdo todo
-const v6 = T.veredicto(t6, ids);
-assert(!v6.campeon && !v6.asciende && v6.proximaDivision === "regional", "sin campeonato repito división (nadie desciende)");
+const v6 = T.veredicto(t6, ids, BAL.partido);
+assert(!v6.campeon && !v6.asciende, "perdiendo todo no soy campeón ni asciendo");
+assert(v6.desciende && v6.proximaDivision === "primera_a",
+  "A4: último en regional desciende a primera_a (bajé una, no repetí)");
+assert(v6.enZonaDescenso === true && v6.zona.indexOf(v6.posicion) >= 0,
+  "A4: el veredicto tiene que DECIRLO — zona " + v6.zona.join("º y ") + "º, quedé " + v6.posicion + "º");
+
+/* A4 · el descenso solo muerde a quien ya subió: en la más baja no hay a dónde bajar */
+const t7 = T.crear({ division: "primera_b", miClub: "CLUB DE PRUEBA", rivales: DIV.divisiones.primera_b.rivales, semilla: 3 });
+for (let f = 0; f < 18; f++) T.jugarFecha(t7, 0, 3);
+const v7 = T.veredicto(t7, ids, BAL.partido);
+assert(!v7.desciende && v7.proximaDivision === "primera_b",
+  "A4: en primera_b (la más baja) se pierde todo y NO se desciende");
+
+/* A4 · el aviso: estando en zona, la pantalla lo tiene que poder anticipar */
+assert(T.enZonaDescenso(t6, ids, BAL.partido) === true, "A4: último en regional está en zona de descenso");
+assert(T.enZonaDescenso(t7, ids, BAL.partido) === false, "A4: en la división más baja nunca hay zona de descenso");
+assert(T.zonaDescenso(t6, BAL.partido).length === (BAL.partido.descenso_plazas || 2),
+  "A4: la zona son las últimas " + (BAL.partido.descenso_plazas || 2) + " plazas");
+
+/* A4 · el del medio ni asciende ni desciende: la división se repite.
+   Ojo: empatar las 18 NO es mitad de tabla — con 18 puntos quedás 9º, o sea
+   adentro de la zona. Para quedar en el pelotón hay que ganar la mitad. */
+const t8 = T.crear({ division: "regional", miClub: "CLUB DE PRUEBA", rivales: DIV.divisiones.regional.rivales, semilla: 3 });
+for (let f = 0; f < 18; f++) T.jugarFecha(t8, f % 2 ? 2 : 0, f % 2 ? 0 : 2);
+const v8 = T.veredicto(t8, ids, BAL.partido);
+assert(v8.posicion > 1 && v8.posicion <= 8, "el fixture de mitad de tabla dejó " + v8.posicion + "º");
+assert(!v8.asciende && !v8.desciende && !v8.enZonaDescenso && v8.proximaDivision === "regional",
+  "A4: en mitad de tabla no pasa nada — se repite división (quedé " + v8.posicion + "º)");
 
 function fila(t, n) { return t.tabla.find(f => f.equipo === n); }
 

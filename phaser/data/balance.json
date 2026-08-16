@@ -353,7 +353,9 @@
       "aereo_min": 65,
       "mult": 1.35
     },
-    "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: línea que habilita el Caldén (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.)"
+    "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: línea que habilita el Caldén (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.)",
+    "descenso_plazas": 2,
+    "_descenso": "A4: cuántos puestos bajan al final de la temporada (los ÚLTIMOS n). 2 = 9º y 10º. Elegida sobre 'solo el último' porque esa no mordió ni una vez en 24 temporadas simuladas. Solo muerde a quien YA ASCENDIÓ: en la división más baja no hay a dónde bajar. Poner 0 desactiva el descenso."
   },
   "duelo": {
     "spread": 58,
@@ -559,7 +561,14 @@
     "animo_gana": 12,
     "animo_empata": 2,
     "animo_pierde": 10,
-    "animo_gol": 6
+    "animo_gol": 6,
+    "resaca_frac": 0.33,
+    "resaca_piso": 50,
+    "_resaca": "A3: la resaca de tu propia semana. Arrancás la siguiente penalizado por resaca_frac de lo que FALTÓ para llenar el tanque (no por el total), con resaca_piso como mínimo jugable. Con 0.33 y piso 35, 'entrenar siempre' se estabiliza cerca del piso sin quedar injugable. resaca_frac 0 la desactiva.",
+    "rendimiento_piso": 0.13,
+    "stat_techo": 99,
+    "stat_inicial": 50,
+    "_rendimiento": "A1 opción (b): cuanto más alta la stat, menos suma entrenar. factor = max(rendimiento_piso, (stat_techo - stat) / (stat_techo - stat_inicial)). CALIBRACIÓN: los dos criterios pedidos entran en tensión porque la resaca de A3 iguala a las dos estrategias (con 42 de energía entra un solo entrenamiento, entrenes o no el mismo stat). Con piso < 0.45 NINGUNA toca el techo; con >= 0.45 lo tocan LAS DOS (entrenar sem 86, mixta 88). Se eligió 0.40: mixta no toca nunca (criterio duro) y entrenar-siempre llega a 98.5 de 99 en la semana 90, o sea cerca del final y sumando algo hasta la última semana. rendimiento_decreciente:false lo desactiva."
   },
   "piel": {
     "_nota": "TANDA DE PIEL (7/ago): LA PALETA, en un solo lugar. Antes los ~250 tonos de marco estaban a mano en 9 archivos. OJO: el VERDE DE LA CANCHA no vive acá — el pasto es campo de juego, no marco, y no se toca desde este bloque.",

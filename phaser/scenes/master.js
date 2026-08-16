@@ -397,15 +397,40 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* LA TABLA (monospace, forma antes que color: ► marca mi fila) */
     const pos = T.posiciones(t);
     const x0 = 70, y0 = 116;
+    /* A4 · la zona de descenso se marca con FORMA (▼ + línea de corte), no con
+       color: el color solo no sirve. La zona no existe en la división más baja. */
+    const cfgP = (this.game.registry.get("balance") || {}).partido || {};
+    const idsDiv = Ma.DIVISIONES.map(d => d.id);
+    const hayAbajo = idsDiv.indexOf(t.division) > 0;
+    const zona = hayAbajo ? T.zonaDescenso(t, cfgP) : [];
     this.add.text(x0, y0 - 2, "#  EQUIPO              PJ  G  E  P   GF  GC  DG  PTS", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" });
     pos.forEach((f, i) => {
       const mio = f.equipo === t.miClub;
+      const enZona = zona.indexOf(i + 1) >= 0;
       const dg = f.gf - f.gc;
-      const linea = String(i + 1).padStart(2) + " " + (mio ? "►" : " ") + f.equipo.slice(0, 18).padEnd(18) + " " +
+      const linea = String(i + 1).padStart(2) + (enZona ? "▼" : " ") + (mio ? "►" : " ") + f.equipo.slice(0, 17).padEnd(17) + " " +
         String(f.pj).padStart(2) + " " + String(f.g).padStart(2) + " " + String(f.e).padStart(2) + " " + String(f.p).padStart(2) + "  " +
         String(f.gf).padStart(3) + " " + String(f.gc).padStart(3) + " " + String(dg).padStart(3) + "  " + String(f.pts).padStart(3);
-      this.add.text(x0, y0 + 18 + i * 19, linea, { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: mio ? "bold" : "normal", color: mio ? "#ffd84d" : "#f6efdc" });
+      const y = y0 + 18 + i * 19;
+      /* la línea de corte: se ve DÓNDE empieza la zona aunque no leas los ▼.
+         Va en y-4 y no en el medio del paso (y-9): el texto tiene origen
+         arriba-izquierda, así que a media distancia la línea TACHA la fila
+         de arriba en vez de separarla. Verificado en captura. */
+      if (enZona && zona.indexOf(i) < 0) this.add.rectangle(x0 + 230, y - 4, 470, 1, 0xe3503e).setOrigin(0.5, 0.5).setAlpha(0.7);
+      this.add.text(x0, y, linea, { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: mio ? "bold" : "normal", color: mio ? "#ffd84d" : "#f6efdc" });
     });
+    /* A4 · el aviso: ver venir el golpe ANTES de la última fecha */
+    if (T.enZonaDescenso(t, idsDiv, cfgP)) {
+      const faltan = t.fixture.length - t.fecha;
+      const abajo = (Ma.DIVISIONES[idsDiv.indexOf(t.division) - 1] || {}).n || "abajo";
+      this.add.text(W / 2, y0 - 22,
+        faltan > 0
+          ? "▼ ZONA DE DESCENSO · " + T.miPosicion(t) + "º · si termina así te vas a " + abajo + " (faltan " + faltan + ")"
+          : "▼ ZONA DE DESCENSO · " + T.miPosicion(t) + "º",
+        /* 14 y no 12 como la tabla: es el aviso más importante de la pantalla y
+           a 12 lógicos son 8.7 px reales en teléfono (la deuda de legibilidad) */
+        { fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#e3503e" }).setOrigin(0.5);
+    }
 
     if (!T.terminada(t)) {
       /* la PRÓXIMA fecha: rival + su perfil de IA con nombre (sabés a qué venís) */
@@ -441,10 +466,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.scene.start("editor"));
     } else {
       /* FIN DE TEMPORADA: el veredicto de la escalera */
-      const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id));
+      const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
       let msj, color;
       if (v.gloria) { msj = "🏆 ¡CAMPEÓN DEL MUNDO! LA GLORIA ETERNA"; color = "#ffd84d"; }
       else if (v.asciende) { msj = "🏆 ¡CAMPEÓN! SUBÍS A " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#ffd84d"; }
+      /* A4 · con todas las letras: se dice que se descendió y a dónde */
+      else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás a " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#e3503e"; }
       else { msj = "Terminaste " + v.posicion + "º — otra temporada en " + div.n; color = "#f6efdc"; }
       this.add.text(W / 2, H - 140, msj, { fontFamily: window.PF.display, fontSize: "11px", color }).setOrigin(0.5);
       this.boton(W / 2 - 170, H - 80, 320, "▶ NUEVA TEMPORADA", 0x7ee08a, () => {

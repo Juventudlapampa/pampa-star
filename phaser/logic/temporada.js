@@ -141,16 +141,55 @@
 
   /* fin de temporada: el CAMPEÓN asciende (orden de logic/master.js DIVISIONES);
      nadie desciende. En EL MUNDIAL, salir campeón es LA GLORIA. */
-  function veredicto(t, divisionesIds) {
+  /* ---------- A4 · LA ZONA DE DESCENSO ----------
+     Los dos últimos bajan. Elegida sobre "solo el último" porque esa no mordió
+     ni una vez en 24 temporadas simuladas: después de ascender, salir
+     exactamente 10º de 10 es raro — lo común es 7º-9º. Una regla que el
+     jugador nunca ve no es una regla.
+
+     Tiene la forma correcta para este juego: SOLO PUEDE MORDER A QUIEN YA
+     ASCENDIÓ. El que arranca y se queda en la división más baja no la sufre
+     nunca, porque no hay a dónde bajar. El castigo existe únicamente para el
+     que ya subió, que es exactamente quien tiene algo que perder.
+
+     cuantosBajan sale de balance (partido.descenso_plazas) para poder
+     cambiarlo sin tocar código. */
+  function zonaDescenso(t, cfg) {
+    cfg = cfg || {};
+    var n = posiciones(t).length;
+    var plazas = cfg.descenso_plazas != null ? cfg.descenso_plazas : 2;
+    if (plazas <= 0) return [];
+    var desde = Math.max(1, n - plazas + 1);
+    var out = [];
+    for (var k = desde; k <= n; k++) out.push(k);
+    return out;                                   // ej. [9, 10]
+  }
+  /* ¿estoy en zona AHORA? — para avisar la fecha anterior, que el jugador
+     tiene que ver venir el golpe y no enterarse cuando ya pasó */
+  function enZonaDescenso(t, divisionesIds, cfg) {
+    var i = divisionesIds.indexOf(t.division);
+    if (i <= 0) return false;                     // en la más baja no hay descenso
+    return zonaDescenso(t, cfg).indexOf(miPosicion(t)) >= 0;
+  }
+
+  function veredicto(t, divisionesIds, cfg) {
     var pos = miPosicion(t);
     var campeon = pos === 1;
     var i = divisionesIds.indexOf(t.division);
     var ultima = i === divisionesIds.length - 1;
+    var primera = i <= 0;
+    /* A4: descendés si terminaste en zona Y hay a dónde bajar */
+    var enZona = zonaDescenso(t, cfg).indexOf(pos) >= 0;
+    var desciende = enZona && !primera && !campeon;
     return {
       posicion: pos,
       campeon: campeon,
       asciende: campeon && !ultima,
-      proximaDivision: campeon && !ultima ? divisionesIds[i + 1] : t.division,
+      desciende: desciende,
+      enZonaDescenso: enZona && !primera,
+      zona: zonaDescenso(t, cfg),
+      proximaDivision: campeon && !ultima ? divisionesIds[i + 1]
+        : desciende ? divisionesIds[i - 1] : t.division,
       gloria: campeon && ultima
     };
   }
@@ -158,6 +197,7 @@
   return {
     fixture: fixture, crear: crear, jugarFecha: jugarFecha, miPartido: miPartido,
     posiciones: posiciones, miPosicion: miPosicion, terminada: terminada,
-    veredicto: veredicto, rng: rng
+    veredicto: veredicto, rng: rng,
+    zonaDescenso: zonaDescenso, enZonaDescenso: enZonaDescenso
   };
 });
