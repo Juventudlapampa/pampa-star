@@ -733,9 +733,14 @@
     var mega = (esCalden && typeof esCalden === "object") ? esCalden : null;
     var especial = !!esCalden;
     var poder = (j.stats.tiro || 50) + (j.stats.caracter || 50) * 0.12 + bonusAguante(st);
-    /* v2 §7: desde lejos el tiro normal pierde fuerza (los especiales no) */
     var d = dist(j.x, j.y, st.W, st.H / 2);
-    if (!especial) poder -= Math.max(0, d - P.tiro_lejos_desde) * P.tiro_lejos_penal;
+    /* G1: la distancia YA NO se descuenta del poder. Restarle fuerza al remate
+       no alcanzaba, porque duelChance está topeada en 0.95 y el descuento se
+       comía adentro del tope: con tiro 85 daba 95% desde el área y 91% desde
+       el campo propio. Ahora la distancia viaja cruda hasta resolveShot, que
+       la aplica como factor DESPUÉS del tope (balance.tiro). El especial la
+       aguanta mejor —media_vida_especial— pero tampoco es inmune, que era el
+       otro agujero: el Caldén ni siquiera la calculaba. */
     /* pase al vacío reciente: el arquero quedó vendido */
     var vendido = st._vendidoHasta && st._t < st._vendidoHasta;
     if (vendido) { poder += P.bonus_arquero_vendido; st._vendidoHasta = 0; }
@@ -743,10 +748,29 @@
     else if (especial) poder *= C.mult;
     gastar(st, "mio", mega ? (mega.aguante || st.bal.aguante.costo_calden) : (especial ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro));
     saltoReloj(st, rng);
-    return { shotPower: poder, keeperSkill: st.rivalKeeperSkill, arqueroVendido: !!vendido, distancia: Math.round(d) };
+    return { shotPower: poder, keeperSkill: st.rivalKeeperSkill, arqueroVendido: !!vendido,
+      distancia: Math.round(d), especial: especial };
   }
   function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
   function tiroFallado(st, rng) { perderPelota(st, rng); st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }
+
+  /* G1 · LA SACÓ AL CÓRNER. El arquero llegó pero no la retuvo, así que la
+     jugada sigue siendo tuya: no perdés la pelota, la reponés desde el vértice.
+     No hay escena de saque de esquina —eso sería otra tanda—, pero la
+     consecuencia de juego SÍ existe y es distinta de "la agarró", que es lo que
+     hace que los dos resultados signifiquen algo. */
+  function cornerMio(st, rng) {
+    rng = rng || Math.random;
+    var P = st.bal.partido;
+    var arriba = rng() < 0.5;
+    var j = st.mios[st.ctrl];
+    st.posesion = "mia";
+    j.x = st.W - (P.corner_x || 30);
+    j.y = arriba ? (P.corner_y || 40) : st.H - (P.corner_y || 40);
+    st.corners = (st.corners || 0) + 1;
+    st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+    return { corner: true, arriba: arriba };
+  }
 
   /* ---------- el remate RIVAL contra tu arquero ---------- */
   function opcionesArquero(st) {
@@ -805,7 +829,7 @@
     receptoresPase: receptoresPase, resolverPase: resolverPase,
     riesgoLinea: riesgoLinea, motivoDuelo: motivoDuelo,
     puedeTirar: puedeTirar, puedeCalden: puedeCalden, prepararRemate: prepararRemate,
-    golMio: golMio, tiroFallado: tiroFallado,
+    golMio: golMio, tiroFallado: tiroFallado, cornerMio: cornerMio,
     opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,
     cambiarA: cambiarA, cambiarAlMasCercano: cambiarAlMasCercano,
     poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota,

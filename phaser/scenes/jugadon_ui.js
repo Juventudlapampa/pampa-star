@@ -456,7 +456,7 @@
           self.relatar && self.relatar("gol");
         }
         else if (res.outcome === "rebote") { msj = "¡LE REVENTASTE LAS MANOS!"; color = 0xff8c3a; snd && snd.gloves && snd.gloves(); }
-        else if (res.outcome === "atajada") { msj = "¡LA SACÓ!"; color = 0x5bb8e8; snd && snd.gloves && snd.gloves(); }
+        else if (res.outcome === "atajada") { msj = "¡LA AGARRÓ!"; color = 0x5bb8e8; snd && snd.gloves && snd.gloves(); }
         else { msj = "¡AFUERA!"; color = 0xe3503e; snd && snd.afuera && snd.afuera(); }
         self.avisoJugadon(msj, color);
         self.time.delayedCall(self.msV(1100), function () {

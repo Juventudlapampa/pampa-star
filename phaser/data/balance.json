@@ -355,7 +355,9 @@
     },
     "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: línea que habilita el Caldén (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.)",
     "descenso_plazas": 2,
-    "_descenso": "A4: cuántos puestos bajan al final de la temporada (los ÚLTIMOS n). 2 = 9º y 10º. Elegida sobre 'solo el último' porque esa no mordió ni una vez en 24 temporadas simuladas. Solo muerde a quien YA ASCENDIÓ: en la división más baja no hay a dónde bajar. Poner 0 desactiva el descenso."
+    "_descenso": "A4: cuántos puestos bajan al final de la temporada (los ÚLTIMOS n). 2 = 9º y 10º. Elegida sobre 'solo el último' porque esa no mordió ni una vez en 24 temporadas simuladas. Solo muerde a quien YA ASCENDIÓ: en la división más baja no hay a dónde bajar. Poner 0 desactiva el descenso.",
+    "corner_x": 30,
+    "corner_y": 40
   },
   "duelo": {
     "spread": 58,
@@ -369,51 +371,16 @@
     "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?'). shot_power = fuerza del remate; keeper_skill = capacidad del arquero (normal/figura del toggle)."
   },
   "tiro": {
-    "_zonas": "LEGADO (Hito 1/2): las 6 zonas tocables. Desde el Bloque B el remate se define con tiro_ejecucion (logic/tiro.js genera la zona dinámica); quedan de referencia para comparar números.",
-    "zonas": [
-      {
-        "id": "alto_izq",
-        "n": "Ángulo alto",
-        "bonus": 6,
-        "fuera": 0.14,
-        "gy": -44
-      },
-      {
-        "id": "alto_centro",
-        "n": "Alto al medio",
-        "bonus": -2,
-        "fuera": 0.03,
-        "gy": 0
-      },
-      {
-        "id": "alto_der",
-        "n": "Ángulo alto",
-        "bonus": 6,
-        "fuera": 0.14,
-        "gy": 44
-      },
-      {
-        "id": "bajo_izq",
-        "n": "Palo bajo",
-        "bonus": 4,
-        "fuera": 0.08,
-        "gy": -38
-      },
-      {
-        "id": "bajo_centro",
-        "n": "Al medio",
-        "bonus": -4,
-        "fuera": 0.01,
-        "gy": 0
-      },
-      {
-        "id": "bajo_der",
-        "n": "Palo bajo",
-        "bonus": 4,
-        "fuera": 0.08,
-        "gy": 38
-      }
-    ]
+    "referencia": 90,
+    "media_vida": 210,
+    "media_vida_especial": 380,
+    "piso": 0.03,
+    "afuera_lejos": 0.6,
+    "retiene_min": 0.2,
+    "retiene_max": 0.9,
+    "_nota": "G1: la DISTANCIA al arco como factor propio, aplicado DESPUES del tope de duelo.min/max — antes entraba restandole poder al remate y el tope de 0.95 la tapaba (tiro 85 daba 95% desde el area y 91% desde el campo propio). Curva 1/(1+t^3) con t = (dist - referencia)/media_vida: plana adentro del area, se derrumba afuera. Los especiales usan media_vida_especial (aguantan mas metros, no son inmunes). afuera_lejos: cuanto de lo que NO entra se va afuera en vez de llegarle al arquero, proporcional a lo lejos que fue. retiene_min/max: acota la probabilidad de que el arquero AGARRE la pelota en vez de mandarla al corner.",
+    "retiene_base": 0.75,
+    "retiene_peso_fuerza": 116
   },
   "tiro_ejecucion": {
     "_nota": "TIRO HÍBRIDO (Bloque B): la construcción sigue siendo por decisión, pero el REMATE lo ejecutás VOS (New-Star-style). Apuntás en el arco, cargás potencia y le das comba. La lógica vive en logic/tiro.js; acá SOLO las perillas.",

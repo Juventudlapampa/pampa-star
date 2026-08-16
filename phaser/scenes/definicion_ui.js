@@ -487,9 +487,15 @@
       var res;
       if (bloqueado) res = { outcome: "bloqueado" };
       else if (Math.random() < tim.fueraProb) res = { outcome: "afuera" };
-      else res = Duel.resolveShot({ shotPower: poder, keeperSkill: keeper, zone: { bonus: 0, fuera: dz >= 2 ? 0.04 : 0.08, gy: D.zona(this._def.zonaMia).gy }, cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max } });
+      /* G1: la Definición es el mano a mano, así que NO lleva distancia (el
+         factor sería 1 igual). Lleva balance.tiro para que acá también el
+         arquero pueda mandarla al córner en vez de agarrarla siempre. */
+      else res = Duel.resolveShot({ shotPower: poder, keeperSkill: keeper, zone: { bonus: 0, fuera: dz >= 2 ? 0.04 : 0.08, gy: D.zona(this._def.zonaMia).gy }, cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
+        tiro: this.BAL.tiro });
       var gol = res.outcome === "gol";
-      if (!bloqueado) { if (gol) this.golPropio(); else P.tiroFallado(st); }
+      if (bloqueado) P.tiroFallado(st);
+      else if (gol) this.golPropio();
+      else if (res.outcome === "corner") P.cornerMio(st);
       else P.tiroFallado(st);
       this.defTeatroFinal({
         ofensiva: true, gol: gol, bloqueado: bloqueado, res: res, dz: dz, tim: tim,
@@ -608,9 +614,14 @@
         color = o.ofensiva ? 0xe3503e : 0x7ee08a;
         poseId = o.ofensiva ? "bloqueo" : (plantado ? "bloqueo" : "barrida");
       } else if (o.ofensiva) {
-        titulo = o.gol ? "¡GOOOL!" : (o.res.outcome === "atajada" ? "¡LA SACÓ!" : "¡AFUERA!");
-        sub = o.gol ? (o.dz >= 2 ? "el arquero fue al otro palo · ¡GRITALO!" : "la clavaste igual") : (o.res.outcome === "atajada" ? (o.dz === 0 ? "te adivinó la zona" : "voló y llegó") : "se fue por centímetros");
-        color = o.gol ? 0xffd84d : (o.res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e);
+        /* G1: el no-gol son TRES desenlaces distintos, no dos */
+        var corner = o.res.outcome === "corner", agarro = o.res.outcome === "atajada";
+        titulo = o.gol ? "¡GOOOL!" : corner ? "¡LA SACÓ AL CÓRNER!" : agarro ? "¡LA AGARRÓ!" : "¡AFUERA!";
+        sub = o.gol ? (o.dz >= 2 ? "el arquero fue al otro palo · ¡GRITALO!" : "la clavaste igual")
+          : corner ? "no la pudo retener · la jugada sigue siendo tuya"
+            : agarro ? (o.dz === 0 ? "te adivinó la zona y se la quedó" : "voló, llegó y la abrazó")
+              : "se fue por centímetros";
+        color = o.gol ? 0xffd84d : corner ? 0x7ee08a : agarro ? 0x5bb8e8 : 0xe3503e;
         poseId = o.gol ? "festejo" : "arquero_ataja";
       } else {
         titulo = o.gol ? "GOL DE " + this.nombreRival : "¡ATAJADÓN!";

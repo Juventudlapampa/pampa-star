@@ -69,7 +69,9 @@ var rngCero = function () { return 0.5; };   // (rng*2-1)=0 → sin ruido: ejecu
 (function () {
   var ej = T.evaluarEjecucion({ aimX: 0.9, aimY: 0.5, potencia: 0.75, curva: 0.4, statTiro: 80, cfg: cfg, rng: rngCero });
   var r = D.resolveShot({ shotPower: 66, keeperSkill: 999, zone: ej.zona, rng: function () { return 0.99; } });
-  ok(r.keeperWins && r.outcome !== "gol", "arquero imbatible: jamás gol (invariante intacto con zona de ejecución)");
+  /* G1: puede agarrarla o mandarla al córner; gol NO, nunca */
+  ok(r.outcome !== "gol", "arquero imbatible: jamás gol (invariante intacto con zona de ejecución), fue " + r.outcome);
+  ok(r.keeperWins === (r.outcome === "atajada"), "keeperWins solo con 'atajada' (fue " + r.outcome + ")");
   var r2 = D.resolveShot({ shotPower: 999, keeperSkill: 1, zone: ej.zona, rng: function () { return 0.01; } });
   ok(!r2.keeperWins || r2.outcome !== "gol", "coherencia keeperWins ⇔ outcome");
   ok(typeof ej.calidad === "number" && ej.calidad >= 0 && ej.calidad <= 1, "calidad acotada 0..1");

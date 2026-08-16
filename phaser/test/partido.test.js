@@ -156,8 +156,11 @@ function partidoNuevo(rng) {
   ok(prep.shotPower > 0 && prep.keeperSkill > 0, "prepararRemate da los parámetros para duel.resolveShot");
   // invariante del arquero (integración): resolveShot jamás da gol si el arquero gana
   var D = require("../logic/duel.js");
+  /* G1: con el no-gol repartido en tres, el arquero imbatible puede AGARRARLA
+     o mandarla al CÓRNER. Lo que no puede pasar nunca es que sea gol. */
   var r = D.resolveShot({ shotPower: prep.shotPower, keeperSkill: 999, zone: { bonus: 0, fuera: 0, gy: 0 }, rng: seq([0.99]) });
-  ok(r.keeperWins && r.outcome !== "gol", "bug del arquero sigue cerrado en el flujo del partido");
+  ok(r.outcome !== "gol", "bug del arquero sigue cerrado en el flujo del partido (fue " + r.outcome + ")");
+  ok(r.keeperWins === (r.outcome === "atajada"), "keeperWins solo con 'atajada' (fue " + r.outcome + "/" + r.keeperWins + ")");
   console.log("[7] tiro + Caldén + arquero: ok");
 })();
 

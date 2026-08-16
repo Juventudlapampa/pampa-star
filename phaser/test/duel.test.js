@@ -2,7 +2,16 @@
    PAMPA STAR · test de la lógica de duelo (node, sin dependencias)
    Corré:  node phaser/test/duel.test.js
    Cubre el BUG CRÍTICO del playtest: "el arquero atajó y marcó gol igual".
-   El invariante que se prueba:  keeperWins  <=>  outcome != 'gol'.  Siempre.
+
+   EL INVARIANTE, en su forma de hoy. Era  keeperWins <=> outcome != 'gol',
+   pero esa forma ya no alcanza desde que el no-gol se reparte en tres
+   (G1: 'atajada' = la agarró, 'corner' = la sacó pero se le escapó, 'afuera').
+   keeperWins significa "el arquero SE QUEDA con la pelota", y con un córner no
+   se queda. Lo que se prueba, entonces:
+       outcome === 'gol'   ⇒  keeperWins === false      (el bug, cerrado)
+       keeperWins === true ⇒  outcome === 'atajada'     (nada más se la queda)
+   Es más fuerte que antes, no más flojo: la implicación de la izquierda sigue
+   igual y la de la derecha pasó de "cualquier no-gol" a un único outcome.
    ========================================================================== */
 "use strict";
 var D = require("../logic/duel.js");
@@ -16,23 +25,48 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
 /* ---- 1) El invariante duro: si el arquero gana, NUNCA hay gol --------------- */
 (function () {
   // arquero dominante (keeperSkill altísimo): la chance es baja; con rolls altos, siempre atajada.
-  var goles = 0, total = 2000;
+  var goles = 0, total = 2000, cuenta = {};
   for (var i = 0; i < total; i++) {
     var r = D.resolveShot({ shotPower: 40, keeperSkill: 95, zone: { bonus: 0, fuera: 0, gy: 0 }, rng: Math.random });
-    if (r.keeperWins) ok(r.outcome !== "gol", "keeperWins=true pero outcome=gol (EL BUG)");
+    if (r.keeperWins) ok(r.outcome === "atajada", "keeperWins=true con outcome=" + r.outcome + " (EL BUG)");
     if (r.outcome === "gol") ok(r.keeperWins === false, "outcome=gol pero keeperWins=true (EL BUG)");
     if (r.outcome === "gol") goles++;
+    cuenta[r.outcome] = (cuenta[r.outcome] || 0) + 1;
   }
   ok(goles < total, "con un arquero dominante deberían atajarse casi todos (hubo " + goles + "/" + total + " goles)");
-  console.log("[1] invariante keeperWins<=>no-gol: verificado en " + total + " tiros");
+  console.log("[1] invariante gol⇒!keeperWins y keeperWins⇒atajada: verificado en " + total + " tiros · " +
+    Object.keys(cuenta).map(function (k) { return k + " " + cuenta[k]; }).join(" · "));
 })();
 
-/* ---- 2) Forzar ATAJADA: roll alto ⇒ el arquero gana ⇒ jamás gol ------------ */
+/* ---- 2) Forzar el no-gol: roll alto ⇒ el arquero llegó ⇒ jamás gol --------- */
 (function () {
-  var r = D.resolveShot({ shotPower: 60, keeperSkill: 55, zone: { bonus: 0, fuera: 0.5, gy: 0 }, rng: seq([0.999]) });
-  ok(r.outcome === "atajada", "roll=0.999 debe ser atajada, fue " + r.outcome);
-  ok(r.keeperWins === true, "atajada debe marcar keeperWins=true");
-  console.log("[2] roll alto ⇒ atajada (keeperWins), nunca gol: ok");
+  /* rolls: [ganó el tiro?] [se fue afuera?] [la retuvo?]
+     0.999 pierde el primero (no hay gol). Sin distancia el "afuera de lejos"
+     es 0, así que el tercero decide agarrada vs córner. */
+  var agarro = D.resolveShot({ shotPower: 60, keeperSkill: 55, zone: { bonus: 0, fuera: 0.5, gy: 0 }, rng: seq([0.999, 0.5, 0.01]) });
+  ok(agarro.outcome === "atajada", "roll bajo de retención debe ser atajada (la agarró), fue " + agarro.outcome);
+  ok(agarro.keeperWins === true, "atajada debe marcar keeperWins=true");
+
+  var corner = D.resolveShot({ shotPower: 60, keeperSkill: 55, zone: { bonus: 0, fuera: 0.5, gy: 0 }, rng: seq([0.999, 0.5, 0.999]) });
+  ok(corner.outcome === "corner", "roll alto de retención debe ser córner (la sacó), fue " + corner.outcome);
+  ok(corner.keeperWins === false, "el córner NO es keeperWins: la pelota no se la queda el arquero");
+  console.log("[2] no-gol desdoblado: la agarró (keeperWins) vs la sacó al córner (no): ok");
+})();
+
+/* ---- 2b) La fuerza decide si la agarra o se le escapa ---------------------- */
+(function () {
+  /* mismo arquero, dos remates: el flojo lo abraza, el fuerte se le va */
+  var n = 400, aCorner = { flojo: 0, fuerte: 0 };
+  for (var i = 0; i < n; i++) {
+    var f = D.resolveShot({ shotPower: 20, keeperSkill: 95, zone: {}, rng: Math.random });
+    var g = D.resolveShot({ shotPower: 88, keeperSkill: 95, zone: {}, rng: Math.random });
+    if (f.outcome === "corner") aCorner.flojo++;
+    if (g.outcome === "corner") aCorner.fuerte++;
+  }
+  ok(aCorner.fuerte > aCorner.flojo,
+    "un remate FUERTE se le tiene que escapar al córner más seguido que uno flojo (fuerte " +
+    aCorner.fuerte + " vs flojo " + aCorner.flojo + " de " + n + ")");
+  console.log("[2b] la fuerza decide agarrada vs córner: fuerte " + aCorner.fuerte + " · flojo " + aCorner.flojo + " de " + n);
 })();
 
 /* ---- 3) Forzar GOL: roll bajo y sin 'afuera' ⇒ gol, arquero NO gana -------- */

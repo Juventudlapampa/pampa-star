@@ -1851,12 +1851,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const prep = P.prepararRemateAereo(st, id);
     const res = window.PampaDuel.resolveShot({
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
-      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
+      /* G1: la distancia pesa acá, despues del tope del duelo */
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     snd && snd.kick();
     const gol = res.outcome === "gol";
-    if (gol) this.golPropio(); else P.tiroFallado(st);
+    const atajo = res.outcome === "atajada" || res.outcome === "corner";
+    const d = this.desenlaceRemate(res);
     const NOM = { cabezazo: "CABEZAZO", volea: "VOLEA", chilena: "CHILENA" };
     const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
     if (this.hayEscenas()) {
@@ -1870,24 +1873,24 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         protaAngle: id === "chilena" ? -115 : 0,       // la vuelta en el aire
         especial: id === "chilena",
         /* V6 §1 F2: ante todo tiro al arco el arquero vuela, sin excepciones */
-        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "estirada") } : null,
+        rival: arqR ? { j: arqR, esRival: true, anim: res.outcome === "atajada" ? "atajada" : "estirada" } : null,
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : undefined,
-        titulo: gol ? "¡GOOOL DE " + NOM[id] + "!" : (res.outcome === "atajada" ? "¡LA SACÓ!" : "¡AFUERA!"),
-        sub: gol ? (id === "chilena" ? "el momento más épico del potrero · " + fb : fb) : fb,
-        color: gol ? 0xffd84d : (res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e),
-        sfx: gol ? "goal" : (res.outcome === "atajada" ? "gloves" : "afuera"),
+        titulo: gol ? "¡GOOOL DE " + NOM[id] + "!" : d.titulo,
+        sub: gol ? (id === "chilena" ? "el momento más épico del potrero · " + fb : fb) : d.sub + " · " + fb,
+        color: d.color,
+        sfx: gol ? "goal" : (atajo ? "gloves" : "afuera"),
         hinchada: gol,
         alFinal: () => {
           if (gol) this.efectoGol(false);
-          this.relatar(gol ? "gol" : (res.outcome === "atajada" ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
+          this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
         }
       });
       return;
     }
-    this.mostrarResolucion((gol ? "¡GOOOL DE " + NOM[id] + "!" : res.outcome === "atajada" ? "¡LA SACÓ EL ARQUERO!" : "¡AFUERA!") + "\n" + fb,
-      gol ? "#ffd84d" : "#e3503e", { anim: id === "cabezazo" ? "cabezazo" : "volea", gana: gol });
+    this.mostrarResolucion((gol ? "¡GOOOL DE " + NOM[id] + "!" : d.titulo) + "\n" + fb,
+      "#" + d.color.toString(16).padStart(6, "0"), { anim: id === "cabezazo" ? "cabezazo" : "volea", gana: gol });
   }
 
   /* ============ FEEL B5 · EL CINE DE 5 PLANOS (reintegrado de 53f0d80) ============
@@ -2113,25 +2116,67 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.punch(this._megaGrito || "¡GOOOL!", "¡La clavaste donde el viento no la saca!", 0xffd84d);
         this.golPropio();   // V9: la fiesta completa (tribuna + efecto + saque relatado)
       });
-    } else if (res.outcome === "atajada") {
+    } else if (res.outcome === "atajada" || res.outcome === "corner") {
+      /* G1: los dos son "el arquero llegó", pero terminan distinto — la que
+         agarra queda en sus manos, la del córner se le escapa por el costado */
+      const corner = res.outcome === "corner";
       this.tweens.add({ targets: ball, x: gx - 30, y: gy - 20, scale: 1.7, duration: C.impacto_atajada_ms, ease: "Quad.easeIn" });
       this.time.delayedCall(C.impacto_atajada_ms + silencio, () => {
         ball.setPosition(gx - 30, gy - 20);
-        this.SFX && this.SFX.gloves(); this.uiCam.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
+        this.uiCam.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
         this.dust(gx - 30, gy - 20);
-        this.punch("¡LA SACÓ!", "El arquero voló y la manoteó.", 0x5bb8e8);
-        this.tweens.add({ targets: ball, x: gx - 260, y: gy + 40, duration: EP.rebote_atajada_ms, ease: "Quad.easeOut" });
-        P.tiroFallado(st);
+        const d = this.desenlaceRemate(res);
+        this.punch(d.titulo, d.sub, d.color);
+        /* la del córner sale DISPARADA al costado; la agarrada queda cerca */
+        this.tweens.add({
+          targets: ball,
+          x: corner ? gx + (d.arriba ? -1 : 1) * (gw / 2 + 140) : gx - 260,
+          y: corner ? gy - gh : gy + 40,
+          alpha: corner ? 0.35 : 1,
+          duration: EP.rebote_atajada_ms, ease: "Quad.easeOut"
+        });
       });
     } else {
       this.tweens.add({ targets: ball, x: gx + (this.zona.gy < 0 ? -1 : 1) * (gw / 2 + 60), y: gy - gh - 30, scale: 1.0, alpha: 0.3, duration: C.impacto_afuera_ms, ease: "Quad.easeIn" });
       this.time.delayedCall(C.impacto_afuera_ms + silencio - 120, () => {
-        this.SFX && this.SFX.afuera(); this.punch("¡AFUERA!", "Se fue por centímetros. ¡Uf!", 0xe3503e);
-        P.tiroFallado(st);
+        const d = this.desenlaceRemate(res);
+        this.punch(d.titulo, d.sub, d.color);
       });
     }
     /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */
     this.time.delayedCall(C.impacto_gol_ms + silencio + this.msV(C.desenlace_hold_ms), () => this.salirCine());
+  }
+  /* ============ G1 · EL DESENLACE DEL REMATE, EN UN SOLO LUGAR ============
+     Los cuatro caminos de remate (simple, con cine, aéreo, mega) resolvían el
+     no-gol cada uno por su lado con un `else P.tiroFallado(st)`. Así fue como
+     "la sacó al córner" no existía en ninguno. Ahora todos pasan por acá:
+     el resultado de duel decide, y ESTA función es la única que toca el estado.
+       gol      → la fiesta
+       corner   → NO perdés la pelota: la reponés desde el vértice
+       atajada  → la agarró: es de él, la perdés
+       afuera   → saque del arquero, la perdés
+     Devuelve {titulo, sub, color, gana} para que cada escena lo cuente como
+     quiera, sin volver a decidir nada.                                     */
+  desenlaceRemate(res) {
+    const st = this.st, P = window.PampaPartido;
+    if (res.outcome === "gol") {
+      this.golPropio();
+      return { titulo: "¡GOOOL!", sub: "¡La clavaste donde el viento no la saca!", color: 0xffd84d, gana: true };
+    }
+    if (res.outcome === "corner") {
+      const c = P.cornerMio(st);
+      this.SFX && this.SFX.gloves();
+      return { titulo: "¡LA SACÓ AL CÓRNER!", sub: "No la pudo agarrar: la mandó afuera. Sigue siendo tuya.",
+        color: 0x7ee08a, gana: false, corner: true, arriba: c.arriba };
+    }
+    if (res.outcome === "atajada") {
+      P.tiroFallado(st);
+      this.SFX && this.SFX.gloves();
+      return { titulo: "¡LA AGARRÓ!", sub: "El arquero la abrazó. Se la queda él.", color: 0x5bb8e8, gana: false };
+    }
+    P.tiroFallado(st);
+    this.SFX && this.SFX.afuera();
+    return { titulo: "¡AFUERA!", sub: "Se fue por centímetros. ¡Uf!", color: 0xe3503e, gana: false };
   }
   punch(big, sub, colorNum) {
     const hex = "#" + colorNum.toString(16).padStart(6, "0");
@@ -2202,7 +2247,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const prep = P.prepararRemate(st, mega || false);
     const res = window.PampaDuel.resolveShot({
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
-      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
+      /* G1: la distancia pesa acá, despues del tope del duelo */
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     snd && snd.kick();
@@ -2213,24 +2260,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const arqR = st.rivales.find(jj => jj.pos === "ARQ");
       const enCamino = this.rivalesEnElCamino(tirador);
       const gol = res.outcome === "gol";
-      if (gol) this.golPropio(); else P.tiroFallado(st);   // la verdad UNA vez; la escena la cuenta
+      const atajo = res.outcome === "atajada" || res.outcome === "corner";
+      const d = this.desenlaceRemate(res);   // la verdad UNA vez; la escena la cuenta
       const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
       this.escenaCine({
         etiqueta: "· el remate ·",
         prota: { j: tirador, esRival: false, anim: "tiro" },
         /* V6 §1 F2: el arquero SIEMPRE se estira — también cuando la pelota se va afuera */
-        rival: arqR ? { j: arqR, esRival: true, anim: gol ? "estirada" : (res.outcome === "atajada" ? "atajada" : "estirada") } : null,
+        rival: arqR ? { j: arqR, esRival: true, anim: res.outcome === "atajada" ? "atajada" : "estirada" } : null,
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : "tiro",
-        titulo: gol ? (mega ? mega.grito : "¡GOOOL!") : (res.outcome === "atajada" ? "¡LA SACÓ!" : "¡AFUERA!"),
-        sub: gol ? fb : (res.outcome === "atajada" ? "el arquero voló y la manoteó · " + fb : "se fue por centímetros · " + fb),
-        color: gol ? 0xffd84d : (res.outcome === "atajada" ? 0x5bb8e8 : 0xe3503e),
-        sfx: gol ? "goal" : (res.outcome === "atajada" ? "gloves" : "afuera"),
+        titulo: gol && mega ? mega.grito : d.titulo,
+        sub: gol ? fb : d.sub + " · " + fb,
+        color: d.color,
+        sfx: gol ? "goal" : (atajo ? "gloves" : "afuera"),
         hinchada: gol,
         alFinal: () => {
           if (gol) this.efectoGol(false);
-          this.relatar(gol ? "gol" : (res.outcome === "atajada" ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
+          this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
         }
       });
       return;
@@ -2242,9 +2290,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (silencio) this.musicaDuck(silencio);
     this.time.delayedCall(silencio, () => {
       const fb = ej.enZona ? "¡EJECUCIÓN JUSTA!\n" : "la aguja se te escapó…\n";
-      if (res.outcome === "gol") { this.golPropio(); this.mostrarResolucion(fb + (mega ? mega.grito : "¡GOOOL!"), "#ffd84d", { anim: "tiro", gana: true }); }
-      else if (res.outcome === "atajada") { P.tiroFallado(st); snd && snd.gloves(); this.mostrarResolucion(fb + "¡LA SACÓ EL ARQUERO!", "#5bb8e8", { anim: "tiro", gana: false }); }
-      else { P.tiroFallado(st); snd && snd.afuera(); this.mostrarResolucion(fb + "¡AFUERA!", "#e3503e", { anim: "tiro", gana: false }); }
+      const d = this.desenlaceRemate(res);
+      const titulo = res.outcome === "gol" && mega ? mega.grito : d.titulo;
+      this.mostrarResolucion(fb + titulo, "#" + d.color.toString(16).padStart(6, "0"),
+        { anim: "tiro", gana: d.gana });
     });
   }
   /* MEGATIRO: el resultado se decide UNA vez (bug del arquero cerrado) y el CINE lo cuenta */
@@ -2267,7 +2316,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       shotPower: prep.shotPower + auto.ajustePoder + (this._modVida && this._modVida.duelo || 0),
       keeperSkill: prep.keeperSkill,
       zone: auto.zona,
-      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
+      /* G1: la distancia pesa acá, despues del tope del duelo */
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
     });
     this.zona = auto.zona;
     this._megaGrito = "¡GOOOL!";
@@ -2296,7 +2347,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const prep = P.prepararRemate(st, mega);
     this.res = window.PampaDuel.resolveShot({
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
-      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max }
+      cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
+      /* G1: la distancia pesa acá, despues del tope del duelo */
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
     });
     this.zona = ej.zona;
     this._megaGrito = mega.grito || "¡GOOOL!";
