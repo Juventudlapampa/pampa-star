@@ -244,7 +244,12 @@
     defBotonesOf(opts) {
       var st = this.st, A = this.BAL.aguante, P = window.PampaPartido, self = this;
       var j = st.mios[st.ctrl];
-      var xs = 100, paso = 160;
+      /* V1 (alineación) · la fila arrancaba clavada en x=100 con paso 160, así
+         que los cuatro botones terminaban en x=580 y dejaban 300 px de pantalla
+         vacía a la derecha: la fila estaba corrida, no centrada. Ahora se
+         centra sobre el lienzo, que es donde está mirando el jugador. */
+      var paso = 160, cuantos = 4;
+      var xs = 480 - (paso * (cuantos - 1)) / 2;
       this.defBoton(xs, "🎯 TIRO", A.costo_tiro + " de aguante", 0xffd84d, function () { self.defElegirTiro("remate", A.costo_tiro); });
       var alta = P.pelotaAltaVigente(st);
       if (alta) {
