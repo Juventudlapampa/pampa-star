@@ -9,8 +9,39 @@ Los cinco puntos cerrados. Modo autónomo.
 | **C3** | limpieza de huérfanos | `e332a72` + `6e8f4e6` |
 | **C5** | que el save sobreviva | `e332a72` |
 | **C4** | la pasada final de coherencia | `6e8f4e6` |
+| **C4b** | la megacorrida que no se podía jugar | `4e4cfb0` |
 
-Suite: **34 archivos verdes** · §11 limpia (900 asserts) · árbol limpio.
+Suite: **35 archivos verdes** · §11 limpia (900 asserts) · árbol limpio.
+
+---
+
+## 0 · LO MÁS IMPORTANTE DE TODA LA TANDA: LA MEGACORRIDA
+
+La auditoría de huérfanos (5 agentes, terminó después de que yo había cerrado)
+no trajo limpieza: trajo un **cable suelto**.
+
+**La MEGACORRIDA de V6 §3.4 estaba implementada entera y no se podía jugar.**
+`secuenciaMegacorrida()` con sus dos escenas encadenadas, su rama en
+`secuenciaDisponible()` calculando nivel y aguante, sus tres perillas en
+`balance.secuencias` — todo ahí. Pero el único llamador de
+`secuenciaDisponible()` preguntaba **solo por `"combinada"`**, así que la rama
+`"megacorrida"` de esa misma función nunca se ejecutaba. Una función declarada
+hecha hace tandas que nunca apareció en una pantalla.
+
+Ya está cableada, con el mismo patrón que la combinada: igual que el uno-dos
+crece a COMBINADA en el sur del menú, la gambeta crece a MEGACORRIDA en el
+norte. **Vista funcionando**: el botón `🌠 MEGACORRIDA · 300 aguante · se te van
+quedando atrás`, los dos eslabones (*"va quedando gente atrás 1 de 2 → 2 de 2"*),
+el aguante bajando 1000→700 y el desenlace en LA DEFINICIÓN con el arquero
+volando. Capturas en `.claude/shots/C4_MEGACORRIDA_*.png`.
+
+Se desbloquea con **nivel de carrera 2** (igual que la combinada), así que en
+una partida nueva no aparece hasta el primer ascenso.
+
+Guardián: `phaser/test/c4_secuencias.test.js`. Verifica que cada tipo que
+`secuenciaDisponible` sabe contestar tenga quien se lo pida. **Un método de
+secuencia sin llamador es una promesa incumplida, no basura** — esa distinción
+es todo el punto del test.
 
 ---
 
@@ -121,9 +152,44 @@ arreglos — pero los tres que arreglé se ven en los primeros diez segundos de
 partido y dos eran regresiones mías de la tanda anterior. Los otros siete piden
 rediseñar rincones de pantalla, que es otra tanda.
 
+**6. La megacorrida la cableé sin preguntar.** No es una función nueva ni un
+cambio de diseño: es una que ya estaba escrita, con sus perillas y su costo
+puestos hace tandas, a la que le faltaba el cable. Dejarla apagada era dejar
+mentir al PROGRESO. *Revertir*: volver el bloque `N:` de `abrirMenuAtaque` a la
+opción GAMBETA sola.
+
+**7. Borré 14 perillas de balance y 2 métodos, pero NO la física del súper
+tiro.** El criterio: si algo no cuelga de ningún flag y nadie lo llama, se va;
+si sacarlo apaga una decisión de diseño que Rodri tomó, se anota y se pregunta.
+*Revertir*: todo está en `4e4cfb0`.
+
 ---
 
 ## 4 · LO QUE QUEDA ABIERTO
+
+### ⚠ LA DECISIÓN QUE NO TOMÉ: la física del súper tiro
+
+`entrarJugadonTiro()` + `jugadonFuerza()` + `jugadonTirar()` en
+`jugadon_ui.js` **no los llama nadie**, y no cuelgan de ningún flag: quedaron
+sin llamador cuando V9 §5 le sacó la grilla de zonas al súper tiro y C3 retiró
+el botón suelto.
+
+Lo que importa no es ese código, es lo que arrastra: son la **única puerta** a
+`PampaJugadon.resolverSuperTiro`, que es LA FÍSICA del V8 §4 — geometría
+llega/no-llega, fuerza contra manos del arquero, rebote. **Hoy esa física solo
+corre en `phaser/test/jugadon.test.js`.** En un partido de verdad no se ejecuta
+nunca: el megatiro lo resuelve `dispararConCine` → `duel.js`.
+
+Hay que elegir, y es tuya porque cambia **quién decide los goles épicos**:
+
+- **(a) revivirla** — darle una puerta al súper tiro con física propia;
+- **(b) retirarla** — borrar esos 3 métodos *y* `resolverSuperTiro` + `ARCO` de
+  `logic/jugadon.js` con sus tests.
+
+Quedarse en el medio es lo peor de los dos: mantener y testear una física que
+el juego no usa. Está anotado en el código, arriba de `entrarJugadonTiro()`.
+
+### El resto
 
 - Los 7 puntos de la lista de arriba.
 - **A2**, la deuda vieja: el resumen de la semana repite el mismo texto en el
