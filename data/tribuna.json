@@ -1,0 +1,339 @@
+{
+  "_schema": "N1 · LOS DOS DE LA TRIBUNA",
+  "_doc": "Dos personas hablando entre ellas durante el partido. No es el relator (ese vive en data/relatos.json y es otra voz). Cada evento tiene varios intercambios; el juego no repite el mismo dos veces seguidas. Editable sin tocar codigo: agregar un intercambio es agregar un {a,b} a la lista.",
+  "personajes": [
+    {
+      "id": "nelda",
+      "nombre": "Nelda",
+      "caracter": "La que sabe. Jugó en la liga del pueblo y no se le escapa una: mira la línea, el pase corto, quién quedó solo. No se emociona hasta que la pelota entró. Le baja el precio a la euforia y también al drama.",
+      "como_habla": "Frases secas y cortas, muchas en imperativo. Nombra la jugada, no el escándalo. Nunca grita primero. Le habla al Tuli de vos y lo manda a sentarse."
+    },
+    {
+      "id": "tuli",
+      "nombre": "el Tuli",
+      "caracter": "El que sufre y el que come. Viene por el partido y por el choripán, en ese orden discutible. Supersticioso, exagerado, tierno. Se pierde los goles justo cuando va a comprar y se entera por el grito.",
+      "como_habla": "Contesta con el cuerpo: la presión, el pecho, las piernas, el estómago. Mete el mate, el asado, la campera, la vuelta por la ruta. Humor resignado, suspiro al final. Le dice Nelda por el nombre cuando se queja."
+    }
+  ],
+  "dialogos": [
+    {
+      "evento": "gol",
+      "intercambios": [
+        {
+          "a": "¡Entró! Le pegó justo donde había que pegarle.",
+          "b": "¡Ay, la madre! Casi tiro el vaso al alambrado."
+        },
+        {
+          "a": "Ahí está. Te lo dije: por afuera los pasa.",
+          "b": "Vos dijiste por adentro, Nelda. Pero bueno."
+        },
+        {
+          "a": "Fue rebote. No le pongas moño.",
+          "b": "Rebote o no, yo lo grité igual, mirá."
+        },
+        {
+          "a": "Gol nuestro. Ahora hay que aguantar la cabeza.",
+          "b": "Dejame gritar tranquilo un ratito, aunque sea."
+        },
+        {
+          "a": "Justo cuando ibas a comprar. Sentate, Tuli.",
+          "b": "Me perdí el gol por un choripán. Otra vez."
+        },
+        {
+          "a": "Le sobró tiempo y no se apuró. Eso es oficio.",
+          "b": "Yo me apuré: grité antes de que entrara."
+        }
+      ]
+    },
+    {
+      "evento": "gol_rival",
+      "intercambios": [
+        {
+          "a": "Ahí quedó la línea partida al medio.",
+          "b": "No me expliques. Dejame sufrir en paz."
+        },
+        {
+          "a": "Se lo veía venir hace diez minutos.",
+          "b": "Y bueno, avisá antes, no después."
+        },
+        {
+          "a": "Uno solo no pierde un partido.",
+          "b": "Igual me duele el pecho, te aviso."
+        },
+        {
+          "a": "Nos dieron el costado y entraron por ahí.",
+          "b": "Yo miraba el viento. Ni lo vi pasar."
+        },
+        {
+          "a": "Queda mucho. Levantá la cabeza.",
+          "b": "La levanto, pero el mate lo dejo un rato."
+        },
+        {
+          "a": "Ese gol lo hicimos nosotros, no ellos.",
+          "b": "Bajá la voz, que te escucha el equipo."
+        }
+      ]
+    },
+    {
+      "evento": "atajada",
+      "intercambios": [
+        {
+          "a": "Bien parado. Achicó justo a tiempo.",
+          "b": "Yo cerré los ojos. Me enteré por el grito."
+        },
+        {
+          "a": "Esa la saca uno de cada diez.",
+          "b": "Y la sacó el nuestro. Alcanzame el mate."
+        },
+        {
+          "a": "Le adivinó el palo. No fue suerte.",
+          "b": "Suerte o santo, gracias igual."
+        },
+        {
+          "a": "Aplaudilo, que el fondo lo dejó solo.",
+          "b": "Aplaudo, pero sentado. Se me fue la sangre."
+        },
+        {
+          "a": "Tercera que ataja. Va a terminar cansado él.",
+          "b": "Que atajen ellos un rato, digo yo."
+        },
+        {
+          "a": "Manos firmes. La retuvo, no la regaló.",
+          "b": "Menos mal, porque yo ya me paraba."
+        }
+      ]
+    },
+    {
+      "evento": "quite",
+      "intercambios": [
+        {
+          "a": "Bien. Le entró limpio y sin patada.",
+          "b": "Eso me gusta. Fuerte pero derecho."
+        },
+        {
+          "a": "Se la sacó y salió jugando.",
+          "b": "Ahí, ahí. Ahora no la devuelvan."
+        },
+        {
+          "a": "Le leyó el pase antes de que saliera.",
+          "b": "Yo leí el cartel del kiosco, nomás."
+        },
+        {
+          "a": "Presionaron de a dos. Así se recupera.",
+          "b": "Como arrear hacienda: de a dos y listo."
+        },
+        {
+          "a": "Esa pelota era de nadie y la hizo nuestra.",
+          "b": "Ese pibe no afloja ni en la siesta."
+        },
+        {
+          "a": "Metió la pierna cuando había que meterla.",
+          "b": "Yo me levanté del asiento sin querer."
+        }
+      ]
+    },
+    {
+      "evento": "error",
+      "intercambios": [
+        {
+          "a": "Ese pase no existía. Se lo inventó.",
+          "b": "Todos erramos. Yo salé el asado el domingo."
+        },
+        {
+          "a": "La quiso de taquito con el partido así.",
+          "b": "Guardá el taquito para el potrero, pibe."
+        },
+        {
+          "a": "Se durmió. Le pasaron por al lado.",
+          "b": "Estaba mirando el viento, como yo."
+        },
+        {
+          "a": "La perdimos solos, sin que nos la saquen.",
+          "b": "Eso duele más que el gol, te digo."
+        },
+        {
+          "a": "Tranquilo, que ya va a salir una bien.",
+          "b": "Sí, pero que salga hoy, no el domingo."
+        },
+        {
+          "a": "Le pegó de zurda teniendo la derecha.",
+          "b": "Bueno, alguna vez le va a entrar."
+        }
+      ]
+    },
+    {
+      "evento": "cansancio",
+      "intercambios": [
+        {
+          "a": "Se le acabó la nafta. Miralo cómo camina.",
+          "b": "Y corrió toda la tarde contra el viento."
+        },
+        {
+          "a": "Hay que tirarla afuera y respirar.",
+          "b": "Que tomen agua, aunque sea un trago."
+        },
+        {
+          "a": "Las piernas pesan. Se nota en el pase corto.",
+          "b": "Yo con subir la escalera ya estoy hecho."
+        },
+        {
+          "a": "Ahora se juega con la cabeza, no con las piernas.",
+          "b": "La cabeza también se cansa, eh."
+        },
+        {
+          "a": "El que entre fresco tiene que ordenar.",
+          "b": "Que entre alguno, por favor. Alguno."
+        },
+        {
+          "a": "Aguantan porque son de acá. Nada más.",
+          "b": "De acá se aguanta hasta la sequía."
+        }
+      ]
+    },
+    {
+      "evento": "ganando_final",
+      "intercambios": [
+        {
+          "a": "Faltan cinco. Pelota al córner y listo.",
+          "b": "Cinco minutos son media vida, Nelda."
+        },
+        {
+          "a": "No la toquen atrás. Tirala al campo.",
+          "b": "Me tapo los ojos. Avisame cuando termine."
+        },
+        {
+          "a": "Están bien parados. Aguantan.",
+          "b": "Yo no aguanto nada. Mirá cómo tiemblo."
+        },
+        {
+          "a": "Falta poco, pero no está ganado.",
+          "b": "No lo digas. Recién ahí se pierde."
+        },
+        {
+          "a": "El reloj corre para nosotros hoy.",
+          "b": "Que corra más rápido, por favor."
+        },
+        {
+          "a": "Cuando termine gritamos. Ahora, callados.",
+          "b": "Yo ya tengo el grito acá guardado."
+        }
+      ]
+    },
+    {
+      "evento": "perdiendo_final",
+      "intercambios": [
+        {
+          "a": "Faltan diez. Alcanza si la tiran al área.",
+          "b": "Diez minutos y un milagro, más bien."
+        },
+        {
+          "a": "Todos arriba. No queda otra.",
+          "b": "Que suba hasta el arquero, ya está."
+        },
+        {
+          "a": "Si empatamos, valió la tarde.",
+          "b": "Yo me conformo con un tiro al arco."
+        },
+        {
+          "a": "No la revoleen. Jueguen tranquilos.",
+          "b": "Tranquilos estamos vos y yo. Nadie más."
+        },
+        {
+          "a": "Esto se pierde jugando, no rezando.",
+          "b": "Yo hago las dos cosas, por las dudas."
+        },
+        {
+          "a": "Nos falta un centro bien puesto.",
+          "b": "Y a mí me falta el corazón, mirá."
+        }
+      ]
+    },
+    {
+      "evento": "empate",
+      "intercambios": [
+        {
+          "a": "Empate. Está para cualquiera.",
+          "b": "Para cualquiera menos para mi presión."
+        },
+        {
+          "a": "El que se equivoque primero, pierde.",
+          "b": "Entonces que no toque nadie la pelota."
+        },
+        {
+          "a": "Un empate afuera no está mal.",
+          "b": "Decíselo a mi estómago, a ver si entiende."
+        },
+        {
+          "a": "Falta un pase. Uno solo y se abre.",
+          "b": "Que lo den, entonces. Estoy esperando."
+        },
+        {
+          "a": "Se están mirando. Nadie se anima.",
+          "b": "Como en el baile de Victorica, igualito."
+        },
+        {
+          "a": "Si sigue así, lo firmo.",
+          "b": "Yo lo firmo, lo sello y me voy."
+        }
+      ]
+    },
+    {
+      "evento": "resultado_gana",
+      "intercambios": [
+        {
+          "a": "Terminó. Bien jugado, sin regalar nada.",
+          "b": "Ahora sí. Ahora sí lo grito."
+        },
+        {
+          "a": "Ganamos, y encima jugando bien.",
+          "b": "Yo me vuelvo a casa con otra cara."
+        },
+        {
+          "a": "Sufrido, pero de local se gana así.",
+          "b": "Sufrido para vos. Yo casi me muero."
+        },
+        {
+          "a": "Le ganamos al viento y a ellos.",
+          "b": "Al viento nunca se le gana del todo."
+        },
+        {
+          "a": "Tres puntos. A guardarlos.",
+          "b": "Yo guardo la campera y el susto."
+        },
+        {
+          "a": "Vamos, que hay que volver por la ruta.",
+          "b": "Dejame un minuto más, mirando la cancha."
+        }
+      ]
+    },
+    {
+      "evento": "resultado_pierde",
+      "intercambios": [
+        {
+          "a": "Perdimos. Se juega de nuevo el domingo.",
+          "b": "Sí, pero hoy no me hables. Por favor."
+        },
+        {
+          "a": "Nos faltó gol, nada más.",
+          "b": "Nos faltó todo, Nelda. Seamos sinceros."
+        },
+        {
+          "a": "El equipo dejó las piernas. Eso lo vi.",
+          "b": "Las piernas sí. El arco no lo vieron."
+        },
+        {
+          "a": "Hay que aplaudir igual. Salieron a jugar.",
+          "b": "Aplaudo, pero con la cara larga."
+        },
+        {
+          "a": "Se pierde. Siempre fue parte del asunto.",
+          "b": "Ya sé. Igual la vuelta se hace larga."
+        },
+        {
+          "a": "Vamos, que se enfría el mate.",
+          "b": "El mate y todo lo demás."
+        }
+      ]
+    }
+  ]
+}

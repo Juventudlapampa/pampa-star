@@ -173,13 +173,28 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     paso = paso || 0; elegidas = elegidas || [];
     this.children.removeAll();
     const p = D.origen[paso];
-    this.add.text(W / 2, 48, "TU HISTORIA · " + (paso + 1) + " de 3", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
+    /* O2 · LA ENTREVISTA. El contenido y las consecuencias son EXACTAMENTE las
+       mismas —los stats salen de D.origen y esta pantalla no los mira—; lo que
+       cambia es que ahora hay alguien enfrente preguntando. Si falta
+       data/entrevista.json, se cae al texto plano de siempre. */
+    const E = this.game.registry.get("entrevista");
+    const qe = E && E.preguntas && E.preguntas[p.id];
+    this.add.text(W / 2, 34, "TU HISTORIA · " + (paso + 1) + " de 3", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    if (qe) this.entrevistador(E, qe.dice);
+    else this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
+    /* O1 · las cuatro respuestas estaban en columna desde y=150, o sea ARRIBA.
+       Bajan a la franja de decisión: 4 de 52 px entran justo en los 212 útiles
+       (piel.caben lo confirma). Arriba queda el que pregunta, que es lo que se
+       mira; abajo lo que se toca. */
+    const pielCfg = (this.game.registry.get("balance") || {}).piel;
     p.opciones.forEach((o, i) => {
-      const y = 150 + i * 88;
-      const r = this.add.rectangle(W / 2, y, 720, 74, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(W / 2, y - 12, (i + 1) + " · " + o.t, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
-      this.add.text(W / 2, y + 16, o.sub || "", { fontFamily: window.PF.texto, fontSize: "14px", color: "#365a41" }).setOrigin(0.5);
+      const y = Math.round(window.PampaPiel.yDeOpcion(i, p.opciones.length, 52, pielCfg));
+      const r = this.add.rectangle(W / 2, y, 720, 52, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      /* la respuesta DICHA reemplaza al rótulo, pero el subtítulo original
+         queda: es lo que le dice al jugador qué tipo de jugador está eligiendo */
+      const dicha = qe && qe.respuestas && qe.respuestas[i];
+      this.add.text(W / 2, y - 9, (i + 1) + " · " + (dicha || o.t), { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13", align: "center", wordWrap: { width: 680 } }).setOrigin(0.5);
+      this.add.text(W / 2, y + 13, o.sub || "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
       const elegir = () => {
         const nuevas = elegidas.concat([i]);
         if (paso < D.origen.length - 1) this.vistaOrigen(divId, paso + 1, nuevas);
@@ -188,7 +203,44 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
       if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO", "THREE", "FOUR"][i], elegir);
     });
-    this.add.text(W / 2, H - 26, "elegí con el dedo o con las teclas 1-4 · no hay opción mala", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+    /* V1 (cantidad + alineación): estaba en H-26, o sea DEBAJO de la cuarta
+       opción, y quedaba tapado. Y decía dos cosas: cómo se toca (que el jugador
+       descubre solo) y que no hay opción mala (que sí importa, porque saca el
+       miedo a equivocarse). Queda la segunda, arriba de las opciones. */
+    this.add.text(W / 2, 246, "no hay opción mala: elegís quién sos, no cuánto sumás", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+  }
+
+  /* O2 · EL ENTREVISTADOR: quién pregunta, y la pregunta como globo de diálogo.
+     Se dibuja con Graphics — no hay retrato de periodista en assets/, y pedirlo
+     era detener el punto. La silueta con el micrófono alcanza para que se
+     entienda que hay alguien enfrente; el retrato queda como pedido de arte. */
+  entrevistador(E, dice) {
+    const W = this.scale.width;
+    const x = 96, y = 108;
+    const g = this.add.graphics();
+    /* hombros y cabeza, de frente, recortados por el borde de abajo */
+    g.fillStyle(0x0e2a1a, 1); g.fillRoundedRect(x - 52, y - 46, 104, 116, 10);
+    g.fillStyle(0x2b1d14, 1);
+    g.fillCircle(x, y - 8, 26);                      // cabeza
+    g.fillRoundedRect(x - 34, y + 22, 68, 44, 8);    // torso
+    g.fillStyle(0xf6efdc, 0.9); g.fillRect(x - 22, y + 30, 44, 8);   // el cuello de la camisa
+    /* el micrófono, que es lo que lo hace legible como periodista */
+    g.fillStyle(0x232323, 1); g.fillRoundedRect(x + 26, y + 2, 12, 34, 5);
+    g.fillStyle(0x9fb3a5, 1); g.fillCircle(x + 32, y + 2, 9);
+    /* el globo de diálogo */
+    const bx = 172, bw = W - bx - 40;
+    const globo = this.add.graphics();
+    globo.fillStyle(0xf6efdc, 0.97);
+    globo.fillRoundedRect(bx, y - 52, bw, 104, 12);
+    globo.fillTriangle(bx, y - 4, bx, y + 20, bx - 16, y + 6);
+    globo.lineStyle(3, 0x0a1f13, 1);
+    globo.strokeRoundedRect(bx, y - 52, bw, 104, 12);
+    this.add.text(bx + 16, y - 40, (E.entrevistador && E.entrevistador.nombre) || "", {
+      fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#365a41", wordWrap: { width: bw - 32 }
+    });
+    this.add.text(bx + 16, y - 18, dice, {
+      fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", wordWrap: { width: bw - 32 }, lineSpacing: 2
+    });
   }
 
   /* ============ V8 A1 · PARTE 2: LA SEMANA (antes de cada fecha) ============ */

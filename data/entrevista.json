@@ -1,0 +1,38 @@
+{
+  "_schema": "O2 · LA HISTORIA INICIAL COMO ENTREVISTA",
+  "_doc": "Las mismas preguntas de origen de data/eventos_temporada.json, dichas en voz alta por alguien. MISMO contenido y MISMAS consecuencias: los ids y el ORDEN de las respuestas son los del original y la logica de stats no mira este archivo. Si agregas o sacas una respuesta aca, el test o2_entrevista.test.js corta.",
+  "entrevistador": {
+    "nombre": "Nito Carrizo, de FM El Caldén (\"Tercer Tiempo\", de la tarde)",
+    "quien_es": "Sesenta y pico, campera de la radio gastada en los codos. Hace treinta años que hace el programa de deportes de la tarde en la FM del pueblo, después de la siesta, cuando el aire todavía está caliente. Grabador viejo en una mano, mate en la otra, y una libretita donde anota todo aunque después no la mire. Conoce a todos: al padre, al abuelo, al que te dirigió en octava. Cuando un pibe o una piba del pueblo firma en Primera B, lo primero que hace es sentarse enfrente y preguntar de dónde salió. No pregunta por los números. Pregunta por la vida.",
+    "como_habla": "Frases cortas y despacio. Nunca grita, no es relator: es de los que preguntan y después se callan y esperan, que es lo que hace hablar a la gente. Arranca cada pregunta con una observación chica antes de preguntar de verdad —el viento, la hora, el mate, lo que anotó— y recién ahí tira la pregunta. Muletillas propias: \"decime una cosa\", \"pará que anoto\", \"a ver\", \"vamos de atrás para adelante\", \"y bueno\". Vosea siempre. No adjetiva de más, no exagera, no dice \"increíble\" ni llama \"amigos\" a nadie. Cuando algo le gusta, lo único que hace es asentir y anotar."
+  },
+  "preguntas": {
+    "donde": {
+      "dice": "Bueno, ahí quedó grabando. Vamos de atrás para adelante, que es como me gusta: antes del club, antes de todo. Decime una cosa. ¿Dónde aprendiste a jugar?",
+      "respuestas": [
+        "En el potrero, contra los más grandes. Me pegaban y yo volvía.",
+        "En la escuelita del club. Con botines prestados, pero ahí aprendí.",
+        "Solo. Pateando contra la pared del galpón, toda la tarde.",
+        "Con mi hermano mayor, que era el crack del pueblo. Aprendí de mirarlo."
+      ]
+    },
+    "afuera": {
+      "dice": "Pará que anoto... listo. Ahora la semana, que la cancha es un rato nomás. ¿Qué hacés cuando no jugás?",
+      "respuestas": [
+        "Laburo en el campo. Salgo temprano, antes de que aclare.",
+        "Estoy en la escuela, y el resto del día me cuelgo con el celu.",
+        "Changas. Donde salga, agarro.",
+        "Ayudo en el taller de mi viejo."
+      ]
+    },
+    "consejo": {
+      "dice": "Y última, que a las siete entra el informativo y me corren. El que te enseñó a jugar. ¿Qué te dijo? La frase que te quedó, esa.",
+      "respuestas": [
+        "Que la pelota se acaricia. Que de bronca no se patea nunca.",
+        "Que al que duda lo pasan por arriba. Encarar siempre.",
+        "Que el equipo primero. La pared antes que la gambeta.",
+        "Que si no te tienen miedo, no existís. Que te sientan."
+      ]
+    }
+  }
+}

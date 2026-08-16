@@ -29,6 +29,7 @@ const PRECACHE = [
   "../data/megacosas.json", "../data/relatos.json",
   "../data/poses_manifest.json", "../data/caras_manifest.json",
   "../data/divisiones.json", "../data/identidades_manifest.json",
+  "../data/entrevista.json", "../data/tribuna.json",
   "../assets/fonts/PressStart2P-Regular.ttf", "../assets/fonts/VT323-Regular.ttf",
   "../assets/fonts/PixelifySans-Regular.ttf",
   "../assets/fonts/ArchivoBlack-Regular.ttf", "../assets/fonts/BowlbyOne-Regular.ttf"
