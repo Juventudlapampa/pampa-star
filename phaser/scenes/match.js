@@ -1596,35 +1596,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       tipos.indexOf(m.tipo) >= 0 && nivel >= (m.nivel || 1) && j && j.aguante >= (m.aguante || 250));
     return lista.length ? lista[lista.length - 1] : null;
   }
-  abrirMenuArquero() {
-    const st = this.st, P = window.PampaPartido;
-    const arq = st.mios.find(j => j.pos === "ARQ");
-    this.materializarDuelo(arq, false, "keeper_mio");
-    const ops = P.opcionesArquero(st);
-    this.abrirMenuCruz({
-      titulo: "🧤 ¡" + this.nombreRival + " remata! Tu arquero bajo los tres palos…",
-      izq: { j: arq, aguante: arq.aguante },
-      der: { j: st.rivales[st.portadorRival], aguante: st.aguanteRival },
-      opciones: {
-        W: { texto: "🧤 " + ops[0].n, sub: ops[0].riesgo, cb: () => this.resolverArquero(ops[0].id) },
-        N: { texto: "👊 " + ops[1].n, sub: ops[1].riesgo, cb: () => this.resolverArquero(ops[1].id) }
-      },
-      /* Feel B6: la MEGAATAJADA del arquero */
-      centro: (() => {
-        const m = this.megaDefensaDisponible(["atajada"], arq);
-        if (!m) return null;
-        return {
-          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.aguante + " aguante · especial",
-          /* B3-E: se pasa el ARQUERO como jRet — sin esto el cut-in mostraba
-             un delantero pateando en la megaatajada. */
-          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.aguante + " aguante", () => {
-            arq.aguante = Math.max(0, arq.aguante - m.aguante);
-            this.resolverArquero("atajar", m.bonus || 20, m.grito);
-          }, arq, false)
-        };
-      })()
-    });
-  }
 
   /* --- resoluciones (doc §7: el CPU eligió en secreto; §9: RESOLUCION sin input) --- */
   resolverAccionAtaque(a, rivalIdx) {
@@ -1797,44 +1768,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st, P = window.PampaPartido;
     const r = P.esperarDefensa(st);
     this.mostrarResolucion("Esperás y juntás aire (+" + r.recupero + " aguante).\nEl rival sigue…", "#f6efdc", null);
-  }
-  resolverArquero(id, bonus, grito) {
-    const st = this.st, P = window.PampaPartido;
-    const tiradorR = st.rivales[st.portadorRival];
-    const res = P.resolverAtajada(st, id, null, bonus || 0);
-    const snd = this.FLAGS.e6_cine ? this.SFX : null;
-    /* ANIME B (P1): también TU arco es una escena — el rival patea, TU arquero vuela */
-    if (this.hayEscenas()) {
-      const arq = st.mios.find(j => j.pos === "ARQ");
-      if (res.golRival) this.escenaCine({
-        etiqueta: "· te rematan ·",
-        prota: { j: tiradorR, esRival: true, anim: "tiro" },
-        rival: arq ? { j: arq, esRival: false, anim: "estirada" } : null,
-        gana: true, color: 0xe3503e, sfx: "golEnContra",
-        titulo: "GOL DE " + this.nombreRival, sub: "se estiró y no llegó… sacás del medio",
-        alFinal: () => { this.efectoGol(true); this.relatar("gol_rival"); }
-      });
-      else if (res.retiene) this.escenaCine({
-        etiqueta: "· tu arquero ·",
-        prota: { j: arq, esRival: false, anim: "atajada" },
-        rival: { j: tiradorR, esRival: true, anim: "tiro" },
-        gana: true, sfx: "gloves",
-        titulo: grito || "¡LA RETUVO!", sub: "tu arquero se quedó con la pelota · salís jugando",
-        alFinal: () => this.relatar("arquero_mio")
-      });
-      else this.escenaCine({
-        etiqueta: "· tu arquero ·",
-        prota: { j: arq, esRival: false, anim: "despeje" },
-        rival: { j: tiradorR, esRival: true, anim: "tiro" },
-        gana: true, color: 0xf6efdc, sfx: "gloves",
-        titulo: "¡PUÑOS AFUERA!", sub: res.mia ? "la dividida quedó tuya" : "la ganó " + this.nombreRival + "…",
-        alFinal: () => this.relatar("arquero_mio")
-      });
-      return;
-    }
-    if (res.golRival) { this.efectoGol(true); this.mostrarResolucion("GOL DE " + this.nombreRival + "…\nSacás del medio.", "#e3503e", { anim: "arquero", gana: false }); }
-    else if (res.retiene) { snd && snd.gloves(); this.mostrarResolucion((grito ? grito + "\n" : "") + "¡LA RETUVO TU ARQUERO!\nSalís jugando.", "#7ee08a", { anim: "arquero", gana: true }); }
-    else { snd && snd.gloves(); this.mostrarResolucion(res.mia ? "¡PUÑOS AFUERA!\nLa dividida quedó tuya." : "¡PUÑOS AFUERA!\nLa ganó " + this.nombreRival + "…", "#f6efdc", { anim: "arquero", gana: true }); }
   }
   resolverTiro(esCalden, rivalIdx, libre) {
     const st = this.st, P = window.PampaPartido;
@@ -3821,10 +3754,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           const arq = st.mios.find(j => j.pos === "ARQ");
           this.beatDeTension(arq, false, "keeper_mio", () => this.escenaRemateRival(ev.rivalIdx));
         }
-        else if (this.FLAGS.e3_menus) {
-          const arq = st.mios.find(j => j.pos === "ARQ");
-          this.beatDeTension(arq, false, "keeper_mio", () => this.abrirMenuArquero());
-        }
+        /* C3 · acá había un fallback a abrirMenuArquero() —el menú de gestión
+           del arquero, con sus tres escenaCine— que era INALCANZABLE: solo
+           corría si no existía escenaRemateRival, y esa se define en
+           escenas_v9.js, que index.html carga siempre. Verificado con grep: la
+           única llamada del proyecto era esta línea. Si algún día escenas_v9.js
+           no cargara, el else de abajo resuelve la atajada igual, en texto. */
         else { const res = P.resolverAtajada(st, Math.random() < 0.5 ? "atajar" : "despejar"); aviso = res.golRival ? "GOL DE " + this.nombreRival : "¡La sacó tu arquero!"; }
       }
       else if (ev.tipo === "entretiempo") {

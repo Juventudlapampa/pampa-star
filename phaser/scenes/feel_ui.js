@@ -234,9 +234,14 @@
     redSacudida: function (sc, red) {
       if (!red) return;
       var C = cfg(sc);
+      /* C3 · epica.red_sacudida_ms estaba huérfana: existía la perilla y nadie
+         la leía. En vez de borrarla se conecta acá, que es donde tenía sentido
+         desde el principio — la red que se hunde y vuelve, en el gol. */
+      var b = (sc.BAL || {});
+      var total = ((b.epica && b.epica.red_sacudida_ms) || 700) * C.k;
       var x0 = red.x;
       sc.tweens.add({
-        targets: red, x: x0 + 10, duration: Math.round(90 * C.k), ease: "Quad.easeOut",
+        targets: red, x: x0 + 10, duration: Math.round(total / 4), ease: "Quad.easeOut",
         yoyo: true, repeat: 1
       });
     },
