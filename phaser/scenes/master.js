@@ -501,7 +501,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          Chico (15 px) va sin inicial a propósito: a ese tamaño la letra no se
          lee y ensucia — manda la silueta, que es lo que distingue. */
       if (window.PampaEscudosUI && window.PampaEscudos) {
-        const esc = window.PampaEscudosUI.deClub(this, f.equipo, pos.map(p => p.equipo));
+        const esc = window.PampaEscudosUI.deClub(this, f.equipo, pos.map(p => p.equipo), t.division);
         /* a la IZQUIERDA del número y no al lado del nombre: la tabla es
            monospace con padStart y meterle un objeto en el medio le rompe la
            alineación a todas las columnas. Acá el margen ya estaba libre. */
@@ -539,7 +539,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         /* N3 · acá el escudo va GRANDE y con inicial: es el rival del domingo,
            la única pantalla donde mirás a un club a la cara */
         if (window.PampaEscudosUI && window.PampaEscudos) {
-          const escR = window.PampaEscudosUI.deClub(this, rival, pos.map(p => p.equipo));
+          const escR = window.PampaEscudosUI.deClub(this, rival, pos.map(p => p.equipo), t.division);
           window.PampaEscudosUI.dibujar(this, tFecha.x - tFecha.width / 2 - 24, H - 150, 30, escR);
         }
         this.add.text(W / 2, H - 128, "un equipo " + perfil.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#7ee08a" }).setOrigin(0.5);
