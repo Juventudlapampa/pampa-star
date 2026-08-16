@@ -56,17 +56,25 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
 /* ---- 2b) La fuerza decide si la agarra o se le escapa ---------------------- */
 (function () {
   /* mismo arquero, dos remates: el flojo lo abraza, el fuerte se le va */
-  var n = 400, aCorner = { flojo: 0, fuerte: 0 };
+  /* Se compara la PROPORCIÓN de córners sobre los NO-GOLES, no el número
+     absoluto. En absoluto se mezclan dos cosas: un remate flojo produce muchos
+     más no-goles que uno fuerte, así que puede acumular tantos córners como el
+     fuerte aunque los retenga mejor. Lo que dice la regla es "de las que le
+     llegan, las fuertes se le escapan más", y eso es una proporción. */
+  var n = 3000, cta = { flojo: { corner: 0, nogol: 0 }, fuerte: { corner: 0, nogol: 0 } };
   for (var i = 0; i < n; i++) {
     var f = D.resolveShot({ shotPower: 20, keeperSkill: 95, zone: {}, rng: Math.random });
     var g = D.resolveShot({ shotPower: 88, keeperSkill: 95, zone: {}, rng: Math.random });
-    if (f.outcome === "corner") aCorner.flojo++;
-    if (g.outcome === "corner") aCorner.fuerte++;
+    if (f.outcome !== "gol") { cta.flojo.nogol++; if (f.outcome === "corner") cta.flojo.corner++; }
+    if (g.outcome !== "gol") { cta.fuerte.nogol++; if (g.outcome === "corner") cta.fuerte.corner++; }
   }
-  ok(aCorner.fuerte > aCorner.flojo,
-    "un remate FUERTE se le tiene que escapar al córner más seguido que uno flojo (fuerte " +
-    aCorner.fuerte + " vs flojo " + aCorner.flojo + " de " + n + ")");
-  console.log("[2b] la fuerza decide agarrada vs córner: fuerte " + aCorner.fuerte + " · flojo " + aCorner.flojo + " de " + n);
+  var pFlojo = cta.flojo.corner / Math.max(1, cta.flojo.nogol);
+  var pFuerte = cta.fuerte.corner / Math.max(1, cta.fuerte.nogol);
+  ok(pFuerte > pFlojo + 0.05,
+    "de los remates que NO son gol, al fuerte se le tiene que escapar al córner más seguido que al flojo " +
+    "(fuerte " + (pFuerte * 100).toFixed(0) + "% vs flojo " + (pFlojo * 100).toFixed(0) + "%)");
+  console.log("[2b] de los no-goles van al córner: fuerte " + (pFuerte * 100).toFixed(0) +
+    "% · flojo " + (pFlojo * 100).toFixed(0) + "%");
 })();
 
 /* ---- 3) Forzar GOL: roll bajo y sin 'afuera' ⇒ gol, arquero NO gana -------- */

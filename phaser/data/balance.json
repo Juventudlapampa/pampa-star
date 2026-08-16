@@ -593,5 +593,33 @@
     "_nota": "N2 EL RIVAL TE LEE LOS ESPECIALES. Cada especial tiene su propia lectura (que te lean el Tornado no les dice nada del Calden). Cada uso la sube sube_por_uso; el tiempo la baja baja_por_minuto. penal_max es cuanto le pueden sacar al MULTIPLICADOR del especial (no al poder base: te sacan lo que el especial te daba de mas, nunca te dejan peor que pateando normal). avisa_desde es a partir de que lectura aparece la etiqueta en el menu — antes de intentarlo, no despues de fallar. Medido con estos valores: 3 usos para te tienen leido, 4 para el tope, y 45 minutos sin usarlo para volver a cero.",
     "arquero_bonus_max": 0,
     "_d2": "D2: la lectura ahora viaja como FACTOR por resolveShot (penalizaciones), que es la via unica. arquero_bonus_max queda en 0: era un parche para esquivar el tope duro de duelChance, y ese tope ya no existe. Subilo si queres el comportamiento viejo."
+  },
+  "drama": {
+    "escalon1_ms": 420,
+    "escalon2_ms": 1250,
+    "escalon3_ms": 2600,
+    "intensidad": 1,
+    "_nota": "BLOQUE A LOS TRES ESCALONES DEL DRAMA. Antes TODA accion significativa cortaba a una viniera de 2600ms (500 entrada + 800 pose + 1300 hold) mas 500 de silencio: un pase lateral costaba lo mismo que un gol de chilena. Escalon 1 (tramite: pase, quite, corte) NO corta a viniera y se resuelve en la cancha. Escalon 2 (jugada: gambeta, remate, atajada) corta pero a la mitad. Escalon 3 (momento: gol, megatiro, chilena, final) queda igual que hoy. La clasificacion vive en logic/drama.js porque es diseno, no ajuste; estos numeros son las perillas."
+  },
+  "oficio": {
+    "intensidad": 1,
+    "hitstop_chico_ms": 40,
+    "hitstop_fuerte_ms": 90,
+    "hitstop_gol_ms": 140,
+    "latigazo_ms": 150,
+    "latigazo_veloc": 1.35,
+    "anticipacion_ms": 120,
+    "anticipacion_px": 10,
+    "accion_ms": 180,
+    "rebote": 1.7,
+    "estela_fantasmas": 4,
+    "estela_ms": 220,
+    "estela_desde_px_s": 420,
+    "deformacion_max": 0.45,
+    "deformacion_vuelta_ms": 100,
+    "segunda_accion_ms": 90,
+    "push_camara_ms": 900,
+    "push_camara_zoom": 0.06,
+    "_nota": "BLOQUE B EL OFICIO DE LA ANIMACION. intensidad es la perilla GLOBAL: multiplica todos estos tiempos de una, para subir o bajar la intensidad entera con un numero (0 = todo instantaneo, 1 = como esta calibrado, 1.5 = mas teatral). hitstop_*: cuanto se congela TODO en un impacto (chico/fuerte/gol) — es el recurso que mas peso da con menos codigo. latigazo_*: justo despues del hitstop el mundo reanuda MAS RAPIDO durante latigazo_ms; ese contraste entre la pausa y el latigazo es el golpe. anticipacion/accion/rebote: los tres tiempos de todo movimiento importante (chico hacia atras, rapido con curva, se pasa y vuelve). estela_*: fantasmas de la pelota cuando supera estela_desde_px_s. deformacion_*: cuanto se estira y se achata la pelota. segunda_accion_ms: cuanto TARDA lo blando en seguir al cuerpo (la tribuna se sacude despues de la camara, no en el mismo cuadro). push_camara_*: el empuje lento en los momentos de tension."
   }
 }

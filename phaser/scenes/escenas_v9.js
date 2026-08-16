@@ -153,10 +153,47 @@
     golPropio() {
       var self = this, st = this.st;
       window.PampaPartido.golMio(st);
-      if (this.efectoGol) this.efectoGol(false);
-      if (this.cineLayer && this.cineLayer.visible && this.tribunaSaltando) this.tribunaSaltando();
-      if (this.hinchadaEstalla) this.hinchadaEstalla(1);          // la del panel de juego
-      this.time.delayedCall(this.msV(1600), function () { self.relatar("saque_gol"); });
+      /* ── B5 · EL GOL COMO PICO ────────────────────────────────────────
+         Era el momento más importante del juego y compartía tratamiento con
+         todo lo demás: efecto, tribuna y relator disparaban los tres a la vez,
+         en el mismo cuadro. Ahora es una secuencia encadenada:
+
+           hitstop largo (el instante se congela)
+             → UN cuadro de destello con la silueta recortada, como el corte de
+               impacto del anime
+             → la red se hunde y vuelve, y la cámara se queda quieta
+             → SILENCIO (feel.silencio_ms) — y esto es la mitad del efecto
+             → y recién ahí entra TODO junto: cartel, tribuna, sonido, festejo.
+
+         B4 (segunda acción): la tribuna no salta en el mismo cuadro que el
+         efecto de cámara, entra unos milisegundos después. */
+      var FE = window.PampaFeel;
+      if (!FE) {
+        if (this.efectoGol) this.efectoGol(false);
+        if (this.cineLayer && this.cineLayer.visible && this.tribunaSaltando) this.tribunaSaltando();
+        if (this.hinchadaEstalla) this.hinchadaEstalla(1);
+        this.time.delayedCall(this.msV(1600), function () { self.relatar("saque_gol"); });
+        return;
+      }
+      var j = st.mios[st.ctrl];
+      FE.golPico(this, {
+        silueta: (this.texturaEscena && j) ? this.texturaEscena(j, false, "festejo", 0) : null,
+        escala: 2.4,
+        alSilencio: function () {
+          /* durante el silencio solo se mueve la red: nada de música ni cartel */
+          if (self.musicaDuck) self.musicaDuck(((self.BAL.feel && self.BAL.feel.silencio_ms) || 500) + 200);
+          if (self.redSprite) FE.redSacudida(self, self.redSprite);
+        },
+        alEstallar: function () {
+          if (self.efectoGol) self.efectoGol(false);
+          /* B4: lo blando llega después que el cuerpo */
+          FE.segunda(self, function () {
+            if (self.cineLayer && self.cineLayer.visible && self.tribunaSaltando) self.tribunaSaltando();
+            if (self.hinchadaEstalla) self.hinchadaEstalla(1);
+          });
+          self.time.delayedCall(self.msV(1600), function () { self.relatar("saque_gol"); });
+        }
+      });
     },
     golEnContraDeLosNuestros() {
       if (this.hinchadaEstalla) this.hinchadaEstalla(-1);         // se hunde la tribuna

@@ -1658,7 +1658,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (a.id === "gambeta" && this.hayEscenas() && rivalJ) {
         /* la variante "perdés": VOS trastabillando (gambeta_pierde), la barrida atrás */
         this.escenaCine({
-          etiqueta: "· la gambeta ·",
+          etiqueta: "· la gambeta ·", accion: "gambeta",
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
           pose: "gambeta_pierde",                              // ARTE 2: el trastabille
           rival: { j: rivalJ, esRival: true, anim: "pase" },
@@ -1679,10 +1679,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ANIME B (P2): las dos variantes defensivas de la gambeta — te la hacen / la defendés */
     if (r.win) {
       P.ganarDefensa(st);
-      if (a.id === "quite" && this.hayEscenas() && rivalJ) {
+      /* BLOQUE A · el quite fuera del área es TRÁMITE: se resuelve en la
+         cancha y no corta. Adentro del área sube a jugada y sí se ve — es la
+         diferencia entre robarla en el mediocampo y salvarla sobre la línea. */
+      if (a.id === "quite" && this.hayEscenas() && rivalJ && this.escalonDe("quite", rivalJ)) {
         /* "la defendés": el RIVAL trastabilla (gambeta_pierde ESPEJADA) y vos abajo */
         this.escenaCine({
-          etiqueta: "· el quite ·",
+          etiqueta: "· el quite ·", accion: "quite_area",
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
           pose: "gambeta_pierde", poseFlip: true,              // ARTE 2: espejo — pierde él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
@@ -1701,7 +1704,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (a.id === "bloqueo" && this.hayEscenas()) {
         /* ARTE 2: el BLOQUEO defensivo plantado tiene su pose propia */
         this.escenaCine({
-          etiqueta: "· el bloqueo ·",
+          etiqueta: "· el bloqueo ·", accion: "bloqueo",
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           pose: "bloqueo",
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "tiro" } : null,
@@ -1712,10 +1715,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         });
         return;
       }
-      if (this.hayEscenas()) {
-        /* V8 D: el CORTE también se VE arriba (antes se resolvía en texto) */
+      if (this.hayEscenas() && this.escalonDe("corte", rivalJ)) {
+        /* V8 D: el CORTE también se VE arriba (antes se resolvía en texto).
+           BLOQUE A: solo si es en zona de peligro; el corte en el mediocampo
+           es trámite y se resuelve en la cancha. */
         this.escenaCine({
-          etiqueta: "· el corte ·",
+          etiqueta: "· el corte ·", accion: "corte",
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           pose: "barrida", rapida: true,
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "pase" } : null,
@@ -2192,6 +2197,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */
     this.time.delayedCall(C.impacto_gol_ms + silencio + this.msV(C.desenlace_hold_ms), () => this.salirCine());
   }
+  /* BLOQUE A · ¿esta acción merece cortar a viñeta?
+     Devuelve true si el escalón es 2 o 3. El contexto que sube de escalón sale
+     de la cancha: una acción en el último tercio de campo pesa más que la
+     misma en el mediocampo, y eso es lo que separa el trámite de la jugada. */
+  escalonDe(accion, jugador) {
+    const DR = window.PampaDrama;
+    if (!DR) return true;
+    const st = this.st;
+    const j = jugador || (st && st.mios[st.ctrl]);
+    const ctx = {
+      enArea: !!(j && st && (j.x > st.W * 0.72 || j.x < st.W * 0.28)),
+      decisivo: !!(st && st.minuto > 80 && Math.abs(st.golesMio - st.golesRival) <= 1)
+    };
+    return DR.cortaAVinieta(accion, ctx);
+  }
+
   /* ============ G1 · EL DESENLACE DEL REMATE, EN UN SOLO LUGAR ============
      Los cuatro caminos de remate (simple, con cine, aéreo, mega) resolvían el
      no-gol cada uno por su lado con un `else P.tiroFallado(st)`. Así fue como
@@ -2205,6 +2226,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      quiera, sin volver a decidir nada.                                     */
   desenlaceRemate(res) {
     const st = this.st, P = window.PampaPartido;
+    /* B1 · HITSTOP. El instante del impacto se congela y después arranca de
+       golpe. La fuerza depende de qué pasó: el gol es el más largo, la atajada
+       y el córner son impactos fuertes, el afuera ni toca a nadie. */
+    const FE = window.PampaFeel;
+    if (FE) {
+      if (res.outcome === "gol") FE.hitstop(this, "gol", 3);
+      else if (res.outcome === "atajada" || res.outcome === "corner") FE.hitstop(this, "fuerte", this._escalonActual || 2);
+    }
     if (res.outcome === "gol") {
       this.golPropio();
       return { titulo: "¡GOOOL!", sub: "¡La clavaste donde el viento no la saca!", color: 0xffd84d, gana: true };
@@ -2323,7 +2352,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const d = this.desenlaceRemate(res);   // la verdad UNA vez; la escena la cuenta
       const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
       this.escenaCine({
-        etiqueta: "· el remate ·",
+        etiqueta: "· el remate ·", accion: "remate",
         prota: { j: tirador, esRival: false, anim: "tiro" },
         /* V6 §1 F2: el arquero SIEMPRE se estira — también cuando la pelota se va afuera */
         rival: arqR ? { j: arqR, esRival: true, anim: res.outcome === "atajada" ? "atajada" : "estirada" } : null,
@@ -2524,7 +2553,24 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* cfg: { etiqueta, prota:{j,esRival,anim}, rival:{j,esRival,anim}|null, gana,
             titulo, sub, color?, sfx?, siluetas?, poseFinalProta?, poseFinalRival?, alFinal } */
   escenaCine(cfg) {
-    const F = this.BAL.escena || {}, feel = this.BAL.feel || {};
+    /* ── BLOQUE A · EL PRESUPUESTO DEL ESCALÓN ────────────────────────────
+       Antes toda viñeta duraba lo mismo: 500 de entrada + 800 de pose + 1300
+       de hold = 2.600 ms, fuera un pase filtrado o un gol de chilena. Ahora el
+       escalón manda: el 3 (gol, megatiro, chilena, final) queda EXACTAMENTE
+       igual que hoy, y el 2 (gambeta, remate, atajada, bloqueo) cuesta la
+       mitad. El escalón 1 ni llega acá — se resuelve en la cancha.
+       El reparto entre los tres planos conserva las proporciones de hoy, así
+       que lo único que cambia es cuánto dura, no cómo se ve. */
+    const DR = window.PampaDrama;
+    const escalon = cfg.escalon != null ? cfg.escalon
+      : (DR ? DR.escalonDe(cfg.accion || (cfg.gana === true && cfg.hinchada ? "gol" : "remate"), cfg.ctx) : 3);
+    const plan = DR ? DR.planos(cfg.accion || "remate", cfg.ctx, this.BAL.drama) : null;
+    const F0 = this.BAL.escena || {};
+    const F = plan ? Object.assign({}, F0, {
+      entrada_ms: plan.entrada, pose_ms: plan.pose, hold_ms: plan.hold
+    }) : F0;
+    this._escalonActual = escalon;
+    const feel = this.BAL.feel || {};
     this.estado = "ESCENA";
     this.quitarDuelo(); this.limpiarMenu();
     this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
