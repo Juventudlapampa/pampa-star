@@ -58,8 +58,10 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.sel = 0;
 
     /* ---- título + pestañas ---- */
-    this.add.text(W / 2, 24, "✎ TU PINTA", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 46, "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
+    /* C2 · el PRINCIPAL del editor es TU PINTA: es de lo único que se trata la
+       pantalla. La explicación de abajo pasa a apoyo. */
+    this.add.text(W / 2, 30, "TU PINTA", { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 56, "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
     this.tabs = [];
     const tw = Math.min(170, (W - 40) / this.personajes.length - 8);
     let tx0 = W / 2 - (this.personajes.length * (tw + 8) - 8) / 2 + tw / 2;

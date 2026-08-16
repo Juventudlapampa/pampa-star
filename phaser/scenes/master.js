@@ -472,7 +472,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     const t = this.save.temporada, T = this.T, Ma = this.Ma;
     const div = Ma.DIVISIONES.find(d => d.id === this.save.division) || Ma.DIVISIONES[0];
-    this.add.text(W / 2, 34, "🏆 " + div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: "14px", color: "#ffd84d" }).setOrigin(0.5);
+    /* C2 · el PRINCIPAL de la temporada es en qué escalón estás: es el dato que
+       ordena todo lo demás de la pantalla, y la tabla es la consulta. */
+    this.add.text(W / 2, 36, div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 60, this.save.club + (this.save.titulos.length ? " · ★".repeat(Math.min(5, this.save.titulos.length)) + " " + this.save.titulos.length + " títulos" : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* resultado de la última fecha jugada (si venimos del partido) */

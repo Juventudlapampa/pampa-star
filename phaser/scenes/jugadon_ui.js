@@ -101,7 +101,11 @@
     },
     /* el globo de INTENCIÓN (lectura mutua: texto + flecha, accesible) */
     jugadonGlobo(x, y, texto) {
-      var t = this.add.text(x, y, texto, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 8, y: 4 } }).setOrigin(0.5, 1);
+      /* C2 · EL PRINCIPAL DEL JUGADÓN. La pantalla entera existe para leerle la
+         intención al rival, así que eso es lo que se mira primero. Antes eran
+         15 px y competía con el nombre del rival (13) y los botones (12): tres
+         cosas del mismo peso y ninguna dominando. */
+      var t = this.add.text(x, y, texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(1), fontStyle: "bold", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 10, y: 5 } }).setOrigin(0.5, 1);
       this.cineContent.add(t);
       this.tweens.add({ targets: t, scale: 1.08, duration: 300, yoyo: true, repeat: -1 });
       return t;
@@ -169,7 +173,7 @@
         var sr = kR ? self.add.image(0, 0, kR) : self.add.rectangle(0, 0, 40, 90, 0xff8a50);
         sr._altoBase = sr.height || 90;
         self.cineContent.add(sr);
-        var nom = self.add.text(0, 0, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
+        var nom = self.add.text(0, 0, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
         self.cineContent.add(nom);
         self._jgMini.rivales.push({
           spr: sr, nom: nom, idx: i, vivo: true,
