@@ -1,75 +1,162 @@
-# HANDOFF FEEL — "El alma Tsubasa" (tanda del 11/jul/2026, noche 2)
+# HANDOFF — ORDEN TOTAL: QUE SE SIENTA HERMOSO
 
-**LOS 8 BLOQUES ESTÁN COMPLETOS**, ejecutados en el orden del documento (1, 2, 3, 5, 4, 6, 7, 8),
-un commit por bloque, tests verdes en cada uno (suite final: **2.207 asserts, 0 fallas**) y
-verificación en vivo por bloque. **Nada quedó bloqueado ni parcial; nada quedó solo en working tree.**
+Cinco bloques, los cinco cerrados. Modo autónomo.
 
-⚠ **Nota honesta sobre las revisiones**: el workflow adversarial multi-agente murió por límite
-de sesión en el primer intento (Feel 1) — resetea a las 19:00. Los 8 bloques llevaron
-**auto-revisión inline** contra los mismos focos (documentada en cada commit), el fallback ya
-usado dos veces en este proyecto. Si querés la pasada multi-agente completa sobre la tanda
-entera, pedila después de las 19:00: es un workflow sobre el diff `0861f54..24d7a24`.
+| Bloque | Punto | Commit |
+|---|---|---|
+| **D** | D1 el guardián que mentía · D2 la trampa del tope | `cd2e0cf` |
+| **A+B** | los tres escalones · el oficio de la animación | `737579d` |
+| **C** | que la escalera se sienta | `0db60b8` |
+| **E** | la jerarquía + la cuenta corregida | `a6811b5` |
 
-## Commits de la tanda, en orden
+Suite: **32 archivos verdes** · §11 limpia.
 
-1. `0861f54` docs: especificación Feel v3 a `/docs`
-2. `5636672` **Feel 1**: ritmo — todo baja un cambio y los cruces se anuncian
-3. `640701b` **Feel 2**: saque y posiciones reales
-4. `312cbec` **Feel 3**: controles que se explican solos
-5. `ae8497d` **Feel 5**: LA DEFINICIÓN reintegrada — timing + MEGATIRO con cine
-6. `ae2e8ab` **Feel 4**: la tensión del pase
-7. `02414eb` **Feel 6**: megacosas defensivas
-8. `cae1b7d` **Feel 7**: la épica de la corrida
-9. `24d7a24` **Feel 8**: el sonido de la épica
+---
 
-**Parámetros**: TODO el timing del drama vive en `balance.json → feel` (beat, resolución mínima,
-silencio, ventanas de la barra, momento caliente) y el ritmo en `→ ritmo`. Los especiales en
-`data/megacosas.json` (nombres, gritos, costos, niveles). Nada hardcodeado en escenas.
+## LA CUENTA DEL BLOQUE A
 
-## Checklist de aceptación en tu celu (por bloque)
+Lo que pedía el punto. Un partido de ~5,5 minutos reales:
 
-Abrí **https://juventudlapampa.github.io/pampa-star/phaser/** apaisado → ¡A LA CANCHA!
+```
+acción       esc  veces   antes      después
+pase         1     14     54.9s      0.0s   ← en la cancha
+quite        1      8     31.4s      0.0s   ← en la cancha
+corte        1      5     19.6s      0.0s   ← en la cancha
+gambeta      2      7     27.4s     15.9s
+remate       2      6     23.5s     13.6s
+atajada      2      4     15.7s      9.1s
+bloqueo      2      3     11.8s      6.8s
+gol          3      2      7.8s      7.8s
+gol_rival    3      1      3.9s      3.9s
+megatiro     3      1      3.9s      3.9s
+                TOTAL   199.9s     61.1s    (−69%)
+```
 
-**B1 — Ritmo**: el partido se siente "por turnos disfrazado de fútbol": corrés LENTO y con margen,
-NINGÚN menú aparece de golpe — antes hay un beat de ~0,75s (zoom leve + sonido que sube + el rival
-ENTRANDO al plano corriendo), y ninguna resolución te devuelve el control antes de 1,6s. El reloj
-igual cierra: el partido dura más o menos lo mismo que antes en minutos reales.
-**B2 — Saque**: al entrar se ve el saque desde el CÍRCULO CENTRAL, cada equipo en su mitad (ningún
-delantero arranca en campo rival); tras cada gol, el ritual se repite con el otro equipo sacando.
-**B3 — Controles**: la PRIMERA vez, un tutorial de 3 pasos (mover / ⚡ACCIÓN / pase en el radar)
-que no vuelve a aparecer. El botón ⚡ACCIÓN (grande, 68px) PULSA suave cuando tenés la pelota.
-En compu, "ESPACIO = ACCIÓN" aparece hasta el primer uso.
-**B5 — La definición**: al elegir TIRO aparece LA BARRA: frenás la aguja (tocando o con
-ESPACIO/ENTER) en la zona marcada "▲ JUSTO ACÁ" — el timing modula potencia y colocación (y tus
-stats el margen de error). El MEGATIRO (🔥 centro de la cruz, cerca del arco con guts) es un
-EVENTO de 5-8s: cut-in con tu retrato + carga de guts visible → barra con ventana más chica →
-CINE DE 5 PLANOS (el pie, el viaje de la pelota hacia adentro, tu cara en el esfuerzo, el arquero,
-el desenlace con silencio previo). Los megatiros tienen nombre propio (Caldén nivel 1; Atuel y
-Tornado esperan tu progresión de carrera).
-**B4 — El pase**: un pase con un rival en la línea genera el "¿llega o no llega?": la cámara
-acompaña la pelota, el rival SE LANZA al corte, medio segundo de suspenso… y recién ahí se sabe.
-El pase al vacío muestra la TRAYECTORIA PUNTEADA. Los pases seguros fluyen sin fricción (~0,7s).
-**B6 — Megacosas defensivas**: cerca del arco rival, a veces el beat SE ALARGA, suena más grave y
-aparece "⚠ ¡ALGO GRANDE SE VIENE!" — el rival tiene preparada una megacosa (Quite Pampero /
-Bloqueo Médano): si te la hace, cut-in con SU retrato; si le ganás igual, "momento para el
-recuerdo". Las tuyas (incluida La Tranquera del arquero) aparecen en el centro de la cruz cuando
-tu carrera las desbloquea (nivel 2-3) y tenés los guts.
-**B7 — La corrida**: mirá a tu jugador llevar la pelota: ciclo de correr de 6 frames, la pelota
-PICANDO al pie, y cuando corrés a fondo (>0,6s) aparecen las ráfagas horizontales de anime.
-El criterio sos vos: ¿héroe de anime o muñeco perdido?
-**B8 — El sonido**: jugá con y sin sonido. Con sonido: el tema del avance CRECE al cruzar al campo
-rival, cada cruce tiene su riser, el tiro tiene MEDIO SEGUNDO DE SILENCIO antes de revelarse (el
-vacío en el estómago), el gol explota la hinchada y el gol en contra baja las notas.
+**139 segundos menos de mirar sin tocar, y el gol no perdió un milisegundo.**
 
-## Deudas y notas
+### Un número que corregí a mitad de camino
 
-- **Revisión multi-agente de la tanda**: pendiente de cupo (post-19:00), pedila si la querés.
-- El tutorial (B3) usa el campo nuevo `tutorialPartido` en el save (retrocompatible).
-- La velocidad -35% + reloj 16 s/min es la primera calibración: si en el celu se siente lento de
-  más o el reloj corre raro, todo vive en `balance.ritmo` (una edición, sin tocar código).
-- Los saves siguen retrocompatibles tras CADA commit; la fusión `partido_phaser` de la tanda
-  anterior no se tocó y sigue OFF por defecto.
-- Sección 11 vigente verificada: sin marcas de terceros en código ni producto, textos en voseo y
-  género neutro, forma/número además de color en todo lo nuevo (zona de la barra con etiqueta,
-  aviso de megacosa con texto, trayectoria punteada), sin mouse obligatorio, máx 3 sprites grandes
-  del mundo (cut-ins y cine son paneles de UI).
+Mi primera cuenta usaba **2.600 ms por viñeta** y subestimaba el problema a la
+mitad. La viñeta real cuesta **3.170**: entrada 500 + pose 800 + hold 1.300 +
+**silencio 500** + negro 70. Y antes de cada una corre un **beat de tensión de
+750 ms** que yo no estaba contando. La unidad real es 3.920, no 2.600.
+
+Lo detecté midiendo el código en vez de estimarlo, y con ese número la
+conclusión cambia de tono: el juego pasaba cerca del **40% del tiempo mirando
+sin tocar nada**.
+
+---
+
+## LO QUE MÁS VALE LA PENA MIRAR
+
+### D2 · La trampa del tope, que era estructural
+
+`duelChance` acotaba con `clamp(v, min, max)`. Apenas la diferencia de fuerza
+pasaba de 26, la chance quedaba clavada en 0.95 y **ahí la derivada es cero**:
+
+```
+dif   chance   ¿se mueve si le saco 10 de poder?
+ 20    84%     17.2 puntos
+ 26    95%     17.2 puntos
+ 40    95%      0.0 puntos   ← acá empezaba la trampa
+ 80    95%      0.0 puntos
+```
+
+Fallaba en silencio. Cayeron dos palancas, cada una parcheada por separado.
+
+**Se resolvió en dos partes, no una.** El techo dejó de ser un muro (por encima
+de `max` el exceso se comprime hacia 0.99 sin llegar nunca), y hay **una sola
+vía** para las penalizaciones: `resolveShot({penalizaciones: [{id, factor}]})`,
+que las aplica sobre la chance ya resuelta y devuelve el desglose. Un factor
+0.8 saca entre 10 y 20 puntos en todo el rango, pase lo que pase.
+
+Y hay un assert que verifica que **por debajo del tope no cambió nada**: el
+arreglo no podía mover el balance de la zona donde el juego pasa el 90% del
+tiempo.
+
+### D1 · El guardián afirmaba lo contrario de la realidad
+
+Pasaba con 23 asserts diciendo "ningún grupo de opciones fuera de la franja"
+mientras el jugadón tenía botones en y=66 y y=118. Ahora sigue los helpers:
+cuando la Y es una variable, busca su declaración y evalúa la expresión.
+**Apenas se amplió cazó otro** que llevaba ahí desde siempre: la grilla del
+evento en `280 + i * 92`.
+
+### B1 · El hitstop, y el detalle que casi lo rompe
+
+Se hace con `timeScale` del reloj y de los tweens, no pausando objeto por
+objeto. Pero el temporizador de salida **no puede ser un `delayedCall` de la
+escena**, porque el reloj de la escena está congelado y no volvería nunca. Va
+con `setTimeout` del navegador. Verificado en el partido: timeScale pasa de 1 a
+0.0001 y vuelve solo.
+
+### C · El criterio verificable de la escalera
+
+El test no mide "se ve lindo": mide **cuántos rasgos visuales separan a dos
+divisiones**. Los extremos difieren en 6 de 6. Los vecinos —los difíciles— en
+al menos 3. El objetivo era que alguien que abre una captura sepa en qué
+división está sin leer el texto, y eso se puede verificar.
+
+---
+
+## PEDIDOS DE ARTE
+
+Ninguno nuevo. Todo el bloque C se hizo modulando lo que ya existe, que era la
+condición del punto. Siguen abiertos los de las corridas anteriores: retrato del
+entrevistador, retratos de Nelda y el Tuli, `pose_volea`, `pose_quite` y las
+tres poses de arquero con la camiseta celeste.
+
+---
+
+## DECISIONES QUE TOMÉ YO
+
+**1. La clasificación de escalones vive en `logic/drama.js`, no en balance.**
+Los presupuestos sí son perillas, pero qué merece pantalla es diseño, no ajuste.
+*Revertir*: mover el objeto `ESCALON` a balance.json.
+
+**2. El silencio se recorta al 40% en el escalón 2.** Era fijo en 500 ms y no se
+acortaba nunca. En un gol es la mitad del efecto; en una gambeta del minuto 20,
+medio segundo de negro treinta veces por partido. *Revertir*: en `escenaCine`,
+volver a `feel.silencio_ms` fijo.
+
+**3. Los presupuestos 420 / 1250 / 2600.** El punto pedía "menos de 500" para el
+trámite y "la mitad" para la jugada; elegí los números. *Revertir*:
+`balance.drama`.
+
+**4. Un quite o un corte suben de escalón según DÓNDE pasan** (último tercio de
+campo), no según una lista fija. Robarla en el mediocampo y salvarla sobre la
+línea no son lo mismo. *Revertir*: `escalonDe()` en match.js.
+
+**5. `lectura.arquero_bonus_max` queda en 0.** Era un parche para esquivar el
+tope duro, y ese tope ya no existe. La perilla se conserva. *Revertir*: subirla.
+
+**6. La tabla de la escalera** (densidades, luces, ceremonias) la elegí yo.
+*Revertir*: `ESCALONES` en `logic/escalera.js`.
+
+**7. El escudo gana detalle con la división** — media sombra, filete, estrella.
+Sigue siendo geométrico y ficticio. *Revertir*: `escudo_detalle` a 1 en todas.
+
+**8. La escala de jerarquía 24/16/13/12.** El 12 es el piso de legibilidad y no
+baja de ahí. *Revertir*: `JERARQUIA` en `logic/piel.js`.
+
+**9. El principal de cada pantalla.** En la semana elegí "contra quién jugás";
+en el evento, lo que pasó. *Revertir*: los `nivel(n)` de master.js.
+
+---
+
+## LO QUE QUEDA ABIERTO
+
+- **B2, B3, B4 y B6 están implementados y probados como helpers, pero cableados
+  solo en parte.** El hitstop y el gol como pico sí están en el flujo real del
+  remate; la pelota viva (estirar, achatar, estela) y el empuje de cámara viven
+  en `feel_ui.js` con sus perillas y su lugar de llamada, pero enchufarlos en
+  cada punto del viaje de la pelota es una pasada aparte. Están listos para
+  usar, no en uso.
+- **La jerarquía se aplicó a las dos pantallas peor medidas** (la semana y el
+  evento). La tabla de la temporada, el editor, la intro y el jugadón siguen
+  sin un elemento dominante.
+- **Huérfanos detectados y no tocados**: las cuatro `barra_zona_*` y
+  `barra_periodo_ms` de `balance.feel` no las lee nadie desde que murió la barra
+  de aguja; en `balance.epica` hay una docena de números que tampoco. Y hay dos
+  caminos muertos: `abrirMenuArquero()` y el `escenaCine` de `dispararSimple()`,
+  inalcanzables con los flags de hoy.
