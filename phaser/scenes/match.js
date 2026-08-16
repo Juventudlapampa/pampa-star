@@ -1313,7 +1313,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (st.posesion === "mia") { st.modo = "congelado"; this.abrirMenuAtaque(null, true); }
     /* V6 §1 F4: ESPACIO es SOLO ACCIÓN, NUNCA cambia de jugador (TAB/⇄ = manual) */
   }
-  limpiarMenu() { this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
+  limpiarMenu() {
+    /* B6 · se resolvió: la cámara suelta el acercamiento */
+    if (window.PampaFeel && this.uiCam) window.PampaFeel.soltar(this, this.uiCam);
+    this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
   /* FEEL B1 · EL BEAT DE TENSIÓN: el cruce se anuncia 600-900ms ANTES del menú —
      zoom leve, riser, y el que entra al duelo aparece deslizándose al plano */
   beatDeTension(j, esRival, texturaFija, abrir) {
@@ -1398,6 +1401,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   abrirMenuCruz(cfg) {
     this.estado = "MENU";
     this.limpiarMenu();
+    /* ── B6 · LA CÁMARA CON INTENCIÓN ──────────────────────────────────
+       Un acercamiento lento y continuo MIENTRAS se decide algo. No es un zoom
+       de golpe: es el movimiento que le avisa al cuerpo del jugador que algo va
+       a pasar. Al resolverse, suelta. El escalón manda: en el trámite la cámara
+       no se mueve, porque el push se gasta si se usa siempre — igual que el
+       shake. */
+    if (window.PampaFeel) {
+      window.PampaFeel.empujar(this, this.uiCam, this._escalonActual || 2);
+    }
     const strip = this.add.rectangle(480, 404, 960, 216, 0x0a1f13, 0.42);
     const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
     this.menuLayer.add([strip, tit]);
@@ -1413,6 +1425,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const bg = op.bloqueada ? 0x333d36 : 0xf6efdc;
       /* bloqueado se ve por TEXTURA (rayado ▨) + motivo escrito, no solo por el gris */
       const r = this.add.rectangle(x, y, 176, 50, bg, 0.97).setStrokeStyle(2, 0x0a1f13);
+      /* B2 · la apertura del menú también lleva anticipación y rebote */
+      if (window.PampaFeel) window.PampaFeel.aparecer(this, r, { x: x, y: y, scale: 1, desdeX: 480 }, 2);
       const subTxt = op.bloqueada ? ("▨ " + (op.motivo || "no disponible")) : op.sub;
       const t = this.add.text(x, y - (subTxt ? 9 : 0), op.texto, { fontFamily: window.PF.display, fontSize: "10px", color: op.bloqueada ? "#9aa59d" : "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([r, t]);
@@ -2067,8 +2081,43 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const raw = Phaser.Math.Clamp(vs.elapsed / vs.dur, 0, 1);
     const d = 1 - (1 - raw) * (1 - raw);
     const s = window.PampaPersp.aPantalla(d, vs.cfg);
-    vs.ball.setPosition(s.x, s.y).setScale(C.pelota_escala_base + C.pelota_escala_span * s.escala);
-    vs.ball.rotation += 0.3;
+    /* ── B3 · LA PELOTA VIVA, en TODO el viaje y no solo en el impacto ──
+       Antes esto era un setPosition con una rotación fija: un círculo que se
+       traslada, que es el objeto que más mira el jugador. Ahora se ESTIRA en la
+       dirección real del movimiento —calculada contra el cuadro anterior, no
+       supuesta—, deja ESTELA cuando pasa el umbral de velocidad, y la SOMBRA
+       del piso se separa cuando está alta y se junta cuando baja, que es lo
+       único que comunica altura sin dibujarla. */
+    const FE = window.PampaFeel;
+    const escBase = C.pelota_escala_base + C.pelota_escala_span * s.escala;
+    if (FE) {
+      const vx = (s.x - (vs._px != null ? vs._px : s.x)) / Math.max(0.001, delta / 1000);
+      const vy = (s.y - (vs._py != null ? vs._py : s.y)) / Math.max(0.001, delta / 1000);
+      vs.ball._escBase = escBase;
+      vs.ball.setPosition(s.x, s.y).setScale(escBase);
+      FE.pelotaEstirar(this, vs.ball, vx, vy);
+      const veloc = Math.hypot(vx, vy);
+      const O = FE.cfg(this);
+      if (veloc > O.estela_desde) {
+        vs._estelaT = (vs._estelaT || 0) + delta;
+        if (vs._estelaT > (O.estela_ms / O.estela_n)) { vs._estelaT = 0; FE.estela(this, vs.ball, this.cineContent); }
+      }
+      /* la sombra: pegada al piso de la viñeta, separándose con la altura */
+      if (!vs.sombra) {
+        vs.sombra = this.add.ellipse(s.x, 0, 20, 7, 0x000000, 0.32);
+        if (this.cineContent) this.cineContent.add(vs.sombra);
+        if (this.cameras && this.cameras.main) this.cameras.main.ignore(vs.sombra);
+      }
+      const piso = 540 * 0.86;
+      const alto = Math.max(0, piso - s.y);
+      vs.sombra.setPosition(s.x, piso)
+        .setScale(escBase * (1 - Math.min(0.55, alto / 620)))
+        .setAlpha(0.34 * (1 - Math.min(0.7, alto / 700)));
+      vs._px = s.x; vs._py = s.y;
+    } else {
+      vs.ball.setPosition(s.x, s.y).setScale(escBase);
+      vs.ball.rotation += 0.3;
+    }
     this.lineasVelocidad(vs.vp.x, vs.vp.y, 0.4 + 0.6 * d, 0xffd84d);
     if (!vs.zoomed && d > C.slowmo_desde) {
       vs.zoomed = true;
@@ -2257,7 +2306,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const hex = "#" + colorNum.toString(16).padStart(6, "0");
     this.cineBig.setText(big).setColor(hex).setAlpha(1).setScale(0.2).setAngle(-6);
     this.tweens.killTweensOf(this.cineBig);
-    this.tweens.add({ targets: this.cineBig, scale: 1, angle: 0, duration: 360, ease: "Back.easeOut" });
+    /* B2 · el cartel entra con rebote calibrado desde balance.oficio, no con
+       un 360 clavado: así la perilla global lo mueve junto con todo lo demás. */
+    const OF = window.PampaFeel ? window.PampaFeel.cfg(this) : null;
+    this.tweens.add({
+      targets: this.cineBig, scale: 1, angle: 0,
+      duration: OF ? Math.round((OF.antic_ms + OF.accion_ms) * OF.k) : 360,
+      ease: "Back.easeOut", easeParams: OF ? [OF.rebote] : undefined
+    });
     this.cineSub.setText(sub).setAlpha(0);
     this.tweens.add({ targets: this.cineSub, alpha: 1, duration: 300, delay: 240 });
   }
@@ -2641,7 +2697,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (cfg.protaAngle && !sp._esPose) sp.setAngle(cfg.protaAngle);   // la chilena ilustrada ya viene dada vuelta
     this.cineContent.add(sp);
-    this.tweens.add({ targets: sp, x: W * 0.3, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
+    /* B2 · el protagonista no entra en línea recta a velocidad constante: se
+       pasa un poco del destino y vuelve. Es el rebote, y es lo que separa un
+       movimiento dibujado de uno interpolado. En el escalón 1 no hay teatro,
+       pero el escalón 1 ni llega acá. */
+    if (window.PampaFeel && escalon >= 2) {
+      window.PampaFeel.aparecer(this, sp, { x: W * 0.3, y: sp.y, scale: sp.scale, desdeX: -200 }, escalon);
+    } else {
+      this.tweens.add({ targets: sp, x: W * 0.3, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
+    }
     /* rayas diagonales BARRIENDO la pantalla (fondo que corre, pose que se sostiene) */
     const rayas = [];
     for (let rk = 0; rk < 3; rk++) {
