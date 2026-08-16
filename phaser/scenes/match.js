@@ -1504,10 +1504,24 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       der: rival ? { j: rival, aguante: st.aguanteRival } : null,
       opciones: {
         W: { texto: "➡ PASE", sub: "elegí destino en el radar", cb: () => this.iniciarPaseDirigido(rivalIdx, libre) },
-        N: {
-          texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " aguante", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
-          cb: () => libre ? this.reanudarLibre() : this.resolverAccionAtaque(gam, rivalIdx)
-        },
+        N: (() => {
+          /* V6 §3.4, cableada recién en C4: igual que el uno-dos crece a
+             COMBINADA en el sur, la gambeta crece a MEGACORRIDA acá. Estaba
+             implementada entera (secuenciaMegacorrida, con sus tres perillas en
+             balance.secuencias) pero NADIE se la pedía nunca: el único llamador
+             de secuenciaDisponible() preguntaba solo por "combinada", así que
+             la rama "megacorrida" de esa misma función era inalcanzable. Lo
+             cazó la auditoría de huérfanos; no era código muerto, era un cable
+             suelto — una función declarada hecha que nunca se pudo ver jugando. */
+          const sec = !libre ? this.secuenciaDisponible("megacorrida") : null;
+          if (sec && !gam.bloqueada) {
+            return { texto: "🌠 MEGACORRIDA", sub: sec.costo + " aguante · se te van quedando atrás", cb: () => this.secuenciaMegacorrida() };
+          }
+          return {
+            texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " aguante", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
+            cb: () => libre ? this.reanudarLibre() : this.resolverAccionAtaque(gam, rivalIdx)
+          };
+        })(),
         S: (() => {
           /* V6 §3.4: con la progresión, el uno-dos crece a JUGADA COMBINADA (el compa define) */
           const sec = this.secuenciaDisponible("combinada");
@@ -1540,11 +1554,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       volver: libre ? () => this.reanudarLibre() : null
     });
     /* V8 fix 1 (auditoría de Rodri): las FICHAS se OFRECEN SIEMPRE que queden
-       — el recurso épico no depende del momento justo. La GAMBETA con la
-       pelota siempre (haya o no rival pegado); el SÚPER TIRO desde campo
-       rival (aunque no sea la zona ideal). Pueden verse los DOS botones. */
-    /* C3 · la tercera opción: GAMBETA-TIRO (encarar y definir), gasta ficha.
-       El "súper tiro" suelto se fue: rematar sin encarar ya es el TIRO normal. */
+       — el recurso épico no depende del momento justo, no del momento ideal.
+
+       C4 · CORRECCIÓN DE ESTE COMENTARIO. Decía "pueden verse los DOS botones"
+       (gambeta y súper tiro) y hace rato que es UNO solo: el súper tiro suelto
+       se retiró en C3 —rematar sin encarar ya es el TIRO normal— y en V9 §5 se
+       le sacó la grilla de zonas. Un comentario que describe una pantalla que
+       no existe manda a buscar bugs donde no hay ninguno. */
+    /* C3 · la única ficha que se ofrece acá: GAMBETA-TIRO (encarar y definir). */
     if (this.botonJugadon && this.jugadonFichas) {
       const F = this.jugadonFichas();
       if (F.gambetas > 0) {
@@ -3099,11 +3116,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.selloMenu();
   }
   /* ============ FEEL B4 · LA TENSIÓN DEL PASE: nunca más instantáneo ============ */
-  distALinea(p, a, b) {
-    const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy || 1;
-    const t = Phaser.Math.Clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / L2, 0, 1);
-    return Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t));
-  }
+  /* C4 · se borró distALinea(p, a, b): helper geométrico (distancia de un punto
+     a un segmento) sin un solo llamador en todo el repo. Era del cálculo viejo
+     de interceptación del pase, que hoy resuelve logic/partido.js. */
   confirmarPase(rec, alVacio) {
     const st = this.st, P = window.PampaPartido;
     this._receptores = null;

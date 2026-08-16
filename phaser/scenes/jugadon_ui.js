@@ -374,7 +374,29 @@
       });
     },
 
-    /* ============ EL SÚPER TIRO (2 fichas): la física en pantalla ============ */
+    /* ============ EL SÚPER TIRO (2 fichas): la física en pantalla ============
+
+       ⚠ C4 · PENDIENTE DE RODRI — NO BORRAR SIN DECIDIR ESTO PRIMERO.
+
+       Estos tres métodos (entrarJugadonTiro, jugadonFuerza, jugadonTirar) no
+       los llama NADIE. No cuelgan de ningún flag: quedaron sin llamador cuando
+       V9 §5 sacó la grilla de zonas del súper tiro y C3 retiró el botón suelto.
+
+       Lo que importa no es el código de acá, es lo que arrastra: son la ÚNICA
+       puerta a `window.PampaJugadon.resolverSuperTiro`, que es LA FÍSICA del
+       V8 §4 —geometría llega/no-llega, fuerza contra manos del arquero,
+       rebote—. Hoy esa física solo corre en phaser/test/jugadon.test.js: en un
+       partido de verdad no se ejecuta nunca, porque el megatiro se resuelve por
+       `dispararConCine` → duel.js.
+
+       O sea que hay que elegir, y la elección es de Rodri porque cambia QUIÉN
+       decide los goles épicos:
+         (a) revivirla — darle una puerta al súper tiro con física, o
+         (b) retirarla — borrar estos 3 métodos Y logic/jugadon.js:
+             resolverSuperTiro + ARCO + sus tests.
+       Quedarse en el medio es lo peor: mantener y testear una física que el
+       juego no usa. Anotado en HANDOFF_CIERRE.md.
+       ====================================================================== */
     entrarJugadonTiro() {
       var st = this.st, J = window.PampaJugadon, self = this;
       this.jugadonAbrir("🌟 SÚPER TIRO · ¿dónde la ponés? — la física decide");

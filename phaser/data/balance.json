@@ -30,9 +30,6 @@
     "salto_accion_max": 0.9,
     "descuento_min": 1,
     "descuento_max": 3,
-    "zoom_encuentro": 1.22,
-    "zoom_encuentro_ms": 380,
-    "_zoom": "al congelar un encuentro la cámara se ACERCA suave al cruce (lectura con calma, se ve a los de alrededor); al resolver vuelve igual de suave.",
     "_v7_tempo": "V7 §0.3: saltos_vel_mult bajó de 2.4 a 1.8 (la corrida del panel se lee, no pasa volando).",
     "_v8_fix": "V8 playtest: saltos_vel_mult 1.8->1.0 - el multiplicador solo pega en los PORTADORES y con 1.8 tu latido era 3x el del resto (30px vs 11px). Con 1.0: tu tramo ~17px, cazador ~20px, posicionales ~11px - parejo. rival_con_pelota 38->64: con mult 1.0 el rival quedaba cazable (regla R1 rota); a 64 sigue inalcanzable (perseguidor 61) y su tramo (~19px) queda parejo con el tuyo (~17px)."
   },
@@ -46,7 +43,6 @@
     "escala_portador": 0.6,
     "escala_ficha": 1.3,
     "zoom_beat_mult": 3,
-    "panel_escena_frac": 0.55,
     "imprecision_ms": 750,
     "imprecision_radio": 60,
     "radio_silueta": 260,
@@ -291,7 +287,6 @@
   },
   "partido": {
     "_nota": "HITO 2: el partido completo. Mundo lógico 1050×680 (x = avance hacia el arco rival, y = lateral). 11 por lado, formación 1-4-3-3 (anclas del v4 clásico, ya afinadas jugando).",
-    "jugadores_por_lado": 11,
     "formacion": [
       {
         "pos": "ARQ",
@@ -321,8 +316,6 @@
       "ATA": 0.6
     },
     "dist_tiro": 525,
-    "tiro_lejos_desde": 380,
-    "tiro_lejos_penal": 0.06,
     "bonus_arquero_vendido": 10,
     "vacio_penal": 12,
     "vacio_avance": 130,
@@ -349,7 +342,7 @@
       "aereo_min": 65,
       "mult": 1.35
     },
-    "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. tiro_lejos_desde/tiro_lejos_penal: pasando esa distancia el tiro NORMAL pierde fuerza (los especiales no). vacio_*: pase al vacío (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuánto pesa acertar/errar la adivinanza. calden.x_min: línea que habilita el Caldén (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.)",
+    "comentario": "dist_tiro 525 = mitad rival: v2 §7 'desde campo propio no llega'. La caída de fuerza por distancia YA NO vive aca: la hace la curva G1 de logic/duel.js (factorDistancia, con tiro.referencia y tiro.media_vida) — este comentario documentaba tiro_lejos_desde/tiro_lejos_penal, que se borraron en C4 porque no las leia nadie. vacio_*: pase al vacio (penal de riesgo, metros que gana el receptor, ventana del arquero vendido). matriz_bonus: cuanto pesa acertar/errar la adivinanza. calden.x_min: linea que habilita el Calden (su COSTO vive en aguante.costo_calden). (El reloj y los perseguidores viven en el bloque ritmo.) La cantidad de jugadores sale de recorrer `formacion`, no de una clave.",
     "descenso_plazas": 2,
     "_descenso": "A4: cuántos puestos bajan al final de la temporada (los ÚLTIMOS n). 2 = 9º y 10º. Elegida sobre 'solo el último' porque esa no mordió ni una vez en 24 temporadas simuladas. Solo muerde a quien YA ASCENDIÓ: en la división más baja no hay a dónde bajar. Poner 0 desactiva el descenso.",
     "corner_x": 30,
@@ -359,7 +352,6 @@
     "spread": 58,
     "min": 0.07,
     "max": 0.95,
-    "shot_power": 66,
     "keeper_skill": {
       "normal": 46,
       "figura": 92
@@ -398,12 +390,6 @@
     "fuera_borde": 0.8,
     "curva_bonus": 5,
     "gy_max": 44,
-    "sens_arrastre": 1.35,
-    "sens_comba": 4,
-    "_sens": "sens_arrastre: cuánto recorre la mira por px arrastrado (subila si cuesta llegar al palo). sens_comba: cuánta panza del gesto hace falta para la comba máxima (bajala si la comba sale sin querer).",
-    "tecla_paso": 0.14,
-    "tecla_osc_ms": 1100,
-    "_teclado": "tecla_paso: cuánto mueve la mira cada toque de flecha. tecla_osc_ms: período de la barra de potencia (ESPACIO mantenido) y del medidor de comba (más largo = más fácil clavar el timing).",
     "comentario": "Solo para TIRO y TIRO ESPECIAL (Caldén). El resto de los comandos sigue siendo por decisión/lectura."
   },
   "_c3_juego": "C3: se borro el bloque `juego` entero (vel_jugador, vel_avance_auto, zona_remate_y). Era la cancha 3/4 con arco al fondo, que la vista partida de V7-1 reemplazo. Verificado con grep: NADIE abria el bloque (`.juego` no aparece en ningun .js), solo estaba copiado en el fallback de index.html. Ojo con el falso positivo: `juego.vel_jugador` no es `jugadon.vel_jugador`, que SI vive.",

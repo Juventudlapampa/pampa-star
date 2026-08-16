@@ -195,10 +195,10 @@
         }
       });
     },
-    golEnContraDeLosNuestros() {
-      if (this.hinchadaEstalla) this.hinchadaEstalla(-1);         // se hunde la tribuna
-      this.time.delayedCall(this.msV(1600), function () { }, [], this);
-    },
+    /* C4 · se borró golEnContraDeLosNuestros(): nadie la llamaba y lo único
+       que hacía —hundir la tribuna cuando convierte el rival— ya lo hace el
+       gol rival de verdad, más abajo en este mismo archivo. Era un duplicado
+       inalcanzable, no un hueco. */
 
     /* ======================================================================
        §7 · POR QUÉ SALIÓ ASÍ — la línea corta bajo el desenlace.
