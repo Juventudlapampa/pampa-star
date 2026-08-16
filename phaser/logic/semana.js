@@ -52,6 +52,17 @@
     return (data && data.opciones) || [];
   }
   /* qué se puede ofrecer en esta ranura, según origen, molestia y el evento */
+  /* A1 · ¿esta stat ya está en el techo?
+     ctx.stats trae las stats actuales del jugador y ctx.stat_techo el tope
+     (99 por defecto, que es donde clampea el partido). Sin ctx.stats esto
+     devuelve false y todo se comporta como antes: es opcional a propósito,
+     para no romper a ningún llamador viejo. */
+  function statEnElTecho(ctx, stat) {
+    if (!ctx || !ctx.stats || !stat) return false;
+    var techo = ctx.stat_techo != null ? ctx.stat_techo : 99;
+    return (ctx.stats[stat] != null) && ctx.stats[stat] >= techo;
+  }
+
   function opcionesPara(data, semana, ctx) {
     ctx = ctx || {};
     var out = [];
@@ -59,6 +70,22 @@
       if (o.requiere === "molestia" && !semana.molestia) return;
       if (o.requiere_origen && ctx.origen !== o.requiere_origen) return;
       if (o.una_vez && semana.elegidas.indexOf(o.id) >= 0) return;
+      /* A1 · LA OPCIÓN QUE YA NO SIRVE LO DICE, Y NO TE COBRA.
+         Simulado a 90 semanas: entrenando siempre el mismo stat el techo se
+         toca en la semana 25, y desde ahí quedan 65 semanas en las que
+         entrenar cuesta 25 de energía y no cambia un número. El jugador no
+         tiene forma de enterarse: la opción se ve igual y se cobra igual.
+         Ahora la opción sigue apareciendo (para que se entienda que existe)
+         pero marcada, sin costo y sin efecto. Que desaparezca sería peor:
+         parecería un bug. */
+      if (o.stat && statEnElTecho(ctx, o.stat)) {
+        out.push(Object.assign({}, o, {
+          en_techo: true,
+          energia_costo: 0,
+          nota_techo: "ya está al máximo · no suma nada"
+        }));
+        return;
+      }
       out.push(o);
     });
     return out;
@@ -91,7 +118,9 @@
     var tope = cfg.permanente_max_semana != null ? cfg.permanente_max_semana : 3;
     var suma = 0, k;
     for (k in s.permanentes) suma += s.permanentes[k];
-    if (o.stat && suma < tope) {
+    /* A1: una stat en el techo no suma ni descuenta del tope semanal — si
+       descontara, entrenar algo inútil te sacaría el permanente de otra cosa. */
+    if (o.stat && suma < tope && !statEnElTecho(cfg, o.stat)) {
       var cuanto = Math.min(o.stat_mas || 1, tope - suma);
       s.permanentes[o.stat] = (s.permanentes[o.stat] || 0) + cuanto;
     }
@@ -119,16 +148,51 @@
     };
   }
   /* la línea que se lee antes de entrar a la cancha */
+  /* A2 · CÓMO LLEGÁS — CALIBRADO AL RANGO QUE EL JUEGO PRODUCE DE VERDAD.
+     La versión anterior tenía los umbrales del ánimo en 35/40/70/80, pero
+     simuladas 90 semanas con tres estrategias el ánimo casi nunca baja de 75:
+     entra más de lo que sale (el asado da +15, ganar +12, y solo perder resta).
+     O sea que las ramas de "cabeza en otra cosa" y "golpeado" no se veían
+     NUNCA, y el resumen quedaba clavado en 2 o 3 textos de 8 durante toda la
+     carrera — que es justo lo único que le cuenta al jugador que la semana
+     tuvo consecuencia.
+
+     Ahora el eje principal es la ENERGÍA, que sí recorre todo el rango (medido:
+     5 a 100 según cómo juegues), en los CUATRO escalones pedidos:
+        entero (>=75) · normal (55-74) · cansado (35-54) · fundido (<35)
+     y el ánimo matiza cada escalón, con los cortes puestos donde el ánimo de
+     verdad se mueve (85 y 65), no donde nunca llega.
+
+     nivel() se exporta aparte para que la UI pueda mostrar la etiqueta corta
+     al lado de la frase: la palabra es el dato, la frase es el color. */
+  function nivelEnergia(e) {
+    if (e >= 75) return "entero";
+    if (e >= 55) return "normal";
+    if (e >= 35) return "cansado";
+    return "fundido";
+  }
   function resumen(semana) {
     var e = semana.energia, a = semana.animo;
     if (semana.molestia) return "Arrastrás una molestia de la fecha pasada";
-    if (e >= 75 && a >= 70) return "Llegás entero y con la cabeza tranquila";
-    if (e >= 75 && a < 40) return "Llegás bien de piernas pero con la cabeza en otra cosa";
-    if (e < 45 && a >= 70) return "Venís cansado de la semana, pero con muchas ganas";
-    if (e < 45) return "Venís cansado de la semana";
-    if (a >= 80) return "Estás caliente para este partido";
-    if (a < 35) return "Venís golpeado por lo del domingo pasado";
-    return "Llegás normal, como cualquier domingo";
+    var n = nivelEnergia(e);
+    if (n === "entero") {
+      if (a >= 85) return "Llegás entero y con muchas ganas";
+      if (a >= 65) return "Llegás entero y tranquilo";
+      return "Llegás bien de piernas pero con la cabeza en otra cosa";
+    }
+    if (n === "normal") {
+      if (a >= 85) return "Estás caliente para este partido";
+      if (a >= 65) return "Llegás normal, como cualquier domingo";
+      return "Llegás normal, pero con algo dando vueltas";
+    }
+    if (n === "cansado") {
+      if (a >= 85) return "Venís cansado, pero con muchas ganas";
+      if (a >= 65) return "Venís cansado de la semana";
+      return "Venís cansado y con la cabeza en otra cosa";
+    }
+    if (a >= 85) return "Venís fundido, y aun así querés jugarlo";
+    if (a >= 65) return "Venís fundido: las piernas no te van a responder";
+    return "Venís fundido y golpeado por lo del domingo pasado";
   }
 
   /* ---------- el lunes después ----------
@@ -157,6 +221,7 @@
   return {
     RANURAS: RANURAS, clamp: clamp,
     nuevaSemana: nuevaSemana, opcionesPara: opcionesPara, elegir: elegir,
-    comoLlegas: comoLlegas, resumen: resumen, lunesDespues: lunesDespues
+    comoLlegas: comoLlegas, resumen: resumen, lunesDespues: lunesDespues,
+    nivelEnergia: nivelEnergia, statEnElTecho: statEnElTecho
   };
 });

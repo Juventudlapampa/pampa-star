@@ -1,0 +1,12 @@
+{
+ "techo": {
+  "entrenar": 24,
+  "descansar": null,
+  "mixta": 49
+ },
+ "pctTop": {
+  "entrenar": 48,
+  "descansar": 94,
+  "mixta": 79
+ }
+}
