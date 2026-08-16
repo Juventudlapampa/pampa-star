@@ -8,12 +8,12 @@
   },
   "preguntas": {
     "donde": {
-      "dice": "Bueno, ahí quedó grabando. Vamos de atrás para adelante, que es como me gusta: antes del club, antes de todo. Decime una cosa. ¿Dónde aprendiste a jugar?",
+      "dice": "Bueno, ahí quedó grabando. Vamos de atrás para adelante, que es como me gusta. Decime una cosa: ¿dónde aprendiste a jugar?",
       "respuestas": [
-        "En el potrero, contra los más grandes. Me pegaban y yo volvía.",
-        "En la escuelita del club. Con botines prestados, pero ahí aprendí.",
-        "Solo. Pateando contra la pared del galpón, toda la tarde.",
-        "Con mi hermano mayor, que era el crack del pueblo. Aprendí de mirarlo."
+        "En el potrero, contra los más grandes. Nunca me dieron ventaja.",
+        "En la escuelita del club. Con botines prestados.",
+        "Solo. Pateando contra la pared del galpón.",
+        "Con mi hermano mayor, que era el crack del pueblo."
       ]
     },
     "afuera": {
@@ -26,13 +26,14 @@
       ]
     },
     "consejo": {
-      "dice": "Y última, que a las siete entra el informativo y me corren. El que te enseñó a jugar. ¿Qué te dijo? La frase que te quedó, esa.",
+      "dice": "Y última, que a las siete entra el informativo y me corren. El que te enseñó a jugar, la frase que te quedó. ¿Qué te dijo?",
       "respuestas": [
-        "Que la pelota se acaricia. Que de bronca no se patea nunca.",
-        "Que al que duda lo pasan por arriba. Encarar siempre.",
-        "Que el equipo primero. La pared antes que la gambeta.",
-        "Que si no te tienen miedo, no existís. Que te sientan."
+        "Que la pelota se acaricia. Eso me dijo.",
+        "Que al que duda lo pasan por arriba.",
+        "Que el equipo primero. Y punto.",
+        "Que si no te tienen miedo, no existís."
       ]
     }
-  }
+  },
+  "_revision": "Revisado adversarialmente: las respuestas NO pueden repetir el subtitulo que la escena dibuja abajo en la misma tarjeta (master.js lo toma de eventos_temporada.json). Ahi estaba el problema mas visible: en consejo, las cuatro respuestas eran el sub dado vuelta."
 }

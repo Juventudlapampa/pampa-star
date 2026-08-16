@@ -261,6 +261,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        grande, con los dos equipos, y ahí se corre y se apunta. --- */
     this.buildRadar();
     this.buildHUD();
+    /* N1: la franja de la tribuna se monta con el HUD y arranca invisible */
+    if (window.PampaTribunaUI) window.PampaTribunaUI.montar(this);
     this.buildBotonAccion();
     this.buildCineBase();
     this.uiCam = this.cameras.add(0, 0, 960, 540);
@@ -341,6 +343,24 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      se consumían solas — la jugada de peligro, en la práctica, NUNCA se veía.
      Ahora si la capa está apagada la frase ESPERA y sale cuando vuelve. */
   relatar(situacion, ctx) {
+    /* N1 · LOS DOS DE LA TRIBUNA. Se enganchan acá, al mismo evento que el
+       relator, porque es el único lugar donde el partido ya avisa que pasó
+       algo. Pero NO dicen lo mismo: el relator le habla al que juega y estos
+       dos se hablan entre ellos. El mapa traduce las claves del relator a las
+       de la tribuna; las que no están, no se comentan (mejor callarse que
+       decir cualquier cosa). */
+    if (window.PampaTribunaUI && this._tribuna) {
+      const MAPA = {
+        gol: "gol", gol_rival: "gol_rival", atajada: "atajada", arquero_mio: "atajada",
+        quite_win: "quite", corte: "quite", gambeta_lose: "error", afuera: "error",
+        final: (this.st && this.st.golesMio > this.st.golesRival) ? "resultado_gana"
+          : (this.st && this.st.golesMio < this.st.golesRival) ? "resultado_pierde" : "empate",
+        urgente: (this.st && this.st.golesMio > this.st.golesRival) ? "ganando_final"
+          : (this.st && this.st.golesMio < this.st.golesRival) ? "perdiendo_final" : "empate"
+      };
+      const ev = MAPA[situacion];
+      if (ev) window.PampaTribunaUI.comentar(this, ev);
+    }
     if (!this.REL) return;
     const c = Object.assign({ rival: this.nombreRival, pueblo: this._puebloMio || "La Pampa" }, ctx || {});
     if (!c.jugador) { const j = this.st && this.st.mios[this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "el pibe"; }

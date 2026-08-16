@@ -33,7 +33,7 @@
         },
         {
           "a": "Gol nuestro. Ahora hay que aguantar la cabeza.",
-          "b": "Dejame gritar tranquilo un ratito, aunque sea."
+          "b": "Dejame respirar un ratito, aunque sea."
         },
         {
           "a": "Justo cuando ibas a comprar. Sentate, Tuli.",
@@ -41,7 +41,7 @@
         },
         {
           "a": "Le sobró tiempo y no se apuró. Eso es oficio.",
-          "b": "Yo me apuré: grité antes de que entrara."
+          "b": "Me apuré: ya festejaba y no había entrado."
         }
       ]
     },
@@ -54,18 +54,18 @@
         },
         {
           "a": "Se lo veía venir hace diez minutos.",
-          "b": "Y bueno, avisá antes, no después."
+          "b": "Vos lo viste. Yo estaba en la cola del pan."
         },
         {
           "a": "Uno solo no pierde un partido.",
           "b": "Igual me duele el pecho, te aviso."
         },
         {
-          "a": "Nos dieron el costado y entraron por ahí.",
+          "a": "Nos ganaron la segunda pelota. Otra vez.",
           "b": "Yo miraba el viento. Ni lo vi pasar."
         },
         {
-          "a": "Queda mucho. Levantá la cabeza.",
+          "a": "Queda mucho. No te vayas del partido.",
           "b": "La levanto, pero el mate lo dejo un rato."
         },
         {
@@ -86,7 +86,7 @@
           "b": "Y la sacó el nuestro. Alcanzame el mate."
         },
         {
-          "a": "Le adivinó el palo. No fue suerte.",
+          "a": "Salió con los puños. No la dejó picar.",
           "b": "Suerte o santo, gracias igual."
         },
         {
@@ -98,7 +98,7 @@
           "b": "Que atajen ellos un rato, digo yo."
         },
         {
-          "a": "Manos firmes. La retuvo, no la regaló.",
+          "a": "No la soltó. Con este viento, no es poco.",
           "b": "Menos mal, porque yo ya me paraba."
         }
       ]
@@ -115,7 +115,7 @@
           "b": "Ahí, ahí. Ahora no la devuelvan."
         },
         {
-          "a": "Le leyó el pase antes de que saliera.",
+          "a": "Sabía adónde iba esa pelota. Se paró ahí.",
           "b": "Yo leí el cartel del kiosco, nomás."
         },
         {
@@ -127,8 +127,8 @@
           "b": "Ese pibe no afloja ni en la siesta."
         },
         {
-          "a": "Metió la pierna cuando había que meterla.",
-          "b": "Yo me levanté del asiento sin querer."
+          "a": "Esa la ganó con el hombro, no con el pie.",
+          "b": "Se me cayó el pan de la mano, mirá."
         }
       ]
     },
@@ -145,7 +145,7 @@
         },
         {
           "a": "Se durmió. Le pasaron por al lado.",
-          "b": "Estaba mirando el viento, como yo."
+          "b": "Le pasó lo que a mí en la siesta."
         },
         {
           "a": "La perdimos solos, sin que nos la saquen.",
@@ -173,7 +173,7 @@
           "b": "Que tomen agua, aunque sea un trago."
         },
         {
-          "a": "Las piernas pesan. Se nota en el pase corto.",
+          "a": "El pase corto ya les queda largo.",
           "b": "Yo con subir la escalera ya estoy hecho."
         },
         {
@@ -198,7 +198,7 @@
           "b": "Cinco minutos son media vida, Nelda."
         },
         {
-          "a": "No la toquen atrás. Tirala al campo.",
+          "a": "Cuidado con los centros. Ese es el peligro.",
           "b": "Me tapo los ojos. Avisame cuando termine."
         },
         {
@@ -223,7 +223,7 @@
       "evento": "perdiendo_final",
       "intercambios": [
         {
-          "a": "Faltan diez. Alcanza si la tiran al área.",
+          "a": "Faltan diez. Con uno estamos de nuevo adentro.",
           "b": "Diez minutos y un milagro, más bien."
         },
         {
@@ -281,7 +281,7 @@
       "evento": "resultado_gana",
       "intercambios": [
         {
-          "a": "Terminó. Bien jugado, sin regalar nada.",
+          "a": "Terminó. Y no nos hicieron ni una clara.",
           "b": "Ahora sí. Ahora sí lo grito."
         },
         {
@@ -335,5 +335,6 @@
         }
       ]
     }
-  ]
+  ],
+  "_revision": "Revisado adversarialmente contra data/relatos.json: cinco lineas chocaban casi textualmente con las del RELATOR (son dos voces distintas y no pueden decir lo mismo), y habia repeticiones internas — el Tuli hablaba de gritar en cuatro de sus seis lineas del gol, y dos intercambios de atajada eran el mismo. Ninguna linea pasa los 60 caracteres."
 }
