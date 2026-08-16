@@ -10,7 +10,9 @@
       "energia_costo": 25,
       "stat": "tiro",
       "stat_mas": 1,
-      "frase": "Te quedaste pateando hasta que se hizo de noche."
+      "frase": "Te quedaste pateando hasta que se hizo de noche.",
+      "lugar": "club",
+      "repaso": "te quedaste pateando al arco hasta que se hizo de noche"
     },
     {
       "id": "entrenar_gambeta",
@@ -19,7 +21,9 @@
       "energia_costo": 25,
       "stat": "gambeta",
       "stat_mas": 1,
-      "frase": "Amagues contra los postes hasta marearte."
+      "frase": "Amagues contra los postes hasta marearte.",
+      "lugar": "club",
+      "repaso": "estuviste entre los conos hasta que te dolieron los tobillos"
     },
     {
       "id": "entrenar_aguante",
@@ -28,7 +32,9 @@
       "energia_costo": 30,
       "stat": "resistencia",
       "stat_mas": 2,
-      "frase": "Diez vueltas al alambrado. Te dolió todo."
+      "frase": "Diez vueltas al alambrado. Te dolió todo.",
+      "lugar": "club",
+      "repaso": "corriste el campo entero, ida y vuelta"
     },
     {
       "id": "picadito",
@@ -39,7 +45,9 @@
       "stat": "azar",
       "stat_mas": 1,
       "riesgo_golpe": 0.12,
-      "frase": "Picadito hasta que no se vio más la pelota."
+      "frase": "Picadito hasta que no se vio más la pelota.",
+      "lugar": "potrero",
+      "repaso": "se armó un picado en el potrero y jugaste hasta que no se vio más"
     },
     {
       "id": "descansar",
@@ -47,7 +55,9 @@
       "sub": "no hacer nada, y que sea sagrado",
       "energia_recupera": 30,
       "animo": 5,
-      "frase": "Dormiste la siesta como Dios manda."
+      "frase": "Dormiste la siesta como Dios manda.",
+      "lugar": "casa",
+      "repaso": "no hiciste nada, y estuvo bien"
     },
     {
       "id": "asado",
@@ -55,7 +65,9 @@
       "sub": "el ritual de siempre",
       "energia_costo": 10,
       "animo": 15,
-      "frase": "Asado, guitarra y campeonatos ganados de memoria."
+      "frase": "Asado, guitarra y campeonatos ganados de memoria.",
+      "lugar": "patio",
+      "repaso": "hubo asado con los pibes"
     },
     {
       "id": "ayudar_casa",
@@ -67,7 +79,9 @@
       "frase": "Le diste una mano en casa toda la tarde.",
       "stat": "resistencia",
       "stat_mas": 1,
-      "_nota_diseno": "[DECISIÓN MÍA] Con los números del brief (35 de energía por +10 de ánimo) esta opción quedaba DOMINADA por el asado (10 por +15): costaba más y daba menos, así que no la elegía nadie. Le sumé +1 de resistencia permanente, que además es lo que tiene sentido: cargar bolsas o alambrar es laburo físico. Si preferís otro arreglo (bajarle el costo, subirle el ánimo), se cambia acá sin tocar código."
+      "_nota_diseno": "[DECISIÓN MÍA] Con los números del brief (35 de energía por +10 de ánimo) esta opción quedaba DOMINADA por el asado (10 por +15): costaba más y daba menos, así que no la elegía nadie. Le sumé +1 de resistencia permanente, que además es lo que tiene sentido: cargar bolsas o alambrar es laburo físico. Si preferís otro arreglo (bajarle el costo, subirle el ánimo), se cambia acá sin tocar código.",
+      "lugar": "casa",
+      "repaso": "te tocó laburar en casa"
     },
     {
       "id": "ver_rival",
@@ -75,7 +89,9 @@
       "sub": "espiarlos el domingo",
       "energia_costo": 20,
       "espia_rival": true,
-      "frase": "Te fuiste a la cancha de ellos a mirar cómo juegan."
+      "frase": "Te fuiste a la cancha de ellos a mirar cómo juegan.",
+      "lugar": "ruta",
+      "repaso": "te fuiste a verlos jugar"
     },
     {
       "id": "estudiar",
@@ -85,7 +101,9 @@
       "animo": 3,
       "requiere_origen": "escuela",
       "evita": "materia",
-      "frase": "Te sentaste con los apuntes y zafaste."
+      "frase": "Te sentaste con los apuntes y zafaste.",
+      "lugar": "escuela",
+      "repaso": "te sentaste a estudiar de una vez"
     },
     {
       "id": "curar",
@@ -94,7 +112,9 @@
       "energia_costo": 20,
       "cura_molestia": true,
       "requiere": "molestia",
-      "frase": "Hielo, vendas y a esperar. Se fue el dolor."
+      "frase": "Hielo, vendas y a esperar. Se fue el dolor.",
+      "lugar": "casa",
+      "repaso": "hielo, descanso y paciencia"
     }
   ],
   "_modificadores_evento": "El evento de la semana (data/eventos_temporada.json) puede cambiar los costos de esta semana o sumar una opción especial. Formato del modificador: {opcion:'entrenar_tiro', costo_mult:2} o {opcion:'asado', animo_extra:10}.",
@@ -126,5 +146,7 @@
       "animo_extra": 8,
       "costo_mult": 1.2
     }
-  ]
+  ],
+  "_lugares": "N4 LA SEMANA COMO ESCENARIO. lugar es SOLO puesta en escena: no toca ningun numero ni ninguna consecuencia (eso vive en logic/semana.js y no se toca). Sirve para dibujar donde pasó cada cosa. Valores: club, potrero, casa, patio, ruta, escuela.",
+  "_repaso": "N4: repaso es como se cuenta esa decision en el resumen de la semana. Texto, no numero: no toca ninguna consecuencia."
 }

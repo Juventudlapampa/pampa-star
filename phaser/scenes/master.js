@@ -240,15 +240,31 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const y = Math.round(window.PampaPiel.yDeOpcion(0, 2, 108, (this.game.registry.get("balance") || {}).piel));
       const elegida = sem.elegidas[i];
       const op = elegida ? D.opciones.find(o => o.id === elegida) : null;
-      const r = this.add.rectangle(x, y, anchoR, 108, op ? 0x2e7d32 : 0x0a1f13, op ? 0.9 : 0.55)
+      /* N4 · LA SEMANA COMO ESCENARIO. La ranura deja de ser una caja: es el
+         LUGAR donde pasó la cosa. Puesta en escena y nada más — el lugar sale
+         de data/semana.json y no toca un solo número de logic/semana.js. */
+      if (window.PampaSemanaUI) {
+        window.PampaSemanaUI.escenario(this, x, y, anchoR, 108, op ? op.lugar : "vacio");
+      }
+      const r = this.add.rectangle(x, y, anchoR, 108, op ? 0x2e7d32 : 0x0a1f13, op ? 0.28 : 0.42)
         .setStrokeStyle(3, op ? 0x7ee08a : 0xf6efdc, 0.9);
-      this.add.text(x, y - 38, n, { fontFamily: window.PF.display, fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
+      /* franja abajo para que el texto se lea sobre el dibujo */
+      /* la franja del texto ocupa el tercio de abajo del escenario: con 38 px
+         el efecto de dos líneas se salía de la caja (se ve en la captura). */
+      if (op) this.add.rectangle(x, y + 30, anchoR - 6, 48, 0x0a1f13, 0.86);
+      this.add.text(x, y - 38, n, { fontFamily: window.PF.display, fontSize: "10px", color: "#ffd84d",
+        backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
       if (op) {
-        this.add.text(x, y - 4, op.n, { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", align: "center", wordWrap: { width: anchoR - 20 } }).setOrigin(0.5);
-        this.add.text(x, y + 32, this.textoEfecto(op), { fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2", align: "center", wordWrap: { width: anchoR - 20 } }).setOrigin(0.5);
+        this.add.text(x, y + 18, op.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", align: "center", wordWrap: { width: anchoR - 20 } }).setOrigin(0.5);
+        /* 12 y no 10 ni 11: el piso de legibilidad son 12 px lógicos (8.7
+           reales en teléfono) y el test lo cazó al toque en los dos intentos,
+           porque la deuda pasaba de 36 textos a 37. El lugar para el escenario
+           se hace corriendo el texto, no achicándolo. */
+        this.add.text(x, y + 38, this.textoEfecto(op), { fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2", align: "center", lineSpacing: 0, wordWrap: { width: anchoR - 16 } }).setOrigin(0.5);
       } else {
         r.setInteractive({ useHandCursor: true });
-        this.add.text(x, y + 2, "＋ elegí qué hacés", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc" }).setOrigin(0.5);
+        this.add.rectangle(x, y + 30, anchoR - 6, 34, 0x0a1f13, 0.78);
+        this.add.text(x, y + 30, "＋ elegí qué hacés", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
         r.on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); this.vistaElegirDia(i); });
         if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO", "THREE"][i], () => this.vistaElegirDia(i));
       }
@@ -256,6 +272,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* --- CÓMO LLEGÁS + JUGAR --- */
     const llega = S.comoLlegas(sem, cfg);
+    /* N4 · EL REPASO: la semana contada como la contaría alguien, no una lista.
+       Sale de lo que ya elegiste; no calcula nada. */
+    if (window.PampaSemanaUI) {
+      this.add.text(W / 2, 258, window.PampaSemanaUI.repaso(sem.elegidas, D.opciones),
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 820 } }).setOrigin(0.5);
+    }
     this.add.text(W / 2, 206, "🗓 " + llega.resumen, { fontFamily: window.PF.texto, fontSize: "16px", color: "#7ee08a", align: "center" }).setOrigin(0.5);
     this.add.text(W / 2, 234, "vas a arrancar el partido con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
       { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
