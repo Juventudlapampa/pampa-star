@@ -56,6 +56,10 @@
       escalon1_ms: cfg.escalon1_ms != null ? cfg.escalon1_ms : 420,
       escalon2_ms: cfg.escalon2_ms != null ? cfg.escalon2_ms : 1250,
       escalon3_ms: cfg.escalon3_ms != null ? cfg.escalon3_ms : 2600,
+      /* lo que se le suma a TODA viñeta y no está en el reparto de planos */
+      silencio_ms: cfg.silencio_ms != null ? cfg.silencio_ms : SILENCIO_MS,
+      negro_ms: cfg.negro_ms != null ? cfg.negro_ms : NEGRO_MS,
+      beat_ms: cfg.beat_ms != null ? cfg.beat_ms : BEAT_MS,
       /* la perilla global de B7: multiplica TODO de una */
       intensidad: cfg.intensidad != null ? cfg.intensidad : 1
     };
@@ -87,6 +91,13 @@
   /* Cómo se reparte el presupuesto entre los planos de la viñeta. Se conservan
      las proporciones de hoy (500/800/1300 sobre 2600) para que el escalón 3 se
      vea exactamente igual que antes y solo cambien los de abajo. */
+  /* OJO CON LA CUENTA: la viñeta no cuesta 2.600 sino 3.170 ms. A los tres
+     planos (500 + 800 + 1300) hay que sumarles el SILENCIO de 500 —que además
+     nunca se acortaba, ni con la velocidad rápida— y los 70 del negro de
+     cierre. Y antes de cada viñeta corre un BEAT de tensión de 750 ms. Esa es
+     la unidad real, y es la que hay que usar para que la cuenta no mienta. */
+  var SILENCIO_MS = 500, NEGRO_MS = 70, BEAT_MS = 750;
+  var VINIETA_REAL = 500 + 800 + 1300 + SILENCIO_MS + NEGRO_MS;   // 3170
   var REPARTO = { entrada: 500 / 2600, pose: 800 / 2600, hold: 1300 / 2600 };
 
   function planos(accion, contexto, cfg) {
@@ -100,6 +111,19 @@
     };
   }
 
+  /* Lo que el jugador espera DE VERDAD por una acción: los planos, más el
+     silencio, más el negro, más el beat que la precede. Es este número el que
+     hay que comparar, no el de los planos solos. */
+  function costoReal(accion, contexto, cfg) {
+    var C = cfgDe(cfg);
+    if (!cortaAVinieta(accion, contexto)) return presupuesto(accion, contexto, cfg);
+    var e = escalonDe(accion, contexto);
+    /* el silencio es sagrado en el escalón 3 y se recorta a la mitad en el 2:
+       en una jugada corriente medio segundo de negro es una eternidad */
+    var sil = e === 3 ? C.silencio_ms : Math.round(C.silencio_ms * 0.4);
+    return presupuesto(accion, contexto, cfg) + Math.round((sil + C.negro_ms + C.beat_ms) * C.intensidad);
+  }
+
   /* LA CUENTA DEL BLOQUE A: cuántos segundos de viñeta tiene un partido.
      `frecuencias` es {accion: veces por partido}. Devuelve el total en segundos
      con el reparto actual, para poder comparar antes y después. */
@@ -107,9 +131,9 @@
     var total = 0, detalle = [];
     Object.keys(frecuencias || {}).forEach(function (a) {
       var veces = frecuencias[a] || 0;
-      var p = presupuesto(a, null, cfg);
+      var p = costoReal(a, null, cfg);
       var esc = escalonDe(a, null);
-      var ms = cortaAVinieta(a, null) ? p * veces : 0;
+      var ms = cortaAVinieta(a, null) ? costoReal(a, null, cfg) * veces : 0;
       total += ms;
       detalle.push({ accion: a, escalon: esc, veces: veces, unitario: p, total_ms: ms });
     });
@@ -120,6 +144,7 @@
   return {
     ESCALON: ESCALON, REPARTO: REPARTO,
     escalonDe: escalonDe, presupuesto: presupuesto, planos: planos,
-    cortaAVinieta: cortaAVinieta, cuentaDelPartido: cuentaDelPartido, cfgDe: cfgDe
+    cortaAVinieta: cortaAVinieta, cuentaDelPartido: cuentaDelPartido, cfgDe: cfgDe,
+    costoReal: costoReal, VINIETA_REAL: VINIETA_REAL, BEAT_MS: BEAT_MS
   };
 });

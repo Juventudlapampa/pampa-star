@@ -160,6 +160,28 @@
     return F.y0 + F.pad + h / 2 + i * paso;
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     BLOQUE E · LA JERARQUÍA — una cosa se mira primero, el resto cede
+
+     Medido antes: en la vista de la semana, 13 de sus 14 textos estaban dentro
+     del 72% del tamaño del más grande. O sea que TODO pesaba lo mismo, y
+     cuando todo pesa lo mismo el ojo no sabe dónde empezar. Lo mismo en la
+     tabla de la temporada (10 de 10) y en la pantalla del evento (4 de 5).
+
+     Cuatro niveles y nada en el medio. La distancia entre niveles es lo que
+     hace la jerarquía: si el principal y el secundario se llevan dos píxeles,
+     no hay jerarquía, hay ruido.
+
+       1 · EL PRINCIPAL — uno por pantalla. Lo que define la situación.
+       2 · el secundario — de qué se trata.
+       3 · el dato — números, estados, lo que se consulta.
+       4 · el apoyo — lo que casi no se lee. Nunca por debajo del piso de
+           legibilidad (12 px lógicos = 8.7 reales en teléfono).
+     ══════════════════════════════════════════════════════════════════════ */
+  var JERARQUIA = [null, 24, 16, 13, 12];
+  function nivel(n) { return (JERARQUIA[n] || 12) + "px"; }
+  function nivelPx(n) { return JERARQUIA[n] || 12; }
+
   /* ¿entran n opciones de ese alto sin solaparse? El helper reparte lo que le
      pidan; decidir cuántas caben es del que dibuja. Sin esto, pedirle 5 de
      52 px a una franja de 232 devuelve posiciones a 40 px de distancia y las
@@ -182,6 +204,7 @@
     luma: luma, esOscuro: esOscuro, tintaSobre: tintaSobre,
     esMayusculas: esMayusculas, trackingPx: trackingPx,
     escala: escala, tam: tam,
-    franja: franja, yDeOpcion: yDeOpcion, enFranja: enFranja, caben: caben
+    franja: franja, yDeOpcion: yDeOpcion, enFranja: enFranja, caben: caben,
+    JERARQUIA: JERARQUIA, nivel: nivel, nivelPx: nivelPx
   };
 });

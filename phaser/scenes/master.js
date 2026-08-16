@@ -259,12 +259,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._semRival = rival; this._semJugar = alJugar;
     this.children.removeAll();
 
-    this.add.text(W / 2, 30, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 54, "contra " + rival, { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
+    /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
+       te estás preparando. El título de la pantalla pasa a apoyo. */
+    this.add.text(W / 2, 26, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
+    this.add.text(W / 2, 58, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
 
     /* --- LOS DOS MEDIDORES: barra Y número, siempre --- */
     const medidor = (x, y, etiqueta, valor, color) => {
-      this.add.text(x, y - 16, etiqueta + " " + Math.round(valor) + "/100", { fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
+      this.add.text(x, y - 16, etiqueta + " " + Math.round(valor) + "/100", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
       const g = this.add.graphics();
       g.fillStyle(0x0a1f13, 0.9); g.fillRect(x, y, 300, 18);
       g.fillStyle(color, 1); g.fillRect(x + 2, y + 2, Math.max(0, Math.min(296, 296 * valor / 100)), 14);
@@ -278,7 +280,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
     const ev = this._semEvento;
     if (ev && ev.texto) {
-      this.add.text(W / 2, 162, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: "14px", color: "#ffd84d", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5);
+      this.add.text(W / 2, 162, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5);
     }
 
     /* --- LAS TRES RANURAS --- */
@@ -330,9 +332,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.add.text(W / 2, 258, window.PampaSemanaUI.repaso(sem.elegidas, D.opciones),
         { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 820 } }).setOrigin(0.5);
     }
-    this.add.text(W / 2, 206, "🗓 " + llega.resumen, { fontFamily: window.PF.texto, fontSize: "16px", color: "#7ee08a", align: "center" }).setOrigin(0.5);
+    this.add.text(W / 2, 206, "🗓 " + llega.resumen, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(2), color: "#7ee08a", align: "center" }).setOrigin(0.5);
     this.add.text(W / 2, 234, "vas a arrancar el partido con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
-      { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
+      { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#dcd6c2" }).setOrigin(0.5);
     if (sem.espiado) this.add.text(W / 2, 258, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
 
     const listo = sem.elegidas.every(e => e);
@@ -444,8 +446,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!sel) { alJugar(); return; }
     this.save.bolsaEventos = sel.vistos;
     this.children.removeAll();
-    this.add.text(W / 2, 54, "LA SEMANA", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 132, sel.evento.texto, { fontFamily: window.PF.texto, fontSize: "20px", color: "#f6efdc", align: "center", wordWrap: { width: 780 }, lineSpacing: 8 }).setOrigin(0.5);
+    /* E · acá el PRINCIPAL es lo que pasó: el resto es marco. */
+    this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
+    this.add.text(W / 2, 140, sel.evento.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);
     /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
        franja. Lo cazó el guardián ampliado, no el ojo. */
     const pielEv = (this.game.registry.get("balance") || {}).piel;

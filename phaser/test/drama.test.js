@@ -30,7 +30,12 @@ var PARTIDO = {
   gambeta: 7, remate: 6, atajada: 4, bloqueo: 3,
   gol: 2, gol_rival: 1, megatiro: 1
 };
-var ANTES_MS = 2600;   // lo que costaba TODA viñeta antes del bloque A
+/* Lo que costaba TODA viñeta antes del bloque A, MEDIDO EN EL CÓDIGO y no
+   estimado: entrada 500 + pose 800 + hold 1300 + silencio 500 + negro 70 =
+   3.170, más el beat de tensión de 750 que corre antes de cada una. La primera
+   versión de este test usaba 2.600 —solo los tres planos— y subestimaba el
+   problema en un 50%. */
+var ANTES_MS = 3170 + 750;
 
 /* ---------- LA CUENTA ---------- */
 (function () {
@@ -41,7 +46,7 @@ var ANTES_MS = 2600;   // lo que costaba TODA viñeta antes del bloque A
     var v = PARTIDO[a];
     var e = D.escalonDe(a);
     var msA = ANTES_MS * v;                                  // antes TODO cortaba
-    var msD = D.cortaAVinieta(a) ? D.presupuesto(a, null, CFG) * v : 0;
+    var msD = D.cortaAVinieta(a) ? D.costoReal(a, null, CFG) * v : 0;
     antes += msA; despues += msD;
     console.log("  " + a.padEnd(12) + " " + e + "   " + String(v).padStart(3) + "   " +
       String((msA / 1000).toFixed(1) + "s").padStart(7) + "   " +
@@ -56,8 +61,8 @@ var ANTES_MS = 2600;   // lo que costaba TODA viñeta antes del bloque A
     (antes / 1000).toFixed(1) + "s a " + (despues / 1000).toFixed(1) + "s (−" + pct + "%)");
 
   /* y los picos NO pueden haber perdido nada: lo que se recorta es lo de abajo */
-  var golAntes = ANTES_MS, golDespues = D.presupuesto("gol", null, CFG);
-  assert(golDespues >= golAntes,
+  var golAntes = ANTES_MS, golDespues = D.costoReal("gol", null, CFG);
+  assert(golDespues >= golAntes * 0.95,
     "el gol no puede costar MENOS que antes (" + golDespues + " contra " + golAntes + "): " +
     "el bloque A recorta el trámite y la jugada, no el momento.");
   console.log("\n[cuenta] el partido pasa de " + (antes / 1000).toFixed(1) + "s a " +

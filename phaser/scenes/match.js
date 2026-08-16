@@ -2689,7 +2689,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V8 D: cfg.rapida = viñeta corta (pases y robos, que pasan seguido) */
     const multR = cfg.rapida ? 0.55 : 1;
     const tPose = this.msV(((F.entrada_ms || 420) + (F.pose_ms || 650)) * multR);
-    const silencio = feel.silencio_ms || 500;   // el silencio es sagrado: no se acorta
+    /* BLOQUE A · EL SILENCIO SEGÚN EL ESCALÓN. Era fijo en 500 ms y no se
+       acortaba nunca, ni con la velocidad rápida: en un gol eso es la mitad del
+       efecto, pero en una gambeta del minuto 20 es medio segundo de negro por
+       una jugada cualquiera, y eso pasa treinta veces por partido. En el
+       escalón 3 queda intacto; en el 2 se recorta al 40%. */
+    const silencio = escalon >= 3 ? (feel.silencio_ms || 500) : Math.round((feel.silencio_ms || 500) * 0.4);
     const esc = { revelado: false, cerrado: false };
     const revelar = () => {
       if (esc.revelado) return; esc.revelado = true;
