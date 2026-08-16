@@ -406,13 +406,7 @@
     "_teclado": "tecla_paso: cuánto mueve la mira cada toque de flecha. tecla_osc_ms: período de la barra de potencia (ESPACIO mantenido) y del medidor de comba (más largo = más fácil clavar el timing).",
     "comentario": "Solo para TIRO y TIRO ESPECIAL (Caldén). El resto de los comandos sigue siendo por decisión/lectura."
   },
-  "juego": {
-    "_nota": "MODO JUEGO: cancha 3/4 (arco al fondo). Movés al jugador hacia el arco; velocidades en px de PANTALLA por segundo (la escena es 960x540).",
-    "vel_jugador": 210,
-    "vel_avance_auto": 46,
-    "zona_remate_y": 250,
-    "comentario": "vel_jugador: cuánto te movés al arrastrar. vel_avance_auto: el jugador sube solo despacio hacia el arco. zona_remate_y: por encima de esta Y (más cerca del arco) aparece ¡REMATÁ!"
-  },
+  "_c3_juego": "C3: se borro el bloque `juego` entero (vel_jugador, vel_avance_auto, zona_remate_y). Era la cancha 3/4 con arco al fondo, que la vista partida de V7-1 reemplazo. Verificado con grep: NADIE abria el bloque (`.juego` no aparece en ningun .js), solo estaba copiado en el fallback de index.html. Ojo con el falso positivo: `juego.vel_jugador` no es `jugadon.vel_jugador`, que SI vive.",
   "cine": {
     "_nota": "MODO CINE: la secuencia de PLANOS que cortan como película. La pelota viaja HACIA ADENTRO (perspectiva, profundidad). Tiempos en ms. persp.k = fuerza de la perspectiva.",
     "persp": {

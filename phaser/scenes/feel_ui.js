@@ -180,22 +180,60 @@
        mientras se decide algo, y un retroceso al resolverse. Ese movimiento
        contrario le dice al cuerpo del jugador que algo va a pasar y que ya
        pasó. En el escalón 1 no se mueve: el shake y el push se gastan si se
-       usan siempre. */
-    empujar: function (sc, cam, escalon) {
-      if (escalon === 1 || !cam) return;
+       usan siempre.
+
+       C4 · EMPUJA EL PANEL, NO LA CÁMARA DE LA INTERFAZ. La primera versión le
+       hacía zoom a `uiCam`, y uiCam es la cámara que dibuja el HUD: con 6% de
+       zoom se comía 16 px arriba y 16 abajo, o sea que CADA VEZ que se abría un
+       menú el marcador quedaba cortado al medio y la última carta se salía de
+       pantalla. Visto en captura en 1366x768, estado MENU.
+
+       Lo que se empuja ahora es el PANEL DE LA ESCENA (`panelLayer`), que es
+       donde está la acción y que ya tiene su máscara fija: el contenido crece
+       adentro de una ventana que no se mueve, que es exactamente lo que hace
+       una cámara al acercarse a un plano. El HUD no se toca nunca. Si algún día
+       vuelve la cancha entera (flag pantalla_partida en false), el empuje cae
+       sobre la cámara del mundo, que ahí sí muestra la acción. */
+    _pivote: { x: 480, y: 176 },   // centro del panel de escena (960x232 desde y=60)
+
+    empujar: function (sc, escalon) {
+      if (escalon === 1) return;
       var C = cfg(sc);
-      var z0 = cam._zoomBase != null ? cam._zoomBase : (cam._zoomBase = cam.zoom);
-      sc.tweens.add({
-        targets: cam, zoom: z0 * (1 + C.push_zoom),
-        duration: Math.round(C.push_ms * C.k), ease: "Sine.easeInOut"
-      });
-    },
-    soltar: function (sc, cam) {
+      var p = sc.panelLayer;
+      if (p) {
+        if (p._escBase == null) p._escBase = p.scaleX || 1;
+        this._escalarPanel(sc, p, p._escBase * (1 + C.push_zoom), Math.round(C.push_ms * C.k), "Sine.easeInOut");
+        return;
+      }
+      var cam = sc.cameras && sc.cameras.main;
       if (!cam) return;
+      var z0 = cam._zoomBase != null ? cam._zoomBase : (cam._zoomBase = cam.zoom);
+      sc.tweens.add({ targets: cam, zoom: z0 * (1 + C.push_zoom), duration: Math.round(C.push_ms * C.k), ease: "Sine.easeInOut" });
+    },
+    soltar: function (sc) {
       var C = cfg(sc);
-      var z0 = cam._zoomBase != null ? cam._zoomBase : cam.zoom;
-      sc.tweens.add({
-        targets: cam, zoom: z0, duration: Math.round(C.push_ms * 0.45 * C.k), ease: "Quad.easeOut"
+      var p = sc.panelLayer;
+      if (p && p._escBase != null) {
+        this._escalarPanel(sc, p, p._escBase, Math.round(C.push_ms * 0.45 * C.k), "Quad.easeOut");
+        return;
+      }
+      var cam = sc.cameras && sc.cameras.main;
+      if (!cam || cam._zoomBase == null) return;
+      sc.tweens.add({ targets: cam, zoom: cam._zoomBase, duration: Math.round(C.push_ms * 0.45 * C.k), ease: "Quad.easeOut" });
+    },
+    /* el contenedor vive en (0,0): para que crezca desde el CENTRO del panel y
+       no desde la esquina, la posición se corrige junto con la escala */
+    _escalarPanel: function (sc, p, destino, dur, ease) {
+      var pv = this._pivote;
+      if (p._twEmpuje) p._twEmpuje.stop();
+      p._twEmpuje = sc.tweens.addCounter({
+        from: p.scaleX || 1, to: destino, duration: dur, ease: ease,
+        onUpdate: function (tw) {
+          var s = tw.getValue();
+          p.setScale(s);
+          p.x = pv.x - pv.x * s;
+          p.y = pv.y - pv.y * s;
+        }
       });
     },
 

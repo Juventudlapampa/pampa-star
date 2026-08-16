@@ -685,7 +685,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const yFranja = VI.panel_franja_y != null ? VI.panel_franja_y : 292;
     this.panelFranja = this.add.rectangle(480, yFranja, 960, 24, 0x0a1f13, 0.82);
     this.panelLayer.add(this.panelFranja);
-    this.panelNombre = this.add.text(14, yFranja, "", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
+    /* C4 · x de 14 a 36: el EMPUJE del bloque B (B6) agranda este panel un 6%
+       adentro de su máscara fija, o sea que se come ~29 px de cada costado
+       mientras hay un menú abierto. A 14 px la etiqueta del portador quedaba
+       en x=-14 y se leía "0 · VOS". 36 la deja adentro con margen. */
+    this.panelNombre = this.add.text(36, yFranja, "", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
   }
@@ -877,6 +881,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      simples de alta legibilidad (los toscos de la E1: liso vs RAYAS por diseño,
      no solo color). El portador sigue siendo el heroico, apenas más grande.
      Número visible AL PAUSAR (fuera de LIBRE aparecen los dorsales). */
+  /* C3 · TAMPOCO ES HUÉRFANO: son las fichas de la CANCHA ENTERA, de antes de la
+     pantalla partida. Hoy no se construyen (el único llamador pide
+     `!FLAGS.pantalla_partida`, que viene en true) y por eso updateFichas() sale
+     por su guarda `!this.fichasMios`. Vive del mismo flag que la vista partida.
+     Si se borra el flag pantalla_partida, se van los tres métodos juntos. */
   buildFichas() {
     if (!this._vista4) { this.fichasMios = this.fichasRiv = null; return; }
     const Arte = window.PampaAvatarArte;
@@ -1315,7 +1324,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   limpiarMenu() {
     /* B6 · se resolvió: la cámara suelta el acercamiento */
-    if (window.PampaFeel && this.uiCam) window.PampaFeel.soltar(this, this.uiCam);
+    if (window.PampaFeel) window.PampaFeel.soltar(this);
     this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
   /* FEEL B1 · EL BEAT DE TENSIÓN: el cruce se anuncia 600-900ms ANTES del menú —
      zoom leve, riser, y el que entra al duelo aparece deslizándose al plano */
@@ -1408,7 +1417,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        no se mueve, porque el push se gasta si se usa siempre — igual que el
        shake. */
     if (window.PampaFeel) {
-      window.PampaFeel.empujar(this, this.uiCam, this._escalonActual || 2);
+      window.PampaFeel.empujar(this, this._escalonActual || 2);
     }
     const strip = this.add.rectangle(480, 404, 960, 216, 0x0a1f13, 0.42);
     const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
@@ -2318,6 +2327,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (L.defensores === 1) return "con uno encima";
     return "de media distancia";
   }
+  /* C3 · NO ES HUÉRFANO, ES LA OTRA PUNTA DE UN FLAG. Con los flags de hoy no
+     corre nunca: el único llamador (arriba, en resolverTiro) exige
+     `mega && !FLAGS.e6_cine`, y e6_cine viene en true. Pero e6_cine EXISTE
+     justo para poder apagar el cine y comparar; si borro esto, el flag miente y
+     apagarlo deja el megatiro sin resolver. Se queda, anotado. Si algún día se
+     borra el flag e6_cine, este método se va con él. */
   dispararSimple(mega, ej) {
     const st = this.st, P = window.PampaPartido;
     const prep = P.prepararRemate(st, mega || false);
@@ -3531,7 +3546,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           /* subido de (14,512): ahi tapaba la esquina inferior izquierda del
              mapa (133x17px sobre la linea de fondo de tu arco). Las fichas son
              un dato de estado y viven en la barra de estado. */
-          this.txtFichas = this.add.text(44, 15, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0, 0.5);
+          /* C4 · y de 44 a 52: el botón de mute vive en x=24 con 26 px de ancho
+             (llega hasta 37) pero su ÁREA TÁCTIL es de 44, o sea que termina en
+             46 y el texto arrancaba en 44. Se pisaban por 2 px, y en teléfono
+             eso es tocar el mute cuando querías leer las fichas. Medido con el
+             barrido de solapes del partido en vivo. */
+          this.txtFichas = this.add.text(52, 15, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0, 0.5);
           this.hudLayer.add(this.txtFichas);
         }
         this.txtFichas.setText(fTxt);
@@ -3542,6 +3562,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const activo = this.estado === "LIBRE" && st.posesion === "mia";
       if (activo && this._btnPulso.paused) this._btnPulso.resume();
       else if (!activo && !this._btnPulso.paused) { this._btnPulso.pause(); this._btnAccionCont.setScale(1); }
+    }
+    /* C4 · CON UN MENÚ ABIERTO, EL BOTÓN ⚡ACCIÓN SE VA. Ya elegiste abrir el
+       momento: las opciones están en las cartas, y el botón se queda atrás de la
+       ficha del rival asomando el amarillo por los costados con el nombre
+       encima. Se veía feo en las dos medidas. Vuelve solo al cerrarse el menú. */
+    if (this._btnAccionCont) {
+      const conMenu = this.estado === "MENU" || this.estado === "PASE";
+      this._btnAccionCont.setVisible(!conMenu);
+      if (this._hintEspacio) this._hintEspacio.setVisible(!conMenu);
     }
     /* Anime A: el ⇄ de ciclado manual solo aparece cuando defendés */
     if (this._btnCambiar) {
