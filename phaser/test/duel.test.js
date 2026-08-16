@@ -91,9 +91,15 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
 (function () {
   var a = D.resolveShot({ shotPower: 200, keeperSkill: 0, zone: {}, rng: seq([0.5]) });
   var b = D.resolveShot({ shotPower: 0, keeperSkill: 200, zone: {}, rng: seq([0.5]) });
-  ok(a.chancePct <= 95 && a.chancePct >= 7, "chance acotada arriba (fue " + a.chancePct + ")");
-  ok(b.chancePct <= 95 && b.chancePct >= 7, "chance acotada abajo (fue " + b.chancePct + ")");
-  console.log("[5] chancePct acotada 7..95: ok (" + a.chancePct + " / " + b.chancePct + ")");
+  /* D2: el techo dejó de ser 0.95 duro. Por encima de max el exceso se comprime
+     hacia `techo` (0.99) sin llegar nunca, para que siempre quede sensibilidad
+     — con el clamp viejo, cualquier penalización que restara poder en la zona
+     alta no movía la chance ni un punto. Lo que sigue valiendo es que nunca hay
+     100% ni 0%: la épica del "¿entra?" no se toca. */
+  ok(a.chancePct < 100 && a.chancePct >= 7, "la chance nunca llega a 100 (fue " + a.chancePct + ")");
+  ok(b.chancePct < 100 && b.chancePct >= 7, "la chance nunca baja del piso (fue " + b.chancePct + ")");
+  ok(a.chancePct > 95, "con poder abrumador la chance pasa de 95 pero se comprime (fue " + a.chancePct + ")");
+  console.log("[5] chancePct sin 0% ni 100%, con compresión arriba: ok (" + a.chancePct + " / " + b.chancePct + ")");
 })();
 
 /* ---- resumen -------------------------------------------------------------- */

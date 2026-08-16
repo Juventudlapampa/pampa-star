@@ -368,7 +368,10 @@
       "normal": 46,
       "figura": 92
     },
-    "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?'). shot_power = fuerza del remate; keeper_skill = capacidad del arquero (normal/figura del toggle)."
+    "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?'). shot_power = fuerza del remate; keeper_skill = capacidad del arquero (normal/figura del toggle).",
+    "techo": 0.99,
+    "suavidad": 0.35,
+    "_d2": "D2: max ya no es un muro sino donde EMPIEZA la compresion. Por encima, el exceso se comprime hacia techo sin llegar nunca, asi que siempre queda sensibilidad. Antes, con diferencia de fuerza mayor a 26 la chance quedaba clavada en 0.95 y cualquier penalizacion que restara poder no movia NADA."
   },
   "tiro": {
     "referencia": 90,
@@ -588,6 +591,7 @@
     "penal_max": 0.42,
     "avisa_desde": 0.3,
     "_nota": "N2 EL RIVAL TE LEE LOS ESPECIALES. Cada especial tiene su propia lectura (que te lean el Tornado no les dice nada del Calden). Cada uso la sube sube_por_uso; el tiempo la baja baja_por_minuto. penal_max es cuanto le pueden sacar al MULTIPLICADOR del especial (no al poder base: te sacan lo que el especial te daba de mas, nunca te dejan peor que pateando normal). avisa_desde es a partir de que lectura aparece la etiqueta en el menu — antes de intentarlo, no despues de fallar. Medido con estos valores: 3 usos para te tienen leido, 4 para el tope, y 45 minutos sin usarlo para volver a cero.",
-    "arquero_bonus_max": 22
+    "arquero_bonus_max": 0,
+    "_d2": "D2: la lectura ahora viaja como FACTOR por resolveShot (penalizaciones), que es la via unica. arquero_bonus_max queda en 0: era un parche para esquivar el tope duro de duelChance, y ese tope ya no existe. Subilo si queres el comportamiento viejo."
   }
 }

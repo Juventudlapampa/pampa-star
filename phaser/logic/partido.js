@@ -751,21 +751,22 @@
        del especial, no sobre el poder base: te sacan lo que el especial te
        daba de más, nunca te dejan peor que pateando normal. */
     var idEsp = mega ? (mega.id || "mega") : (especial ? "calden" : null);
-    var bonusArq = 0, quedaDeEspecial = especial ? 1 : 0;
+    var bonusArq = 0, quedaDeEspecial = especial ? 1 : 0, factorLectura = 1;
     if (idEsp && Lect && st.lectura) {
       var lec = Lect.lectura(st.lectura, idEsp, st.minuto, st.bal.lectura);
       var pen = Lect.penalidad(lec, st.bal.lectura);
       var mult = mega ? (mega.mult || 1.3) : C.mult;
       poder *= 1 + (mult - 1) * (1 - pen);
-      /* Y ADEMÁS EL ARQUERO SE PARA MEJOR. Bajarle el multiplicador solo no
-         alcanza: duelChance está topeada en 0.95, así que cerca del arco —que
-         es donde se usa el especial— el descuento se lo comía el tope y la
-         lectura no cambiaba una sola probabilidad. Medido: el Tornado pasaba
-         de 96 a 83 de poder y la chance seguía clavada en 95%. Subirle la
-         capacidad al arquero sí mueve la diferencia atk−def, que es lo que
-         decide. Es el mismo hallazgo de G1, en otro lugar. */
+      /* D2 · LA LECTURA VIAJA COMO FACTOR, no como parche.
+         Antes acá había dos parches para esquivar el tope de duelChance: subirle
+         la capacidad al arquero y sacarle metros al especial. El primero
+         desaparece — ahora la penalización entra por resolveShot como factor
+         sobre la chance final, que es la vía única que dejó D2 y que se nota
+         siempre. El bonus al arquero queda en 0 y se conserva la perilla en
+         balance por si Rodri quiere volver al comportamiento viejo. */
       var frac = pen / ((st.bal.lectura && st.bal.lectura.penal_max) || 0.42);
-      bonusArq = frac * ((st.bal.lectura && st.bal.lectura.arquero_bonus_max) || 22);
+      bonusArq = frac * ((st.bal.lectura && st.bal.lectura.arquero_bonus_max) || 0);
+      factorLectura = 1 - pen;
       /* y pierde metros: un especial leído deja de aguantar la distancia que
          aguantaba y termina llegando como un tiro normal */
       quedaDeEspecial = 1 - frac;
@@ -777,7 +778,10 @@
     saltoReloj(st, rng);
     return { shotPower: poder, keeperSkill: st.rivalKeeperSkill + bonusArq, arqueroVendido: !!vendido,
       distancia: Math.round(d), especial: especial ? quedaDeEspecial : false,
-      lecturaArq: Math.round(bonusArq * 10) / 10 };
+      lecturaArq: Math.round(bonusArq * 10) / 10,
+      /* la vía única de D2: quien resuelve el remate se lo pasa tal cual a
+         resolveShot y no tiene que saber cómo se aplica */
+      penalizaciones: factorLectura < 1 ? [{ id: "lectura", factor: factorLectura }] : [] };
   }
   function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
   function tiroFallado(st, rng) { perderPelota(st, rng); st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }

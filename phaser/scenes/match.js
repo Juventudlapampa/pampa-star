@@ -1898,7 +1898,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
       /* G1: la distancia pesa acá, despues del tope del duelo */
-      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro,
+      penalizaciones: prep.penalizaciones
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     snd && snd.kick();
@@ -2306,7 +2307,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
       /* G1: la distancia pesa acá, despues del tope del duelo */
-      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro,
+      penalizaciones: prep.penalizaciones
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
     snd && snd.kick();
@@ -2375,7 +2377,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       zone: auto.zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
       /* G1: la distancia pesa acá, despues del tope del duelo */
-      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro,
+      penalizaciones: prep.penalizaciones
     });
     this.zona = auto.zona;
     this._megaGrito = "¡GOOOL!";
@@ -2406,7 +2409,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
       /* G1: la distancia pesa acá, despues del tope del duelo */
-      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro
+      distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro,
+      penalizaciones: prep.penalizaciones
     });
     this.zona = ej.zona;
     this._megaGrito = mega.grito || "¡GOOOL!";

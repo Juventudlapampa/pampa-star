@@ -446,8 +446,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.children.removeAll();
     this.add.text(W / 2, 54, "LA SEMANA", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 132, sel.evento.texto, { fontFamily: window.PF.texto, fontSize: "20px", color: "#f6efdc", align: "center", wordWrap: { width: 780 }, lineSpacing: 8 }).setOrigin(0.5);
+    /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
+       franja. Lo cazó el guardián ampliado, no el ojo. */
+    const pielEv = (this.game.registry.get("balance") || {}).piel;
     sel.evento.opciones.forEach((o, i) => {
-      const y = 280 + i * 92;
+      const y = Math.round(window.PampaPiel.yDeOpcion(i, sel.evento.opciones.length, 72, pielEv));
       const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       this.add.text(W / 2, y, (i + 1) + " · " + o.texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
       const elegir = () => {
@@ -458,7 +461,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
       if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO"][i], elegir);
     });
-    this.add.text(W / 2, H - 26, "dos toques y a la cancha (teclas 1-2)", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+    /* V1 (cantidad): decía cómo se toca, que el jugador ya sabe a esta altura */
   }
 
   /* ============ VISTA 2: LA TEMPORADA ============ */

@@ -19,10 +19,22 @@
     /* el botón EXTRA sobre el menú de cruz — fila 0 y fila 1 (V8 fix 1: las
        fichas se OFRECEN SIEMPRE que queden, así que puede haber dos) */
     botonJugadon(texto, sub, cb, fila) {
-      var y = 66 + (fila || 0) * 52;
-      var b = this.add.rectangle(480, y, 470, 46, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(480, y - 8, texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      var s = this.add.text(480, y + 10, sub, { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
+      /* D1 · ESTABA EN y=66 Y y=118, o sea ARRIBA DE TODO, mientras el menú en
+         cruz de la misma pantalla vive en 352/405/458. En el mismo cuadro había
+         opciones arriba y abajo: era el caso más flagrante de O1, y el guardián
+         no lo veía porque busca coordenadas literales y acá la Y salía de una
+         cuenta.
+         Ahora las fichas son una FILA al pie de la franja de decisión, debajo
+         de la opción S del menú (458 + 25 de alto = 483). Dos fichas entran
+         lado a lado; nunca hubo más de dos. */
+      var P = window.PampaPiel, cfg = (this.game.registry.get("balance") || {}).piel;
+      var F = P ? P.franja(cfg) : { y1: 528 };
+      var y = Math.round(F.y1 - 24);
+      var col = (fila || 0);
+      var ancho = 228, x = 480 + (col === 0 ? -(ancho / 2 + 6) : (ancho / 2 + 6));
+      var b = this.add.rectangle(x, y, ancho, 44, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      var t = this.add.text(x, y - 8, texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5);
+      var s = this.add.text(x, y + 10, sub, { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5);
       this.menuLayer.add([b, t, s]);
       var self = this;
       b.on("pointerdown", function (p, x, y2, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });

@@ -54,6 +54,77 @@ assert(Piel.caben(4, 52, P), "4 opciones de 52px sí entran");
 });
 console.log("[1] la franja es " + F.y0 + ".." + F.y1 + " (alto " + F.alto + ") y reparte 2-5 opciones sin solapes");
 
+/* ---------- [2b] D1 · EL GUARDIÁN TAMBIÉN SIGUE LOS HELPERS ----------
+   La primera versión de este test pasaba con 23 asserts diciendo "ningún grupo
+   de opciones fuera de la franja" MIENTRAS los botones de ficha del jugadón
+   estaban en y=66 y y=118. No los veía porque solo miraba coordenadas
+   literales en la misma línea del add.rectangle, y ese archivo calculaba la Y
+   antes: `var y = 66 + (fila || 0) * 52`.
+
+   Un test que afirma lo contrario de la realidad es peor que no tenerlo. Así
+   que ahora, cuando la Y es una variable, se busca su declaración en las
+   líneas de arriba y se intenta resolver: si la expresión es aritmética con
+   números y no menciona yDeOpcion ni franja, se evalúa con la variable de
+   índice en 0 y 1 y se comprueba el resultado. */
+(function () {
+  var archivos = ["match.js", "master.js", "editor.js", "definicion_ui.js", "jugadon_ui.js"];
+  var sospechas = [], revisadas = 0;
+  archivos.forEach(function (f) {
+    var ruta = path.join(__dirname, "..", "scenes", f);
+    if (!fs.existsSync(ruta)) return;
+    var lineas = fs.readFileSync(ruta, "utf8").split("\n");
+    lineas.forEach(function (l, i) {
+      if (l.indexOf("setInteractive") < 0) return;
+      if (l.trim().indexOf("*") === 0 || l.trim().indexOf("//") === 0) return;
+      /* add.rectangle(algo, VARIABLE, ancho, alto, ...) */
+      var m = l.match(/add\.rectangle\(\s*[^,]+,\s*([A-Za-z_$][\w$]*)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/);
+      if (!m) return;
+      var nombreY = m[1], w = parseFloat(m[2]), h = parseFloat(m[3]);
+      if (w < 120 || w > 720 || h < 30 || h > 130) return;
+      /* la declaración de esa variable, hasta 20 líneas más arriba */
+      var decl = null;
+      for (var k = i; k >= Math.max(0, i - 20); k--) {
+        var d = lineas[k].match(new RegExp("(?:var|const|let)\\s+" + nombreY + "\\s*=\\s*(.+?);"));
+        if (d) { decl = d[1]; break; }
+      }
+      if (!decl) return;                              // no se pudo resolver: no se acusa
+      revisadas++;
+      if (/yDeOpcion|franja\s*\(|F\.y1|F\.y0|F\.centro/.test(decl)) return;   // usa el helper: ok
+      if (!/\d/.test(decl)) return;                   // sin números literales, no se puede evaluar
+      /* se evalúa con el índice en 0 y en 1, que es como se usan estas cuentas */
+      var expr = decl.replace(/Math\.round\(|\)\s*$/g, "");
+      [0, 1].forEach(function (idx) {
+        var e = expr.replace(/\(\s*[\w$.]+\s*\|\|\s*0\s*\)/g, String(idx))
+          .replace(/\b(i|n|fila|col|k)\b/g, String(idx));
+        if (!/^[\d\s+\-*/().]+$/.test(e)) return;     // quedó algo que no es aritmética pura
+        var y;
+        try { y = Function('"use strict";return (' + e + ')')(); } catch (x) { return; }
+        if (typeof y !== "number" || !isFinite(y)) return;
+        if (!Piel.enFranja(y, h, P)) {
+          sospechas.push(f + ":" + (i + 1) + "  " + nombreY + " = " + decl.trim() +
+            "  → con índice " + idx + " da y=" + Math.round(y) + " (alto " + h + "), fuera de " + F.y0 + ".." + F.y1);
+        }
+      });
+    });
+  });
+  assert(sospechas.length === 0,
+    "hay " + sospechas.length + " grupo(s) de opciones con la Y CALCULADA fuera de la franja:\n     " +
+    sospechas.join("\n     "));
+  console.log("[2b] " + revisadas + " grupos con Y calculada por helper: todos caen en la franja");
+})();
+
+/* ---------- [2c] Y EL GUARDIÁN FALLA SI SE ROMPE A PROPÓSITO ----------
+   Lo que pedía D1: probar que el test muerde. Se le da la misma línea que
+   tenía el jugadón antes del arreglo y tiene que detectarla. */
+(function () {
+  var y66 = 66 + 0 * 52, y118 = 66 + 1 * 52;
+  assert(!Piel.enFranja(y66, 46, P) && !Piel.enFranja(y118, 46, P),
+    "el detector tiene que marcar como FUERA las dos posiciones que tenía el jugadón (66 y 118)");
+  assert(Piel.enFranja(504, 44, P),
+    "y como DENTRO la posición nueva de las fichas (504)");
+  console.log("[2c] el guardián muerde: 66 y 118 fuera · 504 dentro");
+})();
+
 /* ---------- [2] EL GUARDIÁN: NADA UBICADO A MANO FUERA DE LA FRANJA ---------- */
 (function () {
   /* rects que NO son "elegir una de varias" y por eso pueden vivir donde sea */

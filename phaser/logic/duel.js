@@ -20,12 +20,35 @@
 
   /* Chance del atacante (0..1) según su fuerza contra la del defensor/arquero.
      Curva suave y acotada: nunca 0% ni 100% (siempre hay épica del "¿entra?"). */
+  /* ── D2 · EL TOPE DURO ERA UNA TRAMPA ────────────────────────────────────
+     Con clamp(v, min, max) la chance quedaba CLAVADA en 0.95 apenas la
+     diferencia de fuerza pasaba de 26, y ahí la derivada es cero: cualquier
+     penalización que le sacara poder al remate no movía un solo punto. Medido
+     antes del arreglo: con dif=40, sacarle 10 de poder cambiaba la chance en
+     0.0 puntos. Pasó dos veces —la penalización por distancia (G1) y el
+     multiplicador del especial leído (N2)— y las dos fallaron EN SILENCIO: sin
+     error, sin test rojo, solo el número que no se movía.
+
+     Ahora el techo no es un muro sino una asíntota: por encima de `max` el
+     exceso se comprime exponencialmente hacia `techo` sin llegar nunca, así
+     que SIEMPRE queda sensibilidad. Por debajo de `max` no cambia nada, o sea
+     que el balance de toda la zona normal de juego queda igual que antes.
+     El piso sí sigue siendo duro: que siempre haya una chance es intencional. */
+  function comprimir(v, lim, techo, suavidad) {
+    if (v <= lim) return v;
+    return techo - (techo - lim) * Math.exp(-(v - lim) / suavidad);
+  }
+
   function duelChance(atk, def, cfg) {
     cfg = cfg || {};
     var spread = cfg.spread || 58;   // cuánto pesa la diferencia de fuerza
     var min = cfg.min != null ? cfg.min : 0.07;
     var max = cfg.max != null ? cfg.max : 0.95;
-    return clamp(0.5 + (atk - def) / spread, min, max);
+    var techo = cfg.techo != null ? cfg.techo : 0.99;
+    var suav = cfg.suavidad != null ? cfg.suavidad : 0.35;
+    var v = 0.5 + (atk - def) / spread;
+    if (v > max) return Math.min(techo, comprimir(v, max, techo, suav));
+    return Math.max(min, v);
   }
 
   /* ---- G1 · LA DISTANCIA PESA -----------------------------------------------
@@ -88,9 +111,20 @@
     var zone = opts.zone || { bonus: 0, fuera: 0, gy: 0 };
     var T = opts.tiro || {};
     var poder = (opts.shotPower || 0) + (zone.bonus || 0);
-    var fd = factorDistancia(opts.distancia, T, opts.especial);
     var base = duelChance(poder, opts.keeperSkill || 0, opts.cfg);
-    var chance = base * fd;
+    /* D2 · TODA PENALIZACIÓN ENTRA POR ACÁ, como factor sobre la chance ya
+       resuelta. Es la parte de la trampa que no se arregla con la compresión:
+       una penalización que le resta PODER compite contra la saturación, y en la
+       zona alta el efecto se diluye. Multiplicando la chance final, en cambio,
+       siempre se nota — un factor 0.8 saca el 20% pase lo que pase.
+       El desglose viaja en el resultado para poder auditarlo. */
+    var factores = [{ id: "distancia", factor: factorDistancia(opts.distancia, T, opts.especial) }];
+    (opts.penalizaciones || []).forEach(function (p) {
+      if (p && p.factor != null) factores.push({ id: p.id || "?", factor: clamp(p.factor, 0, 1) });
+    });
+    var chance = base;
+    factores.forEach(function (f) { chance *= f.factor; });
+    var fd = factores[0].factor;
     var roll = rng();
     var ganaTiro = roll < chance;          // ¿el rematador le ganó al arquero?
 
@@ -130,10 +164,12 @@
       chancePct: Math.round(chance * 100),
       basePct: Math.round(base * 100),
       factorDist: Math.round(fd * 1000) / 1000,
+      factores: factores,
       roll: roll,
       gy: zone.gy || 0
     });
   }
 
-  return { clamp: clamp, duelChance: duelChance, resolveShot: resolveShot, factorDistancia: factorDistancia };
+  return { clamp: clamp, duelChance: duelChance, resolveShot: resolveShot,
+    factorDistancia: factorDistancia, comprimir: comprimir };
 });
