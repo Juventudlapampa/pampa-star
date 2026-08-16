@@ -18,7 +18,7 @@ const PRECACHE = [
   "./logic/relator.js", "./logic/definicion.js", "./logic/master.js",
   "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
   "./logic/jugadon.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
-  "./logic/escudos.js",
+  "./logic/escudos.js", "./logic/lectura.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",

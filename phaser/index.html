@@ -105,6 +105,10 @@
   <script src="logic/perspectiva.js"></script>
   <script src="logic/tiro.js"></script>
   <script src="logic/avatar.js"></script>
+  <!-- N2: lectura.js ANTES que partido.js — partido lo toma por root.PampaLectura
+       en su factory, así que si carga después queda undefined y el estado de
+       lectura nace en null sin que nada falle a la vista. -->
+  <script src="logic/lectura.js"></script>
   <script src="logic/partido.js"></script>
   <script src="logic/relator.js"></script>
   <script src="logic/definicion.js"></script>

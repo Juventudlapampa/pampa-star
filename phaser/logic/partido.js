@@ -12,9 +12,9 @@
    keeperWins ⇔ no-gol) y acá NADA lo pisa.
    ========================================================================== */
 (function (root, factory) {
-  if (typeof module !== "undefined" && module.exports) module.exports = factory(require("./duel.js"));
-  else root.PampaPartido = factory(root.PampaDuel);
-})(typeof self !== "undefined" ? self : this, function (Duel) {
+  if (typeof module !== "undefined" && module.exports) module.exports = factory(require("./duel.js"), require("./lectura.js"));
+  else root.PampaPartido = factory(root.PampaDuel, root.PampaLectura);
+})(typeof self !== "undefined" ? self : this, function (Duel, Lect) {
   "use strict";
 
   var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
@@ -75,7 +75,10 @@
       posesion: "mia", modo: "juego",
       ctrl: idxDelVos(null), pelota: { x: W / 2, y: H / 2 },
       portadorRival: 0,
-      cooldown: 0, esperaRival: 0, _t: 0
+      cooldown: 0, esperaRival: 0, _t: 0,
+      /* N2: la lectura de tus especiales. Arranca en cero cada domingo: es
+         local al partido y no ensucia el balance de la carrera. */
+      lectura: Lect ? Lect.nuevo() : null
     };
     // el 9 (VOS o el primero ATA) arranca con la pelota
     st.ctrl = st.mios.findIndex(function (j) { return j.esVos; });
@@ -744,12 +747,37 @@
     /* pase al vacío reciente: el arquero quedó vendido */
     var vendido = st._vendidoHasta && st._t < st._vendidoHasta;
     if (vendido) { poder += P.bonus_arquero_vendido; st._vendidoHasta = 0; }
-    if (mega) poder *= (mega.mult || 1.3);
+    /* N2 · EL RIVAL TE LEE. La penalización se aplica sobre el multiplicador
+       del especial, no sobre el poder base: te sacan lo que el especial te
+       daba de más, nunca te dejan peor que pateando normal. */
+    var idEsp = mega ? (mega.id || "mega") : (especial ? "calden" : null);
+    var bonusArq = 0, quedaDeEspecial = especial ? 1 : 0;
+    if (idEsp && Lect && st.lectura) {
+      var lec = Lect.lectura(st.lectura, idEsp, st.minuto, st.bal.lectura);
+      var pen = Lect.penalidad(lec, st.bal.lectura);
+      var mult = mega ? (mega.mult || 1.3) : C.mult;
+      poder *= 1 + (mult - 1) * (1 - pen);
+      /* Y ADEMÁS EL ARQUERO SE PARA MEJOR. Bajarle el multiplicador solo no
+         alcanza: duelChance está topeada en 0.95, así que cerca del arco —que
+         es donde se usa el especial— el descuento se lo comía el tope y la
+         lectura no cambiaba una sola probabilidad. Medido: el Tornado pasaba
+         de 96 a 83 de poder y la chance seguía clavada en 95%. Subirle la
+         capacidad al arquero sí mueve la diferencia atk−def, que es lo que
+         decide. Es el mismo hallazgo de G1, en otro lugar. */
+      var frac = pen / ((st.bal.lectura && st.bal.lectura.penal_max) || 0.42);
+      bonusArq = frac * ((st.bal.lectura && st.bal.lectura.arquero_bonus_max) || 22);
+      /* y pierde metros: un especial leído deja de aguantar la distancia que
+         aguantaba y termina llegando como un tiro normal */
+      quedaDeEspecial = 1 - frac;
+      Lect.registrar(st.lectura, idEsp, st.minuto, st.bal.lectura);
+    }
+    else if (mega) poder *= (mega.mult || 1.3);
     else if (especial) poder *= C.mult;
     gastar(st, "mio", mega ? (mega.aguante || st.bal.aguante.costo_calden) : (especial ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro));
     saltoReloj(st, rng);
-    return { shotPower: poder, keeperSkill: st.rivalKeeperSkill, arqueroVendido: !!vendido,
-      distancia: Math.round(d), especial: especial };
+    return { shotPower: poder, keeperSkill: st.rivalKeeperSkill + bonusArq, arqueroVendido: !!vendido,
+      distancia: Math.round(d), especial: especial ? quedaDeEspecial : false,
+      lecturaArq: Math.round(bonusArq * 10) / 10 };
   }
   function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
   function tiroFallado(st, rng) { perderPelota(st, rng); st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }

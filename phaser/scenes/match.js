@@ -1472,9 +1472,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       centro: (() => {
         const F = this.jugadonFichas ? this.jugadonFichas() : null;
         if (!megaListo || !F || F.tiros <= 0) return null;
+        /* N2 · EL AVISO. Lo que hace que la adaptación sea una decisión y no
+           una trampa: si te tienen leído el especial, lo decimos ACÁ, cuando
+           lo estás por elegir, no después de que falle. */
+        const leido = this.avisoLectura(megaListo.id);
         return {
           texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15),
-          sub: "encarás y definís · ficha (quedan " + F.tiros + ")",
+          sub: leido ? leido + " · ficha (quedan " + F.tiros + ")"
+            : "encarás y definís · ficha (quedan " + F.tiros + ")",
           cb: () => {
             if (!window.PampaJugadon.gastarFicha(F, "tiros")) return;
             this.entrarJugadonGambeta(rivalIdx, { mega: megaListo, marcadores: 3 });
@@ -2209,6 +2214,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
   /* qué MEGATIRO está disponible: de data (nombre pampeano), desbloqueado por nivel de
      carrera, pagable con aguante y pasada su línea de cancha. Devuelve el más potente. */
+  /* N2 · el texto de "te tienen leído" para el menú, o null si todavía no hay
+     nada que avisar. Un menú donde la etiqueta aparece siempre deja de
+     comunicar, así que por debajo de balance.lectura.avisa_desde no dice nada. */
+  avisoLectura(id) {
+    const L = window.PampaLectura, st = this.st;
+    if (!L || !st || !st.lectura || !id) return null;
+    const e = L.etiqueta(L.lectura(st.lectura, id, st.minuto, this.BAL.lectura), this.BAL.lectura);
+    if (!e) return null;
+    /* forma además de texto: ojos que se van llenando, para que se note de un
+       vistazo sin depender de leer ni del color */
+    return ["", "👁", "👁👁", "👁👁👁"][e.nivel] + " " + e.texto;
+  }
   megaDisponible() {
     const st = this.st, j = st.mios[st.ctrl];
     if (!j || !j.esVos || st.posesion !== "mia") return null;

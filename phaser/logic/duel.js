@@ -46,7 +46,13 @@
     cfg = cfg || {};
     if (d == null) return 1;                       // sin distancia: como antes
     var ref = cfg.referencia != null ? cfg.referencia : 90;
-    var media = (especial ? cfg.media_vida_especial : cfg.media_vida) || (especial ? 380 : 210);
+    var mN = cfg.media_vida || 210, mE = cfg.media_vida_especial || 380;
+    /* `especial` acepta booleano o un número 0..1: cuánto le queda de especial.
+       N2 lo usa para que un especial LEÍDO pierda de a poco su ventaja de
+       metros y termine llegando como un tiro normal. Con true/false se
+       comporta igual que antes. */
+    var q = especial === true ? 1 : (especial ? Math.max(0, Math.min(1, especial)) : 0);
+    var media = mN + (mE - mN) * q;
     var piso = cfg.piso != null ? cfg.piso : 0.03;
     var t = Math.max(0, d - ref) / media;
     return clamp(1 / (1 + t * t * t), piso, 1);

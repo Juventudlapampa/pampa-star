@@ -574,5 +574,14 @@
     "_tap_min": "área táctil mínima en px LÓGICOS = 44 CSS px reales (el piso de accesibilidad táctil) dividido por el factor de escala del teléfono, 0,7222. Es el ÁREA, no el dibujo: un botón puede verse de 40 y tener 61 de zona.",
     "texto_info_min": 12,
     "_texto_info_min": "px lógicos mínimos para un texto que lleva INFORMACIÓN (no decorativo). 12 lógicos = 8,7 px reales en teléfono. Los títulos y el cuerpo ya están por encima; esto es el piso duro."
+  },
+  "lectura": {
+    "sube_por_uso": 0.34,
+    "baja_por_minuto": 0.022,
+    "max": 1,
+    "penal_max": 0.42,
+    "avisa_desde": 0.3,
+    "_nota": "N2 EL RIVAL TE LEE LOS ESPECIALES. Cada especial tiene su propia lectura (que te lean el Tornado no les dice nada del Calden). Cada uso la sube sube_por_uso; el tiempo la baja baja_por_minuto. penal_max es cuanto le pueden sacar al MULTIPLICADOR del especial (no al poder base: te sacan lo que el especial te daba de mas, nunca te dejan peor que pateando normal). avisa_desde es a partir de que lectura aparece la etiqueta en el menu — antes de intentarlo, no despues de fallar. Medido con estos valores: 3 usos para te tienen leido, 4 para el tope, y 45 minutos sin usarlo para volver a cero.",
+    "arquero_bonus_max": 22
   }
 }
