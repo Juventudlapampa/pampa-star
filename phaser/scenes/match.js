@@ -35,6 +35,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         (r.arquetipo === "rival" ? this._retratos.rival : this._retratos.companero).push(key);
       });
     }
+    /* P4 · LOS DE LA TRIBUNA TIENEN CARA. Nelda y el Tuli salían con un
+       borrón oscuro dibujado a mano (un fillCircle marrón) que en pantalla se
+       leía como un rectángulo vacío. El retrato lo declara data/tribuna.json
+       en el campo `retrato` de cada personaje, así que cambiarlo es cambiar
+       una línea de JSON, no tocar código. */
+    const tri = this.game.registry.get("tribuna");
+    if (tri && Array.isArray(tri.personajes)) {
+      tri.personajes.forEach((p) => {
+        if (p && p.retrato) this.load.image("tribuna_" + p.id, "../" + p.retrato);
+      });
+    }
     /* V6 §3.2: las POSES ILUSTRADAS del manifest — fallback tolerante: se carga
        lo que exista; lo que falte cae al sprite heroico de código, nada crashea */
     const poses = this.game.registry.get("poses");
