@@ -128,6 +128,38 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
     this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
     this.panelSil = null; this._panelPrev = null;
+    /* ══════════════════════════════════════════════════════════════════
+       P1 · EL BUG DEL SEGUNDO PARTIDO DE LA CARRERA.
+
+       Phaser NO crea una escena nueva en cada `scene.start("match")`: reusa
+       la MISMA instancia y solo vuelve a correr init() y create(). Todo campo
+       que se escriba durante el partido y no se reinicie acá llega prendido al
+       partido siguiente — y se queda prendido para el resto de la carrera.
+
+       Eso mataba la fecha 2 del Modo Master: `_finalApagado` se prende al
+       terminar el partido (PIEL P9, para que el mapa no se repinte encima de
+       la pantalla de final) y nunca se apagaba. En la fecha 2 `dibujarRadar()`
+       salía por esa guarda en el primer renglón y el mapa quedaba VACÍO para
+       siempre: sin cancha, sin jugadores y sin la etiqueta "◄ TU ARCO".
+       Reproducido jugando la fecha 1 entera y entrando a la 2.
+
+       Las cuatro son BANDERAS, no objetos: los objetos los recrea create(),
+       las banderas no las recrea nadie. El guardián c4_estado_limpio.test.js
+       verifica que no aparezca una quinta.
+       ══════════════════════════════════════════════════════════════════ */
+    this._finalApagado = false;      // el mapa vuelve a dibujarse (ESTE era el bug)
+    this._medidoresOcultos = null;   // cache de visibilidad de AGUANTE/ENVIÓN
+    this._panVivo = false;           // si el partido terminó a mitad de un paneo
+    this._esHeroico = false;         // qué clase de sprite es el portador
+
+    /* Y una REFERENCIA, que es la otra mitad del mismo bug. `_radarTuArco` se
+       crea perezoso: `if (!this._radarTuArco) this._radarTuArco = this.add.text(...)`.
+       El texto muere con la escena anterior, pero la referencia sobrevive al
+       scene.start(): la guarda da falso, no lo recrea, y el frame siguiente le
+       manda setText() a un objeto DESTRUIDO. Crash por frame desde el segundo
+       partido — el update entero del partido se cae ahí.
+       Visto en vivo: active=false, scene=null, y fuera del hudLayer. */
+    this._radarTuArco = null;
   }
 
   create() {
