@@ -22,6 +22,7 @@ var fs = require("fs"), path = require("path");
 var RAIZ = path.join(__dirname, "..", "..");
 
 var ok = 0, mal = 0;
+var omitidos = [];
 function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); } }
 function mb(b) { return +(b / 1048576).toFixed(2); }
 
@@ -85,7 +86,18 @@ function loQueCarga() {
   /* la copia .webp no reemplaza al original: lo deriva. Si se pierde el PNG no
      se puede volver a generar con otra calidad ni medir la geometría. */
   var F = path.join(RAIZ, "assets/_fuente");
-  assert(fs.existsSync(F), "tiene que existir assets/_fuente con los PNG originales");
+  /* X2 · SIN FUENTE NO ES UNA FALLA, ES UN OMITIDO.
+     El zip de distribución deja esta carpeta afuera a propósito: son 36 MB de
+     PNG que no hacen falta para jugar. Marcarlo como falla haría que el juego
+     pareciera roto en el zip cuando está perfecto.
+     Lo que SÍ se sigue verificando siempre, esté o no la fuente, es que ningún
+     manifiesto apunte ahí — eso no depende de que la carpeta exista. */
+  if (!fs.existsSync(F)) {
+    omitidos.push("[3] la fuente no se perdió — no está assets/_fuente (el zip de distribución la deja afuera a propósito; con el repo completo este bloque corre)");
+    var todosSinFuente = loQueCarga().join("|");
+    assert(todosSinFuente.indexOf("_fuente") < 0, "ningún manifiesto puede apuntar a assets/_fuente: es fuente, no carga");
+    return;
+  }
   var n = 0, peso = 0;
   ["poses", "retratos", "ui"].forEach(function (d) {
     var dd = path.join(F, d);
@@ -137,5 +149,8 @@ function loQueCarga() {
   console.log("[5] las tres poses del rival usan la convención poseR_*");
 })();
 
-console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
+omitidos.forEach(function (o) { console.log("  ⊘ OMITIDO · " + o); });
+console.log(mal === 0
+  ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." + (omitidos.length ? " (" + omitidos.length + " omitido)" : "")
+  : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

@@ -69,8 +69,12 @@
       "_por_que": "117 BPM, ceremonial. El momento grande de la carrera: ascenso, título, gloria mundial."
     },
     "_reserva": {
-      "archivos": ["Cielo_de_victoria.ogg", "Fuerza_de_un_León.ogg"],
-      "_nota": "Los dos a 144 BPM y en mayor, sin destino asignado. Sirven para reemplazar el opening o el partido si a Rodri no le convencen los puestos. Cortan en 18,5 compases, así que para usarlos en loop hay que recortarlos."
+      "archivos": [
+        "Cielo_de_victoria.ogg",
+        "Fuerza_de_un_Leon.ogg"
+      ],
+      "_nota": "Los dos a 144 BPM y en mayor, sin destino asignado. Sirven para reemplazar el opening o el partido si a Rodri no le convencen los puestos. Cortan en 18,5 compases, así que para usarlos en loop hay que recortarlos.",
+      "_nota_nombres": "X1 (20/ago/2026): el archivo se llamaba Fuerza_de_un_León.ogg, con o acentuada. En disco y en git el nombre estaba bien (UTF-8), pero al DESCOMPRIMIR EL ZIP EN WINDOWS salia como Fuerza_de_un_Le#U00f3n.ogg — el zip no marca el flag UTF-8 y el Explorador lo reescribe. Entonces audio.json no lo encontraba y ese tema no podia sonar. Renombrado a ASCII. REGLA: ningun archivo del proyecto usa acentos ni caracteres no ASCII en el nombre; los acentos en rutas web traen este problema y otros peores (URL-encoding, servidores que normalizan distinto, Git en macOS con NFD). Lo verifica m_musica.test.js."
     }
   },
   "_reglas": {

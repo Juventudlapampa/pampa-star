@@ -134,5 +134,46 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   console.log("[5] 8 momentos mapeados · 2 temas de reserva declarados y presentes");
 })();
 
+/* ---------- [6] X1 · NINGÚN NOMBRE DE ARCHIVO CON ACENTOS ---------- */
+(function () {
+  /* Fuerza_de_un_Leon.ogg se llamaba con ó acentuada. En disco y en git el
+     nombre estaba PERFECTO (UTF-8): el problema aparecía al descomprimir el zip
+     EN WINDOWS. El zip no marca el flag UTF-8 y el Explorador reescribía el
+     nombre como Fuerza_de_un_Le#U00f3n.ogg, así que audio.json no lo encontraba
+     y ese tema no podía sonar. En el repo completo andaba; en el zip no.
+
+     La regla que mata toda esa clase de problema: nombres ASCII. No es solo el
+     zip de Windows — también hay URL-encoding en rutas web, servidores que
+     normalizan distinto y Git en macOS que guarda los acentos en NFD. */
+  function noASCII(nombre) {
+    return Array.from(nombre).some(function (c) { return c.codePointAt(0) > 126; });
+  }
+  var dirs = ["assets/musica", "assets/poses", "assets/retratos", "assets/ui", "assets/fonts"];
+  var malos = [];
+  dirs.forEach(function (d) {
+    var dd = path.join(RAIZ, d);
+    if (!fs.existsSync(dd)) return;
+    fs.readdirSync(dd).forEach(function (f) { if (noASCII(f)) malos.push(d + "/" + f); });
+  });
+  assert(malos.length === 0,
+    "estos archivos tienen caracteres no ASCII en el nombre y se rompen al descomprimir el zip en Windows: " + malos.join(", "));
+
+  /* y todo lo que audio.json declara tiene que existir con ESE nombre exacto */
+  var declarados = [];
+  Object.keys(A.temas).forEach(function (k) {
+    var t = A.temas[k];
+    if (t && t.archivo) declarados.push(t.archivo);
+    if (t && Array.isArray(t.archivos)) t.archivos.forEach(function (f) { declarados.push(f); });
+  });
+  var faltan = declarados.filter(function (f) {
+    return !fs.existsSync(path.join(RAIZ, "assets/musica", f));
+  });
+  assert(faltan.length === 0,
+    "audio.json declara archivos que no existen con ese nombre exacto: " + faltan.join(", "));
+  assert(declarados.length >= 12,
+    "tienen que estar los doce temas declarados, contando la reserva (hay " + declarados.length + ")");
+  console.log("[6] los " + declarados.length + " archivos declarados existen y ninguno tiene acentos");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

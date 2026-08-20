@@ -48,6 +48,15 @@ let ok = 0, mal = 0;
 function assert(cond, msg) { if (cond) ok++; else { mal++; console.error("  ✗ " + msg); } }
 
 const RAIZ = path.join(__dirname, "..", "..");
+/* X2 · ¿ESTÁ LA CARPETA DE FUENTE?
+   Este test mide la geometría sobre los PNG originales de assets/_fuente/, y
+   el zip de distribución deja esa carpeta afuera A PROPÓSITO (36 MB que no
+   hacen falta para jugar). Sin fuente no hay con qué medir — pero eso NO es
+   una falla: es un omitido. Reportarlo como rojo haría que el juego pareciera
+   roto en el zip cuando está perfecto, que es lo contrario de para qué sirve
+   un test. */
+const FUENTE_HAY = fs.existsSync(path.join(RAIZ, "assets/_fuente/poses"));
+let omitido = null;
 const TOL_PISO = 4;        // px  · el que de verdad separa un ciclo roto de uno bueno
 const TOL_ALTO = 3;        // %   · idem
 /* La banda de CADERA se sigue midiendo, pero SOLO PARA IMPRIMIRLA: no hay tope
@@ -163,8 +172,15 @@ manifests.forEach(({ archivo, entradas }) => {
       let ruta2 = path.join(RAIZ, base, f);
       if (/\.webp$/i.test(f)) {
         const fuente = path.join(RAIZ, "assets/_fuente/poses", f.replace(/\.webp$/i, ".png"));
+        /* X2 · SIN FUENTE NO ES UNA FALLA, ES UN OMITIDO.
+           El zip de distribución deja assets/_fuente afuera a propósito (son
+           36 MB de PNG que no hacen falta para jugar). Este test mide la
+           geometría sobre esos PNG, así que en el zip no tiene con qué medir.
+           Reportarlo como FALLA haría que el juego pareciera roto cuando está
+           perfecto — que es justo lo contrario de para qué sirve un test. */
+        if (!FUENTE_HAY) { omitido = "no está assets/_fuente (el zip de distribución la deja afuera a propósito)"; return; }
         if (!fs.existsSync(fuente)) {
-          assert(false, "el ciclo '" + id + "' usa " + f + " y su PNG fuente no está en assets/_fuente/poses/");
+          assert(false, "el ciclo '" + id + "' usa " + f + " y su PNG fuente falta en assets/_fuente/poses/ (la carpeta SÍ está, así que se perdió ese archivo)");
           return;
         }
         ruta2 = fuente;
@@ -212,5 +228,9 @@ manifests.forEach(({ archivo, entradas }) => {
 console.log("[1] ciclos declarados revisados: " + ciclosRevisados);
 if (ciclosRevisados === 0) console.log("  (no hay ninguno declarado ahora mismo — el test queda listo para el que venga)");
 
-if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
+/* X2 · el omitido se dice, no se calla: si no se dijera, el test pasaría en
+   verde dando la impresión de que midió algo que no midió. */
+if (omitido) console.log("  ⊘ OMITIDO · la geometría de los ciclos no se midió: " + omitido);
+
+if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." + (omitido ? " (1 omitido)" : ""));
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

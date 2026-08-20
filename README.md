@@ -4,6 +4,42 @@ Juego de **carrera futbolística pampeana** por comandos. Un pibe que arranca en
 
 > Título provisorio · proyecto de la Subsecretaría de Juventudes de La Pampa.
 
+---
+
+## Si estás leyendo esto desde el ZIP
+
+El zip de distribución trae **lo que hace falta para jugar**, no el repo entero.
+Queda afuera a propósito:
+
+- **`assets/_fuente/`** — los PNG originales de las 42 piezas de arte (36 MB).
+  Son la fuente para regenerar los `.webp` con otra calidad; el juego no los
+  carga. Están en GitHub.
+- **`assets_drive/`** — los volcados crudos del Drive (186 MB), nunca
+  versionados.
+- **`.git/`** — el historial.
+
+### La suite corre igual, y dos bloques se omiten
+
+```bash
+sh test.sh
+```
+
+Con el zip vas a ver dos líneas así, **y está bien**:
+
+```
+⊘ OMITIDO · la geometría de los ciclos no se midió: no está assets/_fuente
+⊘ OMITIDO · [3] la fuente no se perdió — no está assets/_fuente
+```
+
+`ciclos.test.js` mide la alineación de los cuadros de corrida sobre los PNG
+originales, y `w1_peso.test.js` verifica que la carpeta de fuente no se haya
+perdido. **Sin la carpeta no hay con qué medir, pero eso no es una falla: es un
+omitido.** Los dos salen en verde con código 0 y dicen por qué.
+
+Con el repo completo (`git clone`) los dos bloques corren normalmente.
+
+---
+
 ## Jugar
 
 - **Online:** se publica solo con GitHub Pages (link en la solapa *Settings → Pages*).
