@@ -167,16 +167,37 @@
       this.cineContent.add(bola);
       this._jgMini.bola = bola;
 
+      /* P7 · LA SECUENCIA DE OBSTÁCULOS. Antes los rivales eran todos el mismo
+         objeto y la única respuesta era esquivar de costado. Ahora cada uno
+         trae su TIPO —te cierra un lado, se tira al piso, se planta, vienen dos,
+         o directamente es un pozo del potrero— y cada tipo pide un gesto
+         distinto. La secuencia sale de logic/jugadon.js: determinista por
+         semilla y sin dos iguales seguidos. */
+      var statG = (yo.stats && yo.stats.gambeta) || 55;
+      this._jgMini.obstaculos = J.secuenciaObstaculos(
+        this._jgLogica.defensores.length, statG,
+        (st.golesMio + 1) * 7919 + Math.floor(st.minuto * 100) + st.ctrl + 13);
+      this._jgMini.gestos = J.gestosDe(statG);
+      var OBS = this._jgMini.obstaculos;
       /* los rivales te esperan escalonados hacia el arco */
       var kR = this.poseRivalNaranja ? (this.poseRivalNaranja("bloqueo") || this.poseKey("bloqueo")) : this.poseKey("bloqueo");
       this._jgLogica.defensores.forEach(function (d, i) {
+        var obs = OBS[i] || OBS[0];
         var sr = kR ? self.add.image(0, 0, kR) : self.add.rectangle(0, 0, 40, 90, 0xff8a50);
         sr._altoBase = sr.height || 90;
         self.cineContent.add(sr);
         var nom = self.add.text(0, 0, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
         self.cineContent.add(nom);
+        /* P7 · el POZO no es un rival: no lleva figura ni nombre de jugador.
+           Es la cancha jugando, y se tiene que ver distinto o no se entiende. */
+        if (obs && obs.pose === null) {
+          sr.setVisible(false);
+          nom.setText("▬ " + obs.n);
+        } else {
+          nom.setText("▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10));
+        }
         self._jgMini.rivales.push({
-          spr: sr, nom: nom, idx: i, vivo: true,
+          spr: sr, nom: nom, idx: i, vivo: true, obs: obs,
           d: 0.34 + i * 0.26,
           lx: i % 2 === 0 ? -0.35 : 0.4,
           vel: (B.vel_rival_lat != null ? B.vel_rival_lat : 0.5) + i * 0.1
@@ -264,9 +285,15 @@
       if (!m || m.duelo || m.terminado) return;
       m.duelo = r;
       var d = g.defensores[Math.min(r.idx, g.defensores.length - 1)];
-      this._jg.sprites.push(this.jugadonGlobo(r.spr.x, r.spr.y - 84, d.cierre.n));
+      /* P7 · SE ANUNCIA EL OBSTÁCULO, no el cierre genérico. Lo que aparece es
+         qué se te viene encima, y los botones son los GESTOS que sabés hacer.
+         Sin el anuncio esto sería adivinar; con el anuncio es leer y reaccionar. */
+      var obs = r.obs || null;
+      this._jg.sprites.push(this.jugadonGlobo(r.spr.x || W / 2, (r.spr.y || H / 2) - 84,
+        obs ? obs.n : d.cierre.n));
       this.SFX && this.SFX.whoosh && this.SFX.whoosh(220);
-      var ops = g.opciones, wpx = Math.min(180, (W - 40) / ops.length - 10);
+      var ops = (m.gestos && m.gestos.length) ? m.gestos : g.opciones;
+      var wpx = Math.min(180, (W - 40) / ops.length - 10);
       ops.forEach(function (mv, i) {
         var x = W / 2 + (i - (ops.length - 1) / 2) * (wpx + 10);
         self.jugadonBoton(x, H - 60, wpx, mv.n, 0xf6efdc, function () { self.jugadonMovida(mv.id, r); });
@@ -275,7 +302,19 @@
 
     jugadonMovida(movidaId, r) {
       var st = this.st, J = window.PampaJugadon, self = this, m = this._jgMini;
-      var res = J.cruceGambeta(this._jgLogica, movidaId);
+      /* P7 · con obstáculo tipado, la LECTURA manda y no hay azar: el gesto
+         correcto pasa siempre y el equivocado nunca. El azar sigue viviendo en
+         el duelo cara a cara de cruceGambeta, que es otro momento del juego.
+         Sin obstáculo (corridas viejas) cae al camino de antes. */
+      var res;
+      if (r && r.obs) {
+        var pasa = J.pasaObstaculo(r.obs.id, movidaId);
+        res = { gana: pasa, obstaculo: r.obs };
+        if (pasa) this._jgLogica.paso = Math.min(this._jgLogica.paso + 1, this._jgLogica.defensores.length);
+        else { this._jgLogica.terminado = true; this._jgLogica.exito = false; }
+      } else {
+        res = J.cruceGambeta(this._jgLogica, movidaId);
+      }
       if (!res) return;
       this.jugadonLimpiarBotones();
       (this._jg.sprites || []).forEach(function (o) { if (o && o.destroy) o.destroy(); });
@@ -292,7 +331,11 @@
         return;
       }
       if (m) m.terminado = true;
-      this.avisoJugadon("¡TE LO LEYÓ!", 0xe3503e);
+      /* P7 · decir POR QUÉ no pasó: con obstáculos tipados el error es de
+         lectura, así que el aviso tiene que nombrar el gesto que hacía falta. */
+      this.avisoJugadon(res.obstaculo
+        ? "¡" + res.obstaculo.n + "!"
+        : "¡TE LO LEYÓ!", 0xe3503e);
       this.time.delayedCall(this.msV(900), function () {
         self.jugadonCerrar(function () {
           window.PampaPartido.perderPelota(st);

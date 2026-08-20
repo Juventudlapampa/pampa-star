@@ -92,6 +92,83 @@
     return { gana: gana, cierre: cierre, margen: margen };
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     P7 · LA GAMBETA DEJA DE SER SIEMPRE LA MISMA.
+
+     El reclamo de Rodri: "hoy el minijuego es esquivar y siempre aparece lo
+     mismo". Era cierto de la PLATAFORMA (la corrida hacia el arco): todos los
+     obstáculos eran el mismo objeto —un rival al que esquivabas de costado— y
+     la única respuesta era moverse a un lado.
+
+     Ahora la corrida es una SECUENCIA DE OBSTÁCULOS CON TIPO. Cada tipo pide
+     un gesto distinto, y no siempre es esquivar:
+
+       marca_izq / marca_der  te cierra un lado   → salís por el OTRO
+       barrida                se tira al piso     → SALTÁS las piernas
+       pozo                   el potrero, no un rival → SALTÁS
+       firme                  se planta de frente → CAÑO (o amagás)
+       dos_juntos             dos cerrando        → AMAGUE, los partís al medio
+
+     Dos reglas de diseño, las dos verificables:
+       1. NUNCA dos obstáculos iguales seguidos. Que la secuencia no se repita
+          es lo que hace que haya que MIRAR en vez de apretar de memoria.
+       2. Lo que no sabés hacer, no aparece. El caño pide 70 de gambeta: si no
+          llegás, el obstáculo "firme" no sale en tu secuencia — no se puede
+          poner una traba que el jugador no tiene con qué pasar.
+
+     El pozo es el único que no es un rival, y es a propósito: en el potrero la
+     cancha también juega.
+     ══════════════════════════════════════════════════════════════════════ */
+  var OBSTACULOS = [
+    { id: "marca_izq",  n: "TE CIERRA LA IZQUIERDA", gesto: "esquivar", vence: ["der"],              min: 0,  pose: "bloqueo" },
+    { id: "marca_der",  n: "TE CIERRA LA DERECHA",   gesto: "esquivar", vence: ["izq"],              min: 0,  pose: "bloqueo" },
+    { id: "barrida",    n: "SE TIRA AL PISO",        gesto: "saltar",   vence: ["saltar"],           min: 0,  pose: "barrida" },
+    { id: "pozo",       n: "UN POZO EN EL PASTO",    gesto: "saltar",   vence: ["saltar"],           min: 0,  pose: null },
+    { id: "firme",      n: "SE PLANTA DE FRENTE",    gesto: "caño",     vence: ["canio", "amague"],  min: 70, pose: "bloqueo" },
+    { id: "dos_juntos", n: "DOS CERRÁNDOTE",         gesto: "amague",   vence: ["amague"],           min: 55, pose: "bloqueo" }
+  ];
+  /* los gestos que el juego ofrece como botón/tecla */
+  var GESTOS = [
+    { id: "izq",    n: "◀ SALIR POR IZQUIERDA", min: 0 },
+    { id: "der",    n: "SALIR POR DERECHA ▶",   min: 0 },
+    { id: "saltar", n: "▲ SALTAR",              min: 0 },
+    { id: "amague", n: "✦ AMAGAR",              min: 55 },
+    { id: "canio",  n: "◎ CAÑO",                min: 70 }
+  ];
+  function gestosDe(statGambeta) {
+    return GESTOS.filter(function (g) { return (statGambeta || 0) >= g.min; });
+  }
+  function obstaculosDe(statGambeta) {
+    return OBSTACULOS.filter(function (o) { return (statGambeta || 0) >= o.min; });
+  }
+
+  /* La SECUENCIA de la corrida. Determinista por semilla (mismo save, misma
+     corrida) y con la regla de no repetir el tipo anterior. Si el jugador es
+     tan flojo que solo le entra un tipo de obstáculo, se permite repetir —
+     antes que devolver una secuencia más corta de lo pedido. */
+  function secuenciaObstaculos(cuantos, statGambeta, semilla) {
+    var r = rng(semilla || 3);
+    var pool = obstaculosDe(statGambeta);
+    var out = [], ultimo = null;
+    for (var i = 0; i < Math.max(1, cuantos || 3); i++) {
+      var eleg = pool.filter(function (o) { return o.id !== ultimo; });
+      if (!eleg.length) eleg = pool;                 // caso extremo: un solo tipo
+      var o = eleg[Math.floor(r() * eleg.length) % eleg.length];
+      out.push(o);
+      ultimo = o.id;
+    }
+    return out;
+  }
+
+  /* ¿el gesto pasa el obstáculo? Sin azar: la LECTURA manda. El desempate por
+     stats sigue viviendo en resolverMovida, que es el duelo cara a cara. */
+  function pasaObstaculo(obstaculoId, gestoId) {
+    var o = null;
+    for (var i = 0; i < OBSTACULOS.length; i++) if (OBSTACULOS[i].id === obstaculoId) o = OBSTACULOS[i];
+    if (!o) return false;
+    return o.vence.indexOf(gestoId) >= 0;
+  }
+
   /* estado de la PLATAFORMA (cancha más ancha que larga) */
   function crearGambeta(opts) {
     var r = rng(opts.semilla || 7);
@@ -223,6 +300,8 @@
     elegirCierre: elegirCierre, resolverMovida: resolverMovida,
     crearGambeta: crearGambeta, cruceGambeta: cruceGambeta,
     crearQuite: crearQuite, resolverQuite: resolverQuite,
+    OBSTACULOS: OBSTACULOS, GESTOS: GESTOS, gestosDe: gestosDe, obstaculosDe: obstaculosDe,
+    secuenciaObstaculos: secuenciaObstaculos, pasaObstaculo: pasaObstaculo,
     ARCO: ARCO, resolverSuperTiro: resolverSuperTiro, rng: rng
   };
 });
