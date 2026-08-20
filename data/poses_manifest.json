@@ -6,7 +6,7 @@
   "base": "assets/poses/",
   "poses": {
     "remate": {
-      "archivo": "pose_remate.png",
+      "archivo": "pose_remate.webp",
       "quien": "heroe",
       "n": "Remate de derecha",
       "pelota": {
@@ -24,7 +24,7 @@
       }
     },
     "chilena": {
-      "archivo": "pose_chilena.png",
+      "archivo": "pose_chilena.webp",
       "quien": "heroe",
       "n": "Chilena invertida",
       "pelota": {
@@ -42,7 +42,7 @@
       }
     },
     "cabezazo": {
-      "archivo": "pose_cabezazo.png",
+      "archivo": "pose_cabezazo.webp",
       "quien": "heroe",
       "n": "Salto de cabeza",
       "pelota": {
@@ -60,17 +60,17 @@
       }
     },
     "barrida": {
-      "archivo": "pose_barrida.png",
+      "archivo": "pose_barrida.webp",
       "quien": "defensor",
       "n": "Defensor barriéndose"
     },
     "arquero_vuela": {
-      "archivo": "pose_arquero_vuela_v2.png",
+      "archivo": "pose_arquero_vuela_v2.webp",
       "quien": "arquero",
       "n": "Estirada en vuelo (v2 mangas lisas)"
     },
     "arquero_ataja": {
-      "archivo": "pose_arquero_ataja_v2.png",
+      "archivo": "pose_arquero_ataja_v2.webp",
       "quien": "arquero",
       "n": "Atajó, de rodillas (v2 mangas lisas)",
       "pelota": {
@@ -80,7 +80,7 @@
       }
     },
     "festejo": {
-      "archivo": "pose_festejo.png",
+      "archivo": "pose_festejo.webp",
       "quien": "heroe",
       "n": "Festejo de gol",
       "tonos": {
@@ -93,7 +93,7 @@
       }
     },
     "gambeta_gana": {
-      "archivo": "pose_gambeta_gana.png",
+      "archivo": "pose_gambeta_gana.webp",
       "quien": "heroe",
       "n": "Gambeta ganada — quiebre limpio",
       "pelota": {
@@ -111,7 +111,7 @@
       }
     },
     "gambeta_pierde": {
-      "archivo": "pose_gambeta_pierde.png",
+      "archivo": "pose_gambeta_pierde.webp",
       "quien": "heroe",
       "n": "Gambeta perdida — trastabillando",
       "tonos": {
@@ -124,7 +124,7 @@
       }
     },
     "pared": {
-      "archivo": "pose_pared.png",
+      "archivo": "pose_pared.webp",
       "quien": "heroe",
       "n": "Pared — toque de primera",
       "pelota": {
@@ -142,12 +142,12 @@
       }
     },
     "bloqueo": {
-      "archivo": "pose_bloqueo.png",
+      "archivo": "pose_bloqueo.webp",
       "quien": "defensor",
       "n": "Bloqueo plantado"
     },
     "corriendo": {
-      "archivo": "pose_corriendo.png",
+      "archivo": "pose_corriendo.webp",
       "quien": "heroe",
       "n": "La corrida a fondo",
       "_tonos": "V7-1 §4 recolor por pinta: tonos base planos del PNG (muestreados). pelo_y1 limita la regla del pelo a la banda de arriba (los botines también son negros).",
@@ -170,15 +170,15 @@
       "_ciclo_nota": "TANDA DE ARTE A3 (v2, 3/ago): los tres cuadros vienen del zip PROCESADO (PAMPA_STAR_arte_v2_ciclo_alineado.zip, carpeta run/), con máscara binaria y alineados de origen. Se pegaron TAL CUAL: no se recortan, no se reescalan, no se recentran, no pasan por sharp — cualquier reprocesamiento los rompe. phaser/test/ciclos.test.js valida piso (4px), alto (3%) y que los lienzos midan igual. NO valida alineación horizontal: se probó con la caja completa y con la banda de cadera, y ninguna ordena bien (el set bueno puntúa PEOR que el roto). Son ilustraciones separadas, sin ancla estable medible por código: el corrimiento lateral se mira A OJO. El test imprime el número de cadera como dato, no como veredicto.",
       "ciclo": {
         "cuadros": [
-          "pose_corriendo_1.png",
-          "pose_corriendo_2.png",
-          "pose_corriendo_3.png"
+          "pose_corriendo_1.webp",
+          "pose_corriendo_2.webp",
+          "pose_corriendo_3.webp"
         ],
         "ms": 120
       }
     },
     "quite": {
-      "archivo": "pose_quite.png",
+      "archivo": "pose_quite.webp",
       "quien": "heroe",
       "n": "El quite de pie: la pierna estirada, el cuerpo metido",
       "tonos": {
@@ -191,7 +191,7 @@
       }
     },
     "volea": {
-      "archivo": "pose_volea.png",
+      "archivo": "pose_volea.webp",
       "quien": "heroe",
       "n": "La volea: el pie a la altura de la cadera",
       "tonos": {
@@ -204,7 +204,7 @@
       }
     },
     "tiro": {
-      "archivo": "pose_tiro.png",
+      "archivo": "pose_tiro.webp",
       "quien": "heroe",
       "n": "El remate con todo el cuerpo",
       "tonos": {
@@ -219,7 +219,7 @@
       "_alto_rel": "A3: la figura es 1844x1206, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.97 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
     },
     "pase": {
-      "archivo": "pose_pase.png",
+      "archivo": "pose_pase.webp",
       "quien": "heroe",
       "n": "El pase con el borde interno",
       "tonos": {
@@ -232,7 +232,7 @@
       }
     },
     "cabezazo_v2": {
-      "archivo": "pose_cabezazo_v2.png",
+      "archivo": "pose_cabezazo_v2.webp",
       "quien": "heroe",
       "n": "El cabezazo, versión nueva",
       "tonos": {
@@ -245,7 +245,7 @@
       }
     },
     "cansado": {
-      "archivo": "pose_cansado.png",
+      "archivo": "pose_cansado.webp",
       "quien": "heroe",
       "n": "Sin aire: las manos en las rodillas",
       "tonos": {
@@ -258,7 +258,7 @@
       }
     },
     "celebracion": {
-      "archivo": "pose_celebracion.png",
+      "archivo": "pose_celebracion.webp",
       "quien": "heroe",
       "n": "El festejo, versión nueva",
       "tonos": {
@@ -271,7 +271,7 @@
       }
     },
     "de_espaldas": {
-      "archivo": "pose_de_espaldas.png",
+      "archivo": "pose_de_espaldas.webp",
       "quien": "heroe",
       "n": "De espaldas con la pelota (P6-B: el que la tira en el plano profundo)",
       "tonos": {
@@ -284,7 +284,7 @@
       }
     },
     "de_espaldas_sin_pelota": {
-      "archivo": "pose_de_espaldas_sin_pelota.png",
+      "archivo": "pose_de_espaldas_sin_pelota.webp",
       "quien": "heroe",
       "n": "De espaldas sin la pelota",
       "tonos": {
@@ -297,7 +297,7 @@
       }
     },
     "recibiendo": {
-      "archivo": "pose_recibiendo.png",
+      "archivo": "pose_recibiendo.webp",
       "quien": "heroe",
       "n": "Recibiendo de frente (P6-B: el que espera el pase largo)",
       "tonos": {
@@ -310,7 +310,7 @@
       }
     },
     "arquero_ataja_celeste": {
-      "archivo": "pose_arquero_ataja_celeste.png",
+      "archivo": "pose_arquero_ataja_celeste.webp",
       "quien": "arquero",
       "n": "TU arquero: la agarra",
       "tonos": {
@@ -323,7 +323,7 @@
       }
     },
     "arquero_despeje_celeste": {
-      "archivo": "pose_arquero_despeje_celeste.png",
+      "archivo": "pose_arquero_despeje_celeste.webp",
       "quien": "arquero",
       "n": "TU arquero: la despeja",
       "tonos": {
@@ -336,7 +336,7 @@
       }
     },
     "arquero_vuela_celeste": {
-      "archivo": "pose_arquero_vuela_celeste.png",
+      "archivo": "pose_arquero_vuela_celeste.webp",
       "quien": "arquero",
       "n": "TU arquero: la estirada",
       "tonos": {
@@ -351,7 +351,7 @@
       "_alto_rel": "A3: la figura es 1905x746, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.58 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
     },
     "r_corriendo": {
-      "archivo": "pose_corriendo_v2.png",
+      "archivo": "poseR_corriendo.webp",
       "quien": "defensor",
       "n": "RIVAL corriendo de espaldas (naranja a rayas, el 7)",
       "tonos": {
@@ -360,10 +360,11 @@
       "tolerancias": {
         "piel": 80,
         "camiseta": 95
-      }
+      },
+      "_W3": "W3 (20/ago/2026): el archivo se llamaba pose_corriendo_v2, que lo hacia pasar por una pose PROPIA — y es un rival. Renombrado a poseR_corriendo, que es la convencion del bando rival (poseR_arquero_vuela, poseR_quite). Medido: 38% de naranja y 0% de celeste."
     },
     "r_arquero_vuela": {
-      "archivo": "poseR_arquero_vuela.png",
+      "archivo": "poseR_arquero_vuela.webp",
       "quien": "arquero",
       "n": "El arquero RIVAL: la estirada",
       "tonos": {
@@ -378,7 +379,7 @@
       "_alto_rel": "A3: la figura es 1897x650, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.51 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
     },
     "r_quite": {
-      "archivo": "poseR_quite.png",
+      "archivo": "poseR_quite.webp",
       "quien": "defensor",
       "n": "El quite del RIVAL",
       "tonos": {
@@ -391,41 +392,51 @@
       }
     },
     "pelota_vieja": {
-      "archivo": "pelota_vieja.png",
+      "archivo": "pelota_vieja.webp",
       "quien": "objeto",
       "n": "La pelota de potrero, gastada — reemplaza el círculo con gajos"
     },
     "calden": {
-      "archivo": "calden.png",
+      "archivo": "calden.webp",
       "quien": "objeto",
-      "n": "El caldén solo en el campo"
+      "n": "El caldén solo en el campo",
+      "cargar": false,
+      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el caldén solo en el campo es la imagen de la escalera baja. Para prenderla: cargar:true y engancharla ahi."
     },
     "arco": {
-      "archivo": "arco.png",
+      "archivo": "arco.webp",
       "quien": "objeto",
-      "n": "El arco con la red"
+      "n": "El arco con la red",
+      "cargar": false,
+      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el arco de la cancha, para el plano profundo y la definición. Para prenderla: cargar:true y engancharla ahi."
     },
     "banco": {
-      "archivo": "banco.png",
+      "archivo": "banco.webp",
       "quien": "objeto",
       "n": "El banco de suplentes",
       "alto_rel": 0.44,
-      "_alto_rel": "A3: 2695x801, más ancha que alta."
+      "_alto_rel": "A3: 2695x801, más ancha que alta.",
+      "cargar": false,
+      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → la semana: el banco de suplentes detrás de las decisiones. Para prenderla: cargar:true y engancharla ahi."
     },
     "banderin": {
-      "archivo": "banderin.png",
+      "archivo": "banderin.webp",
       "quien": "objeto",
-      "n": "El banderín del córner"
+      "n": "El banderín del córner",
+      "cargar": false,
+      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → el partido: el córner, cuando exista como situación. Para prenderla: cargar:true y engancharla ahi."
     },
     "arbitro_amarilla": {
-      "archivo": "arbitro_amarilla.png",
+      "archivo": "arbitro_amarilla.webp",
       "quien": "objeto",
-      "n": "El árbitro mostrando la amarilla"
+      "n": "El árbitro mostrando la amarilla",
+      "cargar": false,
+      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → el partido: un evento de amarilla, que hoy no existe. Para prenderla: cargar:true y engancharla ahi."
     }
   },
   "fondos": {
     "tribuna": {
-      "archivo": "fondo_tribuna.png",
+      "archivo": "fondo_tribuna.webp",
       "n": "La tribuna (capa lejana: opening y definición)"
     }
   },
@@ -437,27 +448,27 @@
     "siluetas": [
       {
         "id": "parado",
-        "archivo": "hincha_parado.png",
+        "archivo": "hincha_parado.webp",
         "n": "Parado, mirando"
       },
       {
         "id": "mate",
-        "archivo": "hincha_mate.png",
+        "archivo": "hincha_mate.webp",
         "n": "Con el mate"
       },
       {
         "id": "bombo",
-        "archivo": "hincha_bombo.png",
+        "archivo": "hincha_bombo.webp",
         "n": "Con el bombo"
       },
       {
         "id": "bandera",
-        "archivo": "hincha_bandera.png",
+        "archivo": "hincha_bandera.webp",
         "n": "Con la bandera"
       },
       {
         "id": "bebe",
-        "archivo": "hincha_bebe.png",
+        "archivo": "hincha_bebe.webp",
         "n": "Con el bebé a upa"
       }
     ],
@@ -500,5 +511,7 @@
       }
     }
   },
-  "_tanda_arte_32": "TANDA DE LAS 32 PIEZAS (19/ago/2026). 16 poses (13 propias + 3 del rival), 6 objetos/utilería, 5 siluetas de hinchada y 5 retratos (esos van en data/portraits_manifest.json). Los tonos se sacaron con cuentagotas del PROPIO PNG, pero NO por franjas: se clasifica cada píxel por lo que ES (piel = cálido con R>G>B; camiseta = celeste con B>G>R) y se toma el dominante de cada clase. El método por franjas fallaba en toda figura que no estuviera parada de frente — en las acostadas del arquero y en las de espaldas, la franja de la cabeza cae sobre la camiseta. Si una clase no llega al 1,2% de la figura, NO se declara el tono: teñir mal se ve peor que no teñir."
+  "_tanda_arte_32": "TANDA DE LAS 32 PIEZAS (19/ago/2026). 16 poses (13 propias + 3 del rival), 6 objetos/utilería, 5 siluetas de hinchada y 5 retratos (esos van en data/portraits_manifest.json). Los tonos se sacaron con cuentagotas del PROPIO PNG, pero NO por franjas: se clasifica cada píxel por lo que ES (piel = cálido con R>G>B; camiseta = celeste con B>G>R) y se toma el dominante de cada clase. El método por franjas fallaba en toda figura que no estuviera parada de frente — en las acostadas del arquero y en las de espaldas, la franja de la cabeza cae sobre la camiseta. Si una clase no llega al 1,2% de la figura, NO se declara el tono: teñir mal se ve peor que no teñir.",
+  "_W1_formato": "W1 (20/ago/2026): las rutas apuntan a .webp. Los PNG originales viven en assets/_fuente/ y NO los carga el juego. El procedimiento para convertir una tanda nueva esta en docs/COMO_PESAN_LOS_ASSETS.md.",
+  "_W2_sin_uso": "W2: cinco piezas quedaron con cargar:false — estan en el repo pero el juego no las pide. Es la diferencia entre 'guardada' y 'cargada': guardada no cuesta nada, cargada cuesta ancho de banda en cada arranque. Cuando alguna encuentre su lugar, se le pone cargar:true. El DT y el utilero son lo mismo pero en portraits_manifest."
 }

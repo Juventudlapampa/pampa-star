@@ -19,11 +19,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   preload() {
     /* D2 · el logo HORIZONTAL (4280x640) para la franja de arriba del Master,
        y D3 · el escudo del club propio. */
-    this.load.image("d_logo_h", "../assets/ui/pampa-star-logo-horizontal.png");
-    this.load.image("d_escudo", "../assets/ui/escudo-club.png");
+    this.load.image("d_logo_h", "../assets/ui/pampa-star-logo-horizontal.webp");
+    this.load.image("d_escudo", "../assets/ui/escudo-club.webp");
     const man = this.game.registry.get("portraits");
     if (man && Array.isArray(man.personajes)) {
       man.personajes.forEach((p) => {
+        /* W2: los que no tienen lugar todavia no se cargan (ver poses_manifest) */
+        if (p && p.cargar === false) return;
         if (p && p.archivo && p.id) this.load.image("personaje_" + p.id, "../" + p.archivo);
       });
     }

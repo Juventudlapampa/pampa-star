@@ -151,7 +151,24 @@ manifests.forEach(({ archivo, entradas }) => {
     ciclosRevisados++;
     const cajas = [];
     def.ciclo.cuadros.forEach(f => {
-      const ruta2 = path.join(RAIZ, base, f);
+      /* W1 · LA GEOMETRÍA SE MIDE SOBRE LA FUENTE, NO SOBRE LA COPIA.
+         Desde que los assets del juego son .webp, este lector mínimo de PNG no
+         puede abrirlos. Pero el .webp es una copia derivada del PNG, generada
+         al MISMO tamaño y sin reescalar: la caja de la figura es idéntica.
+         Así que se mide el PNG original de assets/_fuente/, que además es lo
+         correcto — la fuente es la autoridad sobre la geometría, y si mañana
+         se cambia la calidad del webp esta medición no se mueve.
+         Si el .webp existe pero su PNG fuente no, eso SÍ es un error: quiere
+         decir que se perdió el original. */
+      let ruta2 = path.join(RAIZ, base, f);
+      if (/\.webp$/i.test(f)) {
+        const fuente = path.join(RAIZ, "assets/_fuente/poses", f.replace(/\.webp$/i, ".png"));
+        if (!fs.existsSync(fuente)) {
+          assert(false, "el ciclo '" + id + "' usa " + f + " y su PNG fuente no está en assets/_fuente/poses/");
+          return;
+        }
+        ruta2 = fuente;
+      }
       if (!fs.existsSync(ruta2)) { assert(false, "el ciclo '" + id + "' declara " + f + " y el archivo NO existe"); return; }
       const png = leerPNG(ruta2);
       if (png.error) { assert(false, id + " · " + f + ": " + png.error); return; }

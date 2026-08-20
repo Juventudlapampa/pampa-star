@@ -73,34 +73,38 @@
   "_relator_visible": "V9 (pedido de Rodri): para que el relator o relatora SE VEA durante el partido, agregar acá una clave \"relator\" con {archivo, n, pos, bocas:[...] opcional}. Mientras no exista, el relator sigue siendo solo la franja de texto. Ver data/COMO_AGREGAR_ARTE.md §6.",
   "personajes": [
     {
-      "archivo": "assets/retratos/retrato_nelda.png",
+      "archivo": "assets/retratos/retrato_nelda.webp",
       "arquetipo": "tribuna",
       "id": "nelda",
       "n": "Nelda"
     },
     {
-      "archivo": "assets/retratos/retrato_tuli.png",
+      "archivo": "assets/retratos/retrato_tuli.webp",
       "arquetipo": "tribuna",
       "id": "tuli",
       "n": "el Tuli"
     },
     {
-      "archivo": "assets/retratos/retrato_nito.png",
+      "archivo": "assets/retratos/retrato_nito.webp",
       "arquetipo": "prensa",
       "id": "nito",
       "n": "Nito Carrizo (FM El Caldén)"
     },
     {
-      "archivo": "assets/retratos/retrato_dt.png",
+      "archivo": "assets/retratos/retrato_dt.webp",
       "arquetipo": "club",
       "id": "dt",
-      "n": "El DT"
+      "n": "El DT",
+      "cargar": false,
+      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia — no se ve en ningun lado. Lugar propuesto: LA SEMANA. El DT te mira cuando elegis descansar; el utilero aparece en el vestuario. Para prenderlo: cargar:true."
     },
     {
-      "archivo": "assets/retratos/retrato_utilero.png",
+      "archivo": "assets/retratos/retrato_utilero.webp",
       "arquetipo": "club",
       "id": "utilero",
-      "n": "El utilero"
+      "n": "El utilero",
+      "cargar": false,
+      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia — no se ve en ningun lado. Lugar propuesto: LA SEMANA. El DT te mira cuando elegis descansar; el utilero aparece en el vestuario. Para prenderlo: cargar:true."
     }
   ],
   "_personajes": "TANDA DE LAS 32 (19/ago/2026). Los cinco retratos con NOMBRE viven acá y no en `retratos`: ese pool lo usa el partido para darle cara a compañeros y rivales al azar, y si entraran ahí Nelda podría aparecer de defensora del rival. Se buscan por id."

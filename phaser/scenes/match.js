@@ -53,6 +53,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const base = poses.base || "assets/poses/";
       Object.keys(poses.poses).forEach(id => {
         const p = poses.poses[id];
+        /* W2 · `cargar: false` = la pieza esta en el repo pero el juego NO la
+           pide. Es la diferencia entre GUARDADA y CARGADA: guardada no cuesta
+           nada, cargada cuesta ancho de banda en cada arranque. Cuando una
+           encuentra su lugar se le pone cargar:true y ya. */
+        if (p && p.cargar === false) return;
         if (p && p.archivo) this.load.image("pose_" + id, "../" + base + p.archivo);
         /* TANDA DE ARTE A3: los cuadros del CICLO (si el manifest los declara).
            Sin "ciclo" no cambia nada: se usa la pose quieta de siempre. */

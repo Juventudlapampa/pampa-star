@@ -21,9 +21,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        D2 · las dos versiones del logo. D4 · el cartel del pueblo. */
     ["bg-01-cielo-atardecer", "bg-02-alambrado-campo", "bg-03-tribuna-tablones",
      "bg-04-tierra-pasto-seco", "bg-05-horizonte-molino", "bg-06-noche-luces"]
-      .forEach((k, i) => this.load.image("bg" + (i + 1), "../assets/ui/" + k + ".png"));
-    this.load.image("d_logo", "../assets/ui/pampa-star-logo.png");
-    this.load.image("d_cartel", "../assets/ui/cartel-pueblo.png");
+      .forEach((k, i) => this.load.image("bg" + (i + 1), "../assets/ui/" + k + ".webp"));
+    this.load.image("d_logo", "../assets/ui/pampa-star-logo.webp");
+    this.load.image("d_cartel", "../assets/ui/cartel-pueblo.webp");
     const man = this.game.registry.get("poses");
     if (man && man.poses) {
       const base = man.base || "assets/poses/";

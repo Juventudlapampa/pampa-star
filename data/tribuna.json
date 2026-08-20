@@ -7,14 +7,14 @@
       "nombre": "Nelda",
       "caracter": "La que sabe. Jugó en la liga del pueblo y no se le escapa una: mira la línea, el pase corto, quién quedó solo. No se emociona hasta que la pelota entró. Le baja el precio a la euforia y también al drama.",
       "como_habla": "Frases secas y cortas, muchas en imperativo. Nombra la jugada, no el escándalo. Nunca grita primero. Le habla al Tuli de vos y lo manda a sentarse.",
-      "retrato": "assets/retratos/retrato_nelda.png"
+      "retrato": "assets/retratos/retrato_nelda.webp"
     },
     {
       "id": "tuli",
       "nombre": "el Tuli",
       "caracter": "El que sufre y el que come. Viene por el partido y por el choripán, en ese orden discutible. Supersticioso, exagerado, tierno. Se pierde los goles justo cuando va a comprar y se entera por el grito.",
       "como_habla": "Contesta con el cuerpo: la presión, el pecho, las piernas, el estómago. Mete el mate, el asado, la campera, la vuelta por la ruta. Humor resignado, suspiro al final. Le dice Nelda por el nombre cuando se queja.",
-      "retrato": "assets/retratos/retrato_tuli.png"
+      "retrato": "assets/retratos/retrato_tuli.webp"
     }
   ],
   "dialogos": [
