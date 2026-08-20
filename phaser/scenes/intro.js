@@ -15,6 +15,15 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.load.on("loaderror", () => { });   // A.4: nada crashea por un archivo faltante
     this.load.image("i_pueblo", "../assets/ui/fondo_pueblo.webp");
     this.load.image("i_logo", "../assets/ui/logo.webp");
+    /* D1 · LOS SEIS FONDOS DE CLAUDE DESIGN. Son 1920x1080 planos y de poco
+       contraste, hechos para ir DETRÁS: resuelven que siete de los ocho planos
+       fueran figuras flotando en negro puro.
+       D2 · las dos versiones del logo. D4 · el cartel del pueblo. */
+    ["bg-01-cielo-atardecer", "bg-02-alambrado-campo", "bg-03-tribuna-tablones",
+     "bg-04-tierra-pasto-seco", "bg-05-horizonte-molino", "bg-06-noche-luces"]
+      .forEach((k, i) => this.load.image("bg" + (i + 1), "../assets/ui/" + k + ".png"));
+    this.load.image("d_logo", "../assets/ui/pampa-star-logo.png");
+    this.load.image("d_cartel", "../assets/ui/cartel-pueblo.png");
     const man = this.game.registry.get("poses");
     if (man && man.poses) {
       const base = man.base || "assets/poses/";
@@ -55,8 +64,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
 
   /* --- LA COMPUERTA: negro, el logo, y "TOCÁ PARA EMPEZAR" pulsando --- */
   compuerta() {
-    if (this.textures.exists("i_logo")) {
-      const l = this.add.image(480, 210, "i_logo");
+    if (this.textures.exists("d_logo") || this.textures.exists("i_logo")) {
+      /* D2 · la PANTALLA DE INICIO (la compuerta) también lleva el nombre */
+      const l = this.add.image(480, 210, this.textures.exists("d_logo") ? "d_logo" : "i_logo");
       l.setScale(Math.min(1, 540 / l.width));
       this.capa.add(l);
     } else {
@@ -175,6 +185,27 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
      No hace falta arte nuevo — con que haya ALGO detrás, la figura pasa a
      estar en un lado. Los tonos por plano vienen del parámetro, así que la
      secuencia puede ir cambiando de luz sin cambiar de sitio. */
+  /* D1 · EL FONDO DEL PLANO.
+     Si el plano declaró uno de los seis PNG, va ese —estirado a pantalla— y
+     encima el velo de luminosidad. Si no, queda el fondo pintado a mano de I1,
+     que ya era mejor que el negro.
+
+     EL VELO ES LA CONDICIÓN QUE PUSO RODRI: "los fondos NO pueden competir con
+     la figura; si alguno queda muy presente, bajale la luminosidad". Por eso
+     cada plano puede pedir su luz (1 = tal cual vino, 0.5 = a media luz) y lo
+     que se baja es el brillo, no el fondo: el dibujo sigue siendo el mismo. */
+  fondoDeDiseno(key, luz) {
+    if (!this.textures.exists(key)) return false;
+    const im = this.add.image(480, 270, key);
+    im.setScale(Math.max(960 / im.width, 540 / im.height));
+    this.capa.add(im);
+    const l = luz != null ? luz : 0.62;
+    if (l < 1) {
+      const velo = this.add.rectangle(480, 270, 960, 540, 0x000000, 1 - l);
+      this.capa.add(velo);
+    }
+    return true;
+  }
   fondoIntro(cielo, pasto, horizonte) {
     const hy = horizonte != null ? horizonte : 300;
     const g = this.add.graphics();
@@ -219,18 +250,49 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        del juego. */
     const fr = this.add.rectangle(480, 470, 960, 30, 0x0a1f13, 0.72);
     this.capa.add(fr);
+    /* D4 · EL CARTEL DEL PUEBLO. Su lugar natural es este plano: el que
+       presenta de dónde sos. Va al costado, chico, como un cartel de ruta de
+       verdad — no como ilustración protagonista. */
+    if (this.textures.exists("d_cartel")) {
+      const c = this.add.image(806, 356, "d_cartel");
+      c.setScale(196 / c.height).setAlpha(0.96);
+      this.capa.add(c);
+      /* D4 · y el cartel DICE algo: el pueblo del jugador, que sale del save.
+         Un cartel de ruta en blanco es una ilustracion; con el nombre es la
+         entrada a TU pueblo, que es de lo que habla el plano. Sin save todavia
+         (primera partida) no se escribe nada y queda el cartel limpio. */
+      var pueblo = null;
+      try { var sv = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
+        pueblo = sv && sv.pueblo; } catch (e) {}
+      if (!pueblo) { try { var cl = JSON.parse(localStorage.getItem("pampa_star_v1") || "null");
+        pueblo = cl && cl.origen && cl.origen.localidad; } catch (e) {} }
+      if (pueblo) {
+        const tp = this.add.text(c.x - 2, c.y - 6, String(pueblo).toUpperCase(), {
+          fontFamily: window.PF.display, fontSize: "13px", color: "#1c3a24"
+        }).setOrigin(0.5);
+        this.capa.add(tp);
+      }
+    }
     this.letraPorLetra(480, 470, this.I.t_pueblo || "En algún pueblo de La Pampa…",
       { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }, 34);
     this.SFX && this.SFX.crowd && this.SFX.crowd(dur);   // el viento lejano
     this.SFX && this.SFX.kick && this.SFX.kick();        // el bombo lejano
   }
-  p2() {   // LA CORRIDA: rayas a alta velocidad, el héroe frena en el centro
+  p2() {   // D1 · LA PELOTA QUIETA: antes de que empiece todo
     /* I1 · ERA EL PEOR PLANO DE LA INTRO: dos segundos de pantalla negra con
        dos barras gris oscurísimo. Dos cosas lo mataban — no tenía fondo, y el
        héroe se quedaba fuera de cuadro en x=1200 porque el temblor le pisaba
        el tween de entrada (ver temblor()). Las dos arregladas. */
-    this.fondoIntro(0x1a3550, 0x1d6b34, 320);
-    this.rayasBarriendo(0xffffff);
+    /* D1 · bg-04 (tierra y pasto seco) y la pelota vieja quieta encima. Era el
+       plano de los 2 segundos de negro; ahora es el silencio de antes del
+       partido: la pelota sola en el potrero. Sin rayas ni figura — el que
+       corre entra en el plano siguiente. */
+    if (!this.fondoDeDiseno("bg4", 0.78)) this.fondoIntro(0x2a2016, 0x3a2f18, 320);
+    if (this.textures.exists("pose_pelota_vieja")) {
+      const pel = this.add.image(480, 400, "pose_pelota_vieja");
+      pel.setScale(150 / pel.height);
+      this.capa.add(pel);
+    }
     /* I1 · NACE DONDE TIENE QUE VERSE. Medido en vivo: los tweens de esta
        escena no avanzan (progress 0 tras 24 cuadros, con el reloj corriendo
        bien — los delayedCall de los planos sí disparan). Todo lo que dependía
@@ -239,8 +301,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        Regla nueva para la intro: nada que tenga que verse depende de un tween.
        Los tweens quedan solo para el adorno — si corren, suma; si no, el plano
        se lee igual. */
-    const s = this.poseImg("corriendo", 480, 300, 380);
-    if (s) { this.temblor(s); }
+
     this.SFX && this.SFX.musicaTema && this.SFX.musicaTema("opening");   // la música ARRANCA de golpe
     this.flashBlanco();
   }
@@ -268,7 +329,8 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
         this.fxG.clear();
         /* I1 · cada corte de la ráfaga tiene su lugar: el color del cielo
            cambia con la figura, así la ráfaga late sin quedar en el vacío */
-        this.fondoIntro([0x2a1c3a, 0x123a5a, 0x3a2418, 0x14303f][k % 4], 0x1d6b34, 300 + k * 12);
+        /* D1 · bg-05 (horizonte con molino): la ráfaga late contra el campo */
+        if (!this.fondoDeDiseno("bg5", 0.55)) this.fondoIntro([0x2a1c3a, 0x123a5a, 0x3a2418, 0x14303f][k % 4], 0x1d6b34, 300 + k * 12);
         this.radiales(par[1], 1);
         const s = this.poseImg(par[0], 480, 280, 400);
         this.temblor(s);
@@ -282,7 +344,8 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        desde más cerca: salía de y=700, o sea 160 px por debajo de la pantalla,
        y si el tween se demoraba el cartel no llegaba a verse nunca en su
        propio plano. Ahora sale de 560 y entra igual de golpe. */
-    this.fondoIntro(0x2a1c3a, 0x1d6b34, 330);
+    /* D1 · bg-01 (cielo de atardecer): el grito va contra el cielo */
+    if (!this.fondoDeDiseno("bg1", 0.72)) this.fondoIntro(0x2a1c3a, 0x1d6b34, 330);
     const s = this.poseImg("remate", 480, 260, 460);
     if (s) this.tweens.add({ targets: s, scale: s.scale * 1.15, y: 300, duration: 1900, ease: "Sine.easeOut" });
     /* I1 · el grito NACE en su lugar (ver p2): antes salía de abajo de la
@@ -298,7 +361,8 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     /* I1 · el silencio es a propósito, pero con TODO en negro no se leía como
        una pausa: se leía como otro plano vacío más. Con el campo detrás y la
        luz baja, la quietud se nota porque hay algo que podría moverse. */
-    this.fondoIntro(0x0e2036, 0x14522a, 300);
+    /* D1 · bg-02 (alambrado y campo): quieto y vacío, que es el punto */
+    if (!this.fondoDeDiseno("bg2", 0.5)) this.fondoIntro(0x0e2036, 0x14522a, 300);
     this.SFX && this.SFX.musicaDuck && this.SFX.musicaDuck(1000);
     if (this.textures.exists("ball")) {
       const b = this.add.sprite(480, 250, "ball").setScale(3);
@@ -317,7 +381,8 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        arquero no es un momento más importante que los otros. Ahora es un
        atardecer: sigue siendo el más claro de los ocho —el arquero recorta— sin
        salirse de la paleta. */
-    this.fondoIntro(0xc86a3a, 0x2a6b38, 300);
+    /* D1 · bg-03 (tribuna de tablones): el arquero contra la gente */
+    if (!this.fondoDeDiseno("bg3", 0.8)) this.fondoIntro(0xc86a3a, 0x2a6b38, 300);
     this.radiales(0x0a1f13, 0.8);
     const s = this.poseImg("arquero_vuela", 480, 270, 380);
     this.temblor(s);
@@ -326,7 +391,8 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   }
   p7() {   // EL GOL: festejo sobre explosión dorada, hinchada a todo volumen
     /* I1 · el mejor plano de los ocho ya era éste; solo le faltaba el lugar */
-    this.fondoIntro(0x1a1030, 0x1f7a3c, 320);
+    /* D1 · bg-06 (noche con luces): el gol, bajo los reflectores */
+    if (!this.fondoDeDiseno("bg6", 0.7)) this.fondoIntro(0x1a1030, 0x1f7a3c, 320);
     this.radiales(0xffd84d, 1.4);
     const s = this.poseImg("festejo", 480, 280, 430);
     this.temblor(s);
@@ -344,8 +410,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       /* I1 · el logo NACE en su lugar. Antes caía de y=-220 con un rebote, y
          como los tweens de esta escena no avanzan, el cierre de la intro no
          mostraba el nombre del juego NUNCA: quedaba solo la bajada. */
-      const l = this.add.image(480, 210, "i_logo");
-      l.setScale(Math.min(1, 620 / l.width));
+      /* D2 · el logo de Claude Design si está; si no, el de antes */
+      const kL = this.textures.exists("d_logo") ? "d_logo" : "i_logo";
+      const l = this.add.image(480, 210, kL);
+      l.setScale(Math.min(1, 620 / l.width, 300 / l.height));
       this.capa.add(l);
       this.time.delayedCall(540, () => { if (!this._fin) { this.cameras.main.shake(200, 0.01); this.SFX && this.SFX.net && this.SFX.net(); } });
     } else {

@@ -17,6 +17,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      partido usa para dar cara al azar: si estuvieran ahi, Nito podria salir de
      defensor del rival. */
   preload() {
+    /* D2 · el logo HORIZONTAL (4280x640) para la franja de arriba del Master,
+       y D3 · el escudo del club propio. */
+    this.load.image("d_logo_h", "../assets/ui/pampa-star-logo-horizontal.png");
+    this.load.image("d_escudo", "../assets/ui/escudo-club.png");
     const man = this.game.registry.get("portraits");
     if (man && Array.isArray(man.personajes)) {
       man.personajes.forEach((p) => {
@@ -504,8 +508,18 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const div = Ma.DIVISIONES.find(d => d.id === this.save.division) || Ma.DIVISIONES[0];
     /* C2 · el PRINCIPAL de la temporada es en qué escalón estás: es el dato que
        ordena todo lo demás de la pantalla, y la tabla es la consulta. */
-    this.add.text(W / 2, 36, div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 60, this.save.club + (this.save.titulos.length ? " · ★".repeat(Math.min(5, this.save.titulos.length)) + " " + this.save.titulos.length + " títulos" : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    /* D2 · EL NOMBRE DEL JUEGO, ARRIBA DE TODO. El Master nunca mostro su
+       propio nombre dibujado. La version horizontal es exactamente para esta
+       franja: va chica, arriba del titulo de la division, sin robarle
+       protagonismo al escalon en el que estas (que es el principal de la
+       pantalla por C2). */
+    if (this.textures.exists("d_logo_h")) {
+      const lg = this.add.image(W / 2, 14, "d_logo_h").setOrigin(0.5, 0);
+      lg.setScale(Math.min(230 / lg.width, 26 / lg.height));
+      lg.setAlpha(0.9);
+    }
+    this.add.text(W / 2, 56, div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 78, this.save.club + (this.save.titulos.length ? " · ★".repeat(Math.min(5, this.save.titulos.length)) + " " + this.save.titulos.length + " títulos" : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* resultado de la última fecha jugada (si venimos del partido) */
     if (this._ultimo) {

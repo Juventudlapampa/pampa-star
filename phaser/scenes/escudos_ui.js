@@ -59,9 +59,21 @@
     /* dibujarEscudo(escena, x, y, alto, esc) → Container.
        `alto` es el alto total en px lógicos; el ancho sale igual (son cuadrados
        de contorno). `esc` es lo que devuelve logic/escudos.escudoDe(). */
+    /* D3 · EL ESCUDO DEL CLUB PROPIO ES DIBUJADO, NO GENERADO.
+       Los 90 rivales siguen con el escudo geometrico por codigo (12 colores,
+       7 formas, 7 patrones): esta bien para 90 y no hay que dibujarlos. Pero
+       el TUYO es el unico que vas a mirar toda la carrera, asi que si el
+       escudo ilustrado esta cargado y el escudo que se pide es el propio, va
+       ese. Se marca con esc.propio, que lo pone deClub(). */
     dibujar: function (sc, x, y, alto, esc) {
       var cont = sc.add.container(x, y);
       if (!esc) return cont;
+      if (esc.propio && sc.textures.exists("d_escudo")) {
+        var im = sc.add.image(0, 0, "d_escudo");
+        im.setScale(alto / im.height);
+        cont.add(im);
+        return cont;
+      }
       var r = alto / 2;
       var pts = contorno(esc.forma);
 
@@ -181,7 +193,11 @@
       /* BLOQUE C: el detalle del dibujo sube con la división */
       var Esc = window.PampaEscalera;
       if (Esc && division) esc = Object.assign({}, esc, { detalle: Esc.de(division).escudo_detalle });
-      return esc;
+      var _e = esc;
+      /* D3: marcar si es el club del jugador, para que dibujar() use el escudo ilustrado */
+      try { var _s = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
+        if (_e && _s && _s.club && String(club) === String(_s.club)) _e.propio = true; } catch (e) {}
+      return _e;
     }
   };
 })();
