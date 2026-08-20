@@ -160,6 +160,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        partido — el update entero del partido se cae ahí.
        Visto en vivo: active=false, scene=null, y fuera del hudLayer. */
     this._radarTuArco = null;
+    this._poseForzada = null;        // P3: la pose del trámite no cruza de partido
+    this._tramitesMudos = 0;         // P3: cuántas acciones quedaron sin verse
+    this._tramiteMudoUltimo = null;
   }
 
   create() {
@@ -763,7 +766,55 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const k = "pose_corriendo_c" + i;
     return this.textures.exists(k) ? k : null;
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     P3 · POR QUÉ NO SE VEÍAN LOS QUITES NI LOS REMATES.
+
+     No faltaba una escena: el camino terminaba en una capa INVISIBLE.
+
+     Bloque A manda las acciones de escalón 1 (un quite o un corte fuera del
+     último tercio) a mostrarResolucion() en vez de a una viñeta — eso está
+     bien, es el diseño. mostrarResolucion llama a animarResolucion(), que
+     anima `sprDuelo` o `sprPortador`… y los dos viven en `mundoLayer`, que
+     desde la PANTALLA PARTIDA de V7-1 tiene visible = false. Verificado en
+     vivo: mundoLayer.visible === false con 5 hijos adentro.
+
+     O sea que la animación corría perfecta, hacia la nada, y en pantalla solo
+     quedaba el renglón de texto. Por eso volvió dos veces: cada pasada anterior
+     buscó QUÉ escena faltaba, y lo que fallaba era DÓNDE se dibujaba.
+
+     Medido con contadores en un quite de mediocampo:
+       quite_ganado 1 · quite_SIN_ESCENA_por_escalon 1 (correcto, es trámite)
+       animarResolucion 1 · QUITE_SIN_DUELO 1 → cae a la rama genérica
+       generica_gambeta 1 → anima a sprPortador, que es el RIVAL que acaba de
+       perder la pelota, con una animación de gambeta. Y todo eso, invisible.
+
+     EL ARREGLO: el trámite se muestra en el PANEL DE LA ESCENA, que es la
+     superficie que el jugador está mirando. Se le fuerza la pose de la acción
+     por unos cuadros, con un golpe de escala. Es la doctrina de animación de
+     V6: pose quieta y corte seco, no interpolación.
+     ══════════════════════════════════════════════════════════════════════ */
+  /* fuerza la pose del panel por unos ms: así se VE un quite o un remate que
+     no llega a viñeta. Devuelve false si no pudo (y eso se cuenta como deuda). */
+  poseTramite(poseId, ms) {
+    if (!this._split || !this.panelJug) return false;
+    const key = this.poseKey(poseId);
+    if (!key) return false;
+    this._poseForzada = { key: key, hasta: this.time.now + (ms || 700) };
+    this.panelJug.setTexture(key);
+    /* el golpe: la figura crece y vuelve — que se sienta el impacto */
+    this.tweens.killTweensOf(this.panelJug);
+    const e0 = this.panelJug.scaleX;
+    this.tweens.add({ targets: this.panelJug, scaleX: e0 * 1.14, scaleY: e0 * 1.14,
+      duration: 90, yoyo: true, ease: "Quad.easeOut" });
+    return true;
+  }
   poseDelPanel(p, corriendo) {
+    /* P3: mientras dura el trámite, la pose de la acción manda sobre todo lo
+       demás — si no, el update la pisa en el cuadro siguiente. */
+    if (this._poseForzada) {
+      if (this.time.now < this._poseForzada.hasta) return this._poseForzada.key;
+      this._poseForzada = null;
+    }
     /* VOS corriendo: el ciclo manda (salvo que tengas tintes, que van sobre la
        pose quieta — el ciclo teñido sería un bake por cuadro y no vale la pena) */
     if (p.j.esVos && corriendo && !this.poseHeroeTenida(p.j)) {
@@ -3373,7 +3424,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   /* ETAPA 4: la resolución se VE — el que actúa reproduce su animación de 4 frames */
   animarResolucion(cfg) {
-    if (!cfg || !this.FLAGS.e4_arte || !this._esHeroico) return;
+    if (!cfg) return;
+    /* P3 · PRIMERO EL PANEL, que es lo que se ve. La animación de mundoLayer
+       de más abajo se conserva para cuando la pantalla partida esté apagada,
+       pero ya no es el único camino — antes era el único, y era invisible. */
+    if (this._split) {
+      /* SOLO ids que existen en data/poses_manifest.json — pedir una pose que
+         no está es volver al silencio de antes. Las 12 que hay: remate,
+         chilena, cabezazo, barrida, arquero_vuela, arquero_ataja, festejo,
+         gambeta_gana, gambeta_pierde, pared, bloqueo, corriendo.
+         El test p3_tramite verifica esta correspondencia contra el manifiesto. */
+      const POSE = {
+        quite: "barrida", corte: "barrida", bloqueo: "bloqueo",
+        tiro: "remate", gambeta: "gambeta_gana", pase: "pared",
+        arquero: "arquero_ataja"
+      };
+      const id = POSE[cfg.anim] || (cfg.gana ? "gambeta_gana" : "gambeta_pierde");
+      const listo = this.poseTramite(id, (this.BAL.feel && this.BAL.feel.resolucion_min_ms || 1600) * 0.55);
+      /* si NO se pudo, se anota: una acción muda es una deuda, no un silencio.
+         El test p3_tramite lee este contador. */
+      if (!listo) {
+        this._tramitesMudos = (this._tramitesMudos || 0) + 1;
+        this._tramiteMudoUltimo = cfg.anim + " (pose " + id + ")";
+      }
+    }
+    if (!this.FLAGS.e4_arte || !this._esHeroico) return;
     if (cfg.anim === "arquero") {
       if (this.sprDuelo && this._dueloBase && this._dueloEsArq)
         this.reproducirAnim(this.sprDuelo, this._dueloBase, cfg.gana ? ((this.st.golesRival + Math.floor(this.st.minuto)) % 2 ? "atajada" : "despeje") : "estirada", 900);
