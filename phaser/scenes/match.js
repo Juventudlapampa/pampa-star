@@ -984,25 +984,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.dibujarProfundoEnPanel();
 
     const E = this.encuadreProfundo();
-    /* ⚠ B5 · LAS DOS POSES QUE FALTAN — PEDIDO DE ARTE ABIERTO.
-
-       El modo profundo necesita dos poses que HOY NO EXISTEN:
-         · JUGADOR DE ESPALDAS: el que la tira, visto desde atrás, alejándose
-           de la cámara. Con la pelota al pie y sin ella.
-         · JUGADOR RECIBIENDO DE FRENTE: el que espera el pase, de frente y
-           chico al fondo, brazos abiertos y cuerpo perfilado.
-
-       Mientras no estén se usa `corriendo`, que es de PERFIL. Funciona porque
-       en profundidad la figura queda chica y el perfil no canta tanto, pero es
-       lo que más se nota de este modo: el que la tira debería darte la espalda
-       y hoy te muestra el costado.
-
-       NO espejar ni rotar la de perfil para simularlo: se ve peor que dejarla
-       como está. Cuando lleguen las dos, se cambian estas dos líneas y listo. */
-    const kT = this.poseKey("corriendo");
+    /* B5 · YA ESTÁN. Cuando se hizo el modo profundo estas dos poses no
+       existían y había que usar 'corriendo', que es de PERFIL: el que la tira
+       te mostraba el costado en vez de darte la espalda, y era lo que más se
+       notaba del modo. Llegaron con la tanda de las 32.
+         de_espaldas  → el que la tira, alejándose de la cámara
+         recibiendo   → el que espera el pase, de frente y chico al fondo */
+    const kT = this.poseKey("de_espaldas") || this.poseKey("corriendo");
     if (kT) { p.tirador.setTexture(kT).setVisible(true).setOrigin(0.5, 1).setAlpha(1); }
-    /* el que recibe: chico, al fondo */
-    const kR = (this.poseRivalNaranja && opts.rival) ? (this.poseRivalNaranja("corriendo") || kT) : kT;
+    /* el que recibe: si es del rival, su pose naranja; si es un compañero, la
+       de recibir de frente */
+    const kR = (opts.rival && this.poseKey("r_corriendo"))
+      || this.poseKey("recibiendo") || kT;
     if (kR) { p.receptor.setTexture(kR).setVisible(true).setOrigin(0.5, 1); }
     p.pelota.setVisible(true);
     p.sombraR.setVisible(true);
