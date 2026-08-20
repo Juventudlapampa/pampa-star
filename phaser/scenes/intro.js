@@ -89,10 +89,21 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this._gestoTs = this.time.now;
     this.input.on("pointerdown", () => this.salir());
     if (this.input.keyboard) this.input.keyboard.on("keydown", () => this.salir());
-    this.add.text(948, 526, "tocá para saltear ▸", { fontFamily: window.PF.texto, fontSize: "10px", color: "#f6efdc88" }).setOrigin(1, 1).setDepth(99);
+    /* I1 · era gris translúcido (#f6efdc88) a 10 px sobre negro, y en el plano
+       del pueblo —fondo claro— directamente desaparecía. Si es la ÚNICA salida
+       de una intro de 20 segundos, tiene que verse siempre: ahora va con su
+       propia cajita oscura, que funciona sobre cualquier fondo. */
+    this.add.text(948, 526, "tocá para saltear ▸", {
+      fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc",
+      backgroundColor: "#0a1f13cc", padding: { x: 7, y: 3 }
+    }).setOrigin(1, 1).setDepth(99);
     /* la secuencia corre por RELOJ propio: cada plano agenda el siguiente */
     const D = this.I.planos_ms || [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000];
-    const planos = [this.p1, this.p2, this.p3, this.p4, this.p5, this.p6, this.p7, this.p8];
+    /* I1 · p4 (EL GRITO, con vos) va ANTES que p3 (la ráfaga, que abría con un
+       rival). Es la primera imagen del juego: tiene que estar el protagonista.
+       Los tiempos siguen saliendo en el mismo orden de balance.intro.planos_ms,
+       así que el plano largo sigue siendo el largo. */
+    const planos = [this.p1, this.p2, this.p4, this.p3, this.p5, this.p6, this.p7, this.p8];
     let t = 60;
     planos.forEach((fn, k) => {
       this.time.delayedCall(t, () => { if (!this._fin) { this.corteSeco(); fn.call(this, D[k]); } });
@@ -146,7 +157,44 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       this.tweens.add({ targets: r, x: -420, duration: 460 + k * 120, repeat: -1 });
     }
   }
-  temblor(spr) { if (spr) this.tweens.add({ targets: spr, x: "+=2", y: "-=2", duration: 44, yoyo: true, repeat: -1 }); }
+  /* I1 · EL TEMBLOR PELEABA POR LA MISMA PROPIEDAD QUE LAS ENTRADAS.
+     Era un tween infinito sobre x/y con valores relativos: capturaba la
+     posición al arrancar y oscilaba alrededor de ESE punto para siempre,
+     pisando lo que escribiera el tween de entrada. Por eso el héroe del plano 2
+     se quedaba clavado en x=1200, fuera de pantalla (medido en vivo).
+     Ahora tiembla por ÁNGULO, que no la usa nadie más. */
+  temblor(spr) { if (spr) this.tweens.add({ targets: spr, angle: 1.4, duration: 44, yoyo: true, repeat: -1 }); }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     I1 · EL FONDO. Siete de los ocho planos eran una figura recortada sobre
+     NEGRO PURO, así que la intro se leía como "pantalla negra con dibujos" en
+     vez de como una película. Es el mismo problema que P6 pero acá: no había
+     espacio, había figuras.
+
+     Este helper pinta un lugar con lo que ya existe: cielo, horizonte y pasto.
+     No hace falta arte nuevo — con que haya ALGO detrás, la figura pasa a
+     estar en un lado. Los tonos por plano vienen del parámetro, así que la
+     secuencia puede ir cambiando de luz sin cambiar de sitio. */
+  fondoIntro(cielo, pasto, horizonte) {
+    const hy = horizonte != null ? horizonte : 300;
+    const g = this.add.graphics();
+    g.fillStyle(cielo != null ? cielo : 0x123a5a, 1); g.fillRect(0, 0, 960, hy);
+    g.fillStyle(pasto != null ? pasto : 0x1f7a3c, 1); g.fillRect(0, hy, 960, 540 - hy);
+    /* las franjas del corte de pasto, que ENSANCHAN hacia adelante: da fuga
+       sin dibujar nada en perspectiva */
+    g.fillStyle(0x000000, 0.06);
+    let y = hy, alto = 6, k = 0;
+    while (y < 540) { if (k % 2 === 0) g.fillRect(0, y, 960, alto); y += alto; alto += 5; k++; }
+    g.fillStyle(0xeafff0, 0.18); g.fillRect(0, hy, 960, 2);
+    this.capa.add(g);
+    /* la tribuna lejana, si está: convierte el campo en un partido */
+    if (this.textures.exists("fondo_tribuna")) {
+      const tr = this.add.image(480, hy, "fondo_tribuna").setOrigin(0.5, 1);
+      tr.setScale(Math.max(960 / tr.width, (hy * 0.5) / tr.height)).setAlpha(0.55);
+      this.capa.add(tr);
+    }
+    return g;
+  }
 
   /* --- los 8 planos (A.3) --- */
   p1(dur) {   // EL POTRERO: la tribuna LEJANA detrás, el pueblo delante (parallax de capas §3.1)
@@ -164,18 +212,52 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       this.capa.add(f);
       this.tweens.add({ targets: f, scale: esc * 1.08, duration: dur, ease: "Sine.easeOut" });     // el cerca, más rápido
     }
+    /* I1 · a 60 ms por letra, los 27 caracteres tardaban 1,6 s de los 3 s del
+       plano: durante más de la mitad se leía "En algún pueblo de La Pamp".
+       A 34 ms termina en el primer tercio. Y va con franja propia: era texto
+       claro sobre cielo claro y camino de tierra claro, el peor contrastado
+       del juego. */
+    const fr = this.add.rectangle(480, 470, 960, 30, 0x0a1f13, 0.72);
+    this.capa.add(fr);
     this.letraPorLetra(480, 470, this.I.t_pueblo || "En algún pueblo de La Pampa…",
-      { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }, 60);
+      { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }, 34);
     this.SFX && this.SFX.crowd && this.SFX.crowd(dur);   // el viento lejano
     this.SFX && this.SFX.kick && this.SFX.kick();        // el bombo lejano
   }
   p2() {   // LA CORRIDA: rayas a alta velocidad, el héroe frena en el centro
+    /* I1 · ERA EL PEOR PLANO DE LA INTRO: dos segundos de pantalla negra con
+       dos barras gris oscurísimo. Dos cosas lo mataban — no tenía fondo, y el
+       héroe se quedaba fuera de cuadro en x=1200 porque el temblor le pisaba
+       el tween de entrada (ver temblor()). Las dos arregladas. */
+    this.fondoIntro(0x1a3550, 0x1d6b34, 320);
     this.rayasBarriendo(0xffffff);
-    const s = this.poseImg("remate", 1200, 290, 380);
-    if (s) { this.tweens.add({ targets: s, x: 480, duration: 320, ease: "Quad.easeOut" }); this.temblor(s); }
+    /* I1 · NACE DONDE TIENE QUE VERSE. Medido en vivo: los tweens de esta
+       escena no avanzan (progress 0 tras 24 cuadros, con el reloj corriendo
+       bien — los delayedCall de los planos sí disparan). Todo lo que dependía
+       de un tween para ENTRAR al cuadro no entraba nunca: el héroe se quedaba
+       en x=1200, el grito en y=700 y el logo en y=-220.
+       Regla nueva para la intro: nada que tenga que verse depende de un tween.
+       Los tweens quedan solo para el adorno — si corren, suma; si no, el plano
+       se lee igual. */
+    const s = this.poseImg("corriendo", 480, 300, 380);
+    if (s) { this.temblor(s); }
     this.SFX && this.SFX.musicaTema && this.SFX.musicaTema("opening");   // la música ARRANCA de golpe
     this.flashBlanco();
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     I1 · EL PROTAGONISTA VA PRIMERO.
+
+     Antes el plano más largo del comienzo (4 segundos) lo abría la ráfaga de
+     héroes, y su primera figura era un jugador de camiseta NARANJA a rayas con
+     el número 4 — o sea un rival. Vos aparecías recién en el plano siguiente.
+     Es la primera imagen del juego y el protagonista no estaba.
+
+     Ahora el orden es: EL GRITO (vos, con tu pose y tu nombre en pantalla) y
+     DESPUÉS la ráfaga. Lo que se hizo fue intercambiar p3 y p4 en la lista del
+     scheduler, así que los dos métodos siguen contando lo mismo y sus tiempos
+     siguen saliendo de balance.intro.planos_ms — solo cambió quién entra
+     primero.
+     ══════════════════════════════════════════════════════════════════════ */
   p3(dur) {   // RÁFAGA DE HÉROES: 4 cortes de ~0,7s con flash y golpe
     const orden = [["chilena", 0xffd84d], ["cabezazo", 0x4fc3f7], ["barrida", 0xff8a50], ["arquero_vuela", 0xf6efdc]];
     const paso = dur / orden.length;
@@ -184,6 +266,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
         if (this._fin) return;
         this.corteSeco();
         this.fxG.clear();
+        /* I1 · cada corte de la ráfaga tiene su lugar: el color del cielo
+           cambia con la figura, así la ráfaga late sin quedar en el vacío */
+        this.fondoIntro([0x2a1c3a, 0x123a5a, 0x3a2418, 0x14303f][k % 4], 0x1d6b34, 300 + k * 12);
         this.radiales(par[1], 1);
         const s = this.poseImg(par[0], 480, 280, 400);
         this.temblor(s);
@@ -193,16 +278,27 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     });
   }
   p4() {   // EL GRITO: pose congelada, zoom lento, ¡CALDENAZO! desde abajo
+    /* I1 · con fondo (era otra figura flotando en negro) y el grito ENTRANDO
+       desde más cerca: salía de y=700, o sea 160 px por debajo de la pantalla,
+       y si el tween se demoraba el cartel no llegaba a verse nunca en su
+       propio plano. Ahora sale de 560 y entra igual de golpe. */
+    this.fondoIntro(0x2a1c3a, 0x1d6b34, 330);
     const s = this.poseImg("remate", 480, 260, 460);
     if (s) this.tweens.add({ targets: s, scale: s.scale * 1.15, y: 300, duration: 1900, ease: "Sine.easeOut" });
-    const g = this.add.text(480, 700, this.I.t_grito || "¡CALDENAZO!",
+    /* I1 · el grito NACE en su lugar (ver p2): antes salía de abajo de la
+       pantalla y no llegaba nunca a su propio plano */
+    const g = this.add.text(480, 440, this.I.t_grito || "¡CALDENAZO!",
       { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 5 }).setOrigin(0.5);
     this.capa.add(g);
-    this.tweens.add({ targets: g, y: 440, duration: 340, ease: "Back.easeOut" });
+    this.tweens.add({ targets: g, scale: 1.06, duration: 220, yoyo: true, repeat: 2 });
     this.cameras.main.shake(280, 0.012);
     this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(1.4);
   }
   p5() {   // EL SILENCIO: todo se detiene — el recurso del juego, enseñado antes de jugar
+    /* I1 · el silencio es a propósito, pero con TODO en negro no se leía como
+       una pausa: se leía como otro plano vacío más. Con el campo detrás y la
+       luz baja, la quietud se nota porque hay algo que podría moverse. */
+    this.fondoIntro(0x0e2036, 0x14522a, 300);
     this.SFX && this.SFX.musicaDuck && this.SFX.musicaDuck(1000);
     if (this.textures.exists("ball")) {
       const b = this.add.sprite(480, 250, "ball").setScale(3);
@@ -215,8 +311,13 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.capa.add(t);
   }
   p6() {   // EL ARQUERO: la estirada contra el blanco, la música vuelve de golpe
-    const fondo = this.add.rectangle(480, 270, 960, 540, 0xf6efdc, 1);
-    this.capa.add(fondo);
+    /* I1 · era el ÚNICO plano con fondo crema claro y rayos gris verdoso, en
+       una secuencia de negros y cálidos apagados. Con cortes secos ese cambio
+       de valor pegaba como un flash, y no parecía intencional porque el
+       arquero no es un momento más importante que los otros. Ahora es un
+       atardecer: sigue siendo el más claro de los ocho —el arquero recorta— sin
+       salirse de la paleta. */
+    this.fondoIntro(0xc86a3a, 0x2a6b38, 300);
     this.radiales(0x0a1f13, 0.8);
     const s = this.poseImg("arquero_vuela", 480, 270, 380);
     this.temblor(s);
@@ -224,6 +325,8 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.SFX && this.SFX.musicaTema && this.SFX.musicaTema("opening");   // vuelve DE GOLPE
   }
   p7() {   // EL GOL: festejo sobre explosión dorada, hinchada a todo volumen
+    /* I1 · el mejor plano de los ocho ya era éste; solo le faltaba el lugar */
+    this.fondoIntro(0x1a1030, 0x1f7a3c, 320);
     this.radiales(0xffd84d, 1.4);
     const s = this.poseImg("festejo", 480, 280, 430);
     this.temblor(s);
@@ -231,14 +334,19 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.SFX && this.SFX.goal && this.SFX.goal();
     this.SFX && this.SFX.crowd && this.SFX.crowd(1800);
   }
-  p8(dur) {   // EL LOGO: cae, rebota, la bajada letra por letra, acorde final
+  p8(dur) {   // EL LOGO: el nombre del juego, la bajada letra por letra, acorde final
+    /* I1 · el cierre SÍ se queda en negro, y a propósito: es el único plano
+       donde el vacío es el punto (el título respirando). Los otros siete ya
+       tienen su lugar. */
     const negro = this.add.rectangle(480, 270, 960, 540, 0x000000, 1);
     this.capa.add(negro);
     if (this.textures.exists("i_logo")) {
-      const l = this.add.image(480, -220, "i_logo");
+      /* I1 · el logo NACE en su lugar. Antes caía de y=-220 con un rebote, y
+         como los tweens de esta escena no avanzan, el cierre de la intro no
+         mostraba el nombre del juego NUNCA: quedaba solo la bajada. */
+      const l = this.add.image(480, 210, "i_logo");
       l.setScale(Math.min(1, 620 / l.width));
       this.capa.add(l);
-      this.tweens.add({ targets: l, y: 230, duration: 520, ease: "Bounce.easeOut" });
       this.time.delayedCall(540, () => { if (!this._fin) { this.cameras.main.shake(200, 0.01); this.SFX && this.SFX.net && this.SFX.net(); } });
     } else {
       const t = this.add.text(480, 220, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "44px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
