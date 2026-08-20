@@ -73,11 +73,11 @@
     "profundo": {
       "_nota": "P6-B · LA CANCHA PROFUNDA. Cuando la jugada saca la camara de donde estaba, el panel de arriba cambia de MODO: de LATERAL (de perfil, para correr y gambetear) a PROFUNDO (la camara detras del que la tira, mirando al arco, con las lineas convergiendo al punto de fuga). El mapa de abajo NO cambia nunca: es el ancla para saber donde estas. activo:false vuelve todo al modo lateral de siempre.",
       "activo": true,
-      "pase_dist": 300,
+      "pase_dist": 260,
       "tiro_dist": 260,
       "megacorrida": true,
       "saque": true,
-      "_umbrales": "pase_dist: a partir de cuantos px de mundo un pase es LARGO y corta de camara (un toque corto se juega en el plano lateral: si cada pase cortara, el corte dejaria de significar algo). tiro_dist: idem para el remate, medido contra el arco.",
+      "_umbrales": "pase_dist: a partir de cuantos px de mundo un pase es LARGO y corta de camara. CALIBRADO JUGANDO, no elegido a ojo: en 16 minutos de partido eligiendo siempre el receptor mas lejano, las 10 distancias reales fueron 156 175 180 200 219 219 220 273 274 369 (mediana 219, maxima 369). Con el 300 que habia puesto al principio disparaba 1 de cada 10 — o sea casi nunca, y el modo profundo habria quedado invisible. Con 260 dispara el tercio mas largo, que es lo que queremos que signifique pase largo. tiro_dist: idem para el remate, medido contra el arco.",
       "vuelo_ms": 1150,
       "vp_y": 62,
       "near_y": 298,
