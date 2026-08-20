@@ -7,3 +7,4 @@
 assets_drive/
 .assets_tmp/
 .claude/shots/
+tonos*.json
