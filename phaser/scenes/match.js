@@ -1496,8 +1496,24 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     const cam = this.cameras.main;
     if (this._split) {
-      /* V7 §0.1 (playtest): el portador va SIEMPRE revelado — el beat ya no
-         necesita revelación en el panel (quedó solo el riser + el aviso) */
+      /* ══════════════════════════════════════════════════════════════════
+         P8 · EL QUITE NECESITA SU MOMENTO.
+
+         Rodri: "cuando alguien va a interceptar no se ve que va".
+
+         Era literal. En la pantalla partida este beat NO DIBUJABA NADA: solo
+         sonaba el riser y aparecía un texto. Todo lo visual del beat —la
+         entrada corriendo de sprDuelo— pasa en mundoLayer, que tiene
+         visible = false desde V7-1 (el mismo hueco que P3).
+
+         Ahora el que sale a buscarla ENTRA AL PANEL: la silueta cruza desde su
+         costado, creciendo, con líneas de velocidad detrás. Es el tratamiento
+         místico del anime, no una corrida literal — y encaja con que las
+         siluetas del panel ya son cómo se representa a los rivales cerca.
+
+         Dura lo que dura el beat, así que no agrega tiempo muerto: es el mismo
+         momento que ya existía, ahora visible. */
+      this.entradaDelQueVa(j, esRival, durBeat);
     } else {
       /* en la vista elevada el beat se ACERCA más (si no, el zoom no se siente) */
       const extraBeat = (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1) * (this._vista4 ? (this.VI.zoom_beat_mult || 3) : 1);
@@ -1508,6 +1524,65 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       else this.SFX && this.SFX.riser && this.SFX.riser(durBeat / 1000);
     }
     this.time.delayedCall(durBeat, () => { if (this.estado === "BEAT") abrir(); });
+  }
+  /* P8 · LA ENTRADA DEL QUE VA A BUSCARLA.
+     Una silueta que cruza el panel desde su costado, creciendo, con líneas de
+     velocidad detrás. No es la figura del jugador: es su SOMBRA, que es como
+     el panel ya representa a los rivales cercanos — y además evita depender de
+     una pose que puede no existir.
+     Perillas en balance.feel: quite_entrada_ms, quite_lineas, quite_alpha. */
+  entradaDelQueVa(j, esRival, durMs) {
+    if (!this._split || !this.panelLayer) return false;
+    const F = this.BAL.feel || {};
+    const dur = Math.max(180, Math.round((F.quite_entrada_ms || 0.8) * durMs));
+    const V = this.VI || {};
+    const suelo = V.panel_suelo_y != null ? V.panel_suelo_y : 278;
+    const techo = V.panel_techo_y != null ? V.panel_techo_y : 34;
+    const altoUtil = suelo - techo;
+
+    /* la silueta: la pose de corrida, teñida de negro */
+    const key = this.poseKey("corriendo");
+    if (!key) return false;
+    const desde = esRival ? 960 + 80 : -80;
+    const hasta = esRival ? 620 : 340;
+    const sil = this.add.image(desde, suelo, key).setOrigin(0.5, 1);
+    sil.setTint(0x000000).setAlpha(F.quite_alpha != null ? F.quite_alpha : 0.72);
+    sil.setScale((altoUtil * 0.42) / sil.height);
+    sil.setFlipX(!esRival);
+    this.panelLayer.add(sil);
+
+    /* las líneas de velocidad, detrás y en el sentido de la corrida */
+    const g = this.add.graphics();
+    this.panelLayer.add(g);
+    const nL = F.quite_lineas != null ? F.quite_lineas : 9;
+    const dibujarLineas = (x, escala) => {
+      g.clear();
+      const dir = esRival ? 1 : -1;
+      for (let i = 0; i < nL; i++) {
+        const y = techo + 20 + (i / nL) * (altoUtil - 40) + ((i * 37) % 11);
+        const largo = (60 + (i % 4) * 55) * escala;
+        /* P8: la intensidad es perilla — con 0.10 base no se veian */
+        const aL = F.quite_lineas_alpha != null ? F.quite_lineas_alpha : 0.5;
+        g.lineStyle(2 + (i % 3), 0xf6efdc, aL * (0.35 + 0.65 * escala));
+        g.beginPath();
+        g.moveTo(x + dir * 40, y);
+        g.lineTo(x + dir * (40 + largo), y);
+        g.strokePath();
+      }
+    };
+
+    this.tweens.add({
+      targets: sil, x: hasta, scale: sil.scale * 1.35,
+      duration: dur, ease: "Quad.easeIn",
+      onUpdate: (tw) => { dibujarLineas(sil.x, tw.progress); },
+      onComplete: () => {
+        this.tweens.add({
+          targets: sil, alpha: 0, duration: 160,
+          onComplete: () => { sil.destroy(); g.destroy(); }
+        });
+      }
+    });
+    return true;
   }
   /* devuelve la cámara a su zoom base tras el drama del beat */
   zoomBase() { this.cameras.main.zoomTo(this._zoomBase || this.V2.ZOOM, 420, "Sine.easeInOut"); }

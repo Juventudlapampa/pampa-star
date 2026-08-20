@@ -272,7 +272,12 @@
     "mega_x_caliente": 700,
     "mega_prob_caliente": 0.45,
     "comentario": "beat_encuentro_ms: aviso de tensión ANTES de abrir el menú (600-900). beat_mega_ms: cuando viene una megacosa rival, el beat se alarga. beat_zoom_extra: cuánto se acerca la cámara en el beat. resolucion_min_ms: NINGUNA resolución devuelve el control antes de esto. silencio_ms: el silencio previo a revelar un tiro/duelo grande (Bloque 8).",
-    "_c3": "C3: se borraron barra_periodo_ms y las cuatro barra_zona_* — eran de la BARRA DE AGUJA, que murio en V9 §4 cuando el timing dejo de decidirse con reflejos. Verificado con grep: solo aparecian en este archivo y en el fallback embebido de index.html."
+    "_c3": "C3: se borraron barra_periodo_ms y las cuatro barra_zona_* — eran de la BARRA DE AGUJA, que murio en V9 §4 cuando el timing dejo de decidirse con reflejos. Verificado con grep: solo aparecian en este archivo y en el fallback embebido de index.html.",
+    "quite_entrada_ms": 0.8,
+    "quite_lineas": 9,
+    "quite_alpha": 0.72,
+    "_P8": "P8 · LA ENTRADA DEL QUE VA A BUSCARLA. Cuando alguien sale a interceptar, su silueta cruza el panel con lineas de velocidad detras. quite_entrada_ms: fraccion del beat que dura la entrada (0.8 = el 80%). quite_lineas: cuantas lineas de velocidad. quite_alpha: que tan opaca es la silueta (0 = invisible, 1 = negro pleno). Antes esto no se dibujaba: el beat en pantalla partida solo sonaba.",
+    "quite_lineas_alpha": 0.5
   },
   "persecucion": {
     "_nota": "Perseguir sin pelota drena aguante: no podés correr infinito.",
