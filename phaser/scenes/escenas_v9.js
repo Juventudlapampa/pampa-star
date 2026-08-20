@@ -67,7 +67,10 @@
       var k = this.poseDePlano(poseId, j, esRival), sp;
       if (k) {
         sp = this.add.image(x, y, k);
-        sp.setScale(alto / sp.height);
+        /* A3: por alto_rel del manifiesto — las figuras acostadas (el arquero
+           volando mide 1905x746) necesitan su propia fraccion o se salen de
+           pantalla al escalarlas por altura */
+        sp.setScale(this.escalaDePose ? this.escalaDePose(poseId, alto, sp) : (alto / sp.height));
       } else {
         sp = this.add.rectangle(x, y, alto * 0.32, alto, esRival ? 0xff8a50 : 0x4fc3f7);
       }
@@ -89,23 +92,62 @@
        jugada se pone caliente, 6px y más rápido) y ESTALLA (gol propio: 16px
        y saltan; gol en contra: se hunden y se quedan quietas).
        ====================================================================== */
+    /* ══════════════════════════════════════════════════════════════════
+       A4 · LA TRIBUNA DEJA DE SER TODA LA MISMA PERSONA.
+
+       Eran 26 siluetas idénticas dibujadas con Graphics: un círculo y un
+       rectángulo, todas del mismo alto, cambiando solo el tono. Ahora son las
+       cinco siluetas ilustradas —parado, mate, bombo, bandera, bebé a upa— y
+       la MEZCLA varía con la división, que ya estaba modulada por la escalera:
+       en la Primera B hay gente parada y algún mate; en el Mundial aparecen el
+       bombo y las banderas.
+
+       Los pesos están en poses_manifest.hinchada.mezcla, uno por división.
+       Si las imágenes no cargaron, se vuelve solo al dibujo de antes: la
+       tribuna nunca queda vacía.
+       ══════════════════════════════════════════════════════════════════ */
     crearHinchadaPanel() {
       var V = (this.BAL.vista || {}), cfg = V.hinchada || {};
       if (cfg.activa === false) { this._hin = null; return; }
       var n = cfg.siluetas || 26, y0 = cfg.y || 108, tonos = [0x0a1f13, 0x143224, 0x1d2f3f, 0x24374a];
       var g = this.add.graphics();
       this.panelLayer.add(g);
-      this._hin = { g: g, n: n, y0: y0, t: 0, amp: cfg.amp_base != null ? cfg.amp_base : 2, ampObj: cfg.amp_base != null ? cfg.amp_base : 2, hundida: 0, tonos: tonos, vel: 1 };
-      /* posiciones fijas (no se recalculan por frame): x, fase y tono */
+      this._hin = { g: g, n: n, y0: y0, t: 0, amp: cfg.amp_base != null ? cfg.amp_base : 2, ampObj: cfg.amp_base != null ? cfg.amp_base : 2, hundida: 0, tonos: tonos, vel: 1, imgs: [] };
+
+      /* la mezcla de esta división */
+      var man = this.game.registry.get("poses");
+      var H = man && man.hinchada;
+      var divId = (this._division && this._division.id) || (this._masterPartido && this._masterPartido.division) || "primera_b";
+      var pesos = (H && H.mezcla && (H.mezcla[divId] || H.mezcla.primera_b)) || null;
+      var bolsa = [];
+      if (H && pesos) {
+        H.siluetas.forEach(function (s) {
+          var w = pesos[s.id] || 0;
+          for (var i = 0; i < w; i++) bolsa.push(s.id);
+        });
+      }
       this._hin.gente = [];
       for (var k = 0; k < n; k++) {
-        this._hin.gente.push({
+        var elegida = bolsa.length ? bolsa[(k * 7 + (k % 5) * 3) % bolsa.length] : null;
+        var tex = elegida ? ("pose_" + elegida) : null;
+        var p = {
           x: 14 + k * (932 / n) + (k % 2) * 8,
           fase: (k % 7) * 0.9 + (k % 3) * 0.4,
           tono: tonos[k % tonos.length],
-          alto: 9 + (k % 3) * 2
-        });
+          alto: 9 + (k % 3) * 2,
+          sil: elegida
+        };
+        /* la silueta ilustrada, en negro, si la textura está */
+        if (tex && this.textures.exists(tex)) {
+          var im = this.add.image(p.x, y0, tex).setOrigin(0.5, 1);
+          im.setScale((cfg.alto_silueta || 26) / im.height);
+          im.setTint(0x000000).setAlpha(0.92);
+          this.panelLayer.add(im);
+          this._hin.imgs.push({ im: im, p: p });
+        }
+        this._hin.gente.push(p);
       }
+      this._hin.conImagenes = this._hin.imgs.length > 0;
     },
     /* la llama updatePanelEscena, una vez por frame */
     latirHinchada(delta, caliente) {
@@ -121,6 +163,17 @@
       h.amp += (h.ampObj - h.amp) * Math.min(1, delta * 0.006);      // se acomoda suave
       var g = h.g;
       g.clear();
+      /* A4 · con las siluetas ilustradas, lo que salta son las IMÁGENES y el
+         Graphics no dibuja nada. Sin ellas, el dibujo de antes sigue en pie:
+         la tribuna nunca queda vacía. */
+      if (h.conImagenes) {
+        for (var i = 0; i < h.imgs.length; i++) {
+          var o = h.imgs[i];
+          var s2 = Math.abs(Math.sin(h.t * 3 + o.p.fase)) * h.amp;
+          o.im.y = h.y0 - s2 + h.hundida;
+        }
+        return;
+      }
       for (var k = 0; k < h.gente.length; k++) {
         var p = h.gente[k];
         var salto = Math.abs(Math.sin(h.t * 3 + p.fase)) * h.amp;

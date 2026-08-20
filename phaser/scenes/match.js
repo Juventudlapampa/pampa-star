@@ -60,6 +60,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           this.load.image("pose_" + id + "_c" + k, "../" + base + f);
         });
       });
+      /* A4: las siluetas de la tribuna viven en su propio bloque del manifiesto,
+         no en `poses`, así que hay que pedirlas aparte. */
+      const H = poses.hinchada;
+      if (H && Array.isArray(H.siluetas)) H.siluetas.forEach((sil) => {
+        if (sil && sil.archivo) this.load.image("pose_" + sil.id, "../" + (H.base || base) + sil.archivo);
+      });
       /* ARTE 2: los fondos del manifest (la tribuna detrás del arco) */
       if (poses.fondos) Object.keys(poses.fondos).forEach(id => {
         const f = poses.fondos[id];
@@ -179,6 +185,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
   create() {
     window.PampaSprites(this);
+    /* A5 · ACA Y NO DESPUES. PampaSprites acaba de generar la textura "ball"
+       (el circulo con gajos) y todavia no hay NINGUN sprite usandola: este es
+       el unico momento en que se la puede reemplazar sin dejar a un sprite
+       apuntando a una textura muerta. Puesta mas abajo, el panel ya tenia su
+       pelota creada y el render explotaba con "glTexture of null". */
+    this.pelotaVieja();
     const M = this.BAL.mundo;
     /* la simulación vive en 1050×680 (logic/partido.js intacto con todo su
        tuning); la escena escala esas coordenadas al mundo visible 2400×1200 */
@@ -790,6 +802,53 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.buildPanelProfundo();
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     A5 · LA PELOTA VIEJA REEMPLAZA AL CÍRCULO CON GAJOS, EN TODAS PARTES.
+
+     La pelota se dibujaba por código (un círculo blanco con gajos) y esa
+     textura, "ball", la usan como quince lugares: el panel, el mapa, el cine,
+     el jugadón, la definición y la intro. En vez de tocar los quince, se
+     REEMPLAZA LA TEXTURA: si el PNG cargó, "ball" pasa a ser la pelota de
+     potrero y todo el juego la hereda sin enterarse.
+
+     Se hace después del preload y antes de construir nada, así que ningún
+     sprite queda con la vieja.
+     ══════════════════════════════════════════════════════════════════════ */
+  pelotaVieja() {
+    /* el cargador de poses le pone el prefijo "pose_", asi que la clave real es
+       pose_pelota_vieja (la primera version buscaba "pelota_vieja" y no
+       reemplazaba nada, sin avisar). */
+    const K = "pose_pelota_vieja";
+    if (!this.textures.exists(K) || !this.textures.exists("ball")) return false;
+    if (this.textures.exists("ball_gajos")) return true;      // ya reemplazada
+
+    /* ⚠ EL TAMAÑO ES EL PUNTO. La "ball" que genera sprites.js mide 16x16 y
+       TODO el juego la escala contra ese tamaño (setScale(2), setScale(2.4)…).
+       El PNG de la pelota de potrero mide 1500x1496: si se registra tal cual,
+       cada setScale(2) la vuelve de 3000 px y llena la pantalla. Visto en
+       captura: el panel entero era la pelota.
+
+       Por eso NO se registra el PNG crudo: se RASTERIZA al mismo tamaño que
+       tenía la original. El archivo no se toca —se usa tal cual vino— y todos
+       los setScale del juego siguen valiendo sin cambiar ninguno. */
+    const orig = this.textures.get("ball").getSourceImage();
+    const W = orig.width || 16, H = orig.height || 16;
+    const rt = this.make.renderTexture({ width: W, height: H, add: false });
+    const img = this.add.image(0, 0, K).setOrigin(0, 0).setVisible(false);
+    const src = this.textures.get(K).getSourceImage();
+    img.setDisplaySize(W, H);
+    rt.draw(img, 0, 0);
+    img.destroy();
+    this.textures.addImage("ball_gajos", orig);               // la de gajos, por si hay que volver
+    rt.saveTexture("ball_potrero");
+    /* y "ball" pasa a ser la nueva: se quita y se vuelve a poner con el mismo
+       nombre, pero ANTES de que exista un solo sprite que la use (esta funcion
+       corre en el primer renglon de create) */
+    this.textures.remove("ball");
+    this.textures.addImage("ball", this.textures.get("ball_potrero").getSourceImage());
+    return true;
+  }
+
   /* ══════════════════════════════════════════════════════════════════════════
      P6-B · EL SEGUNDO MODO ESPACIAL DEL PANEL.
 
@@ -1125,6 +1184,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     return this.poseKey("corriendo");
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     A3 · EL ESCALADO DE LAS FIGURAS ACOSTADAS.
+
+     Todo el juego escala las poses por ALTURA: setScale(altoPedido / imagen.height).
+     Eso funciona mientras la figura sea más alta que ancha, que es el caso de
+     casi todas. Pero el arquero volando mide 1905x746 y el del rival 1897x650:
+     son más anchas que altas, así que a alto completo su ANCHO se sale de la
+     pantalla de 960 px.
+
+     La perilla es 'alto_rel' en data/poses_manifest.json: qué fracción del alto
+     pedido ocupa ESA pieza. Se calculó una vez de la proporción de cada archivo
+     y quedó escrita ahí, con la medida que la justifica, así que retocarla es
+     cambiar un número.
+
+     Este helper es el ÚNICO lugar que traduce "quiero esta pose de tal alto" a
+     una escala. Si mañana entra otra figura acostada, alcanza con su alto_rel.
+     ══════════════════════════════════════════════════════════════════════ */
+  escalaDePose(poseId, alturaPedida, imagen) {
+    const h = (imagen && imagen.height) || 1;
+    const man = this.game.registry.get("poses");
+    const def = man && man.poses && man.poses[poseId];
+    const rel = (def && def.alto_rel) || 1;
+    return (alturaPedida * rel) / h;
+  }
+
   /* B3-D · EL TINTE DE CAMISETA EN LAS ESCENAS.
      Esta función estaba clavada en la pose 'corriendo': teñía esa y nada más.
      Como las escenas usan remate, festejo, gambeta, pared…, en TODAS salía el
@@ -2591,7 +2675,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        arcoCine()— y el arquero se para en la línea, adentro de la boca. */
     this.dibujarArcoCine(this.cineBG);
     const arq = this.add.sprite(A.cx + A.voladaX * 0.5, A.linea, this.figuraArquero("vuela", "planoArquero"));
-    arq.setOrigin(0.5, 1).setScale((A.h * 1.15) / arq.height).setAngle(6);
+    arq.setOrigin(0.5, 1).setAngle(6)
+      .setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", A.h * 1.15, arq));
     this.cineContent.add(arq);
     this.tweens.add({ targets: arq, scale: arq.scale * 1.35, x: A.cx, angle: 0, duration: C.plano_arquero_ms, ease: "Quad.easeOut" });
     const ball = this.add.sprite(A.izq - 120, A.travesano - 40, "ball").setScale(0.8);
@@ -2665,7 +2750,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* B3: el otro "cine_arquero". Acá SÍ se sabe cómo terminó, así que el
        arquero va con la pose que corresponde: atajó de rodillas o se estiró. */
     const arq = this.add.sprite(gx, gy, this.figuraArquero(res.outcome === "atajada" ? "ataja" : "vuela", "planoDesenlace"));
-    arq.setScale((gh * 1.15) / arq.height);
+    /* A3: idem — la estirada es mas ancha que alta */
+    arq.setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", gh * 1.15, arq));
     /* P2 · LOS PIES EN LA LÍNEA. El origen baja al pie del sprite, así que la
        Y que se le da es el PISO del arquero y no su ombligo: sea cual sea la
        pose y la escala, no se hunde por debajo de la línea de gol. */

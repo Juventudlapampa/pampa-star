@@ -1,0 +1,211 @@
+[
+ {
+  "f": "pose_arquero_ataja.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_arquero_ataja.png"
+ },
+ {
+  "f": "pose_arquero_ataja_celeste.png",
+  "w": 1038,
+  "h": 2028,
+  "cabeza": "#47382f",
+  "torso": "#525152",
+  "dist": 35,
+  "dudosa": false
+ },
+ {
+  "f": "pose_arquero_ataja_v2.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_arquero_ataja_v2.png"
+ },
+ {
+  "f": "pose_arquero_despeje_celeste.png",
+  "w": 1241,
+  "h": 1672,
+  "cabeza": "#313e4e",
+  "torso": "#7bbbde",
+  "dist": 144,
+  "dudosa": false
+ },
+ {
+  "f": "pose_arquero_vuela.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_arquero_vuela.png"
+ },
+ {
+  "f": "pose_arquero_vuela_celeste.png",
+  "w": 1905,
+  "h": 746,
+  "cabeza": "#1e5275",
+  "torso": "#8dbedb",
+  "dist": 111,
+  "dudosa": false
+ },
+ {
+  "f": "pose_arquero_vuela_v2.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_arquero_vuela_v2.png"
+ },
+ {
+  "f": "pose_barrida.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_barrida.png"
+ },
+ {
+  "f": "pose_bloqueo.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_bloqueo.png"
+ },
+ {
+  "f": "pose_cabezazo.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_cabezazo.png"
+ },
+ {
+  "f": "pose_cabezazo_v2.png",
+  "w": 817,
+  "h": 1761,
+  "cabeza": "#f6c196",
+  "torso": "#64bde4",
+  "dist": 146,
+  "dudosa": false
+ },
+ {
+  "f": "pose_cansado.png",
+  "w": 942,
+  "h": 2077,
+  "cabeza": "#00c2ee",
+  "torso": "#fed1a9",
+  "dist": 254,
+  "dudosa": false
+ },
+ {
+  "f": "pose_celebracion.png",
+  "w": 1016,
+  "h": 2074,
+  "cabeza": "#3a6e83",
+  "torso": "#8cc5e9",
+  "dist": 102,
+  "dudosa": false
+ },
+ {
+  "f": "pose_chilena.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_chilena.png"
+ },
+ {
+  "f": "pose_corriendo.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_corriendo.png"
+ },
+ {
+  "f": "pose_corriendo_1.png",
+  "w": 1500,
+  "h": 1400,
+  "cabeza": "#46423d",
+  "torso": "#51c1f6",
+  "dist": 185,
+  "dudosa": false
+ },
+ {
+  "f": "pose_corriendo_2.png",
+  "w": 1500,
+  "h": 1400,
+  "cabeza": null,
+  "torso": "#4ec1f5",
+  "dist": 999,
+  "dudosa": true
+ },
+ {
+  "f": "pose_corriendo_3.png",
+  "w": 1500,
+  "h": 1400,
+  "cabeza": null,
+  "torso": "#46c2f8",
+  "dist": 999,
+  "dudosa": true
+ },
+ {
+  "f": "pose_corriendo_v2.png",
+  "w": 996,
+  "h": 1724,
+  "cabeza": "#f96d1a",
+  "torso": "#ba420a",
+  "dist": 63,
+  "dudosa": false
+ },
+ {
+  "f": "pose_de_espaldas.png",
+  "w": 1159,
+  "h": 1823,
+  "cabeza": "#4daae6",
+  "torso": "#b5b3b1",
+  "dist": 104,
+  "dudosa": false
+ },
+ {
+  "f": "pose_de_espaldas_sin_pelota.png",
+  "w": 872,
+  "h": 1711,
+  "cabeza": "#70b8dd",
+  "torso": "#70b8dd",
+  "dist": 0,
+  "dudosa": true
+ },
+ {
+  "f": "pose_festejo.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_festejo.png"
+ },
+ {
+  "f": "pose_gambeta_gana.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_gambeta_gana.png"
+ },
+ {
+  "f": "pose_gambeta_pierde.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_gambeta_pierde.png"
+ },
+ {
+  "f": "pose_pared.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_pared.png"
+ },
+ {
+  "f": "pose_pase.png",
+  "w": 1280,
+  "h": 1635,
+  "cabeza": "#61a6d3",
+  "torso": "#61a6d3",
+  "dist": 0,
+  "dudosa": true
+ },
+ {
+  "f": "pose_quite.png",
+  "w": 1275,
+  "h": 1773,
+  "cabeza": "#72bde6",
+  "torso": "#f6c699",
+  "dist": 132,
+  "dudosa": false
+ },
+ {
+  "f": "pose_recibiendo.png",
+  "w": 1250,
+  "h": 1818,
+  "cabeza": "#fabb8b",
+  "torso": "#72b2df",
+  "dist": 136,
+  "dudosa": false
+ },
+ {
+  "f": "pose_remate.png",
+  "error": "colorType 3 no soportado: assets\\poses\\pose_remate.png"
+ },
+ {
+  "f": "pose_tiro.png",
+  "w": 1844,
+  "h": 1206,
+  "cabeza": "#fec492",
+  "torso": "#5ebaed",
+  "dist": 160,
+  "dudosa": false
+ },
+ {
+  "f": "pose_volea.png",
+  "w": 1341,
+  "h": 1331,
+  "cabeza": "#82b5e4",
+  "torso": "#83b5e4",
+  "dist": 1,
+  "dudosa": true
+ }
+]

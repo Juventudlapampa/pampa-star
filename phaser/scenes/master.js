@@ -12,6 +12,19 @@
 window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   constructor() { super("master"); }
 
+  /* A1 · los retratos de los personajes CON NOMBRE (Nito, el DT, el utilero).
+     Viven en portraits_manifest.personajes y no en el pool `retratos`, que el
+     partido usa para dar cara al azar: si estuvieran ahi, Nito podria salir de
+     defensor del rival. */
+  preload() {
+    const man = this.game.registry.get("portraits");
+    if (man && Array.isArray(man.personajes)) {
+      man.personajes.forEach((p) => {
+        if (p && p.archivo && p.id) this.load.image("personaje_" + p.id, "../" + p.archivo);
+      });
+    }
+  }
+
   create() {
     const W = this.scale.width, H = this.scale.height;
     /* PIEL P1: fondo radial (ver editor.js) */
@@ -218,8 +231,24 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const W = this.scale.width;
     const x = 96, y = 108;
     const g = this.add.graphics();
-    /* hombros y cabeza, de frente, recortados por el borde de abajo */
+    /* A1 · EL RETRATO DE NITO. Antes esto era un muneco geometrico —un circulo
+       de cabeza, un rectangulo de torso y un microfono dibujado— que se leia
+       como periodista solo por el microfono. Ahora es el retrato de verdad,
+       recortado en redondo dentro de su marco.
+       Si el retrato no cargo, cae solo al muneco de antes: la entrevista nunca
+       queda con un hueco. */
+    const kNito = "personaje_nito";
+    const conRetrato = this.textures.exists(kNito);
     g.fillStyle(0x0e2a1a, 1); g.fillRoundedRect(x - 52, y - 46, 104, 116, 10);
+    if (conRetrato) {
+      const R = 40, cy = y + 4;
+      const im = this.add.image(x, cy, kNito);
+      im.setScale((R * 2.1) / im.height);
+      const mk = this.make.graphics({ x: 0, y: 0, add: false });
+      mk.fillStyle(0xffffff); mk.fillCircle(x, cy, R);
+      im.setMask(mk.createGeometryMask());
+      g.lineStyle(3, 0xf5c400, 1); g.strokeCircle(x, cy, R);
+    } else {
     g.fillStyle(0x2b1d14, 1);
     g.fillCircle(x, y - 8, 26);                      // cabeza
     g.fillRoundedRect(x - 34, y + 22, 68, 44, 8);    // torso
@@ -227,6 +256,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* el micrófono, que es lo que lo hace legible como periodista */
     g.fillStyle(0x232323, 1); g.fillRoundedRect(x + 26, y + 2, 12, 34, 5);
     g.fillStyle(0x9fb3a5, 1); g.fillCircle(x + 32, y + 2, 9);
+    }
     /* el globo de diálogo */
     const bx = 172, bw = W - bx - 40;
     const globo = this.add.graphics();

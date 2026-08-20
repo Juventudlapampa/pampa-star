@@ -61,8 +61,15 @@ var W = 960, H = 540;
      mitad del cuerpo se hunde bajo la línea, que es exactamente lo que pasaba */
   assert(/arq\.setOrigin\(0\.5, 1\)/.test(SRC),
     "el arquero del desenlace necesita setOrigin(0.5, 1): la Y que se le da es el PISO, no el ombligo");
-  assert(/arq\.setOrigin\(0\.5, 1\)\.setScale/.test(SRC),
-    "y el de planoArquero también");
+  /* los DOS arqueros del cine llevan el origen en los pies. Se cuentan las
+     apariciones en vez de exigir un orden de cadena: A3 metio .setAngle() en
+     el medio de una de las dos y el assert viejo se rompio por la forma, no
+     por el fondo. */
+  var conOrigenPie = SRC.split("\n").filter(function (l) {
+    return l.indexOf("arq.setOrigin(0.5, 1)") >= 0;
+  }).length;
+  assert(conOrigenPie >= 2,
+    "los dos arqueros del cine (desenlace y planoArquero) llevan el origen en los pies; encontre " + conOrigenPie);
   /* ninguna rama puede volver a poner al arquero con una coordenada de pantalla */
   assert(!/arq\.setPosition\([^)]*H \/ 2/.test(SRC),
     "ninguna rama puede posicionar al arquero con H/2 (coordenada de pantalla)");

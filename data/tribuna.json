@@ -7,16 +7,14 @@
       "nombre": "Nelda",
       "caracter": "La que sabe. Jugó en la liga del pueblo y no se le escapa una: mira la línea, el pase corto, quién quedó solo. No se emociona hasta que la pelota entró. Le baja el precio a la euforia y también al drama.",
       "como_habla": "Frases secas y cortas, muchas en imperativo. Nombra la jugada, no el escándalo. Nunca grita primero. Le habla al Tuli de vos y lo manda a sentarse.",
-      "retrato": "assets/retratos/retrato_pibe_6.webp",
-      "_retrato_nota": "PROVISORIO. El banco de retratos son todos futbolistas jóvenes varones: no hay ninguno que sea Nelda, que es una mujer grande que jugó en la liga del pueblo. Elegí este porque es el único con la mirada seria y sin sonrisa, que es lo que pide el carácter. Va como pedido de arte."
+      "retrato": "assets/retratos/retrato_nelda.png"
     },
     {
       "id": "tuli",
       "nombre": "el Tuli",
       "caracter": "El que sufre y el que come. Viene por el partido y por el choripán, en ese orden discutible. Supersticioso, exagerado, tierno. Se pierde los goles justo cuando va a comprar y se entera por el grito.",
       "como_habla": "Contesta con el cuerpo: la presión, el pecho, las piernas, el estómago. Mete el mate, el asado, la campera, la vuelta por la ruta. Humor resignado, suspiro al final. Le dice Nelda por el nombre cuando se queja.",
-      "retrato": "assets/retratos/retrato_pibe_5.webp",
-      "_retrato_nota": "PROVISORIO, mismo problema. El Tuli es el que sufre y el que come: gordito y supersticioso. Elegí el que sonríe y tiene el pelo revuelto, que es lo más cerca que hay. Va como pedido de arte."
+      "retrato": "assets/retratos/retrato_tuli.png"
     }
   ],
   "dialogos": [
@@ -340,5 +338,5 @@
       ]
     }
   ],
-  "_revision": "Revisado adversarialmente contra data/relatos.json: cinco lineas chocaban casi textualmente con las del RELATOR (son dos voces distintas y no pueden decir lo mismo), y habia repeticiones internas — el Tuli hablaba de gritar en cuatro de sus seis lineas del gol, y dos intercambios de atajada eran el mismo. Ninguna linea pasa los 60 caracteres. · P4: cada personaje declara su retrato (campo `retrato`), así se cambia sin tocar código."
+  "_revision": "Revisado adversarialmente contra data/relatos.json: cinco lineas chocaban casi textualmente con las del RELATOR (son dos voces distintas y no pueden decir lo mismo), y habia repeticiones internas — el Tuli hablaba de gritar en cuatro de sus seis lineas del gol, y dos intercambios de atajada eran el mismo. Ninguna linea pasa los 60 caracteres. · A1 (19/ago): Nelda y el Tuli ya no usan retratos prestados del banco de futbolistas — tienen el suyo."
 }

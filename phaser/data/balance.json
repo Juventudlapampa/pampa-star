@@ -55,12 +55,14 @@
       "_doc": "V9 §9 · LA HINCHADA VIVA del panel de juego. Tres estados: respira siempre (amp_base), se agita cuando la pelota entra a un último cuarto (amp_caliente) y estalla en el gol propio (amp_gol) o se hunde en el gol en contra (hundida). activa:false la apaga.",
       "activa": true,
       "siluetas": 26,
-      "y": 108,
+      "y": 138,
       "amp_base": 2,
       "amp_caliente": 6,
       "amp_gol": 16,
       "hundida": 5,
-      "estallido_ms": 1800
+      "estallido_ms": 1800,
+      "alto_silueta": 30,
+      "_A4": "A4: con las siluetas ILUSTRADAS el ancla cambio. El dibujo viejo pintaba el cuerpo DESDE y hacia abajo; las imagenes van con origen en los pies, asi que con y=108 quedaban paradas sobre el techo de la tribuna. y=138 las apoya en las gradas. alto_silueta = cuantos px mide cada una."
     },
     "panel_techo_y": 34,
     "panel_suelo_y": 278,

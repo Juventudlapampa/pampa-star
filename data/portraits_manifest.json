@@ -70,5 +70,38 @@
     }
   ],
   "sugerencias_de_tu_banco": "cuando armes el manifest real: assets_drive/PAMPA_STAR_Assets/png_transparent/avatar_1..6.png (bustos transparentes) y PAMPA_STAR_PERSONAJES_TANDA2/*.webp (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist, pampean_boy_watercolor); el DT y el utilero quedan para la presentación (H5).",
-  "_relator_visible": "V9 (pedido de Rodri): para que el relator o relatora SE VEA durante el partido, agregar acá una clave \"relator\" con {archivo, n, pos, bocas:[...] opcional}. Mientras no exista, el relator sigue siendo solo la franja de texto. Ver data/COMO_AGREGAR_ARTE.md §6."
+  "_relator_visible": "V9 (pedido de Rodri): para que el relator o relatora SE VEA durante el partido, agregar acá una clave \"relator\" con {archivo, n, pos, bocas:[...] opcional}. Mientras no exista, el relator sigue siendo solo la franja de texto. Ver data/COMO_AGREGAR_ARTE.md §6.",
+  "personajes": [
+    {
+      "archivo": "assets/retratos/retrato_nelda.png",
+      "arquetipo": "tribuna",
+      "id": "nelda",
+      "n": "Nelda"
+    },
+    {
+      "archivo": "assets/retratos/retrato_tuli.png",
+      "arquetipo": "tribuna",
+      "id": "tuli",
+      "n": "el Tuli"
+    },
+    {
+      "archivo": "assets/retratos/retrato_nito.png",
+      "arquetipo": "prensa",
+      "id": "nito",
+      "n": "Nito Carrizo (FM El Caldén)"
+    },
+    {
+      "archivo": "assets/retratos/retrato_dt.png",
+      "arquetipo": "club",
+      "id": "dt",
+      "n": "El DT"
+    },
+    {
+      "archivo": "assets/retratos/retrato_utilero.png",
+      "arquetipo": "club",
+      "id": "utilero",
+      "n": "El utilero"
+    }
+  ],
+  "_personajes": "TANDA DE LAS 32 (19/ago/2026). Los cinco retratos con NOMBRE viven acá y no en `retratos`: ese pool lo usa el partido para darle cara a compañeros y rivales al azar, y si entraran ahí Nelda podría aparecer de defensora del rival. Se buscan por id."
 }

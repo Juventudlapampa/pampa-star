@@ -72,6 +72,14 @@
     figuraArquero(accion, quienLaPide) {
       var id = (accion === "ataja" || accion === "atajada" || accion === "retiene" || accion === "despeje")
         ? "arquero_ataja" : "arquero_vuela";
+      /* A3 · TU arquero usa las poses CELESTES nuevas; el rival, la suya. El
+         escalador de mas abajo necesita saber QUE pose salio para leer su
+         alto_rel del manifiesto: la estirada mide 1905x746 y a alto completo
+         se sale de pantalla. */
+      var propio = (quienLaPide || "").indexOf("rival") < 0;
+      var conCelestes = propio && this.poseKey && this.poseKey(id + "_celeste");
+      if (conCelestes) id = id + "_celeste";
+      this._poseArqueroUltima = id;
       return this.figuraCine(id, quienLaPide || "arquero", "arquero_vuela");
     },
     /* sprite de pose con fallback: pose ilustrada grande o heroico escalado */
@@ -79,7 +87,8 @@
       var k = this.poseKey(id);
       if (k) {
         var s = this.add.image(x, y, k);
-        s.setScale(alturaDeseada / s.height);
+        /* A3: por alto_rel del manifiesto (ver escalaDePose en match.js) */
+        s.setScale(this.escalaDePose ? this.escalaDePose(id, alturaDeseada, s) : (alturaDeseada / s.height));
         return s;
       }
       var fb = fallback && fallback();

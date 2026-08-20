@@ -176,6 +176,251 @@
         ],
         "ms": 120
       }
+    },
+    "quite": {
+      "archivo": "pose_quite.png",
+      "quien": "heroe",
+      "n": "El quite de pie: la pierna estirada, el cuerpo metido",
+      "tonos": {
+        "piel": "#f6c69a",
+        "camiseta": "#72bce6"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "volea": {
+      "archivo": "pose_volea.png",
+      "quien": "heroe",
+      "n": "La volea: el pie a la altura de la cadera",
+      "tonos": {
+        "piel": "#fbc69a",
+        "camiseta": "#82b5e4"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "tiro": {
+      "archivo": "pose_tiro.png",
+      "quien": "heroe",
+      "n": "El remate con todo el cuerpo",
+      "tonos": {
+        "piel": "#fec391",
+        "camiseta": "#5ebaed"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      },
+      "alto_rel": 0.97,
+      "_alto_rel": "A3: la figura es 1844x1206, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.97 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
+    },
+    "pase": {
+      "archivo": "pose_pase.png",
+      "quien": "heroe",
+      "n": "El pase con el borde interno",
+      "tonos": {
+        "piel": "#f2be91",
+        "camiseta": "#61a6d3"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "cabezazo_v2": {
+      "archivo": "pose_cabezazo_v2.png",
+      "quien": "heroe",
+      "n": "El cabezazo, versión nueva",
+      "tonos": {
+        "piel": "#cb8a62",
+        "camiseta": "#65bde4"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "cansado": {
+      "archivo": "pose_cansado.png",
+      "quien": "heroe",
+      "n": "Sin aire: las manos en las rodillas",
+      "tonos": {
+        "piel": "#fed1aa",
+        "camiseta": "#00c2ee"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "celebracion": {
+      "archivo": "pose_celebracion.png",
+      "quien": "heroe",
+      "n": "El festejo, versión nueva",
+      "tonos": {
+        "piel": "#fac194",
+        "camiseta": "#8cc5e9"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "de_espaldas": {
+      "archivo": "pose_de_espaldas.png",
+      "quien": "heroe",
+      "n": "De espaldas con la pelota (P6-B: el que la tira en el plano profundo)",
+      "tonos": {
+        "piel": "#c28a6d",
+        "camiseta": "#4daae6"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "de_espaldas_sin_pelota": {
+      "archivo": "pose_de_espaldas_sin_pelota.png",
+      "quien": "heroe",
+      "n": "De espaldas sin la pelota",
+      "tonos": {
+        "piel": "#f4bd91",
+        "camiseta": "#71b8dd"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "recibiendo": {
+      "archivo": "pose_recibiendo.png",
+      "quien": "heroe",
+      "n": "Recibiendo de frente (P6-B: el que espera el pase largo)",
+      "tonos": {
+        "piel": "#fabb8b",
+        "camiseta": "#71b2de"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "arquero_ataja_celeste": {
+      "archivo": "pose_arquero_ataja_celeste.png",
+      "quien": "arquero",
+      "n": "TU arquero: la agarra",
+      "tonos": {
+        "piel": "#ffcb9f",
+        "camiseta": "#23659d"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "arquero_despeje_celeste": {
+      "archivo": "pose_arquero_despeje_celeste.png",
+      "quien": "arquero",
+      "n": "TU arquero: la despeja",
+      "tonos": {
+        "piel": "#f6be92",
+        "camiseta": "#7bbbde"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "arquero_vuela_celeste": {
+      "archivo": "pose_arquero_vuela_celeste.png",
+      "quien": "arquero",
+      "n": "TU arquero: la estirada",
+      "tonos": {
+        "piel": "#da9b73",
+        "camiseta": "#8dbedb"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      },
+      "alto_rel": 0.58,
+      "_alto_rel": "A3: la figura es 1905x746, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.58 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
+    },
+    "r_corriendo": {
+      "archivo": "pose_corriendo_v2.png",
+      "quien": "defensor",
+      "n": "RIVAL corriendo de espaldas (naranja a rayas, el 7)",
+      "tonos": {
+        "camiseta": "#fa6d1a"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "r_arquero_vuela": {
+      "archivo": "poseR_arquero_vuela.png",
+      "quien": "arquero",
+      "n": "El arquero RIVAL: la estirada",
+      "tonos": {
+        "piel": "#fdba8b",
+        "camiseta": "#fd7a32"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      },
+      "alto_rel": 0.51,
+      "_alto_rel": "A3: la figura es 1897x650, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.51 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
+    },
+    "r_quite": {
+      "archivo": "poseR_quite.png",
+      "quien": "defensor",
+      "n": "El quite del RIVAL",
+      "tonos": {
+        "piel": "#fcb683",
+        "camiseta": "#dc7c4a"
+      },
+      "tolerancias": {
+        "piel": 80,
+        "camiseta": 95
+      }
+    },
+    "pelota_vieja": {
+      "archivo": "pelota_vieja.png",
+      "quien": "objeto",
+      "n": "La pelota de potrero, gastada — reemplaza el círculo con gajos"
+    },
+    "calden": {
+      "archivo": "calden.png",
+      "quien": "objeto",
+      "n": "El caldén solo en el campo"
+    },
+    "arco": {
+      "archivo": "arco.png",
+      "quien": "objeto",
+      "n": "El arco con la red"
+    },
+    "banco": {
+      "archivo": "banco.png",
+      "quien": "objeto",
+      "n": "El banco de suplentes",
+      "alto_rel": 0.44,
+      "_alto_rel": "A3: 2695x801, más ancha que alta."
+    },
+    "banderin": {
+      "archivo": "banderin.png",
+      "quien": "objeto",
+      "n": "El banderín del córner"
+    },
+    "arbitro_amarilla": {
+      "archivo": "arbitro_amarilla.png",
+      "quien": "objeto",
+      "n": "El árbitro mostrando la amarilla"
     }
   },
   "fondos": {
@@ -185,5 +430,75 @@
     }
   },
   "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Pose nueva = PNG transparente en assets/poses/ + una entrada acá con {archivo, quien(heroe|defensor|arquero), n, pelota{x,y,r} opcional, tonos opcional}. Para un CICLO de animación agregá ciclo:{cuadros:[...], ms} — mientras no exista, se usa la pose quieta.",
-  "_tonos_b3": "B3-D (8/ago): el tinte de camiseta NO llegaba a las escenas — solo la pose 'corriendo' declaraba 'tonos', así que era la única que se podía teñir; en cualquier otra pose salía el celeste del PNG. Ahora las 7 poses del héroe traen sus tonos, sacados con cuentagotas de SU PROPIO PNG (el mismo método de la tanda de arte: se valida contra 'corriendo', que ya estaba verificado, y da #55bcee contra el #54bcec declarado — error menor a 2 por canal). NO se declara 'pelo' a propósito: el tono del pelo y el de los BOTINES son el mismo casi-negro, así que la regla del pelo necesita pelo_y1 (hasta qué altura aplicar) y eso no se puede medir automáticamente — medido, el tono de pelo llega hasta el 104% de la figura, o sea hasta los pies. Sin 'pelo' declarado el tinte de pelo simplemente no se aplica en esas poses: no rompe nada. Queda pendiente ponerle pelo_y1 a mano a cada una, como tiene 'corriendo' (0.45)."
+  "_tonos_b3": "B3-D (8/ago): el tinte de camiseta NO llegaba a las escenas — solo la pose 'corriendo' declaraba 'tonos', así que era la única que se podía teñir; en cualquier otra pose salía el celeste del PNG. Ahora las 7 poses del héroe traen sus tonos, sacados con cuentagotas de SU PROPIO PNG (el mismo método de la tanda de arte: se valida contra 'corriendo', que ya estaba verificado, y da #55bcee contra el #54bcec declarado — error menor a 2 por canal). NO se declara 'pelo' a propósito: el tono del pelo y el de los BOTINES son el mismo casi-negro, así que la regla del pelo necesita pelo_y1 (hasta qué altura aplicar) y eso no se puede medir automáticamente — medido, el tono de pelo llega hasta el 104% de la figura, o sea hasta los pies. Sin 'pelo' declarado el tinte de pelo simplemente no se aplica en esas poses: no rompe nada. Queda pendiente ponerle pelo_y1 a mano a cada una, como tiene 'corriendo' (0.45).",
+  "hinchada": {
+    "_doc": "A4 · LAS CINCO SILUETAS DE LA TRIBUNA. Reemplazan las siluetas iguales (círculo + rectángulo) que dibujaba crearHinchadaPanel. La MEZCLA varía con la división: en las de abajo hay más gente parada y sola; en las de arriba aparecen el bombo, la bandera y el bebé. El peso de cada una por división vive en `mezcla`.",
+    "base": "assets/poses/",
+    "siluetas": [
+      {
+        "id": "parado",
+        "archivo": "hincha_parado.png",
+        "n": "Parado, mirando"
+      },
+      {
+        "id": "mate",
+        "archivo": "hincha_mate.png",
+        "n": "Con el mate"
+      },
+      {
+        "id": "bombo",
+        "archivo": "hincha_bombo.png",
+        "n": "Con el bombo"
+      },
+      {
+        "id": "bandera",
+        "archivo": "hincha_bandera.png",
+        "n": "Con la bandera"
+      },
+      {
+        "id": "bebe",
+        "archivo": "hincha_bebe.png",
+        "n": "Con el bebé a upa"
+      }
+    ],
+    "mezcla": {
+      "_doc": "peso de cada silueta por división. Suman lo que sea: se normaliza. Una división chica es gente parada y algún mate; una grande tiene bombo y bandera.",
+      "primera_b": {
+        "parado": 6,
+        "mate": 3,
+        "bombo": 1,
+        "bandera": 0,
+        "bebe": 1
+      },
+      "primera_a": {
+        "parado": 5,
+        "mate": 3,
+        "bombo": 2,
+        "bandera": 1,
+        "bebe": 1
+      },
+      "regional": {
+        "parado": 4,
+        "mate": 2,
+        "bombo": 3,
+        "bandera": 2,
+        "bebe": 1
+      },
+      "nacional": {
+        "parado": 3,
+        "mate": 2,
+        "bombo": 3,
+        "bandera": 3,
+        "bebe": 2
+      },
+      "mundial": {
+        "parado": 2,
+        "mate": 1,
+        "bombo": 4,
+        "bandera": 4,
+        "bebe": 2
+      }
+    }
+  },
+  "_tanda_arte_32": "TANDA DE LAS 32 PIEZAS (19/ago/2026). 16 poses (13 propias + 3 del rival), 6 objetos/utilería, 5 siluetas de hinchada y 5 retratos (esos van en data/portraits_manifest.json). Los tonos se sacaron con cuentagotas del PROPIO PNG, pero NO por franjas: se clasifica cada píxel por lo que ES (piel = cálido con R>G>B; camiseta = celeste con B>G>R) y se toma el dominante de cada clase. El método por franjas fallaba en toda figura que no estuviera parada de frente — en las acostadas del arquero y en las de espaldas, la franja de la cabeza cae sobre la camiseta. Si una clase no llega al 1,2% de la figura, NO se declara el tono: teñir mal se ve peor que no teñir."
 }
