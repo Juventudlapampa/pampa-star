@@ -204,6 +204,9 @@
      tribuna simplemente no habla. */
   const pEntrevista = fetch("../data/entrevista.json").then(r=>r.ok?r.json():null).catch(()=>null);
   const pTribuna = fetch("../data/tribuna.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  /* M2 · EL MAPA DE MÚSICA. Si no está, el juego sigue con el sintetizador:
+     no hay pantalla que dependa de esto. */
+  const pAudio = fetch("../data/audio.json").then(r=>r.ok?r.json():null).catch(()=>null);
   /* V8 §5: esperar las fuentes antes de crear textos — tope 8s (en celu con
      red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
@@ -226,7 +229,7 @@
       });
     }catch(e){}
   });
-  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pSemana, pEntrevista, pTribuna, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna])=>{
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pSemana, pEntrevista, pTribuna, pAudio, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio])=>{
     window.__PAMPA_VIDA = vida;
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;
@@ -248,9 +251,9 @@
       window.PF.escMin = bal.piel.esc_min;
       window.PF.escMax = bal.piel.esc_max;
     }
-    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna);
+    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio);
   });
-  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna){
+  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio){
     /* El manifest de caras dice cuántas caras y cuántos tonos de camiseta hay.
        validarLook (logic/avatar.js) es lógica pura y no lee JSON, así que se lo
        avisamos acá, una sola vez, antes de crear el juego: si no, los índices
@@ -268,7 +271,7 @@
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);

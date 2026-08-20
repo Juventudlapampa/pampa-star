@@ -177,44 +177,109 @@
     }
   }
   /* API: acepta los nombres nuevos y los viejos ("propia"→propia_propio) */
-  /* P5 · LOS ARCHIVOS MANDAN SOBRE EL SINTETIZADOR.
-     Si balance.musica.archivos declara una ruta para este tema y el juego la
-     cargó, suena ESE archivo en loop y el chiptune se calla. El que no tenga
-     archivo sigue sintetizado, así se pueden cambiar de a uno. */
-  var archivos = {};      // id -> HTMLAudioElement, lo llena registrarArchivos()
+  /* ══════════════════════════════════════════════════════════════════════
+     M2 · LOS ARCHIVOS MANDAN SOBRE EL SINTETIZADOR.
+
+     La música era chiptune generado por código. Ahora, si el tema tiene un
+     archivo declarado en data/audio.json, suena ESE y el sintetizador ni
+     arranca. El que no tenga archivo sigue sintetizado — así el cambio es
+     tema por tema y nada queda mudo.
+
+     M1 · LOS ARCHIVOS NO SE TOCAN. Los _loop vienen cortados a compás exacto
+     con crossfade de 40 ms: se reproducen con loop nativo del elemento Audio y
+     NO se les cambia currentTime ni se los recorta. Cualquier cosa que se les
+     haga rompe el empalme.
+
+     M3 · LAS TRES REGLAS DEL JSON, todas acá:
+       · corte al terminar el partido → musicaTema(null) para de verdad
+       · fundido de 300 ms entre momentos, salvo cuando se pide seco (el gol,
+         donde el silencio previo ES el efecto y ya estaba implementado)
+       · la música baja 40% con hitstop o cartel de gol → musicaDuck
+     ══════════════════════════════════════════════════════════════════════ */
+  var archivos = {};        // id -> { audio, loop }
   var archivoSonando = null;
-  function pararArchivo() {
-    if (archivoSonando) { try { archivoSonando.pause(); archivoSonando.currentTime = 0; } catch (e) {} archivoSonando = null; }
+  var volArchivo = 0.5;     // el volumen "de crucero" de los archivos
+  var FUNDIDO_MS = 300;
+  var fundidos = [];        // timers vivos, para poder matarlos
+
+  function matarFundidos() { fundidos.forEach(clearInterval); fundidos = []; }
+
+  /* sube o baja el volumen de un elemento Audio en ms, sin tocar el archivo */
+  function rampa(el, desde, hasta, ms, alFinal) {
+    if (!el) { if (alFinal) alFinal(); return; }
+    var pasos = Math.max(1, Math.round(ms / 25)), i = 0;
+    try { el.volume = Math.max(0, Math.min(1, desde)); } catch (e) {}
+    var t = setInterval(function () {
+      i++;
+      var v = desde + (hasta - desde) * (i / pasos);
+      try { el.volume = Math.max(0, Math.min(1, v)); } catch (e) {}
+      if (i >= pasos) { clearInterval(t); fundidos = fundidos.filter(function (x) { return x !== t; }); if (alFinal) alFinal(); }
+    }, 25);
+    fundidos.push(t);
   }
-  function registrarArchivos(mapa) {
-    pararArchivo(); archivos = {};
+
+  function pararArchivo(seco) {
+    var el = archivoSonando; archivoSonando = null;
+    if (!el) return;
+    if (seco) { try { el.pause(); el.currentTime = 0; } catch (e) {} return; }
+    rampa(el, el.volume, 0, FUNDIDO_MS, function () {
+      try { el.pause(); el.currentTime = 0; } catch (e) {}
+    });
+  }
+
+  /* mapa: { id: { archivo, loop } }. Devuelve cuántos quedaron listos. */
+  function registrarArchivos(mapa, volumen) {
+    matarFundidos(); pararArchivo(true); archivos = {};
+    if (volumen != null) volArchivo = volumen;
     if (!mapa) return 0;
     var n = 0;
     Object.keys(mapa).forEach(function (id) {
-      var ruta = mapa[id];
-      if (id.charAt(0) === "_" || !ruta) return;
-      var a = new Audio(ruta); a.loop = true; a.preload = "auto";
-      archivos[id] = a; n++;
+      var e = mapa[id];
+      if (id.charAt(0) === "_" || !e) return;
+      var ruta = typeof e === "string" ? e : e.archivo;
+      if (!ruta) return;
+      var a = new Audio(ruta);
+      a.loop = typeof e === "object" ? !!e.loop : true;
+      a.preload = "auto";
+      a.volume = 0;
+      archivos[id] = { audio: a, loop: a.loop };
+      n++;
     });
     return n;
   }
-  function musicaTema(nombre) {
-    /* archivo primero: si este tema tiene uno, el sintetizador ni arranca */
-    var idA = nombre === "propia" ? "propia_propio" : nombre;
-    if (archivoSonando) pararArchivo();
-    if (idA && archivos[idA]) {
-      if (musEnsure && mus && mus.timer) { clearInterval(mus.timer); mus.timer = null; mus.base = null; }
-      archivoSonando = archivos[idA];
-      archivoSonando.volume = muted ? 0 : (MUSICA.vol != null ? MUSICA.vol : 0.5);
-      try { archivoSonando.play(); } catch (e) {}
+  function hayArchivo(id) { return !!archivos[id]; }
+
+  function musicaTema(nombre, seco) {
+    var id = nombre === "propia" ? "propia_propio" : nombre;
+    /* el mismo tema ya sonando: no se reinicia (cortaría el loop al pedo) */
+    if (id && archivos[id] && archivoSonando === archivos[id].audio) return;
+    matarFundidos();
+
+    if (id && archivos[id]) {
+      /* apagar el sintetizador si estaba */
+      if (mus && mus.timer) { clearInterval(mus.timer); mus.timer = null; mus.base = null; vientoOff(); }
+      var saliente = archivoSonando;
+      var entrante = archivos[id].audio;
+      archivoSonando = entrante;
+      var destino = muted ? 0 : volArchivo;
+      if (saliente && saliente !== entrante) {
+        if (seco) { try { saliente.pause(); saliente.currentTime = 0; } catch (e) {} }
+        else rampa(saliente, saliente.volume, 0, FUNDIDO_MS, function () {
+          try { saliente.pause(); saliente.currentTime = 0; } catch (e) {}
+        });
+      }
+      try { entrante.play(); } catch (e) {}
+      if (seco) { try { entrante.volume = destino; } catch (e) {} }
+      else rampa(entrante, 0, destino, FUNDIDO_MS);
       return;
     }
+
+    /* sin archivo: se para el que hubiera y sigue el sintetizador de siempre */
+    if (archivoSonando) pararArchivo(seco);
     if (!musEnsure()) return;
-    var id = nombre === "propia" ? "propia_propio" : nombre;
     if (id === mus.base) return;
     var eraPropia = mus.base && mus.base.indexOf("propia") === 0;
     mus.base = id || null;
-    /* entre campo propio y rival NO se resetea el compás (el tema CRECE, no cambia) */
     if (!(eraPropia && id && id.indexOf("propia") === 0)) { mus.paso = 0; mus.prox = ctx.currentTime + 0.05; }
     if (mus.base) { vientoOn(); if (!mus.timer) mus.timer = setInterval(programar, 120); }
     else { vientoOff(); if (mus.timer) { clearInterval(mus.timer); mus.timer = null; } }
@@ -224,7 +289,16 @@
     if (!mus.base || mus.base.indexOf("propia") !== 0) return;
     musicaTema(zona === "rival" ? "propia_rival" : "propia_propio");
   }
+  /* M3 · la música baja 40% con hitstop o cartel de gol, y vuelve. Vale para
+     el sintetizador Y para los archivos: antes solo bajaba el bus del synth. */
   function musicaDuck(ms) {
+    if (archivoSonando) {
+      var el = archivoSonando, tope = muted ? 0 : volArchivo;
+      matarFundidos();
+      rampa(el, el.volume, tope * 0.6, 90, function () {
+        setTimeout(function () { rampa(el, el.volume, tope, 320); }, Math.max(80, (ms || 500) - 200));
+      });
+    }
     if (!ctx || !mus.gain) return;
     var t = ctx.currentTime, s = Math.max(0.1, (ms || 500) / 1000);
     mus.gain.gain.cancelScheduledValues(t);
@@ -245,7 +319,7 @@
     musicaTema: musicaTema,
     musicaZona: musicaZona,
     musicaDuck: musicaDuck,
-    registrarArchivos: registrarArchivos,   // P5: balance.musica.archivos
+    registrarArchivos: registrarArchivos, hayArchivo: hayArchivo,   // M2: data/audio.json
     musicaUrgente: function (on) { mus.urgente = !!on; },
 
     /* patada seca: click grave + thump */

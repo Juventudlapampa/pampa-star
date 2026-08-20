@@ -222,14 +222,15 @@
     "lamento_bpm": 70,
     "_P5_como_cambiar_la_musica": "P5 · PARA CAMBIAR LA MÚSICA SIN TOCAR CÓDIGO. Hoy los temas son SINTETIZADOS (chiptune por WebAudio, phaser/audio/sfx.js): no hay archivos que reemplazar. Hay dos caminos y los dos viven acá: (A) AFINAR el sintetizador — `temas` de abajo tiene tonica/modo/bpm/prog/percusion/motivo de cada tema; bajando `vol` a 0 la música se apaga entera. (B) REEMPLAZARLA POR ARCHIVOS — poné rutas en `archivos` y esos archivos MANDAN sobre el sintetizador: el que tenga archivo suena de archivo, el que no, sigue sintetizado. Las rutas son relativas a la raíz del repo (ej: 'assets/musica/propia.mp3'). Formatos que aguanta el navegador: mp3, ogg, m4a, wav.",
     "archivos": {
-      "_nota": "vacío = sintetizado. Poné una ruta y ese tema pasa a sonar del archivo. Se cargan al arrancar el partido y se reproducen en loop.",
-      "propia_propio": "",
-      "propia_rival": "",
-      "rival": "",
-      "final": ""
+      "_nota": "M2 · el mapa vive en data/audio.json, no acá: esta clave quedó de la tanda del playtest y ya no se usa para elegir archivos. Se conserva vacía porque apagar la música sigue siendo bajar musica.vol a 0."
     },
     "final_ms": 2600,
-    "_final": "P5 · cuánto dura el motivo de cierre antes del silencio de vestuario. 0 = corta seco, sin motivo."
+    "_final": "P5 · cuánto dura el motivo de cierre antes del silencio de vestuario. 0 = corta seco, sin motivo.",
+    "final_tramo_min": 78,
+    "final_perdiendo_min": 62,
+    "_M5": "M5 · CUÁNDO ENTRA 'Last Ten Seconds' (musica.temas.partido_final de audio.json). final_tramo_min: a partir de qué minuto del SEGUNDO tiempo entra el tema de urgencia. final_perdiendo_min: si vas perdiendo, entra antes. MEDIDO JUGANDO un partido entero: con 78 y 62 entró una vez, en el minuto 78, y no antes — que es lo que se buscaba. Si entra siempre o no entra nunca, estos dos números están mal.",
+    "vol_archivo": 0.42,
+    "_vol_archivo": "M3 · el volumen de crucero de los temas de archivo. Va por debajo de los efectos a propósito: la música acompaña, no tapa. El duck (hitstop, cartel de gol) baja de acá un 40% y vuelve."
   },
   "secuencias": {
     "_nota": "V6 §3.4: las SECUENCIAS encadenan escenas en una sola acción épica (flag v6_secuencias, firma del crack). MEGACORRIDA: N rivales quedan atrás uno a uno y rematás (si un duelo se pierde, muere ahí). COMBINADA: pared, se suma el compañero, elegís CENTRO o AL PIE y ÉL define. Desbloqueo por nivel de carrera, costo alto a propósito.",

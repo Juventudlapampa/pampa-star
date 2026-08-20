@@ -84,6 +84,36 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     else this.vistaTemporada();
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     M2 · LA MÚSICA DEL MASTER. Esta escena NO TENÍA MÚSICA: se salía del
+     partido y quedaba en silencio hasta el siguiente. Ahora tiene los dos
+     temas lentos del set:
+       espera → la tabla de la temporada (89 BPM en mayor, luminoso)
+       semana → las decisiones de la semana (Fa menor, el único triste)
+     Y la ALTERNANCIA de M4: semana/semana_alt cambian por fecha, igual que los
+     del partido, así que dos semanas seguidas no suenan igual.
+     Si no hay archivos, no suena nada — el sintetizador es del partido. */
+  musicaMaster(momento) {
+    const A = this.game.registry.get("audio");
+    const S = window.PampaSFX;
+    if (!A || !A.temas || !S || !S.registrarArchivos) return false;
+    let fecha = 0;
+    try { fecha = (this.save && this.save.temporada && this.save.temporada.fecha) | 0; } catch (e) {}
+    const par = (fecha % 2) === 0;
+    const idAudio = momento === "semana" ? (par ? "semana" : "semana_alt")
+                  : momento === "hype" ? "hype_carrera" : "espera";
+    const t = A.temas[idAudio];
+    if (!t || !t.archivo) return false;
+    const bal = this.game.registry.get("balance") || {};
+    const vol = (bal.musica && bal.musica.vol_archivo != null) ? bal.musica.vol_archivo : 0.42;
+    /* se registra SOLO el que se va a usar: la escena del master no necesita
+       tener los doce en memoria */
+    S.registrarArchivos({ m: { archivo: "../assets/musica/" + t.archivo, loop: !!t.loop } }, vol);
+    S.musicaTema("m");
+    this._temaMaster = idAudio;
+    return true;
+  }
+
   guardar() {
     try { localStorage.setItem("pampa_master_v1", JSON.stringify(this.save)); } catch (e) { }
   }
@@ -286,6 +316,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      de jugar. Tres toques y estás en la cancha. El evento pampeano queda
      arriba, como sabor, y puede cambiar los costos de la semana. */
   vistaSemana(rival, alJugar) {
+    this.musicaMaster("semana");
     const W = this.scale.width, H = this.scale.height;
     const S = window.PampaSemana, D = this.game.registry.get("semana");
     if (!S || !D) { this.vistaEvento(rival, alJugar); return; }
@@ -506,6 +537,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ============ VISTA 2: LA TEMPORADA ============ */
   vistaTemporada() {
     const W = this.scale.width, H = this.scale.height;
+    this.musicaMaster("espera");
     const t = this.save.temporada, T = this.T, Ma = this.Ma;
     const div = Ma.DIVISIONES.find(d => d.id === this.save.division) || Ma.DIVISIONES[0];
     /* C2 · el PRINCIPAL de la temporada es en qué escalón estás: es el dato que
@@ -604,6 +636,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
               semana: this.save.semanaResumen || null,
               mejoras: this.save.mejoras || null
             });
+            /* el partido registra sus propios temas; acá se calla para que el
+               fundido lo maneje una sola escena */
+            if (window.PampaSFX && window.PampaSFX.musicaTema) window.PampaSFX.musicaTema(null);
             this.scene.start("match");
           });
         });

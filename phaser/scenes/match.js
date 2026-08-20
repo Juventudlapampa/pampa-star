@@ -186,6 +186,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._tramitesMudos = 0;         // P3: cuántas acciones quedaron sin verse
     this._tramiteMudoUltimo = null;
     this._musicaTrabada = false;     // P5: el partido nuevo vuelve a tener música
+    this._temaFinalPuesto = false;   // M5: el tema de urgencia entra una vez por partido
+    this._temaFinalMin = null;
   }
 
   create() {
@@ -394,7 +396,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* ANIME D + ADDENDUM B: la dirección musical llega de balance → el motor */
     if (this.SFX && this.SFX.configurarMusica) this.SFX.configurarMusica(this.BAL.musica);
-    this.musica(this.st.posesion === "mia" ? "propia" : "rival");
+    /* M2: con archivos hay UN tema de partido; sin archivos, el sintetizador
+       sigue cambiando por posesión como siempre. */
+    this.musica(this.SFX && this.SFX.hayArchivo && this.SFX.hayArchivo("partido")
+      ? "partido" : (this.st.posesion === "mia" ? "propia" : "rival"));
 
     /* ANIME E: EL RELATOR — el partido se cuenta solo (data/relatos.json → relator) */
     this.REL = (this.FLAGS.v4_relator && window.PampaRelator)
@@ -472,17 +477,84 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* P5 · engancha balance.musica.archivos con el reproductor. Se llama al
      armar el partido: si no hay ninguna ruta declarada, no hace nada y todo
      sigue sintetizado como hasta ahora. */
+  /* ══════════════════════════════════════════════════════════════════════
+     M2 · EL MAPA DE MOMENTOS.
+
+     El juego habla de "propia", "rival", "final"; audio.json habla de
+     "partido", "partido_final", "semana". Acá se traduce, en un solo lugar.
+
+     Lo que cambió al pasar de síntesis a archivos: el sintetizador cambiaba de
+     tema con CADA cambio de posesión (era un motivo que crecía). Con archivos
+     eso sería un corte de pista cada tres segundos, así que el partido tiene
+     UN tema que sigue sonando y lo que cambia es el MOMENTO: entrada, partido,
+     tramo final. Está anotado como decisión.
+
+     M4 · LA ALTERNANCIA. partido/partido_alt y semana/semana_alt alternan por
+     FECHA, no al azar: un partido nunca repite el tema del anterior. Con la
+     fecha par suena uno y con la impar el otro, así que dos fechas seguidas
+     siempre suenan distinto.
+     ══════════════════════════════════════════════════════════════════════ */
+  mapaDeAudio() {
+    const A = this.game.registry.get("audio");
+    if (!A || !A.temas) return null;
+    /* la fecha manda la alternancia; sin carrera, la 0 */
+    let fecha = 0;
+    try {
+      const s = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
+      fecha = (s && s.temporada && s.temporada.fecha) | 0;
+    } catch (e) {}
+    this._fechaAudio = fecha;
+    const par = (fecha % 2) === 0;
+    const uno = (a, b) => (par ? a : b);
+    const ruta = (id) => {
+      const t = A.temas[id];
+      return t && t.archivo ? { archivo: "../assets/musica/" + t.archivo, loop: !!t.loop } : null;
+    };
+    const mapa = {};
+    const poner = (idJuego, idAudio) => { const r = ruta(idAudio); if (r) mapa[idJuego] = r; };
+    /* los momentos del PARTIDO */
+    poner("entrada", "entrada_partido");
+    poner("partido", uno("partido", "partido_alt"));
+    poner("partido_final", "partido_final");
+    poner("gol_festejo", "gol_festejo");
+    poner("opening", "opening");
+    /* los del MASTER (la escena los pide por su nombre) */
+    poner("semana", uno("semana", "semana_alt"));
+    poner("espera", "espera");
+    poner("hype", "hype_carrera");
+    return mapa;
+  }
+
   registrarMusicaDeArchivo() {
     const M = this.BAL.musica || {};
-    if (!M.archivos || !this.SFX || !this.SFX.registrarArchivos) return 0;
-    /* las rutas del balance son relativas a la raíz; las escenas viven en /phaser */
-    const mapa = {};
-    Object.keys(M.archivos).forEach((k) => {
-      if (k.charAt(0) === "_" || !M.archivos[k]) return;
-      mapa[k] = "../" + M.archivos[k];
-    });
-    return this.SFX.registrarArchivos(mapa);
+    if (!this.SFX || !this.SFX.registrarArchivos) return 0;
+    const mapa = this.mapaDeAudio();
+    if (!mapa) return 0;
+    return this.SFX.registrarArchivos(mapa, M.vol_archivo != null ? M.vol_archivo : 0.42);
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     M5 · EL TRAMO FINAL. "Last Ten Seconds" entra en el final del segundo
+     tiempo, o antes si vas perdiendo — que es cuando la urgencia es tuya y no
+     del reloj. Los dos umbrales son perillas de balance.musica.
+
+     Se llama desde el update; la guarda _temaFinalPuesto hace que entre UNA
+     vez y no en cada cuadro.
+     ══════════════════════════════════════════════════════════════════════ */
+  chequearTramoFinal() {
+    if (this._temaFinalPuesto || this._musicaTrabada) return;
+    if (!(this.SFX && this.SFX.hayArchivo && this.SFX.hayArchivo("partido_final"))) return;
+    const st = this.st; if (!st) return;
+    if ((st.periodo | 0) < 2 && st.minuto < 45) return;    // solo en el segundo tiempo
+    const M = this.BAL.musica || {};
+    const perdiendo = st.golesMio < st.golesRival;
+    const umbral = perdiendo ? (M.final_perdiendo_min != null ? M.final_perdiendo_min : 62)
+                             : (M.final_tramo_min != null ? M.final_tramo_min : 78);
+    if (st.minuto < umbral) return;
+    this._temaFinalPuesto = true;
+    this._temaFinalMin = +st.minuto.toFixed(1);
+    this.musica("partido_final");
+  }
+
   cerrarMusica() {
     this._musicaTrabada = true;
     const M = this.BAL.musica || {};
@@ -4281,7 +4353,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (lado7 !== this._ladoTema) {
           this._ladoTema = lado7;
           this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado7);
-          this.musica(lado7 === "rival" ? "rival" : "propia");
+          /* M2: con archivo, el tema del partido NO cambia por posesión — sería
+             un corte de pista cada tres segundos. Sigue sonando el mismo. */
+          if (!(this.SFX && this.SFX.hayArchivo && this.SFX.hayArchivo("partido")))
+            this.musica(lado7 === "rival" ? "rival" : "propia");
         }
       }
       return;
@@ -4521,6 +4596,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ETAPA 2: radar + HUD, siempre al día (V7-1: panel de escena en lugar del mundo) */
     this.dibujarRadar();
     this.refrescarHUD();
+    this.chequearTramoFinal();       // M5
     if (this._prof && this._prof.activo) this.updatePanelProfundo();
     else if (this._split) this.updatePanelEscena(delta);
     else { this.updateFichas(false); this.dibujarPaseCancha(); }
