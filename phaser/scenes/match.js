@@ -787,6 +787,237 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelNombre = this.add.text(36, yFranja, "", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
+    this.buildPanelProfundo();
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     P6-B · EL SEGUNDO MODO ESPACIAL DEL PANEL.
+
+     Hasta acá el panel tenía UN encuadre y nada más: de perfil, el que corre,
+     con parallax. Un pase de 40 metros y un toque de 3 se dibujaban con la
+     misma cámara, a la misma distancia, con el mismo horizonte. Por eso "no
+     hay espacio": la distancia se nombraba pero no se representaba.
+
+     Ahora el panel tiene DOS modos y corta entre ellos:
+       LATERAL   de perfil — correr, gambetear, el trámite (el de siempre)
+       PROFUNDO  la cámara detrás del que la tira, mirando al arco: las líneas
+                 convergen al punto de fuga, el que recibe viene de lejos y el
+                 que tiró se va de cuadro.
+
+     Las piezas viven adentro de panelLayer, así que heredan su máscara: lo que
+     se sale del panel se recorta solo, igual que en el modo lateral.
+
+     El punto de fuga y la línea de cerca son perillas (vista.profundo.vp_y y
+     near_y) en coordenadas del panel, que va de y=30 a y=304.
+     ══════════════════════════════════════════════════════════════════════════ */
+  buildPanelProfundo() {
+    if (!this.panelLayer) return;
+    this._prof = {
+      activo: false, t: 0, dur: 0, accion: null,
+      g: this.add.graphics(),                                   // la cancha en fuga
+      tirador: this.add.image(0, 0, "__WHITE").setVisible(false),
+      receptor: this.add.image(0, 0, "__WHITE").setVisible(false),
+      pelota: this.add.sprite(0, 0, "ball").setVisible(false),
+      sombraR: this.add.ellipse(0, 0, 40, 12, 0x000000, 0.32).setVisible(false)
+    };
+    const p = this._prof;
+    /* orden de dibujo: cancha, sombra, el que recibe (lejos), la pelota, el
+       que tiró (cerca y por lo tanto adelante de todo) */
+    this.panelLayer.add([p.g, p.sombraR, p.receptor, p.pelota, p.tirador]);
+    p.g.setVisible(false);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     B2 · ¿ESTA JUGADA SACA LA CÁMARA DE DONDE ESTABA?
+
+     La decisión es de logic/perspectiva.js (pura, testeable); acá solo se le
+     pasan las distancias, que el partido ya calcula. Los umbrales son perillas
+     de balance.vista.profundo.
+
+     Los cuatro casos del punto: pase largo, remate desde afuera del área, la
+     megacorrida y el saque del arquero. */
+  quizasProfundo(accion, ctx, opts) {
+    const V = (this.VI && this.VI.profundo) || {};
+    if (!window.PampaPersp || !window.PampaPersp.esProfundo) return false;
+    if (!window.PampaPersp.esProfundo(accion, ctx || {}, V)) return false;
+    return this.entrarProfundo(accion, opts || {});
+  }
+
+  /* la geometría del plano profundo, en coordenadas del panel */
+  encuadreProfundo() {
+    const V = (this.VI && this.VI.profundo) || {};
+    return {
+      vpX: 480,
+      vpY: V.vp_y != null ? V.vp_y : 62,
+      nearY: V.near_y != null ? V.near_y : 298,
+      k: V.k != null ? V.k : 3
+    };
+  }
+
+  /* B1 · la cancha en fuga DENTRO del panel: pasto, líneas que convergen y el
+     arco chiquito al fondo. Es la misma idea de dibujarCanchaProfunda() del
+     cine, redibujada para la ventana del panel en vez de la pantalla entera —
+     que es exactamente sacar la maquinaria de donde estaba encerrada. */
+  dibujarProfundoEnPanel() {
+    const p = this._prof; if (!p) return;
+    const g = p.g, E = this.encuadreProfundo(), Per = window.PampaPersp;
+    const TECHO = 30, PISO = (this.VI && this.VI.panel_fin_y != null ? this.VI.panel_fin_y : 304);
+    g.clear();
+    /* cielo */
+    g.fillStyle(0x123a5a, 1); g.fillRect(0, TECHO, 960, E.vpY - TECHO + 10);
+    /* AFUERA DE LA CANCHA HAY MAS CAMPO, no vacio. Sin esto las dos esquinas
+       de abajo quedaban NEGRAS y el plano se leia como un dibujo flotando en
+       lugar de un lugar. Visto en la primera captura del modo. */
+    g.fillStyle(0x1e5c2e, 1); g.fillRect(0, E.vpY, 960, PISO - E.vpY);
+    /* el pasto en cuña: del punto de fuga a los dos bordes de abajo */
+    g.fillStyle(0x2a7d3f, 1);
+    g.fillPoints([{ x: 0, y: PISO }, { x: 960, y: PISO },
+                  { x: E.vpX + 40, y: E.vpY }, { x: E.vpX - 40, y: E.vpY }], true);
+    /* las rayas del corte de pasto, en profundidad */
+    for (let i = 0; i < 7; i++) {
+      const a = Per.aPantalla(i / 7, { k: E.k, vpX: E.vpX, vpY: E.vpY, nearY: PISO });
+      const b = Per.aPantalla((i + 0.5) / 7, { k: E.k, vpX: E.vpX, vpY: E.vpY, nearY: PISO });
+      const anchoA = 40 + (960 / 2 - 40) * ((a.y - E.vpY) / (PISO - E.vpY));
+      const anchoB = 40 + (960 / 2 - 40) * ((b.y - E.vpY) / (PISO - E.vpY));
+      g.fillStyle(0x2e8a46, 1);
+      g.fillPoints([{ x: E.vpX - anchoA, y: a.y }, { x: E.vpX + anchoA, y: a.y },
+                    { x: E.vpX + anchoB, y: b.y }, { x: E.vpX - anchoB, y: b.y }], true);
+    }
+    /* las líneas que convergen: es LO que dice "esto es profundidad" */
+    g.lineStyle(3, 0xeafff0, 0.5);
+    g.beginPath(); g.moveTo(E.vpX - 40, E.vpY); g.lineTo(0, PISO);
+    g.moveTo(E.vpX + 40, E.vpY); g.lineTo(960, PISO); g.strokePath();
+    /* travesaños de referencia: sin estos la profundidad no se lee */
+    g.lineStyle(2, 0xeafff0, 0.24);
+    for (let i = 1; i <= 5; i++) {
+      const sy = Per.aPantalla(i / 6, { k: E.k, vpX: E.vpX, vpY: E.vpY, nearY: PISO }).y;
+      const half = 40 + (960 / 2 - 40) * ((sy - E.vpY) / (PISO - E.vpY));
+      g.beginPath(); g.moveTo(E.vpX - half, sy); g.lineTo(E.vpX + half, sy); g.strokePath();
+    }
+    /* el arco, chiquito, al fondo */
+    const gw = 74, gh = 30;
+    g.fillStyle(0xdfeef6, 0.4);
+    for (let x = -gw / 2; x <= gw / 2; x += 7) g.fillRect(E.vpX + x, E.vpY - gh, 1, gh);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(E.vpX - gw / 2 - 3, E.vpY - gh - 3, 4, gh + 4);
+    g.fillRect(E.vpX + gw / 2, E.vpY - gh - 3, 4, gh + 4);
+    g.fillRect(E.vpX - gw / 2 - 3, E.vpY - gh - 3, gw + 7, 4);
+  }
+
+  /* B3 · EL CORTE ES EL EFECTO. No hay transición suave: se apaga el modo
+     lateral, se prende el profundo y se frena un puñado de cuadros para que el
+     cambio se SIENTA. Lo que pidió Rodri no es que exista otro plano — es que
+     la cámara salga de donde estaba. */
+  entrarProfundo(accion, opts) {
+    const V = (this.VI && this.VI.profundo) || {};
+    if (V.activo === false || !this._split || !this._prof) return false;
+    opts = opts || {};
+    const p = this._prof;
+    p.activo = true; p.accion = accion; p.t = 0;
+    p.dur = opts.dur || V.vuelo_ms || 1150;
+    p.desde = this.time.now;
+    p.alFinal = opts.alFinal || null;
+
+    /* se apaga el modo lateral (todo lo de perfil) */
+    this.modoLateralVisible(false);
+    /* se prende el profundo */
+    p.g.setVisible(true);
+    this.dibujarProfundoEnPanel();
+
+    const E = this.encuadreProfundo();
+    /* ⚠ B5 · LAS DOS POSES QUE FALTAN — PEDIDO DE ARTE ABIERTO.
+
+       El modo profundo necesita dos poses que HOY NO EXISTEN:
+         · JUGADOR DE ESPALDAS: el que la tira, visto desde atrás, alejándose
+           de la cámara. Con la pelota al pie y sin ella.
+         · JUGADOR RECIBIENDO DE FRENTE: el que espera el pase, de frente y
+           chico al fondo, brazos abiertos y cuerpo perfilado.
+
+       Mientras no estén se usa `corriendo`, que es de PERFIL. Funciona porque
+       en profundidad la figura queda chica y el perfil no canta tanto, pero es
+       lo que más se nota de este modo: el que la tira debería darte la espalda
+       y hoy te muestra el costado.
+
+       NO espejar ni rotar la de perfil para simularlo: se ve peor que dejarla
+       como está. Cuando lleguen las dos, se cambian estas dos líneas y listo. */
+    const kT = this.poseKey("corriendo");
+    if (kT) { p.tirador.setTexture(kT).setVisible(true).setOrigin(0.5, 1).setAlpha(1); }
+    /* el que recibe: chico, al fondo */
+    const kR = (this.poseRivalNaranja && opts.rival) ? (this.poseRivalNaranja("corriendo") || kT) : kT;
+    if (kR) { p.receptor.setTexture(kR).setVisible(true).setOrigin(0.5, 1); }
+    p.pelota.setVisible(true);
+    p.sombraR.setVisible(true);
+
+    /* el freno del corte: el hitstop del bloque B */
+    if (window.PampaFeel && window.PampaPersp) {
+      const ms = window.PampaPersp.frenoDelCorte(accion, V);
+      if (window.PampaFeel.hitstop) window.PampaFeel.hitstop(this, ms);
+    }
+    this.SFX && this.SFX.whoosh && this.SFX.whoosh(260);
+    this._profUltimo = accion;
+    return true;
+  }
+
+  salirProfundo() {
+    const p = this._prof; if (!p || !p.activo) return;
+    p.activo = false;
+    p.g.setVisible(false);
+    p.tirador.setVisible(false); p.receptor.setVisible(false);
+    p.pelota.setVisible(false); p.sombraR.setVisible(false);
+    this.modoLateralVisible(true);
+    const cb = p.alFinal; p.alFinal = null;
+    if (cb) cb();
+  }
+
+  /* prende o apaga TODO lo del modo lateral de una sola vez: si mañana se
+     agrega una pieza al panel de perfil, se agrega acá y los dos modos siguen
+     siendo excluyentes. */
+  modoLateralVisible(v) {
+    [this.panelTribuna, this.panelPasto, this.panelJug, this.panelPelota, this.panelVelo]
+      .forEach(o => o && o.setVisible(v));
+    (this.panelSil || []).forEach(o => o && o.setVisible(v && o._teniaVis !== false));
+    /* la hinchada del panel es un unico Graphics (this._hin.g), no un pool */
+    if (this._hin && this._hin.g) this._hin.g.setVisible(v);
+    /* el cielo es el primer hijo del panel: en profundo lo dibuja el modo */
+    if (this.panelLayer && this.panelLayer.list[0] && this.panelLayer.list[0].type === "Graphics")
+      this.panelLayer.list[0].setVisible(v);
+  }
+
+  /* B1 · el latido del modo profundo. Lo llama el update en lugar de
+     updatePanelEscena mientras dure el viaje. */
+  updatePanelProfundo() {
+    const p = this._prof; if (!p || !p.activo) return;
+    const V = (this.VI && this.VI.profundo) || {};
+    const Per = window.PampaPersp, E = this.encuadreProfundo();
+    const PISO = (this.VI && this.VI.panel_fin_y != null ? this.VI.panel_fin_y : 304);
+    const t = Math.min(1, (this.time.now - p.desde) / Math.max(1, p.dur));
+    p.t = t;
+    const v = Per.viajeProfundo(t, V);
+    const cfg = { k: E.k, vpX: E.vpX, vpY: E.vpY, nearY: PISO };
+    const alto = (E.vpY < PISO ? PISO - E.vpY : 200);
+
+    /* el que recibe: viene de lejos creciendo */
+    const sR = Per.aPantalla(v.receptor, cfg);
+    /* el que recibe viene de lejos, pero NO puede arrancar invisible: al 3.8%
+       de escala no se veia que hubiera alguien esperando, y entonces el pase
+       parecia ir a la nada. El piso lo pone escala_min. */
+    const V2 = (this.VI && this.VI.profundo) || {};
+    const escMin = V2.receptor_escala_min != null ? V2.receptor_escala_min : 0.16;
+    const escR = (alto * 0.42 * Math.max(escMin, sR.escala)) / Math.max(1, p.receptor.height);
+    p.receptor.setPosition(sR.x, sR.y).setScale(escR);
+    p.sombraR.setPosition(sR.x, sR.y).setScale(sR.escala * 1.6, sR.escala * 1.6);
+
+    /* la pelota: entre los dos, con su parábola */
+    const sB = Per.aPantalla(v.pelota, cfg);
+    p.pelota.setPosition(sB.x, sB.y - v.alto * 46 * sB.escala).setScale(2.4 * sB.escala);
+    p.pelota.rotation += 0.16;
+
+    /* el que la tiró: crece y se va de cuadro (la cámara lo pasa) */
+    const sT = Per.aPantalla(v.tirador, cfg);
+    const escT = (alto * 0.62 * sT.escala * v.tiradorEscala) / Math.max(1, p.tirador.height);
+    p.tirador.setPosition(sT.x, PISO).setScale(escT).setAlpha(v.tiradorAlpha);
+
+    if (t >= 1) this.salirProfundo();
   }
   /* V7-1 §3: qué ilustración corre arriba — VOS llevás la pose del héroe;
      compañeros y rivales llevan SU identidad, determinista por nombre
@@ -2040,6 +2271,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        viajando) → resultado. Lo decisivo es DESDE DÓNDE disparaste; la zona la
        elige el juego (logic/tiro.js tiroAuto). El flag v8_tiro_comandos=false
        devuelve LA DEFINICIÓN de 4 fases, para comparar. */
+    /* B2 · DISPARADOR 2 · EL REMATE DESDE AFUERA. La distancia al arco ya la
+       usa el partido para decidir si el tiro llega; acá decide además si el
+       remate merece cambiar de plano. Desde adentro del área no: ahí ya hay
+       viñeta propia y dos cortes seguidos se pisarían. */
+    (() => {
+      const j = st.mios[st.ctrl];
+      if (j) this.quizasProfundo("tiro", { distanciaArco: Math.abs(st.W - j.x) }, { rival: true });
+    })();
     if (!mega && this.FLAGS.v8_tiro_comandos !== false) { this.tiroPorComandos(rivalIdx); return; }
     if (!mega && this.FLAGS.v6_definicion) {
       this.entrarDefinicionOf({ rivalIdx: rivalIdx, libre: libre });
@@ -3094,6 +3333,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* MEGACORRIDA: se te van quedando rivales atrás uno a uno, y rematás */
   secuenciaMegacorrida() {
     const st = this.st, P = window.PampaPartido, S = this.BAL.secuencias || {};
+    /* B2 · DISPARADOR 3 · LA MEGACORRIDA ya es una corrida hacia el arco: el
+       plano profundo es literalmente lo que está pasando. */
+    this.quizasProfundo("megacorrida", {}, { rival: true });
     const j = st.mios[st.ctrl];
     j.aguante = Math.max(0, j.aguante - (S.megacorrida_aguante || 300));
     const eslabones = S.megacorrida_rivales || 2;
@@ -3431,6 +3673,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       res = P.resolverPase(st, rec.idx, rec.pct);
       texto = res.win ? "AHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase() : "¡INTERCEPTADO!\nLeyeron el pase.";
     }
+    /* B2 · DISPARADOR 1 · EL PASE LARGO. La distancia ya está: es la que
+       separa origen de destino, que se calcularon arriba para saber quién
+       puede cortarla. Si pasa el umbral, la cámara se va atrás del que la tira
+       y el panel muestra el viaje en profundidad. El pase corto sigue en el
+       plano lateral: si cada toque cortara, el corte no significaría nada. */
+    const distPase = Math.hypot(destino.x - origen.x, destino.y - origen.y);
+    this.quizasProfundo("pase", { distancia: distPase }, { rival: false });
     this.animarPase(origen, destino, alVacio, cortador, res.win, texto, quien, res);
   }
   animarPase(origen, destino, alVacio, cortador, win, texto, quien, res) {
@@ -4026,7 +4275,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.refrescarHUD();
       /* A2: con menú abierto NADA se mueve — ni el bob del panel (la escena
          queda clavada como una viñeta mientras decidís) */
-      if (this._split && this.estado !== "MENU" && this.estado !== "PASE") this.updatePanelEscena(delta);
+      /* P6-B: mientras dura el viaje profundo, el panel lo maneja ÉL. El modo
+         lateral ni se actualiza: son excluyentes. */
+      if (this._prof && this._prof.activo) this.updatePanelProfundo();
+      else if (this._split && this.estado !== "MENU" && this.estado !== "PASE") this.updatePanelEscena(delta);
       else if (this._split && this.velarPanel) this.velarPanel(delta);   // A4: el velo sí sigue vivo
       else { this.updateFichas(true); this.dibujarPaseCancha(); }
       return;
@@ -4185,7 +4437,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ETAPA 2: radar + HUD, siempre al día (V7-1: panel de escena en lugar del mundo) */
     this.dibujarRadar();
     this.refrescarHUD();
-    if (this._split) this.updatePanelEscena(delta);
+    if (this._prof && this._prof.activo) this.updatePanelProfundo();
+    else if (this._split) this.updatePanelEscena(delta);
     else { this.updateFichas(false); this.dibujarPaseCancha(); }
   }
 

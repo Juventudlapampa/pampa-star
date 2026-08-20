@@ -172,7 +172,11 @@
         if (this.efectoGol) this.efectoGol(false);
         if (this.cineLayer && this.cineLayer.visible && this.tribunaSaltando) this.tribunaSaltando();
         if (this.hinchadaEstalla) this.hinchadaEstalla(1);
-        this.time.delayedCall(this.msV(1600), function () { self.relatar("saque_gol"); });
+        this.time.delayedCall(this.msV(1600), function () { self.relatar("saque_gol");
+          /* B2 · DISPARADOR 4 · EL SAQUE DEL ARQUERO. Despues del gol la pelota
+             vuelve al centro desde el fondo: es el otro momento en que la
+             cancha se mira a lo largo. */
+          self.quizasProfundo && self.quizasProfundo("saque", {}, { rival: false }); });
         return;
       }
       var j = st.mios[st.ctrl];
@@ -191,7 +195,11 @@
             if (self.cineLayer && self.cineLayer.visible && self.tribunaSaltando) self.tribunaSaltando();
             if (self.hinchadaEstalla) self.hinchadaEstalla(1);
           });
-          self.time.delayedCall(self.msV(1600), function () { self.relatar("saque_gol"); });
+          self.time.delayedCall(self.msV(1600), function () { self.relatar("saque_gol");
+          /* B2 · DISPARADOR 4 · EL SAQUE DEL ARQUERO. Despues del gol la pelota
+             vuelve al centro desde el fondo: es el otro momento en que la
+             cancha se mira a lo largo. */
+          self.quizasProfundo && self.quizasProfundo("saque", {}, { rival: false }); });
         }
       });
     },

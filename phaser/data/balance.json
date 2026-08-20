@@ -69,7 +69,30 @@
     "panel_velo_alpha": 0.45,
     "panel_franja_y": 292,
     "_panel_encuadre": "TANDA DE ARTE A4 · ENCUADRE DEL PANEL DE CINE. panel_techo_y / panel_suelo_y: el alto útil del panel (la figura se ancla por los PIES al suelo, nunca se le cortan). panel_figura_frac: qué fracción de ese alto ocupa el personaje (0.8 = 80%). panel_figura_x: dónde va parado. panel_velo_alpha: cuánto se oscurecen tribuna y pasto cuando el protagonista actúa. panel_franja_y: la banda del texto, que NUNCA va encima del sprite.",
-    "_panel_p8": "TANDA DE PIEL P8: los pies quedaban cortados. No era el borde del panel (el pasto llega a 304) ni una máscara: era la FRANJA DE TEXTO, un rect de 960x24 en y=292 (o sea 280..304) con alpha 0.82, casi opaco, que le pasaba por encima a los pies. Ahora panel_suelo_y=278 deja la figura apoyada JUSTO ARRIBA de la franja, y panel_figura_frac sube a 0.86 para que no se achique al perder alto útil (245*0.86 = 211px, contra los 213 de antes)."
+    "_panel_p8": "TANDA DE PIEL P8: los pies quedaban cortados. No era el borde del panel (el pasto llega a 304) ni una máscara: era la FRANJA DE TEXTO, un rect de 960x24 en y=292 (o sea 280..304) con alpha 0.82, casi opaco, que le pasaba por encima a los pies. Ahora panel_suelo_y=278 deja la figura apoyada JUSTO ARRIBA de la franja, y panel_figura_frac sube a 0.86 para que no se achique al perder alto útil (245*0.86 = 211px, contra los 213 de antes).",
+    "profundo": {
+      "_nota": "P6-B · LA CANCHA PROFUNDA. Cuando la jugada saca la camara de donde estaba, el panel de arriba cambia de MODO: de LATERAL (de perfil, para correr y gambetear) a PROFUNDO (la camara detras del que la tira, mirando al arco, con las lineas convergiendo al punto de fuga). El mapa de abajo NO cambia nunca: es el ancla para saber donde estas. activo:false vuelve todo al modo lateral de siempre.",
+      "activo": true,
+      "pase_dist": 300,
+      "tiro_dist": 260,
+      "megacorrida": true,
+      "saque": true,
+      "_umbrales": "pase_dist: a partir de cuantos px de mundo un pase es LARGO y corta de camara (un toque corto se juega en el plano lateral: si cada pase cortara, el corte dejaria de significar algo). tiro_dist: idem para el remate, medido contra el arco.",
+      "vuelo_ms": 1150,
+      "vp_y": 62,
+      "near_y": 298,
+      "k": 3,
+      "_encuadre": "vp_y / near_y: el punto de fuga y la linea de cerca, en coordenadas del panel (que vive entre y=30 e y=304). k: fuerza de la perspectiva (mas alto = converge mas rapido).",
+      "receptor_d0": 0.94,
+      "receptor_d1": 0.42,
+      "tirador_d0": 0.1,
+      "tirador_d1": 0,
+      "tirador_sale": 0.55,
+      "tirador_crece": 1.8,
+      "corte_freno_ms": 90,
+      "_viaje": "Lo que hace que se sienta LA CAMARA AVANZANDO y no un dibujo moviendose: los DOS se acercan. El que tiro crece y se va de cuadro (tirador_crece, tirador_sale) y el que recibe viene de lejos (receptor_d0) a media distancia (receptor_d1). Si solo se moviera la pelota seria el mismo plano con un objeto cruzando, que es lo que habia antes.",
+      "receptor_escala_min": 0.16
+    }
   },
   "escena": {
     "_nota": "ANIME v4 Bloque B: LA CAPA CINEMÁTICA (flag v4_escenas). Toda acción significativa corta a una viñeta a pantalla: entrada del protagonista, pose, SILENCIO (feel.silencio_ms) y desenlace. Tiempos en ms; escalas de los sprites heroicos en el panel.",
