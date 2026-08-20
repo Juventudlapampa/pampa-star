@@ -177,7 +177,38 @@
     }
   }
   /* API: acepta los nombres nuevos y los viejos ("propia"→propia_propio) */
+  /* P5 · LOS ARCHIVOS MANDAN SOBRE EL SINTETIZADOR.
+     Si balance.musica.archivos declara una ruta para este tema y el juego la
+     cargó, suena ESE archivo en loop y el chiptune se calla. El que no tenga
+     archivo sigue sintetizado, así se pueden cambiar de a uno. */
+  var archivos = {};      // id -> HTMLAudioElement, lo llena registrarArchivos()
+  var archivoSonando = null;
+  function pararArchivo() {
+    if (archivoSonando) { try { archivoSonando.pause(); archivoSonando.currentTime = 0; } catch (e) {} archivoSonando = null; }
+  }
+  function registrarArchivos(mapa) {
+    pararArchivo(); archivos = {};
+    if (!mapa) return 0;
+    var n = 0;
+    Object.keys(mapa).forEach(function (id) {
+      var ruta = mapa[id];
+      if (id.charAt(0) === "_" || !ruta) return;
+      var a = new Audio(ruta); a.loop = true; a.preload = "auto";
+      archivos[id] = a; n++;
+    });
+    return n;
+  }
   function musicaTema(nombre) {
+    /* archivo primero: si este tema tiene uno, el sintetizador ni arranca */
+    var idA = nombre === "propia" ? "propia_propio" : nombre;
+    if (archivoSonando) pararArchivo();
+    if (idA && archivos[idA]) {
+      if (musEnsure && mus && mus.timer) { clearInterval(mus.timer); mus.timer = null; mus.base = null; }
+      archivoSonando = archivos[idA];
+      archivoSonando.volume = muted ? 0 : (MUSICA.vol != null ? MUSICA.vol : 0.5);
+      try { archivoSonando.play(); } catch (e) {}
+      return;
+    }
     if (!musEnsure()) return;
     var id = nombre === "propia" ? "propia_propio" : nombre;
     if (id === mus.base) return;
@@ -214,6 +245,7 @@
     musicaTema: musicaTema,
     musicaZona: musicaZona,
     musicaDuck: musicaDuck,
+    registrarArchivos: registrarArchivos,   // P5: balance.musica.archivos
     musicaUrgente: function (on) { mus.urgente = !!on; },
 
     /* patada seca: click grave + thump */

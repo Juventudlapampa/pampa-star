@@ -177,10 +177,34 @@
         ],
         "percusion": 1,
         "motivo": "principal"
+      },
+      "final": {
+        "tonica": 196,
+        "modo": "menor",
+        "bpm": 66,
+        "prog": [
+          0,
+          8,
+          3,
+          10
+        ],
+        "percusion": 0.15,
+        "motivo": "insinuado",
+        "_nota": "P5 · EL CIERRE. Lento y bajo: el partido terminó. Suena final_ms y despues silencio de vestuario."
       }
     },
     "gol_bpm": 150,
-    "lamento_bpm": 70
+    "lamento_bpm": 70,
+    "_P5_como_cambiar_la_musica": "P5 · PARA CAMBIAR LA MÚSICA SIN TOCAR CÓDIGO. Hoy los temas son SINTETIZADOS (chiptune por WebAudio, phaser/audio/sfx.js): no hay archivos que reemplazar. Hay dos caminos y los dos viven acá: (A) AFINAR el sintetizador — `temas` de abajo tiene tonica/modo/bpm/prog/percusion/motivo de cada tema; bajando `vol` a 0 la música se apaga entera. (B) REEMPLAZARLA POR ARCHIVOS — poné rutas en `archivos` y esos archivos MANDAN sobre el sintetizador: el que tenga archivo suena de archivo, el que no, sigue sintetizado. Las rutas son relativas a la raíz del repo (ej: 'assets/musica/propia.mp3'). Formatos que aguanta el navegador: mp3, ogg, m4a, wav.",
+    "archivos": {
+      "_nota": "vacío = sintetizado. Poné una ruta y ese tema pasa a sonar del archivo. Se cargan al arrancar el partido y se reproducen en loop.",
+      "propia_propio": "",
+      "propia_rival": "",
+      "rival": "",
+      "final": ""
+    },
+    "final_ms": 2600,
+    "_final": "P5 · cuánto dura el motivo de cierre antes del silencio de vestuario. 0 = corta seco, sin motivo."
   },
   "secuencias": {
     "_nota": "V6 §3.4: las SECUENCIAS encadenan escenas en una sola acción épica (flag v6_secuencias, firma del crack). MEGACORRIDA: N rivales quedan atrás uno a uno y rematás (si un duelo se pierde, muere ahí). COMBINADA: pared, se suma el compañero, elegís CENTRO o AL PIE y ÉL define. Desbloqueo por nivel de carrera, costo alto a propósito.",

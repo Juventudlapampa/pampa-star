@@ -174,6 +174,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._poseForzada = null;        // P3: la pose del trámite no cruza de partido
     this._tramitesMudos = 0;         // P3: cuántas acciones quedaron sin verse
     this._tramiteMudoUltimo = null;
+    this._musicaTrabada = false;     // P5: el partido nuevo vuelve a tener música
   }
 
   create() {
@@ -311,6 +312,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (window.PampaTribunaUI) window.PampaTribunaUI.montar(this);
     this.buildBotonAccion();
     this.buildCineBase();
+    /* P5: si balance.musica.archivos declara rutas, esos temas pasan a sonar
+       de archivo y el chiptune se calla para ellos. Vacio = todo sintetizado. */
+    this.registrarMusicaDeArchivo();
     this.uiCam = this.cameras.add(0, 0, 960, 540);
     cam.ignore([this.hudLayer, this.menuLayer, this.cineLayer]);
     this.uiCam.ignore(this.mundoLayer);
@@ -430,7 +434,52 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._pintarRelato(f);
   }
   /* helpers de música (flag v4_musica; el mute vive en SFX, compartido con el clásico) */
-  musica(tema) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(tema); }
+  /* ══════════════════════════════════════════════════════════════════════
+     P5 · LA MÚSICA CORTA AL TERMINAR, Y NO VUELVE.
+
+     finDelPartido() ya llamaba a musica(null), pero la música seguía igual:
+     el update sigue corriendo con el partido terminado y el cambio de portador
+     vuelve a llamar musica("propia"/"rival") en cuanto cambia el lado. O sea
+     que se apagaba y se volvía a prender sola.
+
+     El arreglo es una TRABA, no un parche en el llamador: con el partido
+     terminado esta función no deja pasar nada que no sea el silencio. Así da
+     igual quién la llame ni desde dónde.
+     ══════════════════════════════════════════════════════════════════════ */
+  musica(tema) {
+    if (this._musicaTrabada && tema) return;                 // terminó: no se reenciende
+    if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(tema);
+  }
+  /* el cierre: un motivo corto y después el silencio de vestuario. La duración
+     sale de balance.musica.final_ms; en 0 corta seco. */
+  /* P5 · engancha balance.musica.archivos con el reproductor. Se llama al
+     armar el partido: si no hay ninguna ruta declarada, no hace nada y todo
+     sigue sintetizado como hasta ahora. */
+  registrarMusicaDeArchivo() {
+    const M = this.BAL.musica || {};
+    if (!M.archivos || !this.SFX || !this.SFX.registrarArchivos) return 0;
+    /* las rutas del balance son relativas a la raíz; las escenas viven en /phaser */
+    const mapa = {};
+    Object.keys(M.archivos).forEach((k) => {
+      if (k.charAt(0) === "_" || !M.archivos[k]) return;
+      mapa[k] = "../" + M.archivos[k];
+    });
+    return this.SFX.registrarArchivos(mapa);
+  }
+  cerrarMusica() {
+    this._musicaTrabada = true;
+    const M = this.BAL.musica || {};
+    const ms = M.final_ms != null ? M.final_ms : 2600;
+    if (ms > 0 && this.SFX && this.SFX.musicaTema) {
+      /* el tema de cierre: si hay uno declarado suena, si no baja el volumen */
+      this._musicaTrabada = false;
+      this.musica("final");
+      this._musicaTrabada = true;
+      this.time.delayedCall(ms, () => { if (this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(null); });
+    } else if (this.SFX && this.SFX.musicaTema) {
+      this.SFX.musicaTema(null);
+    }
+  }
   musicaDuck(ms) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaDuck) this.SFX.musicaDuck(ms); }
 
   /* plantel: VOS + amigos de la Capa 3 (save clásico, tolerante) + roster —
@@ -3186,7 +3235,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   finDelPartido() {
     const st = this.st;
     this.estado = "FINAL";     // estado propio: ningún delayedCall de resolución lo puede barrer
-    this.musica(null);         // ANIME D: silencio de vestuario
+    this.cerrarMusica();       // P5: motivo de cierre y traba — no se reenciende
     if (this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(false);
     this.SFX && this.SFX.whistle();
     this.relatar("final");
