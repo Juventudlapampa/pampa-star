@@ -58,10 +58,36 @@
       case "racha_buena": return (ctx.racha | 0) >= 3;
       case "racha_mala": return (ctx.racha | 0) <= -3;
       case "campo": return (ctx.marcas || []).indexOf("cosecha") >= 0;
+      case "escuela": return (ctx.marcas || []).indexOf("escuela") >= 0;
       case "primera": return (ctx.fecha | 0) === 0;
       default: return true;
     }
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     LA TRADUCCION CONDICION → MARCA, EN UN SOLO LUGAR.
+
+     El origen deja MARCAS ("cosecha", "escuela") y las condiciones se escriben
+     con otro vocabulario ("campo", "escuela"). Esa traduccion vivia hardcodeada
+     adentro del switch de aca, y logic/semana.js —que necesita la misma para
+     las acciones con requiere_origen— comparaba contra la marca directamente.
+
+     Resultado medido: ayudar_casa pedia origen "campo" y se comparaba contra la
+     marca "cosecha", asi que nunca daba; estudiar pedia "escuela" y esa marca
+     ni siquiera existia. DOS de las diez acciones de la semana eran
+     INALCANZABLES y no habia ningun error — simplemente no aparecian. El
+     _nota_diseno de ayudar_casa documenta toda una discusion de balance sobre
+     una opcion que nadie vio jugando nunca.
+
+     Ahora la traduccion es una sola funcion, la usan los dos, y agregar una
+     condicion nueva es agregarla una vez.
+     ══════════════════════════════════════════════════════════════════════ */
+  var MARCA_DE = { campo: "cosecha", escuela: "escuela" };
+  function cumpleOrigen(condicion, marcas) {
+    if (!condicion) return true;
+    var m = MARCA_DE[condicion] || condicion;
+    return (marcas || []).indexOf(m) >= 0;
+  }
+
   /* elegir SIN repetir: la bolsa guarda los ids ya vistos y se vacía al agotarse */
   function elegirEvento(data, bolsaVistos, ctx, semilla) {
     var evs = (data && data.eventos) || [];
@@ -96,6 +122,7 @@
   return {
     aplicarOrigen: aplicarOrigen, fichaOrigen: fichaOrigen,
     aplicaCondicion: aplicaCondicion, elegirEvento: elegirEvento,
-    aplicarEleccion: aplicarEleccion, limpiar: limpiar, TOPES: TOPES, rng: rng
+    aplicarEleccion: aplicarEleccion, limpiar: limpiar, TOPES: TOPES, rng: rng,
+    cumpleOrigen: cumpleOrigen, MARCA_DE: MARCA_DE
   };
 });

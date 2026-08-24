@@ -157,7 +157,15 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   });
   /* la animación usa el Bloque B que ya existe, sin arte nuevo */
   assert(/PampaFeel\.aparecer\(this, im,/.test(MASTER), "D3: el momento entra con anticipación y rebote");
-  assert(/PampaSemanaUI\.escenario\(this, W \/ 2/.test(MASTER), "D3: y el escenario N4 detrás");
+  assert(/PampaSemanaUI\.escenario\(this, MX, MY, MW, MH/.test(MASTER), "D3: y el escenario N4 detrás");
+  /* lo que se aprendió mirándolo con tiempo real: el rebote de PampaFeel se pasa
+     del destino a propósito, así que la figura necesita máscara o asoma fuera
+     del marco; y el texto necesita banda opaca o las líneas del escenario lo
+     tachan. Las dos cosas se ven en la captura de la primera versión. */
+  assert(/im\.setMask\(mk\.createGeometryMask\(\)\)/.test(MASTER),
+    "D3: la figura del momento va enmascarada contra el marco, o el rebote la saca afuera");
+  assert(/const banda = this\.add\.rectangle\(x0, y0, bw, MH, 0x0a1f13, 0\.88\)/.test(MASTER),
+    "D3: el texto va sobre banda opaca, o las líneas del escenario lo tachan");
   assert(typeof BAL.semana.momento_ms === "number", "D3: cuánto dura es una perilla");
   /* el master carga las poses POR DATO, no por lista a mano */
   assert(/dSem\.opciones\.forEach\(\(o\) => \{ if \(o && o\.pose/.test(MASTER),

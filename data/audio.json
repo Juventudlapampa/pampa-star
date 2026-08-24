@@ -1,85 +1,85 @@
 {
-  "_schema": "pampa-star/audio@1",
-  "_doc": "MAPA DE MÚSICA. Cada entrada dice qué archivo suena en qué momento. Los que terminan en _loop están cortados a compás exacto con crossfade de 40ms: NO los recortes ni los reprocesás, dan vueltas sin costura. Los otros suenan una vez y terminan. Todos en OGG Opus 96k: los 12 pesan 3,9 MB juntos. Para cambiar un tema, pisá el archivo con el mismo nombre o editá 'archivo' acá.",
-  "temas": {
-    "opening": {
-      "archivo": "Victory_Lap_At_Dawn.ogg",
-      "loop": false,
-      "n": "Victory Lap At Dawn",
-      "_por_que": "136 BPM en mayor, 10 dB de rango dinámico. El más luminoso de los rápidos y el mejor grabado de esa familia."
-    },
-    "entrada_partido": {
-      "archivo": "Under_the_Floodlights.ogg",
-      "loop": false,
-      "n": "Under the Floodlights",
-      "_por_que": "112 BPM, ceremonial. La portada era un túnel de vestuario saliendo a la cancha: es la imagen de 'del potrero al Mundial'. Va en la entrada previa al partido, que sube de intensidad con la división."
-    },
-    "partido": {
-      "archivo": "The_Winning_Strike_loop.ogg",
-      "loop": true,
-      "n": "The Winning Strike",
-      "_corte": "16 compases a 144 BPM = 26,67s. Empalme 0,54 -> 0,85.",
-      "_alterna_con": "Voltage_Breakaway_loop.ogg"
-    },
-    "partido_alt": {
-      "archivo": "Voltage_Breakaway_loop.ogg",
-      "loop": true,
-      "n": "Voltage Breakaway",
-      "_corte": "16 compases a 144 BPM = 26,67s. Empalme 0,52 -> 0,84.",
-      "_por_que": "Para que un partido no suene siempre igual: alterna con el anterior por fecha."
-    },
-    "partido_final": {
-      "archivo": "Last_Ten_Seconds_loop.ogg",
-      "loop": true,
-      "n": "Last Ten Seconds",
-      "_corte": "16 compases a 161 BPM = 23,85s. Empalme 0,80 -> 0,93, el mejor de los doce.",
-      "_por_que": "161 BPM en Fa MENOR: rápido y oscuro, que es la combinación de la urgencia. Entra en el tramo final del segundo tiempo, o antes si vas perdiendo."
-    },
-    "semana": {
-      "archivo": "Low_Light_Protocol_loop.ogg",
-      "loop": true,
-      "n": "Low Light Protocol",
-      "_corte": "8 compases a 144 BPM = 13,3s. Empalme 0,44 -> 0,85.",
-      "_por_que": "Fa menor, brillo 900 Hz, 13,3 dB de rango dinámico: el mejor grabado de los doce y el único realmente triste. Es la etapa entre partidos."
-    },
-    "semana_alt": {
-      "archivo": "Quiet_Morning_Walk_loop.ogg",
-      "loop": true,
-      "n": "Quiet Morning Walk",
-      "_corte": "8 compases a 96 BPM = 20s. Empalme 0,48 -> 0,69.",
-      "_por_que": "Hermano del anterior: Fa menor, brillo 902 Hz. Son la única pareja coherente del set, así que alternan sin que cambie el mundo sonoro."
-    },
-    "espera": {
-      "archivo": "The_Longest_Minute_loop.ogg",
-      "loop": true,
-      "n": "The Longest Minute",
-      "_corte": "8 compases a 89 BPM = 21,6s. Empalme 0,41 -> 0,67.",
-      "_por_que": "89 BPM en mayor, 10,6 dB de rango. Lento y luminoso: la tabla de la temporada y la pantalla previa a la fecha."
-    },
-    "gol_festejo": {
-      "archivo": "After_the_Rain_Stops.ogg",
-      "loop": false,
-      "n": "After the Rain Stops",
-      "_por_que": "Sol# mayor, luminoso. Suena una vez después de un gol importante o al ganar el partido."
-    },
-    "hype_carrera": {
-      "archivo": "Beyond_the_Mushroom_Bridge.ogg",
-      "loop": false,
-      "n": "Beyond the Mushroom Bridge",
-      "_por_que": "117 BPM, ceremonial. El momento grande de la carrera: ascenso, título, gloria mundial."
-    },
-    "_reserva": {
-      "archivos": [
-        "Cielo_de_victoria.ogg",
-        "Fuerza_de_un_Leon.ogg"
-      ],
-      "_nota": "Los dos a 144 BPM y en mayor, sin destino asignado. Sirven para reemplazar el opening o el partido si a Rodri no le convencen los puestos. Cortan en 18,5 compases, así que para usarlos en loop hay que recortarlos.",
-      "_nota_nombres": "X1 (20/ago/2026): el archivo se llamaba Fuerza_de_un_León.ogg, con o acentuada. En disco y en git el nombre estaba bien (UTF-8), pero al DESCOMPRIMIR EL ZIP EN WINDOWS salia como Fuerza_de_un_Le#U00f3n.ogg — el zip no marca el flag UTF-8 y el Explorador lo reescribe. Entonces audio.json no lo encontraba y ese tema no podia sonar. Renombrado a ASCII. REGLA: ningun archivo del proyecto usa acentos ni caracteres no ASCII en el nombre; los acentos en rutas web traen este problema y otros peores (URL-encoding, servidores que normalizan distinto, Git en macOS con NFD). Lo verifica m_musica.test.js."
-    }
+ "_schema": "pampa-star/audio@1",
+ "_doc": "MAPA DE MÚSICA. Cada entrada dice qué archivo suena en qué momento. Los que terminan en _loop están cortados a compás exacto con crossfade de 40ms: NO los recortes ni los reprocesás, dan vueltas sin costura. Los otros suenan una vez y terminan. Todos en OGG Opus 96k: los 12 pesan 3,9 MB juntos. Para cambiar un tema, pisá el archivo con el mismo nombre o editá 'archivo' acá.",
+ "temas": {
+  "opening": {
+   "archivo": "Victory_Lap_At_Dawn.ogg",
+   "loop": false,
+   "n": "Victory Lap At Dawn",
+   "_por_que": "136 BPM en mayor, 10 dB de rango dinámico. El más luminoso de los rápidos y el mejor grabado de esa familia."
   },
-  "_reglas": {
-    "corte_al_terminar": "La música del partido para al terminar y NO sigue en la pantalla de final.",
-    "cambio_sin_silencio": "Al pasar de un momento a otro, fundir 300ms en vez de cortar seco, salvo en el gol donde el silencio previo es el efecto.",
-    "volumen": "La música va por debajo de los efectos: cuando hay hitstop o cartel de gol, baja un 40% y vuelve."
+  "entrada_partido": {
+   "archivo": "Under_the_Floodlights.ogg",
+   "loop": false,
+   "n": "Under the Floodlights",
+   "_por_que": "112 BPM, ceremonial. La portada era un túnel de vestuario saliendo a la cancha: es la imagen de 'del potrero al Mundial'. Va en la entrada previa al partido (match.js pide el momento 'entrada' con un tope de balance.musica.entrada_ms = 11000 ms y después entra el tema del partido). OJO: suena IGUAL en las cinco divisiones. La tabla para que la ceremonia crezca existe —escalera.js, ceremonia_ms 0/0/900/1400/2200 y hayCeremonia()— pero no la lee ninguna escena: de PampaEscalera hoy sólo se usa el detalle del escudo. Quedó escrito como intención, no como estado; si algún día se engancha la escalera, esta entrada es el lugar."
+  },
+  "partido": {
+   "archivo": "The_Winning_Strike_loop.ogg",
+   "loop": true,
+   "n": "The Winning Strike",
+   "_corte": "16 compases a 144 BPM = 26,67s. Empalme 0,54 -> 0,85.",
+   "_alterna_con": "Voltage_Breakaway_loop.ogg"
+  },
+  "partido_alt": {
+   "archivo": "Voltage_Breakaway_loop.ogg",
+   "loop": true,
+   "n": "Voltage Breakaway",
+   "_corte": "16 compases a 144 BPM = 26,67s. Empalme 0,52 -> 0,84.",
+   "_por_que": "Para que un partido no suene siempre igual: alterna con el anterior por fecha."
+  },
+  "partido_final": {
+   "archivo": "Last_Ten_Seconds_loop.ogg",
+   "loop": true,
+   "n": "Last Ten Seconds",
+   "_corte": "16 compases a 161 BPM = 23,85s. Empalme 0,80 -> 0,93, el mejor de los doce.",
+   "_por_que": "161 BPM en Fa MENOR: rápido y oscuro, que es la combinación de la urgencia. Entra en el tramo final del segundo tiempo, o antes si vas perdiendo."
+  },
+  "semana": {
+   "archivo": "Low_Light_Protocol_loop.ogg",
+   "loop": true,
+   "n": "Low Light Protocol",
+   "_corte": "8 compases a 144 BPM = 13,3s. Empalme 0,44 -> 0,85.",
+   "_por_que": "Fa menor, brillo 900 Hz: es LEJOS el más oscuro de los doce (medido 939 Hz; el que le sigue, Quiet Morning Walk, ya se va a 1.957 y el resto anda entre 3.200 y 5.800) y el único realmente triste. Es también el mejor grabado, pero por el headroom, no por la dinámica: es el ÚNICO archivo con aire arriba, pica en -8,4 dBFS mientras los otros once vienen aplastados contra el 0 y hasta se pasan. En rango dinámico está último: cresta 12,7 dB (la más baja de las doce, el resto va de 14,6 a 17,6) y DR 11,4 (puesto 11 de 12; el mejor es Last Ten Seconds con 14,9). OJO: acá decía '13,3 dB de rango dinámico' y era un error de copiado — 13,3 son los SEGUNDOS del loop, están en el _corte de acá arriba. Es la etapa entre partidos."
+  },
+  "semana_alt": {
+   "archivo": "Quiet_Morning_Walk_loop.ogg",
+   "loop": true,
+   "n": "Quiet Morning Walk",
+   "_corte": "8 compases a 96 BPM = 20s. Empalme 0,48 -> 0,69.",
+   "_por_que": "Hermano del anterior: Fa menor, brillo 902 Hz. Son la única pareja coherente del set, así que alternan sin que cambie el mundo sonoro."
+  },
+  "espera": {
+   "archivo": "The_Longest_Minute_loop.ogg",
+   "loop": true,
+   "n": "The Longest Minute",
+   "_corte": "8 compases a 89 BPM = 21,6s. Empalme 0,41 -> 0,67.",
+   "_por_que": "89 BPM en mayor, 10,6 dB de rango. Lento y luminoso: la tabla de la temporada y la pantalla previa a la fecha."
+  },
+  "gol_festejo": {
+   "archivo": "After_the_Rain_Stops.ogg",
+   "loop": false,
+   "n": "After the Rain Stops",
+   "_por_que": "Sol# mayor, luminoso. OJO con el nombre: hoy NO suena en el gol. El gol se resuelve con silencio + musicaDuck (golPico baja el volumen del tema que ya venía sonando, no cambia de tema). Este es el tema de CIERRE del partido: cerrarMusica() lo pide una sola vez al pitazo final —ganes, pierdas o empates, no mira el resultado— y a los final_ms (2600 ms) entra el silencio de vestuario. Quedó con este nombre porque antes el cierre pedía 'final', que no existía en el mapa de momentos, y este era el único tema luminoso a mano para tapar el agujero."
+  },
+  "hype_carrera": {
+   "archivo": "Beyond_the_Mushroom_Bridge.ogg",
+   "loop": false,
+   "n": "Beyond the Mushroom Bridge",
+   "_por_que": "117 BPM, ceremonial. El momento grande de la carrera: ascenso, título, gloria mundial."
+  },
+  "_reserva": {
+   "archivos": [
+    "Cielo_de_victoria.ogg",
+    "Fuerza_de_un_Leon.ogg"
+   ],
+   "_nota": "Los dos a 144 BPM y en mayor, sin destino asignado. Sirven para reemplazar el opening o el partido si a Rodri no le convencen los puestos. Cortan en 18,5 compases, así que para usarlos en loop hay que recortarlos.",
+   "_nota_nombres": "X1 (20/ago/2026): el archivo se llamaba Fuerza_de_un_León.ogg, con o acentuada. En disco y en git el nombre estaba bien (UTF-8), pero al DESCOMPRIMIR EL ZIP EN WINDOWS salia como Fuerza_de_un_Le#U00f3n.ogg — el zip no marca el flag UTF-8 y el Explorador lo reescribe. Entonces audio.json no lo encontraba y ese tema no podia sonar. Renombrado a ASCII. REGLA: ningun archivo del proyecto usa acentos ni caracteres no ASCII en el nombre; los acentos en rutas web traen este problema y otros peores (URL-encoding, servidores que normalizan distinto, Git en macOS con NFD). Lo verifica m_musica.test.js."
   }
+ },
+ "_reglas": {
+  "corte_al_terminar": "La música del partido para al terminar y NO sigue en la pantalla de final.",
+  "cambio_sin_silencio": "Al pasar de un momento a otro, fundir 300ms en vez de cortar seco, salvo en el gol donde el silencio previo es el efecto.",
+  "volumen": "La música va por debajo de los efectos: cuando hay hitstop o cartel de gol, baja un 40% y vuelve."
+ }
 }

@@ -8,7 +8,7 @@
     "comentario": "arco_medio = media boca del arco en px (decisión de legibilidad, no escala simulador moderno exacta)"
   },
   "ritmo": {
-    "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR. FEEL v3 Bloque 1: TODO baja un cambio (~35% menos que la v2 — el drama por comandos es LENTO); el reloj compensa con seg_por_minuto para que el partido dure lo mismo en minutos reales. Velocidades en px de mundo por segundo.",
+    "_nota": "TODO EL RITMO DEL PARTIDO EN UN SOLO LUGAR. FEEL v3 Bloque 1: TODO baja un cambio (~35% menos que la v2 — el drama por comandos es LENTO). Velocidades en px de mundo por segundo. OJO CON EL RELOJ: acá NO vive más. Hasta V6 el reloj compensaba con seg_por_minuto (24->16 en Feel 1, junto con las velocidades) para que el partido durara lo mismo en minutos reales; desde V6 §2 R4 el reloj es A SALTOS y lo manda el bloque `tempo` (minutos_por_momento 2.2 + goteo_seg_por_minuto 8). segPorMinuto() en logic/partido.js pregunta primero por tempo.minutos_por_momento y corta ahí: seg_por_minuto:16 quedó de RESERVA y hoy no lo lee nadie. Solo revive si borrás tempo entero (sin tempo.duracion_real_min tampoco). Si querés que el partido dure más o menos, tocá tempo, no este número.",
     "portador_con_pelota": 55,
     "defensor_cerrando": 68,
     "perseguidor_sin_pelota": 61,
@@ -34,7 +34,7 @@
     "_v8_fix": "V8 playtest: saltos_vel_mult 1.8->1.0 - el multiplicador solo pega en los PORTADORES y con 1.8 tu latido era 3x el del resto (30px vs 11px). Con 1.0: tu tramo ~17px, cazador ~20px, posicionales ~11px - parejo. rival_con_pelota 38->64: con mult 1.0 el rival quedaba cazable (regla R1 rota); a 64 sigue inalcanzable (perseguidor 61) y su tramo (~19px) queda parejo con el tuyo (~17px)."
   },
   "vista": {
-    "_nota": "ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA. La cámara sube hasta ver la cancha (cobertura = fracción del alto del mundo visible; 1.0 = cancha entera). Los 22 se ven como fichas simples; el radar desaparece y el pase se toca sobre la cancha. cambio_auto: marcador automático en defensa (histéresis en la lógica).",
+    "_nota": "ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA. La cámara sube hasta ver la cancha (cobertura = fracción del alto del mundo visible; 1.0 = cancha entera) y los 22 se ven como fichas simples. cambio_auto: marcador automático en defensa (histéresis en la lógica). OJO, ESTO ES EL MODO VIEJO: quedó acá porque cobertura/lerp/deadzone_* siguen siendo las perillas de esa cámara y son las que mandan si apagás flags.pantalla_partida. Con el flag prendido (que es el default en match.js, el bloque flags del JSON no lo apaga) el mundo ni se dibuja y manda el _v7 de acá abajo. Y lo del 'radar que desaparece y el pase sobre la cancha' ya no corre en ningún caso: desde V6 §1 F1 buildRadar() se llama siempre — el radar ES el mapa grande de abajo, y ahí se corre y se apunta el pase.",
     "cobertura": 0.85,
     "lerp": 0.08,
     "deadzone_w": 60,
@@ -97,7 +97,7 @@
     }
   },
   "escena": {
-    "_nota": "ANIME v4 Bloque B: LA CAPA CINEMÁTICA (flag v4_escenas). Toda acción significativa corta a una viñeta a pantalla: entrada del protagonista, pose, SILENCIO (feel.silencio_ms) y desenlace. Tiempos en ms; escalas de los sprites heroicos en el panel.",
+    "_nota": "ANIME v4 Bloque B: LA CAPA CINEMÁTICA (flags v4_escenas + e6_cine). OJO: ya NO corta a viñeta toda acción significativa — eso era la v4 y ERA el problema (un pase lateral costaba los mismos 2.600 ms que un gol de chilena; cuando todo es épico, nada lo es). Desde el BLOQUE A manda logic/drama.js: escalón 1 (pase, quite, corte, saque, salida del arquero) se resuelve EN LA CANCHA y no corta; escalón 2 (gambeta, remate, atajada, bloqueo) corta pero a la mitad; escalón 3 (gol, megatiro, chilena, final) es el único que se ve entero. El contexto sube de escalón: el mismo quite adentro del área sí corta. Estos entrada/pose/hold quedaron acá porque son el reparto del escalón 3 (500/800/1300 sobre 2.600) y el fallback por si drama.js no cargó — el reparto REAL lo calcula drama.planos() con las perillas de drama.escalon*_ms. El pase tiene su propia escena aparte (V9 §2), con perillas en escena_pase. Tiempos en ms; escalas de los sprites heroicos en el panel.",
     "entrada_ms": 500,
     "pose_ms": 800,
     "hold_ms": 1300,
@@ -126,7 +126,7 @@
     "_compuerta": "La pantalla previa cuyo TOQUE desbloquea el audio del navegador y dispara el opening CON sonido desde el primer plano (sin ella, el opening automático sería siempre mudo). compuerta:false la saca."
   },
   "musica": {
-    "_nota": "ADDENDUM v6 Parte B (reemplaza §6): la DIRECCIÓN musical. El MOTIVO de 4 notas (semitonos: tónica→quinta→sexta→octava) aparece en todos los temas transformado. Cada tema: tónica (Hz), modo, BPM, progresión (grados en semitonos, i–VI–III–VII heroica / cromática descendente para el rival), percusión (0-1) y variante del motivo. viento = la capa pampeana sutil. Todo afinable acá, sin código.",
+    "_nota": "ADDENDUM v6 Parte B · OJO: ESTO ES EL BRIEF, NO LO QUE SUENA HOY. EL MOTIVO de 4 notas (semitonos: tónica→quinta→sexta→octava) era la dirección musical de cuando la música se SINTETIZABA. Desde M3, el sintetizador está borrado (ver el acta en audio/sfx.js) y la música son los doce OGG que mapea data/audio.json. De todo este bloque, el código HOY lee tres cosas y nada más: `motivo`, `gol_bpm` y `lamento_bpm` — y solo para dos efectos cortos, el grito de gol y el lamento del gol en contra (sfx.js, goal() y golEnContra()). El bloque `temas` (tonica/modo/bpm/prog/percusion/motivo/segunda_menor) y `viento` NO los lee nadie: quedan como partitura escrita, para que el día que se quiera volver a generar música haya de dónde arrancar y no se pierda la dirección (i–VI–III–VII heroica, cromática descendente para el rival, viento pampeano de fondo). Tocar esos números no cambia una nota. Para cambiar la música de verdad: data/audio.json (qué archivo suena en cada momento) y `vol_archivo` acá abajo (cuánto).",
     "vol": 0.5,
     "viento": 0.014,
     "motivo": [
@@ -215,14 +215,14 @@
         ],
         "percusion": 0.15,
         "motivo": "insinuado",
-        "_nota": "P5 · EL CIERRE. Lento y bajo: el partido terminó. Suena final_ms y despues silencio de vestuario."
+        "_nota": "_nota\": \"P5, MUERTO DESDE M3 · EL CIERRE QUE YA NO SUENA. Esto era el motivo de cierre del SINTETIZADOR: lento y bajo (66 BPM, percusión 0.15) para decir 'el partido terminó'. Hoy no suena, y por dos razones distintas. Una: el generador de chiptune se borró en M3 (ver 'ACTA DE LO QUE SE FUE' en phaser/audio/sfx.js) — de todo este bloque `temas` no lee nadie nada; de `musica` el código solo usa vol, motivo, gol_bpm y lamento_bpm. Dos: el cierre lo maneja cerrarMusica() (phaser/scenes/match.js:545), que pide el momento 'gol_festejo' — After_the_Rain_Stops.ogg, Sol# mayor, LUMINOSO —, lo deja sonar final_ms y recién ahí pide 'silencio'; ahí mismo está anotado por qué: antes pedía 'final' y 'final' no es un momento de PampaMusica.MOMENTOS (phaser/logic/musica.js), así que caía en el vacío. O sea: el cierre de hoy es el festejo, no este tema lento. El bloque queda como partitura de referencia de la dirección musical, pero tocar estos números NO cambia una nota. Para cambiar el cierre de verdad son dos lugares: el momento que pide cerrarMusica() y el archivo que ese momento tiene en data/audio.json."
       }
     },
     "gol_bpm": 150,
     "lamento_bpm": 70,
-    "_P5_como_cambiar_la_musica": "P5 · PARA CAMBIAR LA MÚSICA SIN TOCAR CÓDIGO. Hoy los temas son SINTETIZADOS (chiptune por WebAudio, phaser/audio/sfx.js): no hay archivos que reemplazar. Hay dos caminos y los dos viven acá: (A) AFINAR el sintetizador — `temas` de abajo tiene tonica/modo/bpm/prog/percusion/motivo de cada tema; bajando `vol` a 0 la música se apaga entera. (B) REEMPLAZARLA POR ARCHIVOS — poné rutas en `archivos` y esos archivos MANDAN sobre el sintetizador: el que tenga archivo suena de archivo, el que no, sigue sintetizado. Las rutas son relativas a la raíz del repo (ej: 'assets/musica/propia.mp3'). Formatos que aguanta el navegador: mp3, ogg, m4a, wav.",
+    "_P5_como_cambiar_la_musica": "P5 · PARA CAMBIAR LA MÚSICA SIN TOCAR CÓDIGO. Hoy los temas suenan DE ARCHIVO: doce OGG en assets/musica/, mapeados momento por momento en data/audio.json y pedidos por una sola puerta, phaser/logic/musica.js (pedir(momento)). El sintetizador de música se BORRÓ en la tanda M3 — el acta está en phaser/audio/sfx.js (líneas 93-130): se fueron el secuenciador programar(), la capa de viento vientoOn(), el bus musEnsure() y musicaZona(). Se borró porque era una fuga: los momentos que nadie había mapeado (la intro, la definición, el jugadón) caían al chiptune sin avisar, quedaba prendido y contaminaba lo que venía después — cinco bugs reportados, una sola causa. Ahora, si un momento no tiene archivo hay SILENCIO y un console.warn (sfx.js ~línea 300): un momento sin tema es un bug de datos y se arregla en audio.json, no tapándolo con música vieja. Entonces, para cambiar un tema hay dos caminos y NINGUNO pasa por acá: (A) pisá el .ogg en assets/musica/ con el mismo nombre, o (B) editá la clave 'archivo' de ese momento en data/audio.json. Lo que SÍ sigue vivo en este bloque: `vol` a 0 apaga la música entera, y los GOLPES CORTOS sintetizados (cambio de posesión, cruce de mitad, tictac final, lamento del gol en contra, el gol) que suenan ENCIMA del tema puesto — esos son efectos, no música, y por eso no se declaran en audio.json. Y `temas` de acá abajo (tonica/modo/bpm/prog/percusion/motivo) quedó de cuando la música se generaba: hoy no mueve nada, se conserva como la partitura que documenta EL MOTIVO y la tonalidad que se buscaron al elegir los doce OGG.",
     "archivos": {
-      "_nota": "M2 · el mapa vive en data/audio.json, no acá: esta clave quedó de la tanda del playtest y ya no se usa para elegir archivos. Se conserva vacía porque apagar la música sigue siendo bajar musica.vol a 0."
+      "_nota": "M2 · el mapa vive en data/audio.json, no acá: esta clave quedó de la tanda del playtest y ya no se usa para elegir archivos. Se conserva vacía porque borrarla rompería a quien busque la clave, no porque sirva. OJO, acá decía que la música se apagaba bajando musica.vol a 0 y eso ya no es cierto: vol era el volumen del sintetizador, y el sintetizador se borró en M3 (ver el ACTA en phaser/audio/sfx.js). Hoy nadie lee musica.vol. El volumen de la música es musica.vol_archivo — lo levanta piel_ui.js y se lo pasa a SFX.registrarArchivos(mapa, vol), que es lo que termina en el volume de los OGG. Ponelo en 0 y la música se apaga; el botón SONIDO del juego es otra cosa (flag muted en localStorage, compartido con el clásico)."
     },
     "final_ms": 2600,
     "_final": "P5 · cuánto dura el motivo de cierre antes del silencio de vestuario. 0 = corta seco, sin motivo.",
@@ -244,14 +244,14 @@
     "bonus_duelo": 8
   },
   "envion": {
-    "_nota": "V6 §2 R3: el MEDIDOR DE ENVIÓN — mérito acumulado, no reflejo. Se llena ganando duelos (gana_duelo por victoria); lleno se gasta en POTENCIAR al equipo (potencia_bonus a todos los duelos por potencia_ms) o en la SÚPER DEFENSA (bloqueo seguro de un remate). Siempre se muestra con NÚMERO además de la barra.",
+    "_nota": "V6 §2 R3 (actualizado en V9 C1): el MEDIDOR DE ENVIÓN — mérito acumulado, no reflejo. Se llena ganando duelos (gana_duelo por victoria) y lleno se gasta en UNA sola cosa: POTENCIAR al equipo (potencia_bonus a todos los duelos por potencia_ms), con el botón 🌟 POTENCIAR del HUD. La SÚPER DEFENSA (bloqueo seguro de un remate) ya NO existe en el juego: su único botón vivía en la pantalla de definición defensiva, y esa pantalla se sacó en V9 C1 porque botones de gestión (plantarse/achicar/aguantar) no son fútbol — ahora entrarDefinicionDef() desvía siempre a escenaRemateRival(), que resuelve por posición y nivel. Quedan en el código gastarEnvionSuper() y su rama en definicion_ui.js como referencia histórica, inalcanzables. O sea: al balancear max y gana_duelo, tenés un solo destino para el mérito, no dos. Siempre se muestra con NÚMERO además de la barra.",
     "max": 100,
     "gana_duelo": 18,
     "potencia_bonus": 10,
     "potencia_ms": 20000
   },
   "definicion": {
-    "_nota": "V6 §4: LA DEFINICIÓN v2 (flag v6_definicion). Fase 1: los defensores se acercan a def_acercan_px_s (más esperás, mejor ángulo, más cerca los tenés; al contacto te la sacan). Fase 2: el duelo de 6 zonas (coincide/a_una/a_dos modulan al arquero) + timing (dulce/floja/pasada). Bloqueo del defensor en línea. Achicar del arquero: gana abajo, vendido al ángulo alto. Defensiva: carga_ms = cuánto tarda el rival en cargar el remate.",
+    "_nota": "V6 §4 · LA DEFINICIÓN v2 (flag v6_definicion), con lo que quedó VIVO después de V9. Fase 1: los defensores se acercan a def_acercan_px_s (más esperás, mejor ángulo, más cerca los tenés; al contacto te la sacan). Fase 2: el duelo de zonas (coincide/a_una/a_dos modulan al arquero) + timing (dulce/floja/pasada) — la grilla interna sigue siendo de 6, pero desde V9 §4 al jugador se le ofrecen TRES (al palo / al medio / al ángulo). Bloqueo del defensor en línea. ACHICAR: achicar_bonus (14) y achicar_vendido (18) están APAGADOS en este build. La regla que describen es cierta —el arquero que sale gana abajo y queda vendido al ángulo alto—, pero efectoAchicar() se llama en un solo lugar (definicion_ui.js, defVueloDef) y esa cadena arranca en defBotonesDef, la pantalla de gestión defensiva que V9 C1 sacó: hoy no hay jugada que los toque. Se dejan acá, y no se borran, porque los tests de definicion.js los cubren y porque son los números ya medidos por si el achicar vuelve alguna vez como ACCIÓN del arquero (no como botón de gestión, que es lo que se pidió sacar). Lo defensivo que sí corre está en _remate_rival, más abajo; carga_ms ya no vive en este archivo, quedó solo en el fallback de index.html.",
     "def_acercan_px_s": 34,
     "contacto_px": 34,
     "jugador_px_s": 160,
@@ -274,7 +274,7 @@
     "arquero_peso_nivel": 0.6,
     "arquero_peso_aguante": 20,
     "arquero_peso_lejos": 18,
-    "_remate_rival": "V9 C1 · TE REMATAN sin pantalla de gestión: remate_lejos = distancia a partir de la cual el remate se considera lejano (el arquero llega mejor). Los tres arquero_peso_* son cuánto pesan el nivel del arquero, su aguante y la distancia en el bonus de atajada.",
+    "_remate_rival": "V9 C1 · TE REMATAN sin pantalla de gestión: remate_lejos = 420 NO es un corte, es la ESCALA de la distancia. El código hace lejos = largo / 420 topeado en 1, así que el bonus del arquero por distancia (lejos × arquero_peso_lejos) crece parejo desde el primer píxel y recién se planta cuando el remate llega a 420 — de un remate a 100 px el arquero ya se lleva su parte. Subirlo achata la curva (hace falta más distancia para el mismo bonus), bajarlo la satura antes. El único corte de verdad es el del relato: el desenlace se cuenta como 'de lejos' cuando lejos pasa 0,75, o sea a los 315 px. Los tres arquero_peso_* son cuánto pesan el nivel del arquero, su aguante y esa distancia en el bonus de atajada.",
     "bloqueo_reparto": {
       "corner": 0.35,
       "rebote": 0.3
@@ -418,7 +418,7 @@
       "normal": 46,
       "figura": 92
     },
-    "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?'). shot_power = fuerza del remate; keeper_skill = capacidad del arquero (normal/figura del toggle).",
+    "comentario": "spread = cuánto pesa la diferencia de fuerza; min/max acotan la chance (siempre hay un '¿entra?'). keeper_skill = capacidad del arquero rival, pero OJO: EN EL JUEGO ESTA CLAVE NO MANDA. `normal` (46) es solo el default de crearPartido (logic/partido.js) y la referencia con la que se calibró la curva G1 de logic/duel.js; en cualquier partido real lo pisa master.js:50 (st.rivalKeeperSkill = division.keeper) con la capacidad FIJA de la división — 40/50/62/74/88, hardcodeadas en DIVISIONES de logic/master.js — porque match.js corre Ma.aplicar() siempre, salvo que alguien apague a mano el flag v6_master (que ni siquiera está en los defaults ni en flags). `figura` (92) ya no la lee nadie del juego: quedó como el arquero duro del banco de pruebas de test/g1_distancia.test.js. El 'toggle ARQUERO NORMAL/FIGURA' que nombraba este comentario era del HITO 1, vivía en la escena shot.js del prototipo y se borró hace rato (solo sobrevive la mención en phaser/README.md). Si querés tocar la dificultad del arquero, es master.js, no acá. (shot_power se borró en C4 y ya no va en este comentario.)",
     "techo": 0.99,
     "suavidad": 0.35,
     "_d2": "D2: max ya no es un muro sino donde EMPIEZA la compresion. Por encima, el exceso se comprime hacia techo sin llegar nunca, asi que siempre queda sensibilidad. Antes, con diferencia de fuerza mayor a 26 la chance quedaba clavada en 0.95 y cualquier penalizacion que restara poder no movia NADA."
@@ -436,11 +436,11 @@
     "retiene_peso_fuerza": 116
   },
   "tiro_ejecucion": {
-    "_nota": "TIRO HÍBRIDO (Bloque B): la construcción sigue siendo por decisión, pero el REMATE lo ejecutás VOS (New-Star-style). Apuntás en el arco, cargás potencia y le das comba. La lógica vive en logic/tiro.js; acá SOLO las perillas.",
+    "_nota": "TIRO CON EJECUCIÓN — PERILLAS DORMIDAS (no tocan el partido). Esto alimentaba a PampaTiro.evaluarEjecucion (logic/tiro.js): el remate New-Star-style donde apuntabas, cargabas potencia y le dabas comba. En V9 §4 murieron las barras: esa función ya no la llama ninguna escena (su único consumidor hoy es test/tiro.test.js). El remate real lo resuelve PampaTiro.tiroAuto — match.js:3067 (ejDeLaSituacion) y :3162 (tiroPorComandos) —, que ni siquiera recibe cfg: la zona sale de la SITUACIÓN (desde dónde pateás, el ángulo, el cansancio, cuántos te estorban) y sus bonus/fuera/gy están cableados en el código (6/0.1/42, 4/0.07/34, -1/0.04/12, -4/0.02/0). O sea: mover estos números no cambia NADA de lo que pasa en cancha. Quedan acá a propósito, porque la lógica pura y sus 15 asserts siguen verdes: si algún día vuelve el tiro con ejecución, este es el bloque que hay que enchufar (y ahí sí van a ser las perillas). Si se decide que no vuelve, se borra el bloque junto con evaluarEjecucion, su test y la copia del fallback de index.html:162.",
     "peso_destreza": 0.65,
-    "_peso": "0 = la ejecución no pesa nada (todo stats) … 1 = la ejecución manda. Con 0.65 la destreza pesa pero un crack sigue teniendo más margen.",
+    "_peso": "_peso\": \"MUERTO desde V8 B, ojo. El único que lee peso_destreza es evaluarEjecucion (logic/tiro.js:54) y a esa función ya no la llama nadie del juego: el remate normal volvió a ser POR COMANDOS y lo resuelve tiroAuto(), que ni recibe este cfg (match.js:3067 y :3162). El camino alternativo (v8_tiro_comandos=false) tampoco pasa por acá: va a LA DEFINICIÓN de 4 fases, que lee balance.definicion. Lo dejamos en 0.65 y no lo borramos por dos razones: test/tiro.test.js todavía prueba la fórmula (incluido el caso peso_destreza=0), y si algún día vuelve el remate con puntería+potencia+comba el número ya está calibrado. Mientras tanto NO lo toques esperando que cambie algo: en 0, en 0.65 o en 1 el partido sale igual. Cuando revivía, el sentido era: 0 = la ejecución no pesa nada (todo stats), 1 = la ejecución manda.",
     "ruido_max": 0.38,
-    "_ruido": "temblor máximo de la puntería con stat de tiro 30; con stat 90 el pulso es firme (ruido→0). ASÍ pesan los stats: margen de error.",
+    "_ruido": "_ruido\": \"MUERTO POR AHORA, no lo toques esperando que cambie algo: es el temblor de puntería del remate MANUAL (evaluarEjecucion en logic/tiro.js) — con stat de tiro 30 la mano tiembla todo, con 90 el pulso es firme (ruido→0). Desde V8 B el tiro común volvió a ser POR COMANDOS y match.js llama a tiroAuto, donde el stat entra como 'puntería = stat/100*0.6 + aguante*0.4' y decide la CALIDAD de la zona (ángulo / palo / medio alto / medio) y el riesgoFuera. O sea: hoy los stats pesan eligiendo A DÓNDE va la pelota, no dando margen de error. La perilla queda porque evaluarEjecucion sigue testeada (test/tiro.test.js) y es el camino de vuelta si algún día repone el remate ejecutado a mano.",
     "potencia_dulce": [
       0.6,
       0.88
@@ -454,7 +454,7 @@
     "gy_max": 44,
     "comentario": "Solo para TIRO y TIRO ESPECIAL (Caldén). El resto de los comandos sigue siendo por decisión/lectura."
   },
-  "_c3_juego": "C3: se borro el bloque `juego` entero (vel_jugador, vel_avance_auto, zona_remate_y). Era la cancha 3/4 con arco al fondo, que la vista partida de V7-1 reemplazo. Verificado con grep: NADIE abria el bloque (`.juego` no aparece en ningun .js), solo estaba copiado en el fallback de index.html. Ojo con el falso positivo: `juego.vel_jugador` no es `jugadon.vel_jugador`, que SI vive.",
+  "_c3_juego": "C3: se borro el bloque `juego` entero (vel_jugador, vel_avance_auto, zona_remate_y). Era la cancha 3/4 con arco al fondo, que la vista partida de V7-1 reemplazo. Verificado con grep: NADIE abria el bloque (`.juego` no aparece en ningun .js), solo estaba copiado en el fallback de index.html. NOTA V9: cuando se escribio esto, `jugadon.vel_jugador` si vivia y era el falso positivo a esquivar. Ya no: V9 C2 paso el jugadon a la corrida vertical y las perillas ahora son vel_avance / vel_lateral / meta_d / contacto_d / contacto_lx. Si hoy grepeas `vel_jugador` vas a encontrar UN solo hit, index.html:178, y tambien es cascara: el balance de emergencia quedo con el esquema V8, asi que si el fetch de balance.json falla el jugadon corre con los defaults hardcodeados de scenes/jugadon_ui.js, no con eso. Cuando alguien toque ese fallback, que lo ponga al dia o lo saque.",
   "cine": {
     "_nota": "MODO CINE: la secuencia de PLANOS que cortan como película. La pelota viaja HACIA ADENTRO (perspectiva, profundidad). Tiempos en ms. persp.k = fuerza de la perspectiva.",
     "persp": {
@@ -478,7 +478,7 @@
     "impacto_gol_ms": 340,
     "impacto_atajada_ms": 320,
     "impacto_afuera_ms": 420,
-    "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: fracción del viaje donde entra el slow-motion. zoom_viaje: acercamiento en el momento clave. drift_mult: cuánto se curva la pelota al palo apuntado. pelota_escala_*: tamaño de la pelota cerca (base+span) y lejos (base). impacto_*_ms: duración del viaje de la pelota al desenlace.",
+    "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: nombre heredado que MIENTE — no hay slow-motion en ningún lado (nadie toca time.timeScale ni tweens.timeScale; el único hitstop del juego vive en feel_ui.js y es otra cosa). Lo que dispara este umbral, en match.js/updateViaje, es la CÁMARA: zoom a zoom_viaje + paneo al arco + la hinchada (SFX.crowd). Quedó con ese nombre de cuando el remate sí frenaba el tiempo (ver epica._c3, donde se borró la clave 'slowmo' huérfana). Ojo con el número: no se compara contra la fracción cruda del viaje sino contra la progresión ya suavizada d = 1-(1-raw)², así que 0.72 entra recién a la MITAD real del viaje (raw ≈ 0.47) — si lo querés más sobre el final, subilo a ~0.91. slowmo_factor (0.32) es basura de la misma época: no la lee ningún archivo, sobrevive sólo porque está copiada en el literal de respaldo de index.html. zoom_viaje: acercamiento en el momento clave. drift_mult: cuánto se curva la pelota al palo apuntado. pelota_escala_*: tamaño de la pelota cerca (base+span) y lejos (base). impacto_*_ms: duración del viaje de la pelota al desenlace.",
     "titulo_y": 452,
     "sub_y": 492,
     "_titulo": "PASADA DE COHERENCIA · donde cae el cartel de la viñeta. Estaba en el medio vertical, o sea encima de la cara del jugador: la ilustracion es lo mejor que tiene la escena y el texto la partia al medio. Ahora va sobre la franja de pasto, que esta oscura y no tiene dibujo. Si algun dia el encuadre cambia, se mueve de aca."
@@ -529,7 +529,7 @@
     "ata_abre": 70
   },
   "jugadon": {
-    "_nota": "V8 C EL MINIJUEGO DE GAMBETA: vel_jugador = tu velocidad en la plataforma (px/s); vel_rival = la de los que te vienen a cerrar (que sea MENOR o los esquivás sin gracia); contacto = a qué distancia te alcanzan y se abre el duelo de lectura; meta_y = la altura del fondo (llegar ahí = definir).",
+    "_nota": "_nota\": \"V9 C2 · OJO: acá vivía la nota de V8, cuando el jugadón era una plataforma HORIZONTAL en px/s (vel_jugador, vel_rival, contacto, meta_y). Esas cuatro claves NO EXISTEN MÁS: la corrida pasó a la vista en profundidad (arco al fondo) y todo se mide en fracciones 0..1 de profundidad, no en píxeles. Se dejó este renglón en vez de borrarlo porque las cuatro viejas todavía están copiadas en el fallback de phaser/index.html y son letra muerta —jugadon_ui.js no las abre y cae a sus defaults—, así que si las ves ahí no las revivas: borralas o migralas. Las que manda hoy son las seis del _doc de abajo, todas leídas en scenes/jugadon_ui.js (vel_avance→velD, vel_lateral→velLx, meta_d→meta, vel_rival_lat, contacto_d y contacto_lx).",
     "_doc": "V9 C2 · LA CORRIDA VERTICAL: el jugadón pasó a la vista en profundidad (arco al fondo). vel_avance = cuánta profundidad ganás por segundo (0..1); vel_lateral = qué tan rápido te corrés de lado; meta_d = la profundidad a la que rematás; contacto_d / contacto_lx = qué tan cerca tiene que estar un rival (en profundidad y de costado) para salirte al cruce; vel_rival_lat = cuánto te sigue de lado.",
     "vel_avance": 0.34,
     "vel_lateral": 1.5,
@@ -581,7 +581,7 @@
     "animo_gol": 6,
     "resaca_frac": 0.33,
     "resaca_piso": 50,
-    "_resaca": "A3: la resaca de tu propia semana. Arrancás la siguiente penalizado por resaca_frac de lo que FALTÓ para llenar el tanque (no por el total), con resaca_piso como mínimo jugable. Con 0.33 y piso 35, 'entrenar siempre' se estabiliza cerca del piso sin quedar injugable. resaca_frac 0 la desactiva.",
+    "_resaca": "A3: la resaca de tu propia semana. Arrancás la siguiente penalizado por resaca_frac de lo que FALTÓ para llenar el tanque (no por el total), con resaca_piso como mínimo jugable. Con 0.33 y piso 50, medido con logic/semana.js sobre data/semana.json: 'entrenar siempre' —el que más gasta— se estabiliza en 54 de arranque, o sea justo arriba del piso, y descansar no lo nota. El piso muerde en la semana castigada (partido durísimo + molestia sin curar), y ahí está la razón de que sea 50 y no menos: con 50 te entran DOS entrenamientos de 25 aun en la peor semana; con 35 te entra uno solo y la semana se vuelve trámite. resaca_frac 0 la desactiva.\\n\\nOJO: el 35 que ves en logic/semana.js:41 es el DEFAULT del código para cuando no hay balance cargado, no el valor real — este JSON lo pisa. Hasta agosto de 2026 este comentario decía 'piso 35' porque copió el default en vez del valor puesto, y así la calibración que citaba estaba medida 15 puntos más abajo que el juego real. Si tocás resaca_piso, corregí también el comentario gemelo de logic/semana.js (arriba de resacaDeLaSemana), que arrastra el mismo número.",
     "rendimiento_piso": 0.13,
     "stat_techo": 99,
     "stat_inicial": 50,
@@ -611,14 +611,14 @@
     "hunde_px": 4,
     "_tracking": "P4 · las MAYÚSCULAS llevan aire. tracking_mayus va en em y se aplica solo a los textos que están todos en mayúscula (el resto usa tipografia.letras).",
     "tracking_mayus": 0.16,
-    "_escala": "P5 · los tamaños del HUD escalan con el ancho real de pantalla entre esc_min y esc_max. Con Scale.FIT el ancho lógico es fijo (960), así que esto sirve para la vista elevada y para pantallas futuras: el corte de ENVIÓN/AGUANTE se arregló acomodando la maqueta, no escalando.",
+    "_escala": "P5 · MECANISMO DORMIDO, a propósito. escala()/tam() (logic/piel.js) topean un factor de ancho entre esc_min y esc_max, pero HOY NO LOS LLAMA NINGUNA ESCENA: los únicos usos están en test/piel.test.js. Con Phaser.Scale.FIT el ancho lógico es SIEMPRE 960, así que escalar no arreglaba nada — el corte de ENVIÓN/AGUANTE se resolvió acomodando la maqueta adentro de 960x540, y los tamaños del HUD salen de nivel() (24/16/13/12 px fijos). La vista elevada tampoco pasa por acá: match.js decide a mano (_vista4 ? 24 : 12). Estos dos números quedan escritos, probados y listos para el día que el lienzo deje de ser fijo; tocarlos ahora no mueve un píxel.",
     "esc_min": 0.85,
     "esc_max": 1.15,
     "franja_decision": {
       "y_min": 296,
       "y_max": 528,
       "pad": 10,
-      "_nota": "O1 LA FRANJA DE DECISION. Un solo lugar en pantalla para acá elegís, el mismo en todas las pantallas. Medido antes: de 12 grupos de opciones, 10 ya vivian abajo y 2 arrancaban arriba (presets de tempo y=176, ranuras de la semana y=250). Todo lo que sea elegir una de varias se ubica con piel.yDeOpcion(); el test g_o1 verifica que nada se salga. El lienzo es 960x540: arriba de y_min va lo que se MIRA (la ilustracion, la cancha, la tabla), abajo lo que se TOCA."
+      "_nota": "O1 LA FRANJA DE DECISION. Un solo lugar en pantalla para acá elegís, el mismo en todas las pantallas. Medido antes: de 12 grupos de opciones, 10 ya vivian abajo y 2 arrancaban arriba (presets de tempo y=176, ranuras de la semana y=250). Todo lo que sea elegir una de varias se ubica con piel.yDeOpcion(); el guardián es phaser/test/o1_franja.test.js, que barre las escenas y falla si un rectángulo con pinta de opción cae fuera de la franja (no alcanza con probar el helper: el helper siempre da bien, el problema es no usarlo). El lienzo es 960x540: arriba de y_min va lo que se MIRA (la ilustracion, la cancha, la tabla), abajo lo que se TOCA."
     }
   },
   "legibilidad": {
@@ -629,7 +629,7 @@
     "_ficha_r": "radio del círculo de los tuyos. El número de dos dígitos más ancho mide 20x17 lógicos a 16px (medido con la fuente real). A la altura del texto el ancho útil del círculo es 2·√(r²−(alto/2)²): con r=13 daba 19,7 y el número mide 20,0 — se salía por 0,3 y el test lo cazó. Con 14 da 22,3.",
     "ficha_rival_base": 30,
     "ficha_rival_alto": 26,
-    "_ficha_rival": "el triángulo del rival es el CASO PEOR: su área útil es la mitad que la de un círculo y el ancho crece hacia la base. El número va al 75% de la altura, donde el ancho disponible es base·0,75.",
+    "_ficha_rival": "el triángulo del rival es el CASO PEOR: su área útil es la mitad que la de un círculo y el ancho crece hacia la base, así que el número va abajo. Va al 72% de la altura contada desde el ápice (match.js: `ap + TH * 0.72`, con el ápice en `y − TH·0,55`), y a esa altura el ancho del triángulo es base·0,72: con base 30 quedan 21,6 lógicos. El '88', que es el de dos dígitos más ancho, mide 20,0 a 16px medido con la fuente real — entra con 1,6 de aire. Más abajo no se puede ir: cerca de la base el dígito se pisa con la línea del borde. El test (legibilidad.test.js, FRAC = 0.72) usa la misma fracción, así que si tocás una hay que tocar las dos.",
     "tap_min": 61,
     "_tap_min": "área táctil mínima en px LÓGICOS = 44 CSS px reales (el piso de accesibilidad táctil) dividido por el factor de escala del teléfono, 0,7222. Es el ÁREA, no el dibujo: un botón puede verse de 40 y tener 61 de zona.",
     "texto_info_min": 12,
@@ -641,7 +641,7 @@
     "max": 1,
     "penal_max": 0.42,
     "avisa_desde": 0.3,
-    "_nota": "N2 EL RIVAL TE LEE LOS ESPECIALES. Cada especial tiene su propia lectura (que te lean el Tornado no les dice nada del Calden). Cada uso la sube sube_por_uso; el tiempo la baja baja_por_minuto. penal_max es cuanto le pueden sacar al MULTIPLICADOR del especial (no al poder base: te sacan lo que el especial te daba de mas, nunca te dejan peor que pateando normal). avisa_desde es a partir de que lectura aparece la etiqueta en el menu — antes de intentarlo, no despues de fallar. Medido con estos valores: 3 usos para te tienen leido, 4 para el tope, y 45 minutos sin usarlo para volver a cero.",
+    "_nota": "_nota\": \"N2 EL RIVAL TE LEE LOS ESPECIALES. Cada especial tiene su propia lectura (que te lean el Tornado no les dice nada del Calden). Cada uso la sube sube_por_uso; el tiempo la baja baja_por_minuto. penal_max = 0.42 es el tope de la lectura y desde D2 pega en TRES lugares con el mismo numero: (1) le saca al MULTIPLICADOR del especial (poder *= 1 + (mult-1)*(1-pen)), (2) viaja como factor 1-pen sobre la chance YA resuelta en resolveShot, y (3) le come los metros — quedaDeEspecial va a 0 y el especial leido aguanta la distancia como un tiro normal (media_vida 210 en vez de 380). O sea: OJO, un especial leido SI termina peor que patear normal, y es a proposito. Medido con estos valores (tiro 85, arquero 55): al tope da 50% desde 200px contra 85% de un tiro normal, y 13% contra 23% desde 400px; con un solo uso ya empata. Eso es lo que hace que repetir el mismo especial los 90 minutos sea una MALA decision y no apenas una decision tibia — que era el agujero de N2, cuando la penalizacion vivia solo en el multiplicador y el tope de 0.95 de duelChance se la comia entera. Si te parece mucho castigo la perilla es esta, pero bajala sabiendo que bajas las tres cosas juntas. avisa_desde es a partir de que lectura aparece la etiqueta en el menu — antes de intentarlo, no despues de fallar, que es lo que hace que esto sea una decision y no una trampa. Con estos valores: 3 usos para te tienen leido, 4 para el tope, y 45 minutos sin usarlo para volver a cero.",
     "arquero_bonus_max": 0,
     "_d2": "D2: la lectura ahora viaja como FACTOR por resolveShot (penalizaciones), que es la via unica. arquero_bonus_max queda en 0: era un parche para esquivar el tope duro de duelChance, y ese tope ya no existe. Subilo si queres el comportamiento viejo."
   },
@@ -650,7 +650,7 @@
     "escalon2_ms": 1250,
     "escalon3_ms": 2600,
     "intensidad": 1,
-    "_nota": "BLOQUE A LOS TRES ESCALONES DEL DRAMA. Antes TODA accion significativa cortaba a una viniera de 2600ms (500 entrada + 800 pose + 1300 hold) mas 500 de silencio: un pase lateral costaba lo mismo que un gol de chilena. Escalon 1 (tramite: pase, quite, corte) NO corta a viniera y se resuelve en la cancha. Escalon 2 (jugada: gambeta, remate, atajada) corta pero a la mitad. Escalon 3 (momento: gol, megatiro, chilena, final) queda igual que hoy. La clasificacion vive en logic/drama.js porque es diseno, no ajuste; estos numeros son las perillas."
+    "_nota": "BLOQUE A LOS TRES ESCALONES DEL DRAMA. Antes TODA accion significativa cortaba a una viniera de 2600ms (500 entrada + 800 pose + 1300 hold) mas 500 de silencio: un pase lateral costaba lo mismo que un gol de chilena. Escalon 2 (jugada: gambeta, remate, atajada) corta pero a la mitad. Escalon 3 (momento: gol, megatiro, chilena, final) queda igual que hoy. OJO CON EL ESCALON 1: la idea original era que el tramite (pase, quite, corte) NO cortara y se resolviera en la cancha, y eso HOY solo se cumple en el quite y el corte GANADOS fuera del area (match.js gatea con escalonDe). Desde V9 el PASE tiene viniera SIEMPRE (V9 §2, 'el pase se ve, siempre y entero') y no se paga con escalon1_ms sino con la perilla escena_pase de este mismo archivo (~1860ms, ~2360 si hay alguien tirandose al corte); y las defensas FALLADAS (quite, corte, bloqueo) tambien cortan siempre y, como no le pasan la accion a escenaCine, cobran el presupuesto por defecto del remate, o sea escalon2_ms. Resultado: escalon1_ms hoy no gobierna nada en pantalla, queda como el numero que usan la logica pura y los tests. La clasificacion vive en logic/drama.js porque es diseno, no ajuste; estos numeros son las perillas."
   },
   "oficio": {
     "intensidad": 1,

@@ -1,517 +1,517 @@
 {
-  "_schema": "pampa-star/poses@1",
-  "_doc": "MAESTRO v6 §3.2: mapa acción→pose ilustrada (assets/poses/, PNG con alpha). FALLBACK TOLERANTE: el código carga solo lo que exista; si falta un archivo o una clave, cae a la pose de código anterior (sprites heroicos) y nada crashea. Rodri agrega poses nuevas acá sin tocar código: nueva clave + nuevo archivo y listo.",
-  "_tanda2": "ARTE COMPLETO (17/jul/2026): 14 poses con transparencia NATIVA (reemplazan a las chroma-key de la tanda 1) + fondo_tribuna. Los arqueros _v2 (mangas lisas, cumplimiento §11) REEMPLAZAN a los viejos en el mapa; pose_arquero_vuela.png y pose_arquero_ataja.png quedan en el repo pero fuera del manifest.",
-  "_pelota": "V7 §0.1: las pelotas ILUSTRADAS fueron RECORTADAS de los PNG (playtest de Rodri: al teñir siluetas se teñía la pelota y había 3 en pantalla). La pelota la dibuja SIEMPRE el juego. El campo 'pelota' {x,y,r} (normalizado; r respecto al ALTO) dice dónde iba en cada pose: las escenas dibujan ahí el sprite del juego, con ese tamaño, espejado si la pose va en flip.",
-  "base": "assets/poses/",
-  "poses": {
-    "remate": {
-      "archivo": "pose_remate.webp",
-      "quien": "heroe",
-      "n": "Remate de derecha",
-      "pelota": {
-        "x": 0.884,
-        "y": 0.737,
-        "r": 0.126
-      },
-      "tonos": {
-        "piel": "#fdd1b5",
-        "camiseta": "#4dc0f6"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "chilena": {
-      "archivo": "pose_chilena.webp",
-      "quien": "heroe",
-      "n": "Chilena invertida",
-      "pelota": {
-        "x": 0.891,
-        "y": 0.131,
-        "r": 0.135
-      },
-      "tonos": {
-        "piel": "#fbd0b3",
-        "camiseta": "#4ec1f8"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "cabezazo": {
-      "archivo": "pose_cabezazo.webp",
-      "quien": "heroe",
-      "n": "Salto de cabeza",
-      "pelota": {
-        "x": 0.736,
-        "y": 0.135,
-        "r": 0.135
-      },
-      "tonos": {
-        "piel": "#fbd0b5",
-        "camiseta": "#4bc0f8"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "barrida": {
-      "archivo": "pose_barrida.webp",
-      "quien": "defensor",
-      "n": "Defensor barriéndose"
-    },
-    "arquero_vuela": {
-      "archivo": "pose_arquero_vuela_v2.webp",
-      "quien": "arquero",
-      "n": "Estirada en vuelo (v2 mangas lisas)"
-    },
-    "arquero_ataja": {
-      "archivo": "pose_arquero_ataja_v2.webp",
-      "quien": "arquero",
-      "n": "Atajó, de rodillas (v2 mangas lisas)",
-      "pelota": {
-        "x": 0.775,
-        "y": 0.405,
-        "r": 0.108
-      }
-    },
-    "festejo": {
-      "archivo": "pose_festejo.webp",
-      "quien": "heroe",
-      "n": "Festejo de gol",
-      "tonos": {
-        "piel": "#fcceb4",
-        "camiseta": "#4bbff8"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "gambeta_gana": {
-      "archivo": "pose_gambeta_gana.webp",
-      "quien": "heroe",
-      "n": "Gambeta ganada — quiebre limpio",
-      "pelota": {
-        "x": 0.902,
-        "y": 0.872,
-        "r": 0.105
-      },
-      "tonos": {
-        "piel": "#ffcea8",
-        "camiseta": "#4fc2f7"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "gambeta_pierde": {
-      "archivo": "pose_gambeta_pierde.webp",
-      "quien": "heroe",
-      "n": "Gambeta perdida — trastabillando",
-      "tonos": {
-        "piel": "#fecda7",
-        "camiseta": "#4fc2f6"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "pared": {
-      "archivo": "pose_pared.webp",
-      "quien": "heroe",
-      "n": "Pared — toque de primera",
-      "pelota": {
-        "x": 0.811,
-        "y": 0.909,
-        "r": 0.097
-      },
-      "tonos": {
-        "piel": "#fdcba5",
-        "camiseta": "#4ebdf1"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "bloqueo": {
-      "archivo": "pose_bloqueo.webp",
-      "quien": "defensor",
-      "n": "Bloqueo plantado"
-    },
-    "corriendo": {
-      "archivo": "pose_corriendo.webp",
-      "quien": "heroe",
-      "n": "La corrida a fondo",
-      "_tonos": "V7-1 §4 recolor por pinta: tonos base planos del PNG (muestreados). pelo_y1 limita la regla del pelo a la banda de arriba (los botines también son negros).",
-      "tonos": {
-        "pelo": "#0c2424",
-        "piel": "#fccca4",
-        "camiseta": "#54bcec"
-      },
-      "tolerancias": {
-        "pelo": 60,
-        "piel": 80,
-        "camiseta": 95
-      },
-      "pelo_y1": 0.45,
-      "pelota": {
-        "x": 0.276,
-        "y": 0.908,
-        "r": 0.099
-      },
-      "_ciclo_nota": "TANDA DE ARTE A3 (v2, 3/ago): los tres cuadros vienen del zip PROCESADO (PAMPA_STAR_arte_v2_ciclo_alineado.zip, carpeta run/), con máscara binaria y alineados de origen. Se pegaron TAL CUAL: no se recortan, no se reescalan, no se recentran, no pasan por sharp — cualquier reprocesamiento los rompe. phaser/test/ciclos.test.js valida piso (4px), alto (3%) y que los lienzos midan igual. NO valida alineación horizontal: se probó con la caja completa y con la banda de cadera, y ninguna ordena bien (el set bueno puntúa PEOR que el roto). Son ilustraciones separadas, sin ancla estable medible por código: el corrimiento lateral se mira A OJO. El test imprime el número de cadera como dato, no como veredicto.",
-      "ciclo": {
-        "cuadros": [
-          "pose_corriendo_1.webp",
-          "pose_corriendo_2.webp",
-          "pose_corriendo_3.webp"
-        ],
-        "ms": 120
-      }
-    },
-    "quite": {
-      "archivo": "pose_quite.webp",
-      "quien": "heroe",
-      "n": "El quite de pie: la pierna estirada, el cuerpo metido",
-      "tonos": {
-        "piel": "#f6c69a",
-        "camiseta": "#72bce6"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "volea": {
-      "archivo": "pose_volea.webp",
-      "quien": "heroe",
-      "n": "La volea: el pie a la altura de la cadera",
-      "tonos": {
-        "piel": "#fbc69a",
-        "camiseta": "#82b5e4"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "tiro": {
-      "archivo": "pose_tiro.webp",
-      "quien": "heroe",
-      "n": "El remate con todo el cuerpo",
-      "tonos": {
-        "piel": "#fec391",
-        "camiseta": "#5ebaed"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      },
-      "alto_rel": 0.97,
-      "_alto_rel": "A3: la figura es 1844x1206, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.97 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
-    },
-    "pase": {
-      "archivo": "pose_pase.webp",
-      "quien": "heroe",
-      "n": "El pase con el borde interno",
-      "tonos": {
-        "piel": "#f2be91",
-        "camiseta": "#61a6d3"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "cabezazo_v2": {
-      "archivo": "pose_cabezazo_v2.webp",
-      "quien": "heroe",
-      "n": "El cabezazo, versión nueva",
-      "tonos": {
-        "piel": "#cb8a62",
-        "camiseta": "#65bde4"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "cansado": {
-      "archivo": "pose_cansado.webp",
-      "quien": "heroe",
-      "n": "Sin aire: las manos en las rodillas",
-      "tonos": {
-        "piel": "#fed1aa",
-        "camiseta": "#00c2ee"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "celebracion": {
-      "archivo": "pose_celebracion.webp",
-      "quien": "heroe",
-      "n": "El festejo, versión nueva",
-      "tonos": {
-        "piel": "#fac194",
-        "camiseta": "#8cc5e9"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "de_espaldas": {
-      "archivo": "pose_de_espaldas.webp",
-      "quien": "heroe",
-      "n": "De espaldas con la pelota (P6-B: el que la tira en el plano profundo)",
-      "tonos": {
-        "piel": "#c28a6d",
-        "camiseta": "#4daae6"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "de_espaldas_sin_pelota": {
-      "archivo": "pose_de_espaldas_sin_pelota.webp",
-      "quien": "heroe",
-      "n": "De espaldas sin la pelota",
-      "tonos": {
-        "piel": "#f4bd91",
-        "camiseta": "#71b8dd"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "recibiendo": {
-      "archivo": "pose_recibiendo.webp",
-      "quien": "heroe",
-      "n": "Recibiendo de frente (P6-B: el que espera el pase largo)",
-      "tonos": {
-        "piel": "#fabb8b",
-        "camiseta": "#71b2de"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "arquero_ataja_celeste": {
-      "archivo": "pose_arquero_ataja_celeste.webp",
-      "quien": "arquero",
-      "n": "TU arquero: la agarra",
-      "tonos": {
-        "piel": "#ffcb9f",
-        "camiseta": "#23659d"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "arquero_despeje_celeste": {
-      "archivo": "pose_arquero_despeje_celeste.webp",
-      "quien": "arquero",
-      "n": "TU arquero: la despeja",
-      "tonos": {
-        "piel": "#f6be92",
-        "camiseta": "#7bbbde"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "arquero_vuela_celeste": {
-      "archivo": "pose_arquero_vuela_celeste.webp",
-      "quien": "arquero",
-      "n": "TU arquero: la estirada",
-      "tonos": {
-        "piel": "#da9b73",
-        "camiseta": "#8dbedb"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      },
-      "alto_rel": 0.58,
-      "_alto_rel": "A3: la figura es 1905x746, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.58 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
-    },
-    "r_corriendo": {
-      "archivo": "poseR_corriendo.webp",
-      "quien": "defensor",
-      "n": "RIVAL corriendo de espaldas (naranja a rayas, el 7)",
-      "tonos": {
-        "camiseta": "#fa6d1a"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      },
-      "_W3": "W3 (20/ago/2026): el archivo se llamaba pose_corriendo_v2, que lo hacia pasar por una pose PROPIA — y es un rival. Renombrado a poseR_corriendo, que es la convencion del bando rival (poseR_arquero_vuela, poseR_quite). Medido: 38% de naranja y 0% de celeste."
-    },
-    "r_arquero_vuela": {
-      "archivo": "poseR_arquero_vuela.webp",
-      "quien": "arquero",
-      "n": "El arquero RIVAL: la estirada",
-      "tonos": {
-        "piel": "#fdba8b",
-        "camiseta": "#fd7a32"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      },
-      "alto_rel": 0.51,
-      "_alto_rel": "A3: la figura es 1897x650, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.51 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
-    },
-    "r_quite": {
-      "archivo": "poseR_quite.webp",
-      "quien": "defensor",
-      "n": "El quite del RIVAL",
-      "tonos": {
-        "piel": "#fcb683",
-        "camiseta": "#dc7c4a"
-      },
-      "tolerancias": {
-        "piel": 80,
-        "camiseta": 95
-      }
-    },
-    "pelota_vieja": {
-      "archivo": "pelota_vieja.webp",
-      "quien": "objeto",
-      "n": "La pelota de potrero, gastada — reemplaza el círculo con gajos"
-    },
-    "calden": {
-      "archivo": "calden.webp",
-      "quien": "objeto",
-      "n": "El caldén solo en el campo",
-      "cargar": false,
-      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el caldén solo en el campo es la imagen de la escalera baja. Para prenderla: cargar:true y engancharla ahi."
-    },
-    "arco": {
-      "archivo": "arco.webp",
-      "quien": "objeto",
-      "n": "El arco con la red",
-      "cargar": false,
-      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el arco de la cancha, para el plano profundo y la definición. Para prenderla: cargar:true y engancharla ahi."
-    },
-    "banco": {
-      "archivo": "banco.webp",
-      "quien": "objeto",
-      "n": "El banco de suplentes",
-      "alto_rel": 0.44,
-      "_alto_rel": "A3: 2695x801, más ancha que alta.",
-      "cargar": false,
-      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → la semana: el banco de suplentes detrás de las decisiones. Para prenderla: cargar:true y engancharla ahi."
-    },
-    "banderin": {
-      "archivo": "banderin.webp",
-      "quien": "objeto",
-      "n": "El banderín del córner",
-      "cargar": false,
-      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → el partido: el córner, cuando exista como situación. Para prenderla: cargar:true y engancharla ahi."
-    },
-    "arbitro_amarilla": {
-      "archivo": "arbitro_amarilla.webp",
-      "quien": "objeto",
-      "n": "El árbitro mostrando la amarilla",
-      "cargar": false,
-      "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → el partido: un evento de amarilla, que hoy no existe. Para prenderla: cargar:true y engancharla ahi."
-    }
+ "_schema": "pampa-star/poses@1",
+ "_doc": "MAESTRO v6 §3.2: mapa acción→pose ilustrada (assets/poses/, WEBP con alpha). FALLBACK TOLERANTE: el código carga solo lo que exista; si falta un archivo o una clave, cae a la pose de código anterior (sprites heroicos) y nada crashea. OJO, EL ARCHIVO NO ALCANZA: agregar clave + archivo acá hace que la pose se CARGUE, no que se VEA. Quién sale en cada escena está cableado en tres lugares —poseParaEscena() (phaser/scenes/match.js), el objeto POSE de animarResolucion() y los ternarios de definicion_ui.js—, todos con ids fijos. Quedó así porque cada escena elige su pose por SITUACIÓN de juego (quién tiene la pelota, si es arquero, si ganó o perdió el duelo), y esa lógica es código: un JSON no sabe si la barrida la hizo el rival o vos. Prueba de que pasa: 'celebracion' y 'cabezazo_v2' se cargan en cada arranque y no las muestra nadie. Para que una pose nueva aparezca, después de sumarla acá hay que asignarla —el procedimiento está en data/COMO_AGREGAR_ARTE.md §3. Lo que SÍ es puro JSON: los tonos y tolerancias de tinte, el {x,y,r} de la pelota, el ciclo:{cuadros,ms} de una pose que ya sale, las siluetas de hinchada (se eligen por pesos de hinchada.mezcla) y el cargar:false para dejarla guardada sin gastar ancho de banda.",
+ "_tanda2": "ARTE COMPLETO (17/jul/2026): 14 poses con transparencia NATIVA (reemplazan a las chroma-key de la tanda 1) + fondo_tribuna. Los arqueros _v2 (mangas lisas, cumplimiento §11) REEMPLAZAN a los viejos en el mapa; pose_arquero_vuela.png y pose_arquero_ataja.png quedan en el repo pero fuera del manifest.",
+ "_pelota": "V7 §0.1 (y lo que quedó pendiente en la tanda del 19/ago): a las 7 poses de V7 se les RECORTÓ la pelota ilustrada del PNG (playtest de Rodri: al teñir siluetas se teñía la pelota y había 3 en pantalla). En esas 7 la pelota la dibuja el juego: el campo 'pelota' {x,y,r} (normalizado; r respecto al ALTO) dice dónde iba, y las escenas dibujan ahí el sprite del juego, con ese tamaño, espejado si la pose va en flip. OJO: la tanda de las 32 piezas NO pasó por el recorte. de_espaldas, volea y pase (y varias más de esa tanda) TRAEN la pelota dibujada adentro del webp y por eso NO declaran 'pelota' — si una escena les prende encima la del juego, se ven DOS. Es exactamente lo que pasa hoy en el modo profundo (scenes/match.js:1065 pone 'de_espaldas' de tirador y 1072 prende p.pelota). La regla real, entonces: si la entrada declara 'pelota', el PNG está limpio y la dibuja el juego; si no la declara, asumí que la pelota viene pintada y NO prendas la del juego encima. El arreglo del profundo ya está a mano: usar 'de_espaldas_sin_pelota', que existe en el manifiesto y hoy solo la pide data/semana.json (ayudar_casa). Cuando se recorte el resto de la tanda 32, se le agrega 'pelota' a cada una y esta nota vuelve a ser un SIEMPRE.",
+ "base": "assets/poses/",
+ "poses": {
+  "remate": {
+   "archivo": "pose_remate.webp",
+   "quien": "heroe",
+   "n": "Remate de derecha",
+   "pelota": {
+    "x": 0.884,
+    "y": 0.737,
+    "r": 0.126
+   },
+   "tonos": {
+    "piel": "#fdd1b5",
+    "camiseta": "#4dc0f6"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
   },
-  "fondos": {
-    "tribuna": {
-      "archivo": "fondo_tribuna.webp",
-      "n": "La tribuna (capa lejana: opening y definición)"
-    }
+  "chilena": {
+   "archivo": "pose_chilena.webp",
+   "quien": "heroe",
+   "n": "Chilena invertida",
+   "pelota": {
+    "x": 0.891,
+    "y": 0.131,
+    "r": 0.135
+   },
+   "tonos": {
+    "piel": "#fbd0b3",
+    "camiseta": "#4ec1f8"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
   },
-  "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Pose nueva = PNG transparente en assets/poses/ + una entrada acá con {archivo, quien(heroe|defensor|arquero), n, pelota{x,y,r} opcional, tonos opcional}. Para un CICLO de animación agregá ciclo:{cuadros:[...], ms} — mientras no exista, se usa la pose quieta.",
-  "_tonos_b3": "B3-D (8/ago): el tinte de camiseta NO llegaba a las escenas — solo la pose 'corriendo' declaraba 'tonos', así que era la única que se podía teñir; en cualquier otra pose salía el celeste del PNG. Ahora las 7 poses del héroe traen sus tonos, sacados con cuentagotas de SU PROPIO PNG (el mismo método de la tanda de arte: se valida contra 'corriendo', que ya estaba verificado, y da #55bcee contra el #54bcec declarado — error menor a 2 por canal). NO se declara 'pelo' a propósito: el tono del pelo y el de los BOTINES son el mismo casi-negro, así que la regla del pelo necesita pelo_y1 (hasta qué altura aplicar) y eso no se puede medir automáticamente — medido, el tono de pelo llega hasta el 104% de la figura, o sea hasta los pies. Sin 'pelo' declarado el tinte de pelo simplemente no se aplica en esas poses: no rompe nada. Queda pendiente ponerle pelo_y1 a mano a cada una, como tiene 'corriendo' (0.45).",
-  "hinchada": {
-    "_doc": "A4 · LAS CINCO SILUETAS DE LA TRIBUNA. Reemplazan las siluetas iguales (círculo + rectángulo) que dibujaba crearHinchadaPanel. La MEZCLA varía con la división: en las de abajo hay más gente parada y sola; en las de arriba aparecen el bombo, la bandera y el bebé. El peso de cada una por división vive en `mezcla`.",
-    "base": "assets/poses/",
-    "siluetas": [
-      {
-        "id": "parado",
-        "archivo": "hincha_parado.webp",
-        "n": "Parado, mirando"
-      },
-      {
-        "id": "mate",
-        "archivo": "hincha_mate.webp",
-        "n": "Con el mate"
-      },
-      {
-        "id": "bombo",
-        "archivo": "hincha_bombo.webp",
-        "n": "Con el bombo"
-      },
-      {
-        "id": "bandera",
-        "archivo": "hincha_bandera.webp",
-        "n": "Con la bandera"
-      },
-      {
-        "id": "bebe",
-        "archivo": "hincha_bebe.webp",
-        "n": "Con el bebé a upa"
-      }
+  "cabezazo": {
+   "archivo": "pose_cabezazo.webp",
+   "quien": "heroe",
+   "n": "Salto de cabeza",
+   "pelota": {
+    "x": 0.736,
+    "y": 0.135,
+    "r": 0.135
+   },
+   "tonos": {
+    "piel": "#fbd0b5",
+    "camiseta": "#4bc0f8"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "barrida": {
+   "archivo": "pose_barrida.webp",
+   "quien": "defensor",
+   "n": "Defensor barriéndose"
+  },
+  "arquero_vuela": {
+   "archivo": "pose_arquero_vuela_v2.webp",
+   "quien": "arquero",
+   "n": "Estirada en vuelo (v2 mangas lisas)"
+  },
+  "arquero_ataja": {
+   "archivo": "pose_arquero_ataja_v2.webp",
+   "quien": "arquero",
+   "n": "Atajó, de rodillas (v2 mangas lisas)",
+   "pelota": {
+    "x": 0.775,
+    "y": 0.405,
+    "r": 0.108
+   }
+  },
+  "festejo": {
+   "archivo": "pose_festejo.webp",
+   "quien": "heroe",
+   "n": "Festejo de gol",
+   "tonos": {
+    "piel": "#fcceb4",
+    "camiseta": "#4bbff8"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "gambeta_gana": {
+   "archivo": "pose_gambeta_gana.webp",
+   "quien": "heroe",
+   "n": "Gambeta ganada — quiebre limpio",
+   "pelota": {
+    "x": 0.902,
+    "y": 0.872,
+    "r": 0.105
+   },
+   "tonos": {
+    "piel": "#ffcea8",
+    "camiseta": "#4fc2f7"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "gambeta_pierde": {
+   "archivo": "pose_gambeta_pierde.webp",
+   "quien": "heroe",
+   "n": "Gambeta perdida — trastabillando",
+   "tonos": {
+    "piel": "#fecda7",
+    "camiseta": "#4fc2f6"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "pared": {
+   "archivo": "pose_pared.webp",
+   "quien": "heroe",
+   "n": "Pared — toque de primera",
+   "pelota": {
+    "x": 0.811,
+    "y": 0.909,
+    "r": 0.097
+   },
+   "tonos": {
+    "piel": "#fdcba5",
+    "camiseta": "#4ebdf1"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "bloqueo": {
+   "archivo": "pose_bloqueo.webp",
+   "quien": "defensor",
+   "n": "Bloqueo plantado"
+  },
+  "corriendo": {
+   "archivo": "pose_corriendo.webp",
+   "quien": "heroe",
+   "n": "La corrida a fondo",
+   "_tonos": "V7-1 §4 recolor por pinta: tonos base planos del PNG (muestreados). pelo_y1 limita la regla del pelo a la banda de arriba (los botines también son negros).",
+   "tonos": {
+    "pelo": "#0c2424",
+    "piel": "#fccca4",
+    "camiseta": "#54bcec"
+   },
+   "tolerancias": {
+    "pelo": 60,
+    "piel": 80,
+    "camiseta": 95
+   },
+   "pelo_y1": 0.45,
+   "pelota": {
+    "x": 0.276,
+    "y": 0.908,
+    "r": 0.099
+   },
+   "_ciclo_nota": "TANDA DE ARTE A3 (v2, 3/ago): los tres cuadros vienen del zip PROCESADO (PAMPA_STAR_arte_v2_ciclo_alineado.zip, carpeta run/), con máscara binaria y alineados de origen. Se pegaron TAL CUAL: no se recortan, no se reescalan, no se recentran, no pasan por sharp — cualquier reprocesamiento los rompe. phaser/test/ciclos.test.js valida piso (4px), alto (3%) y que los lienzos midan igual. NO valida alineación horizontal: se probó con la caja completa y con la banda de cadera, y ninguna ordena bien (el set bueno puntúa PEOR que el roto). Son ilustraciones separadas, sin ancla estable medible por código: el corrimiento lateral se mira A OJO. El test imprime el número de cadera como dato, no como veredicto.",
+   "ciclo": {
+    "cuadros": [
+     "pose_corriendo_1.webp",
+     "pose_corriendo_2.webp",
+     "pose_corriendo_3.webp"
     ],
-    "mezcla": {
-      "_doc": "peso de cada silueta por división. Suman lo que sea: se normaliza. Una división chica es gente parada y algún mate; una grande tiene bombo y bandera.",
-      "primera_b": {
-        "parado": 6,
-        "mate": 3,
-        "bombo": 1,
-        "bandera": 0,
-        "bebe": 1
-      },
-      "primera_a": {
-        "parado": 5,
-        "mate": 3,
-        "bombo": 2,
-        "bandera": 1,
-        "bebe": 1
-      },
-      "regional": {
-        "parado": 4,
-        "mate": 2,
-        "bombo": 3,
-        "bandera": 2,
-        "bebe": 1
-      },
-      "nacional": {
-        "parado": 3,
-        "mate": 2,
-        "bombo": 3,
-        "bandera": 3,
-        "bebe": 2
-      },
-      "mundial": {
-        "parado": 2,
-        "mate": 1,
-        "bombo": 4,
-        "bandera": 4,
-        "bebe": 2
-      }
-    }
+    "ms": 120
+   }
   },
-  "_tanda_arte_32": "TANDA DE LAS 32 PIEZAS (19/ago/2026). 16 poses (13 propias + 3 del rival), 6 objetos/utilería, 5 siluetas de hinchada y 5 retratos (esos van en data/portraits_manifest.json). Los tonos se sacaron con cuentagotas del PROPIO PNG, pero NO por franjas: se clasifica cada píxel por lo que ES (piel = cálido con R>G>B; camiseta = celeste con B>G>R) y se toma el dominante de cada clase. El método por franjas fallaba en toda figura que no estuviera parada de frente — en las acostadas del arquero y en las de espaldas, la franja de la cabeza cae sobre la camiseta. Si una clase no llega al 1,2% de la figura, NO se declara el tono: teñir mal se ve peor que no teñir.",
-  "_W1_formato": "W1 (20/ago/2026): las rutas apuntan a .webp. Los PNG originales viven en assets/_fuente/ y NO los carga el juego. El procedimiento para convertir una tanda nueva esta en docs/COMO_PESAN_LOS_ASSETS.md.",
-  "_W2_sin_uso": "W2: cinco piezas quedaron con cargar:false — estan en el repo pero el juego no las pide. Es la diferencia entre 'guardada' y 'cargada': guardada no cuesta nada, cargada cuesta ancho de banda en cada arranque. Cuando alguna encuentre su lugar, se le pone cargar:true. El DT y el utilero son lo mismo pero en portraits_manifest."
+  "quite": {
+   "archivo": "pose_quite.webp",
+   "quien": "heroe",
+   "n": "El quite de pie: la pierna estirada, el cuerpo metido",
+   "tonos": {
+    "piel": "#f6c69a",
+    "camiseta": "#72bce6"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "volea": {
+   "archivo": "pose_volea.webp",
+   "quien": "heroe",
+   "n": "La volea: el pie a la altura de la cadera",
+   "tonos": {
+    "piel": "#fbc69a",
+    "camiseta": "#82b5e4"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "tiro": {
+   "archivo": "pose_tiro.webp",
+   "quien": "heroe",
+   "n": "El remate con todo el cuerpo",
+   "tonos": {
+    "piel": "#fec391",
+    "camiseta": "#5ebaed"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   },
+   "alto_rel": 0.97,
+   "_alto_rel": "A3: la figura es 1844x1206, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.97 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
+  },
+  "pase": {
+   "archivo": "pose_pase.webp",
+   "quien": "heroe",
+   "n": "El pase con el borde interno",
+   "tonos": {
+    "piel": "#f2be91",
+    "camiseta": "#61a6d3"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "cabezazo_v2": {
+   "archivo": "pose_cabezazo_v2.webp",
+   "quien": "heroe",
+   "n": "El cabezazo, versión nueva",
+   "tonos": {
+    "piel": "#cb8a62",
+    "camiseta": "#65bde4"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "cansado": {
+   "archivo": "pose_cansado.webp",
+   "quien": "heroe",
+   "n": "Sin aire: las manos en las rodillas",
+   "tonos": {
+    "piel": "#fed1aa",
+    "camiseta": "#00c2ee"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "celebracion": {
+   "archivo": "pose_celebracion.webp",
+   "quien": "heroe",
+   "n": "El festejo, versión nueva",
+   "tonos": {
+    "piel": "#fac194",
+    "camiseta": "#8cc5e9"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "de_espaldas": {
+   "archivo": "pose_de_espaldas.webp",
+   "quien": "heroe",
+   "n": "De espaldas con la pelota (P6-B: el que la tira en el plano profundo)",
+   "tonos": {
+    "piel": "#c28a6d",
+    "camiseta": "#4daae6"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "de_espaldas_sin_pelota": {
+   "archivo": "pose_de_espaldas_sin_pelota.webp",
+   "quien": "heroe",
+   "n": "De espaldas sin la pelota",
+   "tonos": {
+    "piel": "#f4bd91",
+    "camiseta": "#71b8dd"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "recibiendo": {
+   "archivo": "pose_recibiendo.webp",
+   "quien": "heroe",
+   "n": "Recibiendo de frente (P6-B: el que espera el pase largo)",
+   "tonos": {
+    "piel": "#fabb8b",
+    "camiseta": "#71b2de"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "arquero_ataja_celeste": {
+   "archivo": "pose_arquero_ataja_celeste.webp",
+   "quien": "arquero",
+   "n": "TU arquero: la agarra",
+   "tonos": {
+    "piel": "#ffcb9f",
+    "camiseta": "#23659d"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "arquero_despeje_celeste": {
+   "archivo": "pose_arquero_despeje_celeste.webp",
+   "quien": "arquero",
+   "n": "TU arquero: la despeja",
+   "tonos": {
+    "piel": "#f6be92",
+    "camiseta": "#7bbbde"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "arquero_vuela_celeste": {
+   "archivo": "pose_arquero_vuela_celeste.webp",
+   "quien": "arquero",
+   "n": "TU arquero: la estirada",
+   "tonos": {
+    "piel": "#da9b73",
+    "camiseta": "#8dbedb"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   },
+   "alto_rel": 0.58,
+   "_alto_rel": "A3: la figura es 1905x746, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.58 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
+  },
+  "r_corriendo": {
+   "archivo": "poseR_corriendo.webp",
+   "quien": "defensor",
+   "n": "RIVAL corriendo de espaldas (naranja a rayas, el 7)",
+   "tonos": {
+    "camiseta": "#fa6d1a"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   },
+   "_W3": "W3 (20/ago/2026): el archivo se llamaba pose_corriendo_v2, que lo hacia pasar por una pose PROPIA — y es un rival. Renombrado a poseR_corriendo, que es la convencion del bando rival (poseR_arquero_vuela, poseR_quite). Medido: 38% de naranja y 0% de celeste."
+  },
+  "r_arquero_vuela": {
+   "archivo": "poseR_arquero_vuela.webp",
+   "quien": "arquero",
+   "n": "El arquero RIVAL: la estirada",
+   "tonos": {
+    "piel": "#fdba8b",
+    "camiseta": "#fd7a32"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   },
+   "alto_rel": 0.51,
+   "_alto_rel": "A3: la figura es 1897x650, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.51 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
+  },
+  "r_quite": {
+   "archivo": "poseR_quite.webp",
+   "quien": "defensor",
+   "n": "El quite del RIVAL",
+   "tonos": {
+    "piel": "#fcb683",
+    "camiseta": "#dc7c4a"
+   },
+   "tolerancias": {
+    "piel": 80,
+    "camiseta": 95
+   }
+  },
+  "pelota_vieja": {
+   "archivo": "pelota_vieja.webp",
+   "quien": "objeto",
+   "n": "La pelota de potrero, gastada — reemplaza el círculo con gajos"
+  },
+  "calden": {
+   "archivo": "calden.webp",
+   "quien": "objeto",
+   "n": "El caldén solo en el campo",
+   "cargar": false,
+   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el caldén solo en el campo es la imagen de la escalera baja. Para prenderla: cargar:true y engancharla ahi."
+  },
+  "arco": {
+   "archivo": "arco.webp",
+   "quien": "objeto",
+   "n": "El arco con la red",
+   "cargar": false,
+   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el arco de la cancha, para el plano profundo y la definición. Para prenderla: cargar:true y engancharla ahi."
+  },
+  "banco": {
+   "archivo": "banco.webp",
+   "quien": "objeto",
+   "n": "El banco de suplentes",
+   "alto_rel": 0.44,
+   "_alto_rel": "A3: 2695x801, más ancha que alta.",
+   "cargar": false,
+   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → la semana: el banco de suplentes detrás de las decisiones. Para prenderla: cargar:true y engancharla ahi."
+  },
+  "banderin": {
+   "archivo": "banderin.webp",
+   "quien": "objeto",
+   "n": "El banderín del córner",
+   "cargar": false,
+   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → el partido: el córner, cuando exista como situación. Para prenderla: cargar:true y engancharla ahi."
+  },
+  "arbitro_amarilla": {
+   "archivo": "arbitro_amarilla.webp",
+   "quien": "objeto",
+   "n": "El árbitro mostrando la amarilla",
+   "cargar": false,
+   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → el partido: un evento de amarilla, que hoy no existe. Para prenderla: cargar:true y engancharla ahi."
+  }
+ },
+ "fondos": {
+  "tribuna": {
+   "archivo": "fondo_tribuna.webp",
+   "n": "La tribuna (capa lejana: opening y definición)"
+  }
+ },
+ "_como_agregar": "Ver data/COMO_AGREGAR_ARTE.md. Pose nueva = PNG transparente en assets/poses/ + una entrada acá con {archivo, quien(heroe|defensor|arquero), n, pelota{x,y,r} opcional, tonos opcional}. Sobre el CICLO de animación, ojo con la letra chica: la carga es genérica (match.js preload encola pose_<id>_c<k> para cualquier pose que declare ciclo:{cuadros:[...], ms}), pero la REPRODUCCIÓN no: cuadroDelCiclo (match.js) tiene 'corriendo' hardcodeado y arma la key pose_corriendo_c<i>, y encima solo corre para VOS y sin tintes. O sea: hoy el único ciclo que se ve es el de 'corriendo'. Quedó así porque el ciclo entró en la tanda de arte A3 para una sola pose y nunca hizo falta generalizarlo. Si le declarás ciclo a otra pose, los cuadros se bajan, pesan en cada arranque y no se ven nunca: se sigue usando la pose quieta. Para animar otra pose hay que tocar cuadroDelCiclo primero (que reciba el id) y recién ahí declarar el ciclo. Sin ciclo declarado, pose quieta y listo — eso sí funciona siempre.",
+ "_tonos_b3": "B3-D (8/ago): el tinte de camiseta NO llegaba a las escenas — solo la pose 'corriendo' declaraba 'tonos', así que era la única que se podía teñir; en cualquier otra pose salía el celeste del PNG. Ahora las 7 poses del héroe traen sus tonos, sacados con cuentagotas de SU PROPIO PNG (el mismo método de la tanda de arte: se valida contra 'corriendo', que ya estaba verificado, y da #55bcee contra el #54bcec declarado — error menor a 2 por canal). NO se declara 'pelo' a propósito: el tono del pelo y el de los BOTINES son el mismo casi-negro, así que la regla del pelo necesita pelo_y1 (hasta qué altura aplicar) y eso no se puede medir automáticamente — medido, el tono de pelo llega hasta el 104% de la figura, o sea hasta los pies. Sin 'pelo' declarado el tinte de pelo simplemente no se aplica en esas poses: no rompe nada. Queda pendiente ponerle pelo_y1 a mano a cada una, como tiene 'corriendo' (0.45).",
+ "hinchada": {
+  "_doc": "A4 · LAS CINCO SILUETAS DE LA TRIBUNA. Reemplazan las siluetas iguales (círculo + rectángulo) que dibujaba crearHinchadaPanel. La MEZCLA varía con la división: en las de abajo hay más gente parada y sola; en las de arriba aparecen el bombo, la bandera y el bebé. El peso de cada una por división vive en `mezcla`.",
+  "base": "assets/poses/",
+  "siluetas": [
+   {
+    "id": "parado",
+    "archivo": "hincha_parado.webp",
+    "n": "Parado, mirando"
+   },
+   {
+    "id": "mate",
+    "archivo": "hincha_mate.webp",
+    "n": "Con el mate"
+   },
+   {
+    "id": "bombo",
+    "archivo": "hincha_bombo.webp",
+    "n": "Con el bombo"
+   },
+   {
+    "id": "bandera",
+    "archivo": "hincha_bandera.webp",
+    "n": "Con la bandera"
+   },
+   {
+    "id": "bebe",
+    "archivo": "hincha_bebe.webp",
+    "n": "Con el bebé a upa"
+   }
+  ],
+  "mezcla": {
+   "_doc": "peso de cada silueta por división. Suman lo que sea: se normaliza. Una división chica es gente parada y algún mate; una grande tiene bombo y bandera.",
+   "primera_b": {
+    "parado": 6,
+    "mate": 3,
+    "bombo": 1,
+    "bandera": 0,
+    "bebe": 1
+   },
+   "primera_a": {
+    "parado": 5,
+    "mate": 3,
+    "bombo": 2,
+    "bandera": 1,
+    "bebe": 1
+   },
+   "regional": {
+    "parado": 4,
+    "mate": 2,
+    "bombo": 3,
+    "bandera": 2,
+    "bebe": 1
+   },
+   "nacional": {
+    "parado": 3,
+    "mate": 2,
+    "bombo": 3,
+    "bandera": 3,
+    "bebe": 2
+   },
+   "mundial": {
+    "parado": 2,
+    "mate": 1,
+    "bombo": 4,
+    "bandera": 4,
+    "bebe": 2
+   }
+  }
+ },
+ "_tanda_arte_32": "TANDA DE LAS 32 PIEZAS (19/ago/2026). 16 poses (13 propias + 3 del rival), 6 objetos/utilería, 5 siluetas de hinchada y 5 retratos (esos van en data/portraits_manifest.json). Los tonos se sacaron con cuentagotas del PROPIO PNG, pero NO por franjas: se clasifica cada píxel por lo que ES (piel = cálido con R>G>B; camiseta = celeste con B>G>R) y se toma el dominante de cada clase. El método por franjas fallaba en toda figura que no estuviera parada de frente — en las acostadas del arquero y en las de espaldas, la franja de la cabeza cae sobre la camiseta. Si una clase no llega al 1,2% de la figura, NO se declara el tono: teñir mal se ve peor que no teñir.",
+ "_W1_formato": "W1 (20/ago/2026): las rutas apuntan a .webp. Los PNG originales viven en assets/_fuente/ y NO los carga el juego. El procedimiento para convertir una tanda nueva esta en docs/COMO_PESAN_LOS_ASSETS.md.",
+ "_W2_sin_uso": "W2: cinco piezas quedaron con cargar:false — estan en el repo pero el juego no las pide. Es la diferencia entre 'guardada' y 'cargada': guardada no cuesta nada, cargada cuesta ancho de banda en cada arranque. Cuando alguna encuentre su lugar, se le pone cargar:true. El DT y el utilero son lo mismo pero en portraits_manifest."
 }

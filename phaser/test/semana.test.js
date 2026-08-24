@@ -162,5 +162,50 @@ function ok(c, m) { if (c) pass++; else { fail++; console.error("  ✗ " + m); }
   console.log("[7] las condicionadas: ok");
 })();
 
+
+/* ---- 8) TODA ACCIÓN DEL CATÁLOGO TIENE QUE PODER APARECER ----
+   La auditoría encontró que ayudar_casa y estudiar eran INALCANZABLES, y no
+   había ningún error: requiere_origen es un filtro DURO y se comparaba la
+   condición ("campo") contra la marca cruda ("cosecha"), que nunca coinciden.
+   Y "escuela" ni siquiera existía como marca. Dos de las diez acciones no las
+   vio nadie jugando nunca — y el _nota_diseno de ayudar_casa documenta una
+   discusión entera de balance sobre una de ellas.
+
+   Este bloque ENUMERA: para cada acción con requiere_origen busca si hay alguna
+   respuesta del origen que la habilite. Si mañana alguien agrega una acción con
+   una condición que nadie deja, corta acá. */
+(function () {
+  var V = require("../logic/vida.js");
+  var EV = JSON.parse(fs.readFileSync(path.join(__dirname, "../../data/eventos_temporada.json"), "utf8"));
+  var marcas = [];
+  (EV.origen || []).forEach(function (p) {
+    (p.opciones || []).forEach(function (o) {
+      if (o.marca && marcas.indexOf(o.marca) < 0) marcas.push(o.marca);
+    });
+  });
+  ok(typeof V.cumpleOrigen === "function", "la traducción condición→marca tiene que vivir en UN solo lugar");
+
+  var conOrigen = data.opciones.filter(function (o) { return o.requiere_origen; });
+  ok(conOrigen.length > 0, "tiene que haber acciones condicionadas por origen");
+
+  conOrigen.forEach(function (o) {
+    ok(V.cumpleOrigen(o.requiere_origen, marcas),
+      "la acción '" + o.id + "' pide requiere_origen '" + o.requiere_origen +
+      "' y NINGUNA respuesta del origen deja esa marca: es inalcanzable. Marcas que existen: [" +
+      marcas.join(", ") + "]");
+  });
+
+  /* y la consecuencia, medida: con la marca puesta aparece, sin ella no */
+  var semX = S.nuevaSemana({ animo: 60, desgaste: 0, molestia: false }, cfg);
+  var sinNada = S.opcionesPara(data, semX, { marcas: [] }).map(function (x) { return x.id; });
+  conOrigen.forEach(function (o) {
+    var m = [(V.MARCA_DE && V.MARCA_DE[o.requiere_origen]) || o.requiere_origen];
+    var conMarca = S.opcionesPara(data, semX, { marcas: m }).map(function (x) { return x.id; });
+    ok(conMarca.indexOf(o.id) >= 0, "con la marca puesta, '" + o.id + "' tiene que aparecer");
+    ok(sinNada.indexOf(o.id) < 0, "y sin ella NO: requiere_origen es filtro duro, no probabilidad");
+  });
+  console.log("[8] " + conOrigen.length + " acciones condicionadas por origen, todas alcanzables · marcas: " + marcas.join(", "));
+})();
+
 if (fail === 0) console.log("\n✓ TODOS OK — " + pass + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + fail + " FALLARON (" + pass + " ok)"); process.exit(1); }

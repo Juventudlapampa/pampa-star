@@ -68,12 +68,29 @@
     return (ctx.stats[stat] != null) && ctx.stats[stat] >= techo;
   }
 
+  var _vida = null;
+  function tryVida() {
+    if (_vida !== null) return _vida;
+    try { _vida = require("./vida.js"); } catch (e) { _vida = false; }
+    return _vida;
+  }
   function opcionesPara(data, semana, ctx) {
     ctx = ctx || {};
     var out = [];
     catalogo(data).forEach(function (o) {
       if (o.requiere === "molestia" && !semana.molestia) return;
-      if (o.requiere_origen && ctx.origen !== o.requiere_origen) return;
+      /* requiere_origen es un FILTRO DURO (no "aparece mas seguido"), y hasta
+         la auditoria comparaba la condicion contra la marca cruda: ayudar_casa
+         pedia "campo" y la marca era "cosecha", asi que no salia nunca. La
+         traduccion vive en logic/vida.js y la usan los dos. */
+      if (o.requiere_origen) {
+        var V = (typeof window !== "undefined" && window.PampaVida) ||
+                (typeof require === "function" ? tryVida() : null);
+        var marcas = ctx.marcas || (ctx.origen ? [ctx.origen] : []);
+        var ok = V && V.cumpleOrigen ? V.cumpleOrigen(o.requiere_origen, marcas)
+                                     : marcas.indexOf(o.requiere_origen) >= 0;
+        if (!ok) return;
+      }
       if (o.una_vez && semana.elegidas.indexOf(o.id) >= 0) return;
       /* A1 · LA OPCIÓN QUE YA NO SIRVE LO DICE, Y NO TE COBRA.
          Simulado a 90 semanas: entrenando siempre el mismo stat el techo se

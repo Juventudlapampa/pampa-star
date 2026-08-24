@@ -646,7 +646,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     });
 
     /* --- LA LISTA DE ACCIONES, A LA VISTA --- */
-    const ctxL = { origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
+    /* TODAS las marcas, no solo la primera: el origen son TRES preguntas y
+     cualquiera de ellas puede dejar una. Con marcas[0] alcanzaba con que la
+     que importaba fuera la segunda para que no contara. */
+  const ctxL = { marcas: (this.save.origen && this.save.origen.marcas) || [],
+    origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctxL);
     this.add.text(W / 2, 286, hechas >= 3 ? "LA SEMANA ESTÁ ARMADA · a la cancha" : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3 (teclas 1 a 0)",
       { fontFamily: window.PF.display, fontSize: "12px", color: hechas >= 3 ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
@@ -828,37 +832,77 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      el acuse de recibo de una decisión.
      ══════════════════════════════════════════════════════════════════════ */
   momentoDeAccion(op, ranura) {
+    /* ══════════════════════════════════════════════════════════════════════
+       REHECHO despues de mirarlo con el metodo correcto.
+
+       La primera version la "verifique" pisando loop.step() en bucle, que NO
+       le da delta a los tweens: se veia la figura quieta en su posicion final
+       y todo parecia bien. Dejando correr tiempo real aparecieron dos cosas:
+
+         · la figura se salia del marco por abajo (entra con rebote y el
+           rebote se pasa del destino, que es justamente para lo que sirve)
+         · el texto caia ENCIMA de las lineas que dibuja el escenario del club
+           y quedaba tachado, ilegible
+
+       Ahora: la figura tiene su propia mascara contra el marco, y el texto vive
+       en una banda opaca a la izquierda que no comparte lugar con el dibujo.
+       El marco es la unidad: nada se sale de ahi.
+       ══════════════════════════════════════════════════════════════════════ */
     const W = this.scale.width, H = this.scale.height;
+    const MX = W / 2, MY = H / 2 - 10, MW = 620, MH = 300;
+    const x0 = MX - MW / 2, y0 = MY - MH / 2;
     const capa = this.add.container(0, 0).setDepth(900);
-    const velo = this.add.rectangle(W / 2, H / 2, W, H, 0x0a1f13, 0.72);
+    const velo = this.add.rectangle(W / 2, H / 2, W, H, 0x0a1f13, 0.78);
     capa.add(velo);
-    /* el LUGAR donde pasa, grande */
+
+    /* el LUGAR donde pasa */
     if (window.PampaSemanaUI) {
-      const cont = window.PampaSemanaUI.escenario(this, W / 2, H / 2 - 10, 620, 300, op.lugar || "vacio");
-      if (cont) { cont.setDepth(901); capa.add(cont); }
+      const cont = window.PampaSemanaUI.escenario(this, MX, MY, MW, MH, op.lugar || "vacio");
+      if (cont) capa.add(cont);
     }
-    const marco = this.add.rectangle(W / 2, H / 2 - 10, 620, 300, 0x000000, 0).setStrokeStyle(4, 0x7ee08a, 0.9);
-    capa.add(marco);
-    /* la figura de la acción, con anticipación y rebote */
+
+    /* la figura, recortada contra el marco: el rebote de PampaFeel se pasa del
+       destino a proposito, asi que sin mascara asoma por afuera. */
     const key = op.pose ? this.poseConTuPinta(op.pose) : null;
     if (key) {
-      const im = this.add.image(W / 2 + 150, H / 2 + 60, key);
-      im.setScale(240 / im.height);
+      const im = this.add.image(x0 + MW * 0.72, y0 + MH - 8, key);
+      im.setOrigin(0.5, 1);
+      im.setScale((MH * 0.82) / im.height);
+      const mk = this.make.graphics({ x: 0, y: 0, add: false });
+      mk.fillStyle(0xffffff); mk.fillRect(x0, y0, MW, MH);
+      im.setMask(mk.createGeometryMask());
       capa.add(im);
-      if (window.PampaFeel) window.PampaFeel.aparecer(this, im, { x: W / 2 + 150, y: H / 2 + 40, scale: im.scale, desdeX: W / 2 + 320 }, 2);
-      else im.y = H / 2 + 40;
+      if (window.PampaFeel) {
+        window.PampaFeel.aparecer(this, im,
+          { x: x0 + MW * 0.72, y: y0 + MH - 8, scale: im.scale, desdeX: x0 + MW + 160 }, 2);
+      }
     }
+
+    /* LA BANDA DEL TEXTO: opaca y a la izquierda. El escenario dibuja lineas
+       (la cancha del club, la ruta, el patio) y el texto encima quedaba
+       tachado — se ve en la captura de la primera version. */
+    const bw = Math.round(MW * 0.46);
+    const banda = this.add.rectangle(x0, y0, bw, MH, 0x0a1f13, 0.88).setOrigin(0, 0);
+    capa.add(banda);
+
     const dias = ["EL LUNES", "EL MIÉRCOLES", "EL VIERNES"];
-    const tD = this.add.text(W / 2 - 170, H / 2 - 100, dias[ranura] || "", { fontFamily: window.PF.display,
+    const cx = x0 + bw / 2;
+    const tD = this.add.text(cx, y0 + 28, dias[ranura] || "", { fontFamily: window.PF.display,
       fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    const tN = this.add.text(W / 2 - 170, H / 2 - 50, op.n, { fontFamily: window.PF.texto, fontSize: "20px",
-      fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 280 } }).setOrigin(0.5);
-    const tS = this.add.text(W / 2 - 170, H / 2 + 20, op.sub || "", { fontFamily: window.PF.texto,
-      fontSize: "14px", color: "#dcd6c2", align: "center", wordWrap: { width: 280 } }).setOrigin(0.5);
-    capa.add([marco, tD, tN, tS]);
+    const tN = this.add.text(cx, y0 + 96, op.n, { fontFamily: window.PF.texto, fontSize: "20px",
+      fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: bw - 28 } }).setOrigin(0.5);
+    const tS = this.add.text(cx, y0 + 176, op.sub || "", { fontFamily: window.PF.texto,
+      fontSize: "14px", color: "#dcd6c2", align: "center", wordWrap: { width: bw - 28 } }).setOrigin(0.5);
+    /* lo que te deja, con numeros: la misma linea que muestra la tarjeta */
+    const tE = this.add.text(cx, y0 + MH - 30, this.textoEfecto(op), { fontFamily: window.PF.texto,
+      fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: bw - 28 } }).setOrigin(0.5);
+
+    const marco = this.add.rectangle(MX, MY, MW, MH, 0x000000, 0).setStrokeStyle(4, 0x7ee08a, 0.9);
+    capa.add([marco, tD, tN, tS, tE]);
     if (window.PampaFeel) window.PampaFeel.pulsar(this, tN);
     const S = window.PampaSFX;
     if (S && S.temaCampo) S.temaCampo("rival");
+
     /* dura lo que dura un gesto, y se puede saltear tocando */
     const cerrar = () => {
       if (capa.__ido) return; capa.__ido = true;
@@ -889,7 +933,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const cfg = (this.game.registry.get("balance") || {}).balance || {};
     const bal = (this.game.registry.get("balance") || {}).semana || {};
     const sem = this.save.semana;
-    const ctx = { origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
+    /* TODAS las marcas, no solo la primera: el origen son TRES preguntas y
+     cualquiera de ellas puede dejar una. Con marcas[0] alcanzaba con que la
+     que importaba fuera la segunda para que no contara. */
+  const ctx = { marcas: (this.save.origen && this.save.origen.marcas) || [],
+    origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctx);
     this.children.removeAll();
     this.add.text(W / 2, 34, ["LUNES", "MIÉRCOLES", "VIERNES"][ranura] + " · ¿qué hacés?", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
