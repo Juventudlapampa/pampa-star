@@ -355,9 +355,11 @@
       var ops = obs ? J2.opcionesDeObstaculo(obs, m.statG)
                     : ((m.gestos && m.gestos.length) ? m.gestos : g.opciones);
       var wpx = Math.min(200, (W - 40) / ops.length - 10);
+      var _foco = [];
       ops.forEach(function (mv, i) {
         var x = W / 2 + (i - (ops.length - 1) / 2) * (wpx + 10);
         var b = self.jugadonBoton(x, H - 60, wpx, mv.n, 0xf6efdc, function () { self.jugadonMovida(mv.id, r); });
+        if (b) _foco.push({ obj: b, cb: function () { self.jugadonMovida(mv.id, r); } });
         /* el subtitulo de las clases que tienen dos salidas: sin el, "POR
            AFUERA" y "POR EL MEDIO" no dicen que te cuesta cada una */
         if (mv.sub) {
@@ -379,6 +381,13 @@
          logic/jugadon.js). Si se acaba, NO elige el juego por vos al azar: te
          cierra el lado y perdes, que es la consecuencia de no decidir.
          Con balance.jugadon.obstaculos.reloj_ms en 0 no existe. */
+      /* EL CURSOR EN EL PASILLO. Los botones eran atajos numericos sueltos: en
+         una jugada que te cuesta una ficha, no poder elegir con las flechas es
+         obligarte a soltar el teclado justo cuando estas apurado. El foco
+         arranca en la primera salida y NO en la "correcta": en la clase lectura
+         no hay correcta, y en las otras dos elegir es la gracia. */
+      if (self.grupoFoco && _foco.length) self.grupoFoco(_foco, { inicial: 0 });
+
       if (clase === "reloj") {
         var ms = CFGO.reloj_ms != null ? CFGO.reloj_ms : 1200;
         if (ms > 0) {
@@ -421,6 +430,9 @@
         res = J.cruceGambeta(this._jgLogica, movidaId);
       }
       if (!res) return;
+      /* el cursor se va con los botones: si no, queda una escuadra dibujada
+         sobre la pantalla siguiente (ya paso una vez con el menu de tempo) */
+      if (this.cerrarFoco) this.cerrarFoco();
       this.jugadonLimpiarBotones();
       (this._jg.sprites || []).forEach(function (o) { if (o && o.destroy) o.destroy(); });
       this._jg.sprites = [];

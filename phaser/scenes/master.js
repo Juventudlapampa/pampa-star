@@ -466,6 +466,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* --- los pueblos --- */
     const sel = this.pueblos[this.pSel];
+    /* EL CURSOR EN EL MAPA. Ya se navegaba con ◄► pero en una lista circular:
+       en un mapa eso no tiene sentido, porque los pueblos estan en el espacio.
+       Con foco geometrico, la flecha de abajo lleva al pueblo de abajo. */
+    const _focoMapa = [];
     ubic.forEach(p => {
       const x = aX(p.x), y = aY(p.y);
       const esSel = p.nombre === sel;
@@ -485,6 +489,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           fontStyle: esSel ? "bold" : "normal", color: esSel ? "#ffd84d" : "#dcd6c2",
           backgroundColor: "#0a1f13cc", padding: { x: 3, y: 1 } }).setOrigin(0.5, 0);
       capa.add(nom);
+      _focoMapa.push({ obj: punto, cb: () => {
+        const k = this.pueblos.indexOf(p.nombre);
+        if (k >= 0 && k !== this.pSel) { this.pSel = k; this.dibujarMapa(); }
+      } });
       /* tocar el punto (o su nombre) lo elige */
       [punto, nom].forEach(o => {
         o.setInteractive({ useHandCursor: true });
@@ -512,6 +520,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0.5));
 
     /* --- y se dice que el mapa es esquemático --- */
+    if (this.grupoFoco && _focoMapa.length) {
+      const iSel = ubic.findIndex(p => p.nombre === sel);
+      this.grupoFoco(_focoMapa, { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
+    }
     const exactos = M.cuantosExactos(ubic);
     capa.add(this.add.text(C.x + C.w / 2, C.y + C.h + 8,
       exactos === ubic.length ? "ubicaciones exactas"
@@ -545,6 +557,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        (piel.caben lo confirma). Arriba queda el que pregunta, que es lo que se
        mira; abajo lo que se toca. */
     const pielCfg = (this.game.registry.get("balance") || {}).piel;
+    const _focoEnt = [];
     p.opciones.forEach((o, i) => {
       const y = Math.round(window.PampaPiel.yDeOpcion(i, p.opciones.length, 52, pielCfg));
       const r = this.add.rectangle(W / 2, y, 720, 52, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
@@ -560,7 +573,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       };
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
       if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO", "THREE", "FOUR"][i], elegir);
+      _focoEnt.push({ obj: r, cb: elegir });
     });
+    /* EL CURSOR EN LA ENTREVISTA. Cuatro respuestas en columna y ningun atajo
+       mas que los numeros: con las flechas ahora se recorren, y ninguna es
+       "la correcta", asi que el foco arranca en la primera y listo. */
+    if (this.grupoFoco) this.grupoFoco(_focoEnt, { inicial: 0 });
     /* V1 (cantidad + alineación): estaba en H-26, o sea DEBAJO de la cuarta
        opción, y quedaba tapado. Y decía dos cosas: cómo se toca (que el jugador
        descubre solo) y que no hay opción mala (que sí importa, porque saca el
@@ -822,6 +840,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        que es la tercera decisión de esta pantalla. */
     const pielCfgS = (this.game.registry.get("balance") || {}).piel;
     const porFila = 5, anchoO = 178, altoO = 64;
+    /* EL CURSOR EN LA SEMANA. Eran diez tarjetas con atajos numericos sueltos:
+       sin flechas, sin nadie enfocado. Y los atajos se apilaban — apretabas 1 y
+       te llenaba media semana de una. Ahora se navega la grilla 5x2 con las
+       flechas y el cursor cae en la celda de al lado, no en una diagonal (eso
+       lo resuelve logic/foco.js: es geometrico, no declara layout). */
+    const _focoSem = [];
     ops.slice(0, 10).forEach((o, i) => {
       const cx = W / 2 + (i % porFila - (porFila - 1) / 2) * (anchoO + 8);
       const cy = Math.round(window.PampaPiel.yDeOpcion(Math.floor(i / porFila), 3, altoO, pielCfgS));
@@ -851,6 +875,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const veces = sem.elegidas.filter(e => e === o.id).length;
       if (veces) this.add.text(cx + anchoO / 2 - 12, cy - altoO / 2 + 9, "×" + veces,
         { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 4, y: 1 } }).setOrigin(0.5);
+      /* la bloqueada TAMBIEN entra al grupo: se puede enfocar y te dice por que
+         no se puede. Saltearla seria peor — no te enterarias de que existe. */
+      _focoSem.push({ obj: r, bloqueada: !alcanza,
+        motivo: sinEnergia ? "sin energía para esto" : "la semana ya está armada",
+        cb: () => { if (window.PampaFeel) window.PampaFeel.pulsar(this, r); this.ponerEnLaSemana(o); } });
       if (!alcanza) return;
       r.setInteractive({ useHandCursor: true });
       r.on("pointerdown", (pp, xx, yy, e2) => {
@@ -884,9 +913,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        DOS botones lado a lado de la vista de temporada, pero en la semana hay
        uno solo: quedaba corrido a la izquierda. Se ve en la captura vieja. */
     const yJugar = Math.round(window.PampaPiel.yDeOpcion(2, 3, 64, (this.game.registry.get("balance") || {}).piel));
-    this.boton(W / 2, yJugar, 340, listo ? "▶ JUGAR LA FECHA" : "▶ JUGAR ASÍ (te queda semana sin usar)", listo ? 0x7ee08a : 0xdcd6c2, () => {
+    const _btnJugar = this.boton(W / 2, yJugar, 340, listo ? "▶ JUGAR LA FECHA" : "▶ JUGAR ASÍ (te queda semana sin usar)", listo ? 0x7ee08a : 0xdcd6c2, () => {
       this.cerrarSemana(alJugar);
     });
+    _focoSem.push({ obj: _btnJugar, cb: () => this.cerrarSemana(alJugar) });
+    /* el foco arranca en la primera que se pueda elegir; con la semana armada,
+       en el boton de jugar, que es lo unico que queda por hacer */
+    if (this.grupoFoco) this.grupoFoco(_focoSem, { inicial: listo ? _focoSem.length - 1 : undefined });
     /* la ayuda vivía en H-22 y ahí abajo ahora está el botón: se pisaban. Sube
        al título de la lista, que es donde hace falta leerla. */
     this.relojDeLaSemana(listo, alJugar);
