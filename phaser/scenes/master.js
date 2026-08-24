@@ -166,6 +166,132 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
 
   /* ============ VISTA 1: ELEGIR EL CLUB (una vez) ============ */
+  /* ══════════════════════════════════════════════════════════════════════
+     NO SE PODIA EMPEZAR DE NUEVO. NUNCA.
+
+     Verificado: no habia UNA SOLA linea en todo el juego que borrara o
+     reiniciara el save. El que elegia mal el club en la primera pantalla, o el
+     que despues queria probar otro pueblo, quedaba encerrado en esa carrera
+     para siempre. No es de los bugs que molestan: es de los que hacen dejar
+     el juego.
+
+     DOS DECISIONES SOBRE COMO SE HACE, Y LAS DOS IMPORTAN:
+
+     1. LA SALIDA ESTA DONDE SE ENTRA. El acceso vive en la pantalla de la
+        temporada y lleva a la de elegir club, que es donde empezaste. Nadie
+        va a buscar "borrar carrera" en un menu de opciones que no existe.
+
+     2. PIDE CONFIRMACION EXPLICITA, NO UN TOQUE SUELTO. Borrar una carrera de
+        cinco temporadas por accidente es peor que no poder borrarla. La
+        pantalla de confirmacion DICE QUE SE PIERDE con numeros —el club, la
+        division, la temporada, los titulos, las fechas jugadas— y el boton
+        que borra dice lo que hace, no dice "OK".
+
+     Y ademas GUARDA UN RESPALDO antes de borrar. No hay como recuperarlo desde
+     el juego (eso seria otra pantalla), pero queda en localStorage bajo
+     pampa_master_v1_borrada y se puede rescatar a mano. Borrar sin red no hace
+     falta cuando la red cuesta una linea.
+     ══════════════════════════════════════════════════════════════════════ */
+  salidaDeLaCarrera(W, H) {
+    const t = this.add.text(20, H - 26, "✕ empezar otra carrera", {
+      fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5",
+      backgroundColor: "#0a1f13aa", padding: { x: 8, y: 4 }
+    }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
+    t.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation();
+      const S = window.PampaSFX; if (S && S.ui) S.ui("abrir");
+      this.vistaBorrarCarrera();
+    });
+    return t;
+  }
+
+  /* el resumen de lo que estas por perder, con numeros */
+  resumenDeLaCarrera() {
+    const sv = this.save;
+    if (!sv) return null;
+    const t = sv.temporada || {};
+    const div = (this.Ma.DIVISIONES.find(d => d.id === sv.division) || {}).n || sv.division;
+    return {
+      club: sv.club, division: div,
+      temporada: sv.temporadaN | 0,
+      titulos: (sv.titulos || []).length,
+      fechas: t.fecha | 0,
+      total: (t.fixture || []).length
+    };
+  }
+
+  vistaBorrarCarrera() {
+    const W = this.scale.width, H = this.scale.height;
+    const r = this.resumenDeLaCarrera();
+    if (!r) { this.scene.restart(); return; }
+    this.children.removeAll();
+    this.fondoDePiel();
+
+    this.add.text(W / 2, 60, "¿EMPEZAR OTRA CARRERA?", {
+      fontFamily: window.PF.display, fontSize: "18px", color: "#e3503e" }).setOrigin(0.5);
+    this.add.text(W / 2, 94, "esto BORRA la carrera que estás jugando. No se puede deshacer desde el juego.", {
+      fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
+
+    /* LO QUE SE PIERDE, con numeros. Un "¿estás seguro?" pelado no le dice a
+       nadie cuanto vale lo que esta por tirar. */
+    const caja = this.add.rectangle(W / 2, 210, 560, 150, 0x0a1f13, 0.8).setStrokeStyle(3, 0xe3503e, 0.9);
+    this.add.text(W / 2, 152, "LO QUE SE PIERDE", {
+      fontFamily: window.PF.texto, fontSize: "12px", color: "#e3503e" }).setOrigin(0.5);
+    const lineas = [
+      r.club + " · " + r.division,
+      "temporada " + r.temporada + " · fecha " + (r.fechas + 1) + " de " + (r.total || "?"),
+      r.titulos === 1 ? "1 título ganado" : r.titulos + " títulos ganados"
+    ];
+    lineas.forEach((l, i) => {
+      this.add.text(W / 2, 186 + i * 28, l, {
+        fontFamily: window.PF.texto, fontSize: i === 0 ? "17px" : "14px",
+        fontStyle: i === 0 ? "bold" : "normal", color: i === 0 ? "#f6efdc" : "#dcd6c2" }).setOrigin(0.5);
+    });
+
+    /* los dos caminos, y el que borra DICE que borra */
+    const yA = Math.round(window.PampaPiel.yDeOpcion(0, 2, 60, (this.game.registry.get("balance") || {}).piel));
+    const yB = Math.round(window.PampaPiel.yDeOpcion(1, 2, 60, (this.game.registry.get("balance") || {}).piel));
+    const seguir = this.boton(W / 2, yA, 460, "◀ NO, SEGUIR CON ESTA CARRERA", 0x7ee08a, () => {
+      const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
+      this.scene.restart();
+    });
+    const borrar = this.boton(W / 2, yB, 460, "✕ SÍ, BORRAR Y ELEGIR OTRO CLUB", 0xe3503e, () => {
+      const S = window.PampaSFX; if (S && S.ui) S.ui("confirmar");
+      this.borrarCarrera();
+    });
+    /* arriba de los botones y no en H-22: ahi abajo cae el boton rojo y el pie
+       le quedaba encima (se ve en SALIDA_02). Y aca ademas se lee ANTES de
+       elegir, que es cuando sirve. */
+    this.add.text(W / 2, 300, "el respaldo queda guardado en el navegador, pero no se puede volver desde acá", {
+      fontFamily: window.PF.texto, fontSize: "12px", color: "#7a8a80" }).setOrigin(0.5);
+
+    /* el cursor arranca en SEGUIR, nunca en borrar: si te equivocaste de tecla
+       al llegar acá, el Enter de reflejo no te tiene que costar la carrera */
+    if (this.grupoFoco) {
+      this.grupoFoco([
+        { obj: seguir, cb: () => { this.scene.restart(); } },
+        { obj: borrar, cb: () => { this.borrarCarrera(); } }
+      ], { inicial: 0, volver: () => this.scene.restart() });
+    }
+    this.vestirPendientes && this.vestirPendientes();
+  }
+
+  borrarCarrera() {
+    try {
+      const viejo = localStorage.getItem("pampa_master_v1");
+      /* la red: se guarda antes de borrar. Cuesta una linea. */
+      if (viejo) localStorage.setItem("pampa_master_v1_borrada", viejo);
+      localStorage.removeItem("pampa_master_v1");
+    } catch (e) { }
+    this.save = null;
+    /* la semana y el partido pendiente mueren con la carrera: si quedaran,
+       la carrera nueva arrancaria con la semana de la vieja */
+    this.game.registry.set("masterPartido", null);
+    this.game.registry.set("masterResultado", null);
+    this.game.registry.set("carreraPendiente", null);
+    this.scene.restart();
+  }
+
   vistaElegir() {
     const W = this.scale.width, H = this.scale.height;
     this.add.text(W / 2, 26, "🏆 MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
@@ -1208,6 +1334,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         });
       }
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.scene.start("editor"));
+      this.salidaDeLaCarrera(W, H);
     } else {
       /* FIN DE TEMPORADA: el veredicto de la escalera */
       const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
@@ -1234,6 +1361,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.scene.restart();
       });
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.scene.start("editor"));
+      this.salidaDeLaCarrera(W, H);
     }
   }
 };
