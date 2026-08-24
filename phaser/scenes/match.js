@@ -2155,12 +2155,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this._menuBtns[dir] = r;
     });
     /* opción del CENTRO (p.ej. 🔥 CALDÉN cuando está disponible, sin pisar el TIRO) */
+    let centroRect = null;
     if (cfg.centro) {
       const c = this.add.rectangle(480, 405, 150, 50, 0xff8c3a, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
       const ct = this.add.text(480, 398, cfg.centro.texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
       const cs = this.add.text(480, 416, cfg.centro.sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#5a2d12" }).setOrigin(0.5);
       this.menuLayer.add([c, ct, cs]);
       c.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.centro.cb(); });
+      centroRect = c;
     }
     if (cfg.volver) {
       this._menuVolver = cfg.volver;
@@ -2169,17 +2171,77 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.menuLayer.add([v, vt]);
       v.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.volver(); });
     }
+    /* ══════════════════════════════════════════════════════════════════════
+       LA CRUZ, CON EL MISMO CURSOR QUE EL RESTO DEL JUEGO.
+
+       Tenía navegación propia y le faltaban cuatro cosas:
+         · abría con `_menuSel = null`: NADIE enfocado hasta que tocaras una
+           flecha, así que la pantalla más importante del partido arrancaba sin
+           decir dónde estás
+         · el CENTRO —la carta, el megatiro, lo más épico que tiene el juego—
+           era inalcanzable con teclado: `_menuBtns` solo se llenaba con N/S/W/E
+         · el ✕ de volver, lo mismo
+         · con una opción bloqueada, Enter no hacía NADA: ni sonido ni motivo
+       Y el resalte era un borde amarillo de 4 px contra 2. El grosor distingue
+       sin color, pero es el canal más débil de los cuatro que hay.
+
+       Ahora entra por grupoFoco, igual que la semana, el mapa, la entrevista y
+       el pasillo: escuadras (FORMA), elevación, pulso y voz. La navegación pasa
+       a ser geométrica, que en una cruz es lo natural — desde el norte, ABAJO
+       cae en el centro, y de ahí al sur. Eso es justamente lo que vuelve
+       alcanzable al centro sin inventarle una tecla propia.
+
+       El ✕ NO entra al grupo: sale con ESC (`volver`) y se sigue tocando. Es
+       una salida, no una opción más de la cruz.
+       ══════════════════════════════════════════════════════════════════════ */
+    if (this.grupoFoco) {
+      const items = [];
+      /* la caja va DECLARADA: los botones entran volando con PampaFeel.aparecer
+         y medirlos ahora es medirlos en vuelo. Acá sabemos exactamente dónde
+         van a quedar — son POS y 176x50, y el centro 150x50. */
+      ["N", "W", "E", "S"].forEach(dir => {
+        const r = this._menuBtns[dir], op = this._menuOps[dir];
+        if (!r || !op) return;
+        const [bx, by] = POS[dir];
+        items.push({
+          obj: r, bloqueada: !!op.bloqueada, motivo: op.motivo,
+          caja: { x: bx - 88, y: by - 25, w: 176, h: 50 },
+          cb: () => { this._uiTocado = this.time.now; op.cb(); }, _dir: dir
+        });
+      });
+      if (centroRect) items.push({
+        obj: centroRect, caja: { x: 480 - 75, y: 405 - 25, w: 150, h: 50 },
+        cb: () => { this._uiTocado = this.time.now; cfg.centro.cb(); }, _dir: "C"
+      });
+      if (items.length) {
+        this.grupoFoco(items, {
+          inicial: 0, volver: cfg.volver || null,
+          /* `_menuSel` sigue existiendo y sigue al día: lo lee el teclado viejo
+             y cualquier cosa que pregunte dónde está parado el jugador */
+          alMover: (i, it) => { this._menuSel = (it && it._dir) || null; }
+        });
+      }
+    }
     this.selloMenu();
   }
+  /* queda para quien la llame de afuera: ahora mueve EL CURSOR, no un borde */
   menuSeleccionar(dir) {
     if (!this._menuOps || !this._menuOps[dir]) return;
     this._menuSel = dir;
+    if (this._foco && this._foco.items) {
+      const i = this._foco.items.findIndex(it => it._dir === dir);
+      if (i >= 0) { this._foco.mover(i); return; }
+    }
     Object.keys(this._menuBtns).forEach(d => this._menuBtns[d].setStrokeStyle(d === dir ? 4 : 2, d === dir ? 0xffd84d : 0x0a1f13));
   }
   teclasDeMenu() {
     if (!this.cursors) return;
     const JD = Phaser.Input.Keyboard.JustDown;
     if (this.estado === "MENU") {
+      /* con el cursor puesto manda él: si los dos leen las flechas, cada
+         pulsación cuenta dos veces y el foco salta de a dos casilleros. El
+         camino viejo queda como red por si grupoFoco no está. */
+      if (this._foco && this._foco.vivo) return;
       if (JD(this.cursors.left)) this.menuSeleccionar("W");
       if (JD(this.cursors.right)) this.menuSeleccionar("E");
       if (JD(this.cursors.up)) this.menuSeleccionar("N");

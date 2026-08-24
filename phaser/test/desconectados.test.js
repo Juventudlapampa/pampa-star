@@ -276,6 +276,7 @@ var ESCRITOS_OK = {
   "_tapArea": "sello del área táctil agrandada, para poder verificarla desde afuera",
   "_pisoTactil": "sello de que ya se le puso piso táctil al objeto",
   "_master": "sello de división y perfil sobre el estado, para inspección",
+  "_tema": "sello de qué tema produjo esa entrada del mapa de música, para poder verificarlo desde afuera",
   "__PAMPA_MUSICA_FECHA": "contador de diagnóstico de música, se lee desde la verificación",
   "__PAMPA_MUSICA_MALOS": "idem, momentos desconocidos",
   "__PAMPA_MUSICA_TARDIOS": "idem, pedidos de escenas muertas",
@@ -307,6 +308,11 @@ SCENES.concat(LOGIC).forEach(function (f) {
     /* método o propiedad de una escena/mixin: `_caraDe(x) {`, `_caraDe: function`, `_pivote: {` */
     var mm = l.match(/^\s{2,6}(_[A-Za-z_$][\w$]*)\s*(?:\([^)]*\)\s*\{|:)/);
     if (mm) (escritos[mm[1]] = escritos[mm[1]] || []).push(donde);
+    /* clave de OBJETO LITERAL: `{ obj: r, _dir: dir }` también es escribir el
+       campo. Sin esto, un `it._dir` leído más tarde parecía una condición que
+       nunca da verdadero — y no lo era. */
+    var rk = /[{,]\s*(_[A-Za-z_$][\w$]*)\s*:/g;
+    while ((m2 = rk.exec(l))) (escritos[m2[1]] = escritos[m2[1]] || []).push(donde);
     /* LECTURAS: por cualquier receptor, igual que las escrituras. Contarlas
        solo sobre `this.` daba 25 falsos positivos — un `g._pulso` escrito sobre
        un Graphics y leído como `G._pulso` parecía un valor sin consumidor. Los

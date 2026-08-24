@@ -55,8 +55,31 @@
       if (!F || !items || !items.length) return null;
       this.cerrarFoco();
 
+      /* ── LAS CAJAS SE MIDEN UNA SOLA VEZ, ACÁ ─────────────────────────
+         Y por eso `it.caja` existe: si el que abre el grupo ANIMA sus botones
+         al entrar (PampaFeel.aparecer los trae volando desde el centro con un
+         tween de posición y escala), medirlos ahora es medirlos EN VUELO, y el
+         cursor navega sobre una geometría que ya no existe cuando el jugador
+         toca una tecla.
+
+         Pasó en la cruz del partido y no se veía como un error: bajando desde
+         el norte, el cursor SALTEABA el centro. El norte estaba medido con el
+         centro corrido 30 px y 24 px más angosto, y con el peso perpendicular
+         (x2) esos 30 px alcanzaban para que el sur ganara 106 a 112,5.
+
+         El que sabe dónde van a quedar sus botones los declara y listo. Es la
+         misma familia que medir tweens con el reloj equivocado: no da error,
+         da un número plausible y equivocado.
+         ───────────────────────────────────────────────────────────────── */
       var cajas = items.map(function (it) {
         var o = it.obj;
+        if (it.caja) {
+          return {
+            x: it.caja.x, y: it.caja.y, w: it.caja.w, h: it.caja.h,
+            bloqueada: !!it.bloqueada,
+            oculta: (o && o.visible === false) || it.caja.w <= 0 || it.caja.h <= 0
+          };
+        }
         if (!o) return { x: 0, y: 0, w: 0, h: 0, oculta: true };
         var w = o.displayWidth || o.width || 0, h = o.displayHeight || o.height || 0;
         var ox = o.originX != null ? o.originX : 0, oy = o.originY != null ? o.originY : 0;
