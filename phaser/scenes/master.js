@@ -21,6 +21,28 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        y D3 · el escudo del club propio. */
     this.load.image("d_logo_h", "../assets/ui/pampa-star-logo-horizontal.webp");
     this.load.image("d_escudo", "../assets/ui/escudo-club.webp");
+    /* ══════════════════════════════════════════════════════════════════════
+       D3 · D5 · LAS POSES QUE NECESITA EL MASTER.
+
+       La entrevista te muestra a VOS y cada acción de la semana tiene su
+       figura, así que esta escena necesita poses — antes no cargaba ninguna.
+
+       La lista NO está escrita a mano: sale de data/semana.json (el campo
+       pose de cada acción) más la de la entrevista. Agregar una acción nueva
+       con su pose la carga sola. Y la ruta se arma desde el manifest, que es
+       la regla desde W1: una ruta concatenada a mano es invisible para el
+       barrido de peso y se escapa de la conversión a webp.
+       ══════════════════════════════════════════════════════════════════════ */
+    const pm = this.game.registry.get("poses");
+    const dSem = this.game.registry.get("semana");
+    const necesarias = ["recibiendo"];
+    if (dSem && Array.isArray(dSem.opciones)) {
+      dSem.opciones.forEach((o) => { if (o && o.pose && necesarias.indexOf(o.pose) < 0) necesarias.push(o.pose); });
+    }
+    necesarias.forEach((id) => {
+      const d = pm && pm.poses && pm.poses[id];
+      if (d && d.archivo && !this.textures.exists("pose_" + id)) this.load.image("pose_" + id, "../assets/poses/" + d.archivo);
+    });
     const man = this.game.registry.get("portraits");
     if (man && Array.isArray(man.personajes)) {
       man.personajes.forEach((p) => {
@@ -32,6 +54,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
 
   create() {
+    /* D5 · volviste del editor con la pinta puesta: ahora sí, la entrevista.
+       Se consume el pendiente antes de nada para que un restart no lo repita. */
+    const pend = this.game.registry.get("carreraPendiente");
+    if (pend && pend.division) {
+      this.game.registry.set("carreraPendiente", null);
+      this._pendienteOrigen = pend.division;
+    }
     const W = this.scale.width, H = this.scale.height;
     /* PIEL P1: fondo radial (ver editor.js) */
     this.cameras.main.setBackgroundColor(this.piel().fondo_borde);
@@ -80,6 +109,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.guardar();
     }
 
+    /* D5 · volviste del editor: la entrevista, sin pasar de nuevo por elegir
+       club (el club ya lo elegiste antes de ir a armar la pinta). */
+    if (this._pendienteOrigen) {
+      const div = this._pendienteOrigen;
+      this._pendienteOrigen = null;
+      this.vistaOrigen(div);
+      return;
+    }
     if (!this.save) this.vistaElegir();
     else this.vistaTemporada();
   }
@@ -165,10 +202,24 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
     this.pintarPueblo();
 
+    /* ══════════════════════════════════════════════════════════════════════
+       D5 · PRIMERO LA PINTA, DESPUÉS LA ENTREVISTA.
+
+       El orden estaba al revés: te hacían las tres preguntas de origen y
+       recién después elegías cómo sos. Así, en la entrevista no había a quién
+       mostrar — literalmente: la pinta todavía no existía.
+
+       Ahora se pasa por el editor primero y la entrevista te sienta enfrente
+       de Nito con la pinta que acabás de elegir. Es un cambio de ORDEN, no de
+       contenido: las preguntas, las respuestas y los stats que dejan son
+       exactamente los mismos, y o2_entrevista.test.js lo sigue verificando.
+
+       El registry lleva a dónde volver; el editor no necesita saber nada de la
+       carrera, solo que hay algo pendiente. */
     const arrancarEn = (divId) => {
       this.backupClasico();   // V7 §3: la mudanza respalda el clásico primero
-      /* V8 A1 · EL ORIGEN: tres preguntas antes de la primera fecha */
-      this.vistaOrigen(divId);
+      this.game.registry.set("carreraPendiente", { division: divId });
+      this.scene.start("editor");
     };
     this._crearCarrera = (divId, origen) => {
       const club = "Club " + this.pueblos[this.pSel];
@@ -222,6 +273,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const qe = E && E.preguntas && E.preguntas[p.id];
     this.add.text(W / 2, 34, "TU HISTORIA · " + (paso + 1) + " de 3", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     if (qe) this.entrevistador(E, qe.dice);
+    /* D5 · y de este lado estás vos, con la pinta que elegiste recién */
+    if (qe) this.entrevistado();
     else this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
     /* O1 · las cuatro respuestas estaban en columna desde y=150, o sea ARRIBA.
        Bajan a la franja de decisión: 4 de 52 px entran justo en los 212 útiles
@@ -286,7 +339,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     g.fillStyle(0x9fb3a5, 1); g.fillCircle(x + 32, y + 2, 9);
     }
     /* el globo de diálogo */
-    const bx = 172, bw = W - bx - 40;
+    /* D5 · el globo llegaba hasta W-40 y ahora hay ALGUIEN de ese lado: tu
+       retrato ocupa de W-144 a W-40, así que el texto se metía abajo y la
+       pregunta quedaba cortada a la mitad. El globo termina antes del marco. */
+    const bx = 172, bw = (W - 156) - bx;
     const globo = this.add.graphics();
     globo.fillStyle(0xf6efdc, 0.97);
     globo.fillRoundedRect(bx, y - 52, bw, 104, 12);
@@ -299,6 +355,91 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.add.text(bx + 16, y - 18, dice, {
       fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", wordWrap: { width: bw - 32 }, lineSpacing: 2
     });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     D5 · EL ENTREVISTADO SOS VOS.
+
+     Nito ya tenía su retrato; del otro lado no había nadie. Ahora la pinta que
+     acabás de armar en el editor se sienta enfrente: la MISMA figura que
+     después corre en el panel del partido, con tus tintes.
+
+     Sin arte nuevo: es la pose "recibiendo" del manifest —el jugador de frente,
+     brazos abajo, mirando— que es la única que sirve para alguien sentado
+     escuchando una pregunta. Queda anotado en el HANDOFF que la pose propia de
+     "sentado en la entrevista" no existe y sería arte nuevo.
+     ══════════════════════════════════════════════════════════════════════ */
+  entrevistado() {
+    const W = this.scale.width, H = this.scale.height;
+    const x = W - 92, y = 118;
+    const g = this.add.graphics();
+    g.fillStyle(0x0e2a1a, 1); g.fillRoundedRect(x - 52, y - 46, 104, 116, 10);
+    const key = this.poseConTuPinta("recibiendo");
+    if (key) {
+      const R = 40, cy = y + 4;
+      const im = this.add.image(x, cy, key);
+      /* encuadrado en la CARA: la pose es de cuerpo entero y acá se mira a los
+         ojos, así que se escala grande y se recorta en redondo por arriba */
+      im.setScale((R * 5.6) / im.height);
+      im.y = cy + im.displayHeight * 0.30;
+      const mk2 = this.make.graphics({ x: 0, y: 0, add: false });
+      mk2.fillStyle(0xffffff); mk2.fillCircle(x, cy, R);
+      im.setMask(mk2.createGeometryMask());
+      g.lineStyle(3, 0x4fc3f7, 1); g.strokeCircle(x, cy, R);
+    } else {
+      g.fillStyle(0x2b1d14, 1); g.fillCircle(x, y - 8, 26);
+      g.fillStyle(0x4fc3f7, 1); g.fillRoundedRect(x - 34, y + 22, 68, 44, 8);
+    }
+    /* la placa: bando por FORMA además de color (▼ tuyo, como en el partido) */
+    this.add.text(x, y + 80, "▼ VOS", {
+      fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
+      color: "#0a1f13", backgroundColor: "#4FC3F7", padding: { x: 8, y: 3 }
+    }).setOrigin(0.5);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     D5 · LA POSE CON TU PINTA.
+
+     Mismo procedimiento que el panel del partido: el manifest declara los tonos
+     de origen (piel, pelo, camiseta) y sus tolerancias, y PampaAvatarArte los
+     reemplaza por los del catálogo según tu look. La pose teñida queda cacheada
+     con el look en la clave — si no, la primera que se tiñe vale para todas.
+
+     Con todo en "Original" (sin tintes) no se hornea nada y va la pose tal cual,
+     que es lo correcto: no hay nada que cambiar.
+     ══════════════════════════════════════════════════════════════════════ */
+  poseConTuPinta(id) {
+    const base = "pose_" + id;
+    if (!this.textures.exists(base)) return null;
+    const A = window.PampaAvatar, AA = window.PampaAvatarArte;
+    const pm = this.game.registry.get("poses");
+    const def = pm && pm.poses && pm.poses[id];
+    if (!A || !AA || !def || !def.tonos) return base;
+    let look;
+    try { look = A.validarLook(this.lookGuardado()); } catch (e) { return base; }
+    if (!look || (!look.tPiel && !look.tPelo && !look.tCam)) return base;
+    const key = "poseM_" + id + "_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
+    if (this.textures.exists(key)) return key;
+    try {
+      const CAT = A.CATALOGO, CM = this.game.registry.get("caras");
+      const hx = v => parseInt(String(v).slice(1), 16);
+      const T = def.tonos, tol = def.tolerancias || {}, mapa = [];
+      if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
+      if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80 });
+      if (look.tCam > 0 && T.camiseta && CM && CM.camisetas) mapa.push({ de: hx(T.camiseta), a: hx(CM.camisetas[(look.tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
+      if (!mapa.length) return base;
+      AA.tenirImagen(this, base, key, mapa);
+    } catch (e) { return base; }
+    return this.textures.exists(key) ? key : base;
+  }
+
+  /* el look guardado del editor, sin depender de que la escena lo tenga */
+  lookGuardado() {
+    try {
+      const s = JSON.parse(localStorage.getItem("pampa_star_v1") || "null");
+      if (s && s.look) return s.look;
+    } catch (e) { }
+    return null;
   }
 
   /* ============ V8 A1 · PARTE 2: LA SEMANA (antes de cada fecha) ============ */
@@ -320,8 +461,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
        te estás preparando. El título de la pantalla pasa a apoyo. */
-    this.add.text(W / 2, 26, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
-    this.add.text(W / 2, 58, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
+    this.add.text(W / 2, 16, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
+    this.add.text(W / 2, 42, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
 
     /* --- LOS DOS MEDIDORES: barra Y número, siempre --- */
     const medidor = (x, y, etiqueta, valor, color) => {
@@ -331,55 +472,113 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       g.fillStyle(color, 1); g.fillRect(x + 2, y + 2, Math.max(0, Math.min(296, 296 * valor / 100)), 14);
       g.lineStyle(2, 0xf6efdc, 0.8); g.strokeRect(x, y, 300, 18);
     };
-    medidor(W / 2 - 320, 96, "⚡ ENERGÍA", sem.energia, 0x7ee08a);
-    medidor(W / 2 + 20, 96, "🧠 ÁNIMO", sem.animo, 0x4fc3f7);
-    if (sem.molestia) this.add.text(W / 2, 132, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }).setOrigin(0.5);
+    medidor(W / 2 - 320, 80, "⚡ ENERGÍA", sem.energia, 0x7ee08a);
+    medidor(W / 2 + 20, 80, "🧠 ÁNIMO", sem.animo, 0x4fc3f7);
+    if (sem.molestia) this.add.text(W / 2, 116, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }).setOrigin(0.5);
 
     /* --- EL EVENTO DE LA SEMANA (sabor + modificador) --- */
     if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
     const ev = this._semEvento;
     if (ev && ev.texto) {
-      this.add.text(W / 2, 162, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5);
+      this.add.text(W / 2, 116, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5);
     }
 
-    /* --- LAS TRES RANURAS --- */
-    const nombres = ["LUNES", "MIÉRCOLES", "VIERNES"];
-    const anchoR = 250, x0 = W / 2 - anchoR - 14;
+    /* ══════════════════════════════════════════════════════════════════════
+       D2 · LA SEMANA SE ELIGE POR ACCIÓN, NO POR DÍA.
+
+       Antes: tocabas LUNES, se abría otra pantalla con las diez acciones,
+       elegías una, volvías; tocabas MIÉRCOLES, otra vez lo mismo. Seis toques
+       y dos pantallas para tres decisiones, y el día no significaba nada —
+       ninguna acción cambia según sea lunes o viernes.
+
+       Ahora: las diez acciones están A LA VISTA y elegís tres. El juego las
+       reparte en los días en el orden en que las elegiste y te lo CUENTA en el
+       repaso, que es donde el día sí sirve para algo: para leerse como una
+       semana. Misma lógica, mismos números, las mismas tres ranuras — lo único
+       que cambia es que no hay que ir a buscarlas.
+
+       Lo que se elige queda arriba, en una tira, con su pose. Lo que se puede
+       elegir, abajo. Y el repaso al pie.
+       ══════════════════════════════════════════════════════════════════════ */
+    const nombres = ["el lunes", "el miércoles", "el viernes"];
+    const hechas = sem.elegidas.filter(Boolean).length;
+
+    /* --- LA TIRA DE LO ELEGIDO --- */
+    const anchoR = 236, x0 = W / 2 - anchoR - 12;
     nombres.forEach((n, i) => {
-      /* O1 · las ranuras vivían en y=250, o sea ARRIBA: el otro de los dos
-         grupos que no caían en la franja de decisión. Bajan al mismo lugar
-         donde se elige en todas las demás pantallas. */
-      const x = x0 + i * (anchoR + 14);
-      const y = Math.round(window.PampaPiel.yDeOpcion(0, 2, 108, (this.game.registry.get("balance") || {}).piel));
+      const x = x0 + i * (anchoR + 12), y = 176;
       const elegida = sem.elegidas[i];
       const op = elegida ? D.opciones.find(o => o.id === elegida) : null;
-      /* N4 · LA SEMANA COMO ESCENARIO. La ranura deja de ser una caja: es el
-         LUGAR donde pasó la cosa. Puesta en escena y nada más — el lugar sale
-         de data/semana.json y no toca un solo número de logic/semana.js. */
-      if (window.PampaSemanaUI) {
-        window.PampaSemanaUI.escenario(this, x, y, anchoR, 108, op ? op.lugar : "vacio");
-      }
-      const r = this.add.rectangle(x, y, anchoR, 108, op ? 0x2e7d32 : 0x0a1f13, op ? 0.28 : 0.42)
-        .setStrokeStyle(3, op ? 0x7ee08a : 0xf6efdc, 0.9);
-      /* franja abajo para que el texto se lea sobre el dibujo */
-      /* la franja del texto ocupa el tercio de abajo del escenario: con 38 px
-         el efecto de dos líneas se salía de la caja (se ve en la captura). */
-      if (op) this.add.rectangle(x, y + 30, anchoR - 6, 48, 0x0a1f13, 0.86);
-      this.add.text(x, y - 38, n, { fontFamily: window.PF.display, fontSize: "10px", color: "#ffd84d",
-        backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+      if (window.PampaSemanaUI) window.PampaSemanaUI.escenario(this, x, y, anchoR, 84, op ? op.lugar : "vacio");
+      this.add.rectangle(x, y, anchoR, 84, op ? 0x2e7d32 : 0x0a1f13, op ? 0.24 : 0.44)
+        .setStrokeStyle(3, op ? 0x7ee08a : 0x555f57, 0.9);
+      this.add.text(x, y - 30, n.toUpperCase(), { fontFamily: window.PF.display, fontSize: "12px",
+        color: op ? "#ffd84d" : "#9fb3a5", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
       if (op) {
-        this.add.text(x, y + 18, op.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", align: "center", wordWrap: { width: anchoR - 20 } }).setOrigin(0.5);
-        /* 12 y no 10 ni 11: el piso de legibilidad son 12 px lógicos (8.7
-           reales en teléfono) y el test lo cazó al toque en los dos intentos,
-           porque la deuda pasaba de 36 textos a 37. El lugar para el escenario
-           se hace corriendo el texto, no achicándolo. */
-        this.add.text(x, y + 38, this.textoEfecto(op), { fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2", align: "center", lineSpacing: 0, wordWrap: { width: anchoR - 16 } }).setOrigin(0.5);
+        /* D3 · la pose de esa acción, adentro del escenario */
+        /* 54 y no 66: con 66 la cabeza se salía por arriba del marco de 84 —
+           se ve en la captura de la primera vuelta. Anclada por los pies a
+           y+34, la figura entera entra adentro. */
+        this.figuraDeAccion(op, x + anchoR * 0.32, y + 34, 54);
+        this.add.rectangle(x - 22, y + 22, anchoR - 66, 32, 0x0a1f13, 0.86);
+        this.add.text(x - 22, y + 22, op.n, { fontFamily: window.PF.texto, fontSize: "13px",
+          color: "#f6efdc", align: "center", wordWrap: { width: anchoR - 70 } }).setOrigin(0.5);
+        /* se puede deshacer: si te arrepentís, la sacás y elegís otra */
+        const q = this.add.text(x + anchoR / 2 - 14, y - 30, "✕", { fontFamily: window.PF.texto,
+          fontSize: "14px", color: "#e3503e", backgroundColor: "#0a1f13cc", padding: { x: 5, y: 2 } })
+          .setOrigin(0.5).setInteractive({ useHandCursor: true });
+        q.on("pointerdown", (pp, xx, yy, e2) => {
+          e2 && e2.stopPropagation && e2.stopPropagation();
+          this.sacarDeLaSemana(i);
+        });
       } else {
-        r.setInteractive({ useHandCursor: true });
-        this.add.rectangle(x, y + 30, anchoR - 6, 34, 0x0a1f13, 0.78);
-        this.add.text(x, y + 30, "＋ elegí qué hacés", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
-        r.on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); this.vistaElegirDia(i); });
-        if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO", "THREE"][i], () => this.vistaElegirDia(i));
+        this.add.text(x, y + 12, hechas === i ? "elegí de la lista ▼" : "todavía no",
+          { fontFamily: window.PF.texto, fontSize: "13px", color: hechas === i ? "#f6efdc" : "#7a8a80" }).setOrigin(0.5);
+      }
+    });
+
+    /* --- LA LISTA DE ACCIONES, A LA VISTA --- */
+    const ctxL = { origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
+    const ops = S.opcionesPara(D, sem, ctxL);
+    this.add.text(W / 2, 286, hechas >= 3 ? "LA SEMANA ESTÁ ARMADA · a la cancha" : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3 (teclas 1 a 0)",
+      { fontFamily: window.PF.display, fontSize: "12px", color: hechas >= 3 ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
+    /* O1 · las opciones van en la FRANJA DE DECISIÓN, ubicadas con el helper —
+       no clavadas a mano. Tres filas: dos de acciones y la del botón de jugar,
+       que es la tercera decisión de esta pantalla. */
+    const pielCfgS = (this.game.registry.get("balance") || {}).piel;
+    const porFila = 5, anchoO = 178, altoO = 64;
+    ops.slice(0, 10).forEach((o, i) => {
+      const cx = W / 2 + (i % porFila - (porFila - 1) / 2) * (anchoO + 8);
+      const cy = Math.round(window.PampaPiel.yDeOpcion(Math.floor(i / porFila), 3, altoO, pielCfgS));
+      const sinEnergia = (o.energia_costo || 0) > sem.energia;
+      const alcanza = !sinEnergia && hechas < 3;
+      const usada = sem.elegidas.indexOf(o.id) >= 0;
+      /* DALTONISMO: apagado no puede ser SOLO un color más oscuro. La tarjeta
+         que no se puede tocar se dice con PALABRA (el motivo, abajo) y con
+         BORDE punteado por grosor; y el fondo se mantiene claro para que el
+         texto siga leyéndose — antes quedaba texto oscuro sobre fondo oscuro. */
+      const r = this.add.rectangle(cx, cy, anchoO, altoO, alcanza ? 0xf6efdc : 0xc9c3b2, alcanza ? 0.97 : 0.9)
+        .setStrokeStyle(usada ? 4 : (alcanza ? 3 : 1), usada ? 0x7ee08a : 0x0a1f13, alcanza ? 1 : 0.55);
+      this.add.text(cx, cy - 18, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
+        color: "#0a1f13", align: "center", wordWrap: { width: anchoO - 12 } }).setOrigin(0.5);
+      this.add.text(cx, cy + 14, alcanza ? this.textoEfecto(o) : (sinEnergia ? "sin energía para esto" : "la semana ya está armada"),
+        { fontFamily: window.PF.texto, fontSize: "12px", color: alcanza ? "#365a41" : "#8a3226",
+          fontStyle: alcanza ? "normal" : "italic", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5);
+      /* se puede repetir una acción: son tres días distintos. La marca dice
+         cuántas veces ya la elegiste, para que no haya que contarlas a ojo. */
+      const veces = sem.elegidas.filter(e => e === o.id).length;
+      if (veces) this.add.text(cx + anchoO / 2 - 12, cy - altoO / 2 + 9, "×" + veces,
+        { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 4, y: 1 } }).setOrigin(0.5);
+      if (!alcanza) return;
+      r.setInteractive({ useHandCursor: true });
+      r.on("pointerdown", (pp, xx, yy, e2) => {
+        e2 && e2.stopPropagation && e2.stopPropagation();
+        if (window.PampaFeel) window.PampaFeel.pulsar(this, r);
+        this.ponerEnLaSemana(o);
+      });
+      if (this.input.keyboard && i < 10) {
+        const tecla = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "ZERO"][i];
+        this.input.keyboard.once("keydown-" + tecla, () => { if (alcanza) this.ponerEnLaSemana(o); });
       }
     });
 
@@ -387,24 +586,173 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const llega = S.comoLlegas(sem, cfg);
     /* N4 · EL REPASO: la semana contada como la contaría alguien, no una lista.
        Sale de lo que ya elegiste; no calcula nada. */
+    /* D2 · el repaso es DONDE SIRVE EL DÍA: contarte la semana como se la
+       contarías a alguien. Por eso las acciones se eligen sueltas y los días
+       aparecen recién acá, ya repartidos. */
     if (window.PampaSemanaUI) {
-      this.add.text(W / 2, 258, window.PampaSemanaUI.repaso(sem.elegidas, D.opciones),
-        { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 820 } }).setOrigin(0.5);
+      this.add.text(W / 2, 240, window.PampaSemanaUI.repaso(sem.elegidas, D.opciones),
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
     }
-    this.add.text(W / 2, 206, "🗓 " + llega.resumen, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(2), color: "#7ee08a", align: "center" }).setOrigin(0.5);
-    this.add.text(W / 2, 234, "vas a arrancar el partido con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
-      { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#dcd6c2" }).setOrigin(0.5);
-    if (sem.espiado) this.add.text(W / 2, 258, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 264, "🗓 " + llega.resumen + " · con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
+      { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
+    if (sem.espiado) this.add.text(W / 2, 136, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
 
     const listo = sem.elegidas.every(e => e);
     /* boton() toma x como CENTRO. Acá había un W/2-170 heredado del layout de
        DOS botones lado a lado de la vista de temporada, pero en la semana hay
        uno solo: quedaba corrido a la izquierda. Se ve en la captura vieja. */
-    const yJugar = Math.round(window.PampaPiel.yDeOpcion(1, 2, 92, (this.game.registry.get("balance") || {}).piel));
+    const yJugar = Math.round(window.PampaPiel.yDeOpcion(2, 3, 64, (this.game.registry.get("balance") || {}).piel));
     this.boton(W / 2, yJugar, 340, listo ? "▶ JUGAR LA FECHA" : "▶ JUGAR ASÍ (te queda semana sin usar)", listo ? 0x7ee08a : 0xdcd6c2, () => {
       this.cerrarSemana(alJugar);
     });
-    this.add.text(W / 2, H - 22, "tres toques y a la cancha (teclas 1 · 2 · 3)", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.85);
+    /* la ayuda vivía en H-22 y ahí abajo ahora está el botón: se pisaban. Sube
+       al título de la lista, que es donde hace falta leerla. */
+    this.relojDeLaSemana(listo, alJugar);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     D2 · EL RELOJ DE LA SEMANA: APAGADO POR DEFECTO.
+
+     La semana es la única pantalla tranquila del juego. Todo lo demás —el
+     partido, el pasillo, el jugadón— te apura a propósito; acá te sentás a
+     pensar qué clase de jugador querés ser esa semana, y meterle una cuenta
+     regresiva de 15 segundos convierte la única pausa en otra urgencia.
+
+     Queda como MODO OPCIONAL porque hay a quien le gusta esa presión, y
+     porque apagarlo cuesta una línea: balance.semana.reloj_seg en 0 (que es
+     el default) no dibuja nada y no arma ningún temporizador. Con un número
+     mayor a 0 aparece la cuenta y al llegar a cero se juega con lo que haya —
+     nunca se elige por vos.
+     ══════════════════════════════════════════════════════════════════════ */
+  /* D3 · la figura chica de una acción, dentro de su escenario. Recortada por
+     arriba: la pose es de cuerpo entero y en 66 px de alto lo que se lee es el
+     gesto, no el detalle. Si la pose no cargó no se dibuja nada y la ranura
+     sigue funcionando — nunca un hueco con signo de pregunta. */
+  figuraDeAccion(op, x, y, alto) {
+    if (!op || !op.pose) return null;
+    const key = this.poseConTuPinta(op.pose);
+    if (!key) return null;
+    const im = this.add.image(x, y, key);
+    im.setScale(alto / im.height);
+    im.setOrigin(0.5, 1);
+    return im;
+  }
+
+  relojDeLaSemana(listo, alJugar) {
+    const cfg = (this.game.registry.get("balance") || {}).semana || {};
+    const seg = cfg.reloj_seg | 0;
+    if (seg <= 0) return false;                  // el default: no existe
+    const W = this.scale.width;
+    let quedan = seg;
+    const t = this.add.text(W - 20, 20, "⏱ " + quedan + "s", { fontFamily: window.PF.display,
+      fontSize: "14px", color: "#ffd84d", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 4 } }).setOrigin(1, 0);
+    this._relojSem = this.time.addEvent({
+      delay: 1000, repeat: seg - 1,
+      callback: () => {
+        quedan--;
+        t.setText("⏱ " + quedan + "s").setColor(quedan <= 5 ? "#e3503e" : "#ffd84d");
+        if (quedan <= 0) { this._relojSem = null; this.cerrarSemana(alJugar); }
+      }
+    });
+    return true;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     D2 · PONER Y SACAR. El juego reparte los días; vos elegís las acciones.
+
+     La ranura es la primera libre, en orden. Eso es lo que hace que el repaso
+     se lea como una semana ("el lunes X, el miércoles Y") sin que hayas tenido
+     que pensar en días: contás lo que hiciste, no lo agendás.
+
+     La lógica de abajo (logic/semana.js) no se toca: sigue recibiendo una
+     ranura y un id, y sigue devolviendo la misma semana con los mismos números.
+     ══════════════════════════════════════════════════════════════════════ */
+  ponerEnLaSemana(op) {
+    const S = window.PampaSemana, D = this.game.registry.get("semana");
+    const bal = (this.game.registry.get("balance") || {}).semana || {};
+    const sem = this.save.semana;
+    const ranura = sem.elegidas.findIndex(e => !e);
+    if (ranura < 0) return false;
+    const nueva = S.elegir(D, sem, ranura, op.id, bal);
+    if (!nueva) return false;
+    this.save.semana = nueva;
+    if (op.riesgo_golpe && Math.random() < op.riesgo_golpe) this.save.semana.molestia = true;
+    this.guardar();
+    /* D3 · el momento de la acción, antes de repintar */
+    this.momentoDeAccion(op, ranura);
+    return true;
+  }
+  sacarDeLaSemana(ranura) {
+    const S = window.PampaSemana, D = this.game.registry.get("semana");
+    const bal = (this.game.registry.get("balance") || {}).semana || {};
+    const sem = this.save.semana;
+    if (!sem || !sem.elegidas[ranura]) return false;
+    /* rehacer la semana desde cero con las que quedan: así los números salen
+       de la MISMA función que los puso y no hay que restar a mano (restar a
+       mano es de donde salen los desajustes que después nadie encuentra) */
+    const quedan = sem.elegidas.filter((e, i) => e && i !== ranura);
+    let nueva = S.nuevaSemana(this.save, bal);
+    nueva.molestia = sem.molestia;
+    quedan.forEach((id, i) => { nueva = S.elegir(D, nueva, i, id, bal) || nueva; });
+    this.save.semana = nueva;
+    this.guardar();
+    this.vistaSemana(this._semRival, this._semJugar);
+    return true;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     D3 · CADA ACCIÓN DE LA SEMANA TIENE SU ANIMACIÓN.
+
+     Sin arte nuevo: la pose sale de data/semana.json, que ahora declara cuál le
+     toca a cada acción — todas del manifest que ya existe. Las que están de
+     prestado están marcadas con pose_falta y son el pedido de arte de la tanda.
+
+     El momento usa el Bloque B que ya está: anticipación y rebote al entrar
+     (PampaFeel.aparecer), un golpe corto de sonido, y el escenario N4 detrás
+     reaccionando. Dura lo que dura un gesto — no es una escena de partido, es
+     el acuse de recibo de una decisión.
+     ══════════════════════════════════════════════════════════════════════ */
+  momentoDeAccion(op, ranura) {
+    const W = this.scale.width, H = this.scale.height;
+    const capa = this.add.container(0, 0).setDepth(900);
+    const velo = this.add.rectangle(W / 2, H / 2, W, H, 0x0a1f13, 0.72);
+    capa.add(velo);
+    /* el LUGAR donde pasa, grande */
+    if (window.PampaSemanaUI) {
+      const cont = window.PampaSemanaUI.escenario(this, W / 2, H / 2 - 10, 620, 300, op.lugar || "vacio");
+      if (cont) { cont.setDepth(901); capa.add(cont); }
+    }
+    const marco = this.add.rectangle(W / 2, H / 2 - 10, 620, 300, 0x000000, 0).setStrokeStyle(4, 0x7ee08a, 0.9);
+    capa.add(marco);
+    /* la figura de la acción, con anticipación y rebote */
+    const key = op.pose ? this.poseConTuPinta(op.pose) : null;
+    if (key) {
+      const im = this.add.image(W / 2 + 150, H / 2 + 60, key);
+      im.setScale(240 / im.height);
+      capa.add(im);
+      if (window.PampaFeel) window.PampaFeel.aparecer(this, im, { x: W / 2 + 150, y: H / 2 + 40, scale: im.scale, desdeX: W / 2 + 320 }, 2);
+      else im.y = H / 2 + 40;
+    }
+    const dias = ["EL LUNES", "EL MIÉRCOLES", "EL VIERNES"];
+    const tD = this.add.text(W / 2 - 170, H / 2 - 100, dias[ranura] || "", { fontFamily: window.PF.display,
+      fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    const tN = this.add.text(W / 2 - 170, H / 2 - 50, op.n, { fontFamily: window.PF.texto, fontSize: "20px",
+      fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 280 } }).setOrigin(0.5);
+    const tS = this.add.text(W / 2 - 170, H / 2 + 20, op.sub || "", { fontFamily: window.PF.texto,
+      fontSize: "14px", color: "#dcd6c2", align: "center", wordWrap: { width: 280 } }).setOrigin(0.5);
+    capa.add([marco, tD, tN, tS]);
+    if (window.PampaFeel) window.PampaFeel.pulsar(this, tN);
+    const S = window.PampaSFX;
+    if (S && S.temaCampo) S.temaCampo("rival");
+    /* dura lo que dura un gesto, y se puede saltear tocando */
+    const cerrar = () => {
+      if (capa.__ido) return; capa.__ido = true;
+      capa.destroy(true);
+      this.vistaSemana(this._semRival, this._semJugar);
+    };
+    const ms = ((this.game.registry.get("balance") || {}).semana || {}).momento_ms;
+    this.time.delayedCall(ms != null ? ms : 950, cerrar);
+    velo.setInteractive().on("pointerdown", cerrar);
   }
   /* el texto del efecto, en números claros (nunca solo color) */
   textoEfecto(o) {

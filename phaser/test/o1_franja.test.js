@@ -169,8 +169,14 @@ console.log("[1] la franja es " + F.y0 + ".." + F.y1 + " (alto " + F.alto + ") y
   var master = fs.readFileSync(path.join(__dirname, "..", "scenes", "master.js"), "utf8");
   assert(/yDeOpcion\(i, PRESETS\.length \+ 1/.test(match),
     "los presets de tempo tienen que ubicarse con yDeOpcion (estaban clavados en y=176)");
-  assert(/yDeOpcion\(0, 2, 108/.test(master),
-    "las ranuras de la semana tienen que ubicarse con yDeOpcion (estaban clavadas en y=250)");
+  /* D2 · la semana ya no se elige por DÍA. Las ranuras de lunes/miércoles/
+     viernes se volvieron el RESUMEN de arriba —lo que se mira— y lo que se
+     elige es la lista de las diez acciones, que es lo que ahora tiene que caer
+     en la franja. Tres filas: dos de acciones y la del botón de jugar. */
+  assert(/yDeOpcion\(Math\.floor\(i \/ porFila\), 3, altoO/.test(master),
+    "las acciones de la semana tienen que ubicarse con yDeOpcion (antes las ranuras estaban clavadas en y=250)");
+  assert(/yDeOpcion\(2, 3, 64/.test(master),
+    "y el botón de jugar es la tercera fila de la misma franja");
   assert(!/const y = 176 \+ i \* 92/.test(match), "quedó la cuenta vieja de los presets");
   assert(!/anchoR \+ 14\), y = 250/.test(master), "quedó la cuenta vieja de las ranuras");
   console.log("[3] los dos grupos que se salían (presets de tempo, ranuras de la semana) usan el helper");

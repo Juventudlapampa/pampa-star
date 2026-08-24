@@ -142,6 +142,28 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const bc = this.add.rectangle(W - 110, 12 + 22, 200, 44, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
     bc.on("pointerdown", () => { this.guardar(); this.scene.start("master"); });
+    /* ══════════════════════════════════════════════════════════════════════
+       D5 · VENÍS A ARMAR LA PINTA ANTES DE LA ENTREVISTA.
+
+       Cuando el master te manda para acá con una carrera pendiente, el editor
+       no es una parada opcional: es el paso 1 de arrancar. Se dice con todas
+       las letras y el botón de volver cambia de nombre, porque "🏆 CARRERA"
+       arriba a la derecha no se lee como "seguí por acá".
+       ══════════════════════════════════════════════════════════════════════ */
+    if (this.game.registry.get("carreraPendiente")) {
+      this.add.text(W / 2, 12, "PASO 1 DE 2 · ARMÁ TU PINTA", {
+        fontFamily: window.PF.display, fontSize: "12px", color: "#ffd84d"
+      }).setOrigin(0.5, 0);
+      this.add.text(W / 2, 34, "después te van a entrevistar, y te van a ver así", {
+        fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a"
+      }).setOrigin(0.5, 0).setAlpha(0.9);
+      const seg = this.add.rectangle(W / 2 + 170, 380, 300, 52, 0x7ee08a, 1)
+        .setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      this.add.text(W / 2 + 170, 380, "▶ LISTO, A LA ENTREVISTA", {
+        fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13"
+      }).setOrigin(0.5);
+      seg.on("pointerdown", () => { this.guardar(); this.scene.start("master"); });
+    }
     /* Addendum v6 A.2: repetir el opening a gusto */
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
     vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.scene.start("intro"); });

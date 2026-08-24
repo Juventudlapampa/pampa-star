@@ -568,7 +568,11 @@
     "rendimiento_piso": 0.13,
     "stat_techo": 99,
     "stat_inicial": 50,
-    "_rendimiento": "A1 opción (b): cuanto más alta la stat, menos suma entrenar. factor = max(rendimiento_piso, (stat_techo - stat) / (stat_techo - stat_inicial)). CALIBRACIÓN: los dos criterios pedidos entran en tensión porque la resaca de A3 iguala a las dos estrategias (con 42 de energía entra un solo entrenamiento, entrenes o no el mismo stat). Con piso < 0.45 NINGUNA toca el techo; con >= 0.45 lo tocan LAS DOS (entrenar sem 86, mixta 88). Se eligió 0.40: mixta no toca nunca (criterio duro) y entrenar-siempre llega a 98.5 de 99 en la semana 90, o sea cerca del final y sumando algo hasta la última semana. rendimiento_decreciente:false lo desactiva."
+    "_rendimiento": "A1 opción (b): cuanto más alta la stat, menos suma entrenar. factor = max(rendimiento_piso, (stat_techo - stat) / (stat_techo - stat_inicial)). CALIBRACIÓN: los dos criterios pedidos entran en tensión porque la resaca de A3 iguala a las dos estrategias (con 42 de energía entra un solo entrenamiento, entrenes o no el mismo stat). Con piso < 0.45 NINGUNA toca el techo; con >= 0.45 lo tocan LAS DOS (entrenar sem 86, mixta 88). Se eligió 0.40: mixta no toca nunca (criterio duro) y entrenar-siempre llega a 98.5 de 99 en la semana 90, o sea cerca del final y sumando algo hasta la última semana. rendimiento_decreciente:false lo desactiva.",
+    "reloj_seg": 0,
+    "_reloj": "D2 · MODO OPCIONAL, APAGADO. La semana es la unica pantalla tranquila del juego: todo lo demas te apura a proposito. Con reloj_seg en 0 (el default) no hay cuenta regresiva ni temporizador. Con un numero mayor a 0 aparece la cuenta y al llegar a cero se juega CON LO QUE HAYA elegido: el reloj nunca elige por vos.",
+    "momento_ms": 950,
+    "_momento": "D3 · cuanto dura el momento de una accion de la semana (la pose con anticipacion y rebote sobre el escenario). Se puede saltear tocando. En 0 no se muestra."
   },
   "piel": {
     "_nota": "TANDA DE PIEL (7/ago): LA PALETA, en un solo lugar. Antes los ~250 tonos de marco estaban a mano en 9 archivos. OJO: el VERDE DE LA CANCHA no vive acá — el pasto es campo de juego, no marco, y no se toca desde este bloque.",

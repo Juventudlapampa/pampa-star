@@ -1,152 +1,168 @@
 {
-  "_schema": "pampa-star/semana@1",
-  "_doc": "LA VIDA v2 · LA SEMANA CON ENERGÍA. Tres ranuras (lunes, miércoles, viernes) y dos medidores: ENERGÍA (lo que gastás, define tu aguante inicial del domingo) y ÁNIMO (la cabeza: define el envión inicial y cuánto mejor leés los duelos). Las monedas de este juego son energía y ánimo — no hay plata, ni sueldo, ni nada que se compre. Los efectos permanentes son minúsculos (+1) y topean por semana; los que se sienten son los del domingo. Regla de diseño: NUNCA hay una opción objetivamente mejor.",
-  "_campos": "id: interno · n: lo que se lee · sub: la aclaración corta · energia_costo: lo que gasta · energia_recupera: lo que devuelve · animo: +/- de cabeza · stat + stat_mas: la mejora permanente (chiquita) · requiere: 'molestia' para que aparezca solo si arrastrás una · requiere_origen: aparece más seguido si venís de ese origen · cura_molestia · espia_rival · riesgo_golpe: probabilidad de llegar golpeado",
-  "opciones": [
-    {
-      "id": "entrenar_tiro",
-      "n": "⚽ ENTRENAR TIRO",
-      "sub": "toda la tarde pateando al arco",
-      "energia_costo": 25,
-      "stat": "tiro",
-      "stat_mas": 1,
-      "frase": "Te quedaste pateando hasta que se hizo de noche.",
-      "lugar": "club",
-      "repaso": "te quedaste pateando al arco hasta que se hizo de noche"
-    },
-    {
-      "id": "entrenar_gambeta",
-      "n": "🌀 ENTRENAR GAMBETA",
-      "sub": "conos, amagues y cintura",
-      "energia_costo": 25,
-      "stat": "gambeta",
-      "stat_mas": 1,
-      "frase": "Amagues contra los postes hasta marearte.",
-      "lugar": "club",
-      "repaso": "estuviste entre los conos hasta que te dolieron los tobillos"
-    },
-    {
-      "id": "entrenar_aguante",
-      "n": "💪 ENTRENAR AGUANTE",
-      "sub": "correr el campo entero",
-      "energia_costo": 30,
-      "stat": "resistencia",
-      "stat_mas": 2,
-      "frase": "Diez vueltas al alambrado. Te dolió todo.",
-      "lugar": "club",
-      "repaso": "corriste el campo entero, ida y vuelta"
-    },
-    {
-      "id": "picadito",
-      "n": "🥅 PICADITO EN EL POTRERO",
-      "sub": "con los pibes del barrio",
-      "energia_costo": 15,
-      "animo": 5,
-      "stat": "azar",
-      "stat_mas": 1,
-      "riesgo_golpe": 0.12,
-      "frase": "Picadito hasta que no se vio más la pelota.",
-      "lugar": "potrero",
-      "repaso": "se armó un picado en el potrero y jugaste hasta que no se vio más"
-    },
-    {
-      "id": "descansar",
-      "n": "😴 DESCANSAR",
-      "sub": "no hacer nada, y que sea sagrado",
-      "energia_recupera": 30,
-      "animo": 5,
-      "frase": "Dormiste la siesta como Dios manda.",
-      "lugar": "casa",
-      "repaso": "no hiciste nada, y estuvo bien"
-    },
-    {
-      "id": "asado",
-      "n": "🔥 ASADO CON LOS PIBES",
-      "sub": "el ritual de siempre",
-      "energia_costo": 10,
-      "animo": 15,
-      "frase": "Asado, guitarra y campeonatos ganados de memoria.",
-      "lugar": "patio",
-      "repaso": "hubo asado con los pibes"
-    },
-    {
-      "id": "ayudar_casa",
-      "n": "🏠 AYUDAR EN CASA",
-      "sub": "laburo de verdad · tu vieja te lo agradece",
-      "energia_costo": 35,
-      "animo": 10,
-      "requiere_origen": "campo",
-      "frase": "Le diste una mano en casa toda la tarde.",
-      "stat": "resistencia",
-      "stat_mas": 1,
-      "_nota_diseno": "[DECISIÓN MÍA] Con los números del brief (35 de energía por +10 de ánimo) esta opción quedaba DOMINADA por el asado (10 por +15): costaba más y daba menos, así que no la elegía nadie. Le sumé +1 de resistencia permanente, que además es lo que tiene sentido: cargar bolsas o alambrar es laburo físico. Si preferís otro arreglo (bajarle el costo, subirle el ánimo), se cambia acá sin tocar código.",
-      "lugar": "casa",
-      "repaso": "te tocó laburar en casa"
-    },
-    {
-      "id": "ver_rival",
-      "n": "👀 IR A VER AL RIVAL",
-      "sub": "espiarlos el domingo",
-      "energia_costo": 20,
-      "espia_rival": true,
-      "frase": "Te fuiste a la cancha de ellos a mirar cómo juegan.",
-      "lugar": "ruta",
-      "repaso": "te fuiste a verlos jugar"
-    },
-    {
-      "id": "estudiar",
-      "n": "📚 ESTUDIAR PARA LA ESCUELA",
-      "sub": "sacarte el problema de encima",
-      "energia_costo": 20,
-      "animo": 3,
-      "requiere_origen": "escuela",
-      "evita": "materia",
-      "frase": "Te sentaste con los apuntes y zafaste.",
-      "lugar": "escuela",
-      "repaso": "te sentaste a estudiar de una vez"
-    },
-    {
-      "id": "curar",
-      "n": "🩹 CURAR LA MOLESTIA",
-      "sub": "hielo, descanso y paciencia",
-      "energia_costo": 20,
-      "cura_molestia": true,
-      "requiere": "molestia",
-      "frase": "Hielo, vendas y a esperar. Se fue el dolor.",
-      "lugar": "casa",
-      "repaso": "hielo, descanso y paciencia"
-    }
-  ],
-  "_modificadores_evento": "El evento de la semana (data/eventos_temporada.json) puede cambiar los costos de esta semana o sumar una opción especial. Formato del modificador: {opcion:'entrenar_tiro', costo_mult:2} o {opcion:'asado', animo_extra:10}.",
-  "modificadores": [
-    {
-      "id": "pampero",
-      "texto": "Se largó el pampero: entrenar hoy cuesta el doble",
-      "aplica": [
-        "entrenar_tiro",
-        "entrenar_gambeta",
-        "entrenar_aguante"
-      ],
-      "costo_mult": 2
-    },
-    {
-      "id": "fiesta_pueblo",
-      "texto": "Hay fiesta en el pueblo: el asado levanta más el ánimo",
-      "aplica": [
-        "asado"
-      ],
-      "animo_extra": 10
-    },
-    {
-      "id": "cosecha",
-      "texto": "Semana de cosecha: ayudar en el campo pesa más",
-      "aplica": [
-        "ayudar_casa"
-      ],
-      "animo_extra": 8,
-      "costo_mult": 1.2
-    }
-  ],
-  "_lugares": "N4 LA SEMANA COMO ESCENARIO. lugar es SOLO puesta en escena: no toca ningun numero ni ninguna consecuencia (eso vive en logic/semana.js y no se toca). Sirve para dibujar donde pasó cada cosa. Valores: club, potrero, casa, patio, ruta, escuela.",
-  "_repaso": "N4: repaso es como se cuenta esa decision en el resumen de la semana. Texto, no numero: no toca ninguna consecuencia."
+ "_schema": "pampa-star/semana@1",
+ "_doc": "LA VIDA v2 · LA SEMANA CON ENERGÍA. Tres ranuras (lunes, miércoles, viernes) y dos medidores: ENERGÍA (lo que gastás, define tu aguante inicial del domingo) y ÁNIMO (la cabeza: define el envión inicial y cuánto mejor leés los duelos). Las monedas de este juego son energía y ánimo — no hay plata, ni sueldo, ni nada que se compre. Los efectos permanentes son minúsculos (+1) y topean por semana; los que se sienten son los del domingo. Regla de diseño: NUNCA hay una opción objetivamente mejor.",
+ "_campos": "id: interno · n: lo que se lee · sub: la aclaración corta · energia_costo: lo que gasta · energia_recupera: lo que devuelve · animo: +/- de cabeza · stat + stat_mas: la mejora permanente (chiquita) · requiere: 'molestia' para que aparezca solo si arrastrás una · requiere_origen: aparece más seguido si venís de ese origen · cura_molestia · espia_rival · riesgo_golpe: probabilidad de llegar golpeado",
+ "opciones": [
+  {
+   "id": "entrenar_tiro",
+   "n": "⚽ ENTRENAR TIRO",
+   "sub": "toda la tarde pateando al arco",
+   "energia_costo": 25,
+   "stat": "tiro",
+   "stat_mas": 1,
+   "frase": "Te quedaste pateando hasta que se hizo de noche.",
+   "lugar": "club",
+   "repaso": "te quedaste pateando al arco hasta que se hizo de noche",
+   "pose": "remate"
+  },
+  {
+   "id": "entrenar_gambeta",
+   "n": "🌀 ENTRENAR GAMBETA",
+   "sub": "conos, amagues y cintura",
+   "energia_costo": 25,
+   "stat": "gambeta",
+   "stat_mas": 1,
+   "frase": "Amagues contra los postes hasta marearte.",
+   "lugar": "club",
+   "repaso": "estuviste entre los conos hasta que te dolieron los tobillos",
+   "pose": "gambeta_gana"
+  },
+  {
+   "id": "entrenar_aguante",
+   "n": "💪 ENTRENAR AGUANTE",
+   "sub": "correr el campo entero",
+   "energia_costo": 30,
+   "stat": "resistencia",
+   "stat_mas": 2,
+   "frase": "Diez vueltas al alambrado. Te dolió todo.",
+   "lugar": "club",
+   "repaso": "corriste el campo entero, ida y vuelta",
+   "pose": "corriendo"
+  },
+  {
+   "id": "picadito",
+   "n": "🥅 PICADITO EN EL POTRERO",
+   "sub": "con los pibes del barrio",
+   "energia_costo": 15,
+   "animo": 5,
+   "stat": "azar",
+   "stat_mas": 1,
+   "riesgo_golpe": 0.12,
+   "frase": "Picadito hasta que no se vio más la pelota.",
+   "lugar": "potrero",
+   "repaso": "se armó un picado en el potrero y jugaste hasta que no se vio más",
+   "pose": "pared"
+  },
+  {
+   "id": "descansar",
+   "n": "😴 DESCANSAR",
+   "sub": "no hacer nada, y que sea sagrado",
+   "energia_recupera": 30,
+   "animo": 5,
+   "frase": "Dormiste la siesta como Dios manda.",
+   "lugar": "casa",
+   "repaso": "no hiciste nada, y estuvo bien",
+   "pose": "cansado"
+  },
+  {
+   "id": "asado",
+   "n": "🔥 ASADO CON LOS PIBES",
+   "sub": "el ritual de siempre",
+   "energia_costo": 10,
+   "animo": 15,
+   "frase": "Asado, guitarra y campeonatos ganados de memoria.",
+   "lugar": "patio",
+   "repaso": "hubo asado con los pibes",
+   "pose": "celebracion",
+   "pose_falta": "nadie comiendo un asado: la de festejo alcanza para el clima pero no es la accion"
+  },
+  {
+   "id": "ayudar_casa",
+   "n": "🏠 AYUDAR EN CASA",
+   "sub": "laburo de verdad · tu vieja te lo agradece",
+   "energia_costo": 35,
+   "animo": 10,
+   "requiere_origen": "campo",
+   "frase": "Le diste una mano en casa toda la tarde.",
+   "stat": "resistencia",
+   "stat_mas": 1,
+   "_nota_diseno": "[DECISIÓN MÍA] Con los números del brief (35 de energía por +10 de ánimo) esta opción quedaba DOMINADA por el asado (10 por +15): costaba más y daba menos, así que no la elegía nadie. Le sumé +1 de resistencia permanente, que además es lo que tiene sentido: cargar bolsas o alambrar es laburo físico. Si preferís otro arreglo (bajarle el costo, subirle el ánimo), se cambia acá sin tocar código.",
+   "lugar": "casa",
+   "repaso": "te tocó laburar en casa",
+   "pose": "de_espaldas_sin_pelota",
+   "pose_falta": "nadie laburando en casa: se usa la de espaldas porque lee como ocupado en otra cosa"
+  },
+  {
+   "id": "ver_rival",
+   "n": "👀 IR A VER AL RIVAL",
+   "sub": "espiarlos el domingo",
+   "energia_costo": 20,
+   "espia_rival": true,
+   "frase": "Te fuiste a la cancha de ellos a mirar cómo juegan.",
+   "lugar": "ruta",
+   "repaso": "te fuiste a verlos jugar",
+   "pose": "recibiendo",
+   "pose_falta": "nadie mirando desde afuera: la de recibir esta de frente y sirve de prestado"
+  },
+  {
+   "id": "estudiar",
+   "n": "📚 ESTUDIAR PARA LA ESCUELA",
+   "sub": "sacarte el problema de encima",
+   "energia_costo": 20,
+   "animo": 3,
+   "requiere_origen": "escuela",
+   "evita": "materia",
+   "frase": "Te sentaste con los apuntes y zafaste.",
+   "lugar": "escuela",
+   "repaso": "te sentaste a estudiar de una vez",
+   "pose": "cansado",
+   "pose_falta": "nadie estudiando: la de cansado lee como cabeza gacha, que es lo mas cerca que hay"
+  },
+  {
+   "id": "curar",
+   "n": "🩹 CURAR LA MOLESTIA",
+   "sub": "hielo, descanso y paciencia",
+   "energia_costo": 20,
+   "cura_molestia": true,
+   "requiere": "molestia",
+   "frase": "Hielo, vendas y a esperar. Se fue el dolor.",
+   "lugar": "casa",
+   "repaso": "hielo, descanso y paciencia",
+   "pose": "gambeta_pierde",
+   "pose_falta": "nadie curandose: la de perder la gambeta lee como dolorido"
+  }
+ ],
+ "_modificadores_evento": "El evento de la semana (data/eventos_temporada.json) puede cambiar los costos de esta semana o sumar una opción especial. Formato del modificador: {opcion:'entrenar_tiro', costo_mult:2} o {opcion:'asado', animo_extra:10}.",
+ "modificadores": [
+  {
+   "id": "pampero",
+   "texto": "Se largó el pampero: entrenar hoy cuesta el doble",
+   "aplica": [
+    "entrenar_tiro",
+    "entrenar_gambeta",
+    "entrenar_aguante"
+   ],
+   "costo_mult": 2
+  },
+  {
+   "id": "fiesta_pueblo",
+   "texto": "Hay fiesta en el pueblo: el asado levanta más el ánimo",
+   "aplica": [
+    "asado"
+   ],
+   "animo_extra": 10
+  },
+  {
+   "id": "cosecha",
+   "texto": "Semana de cosecha: ayudar en el campo pesa más",
+   "aplica": [
+    "ayudar_casa"
+   ],
+   "animo_extra": 8,
+   "costo_mult": 1.2
+  }
+ ],
+ "_lugares": "N4 LA SEMANA COMO ESCENARIO. lugar es SOLO puesta en escena: no toca ningun numero ni ninguna consecuencia (eso vive en logic/semana.js y no se toca). Sirve para dibujar donde pasó cada cosa. Valores: club, potrero, casa, patio, ruta, escuela.",
+ "_repaso": "N4: repaso es como se cuenta esa decision en el resumen de la semana. Texto, no numero: no toca ninguna consecuencia.",
+ "_poses": "D3 · cada accion de la semana tiene su pose para la animacion. Todas salen del manifest que YA existe (no se invento arte). pose_falta dice cuales estan de prestado y por que: son el pedido de arte de esta tanda."
 }
