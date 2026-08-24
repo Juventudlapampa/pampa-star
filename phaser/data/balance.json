@@ -619,7 +619,19 @@
       "y_max": 528,
       "pad": 10,
       "_nota": "O1 LA FRANJA DE DECISION. Un solo lugar en pantalla para acá elegís, el mismo en todas las pantallas. Medido antes: de 12 grupos de opciones, 10 ya vivian abajo y 2 arrancaban arriba (presets de tempo y=176, ranuras de la semana y=250). Todo lo que sea elegir una de varias se ubica con piel.yDeOpcion(); el guardián es phaser/test/o1_franja.test.js, que barre las escenas y falla si un rectángulo con pinta de opción cae fuera de la franja (no alcanza con probar el helper: el helper siempre da bien, el problema es no usarlo). El lienzo es 960x540: arriba de y_min va lo que se MIRA (la ilustracion, la cancha, la tabla), abajo lo que se TOCA."
-    }
+    },
+    "foco": {
+      "margen": 6,
+      "largo": 16,
+      "grosor": 3,
+      "escala": 1.04,
+      "ms": 90,
+      "pulso_min": 0.45,
+      "color": 16766285,
+      "color_bloqueada": 14898750,
+      "depth": 950
+    },
+    "_foco": "EL CURSOR. Antes habia CUATRO navegaciones por teclado con cuatro resaltes caseros distintos, y cinco grupos de opciones sin navegacion ninguna: si soltabas el mouse, el juego no te contestaba. Ahora hay uno solo (logic/foco.js decide a donde va, scenes/foco_ui.js lo dibuja) y usa CUATRO canales para que nunca dependa del color: FORMA (escuadras de esquina, la marca de arcade), ELEVACION (el item se levanta: escala), PULSO (las escuadras respiran al mismo latido que el mundo, balance.pulso.latido_ms) y VOZ (SFX.ui). margen/largo/grosor son las escuadras; escala cuanto se levanta el item; ms lo que tarda el cursor en VIAJAR de un item al otro (viaja, no se teletransporta: es lo que hace que el ojo lo siga); pulso_min el piso del titileo. color_bloqueada avisa que ahi no vas a poder, pero igual se puede enfocar — saltear las bloqueadas seria peor, el jugador no se enteraria de que existen."
   },
   "legibilidad": {
     "_nota": "PASE DE LEGIBILIDAD (8/ago). El numero de camiseta del mapa medía 9px lógicos = 6,5 px REALES en un teléfono (844x390, factor 0,7222). Su altura de mayúscula daba 5,8 minutos de arco y el umbral de agudeza 20/20 es 5: estaba por debajo del umbral de RESOLUCIÓN, no de lectura. Y el trazo medía 0,65 px reales, que con pixelArt:true el downscale nearest-neighbour DESCARTA. En el mapa te reconocés por el número tanto como por el color: si el número no se resuelve, queda el color solo.",

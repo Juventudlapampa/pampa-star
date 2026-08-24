@@ -348,6 +348,91 @@
     musicaUrgente: function (on) { mus.urgente = !!on; },
     estaUrgente: function () { return !!mus.urgente; },
 
+    /* ══════════════════════════════════════════════════════════════════════
+       LA VOZ DE LA INTERFAZ.
+
+       No habia NI UNO. El juego tenia patada, silbato, guantes, red, tribuna
+       y hasta cuatro motivos musicales cortos — y cero sonidos de menu. Tocabas
+       una opcion y no pasaba nada, que es lo que hace que una pantalla se
+       sienta una pagina web en vez de un juego.
+
+       Siete, y ni uno mas. Todos sintetizados con tone()/noise() sobre el
+       master que ya existe (nada de archivos: son respuestas, tienen que salir
+       en el mismo cuadro que el toque).
+
+       DOS REGLAS QUE LOS MANTIENEN EN SU LUGAR:
+
+       1. NINGUNO PASA DE 220 ms NI DE 0,10 DE GANANCIA. La patada usa 0,35 y
+          el gol 0,15: la interfaz suena SEIS VECES mas bajo que el juego,
+          porque suena todo el tiempo. Un menu que compite con un gol esta mal
+          mezclado.
+       2. ESTAN AFINADOS AL MOTIVO DEL JUEGO (balance.musica.motivo [0,7,9,12]
+          sobre La): tonica 440/880, quinta 660, sexta 1480. Asi la interfaz
+          suena del mismo juego que la musica, no de otro.
+
+       Y el bloqueado usa la SEGUNDA MENOR cayendo, que es el idioma que
+       audio.json ya le tiene asignado al rival. El "no" del menu suena como
+       el "no" del partido.
+
+       Entran todos por UNA puerta: SFX.ui(nombre). Un solo lugar donde
+       engancharlos y un solo lugar donde apagarlos.
+       ══════════════════════════════════════════════════════════════════════ */
+    ui: (function () {
+      /* anti-metralla: moviendo rapido el cursor, "mover" se dispara cada dos
+         cuadros y suena a lluvia. Cada sonido tiene su propio piso. */
+      var ultimo = {};
+      var PISO = { mover: 45, bloqueado: 300, cartel: 120 };
+      return function (nombre) {
+        var c = ensure(); if (!c) return false;
+        var ahora = now() * 1000;
+        var piso = PISO[nombre] || 0;
+        if (piso && ultimo[nombre] != null && (ahora - ultimo[nombre]) < piso) return false;
+        ultimo[nombre] = ahora;
+        var t = now();
+        switch (nombre) {
+          /* el tic de mover el cursor: SIEMPRE la misma nota. Si cambiara con
+             la posicion, moverse sonaria a melodia y distraeria de lo que
+             estas leyendo. */
+          case "mover":
+            tone("square", 880, 880, t, 0.028, 0.055);
+            noise(t, 0.018, 0.05, 3200, 2, "highpass");
+            return true;
+          /* confirmar: dos notas SUBIENDO la quinta, con cuerpo abajo */
+          case "confirmar":
+            tone("square", 660, 660, t, 0.045, 0.09);
+            tone("square", 880, 880, t + 0.045, 0.075, 0.09);
+            tone("triangle", 330, 330, t, 0.10, 0.05);
+            return true;
+          /* volver: la misma figura al reves y mas grave. Que sea la MISMA
+             figura invertida es lo que hace que se entienda sin aprenderla. */
+          case "volver":
+            tone("square", 587, 587, t, 0.040, 0.075);
+            tone("square", 392, 392, t + 0.040, 0.085, 0.075);
+            return true;
+          /* bloqueado: segunda menor cayendo — el idioma del rival */
+          case "bloqueado":
+            tone("square", 233, 220, t, 0.075, 0.10);
+            tone("square", 220, 208, t + 0.075, 0.11, 0.10);
+            noise(t, 0.06, 0.06, 300, 0.8, "lowpass");
+            return true;
+          /* abrir un menu: el hermanito chico del riser del partido */
+          case "abrir":
+            tone("sawtooth", 300, 760, t, 0.13, 0.055);
+            noise(t, 0.13, 0.03, 1200, 0.7, "bandpass");
+            return true;
+          case "cerrar":
+            tone("sawtooth", 700, 260, t, 0.10, 0.05);
+            return true;
+          /* el cartel que aparece: campanita tonica + sexta */
+          case "cartel":
+            tone("triangle", 880, 880, t, 0.07, 0.06);
+            tone("triangle", 1480, 1480, t + 0.06, 0.16, 0.045);
+            return true;
+        }
+        return false;
+      };
+    })(),
+
     /* patada seca: click grave + thump */
     kick: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.06, 0.5, 220, 0.7, "lowpass"); tone("triangle", 180, 90, t, 0.09, 0.35); },
     /* silbido del vuelo: sube de tono */

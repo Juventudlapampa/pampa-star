@@ -124,6 +124,7 @@
   <script src="logic/musica.js"></script>
     <script src="logic/mapa.js"></script>
     <script src="logic/cartas.js"></script>
+    <script src="logic/foco.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/piel_ui.js"></script>
   <script src="scenes/sprites.js"></script>
@@ -139,12 +140,20 @@
   <script src="scenes/definicion_ui.js"></script>
   <script src="scenes/jugadon_ui.js"></script>
     <script src="scenes/cartas_ui.js"></script>
+    <script src="scenes/foco_ui.js"></script>
   <script src="scenes/escenas_v9.js"></script>
   <script>
   /* TANDA DE PIEL: el mixin de piel entra en las cuatro escenas. Va acá, al
      final, porque necesita que todas las clases estén definidas. */
   [window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch]
-    .forEach(function (S) { if (S && S.prototype) Object.assign(S.prototype, window.PampaPielUI); });
+    .forEach(function (S) {
+      if (!S || !S.prototype) return;
+      Object.assign(S.prototype, window.PampaPielUI);
+      /* EL CURSOR entra en las mismas cuatro. Va junto con la piel y no antes:
+         el foco levanta los botones y para eso necesita que la piel ya les haya
+         puesto su escala base. */
+      if (window.PampaFocoUI) Object.assign(S.prototype, window.PampaFocoUI);
+    });
   </script>
   <script>
   "use strict";

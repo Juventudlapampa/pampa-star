@@ -1786,6 +1786,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this._vidaFicha) this.time.delayedCall(1400, () => this.avisar("📋 " + this._vidaFicha));
       this.tutorialSiHaceFalta();
     };
+    const _rects = [];
     PRESETS.forEach((p, i) => {
       /* O1 · los tres presets arrancaban en y=176, o sea ARRIBA: era uno de los
          dos grupos de opciones del juego que no caían en la franja de decisión.
@@ -1800,6 +1801,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const d = this.add.text(480, y + 11, p.d, { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
       this.menuLayer.add([r, t, d]);
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; elegir(p.k); });
+      _rects.push({ obj: r, cb: () => elegir(p.k) });
     });
     const yVel = Math.round(window.PampaPiel.yDeOpcion(PRESETS.length, PRESETS.length + 1, 52, this.BAL.piel));
     const vr = this.add.rectangle(480, yVel, 420, 46, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
@@ -1807,12 +1809,32 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const pintarVel = () => vt.setText("🎬 VELOCIDAD: " + (this._velRapida ? "RÁPIDA — animaciones cortas" : "NORMAL"));
     pintarVel();
     this.menuLayer.add([vr, vt]);
-    vr.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this._velRapida = !this._velRapida; pintarVel(); });
+    const cambiarVel = () => { this._velRapida = !this._velRapida; pintarVel(); const S = window.PampaSFX; if (S && S.ui) S.ui("mover"); };
+    vr.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cambiarVel(); });
+    _rects.push({ obj: vr, cb: cambiarVel });
     if (this.input.keyboard) {
       this.input.keyboard.once("keydown-ONE", () => elegir("relampago"));
       this.input.keyboard.once("keydown-TWO", () => elegir("intermedio"));
       this.input.keyboard.once("keydown-THREE", () => elegir("largo"));
     }
+    /* ══════════════════════════════════════════════════════════════════════
+       EL CURSOR, la primera pantalla donde entra.
+
+       Antes esto era: tres tarjetas, el elegido marcado SOLO por ser amarillo
+       —que con daltonismo no se distingue— y tres atajos numéricos sueltos. Sin
+       flechas, sin nadie enfocado, sin un sonido.
+
+       Ahora se navega con flechas, el cursor VIAJA de una tarjeta a la otra, la
+       enfocada se levanta y las escuadras respiran al latido del mundo. El
+       amarillo sigue estando, pero ya no es lo único.
+
+       Arranca en el preset RECOMENDADO, no en el primero: abrir con el foco en
+       lo que la mayoría va a elegir ahorra dos toques por partido, y son 18
+       partidos por temporada.
+       ══════════════════════════════════════════════════════════════════════ */
+    const iRec = PRESETS.findIndex(p => p.k === "intermedio");
+    this.grupoFoco(_rects, { inicial: iRec >= 0 ? iRec : 0 });
+    const Sui = window.PampaSFX; if (Sui && Sui.ui) Sui.ui("abrir");
     this.selloMenu();
   }
   /* Feel B3: la PRIMERA vez que se juega, tres pasos superpuestos al juego real */
