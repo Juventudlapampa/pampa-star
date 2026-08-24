@@ -742,8 +742,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ============ LA VIDA v2 · LA SEMANA CON ENERGÍA ============
      Una sola pantalla: arriba los dos medidores con NÚMERO (nunca solo barra),
      en el medio las tres ranuras (lunes, miércoles, viernes), abajo el botón
-     de jugar. Tres toques y estás en la cancha. El evento pampeano queda
-     arriba, como sabor, y puede cambiar los costos de la semana. */
+     de jugar. Tres toques y estás en la cancha.
+
+     El evento pampeano se decide ANTES (vistaEvento) y acá queda arriba su
+     titular más lo que elegiste. Lo que deja no toca los costos de la semana:
+     deja el MODIFICADOR DE LA FECHA (save.modFecha), que viaja a la cancha y
+     ahí sí cambia el partido. El comentario viejo decía "puede cambiar los
+     costos de la semana" y nunca fue cierto — el evento no entra ni al ctx de
+     la semana ni al balance. */
   vistaSemana(rival, alJugar) {
     /* PASADA DE COHERENCIA · esto se llamaba en CADA repintado de la vista, o
        sea 3 o 4 veces al armar la semana. No se escucha (el motor ignora el
@@ -760,6 +766,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!this.save.semana) this.save.semana = S.nuevaSemana(this.save, cfg);
     const sem = this.save.semana;
     this._semRival = rival; this._semJugar = alJugar;
+    /* EL EVENTO SE DECIDE ANTES DE ARMAR LA SEMANA. Antes esta llamada vivía
+       detrás de `if (!S || !D)`, una guarda que no se cumple nunca, y las dos
+       opciones de los 28 eventos no se ofrecieron jamás. Ver vistaEvento(). */
+    if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
+    if (!this._semEventoResuelto && this._semEvento && this._semEvento.opciones && this._semEvento.opciones.length) {
+      this.vistaEvento(rival, () => this.vistaSemana(rival, alJugar));
+      return;
+    }
     this.children.removeAll();
 
     /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
@@ -777,13 +791,26 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     };
     medidor(W / 2 - 320, 80, "⚡ ENERGÍA", sem.energia, 0x7ee08a);
     medidor(W / 2 + 20, 80, "🧠 ÁNIMO", sem.animo, 0x4fc3f7);
-    if (sem.molestia) this.add.text(W / 2, 116, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }).setOrigin(0.5);
+    /* la molestia y el evento se dibujaban LOS DOS en y=116, uno encima del
+       otro: con molestia arrastrada las dos líneas quedaban ilegibles. Se
+       apilan, midiendo la de arriba (el evento envuelve a dos renglones). */
+    let ySup = 108;
+    if (sem.molestia) {
+      const tm = this.add.text(W / 2, ySup, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }).setOrigin(0.5, 0);
+      ySup += tm.height + 4;
+    }
 
-    /* --- EL EVENTO DE LA SEMANA (sabor + modificador) --- */
-    if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
+    /* --- EL EVENTO DE LA SEMANA: el titular, y qué decidiste --- */
     const ev = this._semEvento;
     if (ev && ev.texto) {
-      this.add.text(W / 2, 116, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5);
+      const te = this.add.text(W / 2, ySup, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
+      ySup += te.height + 2;
+      /* lo que ELEGISTE queda a la vista mientras armás la semana: es la mitad
+         de la decisión que antes no existía */
+      const md = this.save.modFecha;
+      if (md && md.opcion) {
+        this.add.text(W / 2, ySup, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
+      }
     }
 
     /* ══════════════════════════════════════════════════════════════════════
@@ -1216,44 +1243,66 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     });
     this.save.semanaResumen = llega;
     this._semEvento = undefined;
+    this._semEventoResuelto = false;   // la próxima fecha vuelve a decidir el suyo
     this.guardar();
     alJugar();
   }
 
-  vistaEvento(rival, alJugar) {
+  /* ══════════════════════════════════════════════════════════════════════
+     EL EVENTO, CON SUS DOS OPCIONES.
+
+     Esta pantalla estaba entera, terminada y funcionando — y era INALCANZABLE.
+     Vivía detrás de `if (!S || !D)` en vistaSemana, o sea "si no cargó el
+     sistema de la semana". S es window.PampaSemana (lo deja el UMD de
+     logic/semana.js, que index.html carga siempre) y D es el registry de
+     data/semana.json (que index.html fetchea y mete en el preBoot). Los dos
+     existen siempre: la guarda no se cumplió nunca.
+
+     Cuando la V8 trajo LA SEMANA de diez tarjetas, el evento quedó de fallback
+     y ahí murió sin que nadie lo viera morir. Lo que se perdía: los 28 eventos
+     de data/eventos_temporada.json nunca se ELEGÍAN — sólo se leía su texto
+     como decorado. Con ellos quedaban muertas sus 56 opciones, los 56 bloques
+     `efecto`, las 56 frases del relator, y de paso toda la cadena de abajo:
+     save.modFecha se quedaba en null SIEMPRE, así que `if (md && md.mod)` de
+     match.js no entraba nunca, y con él aplicarEleccion() y el vocabulario
+     entero de TOPES eran código que sólo tocaban los tests.
+
+     Ahora el evento es un PASO PROPIO y va ANTES de armar la semana, que es el
+     orden en que se lee: pasó esto → cómo lo tomás → ahora planificá. No pisa
+     nada de la V8; le devuelve la decisión al evento y deja la semana igual.
+
+     El evento lo elige eventoDeLaSemana() UNA vez y queda en _semEvento: si lo
+     eligiera acá otra vez, la bolsa se consumiría dos veces por fecha.
+     ══════════════════════════════════════════════════════════════════════ */
+  vistaEvento(rival, alSeguir) {
     const W = this.scale.width, H = this.scale.height;
-    const V = window.PampaVida, D = this.game.registry.get("vida"), t = this.save.temporada;
-    if (!V || !D || !D.eventos) { alJugar(); return; }
-    const pos = this.T.posiciones(t);
-    const idxMio = pos.findIndex(f => f.equipo === t.miClub), idxRival = pos.findIndex(f => f.equipo === rival);
-    const ctx = {
-      fecha: t.fecha, division: this.save.division,
-      clasico: (this.save.pueblo && rival.indexOf(this.save.pueblo) >= 0) || false,
-      posMia: idxMio + 1, posRival: idxRival + 1, racha: this.save.racha | 0,
-      marcas: (this.save.origen && this.save.origen.marcas) || []
-    };
-    const sel = V.elegirEvento(D, this.save.bolsaEventos || [], ctx, this.Ma.hashClub(this.save.club) + t.fecha * 7919 + this.save.temporadaN * 13);
-    if (!sel) { alJugar(); return; }
-    this.save.bolsaEventos = sel.vistos;
+    const V = window.PampaVida;
+    if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
+    const ev = this._semEvento;
+    if (!V || !ev || !ev.opciones || !ev.opciones.length) { this._semEventoResuelto = true; alSeguir(); return; }
     this.children.removeAll();
     /* E · acá el PRINCIPAL es lo que pasó: el resto es marco. */
     this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
-    this.add.text(W / 2, 140, sel.evento.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);
+    this.add.text(W / 2, 140, ev.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);
     /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
        franja. Lo cazó el guardián ampliado, no el ojo. */
     const pielEv = (this.game.registry.get("balance") || {}).piel;
-    sel.evento.opciones.forEach((o, i) => {
-      const y = Math.round(window.PampaPiel.yDeOpcion(i, sel.evento.opciones.length, 72, pielEv));
+    const items = ev.opciones.map((o, i) => {
+      const y = Math.round(window.PampaPiel.yDeOpcion(i, ev.opciones.length, 72, pielEv));
       const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       this.add.text(W / 2, y, (i + 1) + " · " + o.texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
       const elegir = () => {
-        this.save.modFecha = V.aplicarEleccion(sel.evento, i);
+        this.save.modFecha = V.aplicarEleccion(ev, i);
+        this._semEventoResuelto = true;
         this.guardar();
-        alJugar();
+        alSeguir();
       };
-      r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
-      if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO"][i], elegir);
+      r.on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); elegir(); });
+      return { obj: r, cb: elegir };
     });
+    /* el cursor, como en los demás grupos: no hay salida (el evento SE DECIDE,
+       no se saltea), así que no lleva `volver` */
+    if (this.grupoFoco) this.grupoFoco(items, { inicial: 0 });
     /* V1 (cantidad): decía cómo se toca, que el jugador ya sabe a esta altura */
   }
 
