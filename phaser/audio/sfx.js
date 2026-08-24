@@ -89,93 +89,63 @@
     lamento_bpm: 70
   };
   function configurarMusica(cfg) { if (cfg && typeof cfg === "object") MUSICA = Object.assign({}, MUSICA, cfg); }
-  var mus = { gain: null, timer: null, base: null, urgente: false, paso: 0, prox: 0, viento: null };
-  function semi(f, n) { return f * Math.pow(2, n / 12); }
-  function temaActivo() { return mus.urgente && mus.base ? "urgente" : mus.base; }
+  /* M3 · lo que queda de 'mus': banderas, no un bus de audio. gain/paso/prox
+     eran del secuenciador borrado; timer y viento se conservan porque
+     musicaTema() los apaga por las dudas, y urgente porque la escena la
+     consulta. Sin generador, gain nunca se crea y las ramas que lo miran
+     salen por el guard. */
+  /* ══════════════════════════════════════════════════════════════════════
+     M3 · ACTA DE LO QUE SE FUE Y LO QUE SE QUEDÓ.
 
-  function musEnsure() {
-    if (!ensure()) return null;
-    if (!mus.gain) { mus.gain = ctx.createGain(); mus.gain.gain.value = MUSICA.vol; mus.gain.connect(master); }
-    return ctx;
-  }
-  function notaMus(type, f, t0, dur, g) {
-    if (muted || !f) return;
-    var o = ctx.createOscillator(), gn = ctx.createGain();
-    o.type = type; o.frequency.value = f;
-    gn.gain.setValueAtTime(0.0001, t0);
-    gn.gain.exponentialRampToValueAtTime(g, t0 + 0.012);
-    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(gn); gn.connect(mus.gain);
-    o.start(t0); o.stop(t0 + dur + 0.02);
-  }
-  /* percusión de ruido al bus de música (bombo grave / hi-hat agudo) */
-  function golpeMus(t0, dur, gain, freq, tipo) {
-    if (muted || !ctx) return;
-    var n = Math.max(1, Math.floor(ctx.sampleRate * dur)), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
-    var s = ctx.createBufferSource(); s.buffer = buf;
-    var f = ctx.createBiquadFilter(); f.type = tipo; f.frequency.value = freq;
-    var g = ctx.createGain(); g.gain.value = gain;
-    s.connect(f); f.connect(g); g.connect(mus.gain);
-    s.start(t0); s.stop(t0 + dur);
-  }
-  /* la capa PAMPEANA: viento sutil, presente en todos los temas de partido */
-  function vientoOn() {
-    if (mus.viento || !ctx || !MUSICA.viento) return;
-    var n = ctx.sampleRate * 2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-    for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-    var s = ctx.createBufferSource(); s.buffer = buf; s.loop = true;
-    var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 420;
-    var g = ctx.createGain(); g.gain.value = MUSICA.viento;
-    s.connect(f); f.connect(g); g.connect(mus.gain);
-    s.start();
-    mus.viento = { src: s, gain: g };
-  }
+     SE FUE (era música y ya no la hace nadie): el secuenciador programar(),
+     la capa de viento vientoOn(), el bus musEnsure() con notaMus()/golpeMus(),
+     los helpers semi()/temaActivo(), musicaZona(), y en match.js el segundo
+     mapa (mapaDeAudio + registrarMusicaDeArchivo). Todo eso generaba el
+     chiptune que Rodri escuchaba en cinco lugares distintos.
+
+     SE QUEDA Y NO ES MÚSICA: los GOLPES CORTOS. Duran menos de medio segundo,
+     acentúan un momento y suenan ENCIMA del tema que esté puesto, igual que
+     un silbato o una patada. Ninguno hace loop y ninguno pasa por el bus que
+     se borró — todos usan tone()/noise() sobre el master, como el resto de los
+     efectos. Son estos cinco:
+
+       temaPosesion(quien)  3 notas al cambiar de mano (sube la tuya, baja la de ellos)
+       temaCampo(zona)      3 notas al cruzar la mitad de la cancha
+       temaUrgente()        el tictac de los últimos 5 minutos
+       golEnContra()        el lamento de 4 notas: EL MOTIVO invertido y lento
+       goal()               EL MOTIVO a toda potencia cuando la metés
+
+     Se quedan porque hacen falta: los doce OGG son loops de ambiente y no
+     pueden reaccionar a un cambio de posesión sin cortar la pista. La regla
+     que los separa de la música es simple — un golpe corto NO se registra en
+     audio.json y NO se pide por pedirMusica().
+     ══════════════════════════════════════════════════════════════════════ */
+  var mus = { gain: null, timer: null, base: null, urgente: false, viento: null };
+
+  /* M3 · se fue vientoOn(): la capa de viento pampeano del sintetizador. Era
+     ruido filtrado por debajo del loop generado; sin loop generado no tiene
+     nada debajo de qué ir. vientoOff() se conserva porque musicaTema la llama
+     para asegurarse de que no quede nada sonando. */
   function vientoOff() { if (mus.viento) { try { mus.viento.src.stop(); } catch (e) { } mus.viento = null; } }
 
-  /* el secuenciador dirigido: 32 pasos = 4 compases = una vuelta de progresión */
-  function programar() {
-    var id = temaActivo(); if (!id || !ctx) return;
-    var T = MUSICA.temas[id]; if (!T) return;
-    var paso = 60 / T.bpm / 2;
-    if (mus.prox < ctx.currentTime) mus.prox = ctx.currentTime + 0.03;   // pestaña dormida: re-engancha
-    while (mus.prox < ctx.currentTime + 0.4) {
-      var i = mus.paso % 32, t0 = mus.prox;
-      var compas = Math.floor(i / 8), enCompas = i % 8;
-      var grado = T.prog[compas % T.prog.length];
-      /* modo del compás: el opening MODULA de menor a mayor en la 2da mitad */
-      var mayor = T.modo === "mayor" || (T.modo === "menor_a_mayor" && compas >= 2);
-      var raiz = semi(T.tonica, grado);
-      /* CAPA 1 · BAJO: corcheas en la fundamental, grave (cuadrada) */
-      if (enCompas % 2 === 0) notaMus("square", raiz / 2, t0, paso * 0.85, 0.055);
-      /* CAPA 2 · ARPEGIO del acorde (triangular): 1 - 3/b3 - 5 (+ la 2da menor incómoda del rival) */
-      if (enCompas === 0 || enCompas === 3 || enCompas === 5) {
-        var tercera = mayor ? 4 : 3;
-        var notaArp = enCompas === 0 ? 0 : enCompas === 3 ? tercera : 7;
-        if (T.segunda_menor && enCompas === 5) notaArp = 1;   // la segunda menor: la amenaza
-        notaMus("triangle", semi(raiz, notaArp), t0, paso * 1.5, 0.04);
-      }
-      /* CAPA 3 · EL MOTIVO (pulso brillante), transformado por tema */
-      var M = MUSICA.motivo;
-      if (T.motivo === "completo" && (compas === 0 || compas === 2) && enCompas % 2 === 0)
-        notaMus("square", semi(T.tonica * 2, M[enCompas / 2]), t0, paso * 1.7, 0.045);
-      else if (T.motivo === "insinuado" && compas === 3 && (enCompas === 4 || enCompas === 6))
-        notaMus("square", semi(T.tonica * 2, M[(enCompas - 4) / 2]), t0, paso * 1.9, 0.035);
-      else if (T.motivo === "invertido" && (compas === 0 || compas === 2) && enCompas % 2 === 0)
-        notaMus("square", semi(T.tonica * 2, M[3 - enCompas / 2]), t0, paso * 1.6, 0.04);
-      else if (T.motivo === "principal" && enCompas % 2 === 0)
-        notaMus("square", semi(T.tonica * 2, M[enCompas / 2 % 4] + (mayor ? 0 : 0)), t0, paso * 1.8, 0.055);
-      /* CAPA 4 · PERCUSIÓN (bombo + hat) escalada por carácter */
-      var P = T.percusion || 0;
-      if (P > 0) {
-        if (enCompas === 0 || enCompas === 4 || (P >= 1 && enCompas === 6)) { golpeMus(t0, 0.09, 0.15 * P, 190, "lowpass"); notaMus("triangle", 56, t0, 0.06, 0.05 * P); }
-        if (enCompas % 2 === 1) golpeMus(t0, 0.03, 0.05 * P, 6200, "highpass");
-      }
-      /* URGENTE: el tictac de corcheas encima de todo */
-      if (T.tictac && enCompas % 2 === 0) notaMus("square", 880, t0, 0.05, 0.055);
-      mus.paso++; mus.prox += paso;
-    }
-  }
+  /* ══════════════════════════════════════════════════════════════════════
+     M3 · SE FUE EL GENERADOR DE MÚSICA DEL SINTETIZADOR (42 líneas).
+
+     Era el que programaba el chiptune compás a compás: la progresión, el
+     motivo de cuatro notas, la percusión y el bajo. Funcionó como música del
+     juego hasta que llegaron los doce OGG, y desde entonces sonaba SOLO donde
+     el mapa nuevo no llegaba — que es exactamente el bug de los cinco lugares.
+
+     Con la puerta única de M2, ningún momento cae acá. Se borra, que es lo que
+     lo hace irreversible: si quedara, la próxima vez que alguien pida un
+     momento sin mapear volvería a sonar.
+
+     LO QUE NO SE BORRÓ Y NO ES MÚSICA: los golpes cortos siguen vivos porque
+     son EFECTOS, no loops — temaPosesion (3 notas al cambiar de mano),
+     temaCampo (3 notas al cruzar de campo), temaUrgente (el tictac de los
+     últimos 5') y golEnContra (el lamento de 4 notas). Duran menos de medio
+     segundo y acentúan un momento; no compiten con el tema que está sonando.
+     ══════════════════════════════════════════════════════════════════════ */
   /* API: acepta los nombres nuevos y los viejos ("propia"→propia_propio) */
   /* ══════════════════════════════════════════════════════════════════════
      M2 · LOS ARCHIVOS MANDAN SOBRE EL SINTETIZADOR.
@@ -228,20 +198,59 @@
   }
 
   /* mapa: { id: { archivo, loop } }. Devuelve cuántos quedaron listos. */
+  /* ══════════════════════════════════════════════════════════════════════
+     LOS TEMAS DE UNA PASADA. "Under the Floodlights" (la entrada a la cancha)
+     y el festejo de gol no hacen loop: terminan. Antes de esto, cuando
+     terminaban quedaba silencio y nadie se enteraba.
+
+     alTerminarMusica(cb) avisa una sola vez. Trae DOS relojes porque el
+     navegador puede negarse a reproducir sin gesto del usuario: si el elemento
+     nunca arranca, 'ended' no llega nunca. El tope por tiempo garantiza que el
+     partido igual pase a su tema, con o sin audio habilitado. */
+  var avisoFin = null;
+  function limpiarAvisoFin() {
+    if (!avisoFin) return;
+    try { avisoFin.el.removeEventListener("ended", avisoFin.fn); } catch (e) { }
+    clearTimeout(avisoFin.tope);
+    avisoFin = null;
+  }
+  function alTerminarMusica(cb, topeMs) {
+    limpiarAvisoFin();
+    if (typeof cb !== "function") return false;
+    var el = archivoSonando;
+    var disparar = function () { limpiarAvisoFin(); cb(); };
+    var tope = setTimeout(disparar, Math.max(500, topeMs || 12000));
+    if (!el) { return true; }              // sin elemento: manda el tope
+    avisoFin = { el: el, fn: disparar, tope: tope };
+    el.addEventListener("ended", disparar, { once: true });
+    return true;
+  }
+
   function registrarArchivos(mapa, volumen) {
     matarFundidos(); pararArchivo(true); archivos = {};
     if (volumen != null) volArchivo = volumen;
     if (!mapa) return 0;
     var n = 0;
+    /* UN ARCHIVO = UN ELEMENTO. definicion, jugadon y partido_final comparten
+       pista (Last Ten Seconds); si cada uno tuviera su propio <audio>, entrar
+       al pasillo en el minuto 88 REINICIARÍA el tema desde cero en vez de
+       seguirlo. Compartiendo el elemento, el guard de musicaTema ("el mismo ya
+       sonando: no se reinicia") hace que el cambio sea inaudible, que es lo que
+       corresponde: es el mismo tema. */
+    var porRuta = {};
     Object.keys(mapa).forEach(function (id) {
       var e = mapa[id];
       if (id.charAt(0) === "_" || !e) return;
       var ruta = typeof e === "string" ? e : e.archivo;
       if (!ruta) return;
-      var a = new Audio(ruta);
-      a.loop = typeof e === "object" ? !!e.loop : true;
-      a.preload = "auto";
-      a.volume = 0;
+      var a = porRuta[ruta];
+      if (!a) {
+        a = new Audio(ruta);
+        a.loop = typeof e === "object" ? !!e.loop : true;
+        a.preload = "auto";
+        a.volume = 0;
+        porRuta[ruta] = a;
+      }
       archivos[id] = { audio: a, loop: a.loop };
       n++;
     });
@@ -274,21 +283,33 @@
       return;
     }
 
-    /* sin archivo: se para el que hubiera y sigue el sintetizador de siempre */
+    /* ══════════════════════════════════════════════════════════════════════
+       M3 · SIN ARCHIVO NO SUENA NADA. El sintetizador NO vuelve.
+
+       Acá estaba la fuga: cuando un momento no tenía archivo, esta función
+       arrancaba el chiptune sin avisar. Como la intro, la definición y el
+       jugadón pedían momentos que no estaban mapeados, sonaba el sintetizador
+       — y quedaba prendido, así que también contaminaba lo que venía después.
+       Cinco síntomas, una sola causa.
+
+       Ahora: si no hay archivo, silencio. Un momento sin tema es un bug de
+       datos y se arregla en audio.json, no tapándolo con música vieja. La
+       puerta (pedirMusica) grita en desarrollo cuando el momento no existe.
+       ══════════════════════════════════════════════════════════════════════ */
     if (archivoSonando) pararArchivo(seco);
-    if (!musEnsure()) return;
-    if (id === mus.base) return;
-    var eraPropia = mus.base && mus.base.indexOf("propia") === 0;
-    mus.base = id || null;
-    if (!(eraPropia && id && id.indexOf("propia") === 0)) { mus.paso = 0; mus.prox = ctx.currentTime + 0.05; }
-    if (mus.base) { vientoOn(); if (!mus.timer) mus.timer = setInterval(programar, 120); }
-    else { vientoOff(); if (mus.timer) { clearInterval(mus.timer); mus.timer = null; } }
+    if (id) {
+      var av = "[MUSICA] '" + id + "' no tiene archivo registrado: queda en silencio. " +
+        "Declaralo en data/audio.json y mapealo en phaser/logic/musica.js.";
+      if (typeof console !== "undefined" && console.warn) console.warn(av);
+    }
+    vientoOff();
+    if (mus && mus.timer) { clearInterval(mus.timer); mus.timer = null; mus.base = null; }
   }
-  /* al cruzar de campo con la pelota, MODULA al mayor relativo y entra el motivo completo */
-  function musicaZona(zona) {
-    if (!mus.base || mus.base.indexOf("propia") !== 0) return;
-    musicaTema(zona === "rival" ? "propia_rival" : "propia_propio");
-  }
+  /* M3 · SE FUE musicaZona(). Hacía crecer el motivo DEL SINTETIZADOR al
+     cruzar de campo (modulaba al mayor relativo). Con archivos no hay motivo
+     que crecer: lo que quedó de ese momento es temaCampo(), que es un golpe
+     corto de tres notas — efecto, no música. */
+
   /* M3 · la música baja 40% con hitstop o cartel de gol, y vuelve. Vale para
      el sintetizador Y para los archivos: antes solo bajaba el bus del synth. */
   function musicaDuck(ms) {
@@ -299,28 +320,33 @@
         setTimeout(function () { rampa(el, el.volume, tope, 320); }, Math.max(80, (ms || 500) - 200));
       });
     }
-    if (!ctx || !mus.gain) return;
-    var t = ctx.currentTime, s = Math.max(0.1, (ms || 500) / 1000);
-    mus.gain.gain.cancelScheduledValues(t);
-    mus.gain.gain.setValueAtTime(0.0001, t);
-    mus.gain.gain.setValueAtTime(0.0001, t + s);
-    mus.gain.gain.linearRampToValueAtTime(muted ? 0.0001 : MUSICA.vol, t + s + 0.3);
+    /* M3 · acá había una segunda rama que agachaba el bus DEL SINTETIZADOR.
+       Ese bus lo creaba musEnsure(), que se borró con el generador: ya no hay
+       nada que agachar más que el archivo, que es lo de arriba. */
   }
 
   var SFX = {
     unlock: unlock,
     setMuted: function (m) {
       muted = !!m;
-      if (mus.gain && ctx) { mus.gain.gain.cancelScheduledValues(ctx.currentTime); mus.gain.gain.value = muted ? 0.0001 : MUSICA.vol; }
+      /* M3 · el mute de la música lo maneja el reproductor de archivo
+         (pararArchivo / rampa); el bus del sintetizador ya no existe. */
+      if (archivoSonando) archivoSonando.muted = muted;
       persistirMute();
     },
     isMuted: function () { return muted; },
     configurarMusica: configurarMusica,
     musicaTema: musicaTema,
-    musicaZona: musicaZona,
     musicaDuck: musicaDuck,
     registrarArchivos: registrarArchivos, hayArchivo: hayArchivo,   // M2: data/audio.json
+    alTerminarMusica: alTerminarMusica,
+    /* M3 · musicaUrgente() sigue existiendo porque el partido la llama en el
+       minuto 85 y al final, pero ya NO cambia la música: cuando la música se
+       generaba, prendía la variante urgente del loop. Ahora la urgencia es un
+       archivo — "partido_final" — y lo pide chequearTramoFinal() por la puerta.
+       Queda la bandera, que es lo que consultan los tests y el HUD. */
     musicaUrgente: function (on) { mus.urgente = !!on; },
+    estaUrgente: function () { return !!mus.urgente; },
 
     /* patada seca: click grave + thump */
     kick: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.06, 0.5, 220, 0.7, "lowpass"); tone("triangle", 180, 90, t, 0.09, 0.35); },

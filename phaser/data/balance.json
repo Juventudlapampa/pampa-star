@@ -230,7 +230,9 @@
     "final_perdiendo_min": 62,
     "_M5": "M5 · CUÁNDO ENTRA 'Last Ten Seconds' (musica.temas.partido_final de audio.json). final_tramo_min: a partir de qué minuto del SEGUNDO tiempo entra el tema de urgencia. final_perdiendo_min: si vas perdiendo, entra antes. MEDIDO JUGANDO un partido entero: con 78 y 62 entró una vez, en el minuto 78, y no antes — que es lo que se buscaba. Si entra siempre o no entra nunca, estos dos números están mal.",
     "vol_archivo": 0.42,
-    "_vol_archivo": "M3 · el volumen de crucero de los temas de archivo. Va por debajo de los efectos a propósito: la música acompaña, no tapa. El duck (hitstop, cartel de gol) baja de acá un 40% y vuelve."
+    "_vol_archivo": "M3 · el volumen de crucero de los temas de archivo. Va por debajo de los efectos a propósito: la música acompaña, no tapa. El duck (hitstop, cartel de gol) baja de acá un 40% y vuelve.",
+    "entrada_ms": 11000,
+    "_nota_entrada": "Cuanto dura como mucho la entrada a la cancha (Under the Floodlights, tema de una pasada) antes de que entre el tema del partido. Manda el final REAL del archivo si el navegador lo deja sonar; esto es el tope por si el audio esta bloqueado. En 0 se saltea la entrada y el partido arranca con su tema."
   },
   "secuencias": {
     "_nota": "V6 §3.4: las SECUENCIAS encadenan escenas en una sola acción épica (flag v6_secuencias, firma del crack). MEGACORRIDA: N rivales quedan atrás uno a uno y rematás (si un duelo se pierde, muere ahí). COMBINADA: pared, se suma el compañero, elegís CENTRO o AL PIE y ÉL define. Desbloqueo por nivel de carrera, costo alto a propósito.",

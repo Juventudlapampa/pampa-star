@@ -182,7 +182,11 @@
       this.cineLabel.setText("· LA DEFINICIÓN · buscá el ángulo, los defensores se acercan");
       this.defBotonesOf(opts);
       this.selloDef();
-      this.musica("rival");   // tensión
+      /* M2 · EL PASILLO. Antes pedía "rival", que no existe en el mapa nuevo:
+         caía al sintetizador. Ese es el "música vieja en la escena del
+         pasillo" — y encima dejaba el synth prendido, así que el partido de
+         después seguía con él. */
+      this.pedirMusica("definicion");
       this.relatar("peligro");
     },
 
@@ -685,7 +689,11 @@
       if (!sinRestaurarEstado) {
         this.estado = "LIBRE";
         this.st.modo = "juego";
-        this.musica(this.st.posesion === "mia" ? "propia" : "rival");
+        /* M2 · al salir del pasillo se vuelve al tema del PARTIDO, uno solo:
+         con archivos no se cambia de pista por posesión (sería un corte cada
+         tres segundos). Esto es lo que arregla el "partido después del
+         pasillo con música vieja". */
+      this.pedirMusica("partido");
       }
     },
 

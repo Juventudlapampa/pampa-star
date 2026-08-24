@@ -18,6 +18,8 @@
    ========================================================================== */
 (function () {
   "use strict";
+  /* M2: los doce temas se registran UNA VEZ para todo el juego, no por escena */
+  var MUSICA_REGISTRADA = false;
   var PIEL = {
 
     /* ---------- la paleta de esta escena, resuelta una vez ---------- */
@@ -321,6 +323,133 @@
       };
       this.children.list.slice().forEach(visitar);
       return n;
+    },
+
+    /* ══════════════════════════════════════════════════════════════════════
+       M2 · LA UNICA PUERTA DE LA MUSICA.
+
+       Antes habia DOS: this.musica() en el partido (con el mapa nuevo) y
+       SFX.musicaTema() directo desde la intro, la definicion y el jugadon.
+       Las que iban por la segunda caian al sintetizador viejo SIN AVISAR —
+       por eso el bug se veia en cinco lugares distintos siendo uno solo.
+
+       Ahora todas piden por aca, y si el momento no existe SE QUEJA:
+         · en desarrollo (localhost) tira un error visible en consola
+         · en produccion cae a SILENCIO, nunca al sintetizador
+       Fallar en silencio es lo que hizo que esto durara tantas tandas.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    /* registra los doce temas una sola vez. Antes cada escena registraba lo
+       suyo y pisaba el mapa de las demas: la intro no registraba NADA y el
+       master registraba UNA entrada, asi que al volver al partido el mapa
+       quedaba con un solo tema. */
+    registrarMusicaGlobal: function (forzar) {
+      var M = window.PampaMusica, S = window.PampaSFX;
+      if (!M || !S || !S.registrarArchivos) return 0;
+      var fecha = 0;
+      try {
+        var sv = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
+        fecha = (sv && sv.temporada && sv.temporada.fecha) | 0;
+      } catch (e) { }
+      /* si cambio la fecha hay que re-registrar: la alternancia depende de ella */
+      if (MUSICA_REGISTRADA && !forzar && window.__PAMPA_MUSICA_FECHA === fecha) return -1;
+      var audio = this.game.registry.get("audio");
+      if (!audio) return 0;
+      var bal = this.game.registry.get("balance") || {};
+      var vol = (bal.musica && bal.musica.vol_archivo != null) ? bal.musica.vol_archivo : 0.42;
+      var mapa = M.mapaCompleto(audio, fecha, "../assets/musica/");
+      if (!mapa) return 0;
+      var n = S.registrarArchivos(mapa, vol);
+      MUSICA_REGISTRADA = true;
+      window.__PAMPA_MUSICA_FECHA = fecha;
+      return n;
+    },
+
+    /* LA PUERTA. El momento tiene que estar en PampaMusica.MOMENTOS. */
+    pedirMusica: function (momento, opts) {
+      var M = window.PampaMusica, S = window.PampaSFX;
+      opts = opts || {};
+      if (!M || !S || !S.musicaTema) return false;
+      if (!M.existe(momento)) {
+        var aviso = "[MUSICA] momento desconocido: '" + momento + "'. Los validos: " +
+          M.lista().join(", ") + ". Agregalo a phaser/logic/musica.js y dale tema en data/audio.json.";
+        if (typeof location !== "undefined" && /localhost|127.0.0.1/.test(location.hostname)) console.error(aviso);
+        window.__PAMPA_MUSICA_MALOS = (window.__PAMPA_MUSICA_MALOS || []).concat(momento);
+        return false;
+      }
+      /* ══════════════════════════════════════════════════════════════════
+         UNA ESCENA APAGADA NO PIDE MÚSICA.
+
+         Medido en vivo: al terminar el partido, cerrarMusica() programa un
+         delayedCall a los 2600 ms para el silencio de vestuario. Si te vas al
+         master antes de que dispare, el temporizador llega TARDE y le apaga la
+         música a una escena que ya no es la suya. Se vio en la corrida: el
+         master pedía "espera" y el partido muerto lo callaba dos cuadros
+         después.
+
+         Es la misma familia que el bug de P1 — algo de la escena anterior que
+         sigue vivo — pero acá no alcanza con limpiar banderas en init(), porque
+         el que habla es un temporizador ya programado. Así que la puerta
+         pregunta quién llama: si la escena ya se apagó, no pasa.
+
+         OJO CON EL UMBRAL, que me lo comí de entrada: no sirve preguntar
+         isActive(), porque durante create() la escena todavía está en CREATING
+         y isActive() da false — y create() es justamente donde cada escena pide
+         su tema. Lo que hay que rechazar es lo que viene DESPUÉS de RUNNING:
+         SLEEPING (7), SHUTDOWN (8) y DESTROYED (9). Se leen de Phaser cuando
+         están, y si no, de los números, que no cambiaron nunca. */
+      var SC = (window.Phaser && Phaser.Scenes) || {};
+      var dormida = SC.SLEEPING != null ? SC.SLEEPING : 7;
+      var est = this.sys && this.sys.settings ? this.sys.settings.status : 0;
+      if (est >= dormida) {
+        window.__PAMPA_MUSICA_TARDIOS = (window.__PAMPA_MUSICA_TARDIOS || 0) + 1;
+        return false;
+      }
+      /* la traba del final del partido sigue mandando */
+      if (this._musicaTrabada && momento && momento !== "silencio") return false;
+      this.registrarMusicaGlobal();
+      S.musicaTema(momento === "silencio" ? null : momento, !!opts.seco);
+      this._musicaMomento = momento;
+      this.armarCorteDeMusica();
+      return true;
+    },
+
+    /* ══════════════════════════════════════════════════════════════════════
+       M5 · LA MÚSICA NO SOBREVIVE AL CAMBIO DE ESCENA.
+
+       Es la misma forma que las banderas de P1: Phaser REUSA la instancia de
+       la escena, así que lo que quedó prendido sigue prendido. Con la música
+       era peor todavía, porque el reproductor es GLOBAL: el tema de la semana
+       lo arranca el master y lo sigue sonando el elemento <audio>, que no se
+       entera de que cambiamos de escena. Por eso el segundo partido de la
+       carrera arrancaba con la música del modo vida.
+
+       Confiar en que cada salida se acuerde de apagar es lo que falló: hay
+       nueve puntos que llaman a scene.start() y alcanza con que uno se olvide.
+       Así que el corte se engancha UNA vez, acá, al evento shutdown que Phaser
+       dispara cuando la escena se apaga. La escena que entra pide su momento
+       en create() y lo pisa; la que no pide, queda en silencio, que es lo
+       correcto — antes quedaba con lo que hubiera dejado la anterior.
+
+       Se engancha recién cuando la escena pide música por primera vez (no en
+       create) para que las escenas que nunca piden no toquen nada.
+       ══════════════════════════════════════════════════════════════════════ */
+    armarCorteDeMusica: function () {
+      if (this._corteMusicaArmado || !this.events) return false;
+      this._corteMusicaArmado = true;
+      var esc = this;
+      this.events.on("shutdown", function () {
+        esc._corteMusicaArmado = false;     // el once/on muere con el shutdown: hay que rearmar
+        esc._musicaMomento = null;
+        esc._musicaTrabada = false;         // la traba es POR PARTIDO, no por carrera
+        var S = window.PampaSFX;
+        /* con FUNDIDO, no seco: si la escena que entra pide su momento en
+           create(), el fundido de 300 ms se convierte en un cruce limpio; y si
+           no pide nada, termina de bajar y queda el silencio, que es lo que
+           corresponde. Cortar seco acá dejaba un bache audible en cada pase. */
+        if (S && S.musicaTema) S.musicaTema(null);
+      });
+      return true;
     }
   };
 

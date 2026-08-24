@@ -333,7 +333,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.buildCineBase();
     /* P5: si balance.musica.archivos declara rutas, esos temas pasan a sonar
        de archivo y el chiptune se calla para ellos. Vacio = todo sintetizado. */
-    this.registrarMusicaDeArchivo();
+    /* M3 · el registro es global y una sola vez, no por escena (ver abajo) */
+    this.registrarMusicaGlobal();
     this.uiCam = this.cameras.add(0, 0, 960, 540);
     cam.ignore([this.hudLayer, this.menuLayer, this.cineLayer]);
     this.uiCam.ignore(this.mundoLayer);
@@ -396,10 +397,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* ANIME D + ADDENDUM B: la dirección musical llega de balance → el motor */
     if (this.SFX && this.SFX.configurarMusica) this.SFX.configurarMusica(this.BAL.musica);
-    /* M2: con archivos hay UN tema de partido; sin archivos, el sintetizador
-       sigue cambiando por posesión como siempre. */
-    this.musica(this.SFX && this.SFX.hayArchivo && this.SFX.hayArchivo("partido")
-      ? "partido" : (this.st.posesion === "mia" ? "propia" : "rival"));
+    /* ══════════════════════════════════════════════════════════════════════
+       LA ENTRADA A LA CANCHA. "Under the Floodlights" es de UNA PASADA (no
+       hace loop): es el tema de salir del túnel, no el del partido.
+
+       Estuvo declarado, con archivo en disco, y NO LO PEDÍA NADIE — lo encontró
+       la enumeración de M4, no una lectura del código. Primero lo puse en el
+       master, al apretar A LA CANCHA, y ahí se veía el error: el cambio de
+       escena lo cortaba a los dos cuadros. Va acá, donde tiene lugar para
+       sonar, y cuando termina entra el tema del partido.
+
+       El corte lo maneja alTerminarMusica, que trae su propio tope por si el
+       navegador no deja reproducir sin gesto. */
+    const msEntrada = (this.BAL.musica && this.BAL.musica.entrada_ms != null)
+      ? this.BAL.musica.entrada_ms : 11000;
+    if (msEntrada > 0 && this.SFX && this.SFX.alTerminarMusica && this.pedirMusica("entrada")) {
+      this.SFX.alTerminarMusica(() => {
+        if (this.scene && this.scene.isActive()) this.pedirMusica("partido");
+      }, msEntrada);
+    } else {
+      this.pedirMusica("partido");
+    }
 
     /* ANIME E: EL RELATOR — el partido se cuenta solo (data/relatos.json → relator) */
     this.REL = (this.FLAGS.v4_relator && window.PampaRelator)
@@ -468,70 +486,38 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      terminado esta función no deja pasar nada que no sea el silencio. Así da
      igual quién la llame ni desde dónde.
      ══════════════════════════════════════════════════════════════════════ */
-  musica(tema) {
-    if (this._musicaTrabada && tema) return;                 // terminó: no se reenciende
-    if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(tema);
-  }
+  /* M2 · SE FUE this.musica(). Era la segunda puerta: la que tenía el mapa
+     nuevo y la traba, mientras la intro, la definición y el jugadón llamaban a
+     SFX.musicaTema() directo y caían al sintetizador. Ahora hay UNA sola,
+     pedirMusica(), en el mixin de piel_ui, y la usan las cuatro escenas.
+     La traba del final del partido se mudó ahí adentro. */
+
   /* el cierre: un motivo corto y después el silencio de vestuario. La duración
      sale de balance.musica.final_ms; en 0 corta seco. */
   /* P5 · engancha balance.musica.archivos con el reproductor. Se llama al
      armar el partido: si no hay ninguna ruta declarada, no hace nada y todo
      sigue sintetizado como hasta ahora. */
   /* ══════════════════════════════════════════════════════════════════════
-     M2 · EL MAPA DE MOMENTOS.
+     M3 · SE FUERON mapaDeAudio() Y registrarMusicaDeArchivo() (48 líneas).
 
-     El juego habla de "propia", "rival", "final"; audio.json habla de
-     "partido", "partido_final", "semana". Acá se traduce, en un solo lugar.
+     Esta era LA ÚLTIMA PUERTA que quedaba abierta, y la peor, porque no fallaba
+     sola: pisaba a la otra. El partido armaba su PROPIO mapa de momentos y lo
+     registraba en create(). Ese mapa tenía ocho entradas y no tenía ni
+     "definicion" ni "jugadon".
 
-     Lo que cambió al pasar de síntesis a archivos: el sintetizador cambiaba de
-     tema con CADA cambio de posesión (era un motivo que crecía). Con archivos
-     eso sería un corte de pista cada tres segundos, así que el partido tiene
-     UN tema que sigue sonando y lo que cambia es el MOMENTO: entrada, partido,
-     tramo final. Está anotado como decisión.
+     Como registrarArchivos() REEMPLAZA el registro entero, cada vez que
+     arrancaba un partido borraba los doce temas que había puesto la puerta
+     global y dejaba ocho. Después entrabas al pasillo, pedía "definicion", no
+     estaba registrado... y sonaba el sintetizador. Con M2 solo, el pasillo
+     seguía roto: la llamada era correcta y el archivo no estaba.
 
-     M4 · LA ALTERNANCIA. partido/partido_alt y semana/semana_alt alternan por
-     FECHA, no al azar: un partido nunca repite el tema del anterior. Con la
-     fecha par suena uno y con la impar el otro, así que dos fechas seguidas
-     siempre suenan distinto.
+     Ahora el mapa vive en un solo lado — phaser/logic/musica.js, que es lógica
+     pura y se puede correr en node — y el registro es GLOBAL y una sola vez
+     (registrarMusicaGlobal, en el mixin de piel_ui). Las cuatro escenas piden
+     por nombre de momento y ninguna arma mapas.
+
+     La alternancia por fecha par/impar se mudó tal cual a musica.js.
      ══════════════════════════════════════════════════════════════════════ */
-  mapaDeAudio() {
-    const A = this.game.registry.get("audio");
-    if (!A || !A.temas) return null;
-    /* la fecha manda la alternancia; sin carrera, la 0 */
-    let fecha = 0;
-    try {
-      const s = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
-      fecha = (s && s.temporada && s.temporada.fecha) | 0;
-    } catch (e) {}
-    this._fechaAudio = fecha;
-    const par = (fecha % 2) === 0;
-    const uno = (a, b) => (par ? a : b);
-    const ruta = (id) => {
-      const t = A.temas[id];
-      return t && t.archivo ? { archivo: "../assets/musica/" + t.archivo, loop: !!t.loop } : null;
-    };
-    const mapa = {};
-    const poner = (idJuego, idAudio) => { const r = ruta(idAudio); if (r) mapa[idJuego] = r; };
-    /* los momentos del PARTIDO */
-    poner("entrada", "entrada_partido");
-    poner("partido", uno("partido", "partido_alt"));
-    poner("partido_final", "partido_final");
-    poner("gol_festejo", "gol_festejo");
-    poner("opening", "opening");
-    /* los del MASTER (la escena los pide por su nombre) */
-    poner("semana", uno("semana", "semana_alt"));
-    poner("espera", "espera");
-    poner("hype", "hype_carrera");
-    return mapa;
-  }
-
-  registrarMusicaDeArchivo() {
-    const M = this.BAL.musica || {};
-    if (!this.SFX || !this.SFX.registrarArchivos) return 0;
-    const mapa = this.mapaDeAudio();
-    if (!mapa) return 0;
-    return this.SFX.registrarArchivos(mapa, M.vol_archivo != null ? M.vol_archivo : 0.42);
-  }
   /* ══════════════════════════════════════════════════════════════════════
      M5 · EL TRAMO FINAL. "Last Ten Seconds" entra en el final del segundo
      tiempo, o antes si vas perdiendo — que es cuando la urgencia es tuya y no
@@ -552,7 +538,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (st.minuto < umbral) return;
     this._temaFinalPuesto = true;
     this._temaFinalMin = +st.minuto.toFixed(1);
-    this.musica("partido_final");
+    this.pedirMusica("partido_final");
   }
 
   cerrarMusica() {
@@ -561,12 +547,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const ms = M.final_ms != null ? M.final_ms : 2600;
     if (ms > 0 && this.SFX && this.SFX.musicaTema) {
       /* el tema de cierre: si hay uno declarado suena, si no baja el volumen */
+      /* M2 · el cierre: el festejo suena una vez y después el silencio de
+         vestuario. Antes pedía "final", que no existía en el mapa. */
       this._musicaTrabada = false;
-      this.musica("final");
+      this.pedirMusica("gol_festejo");
       this._musicaTrabada = true;
-      this.time.delayedCall(ms, () => { if (this.SFX && this.SFX.musicaTema) this.SFX.musicaTema(null); });
-    } else if (this.SFX && this.SFX.musicaTema) {
-      this.SFX.musicaTema(null);
+      this.time.delayedCall(ms, () => {
+        this._musicaTrabada = false;
+        this.pedirMusica("silencio");
+        this._musicaTrabada = true;
+      });
+    } else {
+      this._musicaTrabada = false;
+      this.pedirMusica("silencio");
+      this._musicaTrabada = true;
     }
   }
   musicaDuck(ms) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaDuck) this.SFX.musicaDuck(ms); }
@@ -4353,10 +4347,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (lado7 !== this._ladoTema) {
           this._ladoTema = lado7;
           this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado7);
-          /* M2: con archivo, el tema del partido NO cambia por posesión — sería
-             un corte de pista cada tres segundos. Sigue sonando el mismo. */
-          if (!(this.SFX && this.SFX.hayArchivo && this.SFX.hayArchivo("partido")))
-            this.musica(lado7 === "rival" ? "rival" : "propia");
+          /* M2 · el tema del partido NO cambia por posesión: sería un corte de
+             pista cada tres segundos. Lo que cambia con la posesión es el
+             GOLPE corto (temaPosesion), que es efecto y no música. */
         }
       }
       return;
@@ -4373,7 +4366,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (lado !== this._ladoTema) {
         this._ladoTema = lado;
         this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado);
-        this.musica(lado === "rival" ? "rival" : "propia");   // ANIME D: el loop cambia con la posesión
+        /* M2 · idem: el loop ya no cambia con la posesión (ver arriba) */
       }
     }
     cam.stopFollow();
@@ -4585,7 +4578,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (zona !== this._zonaTema) {
         this._zonaTema = zona;
         this.SFX && this.SFX.temaCampo && this.SFX.temaCampo(zona);
-        if (this.FLAGS.v4_musica && this.SFX && this.SFX.musicaZona) this.SFX.musicaZona(zona);   // V6 §6: el LOOP crece al cruzar
+        /* M2 · musicaZona hacía crecer el motivo DEL SINTETIZADOR al cruzar de
+         campo. Con archivos no hay motivo que crecer: lo que queda es el golpe
+         corto de temaCampo, que es efecto. */
       }
     }
     /* pan vivo: mientras dura el corte, el destino persigue al portador real */

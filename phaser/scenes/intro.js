@@ -128,7 +128,12 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     if (this._fin) return;
     if (this._gestoTs != null && this.time.now - this._gestoTs < 180) return;   // el gesto de la compuerta no saltea
     this._fin = true;
-    this.SFX && this.SFX.musicaTema && this.SFX.musicaTema(null);   // corta el audio limpio
+    /* M4 · acá había un "por las dudas" (pedirMusica si existe, si no
+       SFX.musicaTema directo). Ese por-las-dudas ES la segunda puerta: el
+       mixin de piel se aplica a las cuatro escenas en el arranque, así que
+       pedirMusica siempre está. Si algún día no estuviera, quiero que reviente
+       y no que se cuele música vieja por atrás. */
+    this.pedirMusica("silencio");
     this.scene.start("editor");
   }
   flashBlanco() { this.cameras.main.flash(70, 255, 255, 255); }
@@ -302,7 +307,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        Los tweens quedan solo para el adorno — si corren, suma; si no, el plano
        se lee igual. */
 
-    this.SFX && this.SFX.musicaTema && this.SFX.musicaTema("opening");   // la música ARRANCA de golpe
+    /* M2 · por la puerta. Antes esto llamaba a SFX.musicaTema directo, y como
+       la intro nunca registraba archivos, sonaba el SINTETIZADOR — el "trailer
+       con música vieja" que reportó Rodri. */
+    this.pedirMusica("opening");
     this.flashBlanco();
   }
   /* ══════════════════════════════════════════════════════════════════════
@@ -386,8 +394,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.radiales(0x0a1f13, 0.8);
     const s = this.poseImg("arquero_vuela", 480, 270, 380);
     this.temblor(s);
-    this.SFX && this.SFX.musicaTema && this.SFX.musicaTema(null);
-    this.SFX && this.SFX.musicaTema && this.SFX.musicaTema("opening");   // vuelve DE GOLPE
+    /* M2 · vuelve DE GOLPE: seco, sin fundido, que es el efecto del plano */
+    this.pedirMusica("silencio", { seco: true });
+    this.pedirMusica("opening", { seco: true });
   }
   p7() {   // EL GOL: festejo sobre explosión dorada, hinchada a todo volumen
     /* I1 · el mejor plano de los ocho ya era éste; solo le faltaba el lugar */

@@ -212,7 +212,8 @@
       this._jgMini.cursores = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
       var ayuda = this.add.text(W / 2, H - 20, "esquivá con el DEDO o con las FLECHAS · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
       this.cineContent.add(ayuda);
-      this.musica && this.musica("urgente");
+      /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */
+      this.pedirMusica("jugadon");
       this.pintarCorridaVertical(0);
     },
 
@@ -399,7 +400,8 @@
         var x = W / 2 + (i - (C.length - 1) / 2) * (wpx + 8);
         self.jugadonBoton(x, H - 60, wpx, c.n, 0xf6efdc, function () { self.jugadonQuite(c.id); });
       });
-      this.musica && this.musica("urgente");
+      /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */
+      this.pedirMusica("jugadon");
     },
     jugadonQuite(cierreId) {
       var st = this.st, J = window.PampaJugadon, self = this;
@@ -488,7 +490,8 @@
       });
       var tAyuda = this.add.text(W / 2, H - 96, "elegí DÓNDE la ponés — la física decide si entra", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
       this.cineContent.add(tAyuda);
-      this.musica && this.musica("urgente");
+      /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */
+      this.pedirMusica("jugadon");
     },
     jugadonFuerza() {
       var yo = this.st.mios[this.st.ctrl];
