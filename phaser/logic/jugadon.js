@@ -119,14 +119,86 @@
      El pozo es el único que no es un rival, y es a propósito: en el potrero la
      cancha también juega.
      ══════════════════════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════════════════════
+     P1 · LA VARIEDAD DEL PASILLO.
+
+     EL DIAGNÓSTICO, MEDIDO: había seis obstáculos y cinco gestos, y los SEIS
+     pedían exactamente lo mismo — leer una etiqueta y tocar el botón que le
+     corresponde. Cambiaba cuál era la respuesta, no qué clase de cosa te
+     preguntaban. Y de seis obstáculos salían solo CUATRO respuestas distintas,
+     porque `pozo` y `barrida` se vencen los dos con saltar y `firme` acepta
+     dos gestos. Por eso a la tercera corrida ya no había pasillo: había una
+     tabla de seis filas que te sabías.
+
+     Un obstáculo no se define por CUÁL es la respuesta sino por QUÉ TE OBLIGA
+     A HACER. Ahora hay cinco CLASES y cada una pide un músculo distinto:
+
+       gesto       elegir el que lo vence          ← las seis de siempre
+       lectura     leer al que te está leyendo     ← no tiene respuesta fija
+       aguante     no se esquiva: elegís qué pagás ← y arrastra al siguiente
+       envenenada  dos salidas, las dos cuestan    ← se cobra en el remate
+       reloj       decidí antes de que se cierre   ← el único con tiempo
+
+     La regla que las mantiene distintas está en secuenciaObstaculos: nunca dos
+     de la misma clase seguidas, y como mucho UNA de reloj por corrida, al
+     final. Sobre el reloj hay una advertencia larga allá abajo — el proyecto
+     ya sacó dos QTE a propósito y esta clase es la única que puede desandarlo.
+     ══════════════════════════════════════════════════════════════════════ */
   var OBSTACULOS = [
-    { id: "marca_izq",  n: "TE CIERRA LA IZQUIERDA", gesto: "esquivar", vence: ["der"],              min: 0,  pose: "bloqueo" },
-    { id: "marca_der",  n: "TE CIERRA LA DERECHA",   gesto: "esquivar", vence: ["izq"],              min: 0,  pose: "bloqueo" },
-    { id: "barrida",    n: "SE TIRA AL PISO",        gesto: "saltar",   vence: ["saltar"],           min: 0,  pose: "barrida" },
-    { id: "pozo",       n: "UN POZO EN EL PASTO",    gesto: "saltar",   vence: ["saltar"],           min: 0,  pose: null },
-    { id: "firme",      n: "SE PLANTA DE FRENTE",    gesto: "caño",     vence: ["canio", "amague"],  min: 70, pose: "bloqueo" },
-    { id: "dos_juntos", n: "DOS CERRÁNDOTE",         gesto: "amague",   vence: ["amague"],           min: 55, pose: "bloqueo" }
+    /* ── CLASE gesto: las seis de siempre, intactas ── */
+    { id: "marca_izq",  n: "TE CIERRA LA IZQUIERDA", clase: "gesto", gesto: "esquivar", vence: ["der"],              min: 0,  pose: "bloqueo" },
+    { id: "marca_der",  n: "TE CIERRA LA DERECHA",   clase: "gesto", gesto: "esquivar", vence: ["izq"],              min: 0,  pose: "bloqueo" },
+    { id: "barrida",    n: "SE TIRA AL PISO",        clase: "gesto", gesto: "saltar",   vence: ["saltar"],           min: 0,  pose: "barrida" },
+    { id: "pozo",       n: "UN POZO EN EL PASTO",    clase: "gesto", gesto: "saltar",   vence: ["saltar"],           min: 0,  pose: null },
+    { id: "firme",      n: "SE PLANTA DE FRENTE",    clase: "gesto", gesto: "caño",     vence: ["canio", "amague"],  min: 70, pose: "bloqueo" },
+    { id: "dos_juntos", n: "DOS CERRÁNDOTE",         clase: "gesto", gesto: "amague",   vence: ["amague"],           min: 55, pose: "bloqueo" },
+
+    /* ── CLASE lectura: DECLARA una intención, y puede estar mintiendo ──
+       Es la única que no se resuelve con una tabla: no hay respuesta correcta,
+       hay una lectura con información incompleta. Se puede jugar cien veces sin
+       agotarse, que es exactamente lo que a las otras les falta. */
+    { id: "te_lee",     n: "TE ESTÁ LEYENDO",        clase: "lectura", min: 0,  pose: "bloqueo" },
+
+    /* ── CLASE aguante: NO SE ESQUIVA ──
+       No te cierra un lado: se te tira encima y te va a pegar igual. Lo que
+       elegís es cuánto pagás, y lo que elegiste ARRASTRA al obstáculo
+       siguiente. Es lo que convierte una corrida en una jugada y no en tres
+       preguntas sueltas. */
+    { id: "se_te_viene", n: "SE TE TIRA ENCIMA",     clase: "aguante", min: 0,  pose: "bloqueo" },
+
+    /* ── CLASE envenenada: dos salidas, las dos cuestan ──
+       La consecuencia NO se ve acá: se ve al final, en el remate. Salir por
+       afuera es casi seguro pero el arco te queda de costado; por el medio
+       quedás de frente pero pasás menos veces. */
+    { id: "te_encajona", n: "TE ENCAJONA CONTRA LA LÍNEA", clase: "envenenada", min: 0, pose: "bloqueo" },
+
+    /* ── CLASE reloj: el único con tiempo ── */
+    { id: "se_cierra",  n: "SE ESTÁ CERRANDO",       clase: "reloj",   min: 55, pose: "bloqueo" }
   ];
+
+  /* las cinco clases, con lo que le pide cada una al jugador. El texto se
+     muestra: si el jugador no sabe qué clase de pregunta le están haciendo,
+     la variedad no existe aunque esté implementada. */
+  /* La etiqueta dice QUE TE ESTAN PIDIENDO, no que esta pasando — eso ya lo
+     dice el nombre del obstaculo. En la primera vuelta "se esta cerrando"
+     aparecia DOS VECES en la misma pantalla (la etiqueta y el globo), que es
+     ruido y encima tapa la unica informacion nueva. */
+  var CLASES = {
+    gesto:      { n: "¿con qué lo pasás?",  pide: "reconocer" },
+    lectura:    { n: "leelo",               pide: "leer" },
+    aguante:    { n: "esto no se esquiva",  pide: "aguantar" },
+    envenenada: { n: "las dos te cuestan",  pide: "elegir qué perder" },
+    reloj:      { n: "decidí YA",           pide: "decidir ya" }
+  };
+  function claseDe(obsOId) {
+    if (obsOId && obsOId.clase) return obsOId.clase;
+    for (var i = 0; i < OBSTACULOS.length; i++) if (OBSTACULOS[i].id === obsOId) return OBSTACULOS[i].clase || "gesto";
+    return "gesto";
+  }
+  function obstaculoPorId(id) {
+    for (var i = 0; i < OBSTACULOS.length; i++) if (OBSTACULOS[i].id === id) return OBSTACULOS[i];
+    return null;
+  }
   /* los gestos que el juego ofrece como botón/tecla */
   var GESTOS = [
     { id: "izq",    n: "◀ SALIR POR IZQUIERDA", min: 0 },
@@ -146,18 +218,215 @@
      corrida) y con la regla de no repetir el tipo anterior. Si el jugador es
      tan flojo que solo le entra un tipo de obstáculo, se permite repetir —
      antes que devolver una secuencia más corta de lo pedido. */
-  function secuenciaObstaculos(cuantos, statGambeta, semilla) {
+  function secuenciaObstaculos(cuantos, statGambeta, semilla, cfg) {
+    cfg = cfg || {};
     var r = rng(semilla || 3);
     var pool = obstaculosDe(statGambeta);
-    var out = [], ultimo = null;
-    for (var i = 0; i < Math.max(1, cuantos || 3); i++) {
-      var eleg = pool.filter(function (o) { return o.id !== ultimo; });
-      if (!eleg.length) eleg = pool;                 // caso extremo: un solo tipo
-      var o = eleg[Math.floor(r() * eleg.length) % eleg.length];
+    var n = Math.max(1, cuantos || 3);
+    var out = [], ultimoId = null, ultimaClase = null;
+    var relojes = 0, topeReloj = cfg.reloj_max_por_corrida != null ? cfg.reloj_max_por_corrida : 1;
+    for (var i = 0; i < n; i++) {
+      var esUltimo = (i === n - 1);
+      var eleg = pool.filter(function (o) {
+        if (o.id === ultimoId) return false;
+        /* P1 · LA REGLA QUE HACE QUE LA VARIEDAD SE NOTE: nunca dos de la
+           misma CLASE seguidas. Sin esto, tres obstáculos de gesto en fila se
+           sienten igual que antes aunque existan las otras cuatro clases. */
+        if ((o.clase || "gesto") === ultimaClase) return false;
+        /* el reloj: como mucho uno por corrida, y solo en el último tramo.
+           Ver la advertencia larga en resolverObstaculo. */
+        if ((o.clase || "gesto") === "reloj" && (relojes >= topeReloj || !esUltimo)) return false;
+        return true;
+      });
+      /* si la regla no deja nada, se afloja de a poco antes que devolver una
+         corrida más corta: primero se permite repetir clase, después todo */
+      if (!eleg.length) eleg = pool.filter(function (o) { return o.id !== ultimoId && (o.clase || "gesto") !== "reloj"; });
+      if (!eleg.length) eleg = pool.filter(function (o) { return (o.clase || "gesto") !== "reloj"; });
+      if (!eleg.length) eleg = pool;
+      /* ══════════════════════════════════════════════════════════════════
+         SE ELIGE LA CLASE PRIMERO, Y RECIEN DESPUES EL OBSTACULO.
+
+         Medido: eligiendo del pool plano, la clase gesto se llevaba el 47%
+         de los obstaculos — porque hay SEIS de gesto y uno de cada una de las
+         otras cuatro. La variedad estaba implementada y no se notaba, que es
+         la peor forma de no existir.
+
+         Eligiendo la clase primero, las cinco pesan parejo y la corrida de
+         tres obstaculos casi nunca repite el tipo de pregunta. Que haya seis
+         obstaculos de gesto ahora sirve para lo que tiene que servir: que
+         DENTRO de esa clase no se repita el mismo. */
+      var clases = [];
+      eleg.forEach(function (o) { var k = o.clase || "gesto"; if (clases.indexOf(k) < 0) clases.push(k); });
+      var claseElegida = clases[Math.floor(r() * clases.length) % clases.length];
+      var deLaClase = eleg.filter(function (o) { return (o.clase || "gesto") === claseElegida; });
+      var o = deLaClase[Math.floor(r() * deLaClase.length) % deLaClase.length];
       out.push(o);
-      ultimo = o.id;
+      ultimoId = o.id;
+      ultimaClase = o.clase || "gesto";
+      if (ultimaClase === "reloj") relojes++;
     }
     return out;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     P1 · LA PUERTA ÚNICA DEL OBSTÁCULO.
+
+     Es la misma lección del bloque de la música: si hay dos maneras de
+     resolver un obstáculo, la segunda se va a olvidar de algo. Todas las
+     clases entran por acá, devuelven la MISMA forma, y el render no sabe de
+     qué clase es lo que está mostrando.
+
+     Devuelve:
+       pasa       ¿seguís?
+       motivo     por qué (para que el aviso NOMBRE lo que pasó, nunca "no")
+       costo      aguante que te comió (0 en casi todas)
+       arrastre   lo que se lleva al obstáculo siguiente, o null
+       lateral    cuánto te corriste hacia la línea (0..1), para el remate final
+
+     ctx trae lo que dejó el obstáculo anterior: { arrastre, lateral }.
+     ══════════════════════════════════════════════════════════════════════ */
+  function resolverObstaculo(obs, eleccion, ctx, cfg, r) {
+    obs = (typeof obs === "string") ? obstaculoPorId(obs) : obs;
+    cfg = cfg || {}; ctx = ctx || {}; r = r || Math.random;
+    if (!obs) return { pasa: false, motivo: "obstáculo desconocido", costo: 0, arrastre: null, lateral: 0 };
+    var clase = obs.clase || "gesto";
+    var base = { pasa: false, motivo: obs.n, costo: 0, arrastre: null, lateral: ctx.lateral || 0, clase: clase };
+
+    /* el ARRASTRE del obstáculo anterior se cobra acá: si venías protegiendo la
+       pelota, salís más lento y el siguiente te encuentra a contrapié. */
+    var penal = (ctx.arrastre === "lento") ? (cfg.arrastre_penal != null ? cfg.arrastre_penal : 0.25) : 0;
+
+    if (clase === "gesto") {
+      base.pasa = obs.vence.indexOf(eleccion) >= 0;
+      base.motivo = base.pasa ? "lo dejaste pagando" : obs.n;
+      /* con arrastre, hasta el gesto correcto puede no alcanzar */
+      if (base.pasa && penal > 0 && r() < penal) {
+        base.pasa = false;
+        base.motivo = "saliste lento de la anterior y te alcanzó";
+      }
+      return base;
+    }
+
+    if (clase === "lectura") {
+      /* ctx.declarado y ctx.real los pone declaracionDe() ANTES de que elijas.
+         El rival declara un lado; a veces miente. Vos ganás si tu gesto le
+         gana a su intención REAL, no a la declarada. */
+      var real = ctx.real || "izq";
+      base.pasa = (real === "izq" && eleccion === "der") || (real === "der" && eleccion === "izq");
+      if (base.pasa && penal > 0 && r() < penal) { base.pasa = false; base.motivo = "saliste lento y te alcanzó"; }
+      else base.motivo = base.pasa
+        ? (ctx.declarado !== real ? "te amagó y se la viste" : "se la leíste")
+        : (ctx.declarado !== real ? "te amagó y te comió" : "lo tenías y te ganó igual");
+      return base;
+    }
+
+    if (clase === "aguante") {
+      if (eleccion === "proteger") {
+        /* pasás seguro, pero pagás aguante y salís lento al siguiente */
+        base.pasa = true;
+        base.costo = cfg.proteger_costo != null ? cfg.proteger_costo : 90;
+        base.arrastre = "lento";
+        base.motivo = "metiste el cuerpo y no la soltaste";
+        return base;
+      }
+      /* seguir de largo: mantenés la velocidad y tirás una moneda con el físico */
+      var riesgo = cfg.seguir_riesgo != null ? cfg.seguir_riesgo : 0.35;
+      base.pasa = r() >= riesgo;
+      base.arrastre = base.pasa ? "rapido" : null;
+      base.motivo = base.pasa ? "seguiste de largo y zafaste" : "seguiste de largo y te la sacó";
+      return base;
+    }
+
+    if (clase === "envenenada") {
+      var afuera = (eleccion === "afuera");
+      var pasa = afuera
+        ? (cfg.afuera_pasa != null ? cfg.afuera_pasa : 0.86)
+        : (cfg.medio_pasa != null ? cfg.medio_pasa : 0.55);
+      base.pasa = r() < pasa - penal;
+      /* LO QUE SE COBRA DESPUÉS: salir por afuera te corre hacia la línea, y
+         el remate del final sale desde un ángulo peor. logic/tiro.js ya sabe
+         leer eso (usa centrado); acá solo se acumula. */
+      if (afuera) base.lateral = Math.min(1, (ctx.lateral || 0) + (cfg.afuera_lateral != null ? cfg.afuera_lateral : 0.42));
+      base.motivo = base.pasa
+        ? (afuera ? "saliste por afuera: pasaste, pero te fuiste a la banda" : "te metiste por el medio y saliste de frente")
+        : (afuera ? "te cerró contra la línea" : "por el medio había demasiada gente");
+      return base;
+    }
+
+    if (clase === "reloj") {
+      /* eleccion === null significa QUE SE TE ACABÓ EL TIEMPO: el rival cierra
+         el lado que estabas mirando (ctx.mirando). No es azar, es tu inercia. */
+      if (eleccion == null) {
+        base.pasa = false;
+        base.motivo = "no te decidiste y te cerró";
+        return base;
+      }
+      var cierra = ctx.real || "izq";
+      base.pasa = (cierra === "izq" && eleccion === "der") || (cierra === "der" && eleccion === "izq");
+      base.motivo = base.pasa ? "saliste antes de que se cerrara" : "se cerró justo donde ibas";
+      return base;
+    }
+
+    return base;
+  }
+
+  /* qué DECLARA el rival antes de que elijas. Solo tiene sentido en lectura y
+     en reloj; en las demás devuelve null. El bluff es lo que hace que la clase
+     lectura no se agote: si nunca mintiera, sería otra tabla. */
+  function declaracionDe(obs, cfg, r, statGambeta) {
+    obs = (typeof obs === "string") ? obstaculoPorId(obs) : obs;
+    cfg = cfg || {}; r = r || Math.random;
+    if (!obs) return null;
+    var clase = obs.clase || "gesto";
+    if (clase !== "lectura" && clase !== "reloj") return null;
+    var real = r() < 0.5 ? "izq" : "der";
+    if (clase === "reloj") return { declarado: null, real: real };
+    var bluff = cfg.bluff_prob != null ? cfg.bluff_prob : 0.35;
+    var miente = r() < bluff;
+    /* ══════════════════════════════════════════════════════════════════
+       EL CANTITO. Sin esto, la clase LECTURA es una moneda: contra un bluff
+       del 35%, la mejor estrategia posible es creerle siempre y aun asi te
+       comes el 35% — medido, era de lejos la clase donde mas se caia todo el
+       mundo (38% incluso jugando bien), y eso en una jugada que te cuesta
+       una ficha es injusto y no ensena nada.
+
+       Ahora el rival SE CANTA, y cuanto lo ves depende de tu gambeta: el
+       crack le ve la cadera y el pibe no. Es la misma idea que las cartas por
+       puesto — quien sos decide que podes hacer — y usa la stat que ya
+       estaba. Con cantito, adivinar deja de ser adivinar y pasa a ser leer.
+
+       cantito viene solo cuando HAY bluff: si el rival no esta mintiendo no
+       hay nada que cantar, y la declaracion ya es la verdad. */
+    var pista = false;
+    if (miente) {
+      var st = clamp(((statGambeta || 50) - 50) / 49, 0, 1);
+      var pMax = cfg.cantito_max != null ? cfg.cantito_max : 0.75;
+      var pMin = cfg.cantito_min != null ? cfg.cantito_min : 0.10;
+      pista = r() < (pMin + (pMax - pMin) * st);
+    }
+    return { declarado: miente ? (real === "izq" ? "der" : "izq") : real, real: real, bluff: miente, pista: pista };
+  }
+
+  /* qué BOTONES ofrece cada clase. El render pregunta acá y no sabe de clases:
+     si mañana entra una sexta, no hay que tocar la pantalla. */
+  function opcionesDeObstaculo(obs, statGambeta) {
+    obs = (typeof obs === "string") ? obstaculoPorId(obs) : obs;
+    if (!obs) return [];
+    var clase = obs.clase || "gesto";
+    if (clase === "aguante") return [
+      { id: "proteger", n: "🛡 PROTEGERLA", sub: "pasás seguro, pero salís lento" },
+      { id: "seguir",   n: "💨 SEGUIR DE LARGO", sub: "mantenés la velocidad y jugás al físico" }
+    ];
+    if (clase === "envenenada") return [
+      { id: "afuera", n: "↗ POR AFUERA", sub: "casi seguro, pero el arco te queda de costado" },
+      { id: "medio",  n: "↑ POR EL MEDIO", sub: "menos veces sale, pero quedás de frente" }
+    ];
+    /* lectura y reloj usan los dos lados de siempre; gesto, todos los gestos */
+    if (clase === "lectura" || clase === "reloj") return [
+      { id: "izq", n: "◀ SALIR POR IZQUIERDA", sub: null },
+      { id: "der", n: "SALIR POR DERECHA ▶", sub: null }
+    ];
+    return gestosDe(statGambeta).map(function (g) { return { id: g.id, n: g.n, sub: null }; });
   }
 
   /* ¿el gesto pasa el obstáculo? Sin azar: la LECTURA manda. El desempate por
@@ -301,6 +570,8 @@
     crearGambeta: crearGambeta, cruceGambeta: cruceGambeta,
     crearQuite: crearQuite, resolverQuite: resolverQuite,
     OBSTACULOS: OBSTACULOS, GESTOS: GESTOS, gestosDe: gestosDe, obstaculosDe: obstaculosDe,
+    CLASES: CLASES, claseDe: claseDe, obstaculoPorId: obstaculoPorId,
+    resolverObstaculo: resolverObstaculo, declaracionDe: declaracionDe, opcionesDeObstaculo: opcionesDeObstaculo,
     secuenciaObstaculos: secuenciaObstaculos, pasaObstaculo: pasaObstaculo,
     ARCO: ARCO, resolverSuperTiro: resolverSuperTiro, rng: rng
   };

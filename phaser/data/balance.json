@@ -533,7 +533,21 @@
     "meta_d": 0.92,
     "contacto_d": 0.055,
     "contacto_lx": 0.3,
-    "vel_rival_lat": 0.5
+    "vel_rival_lat": 0.5,
+    "obstaculos": {
+      "bluff_prob": 0.35,
+      "proteger_costo": 90,
+      "seguir_riesgo": 0.35,
+      "arrastre_penal": 0.25,
+      "afuera_pasa": 0.86,
+      "medio_pasa": 0.55,
+      "afuera_lateral": 0.42,
+      "reloj_ms": 1200,
+      "reloj_max_por_corrida": 1,
+      "cantito_min": 0.1,
+      "cantito_max": 0.75
+    },
+    "_obstaculos": "P1 · LAS CINCO CLASES DEL PASILLO. Antes habia seis obstaculos y los seis pedian lo mismo: leer una etiqueta y tocar el boton que le gana. Ahora cada clase pide otra cosa. bluff_prob: cada cuanto el de clase LECTURA declara un lado y va para el otro (en 0 deja de mentir y vuelve a ser una tabla). proteger_costo: el aguante que cuesta meter el cuerpo en la clase AGUANTE, que ademas te deja lento para el siguiente (arrastre_penal es cuanto pesa esa lentitud). seguir_riesgo: la moneda de seguir de largo en vez de proteger. afuera_pasa / medio_pasa: las dos salidas de la ENVENENADA, y afuera_lateral es cuanto te corre hacia la linea — eso se cobra DESPUES, en el angulo del remate, no en el obstaculo. reloj_ms: la ventana de la clase RELOJ; reloj_max_por_corrida en 1 y solo al final, a proposito (ver la advertencia en logic/jugadon.js: el proyecto ya saco dos QTE y esta clase es la unica que puede desandarlo). En 0 el reloj no sale nunca. cantito_min/cantito_max: cada cuanto le VES el amague al que te esta mintiendo, segun tu gambeta (50 → cantito_min, 99 → cantito_max). Sin esto la clase LECTURA era una moneda: contra un bluff del 35% la mejor estrategia posible es creerle siempre y comerte el 35% igual, y era de lejos donde mas se caia todo el mundo. Con cantito, adivinar pasa a ser leer, y quien sos decide cuanto ves."
   },
   "escena_pase": {
     "_doc": "V9 §2 · LA ESCENA DEL PASE: se acomoda, le pega, la pelota viaja y —si hay alguien en la línea— el rival se tira a cortarla (freeze + silencio antes de saber). entrada_ms: el que la toca entra al plano. viaje_ms: cuánto tarda la pelota en cruzar. hold_ms: cuánto queda el desenlace en pantalla.",
@@ -568,7 +582,7 @@
     "rendimiento_piso": 0.13,
     "stat_techo": 99,
     "stat_inicial": 50,
-    "_rendimiento": "A1 opción (b): cuanto más alta la stat, menos suma entrenar. factor = max(rendimiento_piso, (stat_techo - stat) / (stat_techo - stat_inicial)). CALIBRACIÓN: los dos criterios pedidos entran en tensión porque la resaca de A3 iguala a las dos estrategias (con 42 de energía entra un solo entrenamiento, entrenes o no el mismo stat). Con piso < 0.45 NINGUNA toca el techo; con >= 0.45 lo tocan LAS DOS (entrenar sem 86, mixta 88). Se eligió 0.40: mixta no toca nunca (criterio duro) y entrenar-siempre llega a 98.5 de 99 en la semana 90, o sea cerca del final y sumando algo hasta la última semana. rendimiento_decreciente:false lo desactiva.",
+    "_rendimiento": "A1 opcion (b): cuanto mas alta la stat, menos suma entrenar. factor = max(rendimiento_piso, (stat_techo - stat) / (stat_techo - stat_inicial)).\n\nCALIBRACION (medida con logic/semana.js, 90 semanas, tope permanente_max_semana=3, sumando las tres stats que arrancan en 150):\n  piso   entrenar-siempre   mixta   la stat mas alta\n  0.13         281.7        191.3        99.0\n  0.30         286.6        193.8        99.0\n  0.40         294.3        197.6        99.0\n  0.44         297.0        199.0        99.0   <- de aca en adelante TODO queda clavado en el techo\n\nSE ELIGIO 0.13, y la razon es el final de la carrera: el objetivo es que ENTRENAR SIGA SIGNIFICANDO ALGO EN LA ULTIMA TEMPORADA. Con 0.13, a la semana 90 el tiro y la gambeta quedan en 91.3 de 99 y en la ultima temporada (semanas 72 a 90) el total todavia gana +9.3: entrenar el ultimo domingo sirve. Con 0.44 o mas las tres stats estan en 99 bastante antes del final, y ahi entrenar deja de hacer literalmente nada, porque statEnElTecho() saltea la stat que ya llego. 0.40 es el borde: 294.3 de 297, o sea practicamente al tope.\n\nEL PISO SOLO MANDA ARRIBA DE 81. Por debajo de esa stat el margen es mayor que cualquiera de los pisos candidatos y el valor no cambia nada; la eleccion es una decision sobre el TRAMO FINAL de la carrera y no sobre la progresion entera. Con stat 95: con piso 0.13 una sesion suma +0.130 y con 0.40 suma +0.400, o sea el triple.\n\nRESISTENCIA LLEGA A 99 CON CUALQUIER PISO porque entrenar_aguante da stat_mas=2 (el doble que las otras). Si algun dia molesta que sea la unica que se maxea, el arreglo es ese 2, no el piso.\n\nOJO CON ESTE COMENTARIO: hasta agosto de 2026 decia 'Se eligio 0.40' mientras el valor era 0.13, y daba el limite en 0.45 cuando medido esta en 0.44. Un comentario que miente es peor que un numero mal puesto, porque el que calibra despues arranca de una premisa falsa. Si cambias rendimiento_piso, cambia tambien esta tabla — se saca corriendo la simulacion, no a ojo.\n\nrendimiento_decreciente:false lo desactiva del todo.",
     "reloj_seg": 0,
     "_reloj": "D2 · MODO OPCIONAL, APAGADO. La semana es la unica pantalla tranquila del juego: todo lo demas te apura a proposito. Con reloj_seg en 0 (el default) no hay cuenta regresiva ni temporizador. Con un numero mayor a 0 aparece la cuenta y al llegar a cero se juega CON LO QUE HAYA elegido: el reloj nunca elige por vos.",
     "momento_ms": 950,

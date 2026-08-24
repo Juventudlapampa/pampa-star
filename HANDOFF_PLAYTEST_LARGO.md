@@ -135,7 +135,27 @@ Se bloquea el **25-28 %** de tus remates (igual en la simulación y en vivo). Un
 bloqueo no es una pelota perdida: reparte en córner 35 % / rebote 30 % (segunda
 pelota) / despeje 35 %, y el reparto es dato.
 
-**Si lo querés más blando**, `balance.definicion.bloqueo_base`:
+> ## ⚠ ESTO ESTÁ PARA PROBAR, NO FIJADO
+>
+> **`bloqueo_base` quedó en `0.18` y lo vas a jugar con los dos valores.**
+>
+> Para pasarlo a **0.10** — **una línea**, en `phaser/data/balance.json`:
+>
+> ```json
+> "definicion": { "bloqueo_base": 0.10 }
+> ```
+>
+> | | te bloquean | tus goles por remate |
+> |---|---|---|
+> | **`0.18`** ← lo que hay ahora | **28,0 %** | **46,0 %** |
+> | **`0.10`** ← el otro que querés probar | **19,0 %** | **47,3 %** |
+>
+> No hace falta tocar nada más: no hay que recompilar, no hay que limpiar el
+> save, y el efecto se siente desde el primer remate. La perilla es
+> **compartida** con el remate del rival contra vos, así que bajarla afloja los
+> dos arcos a la vez — que es a propósito.
+
+**La tabla completa**, por si querés un tercer valor:
 
 | bloqueo_base | % bloqueados | gol % | cómo se siente |
 |---|---|---|---|

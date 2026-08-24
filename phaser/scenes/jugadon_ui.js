@@ -174,9 +174,16 @@
          distinto. La secuencia sale de logic/jugadon.js: determinista por
          semilla y sin dos iguales seguidos. */
       var statG = (yo.stats && yo.stats.gambeta) || 55;
+      var CFGO = (this.BAL.jugadon && this.BAL.jugadon.obstaculos) || {};
+      this._jgMini.cfgObs = CFGO;
       this._jgMini.obstaculos = J.secuenciaObstaculos(
         this._jgLogica.defensores.length, statG,
-        (st.golesMio + 1) * 7919 + Math.floor(st.minuto * 100) + st.ctrl + 13);
+        (st.golesMio + 1) * 7919 + Math.floor(st.minuto * 100) + st.ctrl + 13, CFGO);
+      /* P1 · lo que la corrida ARRASTRA de un obstaculo al siguiente. Sin esto
+         los tres obstaculos son tres preguntas sueltas; con esto son una
+         jugada. lateral se cobra al final, en el angulo del remate. */
+      this._jgMini.ctx = { arrastre: null, lateral: 0 };
+      this._jgMini.statG = statG;
       this._jgMini.gestos = J.gestosDe(statG);
       var OBS = this._jgMini.obstaculos;
       /* los rivales te esperan escalonados hacia el arco */
@@ -285,20 +292,101 @@
       var self = this, g = this._jgLogica, m = this._jgMini;
       if (!m || m.duelo || m.terminado) return;
       m.duelo = r;
+      /* el aviso del obstaculo ANTERIOR ("¡LO DEJASTE PAGANDO!") se quedaba en
+         pantalla encima del siguiente: se ve en la captura de la primera
+         vuelta. Al abrir un duelo nuevo, lo viejo se va. */
+      if (this._jgAviso && this._jgAviso.destroy) { this._jgAviso.destroy(); this._jgAviso = null; }
       var d = g.defensores[Math.min(r.idx, g.defensores.length - 1)];
       /* P7 · SE ANUNCIA EL OBSTÁCULO, no el cierre genérico. Lo que aparece es
          qué se te viene encima, y los botones son los GESTOS que sabés hacer.
          Sin el anuncio esto sería adivinar; con el anuncio es leer y reaccionar. */
       var obs = r.obs || null;
-      this._jg.sprites.push(this.jugadonGlobo(r.spr.x || W / 2, (r.spr.y || H / 2) - 84,
-        obs ? obs.n : d.cierre.n));
+      var J2 = window.PampaJugadon, CFGO = m.cfgObs || {};
+      var clase = obs ? (obs.clase || "gesto") : "gesto";
+
+      /* ══════════════════════════════════════════════════════════════════
+         P1 · LO QUE SE MUESTRA DEPENDE DE LA CLASE.
+
+         Antes se anunciaba el obstaculo y se ofrecian los gestos, siempre
+         igual. Ahora cada clase se presenta distinto, porque si el jugador no
+         ve QUE CLASE DE PREGUNTA le estan haciendo, la variedad no existe
+         aunque este implementada. Arriba de todo va lo que pide la clase
+         (CLASES[x].n), que es la unica manera de que se entienda sin tutorial.
+         ══════════════════════════════════════════════════════════════════ */
+      var dec = obs ? J2.declaracionDe(obs, CFGO, null, m.statG) : null;
+      r.dec = dec;
+      var titulo = obs ? obs.n : d.cierre.n;
+      this._jg.sprites.push(this.jugadonGlobo(r.spr.x || W / 2, (r.spr.y || H / 2) - 84, titulo));
+
+      /* la etiqueta de CLASE: que te estan pidiendo */
+      var cl = J2.CLASES && J2.CLASES[clase];
+      if (cl) {
+        var tc = this.add.text(W / 2, 34, "· " + cl.n.toUpperCase() + " ·", {
+          fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d",
+          backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }
+        }).setOrigin(0.5);
+        this.cineContent.add(tc); this._jg.sprites.push(tc);
+      }
+
+      /* LA DECLARACION del que te lee, y EL CANTITO si se lo viste */
+      if (dec && dec.declarado) {
+        var td = this.add.text(W / 2, 66, "amaga para " + (dec.declarado === "izq" ? "SU IZQUIERDA ◀" : "▶ SU DERECHA"), {
+          fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#f6efdc",
+          backgroundColor: "#2a0b0bcc", padding: { x: 8, y: 3 }
+        }).setOrigin(0.5);
+        this.cineContent.add(td); this._jg.sprites.push(td);
+        if (dec.pista) {
+          /* el cantito: se ve porque tenes gambeta. Lleva FORMA (el ojo) ademas
+             de color, que es la regla del proyecto. */
+          var tp = this.add.text(W / 2, 94, "👁 LE VISTE EL AMAGUE: va para el otro lado", {
+            fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#0a1f13",
+            backgroundColor: "#7ee08a", padding: { x: 8, y: 3 }
+          }).setOrigin(0.5);
+          this.cineContent.add(tp); this._jg.sprites.push(tp);
+          this.SFX && this.SFX.temaCampo && this.SFX.temaCampo("rival");
+        }
+      }
+
       this.SFX && this.SFX.whoosh && this.SFX.whoosh(220);
-      var ops = (m.gestos && m.gestos.length) ? m.gestos : g.opciones;
-      var wpx = Math.min(180, (W - 40) / ops.length - 10);
+      var ops = obs ? J2.opcionesDeObstaculo(obs, m.statG)
+                    : ((m.gestos && m.gestos.length) ? m.gestos : g.opciones);
+      var wpx = Math.min(200, (W - 40) / ops.length - 10);
       ops.forEach(function (mv, i) {
         var x = W / 2 + (i - (ops.length - 1) / 2) * (wpx + 10);
-        self.jugadonBoton(x, H - 60, wpx, mv.n, 0xf6efdc, function () { self.jugadonMovida(mv.id, r); });
+        var b = self.jugadonBoton(x, H - 60, wpx, mv.n, 0xf6efdc, function () { self.jugadonMovida(mv.id, r); });
+        /* el subtitulo de las clases que tienen dos salidas: sin el, "POR
+           AFUERA" y "POR EL MEDIO" no dicen que te cuesta cada una */
+        if (mv.sub) {
+          /* ARRIBA del botón, no abajo: medido en vivo, abajo caía en y=512 y
+             el renglón de ayuda de la corrida vive en y=520 — se pisaban y el
+             subtítulo no se leía. Y sin el subtítulo, "POR AFUERA" no dice qué
+             te cuesta, que es toda la gracia de la clase. */
+          var ts = self.add.text(x, H - 104, mv.sub, {
+            fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2",
+            align: "center", wordWrap: { width: wpx + 8 }
+          }).setOrigin(0.5);
+          self.cineContent.add(ts); self._jg.sprites.push(ts);
+        }
       });
+
+      /* ══════════════════════════════════════════════════════════════════
+         P1 · EL RELOJ. La unica clase con tiempo, y por eso la unica que sale
+         como mucho una vez por corrida y solo al final (ver la advertencia en
+         logic/jugadon.js). Si se acaba, NO elige el juego por vos al azar: te
+         cierra el lado y perdes, que es la consecuencia de no decidir.
+         Con balance.jugadon.obstaculos.reloj_ms en 0 no existe. */
+      if (clase === "reloj") {
+        var ms = CFGO.reloj_ms != null ? CFGO.reloj_ms : 1200;
+        if (ms > 0) {
+          var barra = this.add.rectangle(W / 2, H - 96, 320, 12, 0xe3503e, 1).setOrigin(0.5);
+          this.cineContent.add(barra); this._jg.sprites.push(barra);
+          this.tweens.add({ targets: barra, scaleX: 0, duration: this.msV(ms), ease: "Linear" });
+          r._relojTimer = this.time.delayedCall(this.msV(ms), function () {
+            if (m.terminado || !m.duelo) return;
+            self.jugadonMovida(null, r);
+          });
+        }
+      }
     },
 
     jugadonMovida(movidaId, r) {
@@ -307,11 +395,23 @@
          correcto pasa siempre y el equivocado nunca. El azar sigue viviendo en
          el duelo cara a cara de cruceGambeta, que es otro momento del juego.
          Sin obstáculo (corridas viejas) cae al camino de antes. */
+      /* P1 · TODO pasa por resolverObstaculo, que es la puerta unica de las
+         cinco clases. Antes esto llamaba a pasaObstaculo, que solo sabe de la
+         clase gesto: con las clases nuevas habria devuelto false siempre y el
+         pasillo se habria vuelto imposible sin un solo error visible. */
       var res;
+      if (r && r._relojTimer) { r._relojTimer.remove(false); r._relojTimer = null; }
       if (r && r.obs) {
-        var pasa = J.pasaObstaculo(r.obs.id, movidaId);
-        res = { gana: pasa, obstaculo: r.obs };
-        if (pasa) this._jgLogica.paso = Math.min(this._jgLogica.paso + 1, this._jgLogica.defensores.length);
+        var ctx = Object.assign({}, (m && m.ctx) || {}, r.dec || {});
+        var ro = J.resolverObstaculo(r.obs, movidaId, ctx, (m && m.cfgObs) || {});
+        res = { gana: ro.pasa, obstaculo: r.obs, motivo: ro.motivo, clase: ro.clase };
+        /* lo que la corrida se lleva al obstaculo siguiente */
+        if (m) m.ctx = { arrastre: ro.arrastre, lateral: ro.lateral };
+        if (ro.costo) {
+          var jy = st.mios[st.ctrl];
+          if (jy) jy.aguante = Math.max(0, jy.aguante - ro.costo);
+        }
+        if (ro.pasa) this._jgLogica.paso = Math.min(this._jgLogica.paso + 1, this._jgLogica.defensores.length);
         else { this._jgLogica.terminado = true; this._jgLogica.exito = false; }
       } else {
         res = J.cruceGambeta(this._jgLogica, movidaId);
@@ -322,7 +422,10 @@
       this._jg.sprites = [];
       this.SFX && this.SFX.whoosh && this.SFX.whoosh(300);
       if (res.gana) {
-        this.avisoJugadon("¡LO PASASTE!", 0x7ee08a);
+        /* P1 · el aviso dice QUE paso, no "lo pasaste". Con cinco clases,
+           pasar por proteger la pelota y pasar por leerle el amague son dos
+           cosas distintas y tienen que leerse distinto. */
+        this.avisoJugadon(res.motivo ? "¡" + String(res.motivo).toUpperCase() + "!" : "¡LO PASASTE!", 0x7ee08a);
         if (r) {
           r.vivo = false;
           this.tweens.add({ targets: [r.spr, r.nom], y: "+=170", alpha: 0.25, angle: -60, duration: 420 });
@@ -334,9 +437,9 @@
       if (m) m.terminado = true;
       /* P7 · decir POR QUÉ no pasó: con obstáculos tipados el error es de
          lectura, así que el aviso tiene que nombrar el gesto que hacía falta. */
-      this.avisoJugadon(res.obstaculo
-        ? "¡" + res.obstaculo.n + "!"
-        : "¡TE LO LEYÓ!", 0xe3503e);
+      this.avisoJugadon(res.motivo
+        ? "¡" + String(res.motivo).toUpperCase() + "!"
+        : (res.obstaculo ? "¡" + res.obstaculo.n + "!" : "¡TE LO LEYÓ!"), 0xe3503e);
       this.time.delayedCall(this.msV(900), function () {
         self.jugadonCerrar(function () {
           window.PampaPartido.perderPelota(st);
@@ -356,8 +459,24 @@
       this.jugadonLimpiarBotones();
       var mega = this._jgMega;
       this.avisoJugadon(mega ? "¡SE ARMA EL " + String(mega.n || "MEGATIRO").toUpperCase() + "!" : "¡QUEDÓ DE FRENTE AL ARCO!", 0xffd84d);
+      /* ══════════════════════════════════════════════════════════════════
+         P1 · LA ENVENENADA SE COBRA ACA.
+
+         Salir por afuera te corrio hacia la linea, y eso NO se cobro en el
+         obstaculo: se cobra ahora, en el angulo del remate. logic/tiro.js ya
+         sabia leerlo (usa centrado), solo faltaba que algo lo moviera.
+
+         Medido: con lateral 0 la calidad del remate es 0,86; con 0,42 baja a
+         0,72 y con 0,84 a 0,54. Salir dos veces por afuera te cuesta un tercio
+         del remate — que es exactamente lo que la clase promete. */
+      var latFinal = (m && m.ctx && m.ctx.lateral) || 0;
       this.time.delayedCall(this.msV(820), function () {
         st.mios[st.ctrl].x = Math.min(st.W - 60, st.W - 130);   // quedaste en el área
+        if (latFinal > 0) {
+          var haciaAbajo = (st.mios[st.ctrl].y || st.H / 2) >= st.H / 2;
+          st.mios[st.ctrl].y = Math.max(24, Math.min(st.H - 24,
+            st.H / 2 + (haciaAbajo ? 1 : -1) * latFinal * (st.H * 0.42)));
+        }
         self._jgMini = null;
         self._jgMega = null;
         self.jugadonCerrar(function () {
@@ -375,8 +494,13 @@
     jugadonPintarOpciones() { /* V8 C: las movidas aparecen SOLO en el duelo */ },
 
     avisoJugadon(texto, color) {
-      var t = this.add.text(W / 2, 250, texto, { fontFamily: window.PF.display, fontSize: "22px", color: "#" + color.toString(16).padStart(6, "0"), stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5).setScale(0.3);
+      /* uno por vez: el aviso queda guardado para que el duelo siguiente lo
+         pueda barrer. Sin esto se apilaban y el de la jugada anterior tapaba
+         al nuevo (visto en la captura de P1). */
+      if (this._jgAviso && this._jgAviso.destroy) this._jgAviso.destroy();
+      var t = this.add.text(W / 2, 250, texto, { fontFamily: window.PF.display, fontSize: "22px", color: "#" + color.toString(16).padStart(6, "0"), stroke: "#0a1f13", strokeThickness: 4, align: "center", wordWrap: { width: 760 } }).setOrigin(0.5).setScale(0.3);
       this.cineContent.add(t);
+      this._jgAviso = t;
       this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
     },
 
