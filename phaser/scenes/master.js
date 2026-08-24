@@ -192,6 +192,43 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      pampa_master_v1_borrada y se puede rescatar a mano. Borrar sin red no hace
      falta cuando la red cuesta una linea.
      ══════════════════════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════════════════════
+     TUS STATS DE HOY.
+
+     logic/semana.js tiene rendimiento decreciente desde A1 —cuanto mas alta
+     la stat, menos suma entrenar— con toda su calibracion y su test. Y NUNCA
+     CORRIO EN EL JUEGO: rendimiento() arranca con
+
+         if (!cfg || !cfg.stats || ...) return cuanto;
+
+     y los dos llamadores reales pasaban balance.semana pelado, sin stats. El
+     comentario de esa funcion lo dice sin querer: "sin cfg.stats esto devuelve
+     el valor entero y todo se comporta como antes: los llamadores viejos no se
+     enteran". Era un camino de migracion seguro y la migracion nunca se hizo.
+
+     Medido: con la stat en 95, el JUEGO sumaba +1,00 y el TEST +0,13. Siete
+     veces y media de diferencia. Toda la tabla de calibracion de
+     balance.semana._rendimiento describia una curva que solo existia en la
+     simulacion — igual que ayudar_casa y estudiar, construido, documentado,
+     discutido y desconectado.
+
+     Se componen como las compone el partido: la base del catalogo, mas lo que
+     dejo el origen, mas las mejoras acumuladas de las semanas.
+     ══════════════════════════════════════════════════════════════════════ */
+  statsDeHoy() {
+    const cfg = (this.game.registry.get("balance") || {}).semana || {};
+    const base = cfg.stat_inicial != null ? cfg.stat_inicial : 50;
+    const techo = cfg.stat_techo != null ? cfg.stat_techo : 99;
+    const out = {};
+    ["tiro", "gambeta", "pase", "resistencia", "fisico", "velocidad", "aereo", "caracter"]
+      .forEach((k) => { out[k] = base; });
+    const org = this.save && this.save.origen && this.save.origen.stats;
+    if (org) Object.keys(org).forEach((k) => { if (out[k] != null) out[k] += org[k]; });
+    const mej = this.save && this.save.mejoras;
+    if (mej) Object.keys(mej).forEach((k) => { if (out[k] != null) out[k] += mej[k]; });
+    Object.keys(out).forEach((k) => { out[k] = Math.max(1, Math.min(techo, out[k])); });
+    return out;
+  }
   salidaDeLaCarrera(W, H) {
     const t = this.add.text(20, H - 26, "✕ empezar otra carrera", {
       fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5",
@@ -775,7 +812,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* TODAS las marcas, no solo la primera: el origen son TRES preguntas y
      cualquiera de ellas puede dejar una. Con marcas[0] alcanzaba con que la
      que importaba fuera la segunda para que no contara. */
-  const ctxL = { marcas: (this.save.origen && this.save.origen.marcas) || [],
+  const ctxL = { stats: this.statsDeHoy(), stat_techo: ((this.game.registry.get("balance") || {}).semana || {}).stat_techo, marcas: (this.save.origen && this.save.origen.marcas) || [],
     origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctxL);
     this.add.text(W / 2, 286, hechas >= 3 ? "LA SEMANA ESTÁ ARMADA · a la cancha" : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3 (teclas 1 a 0)",
@@ -914,7 +951,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      ══════════════════════════════════════════════════════════════════════ */
   ponerEnLaSemana(op) {
     const S = window.PampaSemana, D = this.game.registry.get("semana");
-    const bal = (this.game.registry.get("balance") || {}).semana || {};
+    /* CON las stats: sin ellas, el rendimiento decreciente devuelve el valor
+       entero y toda la curva de A1 no corre (ver statsDeHoy). */
+    const bal = Object.assign({}, (this.game.registry.get("balance") || {}).semana || {},
+      { stats: this.statsDeHoy() });
     const sem = this.save.semana;
     const ranura = sem.elegidas.findIndex(e => !e);
     if (ranura < 0) return false;
@@ -929,7 +969,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
   sacarDeLaSemana(ranura) {
     const S = window.PampaSemana, D = this.game.registry.get("semana");
-    const bal = (this.game.registry.get("balance") || {}).semana || {};
+    /* CON las stats: sin ellas, el rendimiento decreciente devuelve el valor
+       entero y toda la curva de A1 no corre (ver statsDeHoy). */
+    const bal = Object.assign({}, (this.game.registry.get("balance") || {}).semana || {},
+      { stats: this.statsDeHoy() });
     const sem = this.save.semana;
     if (!sem || !sem.elegidas[ranura]) return false;
     /* rehacer la semana desde cero con las que quedan: así los números salen
@@ -1057,12 +1100,15 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     const S = window.PampaSemana, D = this.game.registry.get("semana");
     const cfg = (this.game.registry.get("balance") || {}).balance || {};
-    const bal = (this.game.registry.get("balance") || {}).semana || {};
+    /* CON las stats: sin ellas, el rendimiento decreciente devuelve el valor
+       entero y toda la curva de A1 no corre (ver statsDeHoy). */
+    const bal = Object.assign({}, (this.game.registry.get("balance") || {}).semana || {},
+      { stats: this.statsDeHoy() });
     const sem = this.save.semana;
     /* TODAS las marcas, no solo la primera: el origen son TRES preguntas y
      cualquiera de ellas puede dejar una. Con marcas[0] alcanzaba con que la
      que importaba fuera la segunda para que no contara. */
-  const ctx = { marcas: (this.save.origen && this.save.origen.marcas) || [],
+  const ctx = { stats: this.statsDeHoy(), stat_techo: ((this.game.registry.get("balance") || {}).semana || {}).stat_techo, marcas: (this.save.origen && this.save.origen.marcas) || [],
     origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctx);
     this.children.removeAll();

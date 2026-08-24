@@ -207,5 +207,66 @@ function ok(c, m) { if (c) pass++; else { fail++; console.error("  ✗ " + m); }
   console.log("[8] " + conOrigen.length + " acciones condicionadas por origen, todas alcanzables · marcas: " + marcas.join(", "));
 })();
 
+
+/* ---- 9) LA CURVA TIENE QUE CORRER EN EL JUEGO, NO SOLO EN EL TEST ----
+   rendimiento() arranca con `if (!cfg.stats ...) return cuanto;` — o sea que sin
+   stats en el cfg devuelve el valor entero y la curva de A1 no corre. Los tres
+   llamadores del master pasaban balance.semana pelado, así que estuvo DORMIDA
+   hasta agosto de 2026: toda la calibración de _rendimiento describía algo que
+   solo pasaba acá adentro.
+
+   Medido con la curva dormida: el tiro tocaba el techo en la SEMANA 49 y desde
+   ahí entrenar sumaba +0,00 — 41 semanas de entrenamiento que no hacían nada.
+   O sea que el problema que A1 fue diseñado para resolver existía igual, porque
+   el arreglo nunca se enchufó.
+
+   Este bloque lo cuida por los dos lados: que la función siga distinguiendo, y
+   que el master SIGA pasando las stats. */
+(function () {
+  var MASTER = fs.readFileSync(path.join(__dirname, "..", "scenes", "master.js"), "utf8");
+
+  /* (a) la función distingue: con stats decae, sin stats no */
+  var alto = Object.assign({}, cfg, { stats: { tiro: 95 } });
+  var conCurva = S.rendimiento(1, alto, "tiro");
+  var sinCurva = S.rendimiento(1, cfg, "tiro");
+  ok(sinCurva === 1, "sin stats en el cfg, rendimiento devuelve el valor entero (dio " + sinCurva + ")");
+  ok(conCurva < 0.5, "con la stat en 95 tiene que decaer fuerte (dio " + conCurva + ")");
+  ok(conCurva < sinCurva, "y la curva tiene que hacer una diferencia de verdad");
+
+  /* (b) EL MASTER PASA LAS STATS. Esto es lo que estuvo roto: sin este assert,
+     alguien saca el statsDeHoy() de un refactor y la curva vuelve a dormirse
+     sin un solo test rojo. */
+  ok(/statsDeHoy\(\)/.test(MASTER), "el master tiene que componer tus stats de hoy");
+  var pasan = (MASTER.match(/stats: this\.statsDeHoy\(\)/g) || []).length;
+  ok(pasan >= 3, "y pasárselas a TODOS los llamadores de la semana (dio " + pasan + ")");
+  ok(!/const bal = \(this\.game\.registry\.get\("balance"\) \|\| \{\}\)\.semana \|\| \{\};/.test(MASTER),
+    "no puede quedar ningún cfg de semana SIN stats: ahí la curva se duerme otra vez");
+
+  /* (c) la consecuencia, medida: con curva NO se toca el techo a las 90 semanas */
+  function carrera(conCurva) {
+    var st = { tiro: cfg.stat_inicial, gambeta: cfg.stat_inicial, resistencia: cfg.stat_inicial };
+    var tocaEn = -1;
+    for (var w = 0; w < 90; w++) {
+      var c = conCurva ? Object.assign({}, cfg, { stats: st }) : cfg;
+      var sem = S.nuevaSemana({ animo: 60, desgaste: 0, molestia: false }, c);
+      ["entrenar_tiro", "entrenar_gambeta", "entrenar_aguante"].forEach(function (id, i) {
+        var n = S.elegir(data, sem, i, id, c); if (n) sem = n;
+      });
+      Object.keys(sem.permanentes || {}).forEach(function (k) {
+        if (st[k] != null) st[k] = Math.min(cfg.stat_techo, st[k] + sem.permanentes[k]);
+      });
+      if (tocaEn < 0 && st.tiro >= cfg.stat_techo - 0.5) tocaEn = w + 1;
+    }
+    return { st: st, tocaEn: tocaEn };
+  }
+  var sin = carrera(false), con = carrera(true);
+  ok(sin.tocaEn > 0 && sin.tocaEn < 60,
+    "sin curva el techo se tocaba a mitad de carrera (dio semana " + sin.tocaEn + ")");
+  ok(con.tocaEn < 0,
+    "CON curva no se toca nunca en 90 semanas: entrenar sigue sumando hasta el final (tocó en " + con.tocaEn + ")");
+  console.log("[9] la curva corre en el juego · sin ella el techo caía en la semana " + sin.tocaEn +
+    ", con ella el tiro termina en " + con.st.tiro.toFixed(1) + " de " + cfg.stat_techo);
+})();
+
 if (fail === 0) console.log("\n✓ TODOS OK — " + pass + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + fail + " FALLARON (" + pass + " ok)"); process.exit(1); }
