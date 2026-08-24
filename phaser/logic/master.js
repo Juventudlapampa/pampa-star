@@ -21,6 +21,37 @@
     { id: "nacional", n: "NACIONAL", mult_stats: 1.16, keeper: 74 },
     { id: "mundial", n: "EL MUNDIAL", mult_stats: 1.3, keeper: 88 }
   ];
+  /* ══════════════════════════════════════════════════════════════════════
+     EL NIVEL DE CARRERA · la cuenta que estaba rota
+
+     match.js y master.js leian `save.nivel` del clasico. Ese campo NO EXISTE:
+     el clasico nunca lo guarda (grep de las props de `career`: club, derrotas,
+     empates, goles, look, name, origen, partidos, stats, temporada, victorias,
+     vida — no hay nivel). Se calcula al vuelo con 1 + goles/3.
+
+     Como `c.nivel` era undefined, la asignacion no ocurria NUNCA y el nivel
+     quedaba clavado en 1 en todas las partidas. Lo que eso mataba:
+       · los dos megatiros de progresion (Tiro del Atuel n3, Tornado n5)
+       · las TRES megadefensas (todas piden n2 o n3)
+       · las dos SECUENCIAS (megacorrida y combinada, ambas n2)
+     O sea: el techo de espectaculo del juego, con arte propio hecho, invisible.
+
+     Ahora hay DOS fuentes, una por modo, porque son dos cuentas distintas:
+       · CLASICO  → nivelDeCarreraClasica: 1 + goles/3, sin techo (la misma
+         cuenta de index.html, escrita una sola vez para que no se separen).
+       · MASTER   → nivelDeDivision: el escalon de la liga, 1 a 5. Las megacosas
+         piden nivel 1, 2, 3 y 5: ese rango ES la escalera de divisiones, no un
+         contador de goles. Asi cada ascenso destraba algo.
+     ══════════════════════════════════════════════════════════════════════ */
+  var GOLES_POR_NIVEL = 3;   /* == index.html:505 del clasico */
+  function nivelDeCarreraClasica(save) {
+    return 1 + Math.floor((((save || {}).goles) | 0) / GOLES_POR_NIVEL);
+  }
+  function nivelDeDivision(divId) {
+    var i = 0;
+    for (var k = 0; k < DIVISIONES.length; k++) if (DIVISIONES[k].id === divId) i = k;
+    return i + 1;
+  }
   function divisionPorNivel(nivel) {
     var i = Math.min(DIVISIONES.length - 1, Math.max(0, Math.floor(((nivel || 1) - 1) / 2)));
     return DIVISIONES[i];
@@ -66,5 +97,7 @@
     return st;
   }
 
-  return { DIVISIONES: DIVISIONES, divisionPorNivel: divisionPorNivel, PERFILES: PERFILES, perfilRival: perfilRival, aplicar: aplicar, hashClub: hashClub };
+  return { DIVISIONES: DIVISIONES, divisionPorNivel: divisionPorNivel,
+    GOLES_POR_NIVEL: GOLES_POR_NIVEL,
+    nivelDeCarreraClasica: nivelDeCarreraClasica, nivelDeDivision: nivelDeDivision, PERFILES: PERFILES, perfilRival: perfilRival, aplicar: aplicar, hashClub: hashClub };
 });

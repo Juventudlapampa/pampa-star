@@ -219,8 +219,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       megatiros: [{ id: "calden", n: "Disparo del Caldén", grito: "¡CALDENAZO!", sub: "la fuerza del árbol eterno", aguante: 300, nivel: 1, mult: 1.3, x_min: 680 }],
       megadefensas: []
     };
+    /* EL NIVEL. Antes: `if (c && c.nivel)` sobre el save del clasico, que no
+       guarda ese campo — la asignacion no corria nunca y el nivel quedaba en 1,
+       matando los dos megatiros altos, las tres megadefensas y las secuencias.
+       Ahora el Master lo manda por el registry y el clasico lo CALCULA. */
     this._nivelCarrera = 1;
-    try { const c = JSON.parse(localStorage.getItem("pampa_star_v1")); if (c && c.nivel) this._nivelCarrera = c.nivel | 0; } catch (e) { }
+    {
+      const mp0 = this.game.registry.get("masterPartido");
+      const Ma0 = window.PampaMaster;
+      if (mp0 && mp0.nivel) this._nivelCarrera = mp0.nivel | 0;
+      else if (Ma0) {
+        try {
+          const c = JSON.parse(localStorage.getItem("pampa_star_v1"));
+          if (c) this._nivelCarrera = Ma0.nivelDeCarreraClasica(c);
+        } catch (e) { }
+      }
+    }
     /* V7 §2: si venimos del MODO MASTER, el rival y la división los manda la
        carrera (fecha real del fixture) — pisa al pedido del clásico */
     this._masterPartido = this.game.registry.get("masterPartido") || null;
@@ -2279,6 +2293,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st) + 4, this.BAL.duelo) * 100);
     const qui = A("quite"), cor = A("corte"), blo = A("bloqueo");
     const sub = a => a.bloqueada ? null : "~" + pct(a) + "% · " + a.costo + " aguante";
+    /* el slot sube a MEGADEFENSA si hay una de ese tipo y la acción base no
+       está bloqueada; si no, queda la acción de siempre, igual que antes */
+    const yo = st.mios[st.ctrl];
+    const megaDe = (tipo, base, texto) => {
+      const mg = this.megaDefensaDisponible([tipo], yo);
+      if (!mg || base.bloqueada) return { texto, sub: sub(base), bloqueada: base.bloqueada, motivo: base.motivo, cb: () => this.resolverAccionDefensa(base) };
+      return {
+        texto: "🔥 " + mg.n.toUpperCase(),
+        sub: mg.aguante + " aguante · +" + mg.bonus + " de poder",
+        cb: () => this.cutInEspecial("¡" + mg.n.toUpperCase() + "!", mg.grito,
+          () => this.resolverAccionDefensa({ id: base.id, poder: base.poder + mg.bonus, costo: mg.aguante }), yo, false)
+      };
+    };
     this.abrirMenuCruz({
       titulo: "🛡 ¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
       /* §6 literal: ATACANTE a la izquierda, defensor a la derecha */
@@ -2286,8 +2313,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       der: { j: st.mios[st.ctrl], esRival: false, aguante: st.mios[st.ctrl].aguante },
       opciones: {
         W: { texto: "✂ CORTE", sub: sub(cor), bloqueada: cor.bloqueada, motivo: cor.motivo, cb: () => this.resolverAccionDefensa(cor) },
-        N: { texto: "🦶 QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
-        E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
+        /* ══════════════════════════════════════════════════════════════════
+           LAS MEGADEFENSAS TENÍAN DATOS, GRITO, BONUS Y NIVEL — Y NINGUNA PUERTA.
+
+           En D1 el centro de esta cruz dejó de ser el SUPERBLOQUEO y pasó a ser
+           TU CARTA, con buen motivo. Pero ahí se quedaron sin llamador ¡PAMPERO!
+           (tipo quite) y ¡MÉDANO! (tipo bloqueo): el único sitio de todo el
+           juego que preguntaba por megaDefensaDisponible era la definición, y
+           preguntaba por "atajada". Dos de las tres, invisibles para siempre, y
+           encima escondidas atrás del nivel clavado en 1.
+
+           No vuelven al centro — la carta se lo ganó. SUBEN de nivel el mismo
+           slot, que es el idioma que ya usa el ataque: la gambeta crece a
+           MEGACORRIDA y el uno-dos a COMBINADA en su propio lugar de la cruz.
+           ══════════════════════════════════════════════════════════════════ */
+        N: megaDe("quite", qui, "🦶 QUITE"),
+        E: megaDe("bloqueo", blo, "🧱 BLOQUEO"),
         S: { texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", cb: () => this.resolverNoMoverse() }
       },
       /* ══════════════════════════════════════════════════════════════════

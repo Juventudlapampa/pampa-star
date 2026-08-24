@@ -414,12 +414,26 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        nivel de allá te ubica en la división que corresponde (con backup) */
     let clasico = null;
     try { clasico = JSON.parse(localStorage.getItem("pampa_star_v1")); } catch (e) { }
-    if (clasico && clasico.nivel) {
-      const divImp = this.Ma.divisionPorNivel(clasico.nivel | 0);
-      this.boton(W / 2, H - 100, 480, "⬆ IMPORTAR TU CARRERA (nivel " + (clasico.nivel | 0) + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id));
+    /* el gate era `clasico.nivel`, un campo que el clasico no guarda nunca:
+       el boton no aparecio jamas y la mudanza entera era inalcanzable. El nivel
+       se CALCULA (logic/master.nivelDeCarreraClasica). Gate nuevo: que haya
+       carrera de verdad, o sea nombre — un save recien creado con 0 goles da
+       nivel 1 y tambien merece el boton. */
+    if (clasico && clasico.name) {
+      const nvImp = this.Ma.nivelDeCarreraClasica(clasico);
+      const divImp = this.Ma.divisionPorNivel(nvImp);
+      this.boton(W / 2, H - 100, 480, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id));
       this.add.text(W / 2, H - 72, "el save del clásico queda RESPALDADO (pampa_star_v1_backup_pre_v7) y no se toca", { fontFamily: window.PF.texto, fontSize: "10px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
     }
     this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.scene.start("editor"));
+  }
+  /* el nivel de ESTA carrera: el escalon de la liga, con marca de agua alta.
+     Un save viejo sin nivelMax deriva del escalon actual, asi que nadie queda
+     peor que antes. */
+  nivelDeLaCarrera() {
+    const s = this.save || {};
+    const nv = this.Ma.nivelDeDivision(s.division);
+    return Math.max(nv, s.nivelMax | 0);
   }
   /* ══════════════════════════════════════════════════════════════════════
      D4 · EL MAPA. Se redibuja entero al cambiar de pueblo: son diez puntos y
@@ -1391,6 +1405,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           this.vistaSemana(rival, () => {
             this.game.registry.set("masterPartido", {
               rival, division: this.save.division,
+              /* el nivel VIAJA: sin esto la cancha caia al del clasico (que no
+                 existe) y se quedaba en 1 para siempre. nivelMax es marca de
+                 agua alta a proposito — un descenso no te saca un especial que
+                 ya te habias ganado. */
+              nivel: this.nivelDeLaCarrera(),
               mod: this.save.modFecha || null,
               origen: this.save.origen || null,
               semana: this.save.semanaResumen || null,
@@ -1430,6 +1449,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.boton(W / 2 - 170, H - 80, 320, "▶ NUEVA TEMPORADA", 0x7ee08a, () => {
         if (v.campeon) this.save.titulos.push({ division: this.save.division, temporada: this.save.temporadaN });
         this.save.division = v.proximaDivision;
+        /* marca de agua: el nivel sube con el ascenso y NO baja con el descenso.
+           Perder el Tornado Pampeano por haber terminado noveno seria sacarte
+           algo que ya te ganaste. */
+        this.save.nivelMax = Math.max(this.save.nivelMax | 0, this.Ma.nivelDeDivision(this.save.division));
         this.save.temporadaN++;
         this.save.temporada = this.T.crear({
           division: this.save.division, miClub: this.save.club,
