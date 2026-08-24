@@ -1312,14 +1312,37 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const mismo = prev.clave === p.clave;
     const vx = mismo ? j.x - prev.x : 0, vy = mismo ? j.y - prev.y : 0;
     this._panelPrev = { x: j.x, y: j.y, clave: p.clave };
+    /* ══════════════════════════════════════════════════════════════════════
+       A1 · POR QUÉ EL JUGADOR CORRÍA PARA ATRÁS.
+
+       No era el arte ni la regla del flip: era la MITAD. La simulación ataca
+       siempre a +x, en los dos tiempos — eso es a propósito, y es lo que deja
+       intactos los 17 umbrales de partido.js, la IA de los 21 y sus tests. El
+       que se da vuelta en el segundo tiempo es el DIBUJO, vía fx().
+
+       El panel no pasaba por ahí. Calculaba el flip con el vx de la
+       SIMULACIÓN, así que en el segundo tiempo ibas hacia el arco (vx > 0), la
+       cancha te mostraba yendo a la izquierda y la figura miraba a la derecha:
+       corriendo de espaldas, todo el segundo tiempo, los dos lados.
+
+       Ya había pasado con el teclado y está arreglado más abajo, con este
+       comentario: "con el lado dado vuelta, derecha en pantalla es -x en la
+       simulación. Sin esto, en el 2T ibas al arco y corrías para atrás". Era
+       el mismo bug en otra superficie; ahora las dos usan la misma verdad.
+
+       vxP = velocidad EN PANTALLA. De acá salen las tres cosas que tienen que
+       coincidir con lo que se ve: hacia dónde mira, hacia dónde corre el pasto
+       y de qué lado aparecen las siluetas. */
+    const espejo = (st.ladoVisual === 2) ? -1 : 1;
+    const vxP = vx * espejo;
     /* V8 §1: con el pulso, entre latidos vx es 0 — el bob de corrida se
        sostiene mientras el último latido haya movido (no se corta feo) */
     const corriendo = Math.abs(vx) + Math.abs(vy) > 0.04 || this.time.now < (this._pulsoMovioHasta || 0);
     /* PARALLAX: pasto rápido, tribuna lenta, cielo quieto — V7 §0.3: los
        factores son diales de balance.vista (la corrida tiene que LEERSE) */
-    this.panelPasto.tilePositionX += vx * (this.VI.parallax_pasto != null ? this.VI.parallax_pasto : 1.4);
+    this.panelPasto.tilePositionX += vxP * (this.VI.parallax_pasto != null ? this.VI.parallax_pasto : 1.4);
     this.panelPasto.tilePositionY += vy * (this.VI.parallax_pasto_y != null ? this.VI.parallax_pasto_y : 0.7);
-    if (this.panelTribuna) this.panelTribuna.tilePositionX += vx * (this.VI.parallax_tribuna != null ? this.VI.parallax_tribuna : 0.35);
+    if (this.panelTribuna) this.panelTribuna.tilePositionX += vxP * (this.VI.parallax_tribuna != null ? this.VI.parallax_tribuna : 0.35);
     /* V9 §9: la tribuna respira siempre y se agita cuando la jugada quema
        (alguien con la pelota en el último cuarto, para cualquiera de los dos) */
     if (this.latirHinchada) {
@@ -1350,7 +1373,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelJug.clearTint();
     /* V8 §3: el flip sigue la dirección REAL del movimiento y tiene MEMORIA —
        entre latidos (vx=0) conserva la última; nunca corre de espaldas */
-    if (Math.abs(vx) > 0.02) this._panelFlip = vx < 0;
+    if (Math.abs(vxP) > 0.02) this._panelFlip = vxP < 0;
     this.panelJug.setFlipX(!!this._panelFlip);
     /* V8 §3: la ZANCADA al latido — la pose se inclina alternando con el
        tuc-tuc (animación limitada estilo consola vieja: dos cuadros) */
@@ -1381,7 +1404,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     for (let i = 0; i < st.rivales.length && usados < this.panelSil.length; i++) {
       const r = st.rivales[i];
       if (r.pos === "ARQ" || (p.esRival && i === p.idx)) continue;
-      const dx = r.x - j.x, dy = r.y - j.y;
+      /* A1 · la silueta de un rival que está ADELANTE tuyo tiene que verse
+         adelante. En el segundo tiempo "adelante" es el otro lado de la
+         pantalla, así que su posición y su flip pasan por el mismo espejo. */
+      const dx = (r.x - j.x) * espejo, dy = r.y - j.y;
       const d = Math.hypot(dx, dy);
       if (d > radio || d < 8) continue;
       const s = this.panelSil[usados++];
@@ -2408,7 +2434,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
             this.mostrarResolucion(megaR.grito + "\n¡Te tapó el tiro con un movimiento especial!", "#e3503e", { anim: "gambeta", gana: false });
           }, rival, true);
         } else {
-          this.mostrarResolucion(r.matriz === "leyeron" ? "¡TE BLOQUEARON EL TIRO!\nLo veían venir." : "TE LO TAPARON.\nPelota rival.", "#e3503e", { anim: "gambeta", gana: false });
+          /* ══════════════════════════════════════════════════════════════
+             A2 · "PATEO Y NO HAY ANIMACIÓN", TERCERA VEZ.
+
+             Medido: de las cinco salidas de resolverTiro(), ésta era la única
+             que NO pasaba por escenaCine. Apretabas TIRO, el defensor ganaba
+             el duelo y lo único que aparecía era un renglón de texto — con
+             anim "gambeta", que además es la animación equivocada: nadie
+             gambeteó, te taparon.
+
+             Por eso lo veía intermitente y "cuando estoy por ser marcado":
+             depende de si ganás el duelo, que es una tirada. Mismo tiro,
+             misma posición, a veces se ve y a veces no.
+
+             Ahora tiene su escena, con el DEFENSOR de protagonista y la pose
+             de bloqueo, que ya existía en el manifest y no la usaba nadie
+             para esto. */
+          const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : null;
+          this.escenaDelBloqueo(rivalJ, {
+            titulo: r.matriz === "leyeron" ? "¡TE LO LEYERON!" : "¡TE LO TAPARON!",
+            sub: r.matriz === "leyeron" ? "Sabían que ibas a patear." : "Se le tiró encima. Pelota de ellos.",
+            desenlace: "despeje",
+            relato: r.matriz === "leyeron" ? "bloqueo_leido" : "bloqueo"
+          });
         }
         return;
       }
@@ -2924,13 +2972,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         color: 0x7ee08a, gana: false, corner: true, arriba: c.arriba };
     }
     if (res.outcome === "atajada") {
-      P.tiroFallado(st);
+      /* A4 · la tiene el arquero rival, en SU área — no un defensor cualquiera
+         cerca del medio, que es lo que hacía la vieja tiroFallado */
+      P.saqueArquero(st, "atajada");
       this.SFX && this.SFX.gloves();
-      return { titulo: "¡LA AGARRÓ!", sub: "El arquero la abrazó. Se la queda él.", color: 0x5bb8e8, gana: false };
+      return { titulo: "¡LA AGARRÓ!", sub: "El arquero la abrazó. Saca él desde el fondo.", color: 0x5bb8e8, gana: false, saque: true };
     }
-    P.tiroFallado(st);
+    /* A4 · se fue: saque de arco, que es lo que pasa de verdad */
+    P.saqueArquero(st, "afuera");
     this.SFX && this.SFX.afuera();
-    return { titulo: "¡AFUERA!", sub: "Se fue por centímetros. ¡Uf!", color: 0xe3503e, gana: false };
+    return { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
   }
   punch(big, sub, colorNum) {
     const hex = "#" + colorNum.toString(16).padStart(6, "0");
@@ -3103,6 +3154,50 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     this.zona = auto.zona;
     this._megaGrito = "¡GOOOL!";
+    /* ══════════════════════════════════════════════════════════════════════
+       A3 · ALGUIEN CORTA EL REMATE.
+
+       La lectura posicional existía desde C1 y la usaba UN solo lado: el
+       remate del rival contra vos. De tu lado, los rivales en el camino solo
+       servían para dos cosas — empeorarte la puntería y dibujarse como
+       siluetas de fondo. Nadie se interponía nunca.
+
+       Es la misma función (logic/definicion.remateAuto, que se llamaba
+       "remateRivalAuto" sin tener nada de rival) con el arco al otro lado.
+       Misma perilla, mismos números: si tu defensa los corta, la de ellos te
+       corta a vos.
+
+       El bloqueo NO es una pelota perdida: rebota. Córner, rebote o despeje,
+       repartido por balance.definicion.bloqueo_reparto. Con eso adentro los
+       goles por remate bajan de 51,7% a 46,0% y los córners suben 49%.
+       ══════════════════════════════════════════════════════════════════════ */
+    const D = window.PampaDefinicion;
+    if (D && D.remateAuto && this.FLAGS.a3_bloqueo !== false) {
+      const lect = D.remateAuto({
+        tirador: { x: j.x, y: j.y },
+        arco: { x: st.W, y: st.H / 2 },
+        defensores: st.rivales.filter(r => r.pos !== "ARQ")
+          .map(r => ({ x: r.x, y: r.y, nombre: r.nombre, aguante: r.aguante })),
+        arquero: { nivel: 55, aguante: this.BAL.aguante.max },
+        aguanteMax: this.BAL.aguante.max,
+        cfg: this.BAL.definicion || {}
+      });
+      if (lect.bloqueado) {
+        /* quién se interpuso: el que estaba más cerca de la línea de tiro */
+        const cerca = lect.defensorMasCerca;
+        const quien = cerca ? st.rivales.find(r => r.x === cerca.x && r.y === cerca.y) : null;
+        const como = D.desenlaceBloqueo(this.BAL.definicion || {});
+        this.escenaDelBloqueo(quien, {
+          titulo: "¡SE LA BLOQUEARON!",
+          sub: lect.defensoresEnLinea > 1
+            ? "Eran " + lect.defensoresEnLinea + " en el camino: uno se tiró de cara."
+            : "Se metió en el camino y se la comió con el cuerpo.",
+          desenlace: como,
+          previo: () => { this.SFX && this.SFX.kick(); }
+        });
+        return;
+      }
+    }
     /* la ESCENA del remate (pose ilustrada + el rival que se tira) y recién
        después el viaje: primero se ve pegarle, después la intriga */
     const rival = rivalIdx != null ? st.rivales[rivalIdx] : null;
@@ -3202,6 +3297,70 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return k;
   }
   /* ¿contra cuántos pateás? — rivales de campo entre vos y el arco (info de la decisión) */
+  /* ══════════════════════════════════════════════════════════════════════
+     A2 · A3 · LA ESCENA DEL BLOQUEO.
+
+     Una sola, para los dos modos de que te corten el remate: el marcador que
+     te gana el duelo antes de patear, y el que se interpone en el camino de
+     la pelota. Las dos cosas son "alguien se metió", así que se cuentan igual.
+
+     El protagonista es EL QUE BLOQUEA, no vos — es su momento. Va con la pose
+     "bloqueo" del manifest (el defensor rayado de frente, piernas abiertas),
+     que estaba cargada desde la tanda de arte y no la usaba ninguna de las dos
+     situaciones.
+
+     desenlace dice qué pasa con la pelota y es lo único que cambia entre las
+     dos: "despeje" es de ellos, "corner" sigue siendo tuya, "rebote" te la
+     deja picando ahí mismo.
+     ══════════════════════════════════════════════════════════════════════ */
+  escenaDelBloqueo(defensor, cfg) {
+    const st = this.st, P = window.PampaPartido;
+    cfg = cfg || {};
+    if (cfg.previo) cfg.previo();
+    /* la verdad de juego, UNA vez y antes de dibujar (doctrina del proyecto) */
+    let sub = cfg.sub || "";
+    if (cfg.desenlace === "corner") {
+      P.cornerMio(st);
+      sub = "La mandó al córner. Sigue siendo tuya.";
+    } else if (cfg.desenlace === "rebote") {
+      /* queda picando: la pelota es tuya, ahí mismo, y arrancás de nuevo */
+      st.posesion = "mia"; st.modo = "juego";
+      st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+      const j = st.mios[st.ctrl];
+      st.pelota.x = j.x + 12; st.pelota.y = j.y;
+      sub = "Rebotó y quedó picando. ¡Seguí!";
+    } else {
+      P.perderPelota(st);
+    }
+    this.SFX && this.SFX.gloves && this.SFX.gloves();
+    const volver = () => {
+      /* cada desenlace tiene su frase: las cinco situaciones nuevas se
+         agregaron a data/relatos.json. Pedirle al relator una situación que
+         no existe es fallar en silencio — la lección del Bloque 1. */
+      this.relatar(cfg.relato || (cfg.desenlace === "corner" ? "corner"
+        : cfg.desenlace === "rebote" ? "rebote" : "bloqueo"), {});
+      if (cfg.desenlace === "rebote") this.reanudarLibre && this.reanudarLibre();
+    };
+    if (!this.hayEscenas() || !defensor) {
+      /* sin escenas (flags apagados) sigue habiendo cartel: nunca silencio */
+      this.mostrarResolucion((cfg.titulo || "¡BLOQUEADO!") + "\n" + sub, "#e3503e",
+        { anim: "bloqueo", gana: false });
+      volver();
+      return;
+    }
+    this.escenaCine({
+      etiqueta: "· EL BLOQUEO ·", accion: "bloqueo",
+      prota: { j: defensor, esRival: true, anim: "bloqueo" },
+      pose: "bloqueo",
+      rival: { j: st.mios[st.ctrl], esRival: false, anim: "tiro" },
+      gana: false,
+      titulo: cfg.titulo || "¡BLOQUEADO!",
+      sub: sub,
+      color: cfg.desenlace === "corner" ? 0x7ee08a : 0xe3503e,
+      sfx: "gloves",
+      alFinal: volver
+    });
+  }
   rivalesEnElCamino(j) {
     let n = 0;
     this.st.rivales.forEach(r => { if (r.pos !== "ARQ" && r.x > j.x && Math.abs(r.y - j.y) < 140) n++; });
@@ -3416,8 +3575,38 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* V9 B3: si el antagonista ya es una pose ilustrada, NO se lo pisa con el
          heroico paramétrico en la revelación (era el otro camino a los bloques) */
       if (sr && sr.active && cfg.rival && !sr._esPose) sr.setTexture(this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.poseFinalRival || cfg.rival.anim, 3));
-      if (cfg.gana) { sp.setScale((F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1) * 1.12); this.burst(sp.x, sp.y - 70); }
-      else if (sr) sr.setScale((F.escala_rival || 2.9) * 1.12);
+      /* ══════════════════════════════════════════════════════════════════
+         A5 · "CUANDO PATEO ESTÁ BUGUEADO".
+
+         Medido en vivo, en el cuadro exacto de la revelación:
+           antes:   el arquero mide 250 px de alto
+           después: 2.923 px, en un lienzo de 540
+
+         El golpe de escala del final estaba escrito con las constantes de los
+         SPRITES VIEJOS: escala_prota 3,4 y escala_rival 2,9 eran multiplicadores
+         para el muñequito paramétrico de 34x50. Cuando V9 B3 pasó los
+         antagonistas a ilustraciones (853 px de fuente), este renglón quedó
+         multiplicando 853 x 3,25. La pierna del arquero ocupaba cinco pantallas.
+
+         Pasa en TODO remate que no es gol —atajada, afuera, córner, bloqueo—,
+         que es la mayoría, y justo en el instante en que mirás para saber si
+         entró. Es la misma familia que el resto de esta tanda: un sistema
+         nuevo encima de uno viejo, y el renglón que quedó hablando el idioma
+         del viejo.
+
+         El arreglo: para una ilustración, el golpe es RELATIVO —un 12% más
+         grande de lo que ya está—, que es lo que el efecto quiso decir siempre.
+         Las constantes quedan solo para el muñequito, que todavía es la red de
+         seguridad si el manifest no cargó. */
+      var GOLPE = 1.12;
+      if (cfg.gana) {
+        if (sp._esPose) sp.setScale(sp.scaleX * GOLPE);
+        else sp.setScale((F.escala_prota || 3.4) * (cfg.especial ? 1.25 : 1) * GOLPE);
+        this.burst(sp.x, sp.y - 70);
+      } else if (sr) {
+        if (sr._esPose) sr.setScale(sr.scaleX * GOLPE);
+        else sr.setScale((F.escala_rival || 2.9) * GOLPE);
+      }
       if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
       if (cfg.hinchada) this.tribunaSaltando();   // V6 P5: la tribuna SALTA en el gol
       this.punch(cfg.titulo, cfg.sub || "", cfg.color != null ? cfg.color : (cfg.gana ? 0xffd84d : 0xe3503e));

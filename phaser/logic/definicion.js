@@ -120,8 +120,41 @@
     };
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     A3 · LA MISMA LEY PARA LOS DOS ARCOS.
+
+     remateRivalAuto() nunca tuvo nada de "rival": recibe tirador, arco,
+     defensores y arquero, y no le importa de quién son. Se llamaba así porque
+     el único que la usaba era el remate del rival contra vos — y por eso los
+     rivales podían cortarte a vos pero vos no podías cortarlos a ellos.
+
+     remateAuto es el MISMO código con el nombre honesto. El viejo queda como
+     alias porque hay tests y una escena que lo llaman por su nombre.
+
+     Consecuencia medida (20.000 remates, tres semillas): con el bloqueo del
+     lado tuyo se bloquea el 28% de tus remates y los goles por remate pasan
+     de 51,7% a 46,0%. La perilla es bloqueo_base y es COMPARTIDA: bajarla
+     afloja los dos arcos a la vez, que es exactamente lo que se quiere.
+     ══════════════════════════════════════════════════════════════════════ */
+  var remateAuto = remateRivalAuto;
+
+  /* qué pasa DESPUÉS de un bloqueo. Un bloqueo no es una pelota perdida: la
+     pelota rebota. Sale al córner, queda picando o el defensor la despeja.
+     El reparto es dato (balance.definicion.bloqueo_reparto) porque de eso
+     depende cuánto duele: con el rebote adentro la caída de goles es 11%
+     en vez de 17%, y los córners suben un 49%. */
+  function desenlaceBloqueo(cfg, rng) {
+    cfg = cfg || {}; rng = rng || Math.random;
+    var R = cfg.bloqueo_reparto || { corner: 0.35, rebote: 0.30 };
+    var u = rng();
+    if (u < R.corner) return "corner";                       // la desvió afuera: seguís vos
+    if (u < R.corner + R.rebote) return "rebote";            // queda picando: segunda pelota
+    return "despeje";                                        // se la llevó puesta: es de ellos
+  }
+
   return {
     ZONAS: ZONAS, zona: zona, distZonas: distZonas, eleccionCPU: eleccionCPU,
+    remateAuto: remateAuto, desenlaceBloqueo: desenlaceBloqueo,   // A3: la misma ley para los dos arcos
     bonusArqueroPorZona: bonusArqueroPorZona, efectoTiming: efectoTiming,
     chanceBloqueo: chanceBloqueo, efectoAchicar: efectoAchicar,
     remateRivalAuto: remateRivalAuto

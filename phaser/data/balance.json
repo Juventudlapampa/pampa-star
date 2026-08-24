@@ -274,7 +274,12 @@
     "arquero_peso_nivel": 0.6,
     "arquero_peso_aguante": 20,
     "arquero_peso_lejos": 18,
-    "_remate_rival": "V9 C1 · TE REMATAN sin pantalla de gestión: remate_lejos = distancia a partir de la cual el remate se considera lejano (el arquero llega mejor). Los tres arquero_peso_* son cuánto pesan el nivel del arquero, su aguante y la distancia en el bonus de atajada."
+    "_remate_rival": "V9 C1 · TE REMATAN sin pantalla de gestión: remate_lejos = distancia a partir de la cual el remate se considera lejano (el arquero llega mejor). Los tres arquero_peso_* son cuánto pesan el nivel del arquero, su aguante y la distancia en el bonus de atajada.",
+    "bloqueo_reparto": {
+      "corner": 0.35,
+      "rebote": 0.3
+    },
+    "_bloqueo_reparto_nota": "A3 · que pasa DESPUES de un bloqueo. corner = la desvio afuera y el corner es tuyo. rebote = queda picando, seguis vos ahi mismo. El resto (1 - corner - rebote) es despeje: la pelota es de ellos. Medido en 20.000 remates: con el rebote adentro los goles por remate pasan de 51,7% a 46,0% y los corners suben 49%. La chance de que te bloqueen sale de bloqueo_base, que es COMPARTIDA con el remate del rival contra vos: bajarla afloja los dos arcos."
   },
   "tempo": {
     "_nota": "V6 §2 R4: EL RELOJ A SALTOS (perilla única). minutos_por_momento = cuántos minutos de partido consume cada momento de decisión; el reloj entre momentos solo GOTEA (goteo_seg_por_minuto segundos reales por minuto de juego). Presets elegibles antes del partido. Si se borra minutos_por_momento, vuelve el reloj continuo v4 (duracion_real_min).",
@@ -646,5 +651,8 @@
     "push_camara_ms": 900,
     "push_camara_zoom": 0.06,
     "_nota": "BLOQUE B EL OFICIO DE LA ANIMACION. intensidad es la perilla GLOBAL: multiplica todos estos tiempos de una, para subir o bajar la intensidad entera con un numero (0 = todo instantaneo, 1 = como esta calibrado, 1.5 = mas teatral). hitstop_*: cuanto se congela TODO en un impacto (chico/fuerte/gol) — es el recurso que mas peso da con menos codigo. latigazo_*: justo despues del hitstop el mundo reanuda MAS RAPIDO durante latigazo_ms; ese contraste entre la pausa y el latigazo es el golpe. anticipacion/accion/rebote: los tres tiempos de todo movimiento importante (chico hacia atras, rapido con curva, se pasa y vuelve). estela_*: fantasmas de la pelota cuando supera estela_desde_px_s. deformacion_*: cuanto se estira y se achata la pelota. segunda_accion_ms: cuanto TARDA lo blando en seguir al cuerpo (la tribuna se sacude despues de la camara, no en el mismo cuadro). push_camara_*: el empuje lento en los momentos de tension."
+  },
+  "flags": {
+    "a3_bloqueo": true
   }
 }

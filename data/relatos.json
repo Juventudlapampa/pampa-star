@@ -1,181 +1,210 @@
 {
-  "_schema": "pampa-star/relatos@1",
-  "_fuente": "PAMPA_DIALOGOS_CONVERSACIONES (Rodri, jul 2026)",
-  "_notas": "Voces y escenas FICTICIAS y ORIGINALES (Pichi el Bagual, El Profe, Delfina Roldan). NUNCA personas reales ni medios reales. Texto de sabor para intro, relato y momentos; data separada del codigo.",
-  "narrador_inicio": [
-    "PAMPA STAR.",
-    "No es la historia de una estrella. Es la de un pibe que patea contra el viento.",
-    "Acá no nacés crack, te hacés.",
-    "Bienvenido a La Pampa."
-  ],
-  "relatores": [
-    {
-      "id": "pichi",
-      "nombre": "Pichi el Bagual",
-      "estilo": "grito de cancha, puro corazon",
-      "gol": [
-        "¡GOL! ¡Goool del pibe de Winifreda!",
-        "¡Se levantó el viento y se la llevó puesta!",
-        "¡La clavó en el ángulo como si fuera un caldén!",
-        "¡Qué patada, papá! ¡Se escuchó hasta en la ruta 35!",
-        "Dale campeón, que acá no hay VAR, hay corazón."
-      ]
-    },
-    {
-      "id": "profe",
-      "nombre": "El Profe",
-      "estilo": "analisis tactico pampeano",
-      "previa": [
-        "Señores, en La Pampa la pelota no rueda, pelea contra el viento.",
-        "El equipo juega con lo que hay, y hoy hay mucho huevo.",
-        "No es tiki-tiki, es garra pampeana.",
-        "El mediocampo es un caldén: firme, no se mueve.",
-        "Si no la metés, al menos dejá la suela."
-      ]
-    },
-    {
-      "id": "delfina",
-      "nombre": "Delfina Roldán",
-      "estilo": "previa con mate, cercana",
-      "previa": [
-        "Buenas tardes desde General Pico, con el mate recién cebado.",
-        "Hoy juega el pibe que se vino a probar a Santa Rosa.",
-        "La tribuna está vacía pero el pueblo está escuchando.",
-        "¿Se puede soñar? Acá en La Pampa soñamos con viento en contra."
-      ]
-    }
-  ],
-  "relator": {
-    "_doc": "ANIME v4 Bloque E + V9 §8: frases del RELATOR en vivo (sistema PampaRelator). Variantes por situación; {jugador}/{rival}/{pueblo} se reemplazan. El sistema sirve por BOLSA BARAJADA: recorre todas las variantes de una situación antes de repetir ninguna. Tono pampeano de cancha, ficticio y original.",
-    "saque": [
-      "¡Arranca el partido en el potrero grande! Viento cruzado, como siempre.",
-      "Rueda la pelota. Acá no hay tribunas de cemento: hay caldenes.",
-      "Se juega. La tarde está fría pero la pelota quema.",
-      "¡Vamos que empieza! El pasto está duro y el corazón también."
-    ],
-    "peligro": [
-      "¡Cuidado que se viene algo grande!",
-      "Se arma… se arma… ¡atención en el área!",
-      "Huele a peligro: hasta el viento se calló para mirar.",
-      "¡Ojo! Esto termina en grito o en suspiro.",
-      "Se acerca el peligro: se calla el mate.",
-      "Atención que esto se pone caliente."
-    ],
-    "gambeta_win": [
-      "¡Lo sentó en el pasto! Qué cintura, familia.",
-      "¡Pasó uno {jugador}! La lleva atada.",
-      "Amague, quiebre y adiós: puro potrero.",
-      "¡Se la llevó de taquito para adelante! No lo agarran más.",
-      "Enganche corto, salida larga: quedó solo.",
-      "Lo pasó como si fuera un cono de entrenamiento."
-    ],
-    "gambeta_lose": [
-      "Se la sacaron con lo justo. Duele, pero se sigue.",
-      "Ahí no: el defensor dijo que por ahí no pasa nadie.",
-      "La quiso de más y se la comieron.",
-      "Lo esperó parado y le sacó la pelota sin faltar.",
-      "Se le fue larga y el defensor no perdona.",
-      "Quiso el caño y le quedó la pierna atrás. A recuperar."
-    ],
-    "corte": [
-      "¡Cortada! Le leyeron el pase de punta a punta.",
-      "Esa iba con nombre y apellido, y se la devoraron en el camino.",
-      "El pase quedó corto y {rival} dijo gracias.",
-      "Estaba parado justo ahí. Pase leído, pelota perdida.",
-      "Ese pase lo vio venir todo el mundo, hasta el alambrado.",
-      "Le tiró la pierna y la sacó al lateral del pensamiento."
-    ],
-    "gol": [
-      "¡GOOOL! ¡GRITALO, {pueblo}!",
-      "¡Golazo, papá! ¡Se escuchó hasta en la ruta 35!",
-      "¡La clavó donde el viento no la saca! ¡GOL de {jugador}!",
-      "¡Explotó todo! ¡Gol de los nuestros!"
-    ],
-    "gol_rival": [
-      "Gol de {rival}… silencio en el potrero.",
-      "La metieron ellos. A levantar la cabeza, que queda partido.",
-      "Golpe duro. El viento sopla en contra, como siempre.",
-      "Se adelantan ellos. A no bajar los brazos."
-    ],
-    "atajada": [
-      "¡La sacó el arquero de ellos! Qué manos, por favor.",
-      "¡Voló el arquero rival y la manoteó! Se salvaron.",
-      "El arquero dijo que no: esa no entraba ni con permiso.",
-      "La sacó de las manos del gol. Aplauso para el arquero rival."
-    ],
-    "afuera": [
-      "¡Afuera! Por un jeme, como dicen los viejos.",
-      "Se fue besando el palo. Uf.",
-      "La tiró a las casuarinas. Habrá otra.",
-      "Se fue arriba, a la altura de los pájaros."
-    ],
-    "arquero_mio": [
-      "¡ATAJADÓN NUESTRO! Abrácenlo que no es de goma.",
-      "¡La retuvo el uno! Tranquilidad para el fondo.",
-      "¡Qué arquero tenemos, mamita querida!",
-      "¡Manotazo salvador! Sigue todo igual."
-    ],
-    "urgente": [
-      "¡Últimos minutos! Corazón en la boca, se define todo.",
-      "El reloj aprieta y el descuento es un misterio, como siempre.",
-      "Se va el tiempo y todavía hay partido para dar vuelta.",
-      "Minutos finales: acá se define de un pelotazo."
-    ],
-    "entretiempo": [
-      "Entretiempo: mate, naranja y a pensar el segundo tiempo.",
-      "Se va el primer tiempo. Lo que no se corrió, se corre ahora.",
-      "Quince minutos de descanso y a volver con otra cara.",
-      "Primer tiempo terminado: se charla en la ronda y se vuelve."
-    ],
-    "final": [
-      "¡Final del partido! Lo dado, dado está.",
-      "Pitó el árbitro y se terminó. A la ducha fría, como siempre.",
-      "Se acabó. El fútbol pampeano no perdona ni regala."
-    ],
-    "quite_win": [
-      "¡Se la sacó de raíz! Quite pampeano, sin vueltas.",
-      "¡Uh, qué manera de meter la pierna! Pelota nuestra.",
-      "Le adivinó la intención y se la robó limpita.",
-      "¡Recuperó abajo! De eso también se hace un partido.",
-      "Metió el cuerpo y la pelota cambió de dueño."
-    ],
-    "saque_gol": [
-      "Del medio otra vez, que el partido no terminó.",
-      "Pelota al centro y a empezar de nuevo.",
-      "Se acomodan, saca el otro, y la historia sigue.",
-      "Vuelve a rodar: acá nadie se guarda nada."
-    ],
-    "arranca_2t": [
-      "¡Arranca el segundo tiempo! Cambio de lado y a dar vuelta la tarde.",
-      "Se juega la segunda parte. Ahora atacamos para el otro lado.",
-      "Segundo tiempo: mismo viento, distinta cancha.",
-      "Vuelven del vestuario y ahora el arco a defender es el otro."
-    ]
+ "_schema": "pampa-star/relatos@1",
+ "_fuente": "PAMPA_DIALOGOS_CONVERSACIONES (Rodri, jul 2026)",
+ "_notas": "Voces y escenas FICTICIAS y ORIGINALES (Pichi el Bagual, El Profe, Delfina Roldan). NUNCA personas reales ni medios reales. Texto de sabor para intro, relato y momentos; data separada del codigo.",
+ "narrador_inicio": [
+  "PAMPA STAR.",
+  "No es la historia de una estrella. Es la de un pibe que patea contra el viento.",
+  "Acá no nacés crack, te hacés.",
+  "Bienvenido a La Pampa."
+ ],
+ "relatores": [
+  {
+   "id": "pichi",
+   "nombre": "Pichi el Bagual",
+   "estilo": "grito de cancha, puro corazon",
+   "gol": [
+    "¡GOL! ¡Goool del pibe de Winifreda!",
+    "¡Se levantó el viento y se la llevó puesta!",
+    "¡La clavó en el ángulo como si fuera un caldén!",
+    "¡Qué patada, papá! ¡Se escuchó hasta en la ruta 35!",
+    "Dale campeón, que acá no hay VAR, hay corazón."
+   ]
   },
-  "escenas": {
-    "vestuario_dt": [
-      "DT: Muchachos, no tenemos botines nuevos, tenemos 90 minutos.",
-      "Jugador 1: Profe, hace frío.",
-      "DT: Mejor, así el rival se congela y nosotros corremos.",
-      "Jugador 2: ¿Juego?",
-      "DT: Jugás vos, juega Toay, juega Victorica. Hoy somos todos."
-    ],
-    "amigos_bar": [
-      "Tomi: Che, ¿viste el tiro ese?",
-      "Vos: Era para probar el viento.",
-      "Mati: En La Pampa no se prueba, se le pega y se reza.",
-      "Tomi: Mañana mate en el caldén y seguimos."
-    ],
-    "prensa_post": [
-      "Periodista: ¿Cómo viste el gol?",
-      "Vos: Lo vi como veo la pampa: infinito.",
-      "Periodista: ¿Y el rival?",
-      "Vos: Duro, pero nosotros tenemos más polvo en las rodillas."
-    ],
-    "chill_pueblo": [
-      "Vecina: Pibe, ¿no vas a entrenar?",
-      "Vos: Ya entrené, ahora tomo mate abajo del caldén.",
-      "Kiosquero: Así se hacen los cracks, tranquilo pero con hambre."
-    ]
+  {
+   "id": "profe",
+   "nombre": "El Profe",
+   "estilo": "analisis tactico pampeano",
+   "previa": [
+    "Señores, en La Pampa la pelota no rueda, pelea contra el viento.",
+    "El equipo juega con lo que hay, y hoy hay mucho huevo.",
+    "No es tiki-tiki, es garra pampeana.",
+    "El mediocampo es un caldén: firme, no se mueve.",
+    "Si no la metés, al menos dejá la suela."
+   ]
+  },
+  {
+   "id": "delfina",
+   "nombre": "Delfina Roldán",
+   "estilo": "previa con mate, cercana",
+   "previa": [
+    "Buenas tardes desde General Pico, con el mate recién cebado.",
+    "Hoy juega el pibe que se vino a probar a Santa Rosa.",
+    "La tribuna está vacía pero el pueblo está escuchando.",
+    "¿Se puede soñar? Acá en La Pampa soñamos con viento en contra."
+   ]
   }
+ ],
+ "relator": {
+  "_doc": "ANIME v4 Bloque E + V9 §8: frases del RELATOR en vivo (sistema PampaRelator). Variantes por situación; {jugador}/{rival}/{pueblo} se reemplazan. El sistema sirve por BOLSA BARAJADA: recorre todas las variantes de una situación antes de repetir ninguna. Tono pampeano de cancha, ficticio y original.",
+  "saque": [
+   "¡Arranca el partido en el potrero grande! Viento cruzado, como siempre.",
+   "Rueda la pelota. Acá no hay tribunas de cemento: hay caldenes.",
+   "Se juega. La tarde está fría pero la pelota quema.",
+   "¡Vamos que empieza! El pasto está duro y el corazón también."
+  ],
+  "peligro": [
+   "¡Cuidado que se viene algo grande!",
+   "Se arma… se arma… ¡atención en el área!",
+   "Huele a peligro: hasta el viento se calló para mirar.",
+   "¡Ojo! Esto termina en grito o en suspiro.",
+   "Se acerca el peligro: se calla el mate.",
+   "Atención que esto se pone caliente."
+  ],
+  "gambeta_win": [
+   "¡Lo sentó en el pasto! Qué cintura, familia.",
+   "¡Pasó uno {jugador}! La lleva atada.",
+   "Amague, quiebre y adiós: puro potrero.",
+   "¡Se la llevó de taquito para adelante! No lo agarran más.",
+   "Enganche corto, salida larga: quedó solo.",
+   "Lo pasó como si fuera un cono de entrenamiento."
+  ],
+  "gambeta_lose": [
+   "Se la sacaron con lo justo. Duele, pero se sigue.",
+   "Ahí no: el defensor dijo que por ahí no pasa nadie.",
+   "La quiso de más y se la comieron.",
+   "Lo esperó parado y le sacó la pelota sin faltar.",
+   "Se le fue larga y el defensor no perdona.",
+   "Quiso el caño y le quedó la pierna atrás. A recuperar."
+  ],
+  "corte": [
+   "¡Cortada! Le leyeron el pase de punta a punta.",
+   "Esa iba con nombre y apellido, y se la devoraron en el camino.",
+   "El pase quedó corto y {rival} dijo gracias.",
+   "Estaba parado justo ahí. Pase leído, pelota perdida.",
+   "Ese pase lo vio venir todo el mundo, hasta el alambrado.",
+   "Le tiró la pierna y la sacó al lateral del pensamiento."
+  ],
+  "gol": [
+   "¡GOOOL! ¡GRITALO, {pueblo}!",
+   "¡Golazo, papá! ¡Se escuchó hasta en la ruta 35!",
+   "¡La clavó donde el viento no la saca! ¡GOL de {jugador}!",
+   "¡Explotó todo! ¡Gol de los nuestros!"
+  ],
+  "gol_rival": [
+   "Gol de {rival}… silencio en el potrero.",
+   "La metieron ellos. A levantar la cabeza, que queda partido.",
+   "Golpe duro. El viento sopla en contra, como siempre.",
+   "Se adelantan ellos. A no bajar los brazos."
+  ],
+  "atajada": [
+   "¡La sacó el arquero de ellos! Qué manos, por favor.",
+   "¡Voló el arquero rival y la manoteó! Se salvaron.",
+   "El arquero dijo que no: esa no entraba ni con permiso.",
+   "La sacó de las manos del gol. Aplauso para el arquero rival."
+  ],
+  "afuera": [
+   "¡Afuera! Por un jeme, como dicen los viejos.",
+   "Se fue besando el palo. Uf.",
+   "La tiró a las casuarinas. Habrá otra.",
+   "Se fue arriba, a la altura de los pájaros."
+  ],
+  "arquero_mio": [
+   "¡ATAJADÓN NUESTRO! Abrácenlo que no es de goma.",
+   "¡La retuvo el uno! Tranquilidad para el fondo.",
+   "¡Qué arquero tenemos, mamita querida!",
+   "¡Manotazo salvador! Sigue todo igual."
+  ],
+  "urgente": [
+   "¡Últimos minutos! Corazón en la boca, se define todo.",
+   "El reloj aprieta y el descuento es un misterio, como siempre.",
+   "Se va el tiempo y todavía hay partido para dar vuelta.",
+   "Minutos finales: acá se define de un pelotazo."
+  ],
+  "entretiempo": [
+   "Entretiempo: mate, naranja y a pensar el segundo tiempo.",
+   "Se va el primer tiempo. Lo que no se corrió, se corre ahora.",
+   "Quince minutos de descanso y a volver con otra cara.",
+   "Primer tiempo terminado: se charla en la ronda y se vuelve."
+  ],
+  "final": [
+   "¡Final del partido! Lo dado, dado está.",
+   "Pitó el árbitro y se terminó. A la ducha fría, como siempre.",
+   "Se acabó. El fútbol pampeano no perdona ni regala."
+  ],
+  "quite_win": [
+   "¡Se la sacó de raíz! Quite pampeano, sin vueltas.",
+   "¡Uh, qué manera de meter la pierna! Pelota nuestra.",
+   "Le adivinó la intención y se la robó limpita.",
+   "¡Recuperó abajo! De eso también se hace un partido.",
+   "Metió el cuerpo y la pelota cambió de dueño."
+  ],
+  "saque_gol": [
+   "Del medio otra vez, que el partido no terminó.",
+   "Pelota al centro y a empezar de nuevo.",
+   "Se acomodan, saca el otro, y la historia sigue.",
+   "Vuelve a rodar: acá nadie se guarda nada."
+  ],
+  "arranca_2t": [
+   "¡Arranca el segundo tiempo! Cambio de lado y a dar vuelta la tarde.",
+   "Se juega la segunda parte. Ahora atacamos para el otro lado.",
+   "Segundo tiempo: mismo viento, distinta cancha.",
+   "Vuelven del vestuario y ahora el arco a defender es el otro."
+  ],
+  "bloqueo": [
+   "¡Se la bloquearon! Se metió en el camino y se la comió con el cuerpo.",
+   "Le puso la pierna y la sacó. Metió el cuerpo donde duele.",
+   "¡Tapada! Se tiró de cara y la pelota le rebotó en el alma.",
+   "No lo dejaron ni patear tranquilo. Ahí había un muro.",
+   "Se la bloqueó con todo. Después se levanta y sigue, esos son de fierro.",
+   "Le adivinó la intención y se le puso adelante. Puro oficio."
+  ],
+  "bloqueo_leido": [
+   "¡Te lo leyeron! Sabía que ibas a patear antes que vos.",
+   "Lo tenía estudiado. Le salió al cruce apenas amagaste.",
+   "Le vio la cara y supo. Así de simple."
+  ],
+  "corner": [
+   "¡Al córner! La desvió como pudo, pero la sacó.",
+   "La mandó afuera para salvarse. Tiro de esquina y sigue siendo tuya.",
+   "La tocó lo justo para que se vaya al córner. Uf.",
+   "Córner. Otra pelota parada para meter miedo."
+  ],
+  "rebote": [
+   "¡Quedó picando! Nadie la agarra, ¡vamos que sigue!",
+   "Rebotó y quedó ahí dando vueltas. ¡Segunda pelota!",
+   "La bloquearon pero la pelota se le quedó cerca. ¡Otra vez!"
+  ],
+  "saque_arquero": [
+   "La abrazó el arquero. Se la queda él y saca desde el fondo.",
+   "Se fue afuera. Saque de arco para ellos y a empezar de nuevo.",
+   "La tiene el arquero rival. Ahora hay que ir a buscarla otra vez."
+  ]
+ },
+ "escenas": {
+  "vestuario_dt": [
+   "DT: Muchachos, no tenemos botines nuevos, tenemos 90 minutos.",
+   "Jugador 1: Profe, hace frío.",
+   "DT: Mejor, así el rival se congela y nosotros corremos.",
+   "Jugador 2: ¿Juego?",
+   "DT: Jugás vos, juega Toay, juega Victorica. Hoy somos todos."
+  ],
+  "amigos_bar": [
+   "Tomi: Che, ¿viste el tiro ese?",
+   "Vos: Era para probar el viento.",
+   "Mati: En La Pampa no se prueba, se le pega y se reza.",
+   "Tomi: Mañana mate en el caldén y seguimos."
+  ],
+  "prensa_post": [
+   "Periodista: ¿Cómo viste el gol?",
+   "Vos: Lo vi como veo la pampa: infinito.",
+   "Periodista: ¿Y el rival?",
+   "Vos: Duro, pero nosotros tenemos más polvo en las rodillas."
+  ],
+  "chill_pueblo": [
+   "Vecina: Pibe, ¿no vas a entrenar?",
+   "Vos: Ya entrené, ahora tomo mate abajo del caldén.",
+   "Kiosquero: Así se hacen los cracks, tranquilo pero con hambre."
+  ]
+ }
 }

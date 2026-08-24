@@ -784,7 +784,72 @@
       penalizaciones: factorLectura < 1 ? [{ id: "lectura", factor: factorLectura }] : [] };
   }
   function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
-  function tiroFallado(st, rng) { perderPelota(st, rng); st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }
+  /* ══════════════════════════════════════════════════════════════════════
+     A4 · LOS CUATRO DESENLACES DEL REMATE.
+
+     El reporte de Rodri: "la pelota vuelve al medio después de la atajada".
+
+     Los cuatro terminaban en DOS funciones. El gol en kickoff() —bien— y los
+     otros tres en tiroFallado(), que era una línea: perderPelota(). Y
+     perderPelota() es la función de TE ROBARON EN JUEGO: le da la pelota al
+     rival de campo MÁS CERCA DEL QUE LA PERDIÓ (excluyendo explícitamente al
+     arquero), lo corre 54 px para atrás y te pasa el control a tu mejor
+     marcador, que está en tu mitad.
+
+     O sea: el arquero rival atajaba, la pelota le aparecía en los pies a un
+     defensor cerca del área, y a vos te mudaban a un central en tu campo. Lo
+     que se ve es exactamente lo que dijo Rodri — la jugada se teletransporta
+     al medio. Igual la de afuera, que debería ser saque de arco.
+
+     Cuatro desenlaces distintos necesitan cuatro reinicios distintos, y el
+     único que importa distinguir acá es de quién es la pelota y DÓNDE:
+
+       gol       kickoff(st, "rival")   desde el medio          (ya estaba)
+       córner    cornerMio(st)          tuya, desde el vértice  (ya estaba)
+       atajada   saqueArquero(st)       del arquero rival, en su área
+       afuera    saqueArquero(st)       saque de arco, mismo lugar
+
+     Los dos últimos comparten función porque la consecuencia de juego es la
+     misma —la tiene el arquero y va a sacar— y se distinguen por el motivo,
+     que es lo que cuenta el relator y lo que mira la escena.
+     ══════════════════════════════════════════════════════════════════════ */
+  function saqueArquero(st, motivo) {
+    var iArq = -1;
+    for (var i = 0; i < st.rivales.length; i++) if (st.rivales[i].pos === "ARQ") { iArq = i; break; }
+    /* sin arquero declarado no hay a quién dársela: se cae a lo de antes, que
+       es feo pero no rompe. No debería pasar nunca; si pasa, queda anotado. */
+    if (iArq < 0) { st._saqueSinArquero = (st._saqueSinArquero || 0) + 1; perderPelota(st); return { motivo: motivo, arquero: false }; }
+    var arq = st.rivales[iArq];
+    st.posesion = "rival"; st.modo = "juego";
+    st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+    /* el arquero vuelve a SU lugar: ax ya es donde lo puso la formación
+       (W - linea.ax para el rival), así que no hace falta una perilla nueva —
+       el dato ya estaba y es el que manda en todo el resto del partido. */
+    arq.x = clamp(arq.ax, 12, st.W - 12);
+    arq.y = (arq.banda[0] + arq.banda[1]) / 2;
+    st.portadorRival = iArq;
+    st.pelota.x = arq.x - 12;
+    st.pelota.y = arq.y;
+    /* los tuyos vuelven a su posición: la jugada terminó, se rearma el equipo.
+       Es lo que hace que se LEA como un saque de arco y no como un robo. */
+    st.mios.forEach(function (j) {
+      j.x = clamp(j.ax, 12, st.W - 12);
+      j.y = (j.banda[0] + j.banda[1]) / 2;
+    });
+    /* y el control queda en el que va a recibir el saque, no en un central
+       cualquiera: el más cercano a la pelota que no sea tu arquero */
+    st.ctrl = masCercanoAPelota(st);
+    st._perdioIdx = -1;
+    st._perdioHasta = 0;
+    /* el arquero la pisa un momento: te da tiempo de armarte, igual que el
+       saque del medio. Sin esto, saca de una y no llegás a acomodarte. */
+    st.esperaRival = st.bal.ritmo.arranque_rival_ms;
+    st.ultimoSaque = motivo || "saque";
+    return { motivo: motivo, arquero: true, arqueroIdx: iArq };
+  }
+  /* la vieja tiroFallado queda como alias: había un solo llamador por fuera de
+     acá y no vale la pena romper una firma pública por un rename. */
+  function tiroFallado(st, rng) { return saqueArquero(st, "atajada"); }
 
   /* G1 · LA SACÓ AL CÓRNER. El arquero llegó pero no la retuvo, así que la
      jugada sigue siendo tuya: no perdés la pelota, la reponés desde el vértice.
@@ -799,6 +864,13 @@
     st.posesion = "mia";
     j.x = st.W - (P.corner_x || 30);
     j.y = arriba ? (P.corner_y || 40) : st.H - (P.corner_y || 40);
+    /* A4 · LA PELOTA TAMBIÉN. Esto movía al jugador al vértice y dejaba la
+       pelota donde había terminado el remate, a 100 px de distancia: ibas a
+       sacar el córner y la pelota estaba en el área. Todas las demás funciones
+       de posesión la ponen al pie (ganarDefensa, perderPelota, kickoff); esta
+       era la única que se olvidaba. */
+    st.pelota.x = j.x - 12;
+    st.pelota.y = j.y;
     st.corners = (st.corners || 0) + 1;
     st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     return { corner: true, arriba: arriba };
@@ -862,6 +934,7 @@
     riesgoLinea: riesgoLinea, motivoDuelo: motivoDuelo,
     puedeTirar: puedeTirar, puedeCalden: puedeCalden, prepararRemate: prepararRemate,
     golMio: golMio, tiroFallado: tiroFallado, cornerMio: cornerMio,
+    saqueArquero: saqueArquero,   // A4: atajada y afuera dejan la pelota en el arquero rival
     opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,
     cambiarA: cambiarA, cambiarAlMasCercano: cambiarAlMasCercano,
     poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota,
