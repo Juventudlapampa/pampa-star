@@ -168,9 +168,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ============ VISTA 1: ELEGIR EL CLUB (una vez) ============ */
   vistaElegir() {
     const W = this.scale.width, H = this.scale.height;
-    this.add.text(W / 2, 60, "🏆 MODO MASTER", { fontFamily: window.PF.display, fontSize: "22px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 96, "la carrera: de la PRIMERA B de tu pueblo al MUNDIAL", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
-    this.add.text(W / 2, 128, "el campeón SUBE de división — la escalera entera, adentro del juego", { fontFamily: window.PF.texto, fontSize: "11px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+    this.add.text(W / 2, 26, "🏆 MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 54, "de la PRIMERA B de tu pueblo al MUNDIAL · el campeón SUBE de división", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* tu club: pueblo del roster con su apodo (stepper con flechas dibujadas) */
     const roster = this.game.registry.get("roster");
@@ -185,22 +184,34 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       }
     } catch (e) { }
 
-    this.add.text(W / 2, 200, "TU CLUB", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" }).setOrigin(0.5);
-    this.txtPueblo = this.add.text(W / 2, 240, "", { fontFamily: window.PF.display, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
-    this.txtApodo = this.add.text(W / 2, 272, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a" }).setOrigin(0.5);
-    const flecha = (x, d) => {
-      const r = this.add.rectangle(x, 240, 56, 48, 0xf6efdc, 1).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const g = this.add.graphics(); g.fillStyle(0x0a1f13, 1);
-      if (d < 0) g.fillTriangle(x - 10, 240, x + 8, 229, x + 8, 251);
-      else g.fillTriangle(x + 10, 240, x - 8, 229, x - 8, 251);
-      r.on("pointerdown", () => { this.pSel = (this.pSel + d + this.pueblos.length) % this.pueblos.length; this.pintarPueblo(); });
-    };
-    flecha(W / 2 - 220, -1); flecha(W / 2 + 220, 1);
+    /* ══════════════════════════════════════════════════════════════════════
+       D4 · EL MAPA EN VEZ DE LA LISTA CON FLECHITAS.
+
+       Antes: un nombre en el medio y dos flechas. Para ver los diez pueblos
+       había que apretar diez veces, y en ningún momento sabías DÓNDE queda el
+       tuyo — que es lo único que un pueblo tiene para decirte antes de que
+       empiece la carrera.
+
+       Ahora están los diez a la vez, ubicados. El elegido se marca con ANILLO
+       + estrella + nombre grande, no solo con color: la regla de siempre.
+
+       Es un mapa ESQUEMÁTICO POR ZONAS, y se dice en pantalla. El proyecto no
+       tiene coordenadas de ningún pueblo y la orden prohíbe inventarlas, así
+       que lo que hay es la zona (dato del roster) y el punto cae adentro de la
+       caja de su zona. Cuando Rodri cargue x/y exactos, cada pueblo que los
+       tenga deja de ser esquemático sin tocar una línea de código.
+       ══════════════════════════════════════════════════════════════════════ */
+    /* el mapa y la ficha se leen como un bloque, así que se centra el BLOQUE:
+       antes se centraba el mapa y la ficha lo empujaba todo a la derecha (se
+       ve en la primera captura). Y el alto termina arriba del botón. */
+    const anchoFicha = 232, aire = 18, anchoMapa = 330;
+    const x0Bloque = Math.round((W - (anchoMapa + aire + anchoFicha)) / 2);
+    this.mapaCaja = { x: x0Bloque, y: 74, w: anchoMapa, h: 254, wFicha: anchoFicha, aire };
+    this.dibujarMapa();
     if (this.input.keyboard) {
-      this.input.keyboard.on("keydown-LEFT", () => { this.pSel = (this.pSel + this.pueblos.length - 1) % this.pueblos.length; this.pintarPueblo(); });
-      this.input.keyboard.on("keydown-RIGHT", () => { this.pSel = (this.pSel + 1) % this.pueblos.length; this.pintarPueblo(); });
+      this.input.keyboard.on("keydown-LEFT", () => { this.pSel = (this.pSel + this.pueblos.length - 1) % this.pueblos.length; this.dibujarMapa(); });
+      this.input.keyboard.on("keydown-RIGHT", () => { this.pSel = (this.pSel + 1) % this.pueblos.length; this.dibujarMapa(); });
     }
-    this.pintarPueblo();
 
     /* ══════════════════════════════════════════════════════════════════════
        D5 · PRIMERO LA PINTA, DESPUÉS LA ENTREVISTA.
@@ -247,12 +258,102 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
     this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.scene.start("editor"));
   }
-  pintarPueblo() {
-    const p = this.pueblos[this.pSel];
-    const roster = this.game.registry.get("roster");
-    const apodo = roster && roster.clubes_por_pueblo && roster.clubes_por_pueblo[p] ? roster.clubes_por_pueblo[p].apodo : "";
-    this.txtPueblo.setText("◀ Club " + p + " ▶");
-    this.txtApodo.setText(apodo ? '"' + apodo + '" juega acá' : "");
+  /* ══════════════════════════════════════════════════════════════════════
+     D4 · EL MAPA. Se redibuja entero al cambiar de pueblo: son diez puntos y
+     un contorno, no hay nada que optimizar, y redibujar entero evita la clase
+     de bug donde queda medio estado del dibujo anterior.
+     ══════════════════════════════════════════════════════════════════════ */
+  dibujarMapa() {
+    const M = window.PampaMapa;
+    const C = this.mapaCaja;
+    if (this._mapaCapa) this._mapaCapa.destroy(true);
+    const capa = this.add.container(0, 0);
+    this._mapaCapa = capa;
+    const roster = this.game.registry.get("roster") || {};
+    const clubes = roster.clubes_por_pueblo || {};
+    if (!M) {
+      /* sin el módulo no se rompe la pantalla: se cae a la lista de siempre */
+      const t = this.add.text(C.x + C.w / 2, C.y + C.h / 2, this.pueblos.join("\n"),
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", align: "center" }).setOrigin(0.5);
+      capa.add(t);
+      return;
+    }
+    const ubic = M.ubicar(this.pueblos.map(p => Object.assign({ nombre: p }, clubes[p] || {})));
+    const aX = f => C.x + f * C.w, aY = f => C.y + f * C.h;
+
+    /* --- el contorno de la provincia --- */
+    const g = this.add.graphics(); capa.add(g);
+    const pts = M.CONTORNO.map(p => [aX(p[0]), aY(p[1])]);
+    g.fillStyle(0x14301f, 1); g.lineStyle(3, 0x7ee08a, 0.9);
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+    g.closePath(); g.fillPath(); g.strokePath();
+
+    /* --- las zonas, nombradas: el mapa es esquemático y se dice --- */
+    /* la etiqueta va en la ESQUINA de su caja, no en el medio: en el medio
+       quedaba abajo de los nombres de los pueblos y las dos cosas se pisaban
+       (se ve en la primera captura). Las cajas se solapan, así que el centro
+       es justo donde hay más pueblos. */
+    Object.keys(M.ZONAS).forEach(z => {
+      const Z = M.ZONAS[z];
+      const t = this.add.text(aX(Z.x0) + 4, aY(Z.y0) + 2, Z.n,
+        { fontFamily: window.PF.texto, fontSize: "12px", color: "#2f5c40" }).setOrigin(0, 0);
+      capa.add(t);
+    });
+
+    /* --- los pueblos --- */
+    const sel = this.pueblos[this.pSel];
+    ubic.forEach(p => {
+      const x = aX(p.x), y = aY(p.y);
+      const esSel = p.nombre === sel;
+      const punto = this.add.circle(x, y, esSel ? 8 : 5, esSel ? 0xffd84d : 0xf6efdc, 1)
+        .setStrokeStyle(2, 0x0a1f13);
+      capa.add(punto);
+      if (esSel) {
+        /* FORMA además de color: anillo + estrella. Un punto que solo cambia
+           de tono no se distingue, y esa es una regla del proyecto. */
+        const anillo = this.add.circle(x, y, 16).setStrokeStyle(3, 0xffd84d, 1);
+        const est = this.add.text(x, y - 22, "★", { fontFamily: window.PF.texto, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
+        capa.add([anillo, est]);
+      }
+      /* el nombre siempre visible: son diez, entran */
+      const nom = this.add.text(x, y + (esSel ? 16 : 11), p.nombre,
+        { fontFamily: window.PF.texto, fontSize: esSel ? "13px" : "12px",
+          fontStyle: esSel ? "bold" : "normal", color: esSel ? "#ffd84d" : "#dcd6c2",
+          backgroundColor: "#0a1f13cc", padding: { x: 3, y: 1 } }).setOrigin(0.5, 0);
+      capa.add(nom);
+      /* tocar el punto (o su nombre) lo elige */
+      [punto, nom].forEach(o => {
+        o.setInteractive({ useHandCursor: true });
+        o.on("pointerdown", (pp, xx, yy, e2) => {
+          e2 && e2.stopPropagation && e2.stopPropagation();
+          const i = this.pueblos.indexOf(p.nombre);
+          if (i >= 0 && i !== this.pSel) { this.pSel = i; this.dibujarMapa(); }
+        });
+      });
+    });
+
+    /* --- la ficha del elegido: club, apodo y en qué división arranca --- */
+    const info = clubes[sel] || {};
+    const divN = (this.Ma && this.Ma.DIVISIONES && this.Ma.DIVISIONES[0]) ? this.Ma.DIVISIONES[0].n : "PRIMERA B";
+    const anchoF = C.wFicha || 216, medioF = anchoF / 2;
+    const fx = C.x + C.w + (C.aire || 18);
+    const fichaY = C.y + 14;
+    const ficha = this.add.rectangle(fx + medioF, fichaY + 66, anchoF, 148, 0x0a1f13, 0.72).setStrokeStyle(3, 0xffd84d, 0.9);
+    capa.add(ficha);
+    capa.add(this.add.text(fx + medioF, fichaY + 12, "★ TU CLUB", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" }).setOrigin(0.5));
+    capa.add(this.add.text(fx + medioF, fichaY + 40, "Club " + sel, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    if (info.apodo) capa.add(this.add.text(fx + medioF, fichaY + 76, '"' + info.apodo + '"', { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    capa.add(this.add.text(fx + medioF, fichaY + 112, "arranca en " + divN, { fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2" }).setOrigin(0.5));
+    const zN = (M.ZONAS[info.zona] || {}).n || "—";
+    capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0.5));
+
+    /* --- y se dice que el mapa es esquemático --- */
+    const exactos = M.cuantosExactos(ubic);
+    capa.add(this.add.text(C.x + C.w / 2, C.y + C.h + 8,
+      exactos === ubic.length ? "ubicaciones exactas"
+        : "mapa por zonas · las ubicaciones exactas van cuando estén los datos",
+      { fontFamily: window.PF.texto, fontSize: "12px", color: "#7a8a80" }).setOrigin(0.5, 0));
   }
 
   /* ============ V8 A1 · PARTE 1: DE DÓNDE SALÍS (3 pantallas, una vez) ============

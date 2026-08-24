@@ -148,6 +148,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._hudFichas = null; this.txtFichas = null;           // V8 §3: las fichas del jugadón, limpias por partido
     this._jg = null; this._jgLogica = null;                  // V8 §3: la plataforma muere con la escena
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
+    this._cartas = null;                                     // D1: las cartas arrancan todas listas cada partido
     this.panelLayer = this.panelJug = this.panelPasto = this.panelTribuna = null;   // V7-1: el panel muere con la escena
     this.panelSil = null; this._panelPrev = null;
     /* ══════════════════════════════════════════════════════════════════
@@ -2159,6 +2160,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          perspectiva + remate con la mega animación. Gasta ficha de tiro. */
       centro: (() => {
         const F = this.jugadonFichas ? this.jugadonFichas() : null;
+        /* D1 · si el megatiro no está disponible, el centro es TU CARTA de
+           ataque. No compiten: el megatiro es la secuencia del jugadón (gasta
+           ficha y te lleva a otra pantalla) y la carta es un golpe adentro de
+           este menú. Cuando están los dos, manda el megatiro, que es el más
+           raro de ver. */
+        if ((!megaListo || !F || F.tiros <= 0) && this.centroDeCarta) {
+          const cc = this.centroDeCarta("ataque", () => {
+            const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "ataque");
+            if (!c) { this.reanudarLibre(); return; }
+            if (c.efecto === "poder_tiro") this.resolverTiro(false, rivalIdx, libre);
+            else if (c.efecto === "zona_segura") this.resolverTiro(false, rivalIdx, libre);
+            else if (c.efecto === "pase_seguro" || c.efecto === "pase_largo") this.iniciarPaseDirigido(rivalIdx, libre);
+            else this.reanudarLibre();
+          });
+          if (cc) return cc;
+        }
         if (!megaListo || !F || F.tiros <= 0) return null;
         /* N2 · EL AVISO. Lo que hace que la adaptación sea una decisión y no
            una trampa: si te tienen leído el especial, lo decimos ACÁ, cuando
@@ -2214,19 +2231,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
         S: { texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", cb: () => this.resolverNoMoverse() }
       },
-      /* Feel B6: TU megacosa defensiva — misma gramática que el megatiro */
-      centro: (() => {
-        const m = this.megaDefensaDisponible(["quite", "bloqueo"], st.mios[st.ctrl]);
-        if (!m) return null;
-        return {
-          texto: "🔥 " + m.n.toUpperCase().slice(0, 15), sub: m.aguante + " aguante · especial",
-          cb: () => this.cutInEspecial("¡" + m.n.toUpperCase() + "!", m.aguante + " aguante", () => {
-            st.mios[st.ctrl].aguante = Math.max(0, st.mios[st.ctrl].aguante - m.aguante);
-            const base = m.tipo === "quite" ? qui : blo;
-            this.resolverAccionDefensa({ id: base.id, poder: base.poder + (m.bonus || 16), costo: 0 });
-          })
-        };
-      })()
+      /* ══════════════════════════════════════════════════════════════════
+         D1 · ACÁ ESTABA EL SUPERBLOQUEO Y AHORA ESTÁ TU CARTA.
+
+         La megadefensa preguntaba "¿tenés nivel y aguante?" — o sea, era del
+         EQUIPO, y el puesto del que controlabas no decía nada. La carta
+         pregunta "¿quién sos?": el defensor tiene LA BARRIDA, el volante LA
+         PRESIÓN, el arquero LA TRANQUERA, y el delantero no tiene ninguna de
+         recuperación, así que defendiendo con él el centro queda vacío.
+
+         Eso último no es una falta, es el punto entero: si querés la barrida,
+         tenés que estar en el defensor. Elegir a quién le pasás pasa a
+         significar algo.
+
+         El mismo lugar, otra ley. Es el centro de la cruz de siempre. */
+      centro: this.centroDeCarta ? this.centroDeCarta("recuperacion", () => {
+        const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "recuperacion");
+        const base = (c && c.efecto === "bonus_atajada") ? blo : qui;
+        this.resolverAccionDefensa({ id: base.id, poder: base.poder + ((c && c.valor) || 20), costo: 0 });
+      }) : null
     });
     /* V8 §3: el SÚPER QUITE del jugadón (ficha defensiva) */
     if (this.botonJugadon && this.jugadonFichas) {

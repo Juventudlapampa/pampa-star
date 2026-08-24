@@ -1,65 +1,181 @@
 {
-  "_schema": "pampa-star/megacosas@1",
-  "_nota": "Feel v3 B5/B6: los movimientos ESPECIALES viven en DATA (nada hardcodeado). Cada uno tiene nombre propio pampeano, grito, costo alto de aguante (escala máx 1000) y nivel de desbloqueo por progresión de carrera (career.nivel; sin carrera = nivel 1). mult multiplica el poder. x_min: línea de cancha que lo habilita (tiros).",
-  "megatiros": [
-    {
-      "id": "calden",
-      "n": "Disparo del Caldén",
-      "grito": "¡CALDENAZO!",
-      "sub": "la fuerza del árbol eterno",
-      "aguante": 450,
-      "nivel": 1,
-      "mult": 1.3,
-      "x_min": 680
-    },
-    {
-      "id": "atuel",
-      "n": "Tiro del Atuel",
-      "grito": "¡ATUELAZO!",
-      "sub": "el río que no negocia",
-      "aguante": 250,
-      "nivel": 3,
-      "mult": 1.45,
-      "x_min": 640
-    },
-    {
-      "id": "tornado",
-      "n": "Tornado Pampeano",
-      "grito": "¡TORNADO!",
-      "sub": "el viento que arrasa",
-      "aguante": 280,
-      "nivel": 5,
-      "mult": 1.6,
-      "x_min": 600
-    }
-  ],
-  "megadefensas": [
-    {
-      "id": "pampero",
-      "n": "Quite Pampero",
-      "grito": "¡PAMPERO!",
-      "tipo": "quite",
-      "aguante": 260,
-      "nivel": 2,
-      "bonus": 18
-    },
-    {
-      "id": "medano",
-      "n": "Bloqueo Médano",
-      "grito": "¡MÉDANO!",
-      "tipo": "bloqueo",
-      "aguante": 240,
-      "nivel": 2,
-      "bonus": 16
-    },
-    {
-      "id": "tranquera",
-      "n": "La Tranquera",
-      "grito": "¡TRANQUERA!",
-      "tipo": "atajada",
-      "aguante": 300,
-      "nivel": 3,
-      "bonus": 20
-    }
-  ]
+ "_schema": "pampa-star/megacosas@1",
+ "_nota": "Feel v3 B5/B6: los movimientos ESPECIALES viven en DATA (nada hardcodeado). Cada uno tiene nombre propio pampeano, grito, costo alto de aguante (escala máx 1000) y nivel de desbloqueo por progresión de carrera (career.nivel; sin carrera = nivel 1). mult multiplica el poder. x_min: línea de cancha que lo habilita (tiros).",
+ "megatiros": [
+  {
+   "id": "calden",
+   "n": "Disparo del Caldén",
+   "grito": "¡CALDENAZO!",
+   "sub": "la fuerza del árbol eterno",
+   "aguante": 450,
+   "nivel": 1,
+   "mult": 1.3,
+   "x_min": 680
+  },
+  {
+   "id": "atuel",
+   "n": "Tiro del Atuel",
+   "grito": "¡ATUELAZO!",
+   "sub": "el río que no negocia",
+   "aguante": 250,
+   "nivel": 3,
+   "mult": 1.45,
+   "x_min": 640
+  },
+  {
+   "id": "tornado",
+   "n": "Tornado Pampeano",
+   "grito": "¡TORNADO!",
+   "sub": "el viento que arrasa",
+   "aguante": 280,
+   "nivel": 5,
+   "mult": 1.6,
+   "x_min": 600
+  }
+ ],
+ "megadefensas": [
+  {
+   "id": "pampero",
+   "n": "Quite Pampero",
+   "grito": "¡PAMPERO!",
+   "tipo": "quite",
+   "aguante": 260,
+   "nivel": 2,
+   "bonus": 18
+  },
+  {
+   "id": "medano",
+   "n": "Bloqueo Médano",
+   "grito": "¡MÉDANO!",
+   "tipo": "bloqueo",
+   "aguante": 240,
+   "nivel": 2,
+   "bonus": 16
+  },
+  {
+   "id": "tranquera",
+   "n": "La Tranquera",
+   "grito": "¡TRANQUERA!",
+   "tipo": "atajada",
+   "aguante": 300,
+   "nivel": 3,
+   "bonus": 20
+  }
+ ],
+ "cartas": [
+  {
+   "id": "remate_especial",
+   "puesto": "ATA",
+   "clase": "ataque",
+   "n": "EL FOGONAZO",
+   "grito": "¡FOGONAZO!",
+   "sub": "todo el cuerpo atrás de la pelota",
+   "aguante": 430,
+   "efecto": "poder_tiro",
+   "valor": 26,
+   "pose": "remate",
+   "momento": "carga",
+   "recarga_min": 26
+  },
+  {
+   "id": "definicion_ata",
+   "puesto": "ATA",
+   "clase": "ataque",
+   "n": "LA PUÑALADA",
+   "grito": "¡PUÑALADA!",
+   "sub": "no la revienta: la pone donde no llega nadie",
+   "aguante": 300,
+   "efecto": "zona_segura",
+   "valor": 1,
+   "pose": "volea",
+   "momento": "giro",
+   "recarga_min": 20
+  },
+  {
+   "id": "pase_filtrado",
+   "puesto": "VOL",
+   "clase": "ataque",
+   "n": "EL HILO",
+   "grito": "¡QUE PASE!",
+   "sub": "la mete por el único agujero que había",
+   "aguante": 270,
+   "efecto": "pase_seguro",
+   "valor": 1,
+   "pose": "pase",
+   "momento": "horizonte",
+   "recarga_min": 18
+  },
+  {
+   "id": "recuperada_vol",
+   "puesto": "VOL",
+   "clase": "recuperacion",
+   "n": "LA PRESIÓN",
+   "grito": "¡ARRIBA!",
+   "sub": "no lo deja ni pensar",
+   "aguante": 250,
+   "efecto": "bonus_quite",
+   "valor": 20,
+   "pose": "quite",
+   "momento": "piernas",
+   "recarga_min": 16
+  },
+  {
+   "id": "megapase_def",
+   "puesto": "DEF",
+   "clase": "ataque",
+   "n": "EL PELOTAZO",
+   "grito": "¡PARA ARRIBA!",
+   "sub": "la manda de una punta a la otra",
+   "aguante": 280,
+   "efecto": "pase_largo",
+   "valor": 1,
+   "pose": "pase",
+   "momento": "horizonte",
+   "recarga_min": 20
+  },
+  {
+   "id": "supersacada_def",
+   "puesto": "DEF",
+   "clase": "recuperacion",
+   "n": "LA BARRIDA",
+   "grito": "¡LIMPIA!",
+   "sub": "se tira de costado y la saca entera",
+   "aguante": 300,
+   "efecto": "bonus_quite",
+   "valor": 26,
+   "pose": "barrida",
+   "momento": "piernas",
+   "recarga_min": 18
+  },
+  {
+   "id": "atajadon_arq",
+   "puesto": "ARQ",
+   "clase": "recuperacion",
+   "n": "LA TRANQUERA",
+   "grito": "¡TRANQUERA!",
+   "sub": "por ahí no pasa nadie",
+   "aguante": 330,
+   "efecto": "bonus_atajada",
+   "valor": 22,
+   "pose": "arquero_ataja_celeste",
+   "momento": "salto",
+   "recarga_min": 24
+  },
+  {
+   "id": "saque_largo_arq",
+   "puesto": "ARQ",
+   "clase": "ataque",
+   "n": "EL PATADÓN",
+   "grito": "¡AL CIELO!",
+   "sub": "la pone en campo rival de un saque",
+   "aguante": 260,
+   "efecto": "pase_largo",
+   "valor": 1,
+   "pose": "arquero_despeje_celeste",
+   "momento": "horizonte",
+   "recarga_min": 20
+  }
+ ],
+ "_cartas": "D1 · LAS CARTAS POR PUESTO reemplazan al superbloqueo suelto. Cada jugador tiene DOS según donde juega: ATA dos de ataque, VOL una de ataque y una de recuperacion, DEF un megapase y una supersacada, ARQ una atajada especial y un saque largo. Se gastan y vuelven con el tiempo, como las fichas del jugadón. Lo que cambia NO es la economía: es que EL JUGADOR QUE CONTROLAS decide que podés hacer, y por eso elegir a quien le pasás significa algo. recarga_min son MINUTOS DE PARTIDO (no reales). En segúndos no mordia: 150 s son dos momentos y medio y la carta volvia antes de que la extrañaras. momento: qué plano de anime le toca (carga/salto/giro/piernas/horizonte).",
+ "_cartas_arte": "POSES DE PRESTADO (pedido de arte): supersacada_def usa barrida, que es el defensor NARANJA — para tu propio defensor hace falta la versión celeste. megapase_def y pase_filtrado comparten la pose pase. definicion_ata usa volea. El resto (remate, quite, arquero_ataja_celeste, arquero_despeje_celeste) son las que corresponden."
 }
