@@ -198,6 +198,67 @@
     return arriba >= F.y0 - 0.5 && abajo <= F.y1 + 0.5;
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     EL NOMBRE QUE ENTRA SIN PARTIRSE.
+
+     Los nombres de club no entran en el marcador ni en la tabla, y hasta la
+     pasada de coherencia se cortaban con slice(0, 14): salia "CULTURAL
+     ARGEN" y "DEPORTIVO WINI", partidos a la mitad de la palabra, en tres
+     lugares distintos.
+
+     Cortar por caracteres es lo que hace eso. Las reglas de acá salen de
+     como se abrevia de verdad, en este orden:
+
+       1. si entra, no se toca
+       2. se sacan los conectores: "Union de Realico" → "UNION REALICO"
+       3. se abrevian las palabras desde la IZQUIERDA, dejando la ULTIMA
+          entera: "Estrella de General Pico" → "EST. GEN. PICO"
+          (la ultima palabra suele ser el pueblo, que es lo que identifica
+          al club: perderla es peor que abreviar todo lo demas)
+       4. recien al final, si nada alcanzo, se corta — pero por PALABRA
+
+     Es logica pura y por eso se puede probar contra los 45 clubes del juego
+     sin abrir el navegador.
+     ══════════════════════════════════════════════════════════════════════ */
+  var CONECTORES = ["DE", "DEL", "LA", "EL", "LOS", "LAS", "Y", "DA"];
+  function nombreCorto(nombre, tope) {
+    var n = String(nombre == null ? "" : nombre).toUpperCase().trim();
+    tope = tope || 14;
+    if (n.length <= tope) return n;
+
+    var p = n.split(/\s+/).filter(Boolean);
+    if (p.length === 1) return n.slice(0, tope);
+
+    /* 2 · sin conectores */
+    var sinCon = p.filter(function (w) { return CONECTORES.indexOf(w) < 0; });
+    if (!sinCon.length) sinCon = p;
+    if (sinCon.join(" ").length <= tope) return sinCon.join(" ");
+
+    /* 3 · abreviar desde la izquierda, la ultima palabra queda entera */
+    for (var corte = 4; corte >= 3; corte--) {
+      for (var cuantas = 1; cuantas < sinCon.length; cuantas++) {
+        var w = sinCon.map(function (x, k) {
+          if (k >= cuantas) return x;
+          return x.length > corte + 1 ? x.slice(0, corte) + "." : x;
+        });
+        var cand = w.join(" ");
+        if (cand.length <= tope) return cand;
+      }
+    }
+
+    /* 4 · lo ultimo: las palabras enteras que entren, priorizando la ULTIMA
+       (el pueblo). Si ni la ultima sola entra, ahi si se corta. */
+    var ultima = sinCon[sinCon.length - 1];
+    if (ultima.length > tope) return ultima.slice(0, tope);
+    var out = ultima;
+    for (var k = sinCon.length - 2; k >= 0; k--) {
+      var abrev = sinCon[k].length > 4 ? sinCon[k].slice(0, 3) + "." : sinCon[k];
+      if ((abrev + " " + out).length > tope) break;
+      out = abrev + " " + out;
+    }
+    return out;
+  }
+
   return {
     DEF: DEF, paleta: paleta, capasBoton: capasBoton,
     num: num, hex: hex, oscurecer: oscurecer, aclarar: aclarar,
@@ -205,6 +266,7 @@
     esMayusculas: esMayusculas, trackingPx: trackingPx,
     escala: escala, tam: tam,
     franja: franja, yDeOpcion: yDeOpcion, enFranja: enFranja, caben: caben,
+    nombreCorto: nombreCorto, CONECTORES: CONECTORES,
     JERARQUIA: JERARQUIA, nivel: nivel, nivelPx: nivelPx
   };
 });

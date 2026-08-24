@@ -478,7 +478,10 @@
     "impacto_gol_ms": 340,
     "impacto_atajada_ms": 320,
     "impacto_afuera_ms": 420,
-    "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: fracción del viaje donde entra el slow-motion. zoom_viaje: acercamiento en el momento clave. drift_mult: cuánto se curva la pelota al palo apuntado. pelota_escala_*: tamaño de la pelota cerca (base+span) y lejos (base). impacto_*_ms: duración del viaje de la pelota al desenlace."
+    "comentario": "plano_*_ms: duración de cada plano. corte_ms: negro seco entre planos. slowmo_desde: fracción del viaje donde entra el slow-motion. zoom_viaje: acercamiento en el momento clave. drift_mult: cuánto se curva la pelota al palo apuntado. pelota_escala_*: tamaño de la pelota cerca (base+span) y lejos (base). impacto_*_ms: duración del viaje de la pelota al desenlace.",
+    "titulo_y": 452,
+    "sub_y": 492,
+    "_titulo": "PASADA DE COHERENCIA · donde cae el cartel de la viñeta. Estaba en el medio vertical, o sea encima de la cara del jugador: la ilustracion es lo mejor que tiene la escena y el texto la partia al medio. Ahora va sobre la franja de pasto, que esta oscura y no tiene dibujo. Si algun dia el encuadre cambia, se mueve de aca."
   },
   "epica": {
     "_nota": "Tiempos de efectos (ms): shake, flash, red, rebote. Afinables para que el remate emocione.",

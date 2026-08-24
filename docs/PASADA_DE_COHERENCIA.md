@@ -32,6 +32,25 @@ Capturas en `.claude/shots/COH_01` a `COH_08`.
 
 ---
 
+## UNA SEGUNDA CORRECCIÓN MÍA, y es de método
+
+Estuve por reportar que **el subtítulo de las viñetas no aparece nunca** — lo
+medí y daba alpha 0,09 después de 66 cuadros. Era falso, y el error era mío:
+
+> **Phaser calcula el delta de los tweens con el RELOJ REAL, no con el número
+> que le pasás a `loop.step()`.** Un `for` de 60 pasos sincrónicos le da ~0 ms
+> al TweenManager. La lógica avanza (los `delayedCall` disparan, las banderas
+> cambian) pero **todo lo que sea tween se queda quieto y parece roto**.
+
+Dejando pasar tiempo real (un paso cada 16 ms), el subtítulo va de 0 a 1 en
+800 ms, exactamente como está escrito. Se ve en la captura `FIX_remate_ok`.
+
+Lo anoto porque **invalida una clase entera de mediciones mías**, y porque la
+nota vieja de *"los tweens de la intro no avanzan"* puede haber sido el mismo
+artefacto. Quedó en la memoria de referencia con el método correcto.
+
+---
+
 ## LO QUE ESTÁ MAL
 
 Ordenado por qué tan feo se ve.

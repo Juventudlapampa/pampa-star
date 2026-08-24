@@ -550,7 +550,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      de jugar. Tres toques y estás en la cancha. El evento pampeano queda
      arriba, como sabor, y puede cambiar los costos de la semana. */
   vistaSemana(rival, alJugar) {
-    this.pedirMusica("semana");
+    /* PASADA DE COHERENCIA · esto se llamaba en CADA repintado de la vista, o
+       sea 3 o 4 veces al armar la semana. No se escucha (el motor ignora el
+       pedido si ya suena ese tema) pero es una llamada de mas por cuadro y
+       ensucia cualquier medicion de musica. Se pide una sola vez por entrada. */
+    if (this._musicaSemanaPuesta !== true) {
+      this.pedirMusica("semana");
+      this._musicaSemanaPuesta = true;
+    }
     const W = this.scale.width, H = this.scale.height;
     const S = window.PampaSemana, D = this.game.registry.get("semana");
     if (!S || !D) { this.vistaEvento(rival, alJugar); return; }
@@ -662,9 +669,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         .setStrokeStyle(usada ? 4 : (alcanza ? 3 : 1), usada ? 0x7ee08a : 0x0a1f13, alcanza ? 1 : 0.55);
       this.add.text(cx, cy - 18, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
         color: "#0a1f13", align: "center", wordWrap: { width: anchoO - 12 } }).setOrigin(0.5);
-      this.add.text(cx, cy + 14, alcanza ? this.textoEfecto(o) : (sinEnergia ? "sin energía para esto" : "la semana ya está armada"),
-        { fontFamily: window.PF.texto, fontSize: "12px", color: alcanza ? "#365a41" : "#8a3226",
-          fontStyle: alcanza ? "normal" : "italic", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5);
+      /* PASADA DE COHERENCIA · una vez armada la semana, las SIETE tarjetas
+         decian "la semana ya esta armada". Siete veces el mismo renglon en
+         rojo es ruido, y encima tapa el efecto de cada accion, que es lo unico
+         que te sirve mirar mientras decidis si sacar una y poner otra.
+         Ahora: el motivo se dice UNA vez, arriba del grupo (ver el titulo de la
+         lista), y la tarjeta sigue mostrando SU efecto. */
+      this.add.text(cx, cy + 14, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
+        { fontFamily: window.PF.texto, fontSize: "12px",
+          color: sinEnergia ? "#8a3226" : (alcanza ? "#365a41" : "#5a6b60"),
+          fontStyle: sinEnergia ? "italic" : "normal", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5);
       /* se puede repetir una acción: son tres días distintos. La marca dice
          cuántas veces ya la elegiste, para que no haya que contarlas a ojo. */
       const veces = sem.elegidas.filter(e => e === o.id).length;
@@ -923,6 +937,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
   /* cerrar la semana: lo que elegiste se convierte en cómo llegás al domingo */
   cerrarSemana(alJugar) {
+    this._musicaSemanaPuesta = false;   // la proxima semana vuelve a pedir su tema
     const S = window.PampaSemana;
     const cfg = (this.game.registry.get("balance") || {}).semana || {};
     const sem = this.save.semana || S.nuevaSemana(this.save, cfg);
@@ -1012,23 +1027,60 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const idsDiv = Ma.DIVISIONES.map(d => d.id);
     const hayAbajo = idsDiv.indexOf(t.division) > 0;
     const zona = hayAbajo ? T.zonaDescenso(t, cfgP) : [];
-    this.add.text(x0, y0 - 2, "#  EQUIPO              PJ  G  E  P   GF  GC  DG  PTS", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" });
+    /* ══════════════════════════════════════════════════════════════════════
+       LAS COLUMNAS, CADA UNA EN SU X.
+
+       Antes cada fila era UN texto armado con padStart/padEnd, y el
+       comentario de abajo decia "la tabla es monospace". No lo es:
+       window.PF.texto es Pixelify Sans, que es PROPORCIONAL. Rellenar con
+       espacios en una fuente proporcional no alinea nada — medido en la
+       pasada de coherencia, los anchos de fila iban de 201 a 229 px y los
+       numeros no caian debajo de su encabezado.
+
+       Ahora cada columna es su propio texto en una x fija, con origen a la
+       DERECHA en las numericas (que es como se leen los numeros) y a la
+       izquierda en el nombre. Asi alinea con cualquier fuente, hoy y el dia
+       que se cambie.
+       ══════════════════════════════════════════════════════════════════════ */
+    var COLS = [
+      { k: "pj",  n: "PJ",  x: 250 },
+      { k: "g",   n: "G",   x: 288 },
+      { k: "e",   n: "E",   x: 322 },
+      { k: "p",   n: "P",   x: 356 },
+      { k: "gf",  n: "GF",  x: 402 },
+      { k: "gc",  n: "GC",  x: 442 },
+      { k: "dg",  n: "DG",  x: 486 },
+      { k: "pts", n: "PTS", x: 534 }
+    ];
+    var estiloCab = { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" };
+    this.add.text(x0, y0 - 2, "#", estiloCab);
+    this.add.text(x0 + 34, y0 - 2, "EQUIPO", estiloCab);
+    COLS.forEach(function (c) {
+      this.add.text(x0 + c.x, y0 - 2, c.n, estiloCab).setOrigin(1, 0);
+    }, this);
     pos.forEach((f, i) => {
       const mio = f.equipo === t.miClub;
       const enZona = zona.indexOf(i + 1) >= 0;
       const dg = f.gf - f.gc;
-      const linea = String(i + 1).padStart(2) + (enZona ? "▼" : " ") + (mio ? "►" : " ") + f.equipo.slice(0, 17).padEnd(17) + " " +
-        String(f.pj).padStart(2) + " " + String(f.g).padStart(2) + " " + String(f.e).padStart(2) + " " + String(f.p).padStart(2) + "  " +
-        String(f.gf).padStart(3) + " " + String(f.gc).padStart(3) + " " + String(dg).padStart(3) + "  " + String(f.pts).padStart(3);
       const y = y0 + 18 + i * 19;
+      /* el nombre pasa por el mismo recorte que el marcador del partido: por
+         palabra, nunca a la mitad. Antes era slice(0,17) y salia "Deportivo
+         Winifre". */
+      const nomClub = (window.PampaPiel && window.PampaPiel.nombreCorto)
+        ? window.PampaPiel.nombreCorto(f.equipo, 18)
+        : String(f.equipo).toUpperCase().slice(0, 18);
+      const tinta = mio ? "#ffd84d" : (enZona ? "#e3a0a0" : "#f6efdc");
+      const negrita = mio ? "bold" : "normal";
       /* N3 · el escudo del club, generado por código a partir del nombre.
          Chico (15 px) va sin inicial a propósito: a ese tamaño la letra no se
          lee y ensucia — manda la silueta, que es lo que distingue. */
       if (window.PampaEscudosUI && window.PampaEscudos) {
         const esc = window.PampaEscudosUI.deClub(this, f.equipo, pos.map(p => p.equipo), t.division);
-        /* a la IZQUIERDA del número y no al lado del nombre: la tabla es
-           monospace con padStart y meterle un objeto en el medio le rompe la
-           alineación a todas las columnas. Acá el margen ya estaba libre. */
+        /* a la IZQUIERDA del número: ahí el margen ya estaba libre y no le
+           entra en el medio a ninguna columna.
+           (el comentario que estaba acá decía "la tabla es monospace con
+           padStart" — no lo era: PF.texto es Pixelify Sans, proporcional, y
+           esa premisa falsa es la que tenía las columnas desalineadas.) */
         window.PampaEscudosUI.dibujar(this, x0 - 20, y + 6, 15, esc);
       }
       /* la línea de corte: se ve DÓNDE empieza la zona aunque no leas los ▼.
@@ -1036,9 +1088,23 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          arriba-izquierda, así que a media distancia la línea TACHA la fila
          de arriba en vez de separarla. Verificado en captura. */
       if (enZona && zona.indexOf(i) < 0) this.add.rectangle(x0 + 230, y - 4, 470, 1, 0xe3503e).setOrigin(0.5, 0.5).setAlpha(0.7);
-      this.add.text(x0, y, linea, { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: mio ? "bold" : "normal", color: mio ? "#ffd84d" : "#f6efdc" });
+      /* ── la fila, columna por columna ── */
+      const est = { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: negrita, color: tinta };
+      /* el puesto, alineado a la derecha: 1 y 10 caen en la misma raya */
+      this.add.text(x0 + 16, y, String(i + 1), est).setOrigin(1, 0);
+      /* las marcas por FORMA, no por color: ► sos vos, ▼ zona de descenso */
+      this.add.text(x0 + 20, y, (enZona ? "▼" : "") + (mio ? "►" : ""),
+        { fontFamily: window.PF.texto, fontSize: "12px", color: mio ? "#ffd84d" : "#e3503e" });
+      this.add.text(x0 + 34, y, nomClub, est);
+      const vals = { pj: f.pj, g: f.g, e: f.e, p: f.p, gf: f.gf, gc: f.gc, dg: dg, pts: f.pts };
+      COLS.forEach(function (c) {
+        this.add.text(x0 + c.x, y, String(vals[c.k]), est).setOrigin(1, 0);
+      }, this);
     });
-    /* A4 · el aviso: ver venir el golpe ANTES de la última fecha */
+    /* PASADA DE COHERENCIA · quedaban 85 px muertos entre la ultima fila y el
+     renglon de la fecha — un sexto de pantalla vacio. Lo que sigue baja el
+     bloque de la fecha para que respire arriba en vez de dejar un pozo. */
+  /* A4 · el aviso: ver venir el golpe ANTES de la última fecha */
     if (T.enZonaDescenso(t, idsDiv, cfgP)) {
       const faltan = t.fixture.length - t.fecha;
       const abajo = (Ma.DIVISIONES[idsDiv.indexOf(t.division) - 1] || {}).n || "abajo";

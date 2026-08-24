@@ -213,7 +213,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        el rival lleva el nombre del club real y el final ofrece volver con el resultado */
     this._pedido = null;
     try { const r = localStorage.getItem("pampa_pedido_phaser"); if (r) this._pedido = JSON.parse(r); } catch (e) { }
-    if (this._pedido && this._pedido.rival) this.nombreRival = String(this._pedido.rival).toUpperCase().slice(0, 14);
+    if (this._pedido && this._pedido.rival) this.nombreRival = this.nombreCorto(this._pedido.rival);
     /* Feel B5: MEGACOSAS de data (nombres pampeanos, costo, nivel) + nivel de carrera */
     this.MEGA = this.game.registry.get("megacosas") || {
       megatiros: [{ id: "calden", n: "Disparo del Caldén", grito: "¡CALDENAZO!", sub: "la fuerza del árbol eterno", aguante: 300, nivel: 1, mult: 1.3, x_min: 680 }],
@@ -225,7 +225,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        carrera (fecha real del fixture) — pisa al pedido del clásico */
     this._masterPartido = this.game.registry.get("masterPartido") || null;
     if (this._masterPartido && this._masterPartido.rival) {
-      this.nombreRival = String(this._masterPartido.rival).toUpperCase().slice(0, 14);
+      this.nombreRival = this.nombreCorto(this._masterPartido.rival);
       this._pedido = null;   // la carrera Phaser manda; el puente clásico no aplica acá
     }
     /* V6 §8 MODO MASTER: dificultad FIJA por división + perfil de IA por rival
@@ -1733,6 +1733,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   /* V6 §2 R4: la VELOCIDAD (Normal/Rápida) solo acorta animaciones y tiempos muertos */
   msV(x) { return this._velRapida ? Math.round(x * 0.62) : x; }
+  /* ══════════════════════════════════════════════════════════════════════
+     PASADA DE COHERENCIA · EL NOMBRE QUE NO SE PARTE.
+
+     Era .toUpperCase().slice(0, 14) y salia "CULTURAL ARGEN" y "DEPORTIVO
+     WINI" — cortado a la mitad de la palabra, y en TRES lugares: el marcador
+     de arriba, el cartel del resultado y la pantalla de fin.
+
+     Cortar por caracteres es lo que hace eso. Ahora se corta por PALABRA: si
+     no entra entero, se abrevia la primera ("CULT. ARGENTINO") y si aun asi no
+     entra, se queda con las palabras que entren. Nunca queda una palabra
+     partida al medio.
+     ══════════════════════════════════════════════════════════════════════ */
+  /* el recorte de nombres vive en logic/piel.js: lo usa el marcador de acá y
+     tambien la tabla del master, que tenia el mismo problema. */
+  nombreCorto(nombre, tope) {
+    var P = window.PampaPiel;
+    if (P && P.nombreCorto) return P.nombreCorto(nombre, tope || 14);
+    return String(nombre || "").toUpperCase().slice(0, tope || 14);
+  }
+
+
   /* V6 §2 R4: EL TEMPO se elige ANTES de cada partido — tres presets, una perilla.
      Recuerda la última elección (resaltada); teclas 1/2/3 en la compu. */
   menuTempoSiCorresponde() {
@@ -3006,8 +3027,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.SFX && this.SFX.afuera();
     return { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     PASADA DE COHERENCIA · EL CARTEL NO LE TAPA LA CARA A LA FIGURA.
+
+     El titulo caia en el medio vertical de la escena, que es justo donde esta
+     la cara y el pecho del jugador — la ilustracion es lo mejor que tiene la
+     viñeta y el texto la partia al medio (se ve en COH_05).
+
+     Baja a la franja de pasto, que ya esta oscura, no tiene dibujo y es donde
+     el ojo va despues de mirar la figura. La posicion sale de balance.cine
+     para poder moverla sin tocar codigo.
+     ══════════════════════════════════════════════════════════════════════ */
   punch(big, sub, colorNum) {
     const hex = "#" + colorNum.toString(16).padStart(6, "0");
+    const C = this.BAL.cine || {};
+    if (C.titulo_y != null) this.cineBig.y = C.titulo_y;
+    if (C.sub_y != null) this.cineSub.y = C.sub_y;
     this.cineBig.setText(big).setColor(hex).setAlpha(1).setScale(0.2).setAngle(-6);
     this.tweens.killTweensOf(this.cineBig);
     /* B2 · el cartel entra con rebote calibrado desde balance.oficio, no con
@@ -3232,7 +3267,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       rival: rival ? { j: rival, esRival: true, anim: "gambeta" } : null,
       siluetas: nDefs > 0 ? nDefs : null,
       gana: true, sfx: "kick",
-      titulo: "¡LE PEGA " + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase()) + "!",
+      /* "¡LE PEGA VOS!" estaba mal dicho: con un compañero queda bien ("¡LE
+         PEGA RAMIRO!") pero con vos la persona del verbo cambia. */
+      titulo: j.esVos ? "¡LE PEGÁS!" : "¡LE PEGA " + (j.nombre || "").toUpperCase() + "!",
       sub: auto.lectura.dist < 220 ? "de frente al arco, sin pensarlo" : (nDefs ? "entre " + nDefs + " y desde lejos" : "desde afuera del área"),
       alFinal: () => {
         this.SFX && this.SFX.kick();
@@ -3914,6 +3951,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   finDelPartido() {
     const st = this.st;
     this.estado = "FINAL";     // estado propio: ningún delayedCall de resolución lo puede barrer
+    /* PASADA DE COHERENCIA · el botón de ACCIÓN seguía vivo despues del pitazo,
+       con su "ESPACIO = ACCIÓN", en la misma pantalla que dice GANASTE. El
+       partido termino: no hay accion que hacer. */
+    if (this._btnPulso && this._btnPulso.pause) this._btnPulso.pause();
+    if (this._btnAccionCont && this._btnAccionCont.setVisible) this._btnAccionCont.setVisible(false);
+    if (this._hintEspacio && this._hintEspacio.setVisible) this._hintEspacio.setVisible(false);
+    if (this._btnCambiar && this._btnCambiar.setVisible) this._btnCambiar.setVisible(false);
+    if (this._btnEnvion && this._btnEnvion.setVisible) this._btnEnvion.setVisible(false);
     this.cerrarMusica();       // P5: motivo de cierre y traba — no se reenciende
     if (this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(false);
     this.SFX && this.SFX.whistle();
