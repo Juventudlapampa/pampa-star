@@ -277,7 +277,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            puede simular en node. duelo y arranque/final entran al poder de tus
            acciones y de las cuatro vias de remate; recuperacion multiplica tu
            regeneracion; keeper va al poder de tu arquero. */
-        this._modVida = M;
+        /* `this._modVida` ya no existe: era la copia de escena que solo leia
+           tiroPorComandos. Al mover el efecto a la logica pura se quedo escrita
+           y sin lector — o sea, el mismo patron, esta vez creado por el propio
+           arreglo. Lo cazo el guardian de desconectados.test.js. */
         this.st.modVida = M;
         this._vidaFicha = md.frase || "";
       }
