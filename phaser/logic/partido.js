@@ -189,7 +189,7 @@
       st.mios.forEach(function (j, i) {
         var conduce = st.posesion === "mia" && i === st.ctrl;
         var marca = st.posesion === "rival" && i === st.ctrl;
-        if (!conduce && !marca) j.aguante = clamp(j.aguante + regen * dt, 0, bal.aguante.max);
+        if (!conduce && !marca) j.aguante = clamp(j.aguante + regen * multVida(st, "recuperacion") * dt, 0, bal.aguante.max);
       });
       st.aguanteRival = clamp(st.aguanteRival + regen * dt, 0, bal.aguante.max);
     }
@@ -365,7 +365,7 @@
     var porMin = st.bal.aguante.recuperacion_por_minuto_salto || 0;
     if (porMin) {
       st.mios.forEach(function (j, i) {
-        if (!(st.posesion === "mia" && i === st.ctrl)) j.aguante = clamp(j.aguante + porMin * salto, 0, st.bal.aguante.max);
+        if (!(st.posesion === "mia" && i === st.ctrl)) j.aguante = clamp(j.aguante + porMin * multVida(st, "recuperacion") * salto, 0, st.bal.aguante.max);
       });
       st.aguanteRival = clamp(st.aguanteRival + porMin * salto, 0, st.bal.aguante.max);
     }
@@ -384,7 +384,7 @@
        dibujo: aRender, aSim y el radar leen esto y espejan la cancha. */
     st.ladoVisual = 2;
     var rec = st.bal.aguante.max * st.bal.aguante.recuperacion_entretiempo_frac;
-    st.mios.forEach(function (j) { j.aguante = clamp(j.aguante + rec, 0, st.bal.aguante.max); });
+    st.mios.forEach(function (j) { j.aguante = clamp(j.aguante + rec * multVida(st, "recuperacion"), 0, st.bal.aguante.max); });
     st.aguanteRival = clamp(st.aguanteRival + rec, 0, st.bal.aguante.max);
     kickoff(st, "rival");   // el segundo tiempo lo saca el rival
   }
@@ -409,6 +409,54 @@
   function statCtrl(st, k) { return st.mios[st.ctrl].stats[k] || 45; }
   function bonusAguante(st) { var frac = st.mios[st.ctrl].aguante / st.bal.aguante.max; return (frac - 0.5) * 8; }   // ±4, en cualquier escala
 
+  /* ══════════════════════════════════════════════════════════════════════
+     EL MODIFICADOR DE LA FECHA · lo que elegiste en el evento de la semana.
+
+     El vocabulario de logic/vida.js TOPES declara doce efectos y los eventos
+     los usan. Cinco (tiro, pase, gambeta, fisico, caracter) los aplicaba la
+     escena sobre tus stats, y dos más (aguante, envion) sobre el estado. Los
+     otros CINCO no los leía nadie:
+
+       · duelo         se sumaba a mano en UNA sola de las cuatro vías de
+                       remate (tiroPorComandos), así que el mismo evento pegaba
+                       o no según por dónde hubieras entrado al tiro — y no
+                       tocaba la gambeta, el uno-dos, el quite ni el bloqueo,
+                       aunque el _efectos lo describe como "bonus al poder de
+                       TUS acciones"
+       · arranque      "bonus en el 1er tiempo, se apaga en el 2º" · 10 opciones
+       · final         "bonus en el 2º tiempo" · 6 opciones
+       · recuperacion  "multiplicador de regeneración" · 3 opciones
+       · keeper        la escena lo escribía en stats.quite, un campo que no
+                       existe en el esquema y que NADIE lee para el arquero (su
+                       poder sale de fisico*0.7 + caracter*0.4)
+
+     match.js:259 tenía el comentario "duelo/arranque/final/recuperación se leen
+     en juego" al lado de la línea que los guardaba. No se leían: el grep de
+     _modVida daba dos líneas, la que guardaba y una que usaba `.duelo`.
+
+     Ahora el modificador viaja en `st.modVida` y lo lee la LÓGICA PURA, que es
+     lo único que se puede simular en node antes de tocar el balance.
+     ══════════════════════════════════════════════════════════════════════ */
+  function bonusVida(st, clave) {
+    var m = st && st.modVida, v = m && m[clave];
+    return typeof v === "number" ? v : 0;
+  }
+  /* recuperacion es MULTIPLICADOR: sin evento vale 1, no 0 */
+  function multVida(st, clave) {
+    var m = st && st.modVida, v = m && m[clave];
+    return (typeof v === "number" && v > 0) ? v : 1;
+  }
+  /* el bonus al poder de TUS acciones: `duelo` pega siempre, y arranque/final
+     según el tiempo — salir a matarlos los primeros veinte, o guardarse */
+  function bonusAccion(st) {
+    return bonusVida(st, "duelo") + (st.tiempo === 2 ? bonusVida(st, "final") : bonusVida(st, "arranque"));
+  }
+  function conBonusVida(st, lista) {
+    var b = bonusAccion(st);
+    if (b) for (var i = 0; i < lista.length; i++) lista[i].poder += b;
+    return lista;
+  }
+
   function accionesAtaque(st) {
     var A = st.bal.aguante, puedeT = puedeTirar(st), rend = rendido(st);
     var acc = [
@@ -418,15 +466,15 @@
       { id: "tiro", n: "TIRO", ico: "🎯", costo: A.costo_tiro, poder: statCtrl(st, "tiro"), bloqueada: rend || !puedeT, motivo: !puedeT ? "LEJOS DEL ARCO" : (rend ? "SIN AGUANTE" : null) }
     ];
     if (rend) acc.forEach(function (a) { if (a.id !== "pase") { a.bloqueada = true; a.motivo = "SIN AGUANTE"; } });
-    return acc;
+    return conBonusVida(st, acc);
   }
   function accionesDefensa(st) {
     var A = st.bal.aguante, rend = rendido(st);
-    return [
+    return conBonusVida(st, [
       { id: "quite", n: "QUITE", ico: "🦵", costo: A.costo_quite, poder: statCtrl(st, "fisico"), bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null },
       { id: "corte", n: "CORTE DE PASE", ico: "✂️", costo: A.costo_corte, poder: statCtrl(st, "velocidad"), bloqueada: false },
       { id: "bloqueo", n: "BLOQUEO", ico: "🧱", costo: A.costo_bloqueo, poder: statCtrl(st, "fisico") * 0.55 + statCtrl(st, "aereo") * 0.45, bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null }
-    ];
+    ]);
   }
   function hayCompaCerca(st) {
     var c = st.mios[st.ctrl];
@@ -774,6 +822,10 @@
     }
     else if (mega) poder *= (mega.mult || 1.3);
     else if (especial) poder *= C.mult;
+    /* el bonus de la fecha, para las CUATRO vias de remate. Antes se sumaba a
+       mano en tiroPorComandos y solo ahi: el mismo evento pegaba o no segun por
+       donde hubieras entrado al tiro. */
+    poder += bonusAccion(st);
     gastar(st, "mio", mega ? (mega.aguante || st.bal.aguante.costo_calden) : (especial ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro));
     saltoReloj(st, rng);
     return { shotPower: poder, keeperSkill: st.rivalKeeperSkill + bonusArq, arqueroVendido: !!vendido,
@@ -879,7 +931,12 @@
   /* ---------- el remate RIVAL contra tu arquero ---------- */
   function opcionesArquero(st) {
     var arq = st.mios.find(function (j) { return j.pos === "ARQ"; }) || { stats: {} };
-    var base = (arq.stats.fisico || 50) * 0.7 + (arq.stats.caracter || 50) * 0.4;
+    /* el efecto `keeper` del evento entra ACA. Antes la escena lo escribia en
+       arq.stats.quite, un campo que no existe en el esquema (pase, tiro,
+       gambeta, velocidad, resistencia, fisico, aereo, caracter) y que nadie lee
+       para el arquero: los dos eventos que premian cuidarlo no cambiaban una
+       sola atajada. */
+    var base = (arq.stats.fisico || 50) * 0.7 + (arq.stats.caracter || 50) * 0.4 + bonusVida(st, "keeper");
     return [
       { id: "atajar", n: "ATAJAR", ico: "🧤", poder: base, riesgo: "retiene, más difícil" },
       { id: "despejar", n: "DESPEJAR", ico: "👊", poder: base + 8, riesgo: "más seguro · pelota dividida" }
@@ -925,6 +982,7 @@
 
   return {
     crearPartido: crearPartido, tick: tick, kickoff: kickoff,
+    bonusVida: bonusVida, multVida: multVida, bonusAccion: bonusAccion,
     saltoReloj: saltoReloj, chequearTiempo: chequearTiempo, entretiempo: entretiempo,
     accionesAtaque: accionesAtaque, accionesDefensa: accionesDefensa,
     receptorAlVacio: receptorAlVacio, resolverPaseAlVacio: resolverPaseAlVacio, esperarDefensa: esperarDefensa,

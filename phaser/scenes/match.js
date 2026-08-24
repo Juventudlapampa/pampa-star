@@ -266,11 +266,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const M = md.mod, A = this.BAL.aguante;
         if (M.aguante) this.st.mios.forEach(j => { j.aguante = Phaser.Math.Clamp(j.aguante + M.aguante, 60, A.max); });
         if (M.envion) this.st.envion = Phaser.Math.Clamp((this.st.envion || 0) + M.envion, 0, (this.BAL.envion && this.BAL.envion.max) || 100);
-        if (M.keeper) this.st.mios.forEach(j => { if (j.pos === "ARQ" && j.stats) j.stats.quite = Phaser.Math.Clamp((j.stats.quite || 50) + M.keeper, 20, 99); });
+        /* el efecto keeper escribia en stats.quite, un campo que NO EXISTE en
+           el esquema de stats y que nadie lee para el arquero (su poder sale de
+           fisico*0.7 + caracter*0.4). Ahora viaja en st.modVida y lo suma
+           opcionesArquero, que es quien decide la atajada. */
         ["tiro", "pase", "gambeta", "fisico", "caracter"].forEach(k => {
           if (M[k] && vos && vos.stats && vos.stats[k] != null) vos.stats[k] = Phaser.Math.Clamp(vos.stats[k] + M[k], 20, 99);
         });
-        this._modVida = M;   // duelo/arranque/final/recuperación se leen en juego
+        /* el modificador VIAJA POR EL ESTADO: asi lo lee la logica pura y se
+           puede simular en node. duelo y arranque/final entran al poder de tus
+           acciones y de las cuatro vias de remate; recuperacion multiplica tu
+           regeneracion; keeper va al poder de tu arquero. */
+        this._modVida = M;
+        this.st.modVida = M;
         this._vidaFicha = md.frase || "";
       }
       /* ============ LA VIDA v2 · CÓMO LLEGÁS DE LA SEMANA ============
@@ -3281,7 +3289,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     const prep = P.prepararRemate(st, null);
     this.res = window.PampaDuel.resolveShot({
-      shotPower: prep.shotPower + auto.ajustePoder + (this._modVida && this._modVida.duelo || 0),
+      /* el `duelo` ya no se suma aca: entra en prepararRemate, que es la via
+         unica de las cuatro pantallas de tiro (antes solo pegaba en esta) */
+      shotPower: prep.shotPower + auto.ajustePoder,
       keeperSkill: prep.keeperSkill,
       zone: auto.zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
