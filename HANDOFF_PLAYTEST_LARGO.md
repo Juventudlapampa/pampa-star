@@ -12,6 +12,75 @@ b6b3bd1  BLOQUE 1 · la musica vieja era UN bug: la puerta unica
 
 ---
 
+## 0 · ⚠ ADVERTENCIA DE MÉTODO — LEER ANTES DE MEDIR NADA
+
+**Esto invalida una clase entera de mediciones. Va primero porque el que venga
+después va a caer en la misma trampa si no lo lee.**
+
+### El método que NO sirve
+
+```js
+for (let i = 0; i < 60; i++) { t += 16.7; game.loop.step(t); }   // ✗
+```
+
+**Phaser calcula el delta de los tweens con el RELOJ REAL, no con el número que
+le pasás a `loop.step()`.** Un `for` sincrónico de 60 pasos le da **~0 ms** al
+TweenManager.
+
+Lo peligroso es que **funciona a medias**, y eso es lo que engaña:
+
+| esto SÍ avanza | esto NO |
+|---|---|
+| `delayedCall` y timers | cualquier tween |
+| banderas y estado de escena | fundidos, escalas, rebotes |
+| la simulación del partido | efectos de cámara |
+| `scene.start` / `create` | **todo lo que se ve moverse** |
+
+Así que la lógica corre, el estado cambia, y **lo animado se queda quieto y
+parece roto**.
+
+### El método que SÍ sirve
+
+```js
+const t0 = Date.now();
+while (Date.now() - t0 < ms) { await new Promise(r => setTimeout(r, 16)); loop.step(1); }
+```
+
+Un paso por cada ~16 ms de **tiempo real**. Y antes de capturar, **esperar la
+condición**, nunca un número fijo de cuadros:
+
+```js
+while (!listo && Date.now() - t0 < 6000) { await esperar(16); loop.step(1); listo = obj.alpha > 0.95; }
+```
+
+### Lo que ya me costó
+
+- **Estuve por reportar como roto el subtítulo de las viñetas.** Daba alpha 0,09
+  después de 66 cuadros. Con tiempo real va de 0 a 1 en 800 ms, exactamente como
+  está escrito.
+- **Y al revés, y es peor:** el método malo *escondía* defectos. Cuando
+  re-verifiqué la animación de la semana (D3) con tiempo real aparecieron dos
+  reales que la medición mala no podía mostrar — la figura se salía del marco
+  por el rebote, y el texto quedaba tachado por las líneas del escenario. Los dos
+  arreglados.
+- **La nota vieja de "los tweens de la intro no avanzan"** puede haber sido este
+  mismo artefacto y no un bug. Está sin re-verificar.
+
+### Lo que se re-verificó con el método bueno
+
+| qué | resultado |
+|---|---|
+| el subtítulo de las viñetas | **anda** — era mi medición |
+| D3 · la animación de la semana | **dos defectos reales**, arreglados |
+| el cursor y su viaje | anda — verificado con tiempo real desde el principio |
+| la escena del remate completa | anda (`FIX_remate_ok.png`) |
+
+Lo que **no** hace falta re-verificar: todo lo que medí contando llamadas,
+banderas o estado (los caminos del remate, los momentos de música, las cartas
+por puesto, el pasillo). Eso el método malo lo mide bien.
+
+---
+
 ## 1 · LO QUE HICE Y VI FUNCIONANDO
 
 Todo lo de esta lista lo verifiqué en pantalla, no solo en test.

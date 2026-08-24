@@ -186,3 +186,29 @@ De once cosas, **una es un bug de datos que cambia con qué club jugás** (la 1)
 son cosas que quedaron a medio terminar cuando el partido cambia de estado.
 
 Ninguna rompe el juego. Todas se notan.
+
+---
+
+## ESTADO AL CIERRE
+
+| # | qué | estado |
+|---|---|---|
+| 1 | tu club y un rival del mismo pueblo | **queda anotado** — se resuelve con criterio de diseño, no con parche |
+| 2 | las columnas de la tabla no se alinean | arreglado |
+| 3 | el nombre del rival se corta a mitad de palabra | arreglado (`piel.nombreCorto`, probado contra los 45 clubes) |
+| 4 | "¡LE PEGA VOS!" | arreglado |
+| 5 | el tempo se pregunta antes de cada partido | arreglado a medias: se acuerda y el cursor arranca ahí |
+| 6 | el panel muestra al rival en la pantalla de fin | pendiente |
+| 7 | el botón ACCIÓN vivo después del pitazo | arreglado |
+| 8 | las siete tarjetas repiten el mismo renglón | arreglado |
+| 9 | la semana pide su música en cada repintado | arreglado |
+| 10 | el cartel del remate tapa la cara | arreglado |
+| 11 | 85 px muertos en la tabla | pendiente |
+
+Y dos que aparecieron **al re-verificar con el método bueno**, que la medición
+mala no podía mostrar:
+
+- una escuadra del cursor quedaba dibujada encima de la viñeta siguiente (el
+  foco se limpiaba en el shutdown de la escena, pero un menú se cierra sin
+  cambiar de escena)
+- los dos textos de ayuda del pasillo se pisaban entre sí, ilegibles los dos

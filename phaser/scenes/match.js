@@ -1798,7 +1798,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const y = Math.round(window.PampaPiel.yDeOpcion(i, PRESETS.length + 1, 52, this.BAL.piel));
       const r = this.add.rectangle(480, y, 500, 52, p.k === ult.preset ? 0xffd84d : 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       const t = this.add.text(480, y - 9, (i + 1) + " · " + p.n + " (" + T.presets[p.k] + "' por momento)", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      const d = this.add.text(480, y + 11, p.d, { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
+      const esUltimo = p.k === ult.preset;
+      const d = this.add.text(480, y + 11, p.d + (esUltimo ? "  ·  ✔ el de la vez pasada" : ""),
+        { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
       this.menuLayer.add([r, t, d]);
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; elegir(p.k); });
       _rects.push({ obj: r, cb: () => elegir(p.k) });
@@ -1832,8 +1834,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        lo que la mayoría va a elegir ahorra dos toques por partido, y son 18
        partidos por temporada.
        ══════════════════════════════════════════════════════════════════════ */
-    const iRec = PRESETS.findIndex(p => p.k === "intermedio");
-    this.grupoFoco(_rects, { inicial: iRec >= 0 ? iRec : 0 });
+    /* EL FOCO ARRANCA EN EL QUE ELEGISTE LA VEZ PASADA.
+       El preset se guardaba en localStorage y se leia (ult.preset) — y despues
+       no lo usaba nadie: la pantalla preguntaba igual y arrancaba siempre en el
+       mismo lugar. Otro dato escrito, leido y sin conectar.
+       En una temporada de 18 fechas son 18 veces la misma pregunta; que al
+       menos arranque donde vos ya dijiste que querias. */
+    let iInicial = PRESETS.findIndex(p => p.k === ult.preset);
+    if (iInicial < 0) iInicial = PRESETS.findIndex(p => p.k === "intermedio");
+    this.grupoFoco(_rects, { inicial: iInicial >= 0 ? iInicial : 0 });
     const Sui = window.PampaSFX; if (Sui && Sui.ui) Sui.ui("abrir");
     this.selloMenu();
   }
@@ -1917,6 +1926,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   limpiarMenu() {
     /* B6 · se resolvió: la cámara suelta el acercamiento */
     if (window.PampaFeel) window.PampaFeel.soltar(this);
+    /* EL CURSOR SE VA CON EL MENÚ. Se le colgó al shutdown de la escena, pero
+       un menú se cierra sin cambiar de escena: quedaba una escuadra dibujada
+       encima de la viñeta siguiente. Lo vi recién al capturar con tiempo real —
+       midiendo a los pisotones no aparecía, porque el cursor se dibuja de una y
+       lo que faltaba era ver la pantalla DESPUÉS. */
+    if (this.cerrarFoco) this.cerrarFoco();
+    if (window.PampaSFX && window.PampaSFX.ui) window.PampaSFX.ui("cerrar");
     this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
   /* FEEL B1 · EL BEAT DE TENSIÓN: el cruce se anuncia 600-900ms ANTES del menú —
      zoom leve, riser, y el que entra al duelo aparece deslizándose al plano */

@@ -217,7 +217,11 @@
       zona.on("pointerdown", function (pp) { self._jgMini.target = pp.x; });
       zona.on("pointermove", function (pp) { if (pp.isDown && self._jgMini) self._jgMini.target = pp.x; });
       this._jgMini.cursores = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
-      var ayuda = this.add.text(W / 2, H - 20, "esquivá con el DEDO o con las FLECHAS · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
+      /* H-46 y no H-20: en H-20 se cruzaba con cineLabel, que vive en (16, H-24)
+         y en el jugadon lleva un titulo largo ("🌟 GAMBETA-TIRO · encará,
+         esquivalos y definí"). Los dos textos de ayuda encimados, ilegibles los
+         dos. Se ve en la captura REV_pasillo_lectura. */
+      var ayuda = this.add.text(W / 2, H - 46, "esquivá con el DEDO o con las FLECHAS · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 8, y: 2 } }).setOrigin(0.5).setAlpha(0.9);
       this.cineContent.add(ayuda);
       /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */
       this.pedirMusica("jugadon");
