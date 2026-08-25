@@ -322,7 +322,8 @@
         arco: { x: 0, y: st.H / 2 },                       // mi arco vive en x=0 de la simulación
         defensores: st.mios.filter(function (j) { return j.pos !== "ARQ"; })
           .map(function (j) { return { x: j.x, y: j.y, nombre: j.nombre, esVos: j.esVos, aguante: j.aguante }; }),
-        arquero: { nivel: (arqM && arqM.stats && arqM.stats.keeper) || 55, aguante: arqM ? arqM.aguante : aguanteMax },
+        /* idem: el nivel del arquero se deriva, no sale de un campo inexistente */
+        arquero: { nivel: window.PampaPartido.nivelArqueroDe(arqM && arqM.stats), aguante: arqM ? arqM.aguante : aguanteMax },
         aguanteMax: aguanteMax,
         cfg: this.BAL.definicion || {}
       });

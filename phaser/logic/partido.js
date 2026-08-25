@@ -405,6 +405,56 @@
   }
   function rendido(st) { return st.mios[st.ctrl].aguante < st.bal.aguante.umbral_rendido; }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     STATS DERIVADAS · las dos que el juego leía y NINGÚN jugador tiene.
+
+     El esquema de stats son OCHO claves: pase, tiro, gambeta, velocidad,
+     resistencia, fisico, aereo, caracter. Verificado sobre los 50 jugadores de
+     data/roster_pampeano.json: 0 tienen `quite` y 0 tienen `keeper`.
+
+     Y sin embargo el juego las leía:
+       · `quite`  lo pide el JUGADÓN —la función estrella de la V8— en
+         elegirCierre y resolverMovida. Con el `|| 55` cobrándose el 100% de las
+         veces, los pesos de cierre eran [1, 1, 1.1, 0.9167] SIEMPRE, y el
+         comentario que dice "quite alto → más firme y se_tira" describía algo
+         que no pasaba. Un central del Mundial y uno de Primera B cerraban igual.
+       · `keeper` lo piden las tres pantallas donde el nivel de TU arquero
+         decide: la definición ofensiva, la defensiva y TE REMATAN.
+
+     Se DERIVAN de lo que el jugador sí tiene, en vez de agregarle claves a los
+     50 registros. Dos razones: no hay que tocar datos, y —la que importa—
+     PampaMaster.aplicar() multiplica las claves que YA existen, así que al
+     derivarlas de fisico/velocidad/caracter escalan solas con la división. Un
+     rival del Mundial cierra distinto que uno de Primera B sin una línea más.
+
+     CALIBRADO para no mover lo que ya se jugó: quite da un promedio de 56,8
+     sobre los 50 contra el 55 fijo de hoy (rango 49 a 66). Medido en 100.000
+     gambetas, ganar el uno-contra-uno pasa de 40,2% a: Primera B 40,3%,
+     Primera A 40,2%, Regional 39,9%, Nacional 39,9%, Mundial 34,4%. O sea que
+     las divisiones de abajo quedan como estaban y el Mundial se pone duro, que
+     es para lo que existe la escalera.
+     ══════════════════════════════════════════════════════════════════════ */
+  function quiteDe(stats) {
+    var s = stats || {};
+    if (s.quite != null) return s.quite;          /* si algún día existe, manda el dato */
+    return (s.fisico || 50) * 0.6 + (s.velocidad || 50) * 0.4;
+  }
+  /* el nivel del ARQUERO, en la misma escala 1-99 en la que se lo compara.
+     Sale de lo mismo que ya usa opcionesArquero para resolver la atajada
+     (fisico y caracter), pero con los pesos SUMANDO 1 y no 1,1, y esa
+     diferencia no es cosmética: es lo que lo deja neutral.
+
+     Medido sobre los 50 jugadores: con 0,7/0,4 el promedio da 61,4 contra el 55
+     fijo de hoy, y eso solo ya bajaba los goles en contra de 39,4% a 34,3% —
+     cinco puntos de regalo por un cambio que era de VARIEDAD, no de dificultad.
+     Con 0,6/0,4 el promedio da 55,9: tu arquero pasa a valer entre 48 y 66
+     según quién te tocó, y el promedio queda donde estaba. */
+  function nivelArqueroDe(stats) {
+    var s = stats || {};
+    if (s.keeper != null) return s.keeper;
+    return (s.fisico || 50) * 0.6 + (s.caracter || 50) * 0.4;
+  }
+
   /* ---------- menús de encuentro (por rol) ---------- */
   function statCtrl(st, k) { return st.mios[st.ctrl].stats[k] || 45; }
   function bonusAguante(st) { var frac = st.mios[st.ctrl].aguante / st.bal.aguante.max; return (frac - 0.5) * 8; }   // ±4, en cualquier escala
@@ -983,6 +1033,7 @@
   return {
     crearPartido: crearPartido, tick: tick, kickoff: kickoff,
     bonusVida: bonusVida, multVida: multVida, bonusAccion: bonusAccion,
+    quiteDe: quiteDe, nivelArqueroDe: nivelArqueroDe,
     saltoReloj: saltoReloj, chequearTiempo: chequearTiempo, entretiempo: entretiempo,
     accionesAtaque: accionesAtaque, accionesDefensa: accionesDefensa,
     receptorAlVacio: receptorAlVacio, resolverPaseAlVacio: resolverPaseAlVacio, esperarDefensa: esperarDefensa,

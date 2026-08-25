@@ -332,7 +332,10 @@
     zonaDelArquero() {
       var D = window.PampaDefinicion, st = this.st;
       var arq = st.mios.find(function (x) { return x.pos === "ARQ"; });
-      var nivel = ((arq && arq.stats && arq.stats.keeper) || 55) / 100;
+      /* `keeper` NO EXISTE en el esquema: los 50 jugadores tienen ocho claves y
+         ninguna es esa, asi que el || 55 se cobraba SIEMPRE y tu arquero era el
+         mismo maniqui en toda la carrera. Se deriva (logic/partido.nivelArqueroDe). */
+      var nivel = window.PampaPartido.nivelArqueroDe(arq && arq.stats) / 100;
       var pref = this._def.plan === "achicar"
         ? ["bajo_centro", "bajo_izq", "bajo_der", "alto_centro"]
         : ["alto_centro", "alto_izq", "alto_der", "bajo_centro"];
@@ -547,7 +550,7 @@
          de `st.mios[st.ctrl]`, o sea del jugador de campo que estás
          controlando: tu arquero se cansaba de correr vos. */
       var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
-      var nivelArq = ((arqM && arqM.stats && arqM.stats.keeper) || 55) / 100;
+      var nivelArq = window.PampaPartido.nivelArqueroDe(arqM && arqM.stats) / 100;
       var fatiga = (arqM ? arqM.aguante : this.BAL.aguante.max) / this.BAL.aguante.max;
       var off = D.desvioDeEjecucion(nivelArq, fatiga, DL);
       var tim = D.efectoTiming(off, DL.zona_timing || 0.2, DL);

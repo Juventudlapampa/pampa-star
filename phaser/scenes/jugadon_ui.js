@@ -132,12 +132,19 @@
         if (defs.length >= cuantos || i === rivalIdx || r.pos === "ARQ") return;
         if (Math.hypot(r.x - yo.x, r.y - yo.y) < 260) defs.push(r);
       });
-      while (defs.length < cuantos) defs.push({ nombre: "RIVAL", stats: { quite: 55 } });
+      /* el relleno tambien se deriva, para que un hueco no sea mas duro ni mas
+         blando que un rival de verdad */
+      while (defs.length < cuantos) defs.push({ nombre: "RIVAL", stats: {} });
       this._jgLogica = J.crearGambeta({
         semilla: (st.golesMio + 1) * 7919 + Math.floor(st.minuto * 100) + st.ctrl,
         marcadores: defs.length,
         atacante: { gambeta: (yo.stats && yo.stats.gambeta) || 55 },
-        defensores: defs.map(function (d) { return { quite: (d.stats && d.stats.quite) || 55, nombre: d.nombre }; })
+        /* `quite` NO EXISTE en el esquema de stats: los 50 jugadores tienen ocho
+           claves y ninguna es esa, asi que el || 55 se cobraba el 100% de las
+           veces y TODOS los defensores del jugadon eran identicos. Se deriva de
+           fisico y velocidad (logic/partido.quiteDe), que ademas escalan solas
+           con la division por PampaMaster.aplicar. */
+        defensores: defs.map(function (d) { return { quite: window.PampaPartido.quiteDe(d.stats), nombre: d.nombre }; })
       });
       this._jgMega = opts.mega || null;
       this.jugadonAbrir(opts.mega
@@ -526,7 +533,8 @@
       var rival = st.rivales[st.portadorRival] || { nombre: "RIVAL", stats: {} };
       this._jgLogica = J.crearQuite({
         semilla: (st.golesRival + 1) * 6271 + Math.floor(st.minuto * 100),
-        defensor: { quite: (st.mios[st.ctrl].stats && st.mios[st.ctrl].stats.quite) || 55 },
+        /* y TU quite cuando el que marca sos vos: mismo problema, misma cuenta */
+        defensor: { quite: window.PampaPartido.quiteDe(st.mios[st.ctrl].stats) },
         rival: { gambeta: (rival.stats && rival.stats.gambeta) || 55, nombre: rival.nombre }
       });
       this.jugadonAbrir("🌟 SÚPER QUITE · leé su movida y cerrale el camino");
