@@ -3272,6 +3272,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       defensores: defs
     });
     const zona = Object.assign({}, auto.zona);
+    /* riesgoFuera se calculaba y no lo consumia NADIE: la punteria, el aguante
+       y los rivales en el camino cambiaban a donde va la pelota pero no la
+       chance de que se fuera afuera. Entra con multiplicador (logic/tiro). */
+    zona.fuera = window.PampaTiro.fueraConRiesgo(auto, this.BAL.tiro);
     if (penal) { zona.bonus -= (penal.bonus || 0); zona.fuera += (penal.fuera || 0); }
     if (mega) zona.bonus += ((this.BAL.epica || {}).mega_bonus_zona || 6);
     return {
@@ -3372,7 +3376,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          unica de las cuatro pantallas de tiro (antes solo pegaba en esta) */
       shotPower: prep.shotPower + auto.ajustePoder,
       keeperSkill: prep.keeperSkill,
-      zone: auto.zona,
+      /* idem: el riesgo de irse afuera entra por la via unica */
+      zone: Object.assign({}, auto.zona, { fuera: window.PampaTiro.fueraConRiesgo(auto, this.BAL.tiro) }),
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
       /* G1: la distancia pesa acá, despues del tope del duelo */
       distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro,

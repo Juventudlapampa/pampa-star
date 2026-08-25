@@ -112,5 +112,37 @@
     };
   }
 
-  return { clamp: clamp, evaluarEjecucion: evaluarEjecucion, tiroAuto: tiroAuto };
+  /* ══════════════════════════════════════════════════════════════════════
+     EL RIESGO QUE SE CALCULABA Y NO CONSUMÍA NADIE.
+
+     tiroAuto devuelve {zona, ajustePoder, riesgoFuera, lectura} y los tres
+     consumidores de match.js leían zona, ajustePoder y lectura. `riesgoFuera`
+     —el único que mete la puntería y a los defensores en la chance de tirarla
+     afuera— no lo leía NADIE: quien decide si se va afuera es duel.resolveShot
+     con `zone.fuera`, que son los cuatro números cableados de tiroAuto (0.10,
+     0.07, 0.04, 0.02), sin puntería ni rivales adentro.
+
+     O sea que el stat de tiro, el aguante y los tres tipos que te salen al
+     cruce cambiaban A DÓNDE va la pelota (la zona) pero NO la chance de que se
+     te vaya afuera. Un jugador fundido pateando entre tres tenía exactamente el
+     mismo riesgo que uno entero y solo. El nombre de la función y sus cuatro
+     asserts prometían otra cosa.
+
+     Se enchufa con MULTIPLICADOR porque la fórmula nunca corrió y sus
+     constantes (0.14 por puntería, 0.03 por defensor) jamás se calibraron
+     contra el juego de verdad. Medido en 30.000 remates por caso:
+        mult 0 (hoy) 69,8%  ·  0.35 → 67,5%  ·  0.50 → 67,0%  ·  1.00 → 63,2%
+     Se eligió 0.35: la FORMA aparece entera —el crack solo no cambia (78,6%),
+     el crack entre tres baja a 75,2%, el fundido entre tres de 67,5% a 63,1%—
+     y el promedio se mueve 2,3 puntos en vez de 6,6. Subirla a 1 endurece el
+     remate en situación mala; bajarla a 0 vuelve al comportamiento de hoy.
+     ══════════════════════════════════════════════════════════════════════ */
+  function fueraConRiesgo(auto, cfg) {
+    if (!auto || !auto.zona) return 0;
+    var base = auto.zona.fuera || 0;
+    var mult = (cfg && cfg.riesgo_fuera_mult != null) ? cfg.riesgo_fuera_mult : 0.35;
+    return clamp(base + ((auto.riesgoFuera || base) - base) * mult, 0, 0.55);
+  }
+
+  return { clamp: clamp, evaluarEjecucion: evaluarEjecucion, tiroAuto: tiroAuto, fueraConRiesgo: fueraConRiesgo };
 });

@@ -56,5 +56,49 @@ const a = T.tiroAuto(Object.assign({ x: 880, y: 300, statTiro: 70, aguanteFrac: 
 const b = T.tiroAuto(Object.assign({ x: 880, y: 300, statTiro: 70, aguanteFrac: 0.8, defensores: 1, rng: fijo(0.33) }, base));
 assert(JSON.stringify(a) === JSON.stringify(b), "mismo escenario + mismo azar → mismo tiro");
 
+/* ══════════════════════════════════════════════════════════════════════════
+   riesgoFuera SE CALCULABA Y NO LO CONSUMÍA NADIE
+
+   Los cuatro asserts de arriba probaban que el número sube con el cansancio,
+   sin puntería y con defensores — y pasaban en verde mientras el juego NO LO
+   MIRABA. Quien decidía si el remate se iba afuera era duel.resolveShot con
+   `zone.fuera`, los cuatro valores cableados de tiroAuto. Un jugador fundido
+   pateando entre tres tenía exactamente el mismo riesgo que uno entero y solo.
+
+   Es el caso más claro de "un test verde no prueba que el juego lo corra".
+   Estos asserts miran la VÍA que el juego usa de verdad.
+   ══════════════════════════════════════════════════════════════════════════ */
+(function () {
+  const fs = require("fs"), path = require("path");
+  const RAIZ = path.join(__dirname, "..", "..");
+  const bal = JSON.parse(fs.readFileSync(path.join(RAIZ, "phaser/data/balance.json"), "utf8"));
+  const MATCH = fs.readFileSync(path.join(RAIZ, "phaser/scenes/match.js"), "utf8");
+
+  assert(typeof T.fueraConRiesgo === "function", "tiene que existir la vía única fueraConRiesgo");
+  assert(bal.tiro.riesgo_fuera_mult != null, "y su perilla de balance");
+
+  const solo = T.tiroAuto(Object.assign({ x: 800, y: 270, statTiro: 99, aguanteFrac: 1, defensores: 0 }, base));
+  const entre3 = T.tiroAuto(Object.assign({ x: 800, y: 270, statTiro: 99, aguanteFrac: 1, defensores: 3 }, base));
+  const fund3 = T.tiroAuto(Object.assign({ x: 800, y: 270, statTiro: 58, aguanteFrac: 0.3, defensores: 3 }, base));
+
+  /* lo que estaba roto: los defensores y el cansancio tienen que LLEGAR */
+  assert(T.fueraConRiesgo(entre3, bal.tiro) > T.fueraConRiesgo(solo, bal.tiro),
+    "entre tres tiene que irse afuera más seguido que solo (" +
+    T.fueraConRiesgo(solo, bal.tiro).toFixed(3) + " vs " + T.fueraConRiesgo(entre3, bal.tiro).toFixed(3) + ")");
+  assert(T.fueraConRiesgo(fund3, bal.tiro) > T.fueraConRiesgo(solo, bal.tiro),
+    "y fundido, también");
+  /* con mult 0 vuelve al comportamiento viejo: la perilla es de verdad */
+  assert(T.fueraConRiesgo(fund3, { riesgo_fuera_mult: 0 }) === fund3.zona.fuera,
+    "con la perilla en 0 tiene que quedar exactamente como estaba");
+  assert(T.fueraConRiesgo(fund3, { riesgo_fuera_mult: 1 }) > T.fueraConRiesgo(fund3, bal.tiro),
+    "y en 1, la fórmula entera");
+  /* y las DOS vías del juego tienen que usarla, no una sola */
+  const usos = (MATCH.match(/fueraConRiesgo\(/g) || []).length;
+  assert(usos >= 2, "las dos vías de remate tienen que pasar por fueraConRiesgo (hay " + usos + ")");
+  console.log("riesgoFuera: enchufado en " + usos + " vías · solo " + (T.fueraConRiesgo(solo, bal.tiro) * 100).toFixed(1) +
+    "% · entre 3 " + (T.fueraConRiesgo(entre3, bal.tiro) * 100).toFixed(1) +
+    "% · fundido entre 3 " + (T.fueraConRiesgo(fund3, bal.tiro) * 100).toFixed(1) + "%");
+})();
+
 if (mal === 0) console.log("✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }
