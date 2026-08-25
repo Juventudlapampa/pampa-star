@@ -100,6 +100,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        fuente), los botones miden 48px+, y hay TECLADO: ↑↓ elige la fila
        (resaltada), ◄► cicla en ambas direcciones. */
     this.filas = {}; this.filaRects = []; this.CATS = CATS; this.filaSel = 0;
+    this._filaCajas = []; this._botones = [];
     let fy = 122;
     CATS.forEach((c, ci) => {
       const cx = 690;
@@ -120,14 +121,45 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       mk(cx - 18, -1); mk(cx + 198, 1);
       this.filas[c.k] = this.add.text(cx + 90, fy, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", align: "center" }).setOrigin(0.5);
       this.filaRects.push(lbl);
+      /* la caja del foco es la FILA ENTERA, no la etiqueta: de la etiqueta
+         (cx-235) hasta el filo de la flecha derecha (cx+198+26). Va declarada
+         porque el label mide 60px y el cursor abrazaria solo eso. */
+      this._filaCajas.push({ x: cx - 241, y: fy - 24, w: 471, h: 48 });
       fy += 46;
     });
-    /* teclado: ↑↓ fila, ◄► ciclan (con wrap en ambas direcciones) */
+    /* ══════════════════════════════════════════════════════════════════════
+       EL EDITOR ES EL ULTIMO GRUPO, Y ES DISTINTO A LOS OTROS SIETE.
+
+       En la semana, el mapa, la entrevista, el pasillo y la cruz, las flechas
+       MUEVEN EL FOCO y Enter confirma. Aca no: una fila es un SELECTOR, y
+       izquierda/derecha CAMBIAN EL VALOR. Meterle grupoFoco con su teclado le
+       robaria las flechas y romperia lo unico que el editor hace.
+
+       Asi que el foco entra con sinTeclado y las teclas siguen siendo del
+       editor: arriba/abajo mueven, izquierda/derecha ciclan. Lo que se gana es
+       lo que le faltaba y el resto del juego ya tenia — la escuadra que viaja,
+       la elevacion, el pulso y la VOZ. El resalte de ► + color se queda: es
+       otro canal mas, y sin color no se pierde.
+
+       Y los BOTONES DE ABAJO entran al recorrido. Antes no habia forma de
+       llegar a GUARDAR ni a la cancha con el teclado: se armaba la pinta con
+       las flechas y despues habia que tocar la pantalla. */
     if (this.input.keyboard) {
-      this.input.keyboard.on("keydown-UP", () => { this.filaSel = (this.filaSel + CATS.length - 1) % CATS.length; this.refrescar(); });
-      this.input.keyboard.on("keydown-DOWN", () => { this.filaSel = (this.filaSel + 1) % CATS.length; this.refrescar(); });
-      this.input.keyboard.on("keydown-LEFT", () => this.mover(CATS[this.filaSel].k, -1));
-      this.input.keyboard.on("keydown-RIGHT", () => this.mover(CATS[this.filaSel].k, 1));
+      const irA = (i) => {
+        const n = CATS.length + this._botones.length;
+        this.filaSel = (i + n) % n;
+        if (this._foco) this._foco.mover(this.filaSel);
+        this.refrescar();
+      };
+      this.input.keyboard.on("keydown-UP", () => irA(this.filaSel - 1));
+      this.input.keyboard.on("keydown-DOWN", () => irA(this.filaSel + 1));
+      this.input.keyboard.on("keydown-LEFT", () => { if (this.filaSel < CATS.length) this.mover(CATS[this.filaSel].k, -1); });
+      this.input.keyboard.on("keydown-RIGHT", () => { if (this.filaSel < CATS.length) this.mover(CATS[this.filaSel].k, 1); });
+      this.input.keyboard.on("keydown-ENTER", () => {
+        const b = this._botones[this.filaSel - CATS.length];
+        if (b && b.cb) b.cb();
+        else if (this.filaSel < CATS.length) this.mover(CATS[this.filaSel].k, 1);   // en una fila, Enter cicla
+      });
     }
 
     /* ---- abajo: guardar + a la cancha ---- */
@@ -135,6 +167,8 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       const r = this.add.rectangle(x, H - 40, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       this.add.text(x, H - 40, texto, { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
       r.on("pointerdown", cb);
+      this._botones.push({ obj: r, cb: cb });
+      return r;
     };
     btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
     btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.scene.start("match"); });
@@ -168,6 +202,16 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
     vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.scene.start("intro"); });
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
+
+    /* el cursor, sin teclado: las flechas las maneja el editor (ver arriba).
+       Las filas van con caja declarada; los botones con la suya real. */
+    if (this.grupoFoco) {
+      const items = this.CATS.map((c, i) => ({
+        obj: this.filaRects[i], caja: this._filaCajas[i],
+        cb: () => this.mover(c.k, 1)
+      })).concat(this._botones.map(b => ({ obj: b.obj, cb: b.cb })));
+      if (items.length) this.grupoFoco(items, { inicial: 0, sinTeclado: true, alMover: (i) => { this.filaSel = i; } });
+    }
 
     this.refrescar();
   }
