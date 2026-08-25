@@ -44,7 +44,71 @@ Tres hallazgos que cambiaron el proyecto de raíz, cada uno pagado con un playte
 2. **El anime no anima.** La épica se hace con una pose dibujada QUIETA y todo lo demás en movimiento: fondo en capas, líneas de velocidad, temblor, flash, y el freeze con silencio antes del desenlace. Menos frames, más drama.
 3. **La tensión no viene de perseguir: viene de no saber.** En el original no se ven los rivales en la cancha. Esa ceguera mata de un saque la persecución, el "se siente un FIFA" y la información simétrica.
 
-## 1.5 Público y contexto
+## 1.5 Las dos enfermedades del proyecto (y sus dos guardianes)
+
+Las tres verdades de arriba se pagaron con playtests. Estas dos se pagaron con
+algo peor: **tandas enteras de trabajo sobre cosas que no estaban corriendo.**
+Van acá, en el documento que se lee primero, porque el que llegue nuevo las va a
+volver a hacer si nadie se las cuenta.
+
+### A · CONSTRUIDO, PROBADO, DOCUMENTADO Y DESCONECTADO
+
+Código completo, calibrado y con tests en verde, que **el juego nunca ejecuta**.
+No tira ningún error. Ya apareció **nueve veces**: el muñequito en una capa
+invisible, el relator detrás de un flag, la plataforma del jugadón sin
+invocarse, las animaciones en la capa que no se ve, la megacorrida sin llamador,
+dos acciones de la semana con una condición imposible, el preset de tempo sin
+consumidor, el nivel de carrera clavado en 1, y el peor de todos:
+
+> **La curva de rendimiento decreciente.** Rodri diagnosticó el techo de stats,
+> se simularon tres opciones, se calibró con barridos finos, se revisó el número
+> contra el comentario y se discutió si era 0,13 o 0,40. Todo eso **sobre una
+> función que devolvía el valor sin tocar en su primera línea**, porque ningún
+> llamador le pasaba `cfg.stats`. Y el comentario de la propia función lo decía
+> sin querer: *"los llamadores viejos no se enteran"*. Era un camino de
+> migración seguro, y la migración nunca se hizo.
+
+De 24 condiciones imposibles confirmadas en la barrida, **21 estaban calibradas,
+documentadas o testeadas como si funcionaran**. Ese es el dato que ordena todo:
+no es que el código esté mal escrito, es que **la documentación y los tests
+describían un juego que no era el que corría**.
+
+**El guardián:** `phaser/test/desconectados.test.js` (censo: `--censo`). Enumera
+guardas de salida temprana sin llamador que las cruce, campos leídos sin
+escritor o escritos sin lector, y claves guardadas sin consumidor. Imprime el
+número de **DEUDA CONOCIDA** en cada corrida y falla si sube sin que alguien lo
+haya decidido.
+
+**La regla práctica:** antes de declarar algo hecho, preguntá **quién lo llama**.
+Y si un test verde y el juego no coinciden, el que miente es el test.
+
+### B · EL NÚMERO PLAUSIBLE Y EQUIVOCADO
+
+Medir con una herramienta que **no mide lo que parece**, y creerle. Los tres
+casos aparecieron la misma semana y enseñan lo mismo con tres caras:
+
+1. **Medir animación con el reloj equivocado.** `loop.step()` en un `for`
+   sincrónico le da ~0 ms al TweenManager: los timers y las banderas avanzan,
+   **todo lo animado se queda quieto y parece roto**. Casi reporto un subtítulo
+   sano como defecto, y el método malo *escondía* dos defectos reales. El método
+   bueno: un paso cada ~16 ms de reloj REAL, y esperar una CONDICIÓN.
+2. **Medir cajas mientras los botones todavía vuelan.** `grupoFoco` mide una
+   sola vez, al crearse, y `PampaFeel.aparecer` sigue animando. El cursor
+   navegaba sobre una geometría que ya no existía: bajando desde el norte
+   **salteaba el centro** por 30 px. Se arregló declarando la caja final
+   (`it.caja`) en vez de medir lo que está en vuelo.
+3. **Medir balance sobre una función que no corre.** El caso de arriba.
+
+Los tres dieron números creíbles y falsos, y **los tres se descubrieron dudando
+de la herramienta, no del código**.
+
+**La regla práctica:** cuando una medición sorprenda, la primera hipótesis es que
+el método está mal, no el juego. Y una medición vale lo que vale la contraprueba:
+romper el arreglo a propósito y ver que el guardián se ponga rojo.
+
+---
+
+## 1.6 Público y contexto
 
 Juventudes de La Pampa. Jugable en el celular de cualquiera, sin descarga, mandando un link por WhatsApp. Producto de la Subsecretaría de Juventud de La Pampa, lo que impone restricciones que también son identidad: sin apuestas, sin plata, sin marcas ajenas, sin nombres de menores reales.
 
