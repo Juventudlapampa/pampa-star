@@ -264,11 +264,10 @@ if (CENSO) {
    No están perdonados: están contados. El test falla si aparece uno nuevo, y
    los lista en cada corrida para que no se hagan invisibles.
    ────────────────────────────────────────────────────────────────────────── */
-var PENDIENTES = {
-  "_teniaVis": "se lee como `o._teniaVis !== false` y no lo escribe nadie, así que siempre da " +
-    "verdadero. El default es el seguro (se muestran todas), pero la intención era recordar " +
-    "cuáles estaban ocultas: hoy al restaurar el panel se muestran también esas."
-};
+/* Vacía, y que se note: la deuda de CAMPO quedó en cero. Los tres casos que
+   había (_hiceGol, _golpeFuerte, _teniaVis) están cableados. Lo que queda es
+   deuda de CONTENIDO, más abajo, y es una decisión de diseño. */
+var PENDIENTES = {};
 
 var DEUDA_HOY = null;
 var LEIDOS_OK = {};
@@ -309,7 +308,12 @@ SCENES.concat(LOGIC).forEach(function (f) {
     /* asignación por CUALQUIER receptor: this._x, sc._x, self._x — el montar()
        de la tribuna escribe sc._tribuna desde otro archivo, y sin esto parecía
        un huérfano cuando no lo era */
-    var rw = /\b[A-Za-z_$][\w$]*\.(_[A-Za-z_$][\w$]*)\s*(?:=[^=]|\+=|-=)/g;
+    /* el receptor puede ser un identificador (`this.x`) pero tambien el
+       resultado de un indice o una llamada (`pool[k]._x`, `buscar()._x`). Sin
+       los cierres, `this.panelSil[k]._teniaVis = false` no contaba como
+       escritura y el campo quedaba figurando como deuda cuando ya estaba
+       cableado — el guardian mintiendo sobre su propia lista. */
+    var rw = /(?:[A-Za-z_$][\w$]*|\]|\))\.(_[A-Za-z_$][\w$]*)\s*(?:=[^=]|\+=|-=)/g;
     while ((m2 = rw.exec(l))) (escritos[m2[1]] = escritos[m2[1]] || []).push(donde);
     /* método o propiedad de una escena/mixin: `_caraDe(x) {`, `_caraDe: function`, `_pivote: {` */
     var mm = l.match(/^\s{2,6}(_[A-Za-z_$][\w$]*)\s*(?:\([^)]*\)\s*\{|:)/);
@@ -498,7 +502,7 @@ var DEUDA_CONTENIDO = {
   "física del súper tiro": "resolverSuperTiro y ARCO solo corren en el test; ya marcado ⚠ PENDIENTE DE RODRI en jugadon_ui.js."
 };
 
-var DEUDA_TOPE = 4;
+var DEUDA_TOPE = 3;
 (function () {
   var n = (DEUDA_HOY != null ? DEUDA_HOY : Object.keys(PENDIENTES).length) + Object.keys(DEUDA_CONTENIDO).length;
   assert(n <= DEUDA_TOPE,

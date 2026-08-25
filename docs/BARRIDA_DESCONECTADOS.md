@@ -177,6 +177,67 @@ estaban ocultas: hoy al restaurar el panel se muestran también esas.
 
 ---
 
+---
+
+## ESTADO AL CIERRE
+
+De las **18 que perdían contenido**, quedan **4**, y las cuatro son decisiones
+tuyas, no trabajo pendiente.
+
+| # | qué | estado |
+|---|---|---|
+| 1 | La Definición dada vuelta | **arreglado** · `timing_desvio 0.30`, promedio de gol 62,1% → 63,6% |
+| 2 | Los 50 jugadores sin `quite` | **arreglado** · Mundial 40,2% → 34,4%, abajo igual |
+| 3 | Tu arquero siempre 55 | **arreglado** · promedio −1,2, rango 44,4% a 30,8% |
+| 4 | Entrenar aguante no hacía nada | **arreglado** · +197 de tanque (+19,7%) |
+| 5 | Las dos cartas del ARQUERO | **DEUDA** — decisión de diseño |
+| 6 | El clásico | **arreglado** · 6/10 pueblos → 10/10 |
+| 7 | La rama de lesión | **arreglado** · `golpe_prob 0.25`, 1 cada 7-8 fechas |
+| 8 | `riesgoFuera` | **arreglado** · `riesgo_fuera_mult 0.35`, promedio −2,3 |
+| 9 | El bonus de ánimo por el gol | **arreglado** · el techo llega en la fecha 3 en vez de la 4 |
+| 10 | La tribuna y el cansancio | **arreglado** · *"Se le acabó la nafta"* |
+| 11 | `_teniaVis` | **arreglado** · el pool ya no prende las tres siluetas al volver |
+| 12 | `saque_arquero` de relatos.json | **DEUDA** — misma raíz que la 5 |
+| 13 | Las poses con `cargar:false` | **arreglado** · 5 piezas dejan de bajarse |
+| 14 | `hinchadaViva` | **la llamada muerta se sacó**, con el motivo escrito |
+
+Más dos que aparecieron **mientras se arreglaban las otras**, y que ninguna
+lista tenía:
+
+- **`textoDeLaMano()`** — la línea de HUD con tu mano de cartas, escrita entera
+  y sin un solo llamador. Jugabas sin saber qué cartas tenías. **Arreglado.**
+- **`resumen()` cortaba en seco con la molestia** y se tragaba la energía y el
+  ánimo. Esa rama nunca se había ejecutado; conectar la lesión la destapó y
+  `carrera.test.js` la cazó en el acto. **Arreglado**, y las tres estrategias
+  quedaron mejor que la línea base.
+
+### La deuda: la de campo quedó en cero
+
+```
+  DEUDA CONOCIDA: 3 (tope aceptado: 3)
+    0 de campo · 3 de contenido
+      · el arquero no tiene momento
+      · megadefensa TRANQUERA
+      · física del súper tiro
+```
+
+**Dos de las tres son la misma pregunta: ¿el arquero vuelve a tener un momento
+de decisión?** De ahí cuelgan LA TRANQUERA y EL PATADÓN (2 de las 8 cartas), la
+megadefensa TRANQUERA, la situación `saque_arquero` y el arte
+`arquero_despeje_celeste`. La V9 C1 sacó esa pantalla a propósito, así que
+devolvérsela es diseño, no parche.
+
+La tercera es la física del súper tiro, ya marcada **⚠ PENDIENTE DE RODRI** en
+`jugadon_ui.js` desde antes de esta barrida.
+
+> **Y una corrección sobre el guardián.** Contaba `_teniaVis` como deuda cuando
+> ya estaba cableado: mi escritura era `this.panelSil[k]._teniaVis = false` y el
+> escáner sólo reconocía receptores que fueran un identificador, no el resultado
+> de un índice. O sea, **el guardián mintiendo sobre su propia lista** — la misma
+> familia que vigila. Arreglado; ahora acepta `]` y `)` antes del punto.
+
+---
+
 ## LO QUE SÍ SE CABLEÓ EN ESTA TANDA
 
 Tres grupos, los de mayor pérdida de contenido, cada uno **visto funcionando en
