@@ -49,7 +49,16 @@
         t.setScale(W / t.width);
         this.cineContent.add(t);
       }
-      if (conTribuna !== false && this.hinchadaViva) this.hinchadaViva(this.cineContent, horizonte);
+      /* ACA LLAMABA A this.hinchadaViva(), que NO EXISTE en ningun archivo.
+         La guarda `&& this.hinchadaViva` lo volvia un no-op silencioso, asi que
+         la tribuna del cine nunca cobraba vida y nadie se enteraba.
+         La hinchada que SI existe es crearHinchadaPanel() + latirHinchada(), y
+         es del PANEL lateral: escribe en panelLayer y guarda su estado en
+         this._hin, que el update hace latir. Reusarla aca chocaria con esa
+         instancia, asi que hacerla para el cine es trabajo de arte nuevo, no un
+         cable suelto. Se saca la llamada muerta y queda anotado: el fondo del
+         cine ya dibuja la tribuna ILUSTRADA (fondo_tribuna) arriba de esta
+         linea, que es lo que se ve hoy. */
       return horizonte;
     },
 

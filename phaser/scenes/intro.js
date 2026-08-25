@@ -28,9 +28,14 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     if (man && man.poses) {
       const base = man.base || "assets/poses/";
       Object.keys(man.poses).forEach(id => {
+        /* cargar:false existe para dejar una pieza guardada SIN gastar ancho
+           de banda, y el preload la ignoraba: las marcadas se bajaban igual, o
+           sea justo lo contrario de para lo que esta la bandera. */
+        if (man.poses[id].cargar === false) return;
         if (!this.textures.exists("pose_" + id) && man.poses[id].archivo) this.load.image("pose_" + id, "../" + base + man.poses[id].archivo);
       });
       if (man.fondos) Object.keys(man.fondos).forEach(id => {
+        if (man.fondos[id].cargar === false) return;
         if (!this.textures.exists("fondo_" + id) && man.fondos[id].archivo) this.load.image("fondo_" + id, "../" + base + man.fondos[id].archivo);
       });
     }

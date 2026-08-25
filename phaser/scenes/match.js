@@ -1461,7 +1461,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       s.setFlipX(dx < 0);
       s.setVisible(true);
     }
-    for (let k = usados; k < this.panelSil.length; k++) this.panelSil[k].setVisible(false);
+    /* _teniaVis se LEIA en modoLateralVisible y no lo escribia nadie, asi que
+       la condicion o._teniaVis !== false daba SIEMPRE verdadero: al volver al
+       modo lateral se prendian las TRES siluetas del pool, incluidas las que
+       sobraban. Se anota aca, que es el unico lugar que sabe cuales estan en
+       uso en este cuadro. */
+    for (let k = 0; k < usados; k++) this.panelSil[k]._teniaVis = true;
+    for (let k = usados; k < this.panelSil.length; k++) { this.panelSil[k]._teniaVis = false; this.panelSil[k].setVisible(false); }
   }
 
   /* ============ ANIME v4 Bloque A · LAS 22 FICHAS ============
@@ -4728,6 +4734,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           this.hudLayer.add(this.txtMano);
         }
         this.txtMano.setText(mTxt);
+      }
+    }
+    /* ══════════════════════════════════════════════════════════════════════
+       NELDA Y EL TULI HABLANDO DEL CANSANCIO.
+
+       data/tribuna.json declara el evento "cansancio" con su intercambio, y el
+       MAPA de match.js —el unico productor de eventos de tribuna— traduce
+       claves del RELATOR (gol, atajada, quite, error...) y no incluye ninguna
+       que hable del aguante. O sea: el unico dialogo de los dos sobre la
+       ECONOMIA CENTRAL DEL PARTIDO no se leia nunca.
+
+       No pasa por el MAPA porque no es un evento del relator: es un ESTADO.
+       Se dispara al cruzar por primera vez el umbral en cada tiempo, para que
+       sea un comentario y no una cantinela. */
+    if (window.PampaTribunaUI && this._tribuna && st.mios[st.ctrl]) {
+      const vosC = st.mios.find(j => j.esVos) || st.mios[st.ctrl];
+      const flojo = vosC.aguante < this.BAL.aguante.umbral_rendido * 2.5;
+      const marca = "t" + (st.tiempo || 1);
+      if (flojo && this._tribunaCansancio !== marca) {
+        this._tribunaCansancio = marca;
+        window.PampaTribunaUI.comentar(this, "cansancio");
       }
     }
     /* Feel B3: el botón ⚡ACCIÓN pulsa cuando hay acciones disponibles */

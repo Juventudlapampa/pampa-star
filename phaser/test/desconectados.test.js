@@ -42,6 +42,17 @@
    se ponga verde. La lista es para lo que ya se miró y se decidió que está
    bien. Un caso nuevo es un cable suelto hasta que se demuestre lo contrario.
 
+   LO QUE ESTE GUARDIÁN TODAVÍA NO VE, y conviene saberlo:
+     · la parte [2] sólo mira campos que empiezan con `_`. Es la convención del
+       proyecto para lo privado, pero no la respeta todo: `this.hinchadaViva`
+       —una llamada a un método que no existe en ningún archivo, escondida
+       detrás de `&& this.hinchadaViva` que la volvía un no-op silencioso— pasó
+       por abajo del radar y la encontró la barrida a mano, no el test.
+     · nada de esto ve los DATOS: un valor declarado en un JSON que ningún
+       código consume (el `cansancio` de tribuna.json, el `saque_arquero` de
+       relatos.json) necesita su propio chequeo por vocabulario, como el que
+       hace mod_fecha.test.js con TOPES.
+
    Censo completo:  node phaser/test/desconectados.test.js --censo
    ========================================================================== */
 "use strict";
@@ -474,10 +485,15 @@ var MUERTOS_OK = {
    pueden alcanzar hasta que Rodri tome una decisión de diseño. No son campos
    sueltos, así que no las ve la parte [2] — pero cuentan igual. */
 var DEUDA_CONTENIDO = {
-  "cartas del ARQUERO": "LA TRANQUERA y EL PATADÓN son 2 de las 8 cartas (el 25%) y no tienen dónde ofrecerse: " +
-    "la mano se arma con st.ctrl y el arquero nunca lo es (lo excluyen masCercanoAPelota, receptoresPase, " +
-    "receptorAlVacio, scoreMarcador, cambiarA, el saque tras atajada y el kickoff). Darles un momento " +
-    "significa devolverle al arquero una decisión, y la V9 C1 sacó esa pantalla a propósito.",
+  /* UNA sola decisión de diseño, tres cosas colgando de ella. Se cuenta como
+     una porque se resuelve de una: o el arquero recupera un momento propio, o
+     las tres se borran. */
+  "el arquero no tiene momento": "cuelgan TRES cosas: (1) LA TRANQUERA y EL PATADÓN, 2 de las 8 cartas — el 25% " +
+    "del sistema — porque la mano se arma con st.ctrl y el arquero nunca lo es (lo excluyen masCercanoAPelota, " +
+    "receptoresPase, receptorAlVacio, scoreMarcador, cambiarA, el saque tras atajada y el kickoff); " +
+    "(2) la situación `saque_arquero` de data/relatos.json, declarada con sus frases y que nadie pide nunca; " +
+    "(3) el arte arquero_despeje_celeste, que existe sólo para una de esas cartas. " +
+    "Darle un momento significa devolverle al arquero una decisión, y la V9 C1 sacó esa pantalla a propósito.",
   "megadefensa TRANQUERA": "único pedido en defBotonesDef(), que no tiene llamador. Misma raíz que las cartas.",
   "física del súper tiro": "resolverSuperTiro y ARCO solo corren en el test; ya marcado ⚠ PENDIENTE DE RODRI en jugadon_ui.js."
 };
