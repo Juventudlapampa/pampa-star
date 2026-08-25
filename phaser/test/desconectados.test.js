@@ -265,6 +265,7 @@ var PENDIENTES = {
     "cuáles estaban ocultas: hoy al restaurar el panel se muestran también esas."
 };
 
+var DEUDA_HOY = null;
 var LEIDOS_OK = {};
 /* asas y sellos: referencias que se dejan puestas para limpiar, para inspeccionar
    o para que las use quien tenga el objeto. No son contenido que no corre. */
@@ -360,6 +361,7 @@ if (CENSO) {
   console.log("[2] " + Object.keys(escritos).length + " campos · " +
     soloLeidos.length + " leídos sin escritor · " + soloEscritos.length + " escritos sin lector · " +
     Object.keys(ESCRITOS_OK).length + " asas y sellos");
+  DEUDA_HOY = deuda.length;
   if (deuda.length) {
     console.log("    DEUDA CONOCIDA (" + deuda.length + ") — real, medida, sin cablear porque mueve el balance:");
     deuda.forEach(function (k) { console.log("      · " + k + ": " + PENDIENTES[k]); });
@@ -382,6 +384,31 @@ if (CENSO) {
   });
   assert(sets.length >= 15, "el registry tiene que seguir teniendo sus claves (hay " + sets.length + ")");
   console.log("[3] " + sets.length + " claves del registry · " + huerfanas.length + " sin consumidor");
+})();
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EL NÚMERO DE LA DEUDA, EN CADA CORRIDA
+
+   Pedido de Rodri: "hoy son 3; si mañana son 5 sin que nadie lo haya decidido,
+   quiero que se vea sin leer el HANDOFF". Va al final y solo, porque un número
+   metido entre líneas de detalle no se ve.
+
+   DEUDA_TOPE es la afirmación explícita de cuánta deuda se ACEPTÓ. Que el test
+   falle al subirla obliga a que agregar deuda sea una decisión y no un
+   descuido: hay que tocar este número a mano y explicar el caso en PENDIENTES.
+   ══════════════════════════════════════════════════════════════════════════ */
+var DEUDA_TOPE = 3;
+(function () {
+  var n = DEUDA_HOY != null ? DEUDA_HOY : Object.keys(PENDIENTES).length;
+  assert(n <= DEUDA_TOPE,
+    "LA DEUDA SUBIÓ: hay " + n + " casos y el tope aceptado es " + DEUDA_TOPE +
+    ". Si es a propósito, subí DEUDA_TOPE y explicá el caso nuevo en PENDIENTES.");
+  assert(n === Object.keys(PENDIENTES).length,
+    "PENDIENTES declara " + Object.keys(PENDIENTES).length + " casos y se encontraron " + n +
+    ": la lista y la realidad tienen que coincidir");
+  console.log("\n──────────────────────────────────────────────");
+  console.log("  DEUDA CONOCIDA: " + n + " (tope aceptado: " + DEUDA_TOPE + ")");
+  console.log("──────────────────────────────────────────────");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

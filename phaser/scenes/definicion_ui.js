@@ -475,10 +475,18 @@
       if (!this._def || this._def.fase !== 2 || this._def.zonaMia) return;
       this._def.zonaMia = id;
       /* V9 §4: la "ejecución" ya no la mide una aguja — sale del que patea:
-         su stat de tiro y lo que le queda de aguante. Elegir es elegir. */
+         su stat de tiro y lo que le queda de aguante. Elegir es elegir.
+
+         La cuenta ESTABA DADA VUELTA y vivía acá, en la escena, donde no se
+         puede correr en node: `0.5 + (0.5 - pun) * 0.5` alejaba la zona dulce
+         cuanto mejor definías. Con el tanque lleno los cinco niveles de tiro
+         comían −22 y el +8 no se veía nunca. Ahora la fórmula es
+         logic/definicion.desvioDeEjecucion() y es monótona. */
       var jr = this.st.mios[this.st.ctrl];
-      var pun = ((jr.stats && jr.stats.tiro) || 55) / 100 * 0.6 + (jr.aguante / this.BAL.aguante.max) * 0.4;
-      this._def.aguja.p = 0.5 + (0.5 - pun) * 0.5;
+      var D = window.PampaDefinicion, DLt = this.BAL.definicion || {};
+      this._def.aguja.p = 0.5 + D.desvioDeEjecucion(
+        ((jr.stats && jr.stats.tiro) || 55) / 100,
+        jr.aguante / this.BAL.aguante.max, DLt);
       this._def.fase = 3;
       if (this._def.modo === "of") this.defVueloOf(); else this.defVueloDef();
     },
@@ -532,11 +540,16 @@
          el arquero, que para eso está. */
       if (!this._def.zonaMia) this._def.zonaMia = this.zonaDelArquero();
       var dz = D.distZonas(this._def.zonaMia, this._def.zonaTiro);
-      /* y el "timing" sale del arquero, no de una aguja: reflejos + cansancio */
+      /* y el "timing" sale del arquero, no de una aguja: reflejos + cansancio.
+
+         Tenía DOS bugs, no uno. El signo dado vuelta igual que la ofensiva —el
+         arquero mejor y más entero llegaba PEOR— y encima el cansancio lo leía
+         de `st.mios[st.ctrl]`, o sea del jugador de campo que estás
+         controlando: tu arquero se cansaba de correr vos. */
       var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
       var nivelArq = ((arqM && arqM.stats && arqM.stats.keeper) || 55) / 100;
-      var fatiga = st.mios[st.ctrl].aguante / this.BAL.aguante.max;
-      var off = (0.5 - (nivelArq * 0.6 + fatiga * 0.4)) * 0.5;
+      var fatiga = (arqM ? arqM.aguante : this.BAL.aguante.max) / this.BAL.aguante.max;
+      var off = D.desvioDeEjecucion(nivelArq, fatiga, DL);
       var tim = D.efectoTiming(off, DL.zona_timing || 0.2, DL);
       /* bloqueo previo de TU defensor si quedó plantado/vivo cerca de la línea */
       var pBloqueo = 0;

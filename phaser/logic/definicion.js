@@ -43,6 +43,42 @@
     if (dist === 1) return cfg.a_una != null ? cfg.a_una : 10;
     return cfg.a_dos != null ? cfg.a_dos : -25;
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     EL DESVÍO DE LA EJECUCIÓN · la fórmula que estaba DADA VUELTA.
+
+     Desde la V9 §4 la ejecución del remate no la mide una aguja: sale del que
+     patea, su stat y lo que le queda de aguante. Pero la fórmula vivía en la
+     ESCENA (definicion_ui.js), donde no se puede correr en node — y estaba
+     invertida:
+
+         off = (0.5 - pun) * 0.5      con pun = tiro*0.6 + tanque*0.4
+
+     Cuanto MEJOR definías y más entero llegabas, MÁS LEJOS quedaba la zona
+     dulce. Medido con el balance real: con el tanque lleno los cinco niveles de
+     tiro (58, 70, 82, 90, 99) comían floja_penal −22, y el dulce_bonus de +8 no
+     se veía nunca en ese estado. Para tocar el punto dulce había que estar
+     fundido, tanto más cuanto mejor fueras: tiro 58 al 88% del tanque, tiro 99
+     al 27%. El juego premiaba ser peor y llegar roto.
+
+     Ahora es MONÓTONA —mejorar siempre te acerca al cero— y vive acá, en la
+     lógica pura, que es lo único que se puede simular antes de tocar el balance.
+     Que la fórmula estuviera en la escena es la razón por la que nadie la pudo
+     medir en tres tandas de calibración.
+
+     EL LADO lo decide lo que te FALTA, y así las dos colas de efectoTiming
+     siguen vivas (con una sola, pasada_fuera_mult y pasada_fuera_max quedaban
+     de adorno — la misma enfermedad que estamos matando):
+       · te sobra muñeca y te falta tanque  → la pegás floja
+       · te sobra tanque y te falta muñeca  → se te va larga
+     ══════════════════════════════════════════════════════════════════════ */
+  function desvioDeEjecucion(calidad, tanque, cfg) {
+    cfg = cfg || {};
+    var c = clamp(calidad, 0, 1), t = clamp(tanque, 0, 1);
+    var pun = c * (cfg.timing_peso_stat != null ? cfg.timing_peso_stat : 0.6)
+      + t * (cfg.timing_peso_tanque != null ? cfg.timing_peso_tanque : 0.4);
+    var desvio = (1 - pun) * (cfg.timing_desvio != null ? cfg.timing_desvio : 0.3);
+    return desvio * (c >= t ? -1 : 1);
+  }
   /* el TIMING modula la potencia: punto dulce; floja la ataja, pasada se va */
   function efectoTiming(off, zonaAncho, cfg) {
     cfg = cfg || {};
@@ -156,6 +192,7 @@
     ZONAS: ZONAS, zona: zona, distZonas: distZonas, eleccionCPU: eleccionCPU,
     remateAuto: remateAuto, desenlaceBloqueo: desenlaceBloqueo,   // A3: la misma ley para los dos arcos
     bonusArqueroPorZona: bonusArqueroPorZona, efectoTiming: efectoTiming,
+    desvioDeEjecucion: desvioDeEjecucion,
     chanceBloqueo: chanceBloqueo, efectoAchicar: efectoAchicar,
     remateRivalAuto: remateRivalAuto
   };
