@@ -616,6 +616,8 @@
     "sombra_dy": 6,
     "sombra_blur": 10,
     "radio_caja": 10,
+    "transicion": { "salida_ms": 200, "entrada_ms": 240, "color": 397066 },
+    "_transicion_nota": "LAS TRANSICIONES. Los nueve cambios de pantalla eran cortes de UN CUADRO: un cuadro estabas en el editor y al siguiente en la cancha. El juego entero esta hecho de momentos que respiran —el hitstop antes del desenlace, el freeze con silencio, la camara que empuja mientras decidis— y entre pantallas no habia nada. Es lo primero que hace sentir barato un juego que no lo es. Un FUNDIDO y nada mas: sin wipes ni deslizados, porque el proyecto ya decidio que la epica se hace con la pose quieta y el corte seco DENTRO del momento, asi que entre pantallas corresponde lo sobrio. salida_ms es cuanto tarda en irse a negro antes de arrancar la escena nueva, entrada_ms cuanto tarda en volver, y la suma (440 ms) es lo que se siente. El color es 0x060F0A, el fondo_borde de la paleta y no negro puro, para que el fundido sea del mismo mundo. Subir los dos hace el juego mas lento y solemne; bajarlos a 0 vuelve al corte seco de antes.",
     "hunde_px": 4,
     "_tracking": "P4 · las MAYÚSCULAS llevan aire. tracking_mayus va en em y se aplica solo a los textos que están todos en mayúscula (el resto usa tipografia.letras).",
     "tracking_mayus": 0.16,

@@ -192,6 +192,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
 
   create() {
+    this.entrarDesdeNegro();
     window.PampaSprites(this);
     /* A5 · ACA Y NO DESPUES. PampaSprites acaba de generar la textura "ball"
        (el circulo con gajos) y todavia no hay NINGUN sprite usandola: este es
@@ -4166,7 +4167,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           golpeFuerte: !!(this.st && this.st.golpeFuerte)
         });
         this.game.registry.remove("masterPartido");
-        this.scene.start("master");
+        this.irA("master");
       });
       this.selloMenu();
       return;

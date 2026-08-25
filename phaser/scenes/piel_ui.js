@@ -450,6 +450,81 @@
         if (S && S.musicaTema) S.musicaTema(null);
       });
       return true;
+    },
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LAS TRANSICIONES · los nueve cambios de pantalla eran cortes de un cuadro.
+
+       El juego entero está hecho de momentos que respiran —el hitstop antes del
+       desenlace, el freeze con silencio, la cámara que empuja mientras decidís—
+       y sin embargo pasar de una PANTALLA a otra era un salto seco: un cuadro
+       estabas en el editor y al siguiente en la cancha. Es lo primero que hace
+       sentir barato un juego que no lo es.
+
+       Un fundido y nada más. No hay wipes ni deslizados: el proyecto ya decidió
+       que la épica se hace con la pose quieta y el corte seco DENTRO del
+       momento (§ "el anime no anima"), así que entre pantallas lo que
+       corresponde es lo sobrio.
+
+       Dos detalles que importan:
+         · el velo lleva setScrollFactor(0) y mide de más, porque la cancha
+           tiene cámara con zoom y scroll: un rectángulo "de pantalla" atado al
+           mundo se corre y deja un borde sin tapar.
+         · `_yendo` existe porque dos toques rápidos encadenaban dos scene.start
+           y la segunda pisaba a la primera a mitad de camino.
+       ══════════════════════════════════════════════════════════════════════ */
+    cfgTransicion: function () {
+      var P = (this.game.registry.get("balance") || {}).piel || {};
+      var T = P.transicion || {};
+      return {
+        salida: T.salida_ms != null ? T.salida_ms : 200,
+        entrada: T.entrada_ms != null ? T.entrada_ms : 240,
+        color: T.color != null ? T.color : 0x060f0a
+      };
+    },
+    /* OJO CON EL SEXTO ARGUMENTO. add.rectangle(x, y, w, h, color, alpha) fija
+       el alpha del RELLENO, no el del objeto: el GameObject queda en alpha 1
+       igual. La primera version de esto creaba el velo con relleno 0 y le
+       tweeneaba `.alpha` de 1 a 1 — o sea que el fundido no se veia NUNCA y la
+       transicion era el mismo corte seco de antes, con 200 ms de demora. Andaba
+       lo suficiente como para parecer que andaba. Ahora el relleno va opaco y
+       el que se mueve es el alpha del objeto, que es lo que el tween toca. */
+    veloDeTransicion: function (alpha) {
+      var T = this.cfgTransicion();
+      var v = this.add.rectangle(480, 270, 2400, 1600, T.color, 1);
+      v.setAlpha(alpha).setScrollFactor(0).setDepth(99999);
+      return v;
+    },
+    /* la salida: se funde a negro y RECIÉN AHÍ arranca la escena nueva */
+    irA: function (escena, datos) {
+      if (this._yendo) return false;
+      this._yendo = true;
+      var self = this, T = this.cfgTransicion();
+      var velo = this.veloDeTransicion(0);
+      this.tweens.add({
+        targets: velo, alpha: 1, duration: T.salida, ease: "Quad.easeIn",
+        onComplete: function () { self._yendo = false; self.scene.start(escena, datos); }
+      });
+      return true;
+    },
+    /* la entrada: la escena que abre lo hace DESDE negro. Se llama arriba de
+       todo en create(), antes de dibujar nada, para que el velo quede sobre lo
+       que sea que la escena arme después. */
+    entrarDesdeNegro: function () {
+      var T = this.cfgTransicion();
+      /* LA LECCION DE P1, otra vez: Phaser REUSA la instancia de la escena en
+         scene.start(), asi que `_yendo` quedaba en true cuando una transicion
+         se cortaba por el medio (por ejemplo si alguien para la escena antes de
+         que termine el tween) y desde ahi irA() devolvia false para siempre: la
+         pantalla quedaba sin poder salir. Se limpia aca, que es lo primero que
+         corre en cada create(). */
+      this._yendo = false;
+      var velo = this.veloDeTransicion(1);
+      this.tweens.add({
+        targets: velo, alpha: 0, duration: T.entrada, ease: "Quad.easeOut",
+        onComplete: function () { velo.destroy(); }
+      });
+      return velo;
     }
   };
 

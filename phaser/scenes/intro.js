@@ -42,11 +42,12 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   }
 
   create() {
+    this.entrarDesdeNegro();
     const BAL = this.game.registry.get("balance") || {};
     this.I = BAL.intro || {};
     const flagOff = BAL.flags && BAL.flags.intro_opening === false;
     if (flagOff || (this.game.registry.get("introVista") && !this.game.registry.get("introPedida"))) {
-      this.scene.start("editor");
+      this.irA("editor");
       return;
     }
     const pedida = this.game.registry.get("introPedida");
@@ -139,7 +140,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        pedirMusica siempre está. Si algún día no estuviera, quiero que reviente
        y no que se cuele música vieja por atrás. */
     this.pedirMusica("silencio");
-    this.scene.start("editor");
+    this.irA("editor");
   }
   flashBlanco() { this.cameras.main.flash(70, 255, 255, 255); }
   poseImg(id, x, y, altura) {

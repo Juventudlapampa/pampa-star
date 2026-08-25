@@ -219,7 +219,12 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 (function () {
   assert(/this\.game\.registry\.set\("carreraPendiente", \{ division: divId \}\);/.test(MASTER),
     "D5: arrancar una carrera tiene que dejar el pendiente y mandarte al editor");
-  assert(/arrancarEn = \(divId\) => \{[\s\S]{0,400}?scene\.start\("editor"\)/.test(MASTER),
+  /* el cambio de pantalla dejó de ser scene.start() y pasa por irA(), que hace
+     el fundido y RECIÉN AHÍ arranca la escena. Lo que este assert cuida no es
+     cómo se llama la función: es que arrancar una carrera te mande al editor
+     ANTES que a la entrevista. Se aceptan las dos formas para que el test siga
+     hablando de la conducta y no del mecanismo. */
+  assert(/arrancarEn = \(divId\) => \{[\s\S]{0,400}?(irA|scene\.start)\("editor"\)/.test(MASTER),
     "D5: y el editor va PRIMERO");
   assert(/if \(this\._pendienteOrigen\)/.test(MASTER),
     "D5: al volver del editor se va derecho a la entrevista, sin pasar de nuevo por elegir club");

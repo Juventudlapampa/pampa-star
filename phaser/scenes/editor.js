@@ -25,6 +25,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
   }
 
   create() {
+    this.entrarDesdeNegro();
     const W = this.scale.width, H = this.scale.height;
     this.W = W; this.H = H;
     const A = window.PampaAvatar;
@@ -171,11 +172,11 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       return r;
     };
     btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
-    btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.scene.start("match"); });
+    btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.irA("match"); });
     /* V7 §2: la CARRERA vive en el Phaser — el Modo Master con temporada y escalera */
     const bc = this.add.rectangle(W - 110, 12 + 22, 200, 44, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
-    bc.on("pointerdown", () => { this.guardar(); this.scene.start("master"); });
+    bc.on("pointerdown", () => { this.guardar(); this.irA("master"); });
     /* ══════════════════════════════════════════════════════════════════════
        D5 · VENÍS A ARMAR LA PINTA ANTES DE LA ENTREVISTA.
 
@@ -196,11 +197,11 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       this.add.text(W / 2 + 170, 380, "▶ LISTO, A LA ENTREVISTA", {
         fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13"
       }).setOrigin(0.5);
-      seg.on("pointerdown", () => { this.guardar(); this.scene.start("master"); });
+      seg.on("pointerdown", () => { this.guardar(); this.irA("master"); });
     }
     /* Addendum v6 A.2: repetir el opening a gusto */
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
-    vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.scene.start("intro"); });
+    vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.irA("intro"); });
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
 
     /* el cursor, sin teclado: las flechas las maneja el editor (ver arriba).

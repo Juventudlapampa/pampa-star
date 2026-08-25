@@ -54,6 +54,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
 
   create() {
+    this.entrarDesdeNegro();
     /* D5 · volviste del editor con la pinta puesta: ahora sí, la entrevista.
        Se consume el pendiente antes de nada para que un restart no lo repita. */
     const pend = this.game.registry.get("carreraPendiente");
@@ -71,7 +72,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!this.T || !this.Ma || !this.DIV || !this.DIV.divisiones) {
       /* fallback tolerante: sin data no hay carrera — se vuelve al editor */
       this.add.text(W / 2, H / 2, "La carrera no pudo cargar\n(faltó data/divisiones.json)\n\nTOCÁ PARA VOLVER", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center" }).setOrigin(0.5);
-      this.input.once("pointerdown", () => this.scene.start("editor"));
+      this.input.once("pointerdown", () => this.irA("editor"));
       return;
     }
 
@@ -393,7 +394,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const arrancarEn = (divId) => {
       this.backupClasico();   // V7 §3: la mudanza respalda el clásico primero
       this.game.registry.set("carreraPendiente", { division: divId });
-      this.scene.start("editor");
+      this.irA("editor");
     };
     this._crearCarrera = (divId, origen) => {
       const club = "Club " + this.pueblos[this.pSel];
@@ -425,7 +426,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.boton(W / 2, H - 100, 480, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id));
       this.add.text(W / 2, H - 72, "el save del clásico queda RESPALDADO (pampa_star_v1_backup_pre_v7) y no se toca", { fontFamily: window.PF.texto, fontSize: "10px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
     }
-    this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.scene.start("editor"));
+    this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
   }
   /* ══════════════════════════════════════════════════════════════════════
      ¿ES EL CLÁSICO?
@@ -1506,7 +1507,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
                vez, en el mixin) y funde 300 ms mientras el partido pide su
                entrada. Probé poner "entrada" acá primero y se cortaba a los dos
                cuadros — vive en match.js, que es donde tiene lugar para sonar. */
-            this.scene.start("match");
+            this.irA("match");
           });
         });
       } else {
@@ -1517,7 +1518,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           this.scene.restart();
         });
       }
-      this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.scene.start("editor"));
+      this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
       this.salidaDeLaCarrera(W, H);
     } else {
       /* FIN DE TEMPORADA: el veredicto de la escalera */
@@ -1548,7 +1549,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.guardar();
         this.scene.restart();
       });
-      this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.scene.start("editor"));
+      this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
       this.salidaDeLaCarrera(W, H);
     }
   }
