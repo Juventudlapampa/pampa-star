@@ -200,6 +200,35 @@
   /* ---------- cómo llegás al domingo ----------
      La energía que te queda se convierte en AGUANTE INICIAL y el ánimo en
      ENVIÓN INICIAL. Nunca te deja en cero: el piso es jugable. */
+  /* ══════════════════════════════════════════════════════════════════════
+     EL TECHO DE AGUANTE QUE COMPRASTE ENTRENANDO.
+
+     ENTRENAR AGUANTE es la ÚNICA opción de la semana con stat_mas 2 —el doble
+     que las otras nueve— y la más cara junto con AYUDAR EN CASA (30 y 35 de
+     energía). Las dos suben `resistencia`. Y `resistencia` NO LA LEÍA NINGÚN
+     MOTOR: la única línea que la tocaba escribía `j.aguanteMax`, un campo del
+     jugador que tampoco leía nadie, porque los seis clamps de aguante de
+     partido.js usaban el global `bal.aguante.max`.
+
+     O sea: las dos opciones más caras del juego entrenaban una stat muerta.
+     Entrenabas aguante toda la carrera y nunca aguantabas más.
+
+     La cuenta vive acá, en un solo lugar, porque la usan los dos extremos de la
+     cadena: la semana (para saber desde dónde llegás el domingo) y la cancha
+     (para saber hasta dónde podés recuperar). Si se separan, vuelve el bug.
+
+     MEDIDO: entrenando aguante todas las semanas, `resistencia` toca el techo
+     de 99 alrededor de la temporada 2 y queda en +49,3, o sea +197 de tanque
+     (1000 → 1197, un 19,7% más). Con los costos de hoy eso son 2 gambetas o 2
+     remates más por partido, todo por ARRIBA del umbral de rendido (110).
+     ══════════════════════════════════════════════════════════════════════ */
+  function techoDeAguante(mejoras, cfg) {
+    cfg = cfg || {};
+    var base = cfg.aguante_max || 1000;
+    var porPunto = cfg.aguante_por_resistencia != null ? cfg.aguante_por_resistencia : 4;
+    return Math.round(base + ((((mejoras || {}).resistencia) || 0) * porPunto));
+  }
+
   function comoLlegas(semana, cfg) {
     cfg = cfg || {};
     var aguanteMax = cfg.aguante_max || 1000;
@@ -295,6 +324,7 @@
     RANURAS: RANURAS, clamp: clamp,
     nuevaSemana: nuevaSemana, opcionesPara: opcionesPara, elegir: elegir,
     comoLlegas: comoLlegas, resumen: resumen, lunesDespues: lunesDespues,
+    techoDeAguante: techoDeAguante,
     nivelEnergia: nivelEnergia, statEnElTecho: statEnElTecho,
     rendimiento: rendimiento, resacaDeLaSemana: resacaDeLaSemana
   };

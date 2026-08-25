@@ -178,7 +178,7 @@
         vel = V.perseguidor_sin_pelota; drena = bal.persecucion.aguante_por_segundo;
         if (ctrl.aguante < bal.persecucion.aguante_minimo_para_correr) vel *= bal.persecucion.factor_trote;   // rendido: trota
       }
-      ctrl.aguante = clamp(ctrl.aguante - drena * dt, 0, bal.aguante.max);
+      ctrl.aguante = clamp(ctrl.aguante - drena * dt, 0, techoAguante(ctrl, bal));
       ctrl.x = clamp(ctrl.x + input.dx / m * vel * dt, 14, st.W - 14);
       ctrl.y = clamp(ctrl.y + input.dy / m * vel * dt, 14, st.H - 14);
     }
@@ -189,7 +189,7 @@
       st.mios.forEach(function (j, i) {
         var conduce = st.posesion === "mia" && i === st.ctrl;
         var marca = st.posesion === "rival" && i === st.ctrl;
-        if (!conduce && !marca) j.aguante = clamp(j.aguante + regen * multVida(st, "recuperacion") * dt, 0, bal.aguante.max);
+        if (!conduce && !marca) j.aguante = clamp(j.aguante + regen * multVida(st, "recuperacion") * dt, 0, techoAguante(j, bal));
       });
       st.aguanteRival = clamp(st.aguanteRival + regen * dt, 0, bal.aguante.max);
     }
@@ -365,7 +365,7 @@
     var porMin = st.bal.aguante.recuperacion_por_minuto_salto || 0;
     if (porMin) {
       st.mios.forEach(function (j, i) {
-        if (!(st.posesion === "mia" && i === st.ctrl)) j.aguante = clamp(j.aguante + porMin * multVida(st, "recuperacion") * salto, 0, st.bal.aguante.max);
+        if (!(st.posesion === "mia" && i === st.ctrl)) j.aguante = clamp(j.aguante + porMin * multVida(st, "recuperacion") * salto, 0, techoAguante(j, st.bal));
       });
       st.aguanteRival = clamp(st.aguanteRival + porMin * salto, 0, st.bal.aguante.max);
     }
@@ -384,7 +384,7 @@
        dibujo: aRender, aSim y el radar leen esto y espejan la cancha. */
     st.ladoVisual = 2;
     var rec = st.bal.aguante.max * st.bal.aguante.recuperacion_entretiempo_frac;
-    st.mios.forEach(function (j) { j.aguante = clamp(j.aguante + rec * multVida(st, "recuperacion"), 0, st.bal.aguante.max); });
+    st.mios.forEach(function (j) { j.aguante = clamp(j.aguante + rec * multVida(st, "recuperacion"), 0, techoAguante(j, st.bal)); });
     st.aguanteRival = clamp(st.aguanteRival + rec, 0, st.bal.aguante.max);
     kickoff(st, "rival");   // el segundo tiempo lo saca el rival
   }
@@ -401,9 +401,17 @@
   }
   function gastar(st, quien, costo) {
     if (quien === "rival") st.aguanteRival = clamp(st.aguanteRival - costo * st.bal.aguante.cpu_factor_costo, 0, st.bal.aguante.max);
-    else { var j = st.mios[st.ctrl]; j.aguante = clamp(j.aguante - costo, 0, st.bal.aguante.max); }
+    else { var j = st.mios[st.ctrl]; j.aguante = clamp(j.aguante - costo, 0, techoAguante(j, st.bal)); }
   }
   function rendido(st) { return st.mios[st.ctrl].aguante < st.bal.aguante.umbral_rendido; }
+  /* EL TECHO DE CADA JUGADOR. Los seis clamps de aguante usaban el global
+     bal.aguante.max, asi que j.aguanteMax —lo que compras entrenando— no lo
+     leia nadie y ENTRENAR AGUANTE, la opcion mas cara de la semana, no hacia
+     absolutamente nada. El global sigue siendo el default: quien no entreno
+     nada juega exactamente como antes. */
+  function techoAguante(j, bal) {
+    return (j && j.aguanteMax) || bal.aguante.max;
+  }
 
   /* ══════════════════════════════════════════════════════════════════════
      STATS DERIVADAS · las dos que el juego leía y NINGÚN jugador tiene.
@@ -771,7 +779,7 @@
   /* NO MOVERSE (v2 §7): no disputás — el rival sigue, vos recuperás aire */
   function esperarDefensa(st) {
     var j = st.mios[st.ctrl];
-    j.aguante = clamp(j.aguante + st.bal.aguante.recupera_no_moverse, 0, st.bal.aguante.max);
+    j.aguante = clamp(j.aguante + st.bal.aguante.recupera_no_moverse, 0, techoAguante(j, st.bal));
     st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     return { recupero: st.bal.aguante.recupera_no_moverse };
   }
@@ -1033,7 +1041,7 @@
   return {
     crearPartido: crearPartido, tick: tick, kickoff: kickoff,
     bonusVida: bonusVida, multVida: multVida, bonusAccion: bonusAccion,
-    quiteDe: quiteDe, nivelArqueroDe: nivelArqueroDe,
+    quiteDe: quiteDe, nivelArqueroDe: nivelArqueroDe, techoAguante: techoAguante,
     saltoReloj: saltoReloj, chequearTiempo: chequearTiempo, entretiempo: entretiempo,
     accionesAtaque: accionesAtaque, accionesDefensa: accionesDefensa,
     receptorAlVacio: receptorAlVacio, resolverPaseAlVacio: resolverPaseAlVacio, esperarDefensa: esperarDefensa,

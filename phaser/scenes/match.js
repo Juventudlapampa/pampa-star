@@ -293,7 +293,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (sem) {
         const A = this.BAL.aguante;
         const vos2 = this.st.mios.find(j => j.esVos);
-        if (vos2) vos2.aguante = Phaser.Math.Clamp(sem.aguanteInicial || A.max, 60, A.max);
+        /* el tope es TU techo: con aguante entrenado, llegar con el tanque
+           lleno tiene que significar 1197 y no 1000. El bloque de mejoras corre
+           mas abajo, asi que el techo se calcula aca mismo. */
+        const mejP = this._masterPartido.mejoras;
+        const cfgP = (this.game.registry.get("balance") || {}).semana || {};
+        const techoP = (mejP && window.PampaSemana)
+          ? window.PampaSemana.techoDeAguante(mejP, Object.assign({}, cfgP, { aguante_max: A.max }))
+          : A.max;
+        if (vos2) vos2.aguante = Phaser.Math.Clamp(sem.aguanteInicial || techoP, 60, techoP);
         this.st.envion = Phaser.Math.Clamp(sem.envionInicial || 0, 0, (this.BAL.envion && this.BAL.envion.max) || 100);
         this._lecturaSemana = sem.lectura || 0;      // ±5 a la lectura de los duelos
         this._semanaResumen = sem.resumen || "";
@@ -305,7 +313,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           if (k === "azar") return;
           if (vos.stats[k] != null) vos.stats[k] = Phaser.Math.Clamp(vos.stats[k] + mej[k], 20, 99);
         });
-        if (mej.resistencia) this.st.mios.forEach(j => { if (j.esVos) j.aguanteMax = (j.aguanteMax || this.BAL.aguante.max) + mej.resistencia * 4; });
+        /* el * 4 vivia aca suelto y el campo que escribia no lo leia nadie. La
+           cuenta es ahora S.techoDeAguante(), la misma que usa la semana. */
+        if (mej.resistencia && window.PampaSemana) {
+          const cfgS = (this.game.registry.get("balance") || {}).semana || {};
+          const techo = window.PampaSemana.techoDeAguante(mej, Object.assign({}, cfgS, { aguante_max: this.BAL.aguante.max }));
+          this.st.mios.forEach(j => { if (j.esVos) j.aguanteMax = techo; });
+        }
       }
     }
 

@@ -1235,7 +1235,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const S = window.PampaSemana;
     const cfg = (this.game.registry.get("balance") || {}).semana || {};
     const sem = this.save.semana || S.nuevaSemana(this.save, cfg);
-    const llega = S.comoLlegas(sem, cfg);
+    /* el domingo se llega hasta TU techo, no hasta el global: si entrenaste
+       aguante toda la carrera y comoLlegas te topea en 1000, la mejora se
+       pierde entre la semana y la cancha. */
+    const cfgLlega = Object.assign({}, cfg, { aguante_max: S.techoDeAguante(this.save.mejoras, cfg) });
+    const llega = S.comoLlegas(sem, cfgLlega);
     /* los permanentes se guardan en la carrera (chiquitos, para siempre) */
     this.save.mejoras = this.save.mejoras || {};
     Object.keys(sem.permanentes || {}).forEach(k => {
