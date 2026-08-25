@@ -4155,9 +4155,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const vosF = st.mios.find(j => j.esVos);
         this.game.registry.set("masterResultado", {
           golesMio: st.golesMio, golesRival: st.golesRival,
-          hiceGol: !!this._hiceGol,
+          hiceGol: !!(this.st && this.st.hiceGol),
           aguanteFinalFrac: vosF ? Math.max(0, Math.min(1, vosF.aguante / this.BAL.aguante.max)) : 0.6,
-          golpeFuerte: !!this._golpeFuerte
+          golpeFuerte: !!(this.st && this.st.golpeFuerte)
         });
         this.game.registry.remove("masterPartido");
         this.scene.start("master");

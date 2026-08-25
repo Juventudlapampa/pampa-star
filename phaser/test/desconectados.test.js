@@ -254,12 +254,6 @@ if (CENSO) {
    los lista en cada corrida para que no se hagan invisibles.
    ────────────────────────────────────────────────────────────────────────── */
 var PENDIENTES = {
-  "_hiceGol": "el bonus de ánimo por meterla vos (semana.animo_gol = 6) nunca se cobra. " +
-    "Medido con el balance real: lunesDespues con hiceGol da ánimo 78 contra 72. " +
-    "Conectarlo sube el ánimo medio de toda carrera goleadora.",
-  "_golpeFuerte": "la molestia nunca nace del partido, y encima master.js la pisa con " +
-    "`save.molestia = lunes.molestia` sin condición. Conectarlo enciende la rama de lesión " +
-    "entera: penal_molestia son 15 puntos de energía menos al arrancar la semana.",
   "_teniaVis": "se lee como `o._teniaVis !== false` y no lo escribe nadie, así que siempre da " +
     "verdadero. El default es el seguro (se muestran todas), pero la intención era recordar " +
     "cuáles estaban ocultas: hoy al restaurar el panel se muestran también esas."
@@ -488,7 +482,7 @@ var DEUDA_CONTENIDO = {
   "física del súper tiro": "resolverSuperTiro y ARCO solo corren en el test; ya marcado ⚠ PENDIENTE DE RODRI en jugadon_ui.js."
 };
 
-var DEUDA_TOPE = 6;
+var DEUDA_TOPE = 4;
 (function () {
   var n = (DEUDA_HOY != null ? DEUDA_HOY : Object.keys(PENDIENTES).length) + Object.keys(DEUDA_CONTENIDO).length;
   assert(n <= DEUDA_TOPE,

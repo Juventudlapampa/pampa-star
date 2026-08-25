@@ -217,8 +217,14 @@ if (!BLOQUEA_TEXTO) {
     console.log("DEUDA: el resumen de la semana repite el mismo texto más del 80% de las 90 semanas en " +
       cuantos.length + " de las 3 estrategias (" + cuantos.join(", ") + "). El ánimo se satura (llega a 100 y se " +
       "queda) y deja de ser un medidor, y desde la Tanda 0 la resaca clava la energía en un valor fijo por " +
-      "estrategia (50/60/88), así que el resumen tiene menos de dónde variar: mixta pasó de 79% a " +
-      sims.mixta.pctTop + "%. Es A2, declarado cerrado en la orden de trabajo — pagarlo toca el valor de las 10 " +
+      "estrategia (50/60/88), así que el resumen tiene menos de dónde variar. " +
+      /* el número de comparación se LEE de la línea base. Estaba cableado a mano
+         ("mixta pasó de 79% a X") y la base decía 94: un texto que mentía sobre
+         su propio dato, que es justo lo que estamos barriendo del proyecto. */
+      (BASE && BASE.pctTop ? "Contra la línea base: " + Object.entries(sims)
+        .map(([e, r]) => e + " " + (BASE.pctTop[e] != null ? BASE.pctTop[e] + "% → " : "") + r.pctTop + "%")
+        .join(" · ") + ". " : "") +
+      "Es A2, declarado cerrado en la orden de trabajo — pagarlo toca el valor de las 10 " +
       "opciones de data/semana.json, que es balance de carrera.");
   }
 }

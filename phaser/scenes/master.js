@@ -1272,6 +1272,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.save.mejoras[k] = (this.save.mejoras[k] || 0) + sem.permanentes[k];
     });
     this.save.semanaResumen = llega;
+    /* LA MOLESTIA DE LA SEMANA SE COMMITEA ACÁ, y antes no se commiteaba en
+       ningún lado. Las acciones con `riesgo_golpe` escribían
+       `save.semana.molestia`, pero al cerrar la semana ese objeto se anula y el
+       lunes hacía `save.molestia = lunes.molestia`, que salía sólo del partido.
+       O sea: te lastimabas entrenando y el lunes no había pasado nada. Y al
+       revés, CURAR tampoco se guardaba. */
+    this.save.molestia = !!sem.molestia;
     this._semEvento = undefined;
     this._semEventoResuelto = false;   // la próxima fecha vuelve a decidir el suyo
     this.guardar();

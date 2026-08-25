@@ -270,9 +270,30 @@
     if (e >= 35) return "cansado";
     return "fundido";
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     LA MOLESTIA SE SUMA AL RESUMEN, NO LO REEMPLAZA.
+
+     Esta función cortaba en seco: `if (semana.molestia) return "Arrastrás una
+     molestia..."`. Se tragaba la energía y el ánimo enteros, así que con una
+     molestia sin curar el resumen decía LO MISMO todas las semanas.
+
+     Nadie lo había visto porque esa rama nunca se ejecutaba: la molestia no
+     nacía de ningún lado (ver balance.aguante._golpe_nota). Al conectarla
+     quedó a la vista, y carrera.test.js la cazó en el acto — con la estrategia
+     'entrenar' el texto se repetía en el 83% de las 90 semanas contra el 48%
+     de antes. Es la enfermedad al revés: conectar algo muerto destapa lo que
+     ese algo tapaba.
+
+     Ahora es una coletilla. El resumen sigue contando cómo llegás —que es lo
+     único que le dice al jugador que su semana tuvo consecuencia— y además
+     avisa de la molestia.
+     ══════════════════════════════════════════════════════════════════════ */
   function resumen(semana) {
+    var base = resumenBase(semana);
+    return semana.molestia ? base + ", y con una molestia encima" : base;
+  }
+  function resumenBase(semana) {
     var e = semana.energia, a = semana.animo;
-    if (semana.molestia) return "Arrastrás una molestia de la fecha pasada";
     var n = nivelEnergia(e);
     if (n === "entero") {
       if (a >= 85) return "Llegás entero y con muchas ganas";
@@ -308,7 +329,12 @@
     /* el desgaste del partido: cuánto te costó (0 = fresco, 40 = fundido) */
     var fracFinal = r.aguanteFinalFrac != null ? r.aguanteFinalFrac : 0.6;
     var desgaste = Math.round((1 - fracFinal) * (cfg.desgaste_max || 40));
-    var molestia = !!r.golpeFuerte;
+    /* la molestia viene de DOS lados y antes no venía de ninguno: del partido
+       (r.golpeFuerte, que no lo escribía nadie) y de la semana (las acciones
+       con riesgo_golpe, que se guardaban en un objeto que el lunes anulaba).
+       El OR es lo que hace que arrastre en vez de evaporarse: si la curaste, el
+       llamador ya dejó save.molestia en false y no vuelve sola. */
+    var molestia = !!r.golpeFuerte || !!save.molestia;
     return {
       animo: animo,
       desgaste: clamp(desgaste, 0, cfg.desgaste_max || 40),

@@ -203,9 +203,12 @@
        ni a la tribuna ni a efectoGol, y después de un gol el relator no volvía
        a hablar nunca — "saque" sonaba una sola vez, en el minuto 0.
        ====================================================================== */
-    golPropio() {
+    /* `quien` es opcional: por defecto la metio el que controlas, que es lo
+       que pasa en las cuatro vias de gol. La COMBINADA la define un compañero y
+       ahi el que llame pasa el suyo. */
+    golPropio(quien) {
       var self = this, st = this.st;
-      window.PampaPartido.golMio(st);
+      window.PampaPartido.golMio(st, quien);
       /* ── B5 · EL GOL COMO PICO ────────────────────────────────────────
          Era el momento más importante del juego y compartía tratamiento con
          todo lo demás: efecto, tribuna y relator disparaban los tres a la vez,

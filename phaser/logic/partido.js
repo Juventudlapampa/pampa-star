@@ -630,6 +630,26 @@
       aporte = { aguante: bA, envion: envBonus, matriz: matriz === "leiste" ? B : -B * 0.6, megaRival: 0, rivalFrac: fracRival };
     }
     if (win) sumarEnvion(st, envionCfg(st).gana_duelo);   // R3: el mérito se ACUMULA ganando
+    /* ══════════════════════════════════════════════════════════════════════
+       EL GOLPE FUERTE · la molestia que nunca nacía del partido.
+
+       `this._golpeFuerte` se LEÍA en match.js al armar masterResultado y no lo
+       escribía NADIE en todo el proyecto, así que `lunesDespues` devolvía
+       siempre molestia:false y la rama de lesión entera estaba apagada: los 15
+       puntos de energía de penal_molestia, y la acción CURAR, que sólo se
+       ofrece si hay molestia y por lo tanto no se ofrecía nunca.
+
+       El disparador NO inventa azar nuevo: es el momento en que el partido ya
+       modela el castigo físico — perdés un duelo poniendo el CUERPO (quite o
+       bloqueo) y el gasto te deja por debajo del umbral de rendido. "Te
+       pasaron por arriba cuando ya no dabas más". Es autolimitado por
+       construcción: sólo puede pasar con el tanque en el piso.
+       ══════════════════════════════════════════════════════════════════════ */
+    if (!win && st.posesion !== "mia" && (opts.accion === "quite" || opts.accion === "bloqueo")) {
+      var yo = st.mios[st.ctrl];
+      var pGolpe = bal.aguante.golpe_prob != null ? bal.aguante.golpe_prob : 0.35;
+      if (yo && yo.aguante < bal.aguante.umbral_rendido && rng() < pGolpe) st.golpeFuerte = true;
+    }
     saltoReloj(st, rng);
     return {
       win: win, accionRival: accionRival, matriz: matriz,
@@ -893,7 +913,18 @@
          resolveShot y no tiene que saber cómo se aplica */
       penalizaciones: factorLectura < 1 ? [{ id: "lectura", factor: factorLectura }] : [] };
   }
-  function golMio(st) { st.golesMio++; kickoff(st, "rival"); }
+  /* LA METISTE VOS. `this._hiceGol` se LEIA en match.js al armar
+     masterResultado y no lo escribia NADIE en todo el proyecto: el bonus de
+     animo por meterla vos (semana.animo_gol = 6) no se cobraba nunca. Metieras
+     tres goles o ninguno, el lunes te daba lo mismo mientras el resultado
+     fuera el mismo. Ahora la marca vive en el ESTADO, que es lo que se puede
+     simular, y la pone el unico lugar por el que entra un gol tuyo. */
+  function golMio(st, quien) {
+    st.golesMio++;
+    var j = quien || st.mios[st.ctrl];
+    if (j && j.esVos) st.hiceGol = true;
+    kickoff(st, "rival");
+  }
   /* ══════════════════════════════════════════════════════════════════════
      A4 · LOS CUATRO DESENLACES DEL REMATE.
 
