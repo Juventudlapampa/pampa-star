@@ -319,10 +319,23 @@
           self.avisarDef("🌟 ¡SÚPER DEFENSA lista! Este remate NO entra");
         }, 300);
       } else {
-        var m = this.megaDefensaDisponible(["atajada"], st.mios.find(function (x) { return x.pos === "ARQ"; }));
+        var iArq = st.mios.findIndex(function (x) { return x.pos === "ARQ"; });
+        var m = this.megaDefensaDisponible(["atajada"], st.mios[iArq]);
         if (m) this.defBoton(W / 2, H - 108, 300, "🔥 " + m.n.toUpperCase().slice(0, 14) + " · " + m.aguante, 0xffd84d, function () {
           self._def.mega = m; self.avisarDef("¡" + m.n.toUpperCase() + " lista!");
         }, 300);
+        /* ACÁ IBA LA TRANQUERA, la carta del arquero, y NO VA.
+           Empecé a cablearla en este slot y frené al ver que defBotonesDef() no
+           tiene UN SOLO llamador: entrarDefinicionDef() sale siempre por
+           escenaRemateRival(), y el cuerpo viejo se borró en B3. O sea que esta
+           pantalla entera —y con ella efectoAchicar, achicar_bonus y
+           achicar_vendido, que balance.json ya documenta como apagados— no se
+           abre nunca.
+           Enchufar la carta acá hubiera sido conectar una cosa muerta a otra
+           muerta y declararla hecha. Queda en la DEUDA de desconectados.test.js
+           con el motivo: las dos cartas del ARQUERO necesitan que el arquero
+           tenga un momento de decisión, y la V9 C1 sacó a propósito la pantalla
+           de gestión defensiva. Es decisión de diseño, no un parche. */
       }
     },
     /* V9 §6 · la zona a la que se tira TU ARQUERO. No la elegís en una grilla:

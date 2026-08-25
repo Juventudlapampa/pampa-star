@@ -4702,6 +4702,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.txtFichas.setText(fTxt);
       }
     }
+    /* ══════════════════════════════════════════════════════════════════════
+       TU MANO DE CARTAS, que nunca se vio.
+
+       cartas_ui.textoDeLaMano() estaba escrita entera —con su comentario
+       explicando que se dibuja "con FORMA además de color: lista es un
+       casillero lleno con el nombre, en recarga es uno vacío con los minutos
+       que faltan"— y NO LA LLAMABA NADIE. Así que jugabas sin saber qué cartas
+       tenías ni cuánto les faltaba, y te enterabas recién al abrir la cruz.
+
+       La cazó el guardián al mirar métodos de escena sin llamador. Va debajo de
+       las fichas, que es el otro dato de estado de la misma familia, y no
+       compite con nada: cambia solo cuando cambia. */
+    if (this.textoDeLaMano) {
+      const mTxt = this.textoDeLaMano();
+      if (this._hudMano !== mTxt) {
+        this._hudMano = mTxt;
+        if (!this.txtMano) {
+          this.txtMano = this.add.text(52, 31, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#dcd6c2" }).setOrigin(0, 0.5);
+          this.hudLayer.add(this.txtMano);
+        }
+        this.txtMano.setText(mTxt);
+      }
+    }
     /* Feel B3: el botón ⚡ACCIÓN pulsa cuando hay acciones disponibles */
     if (this._btnPulso) {
       const activo = this.estado === "LIBRE" && st.posesion === "mia";

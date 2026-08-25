@@ -387,6 +387,85 @@ if (CENSO) {
 })();
 
 /* ══════════════════════════════════════════════════════════════════════════
+   [4] UN CONSUMIDOR QUE NO TIENE LLAMADOR NO ES UN CONSUMIDOR
+
+   La versión profunda del chequeo, y nació de un error mío. Al cablear las
+   megadefensas declaré que las TRES quedaban alcanzables porque
+   `megaDefensaDisponible(["atajada"])` aparecía en definicion_ui.js. Aparecía,
+   sí — adentro de defBotonesDef(), que NO TIENE UN SOLO LLAMADOR: la definición
+   defensiva entera murió cuando la V9 C1 sacó la pantalla de gestión y el
+   cuerpo viejo se borró en B3.
+
+   O sea que conté como consumidor a una función muerta. Es la enfermedad una
+   capa más abajo: no alcanza con que ALGUIEN pida la cosa, hay que ver si a ese
+   alguien lo llama alguien.
+
+   Y de paso cazó otra: textoDeLaMano(), la línea de HUD con tu mano de cartas,
+   escrita entera y sin llamador.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* lo ya mirado, con el motivo. NO agregar acá para poner el test en verde. */
+var MUERTOS_OK = {
+  "defCargaLista": "compat declarado: el propio comentario dice 'si algo todavía llama a defCargaLista'",
+  "entrarDefinicionDef": "la puerta vieja de la definición defensiva; sale siempre por escenaRemateRival",
+  "defBotonesDef": "la pantalla de gestión defensiva que la V9 C1 sacó a propósito · balance.json lo documenta",
+  "entrarJugadonTiro": "marcado ⚠ PENDIENTE DE RODRI en el propio archivo: NO BORRAR SIN DECIDIR",
+  "jugadonFuerza": "idem, del mismo bloque",
+  "jugadonTirar": "idem, del mismo bloque",
+  "jugadonPintarDefensores": "stub vacío a propósito: los rivales viven en updateJugadonMini",
+  "jugadonPintarOpciones": "idem",
+  "pelotaImpacto": "efecto de Feel sin uso hoy, se conserva con el resto de la caja de herramientas",
+  "botonPielEn": "variante de botón de la caja de piel, sin uso hoy",
+  /* semana_ui: los escenarios se llaman por nombre desde un mapa, no por punto */
+  "club": "escenario de semana_ui, se invoca por nombre desde ESCENARIOS",
+  "potrero": "idem", "casa": "idem", "patio": "idem", "ruta": "idem",
+  "escuela": "idem", "vacio": "idem", "lugares": "idem"
+};
+
+(function () {
+  var CICLO = {};
+  ["create", "init", "update", "preload", "constructor", "shutdown", "destroy", "render",
+    "if", "for", "while", "switch", "catch", "function", "return", "do", "else", "try", "with"]
+    .forEach(function (k) { CICLO[k] = true; });
+
+  var TODO = FUENTES.map(function (s) { return s.cod; }).join("\n") + "\n" + sinComentarios(leer("phaser/index.html"));
+  /* sin regex a propósito: la definición no lleva punto adelante, así que
+     contar ".nombre(" cuenta llamadas y nunca la propia definición */
+  function llamadas(nombre) {
+    var aguja = "." + nombre + "(", n = 0, i = 0;
+    while ((i = TODO.indexOf(aguja, i)) >= 0) { n++; i += aguja.length; }
+    return n;
+  }
+
+  var defs = [], muertos = [];
+  SCENES.forEach(function (f) {
+    sinComentarios(leer(f)).split("\n").forEach(function (l, i) {
+      var m = l.match(/^\s{4,6}([A-Za-z_$][\w$]*)\s*(?:\([^)]*\)\s*\{|:\s*function)/);
+      if (!m || CICLO[m[1]]) return;
+      defs.push(m[1]);
+      if (llamadas(m[1]) === 0) muertos.push({ f: f, linea: i + 1, n: m[1] });
+    });
+  });
+
+  if (CENSO) {
+    console.log("═══ CENSO [4] · MÉTODOS DE ESCENA SIN LLAMADOR ═══");
+    muertos.forEach(function (d) {
+      console.log("  " + (MUERTOS_OK[d.n] ? "mirado " : "SUELTO ") + d.f + ":" + d.linea + " " + d.n + "()");
+    });
+    console.log("");
+  }
+
+  muertos.forEach(function (d) {
+    if (MUERTOS_OK[d.n]) return;
+    assert(false, "MÉTODO SIN LLAMADOR · " + d.f + ":" + d.linea + " " + d.n + "() está escrito entero y " +
+      "no lo invoca nadie. Ojo: si adentro pide algo (una carta, una megacosa, un dato), ese algo TAMPOCO " +
+      "está conectado — un consumidor sin llamador no es un consumidor.");
+  });
+  console.log("[4] " + defs.length + " métodos de escena · " + muertos.length + " sin llamador (" +
+    Object.keys(MUERTOS_OK).length + " ya mirados)");
+})();
+
+/* ══════════════════════════════════════════════════════════════════════════
    EL NÚMERO DE LA DEUDA, EN CADA CORRIDA
 
    Pedido de Rodri: "hoy son 3; si mañana son 5 sin que nadie lo haya decidido,
@@ -397,17 +476,32 @@ if (CENSO) {
    falle al subirla obliga a que agregar deuda sea una decisión y no un
    descuido: hay que tocar este número a mano y explicar el caso en PENDIENTES.
    ══════════════════════════════════════════════════════════════════════════ */
-var DEUDA_TOPE = 3;
+/* deuda de CONTENIDO: cosas que existen, están dibujadas o escritas, y no se
+   pueden alcanzar hasta que Rodri tome una decisión de diseño. No son campos
+   sueltos, así que no las ve la parte [2] — pero cuentan igual. */
+var DEUDA_CONTENIDO = {
+  "cartas del ARQUERO": "LA TRANQUERA y EL PATADÓN son 2 de las 8 cartas (el 25%) y no tienen dónde ofrecerse: " +
+    "la mano se arma con st.ctrl y el arquero nunca lo es (lo excluyen masCercanoAPelota, receptoresPase, " +
+    "receptorAlVacio, scoreMarcador, cambiarA, el saque tras atajada y el kickoff). Darles un momento " +
+    "significa devolverle al arquero una decisión, y la V9 C1 sacó esa pantalla a propósito.",
+  "megadefensa TRANQUERA": "único pedido en defBotonesDef(), que no tiene llamador. Misma raíz que las cartas.",
+  "física del súper tiro": "resolverSuperTiro y ARCO solo corren en el test; ya marcado ⚠ PENDIENTE DE RODRI en jugadon_ui.js."
+};
+
+var DEUDA_TOPE = 6;
 (function () {
-  var n = DEUDA_HOY != null ? DEUDA_HOY : Object.keys(PENDIENTES).length;
+  var n = (DEUDA_HOY != null ? DEUDA_HOY : Object.keys(PENDIENTES).length) + Object.keys(DEUDA_CONTENIDO).length;
   assert(n <= DEUDA_TOPE,
     "LA DEUDA SUBIÓ: hay " + n + " casos y el tope aceptado es " + DEUDA_TOPE +
     ". Si es a propósito, subí DEUDA_TOPE y explicá el caso nuevo en PENDIENTES.");
-  assert(n === Object.keys(PENDIENTES).length,
-    "PENDIENTES declara " + Object.keys(PENDIENTES).length + " casos y se encontraron " + n +
+  var campos = DEUDA_HOY != null ? DEUDA_HOY : Object.keys(PENDIENTES).length;
+  assert(campos === Object.keys(PENDIENTES).length,
+    "PENDIENTES declara " + Object.keys(PENDIENTES).length + " campos y se encontraron " + campos +
     ": la lista y la realidad tienen que coincidir");
   console.log("\n──────────────────────────────────────────────");
   console.log("  DEUDA CONOCIDA: " + n + " (tope aceptado: " + DEUDA_TOPE + ")");
+  console.log("    " + campos + " de campo · " + Object.keys(DEUDA_CONTENIDO).length + " de contenido");
+  Object.keys(DEUDA_CONTENIDO).forEach(function (k) { console.log("      · " + k); });
   console.log("──────────────────────────────────────────────");
 })();
 

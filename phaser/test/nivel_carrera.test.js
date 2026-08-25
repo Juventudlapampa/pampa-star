@@ -141,9 +141,24 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
     .concat(ESCENAS.match(/megaDefensaDisponible\(\[[^\]]*\]/g) || [])
     .concat(ESCENAS.match(/megaDe\(\s*"[^"]*"/g) || [])
     .join(" ");
+  /* CORRECCIÓN. La primera versión de este test daba verde para las TRES y era
+     mentira: el único que pide "atajada" es definicion_ui.js, adentro de
+     defBotonesDef(), que NO TIENE LLAMADOR — la definición defensiva murió
+     cuando la V9 C1 sacó la pantalla de gestión. O sea que conté como
+     consumidor a una función muerta, que es esta misma enfermedad una capa más
+     abajo. Lo vigila desconectados.test.js parte [4].
+     Así que TRANQUERA va declarada como lo que es: contenido que existe y no se
+     puede alcanzar hasta que Rodri decida si el arquero vuelve a tener un
+     momento de decisión. */
+  var SIN_MOMENTO = { tranquera: "su único pedido vive en defBotonesDef(), que no tiene llamador" };
   (MEGA.megadefensas || []).forEach(function (d) {
+    if (SIN_MOMENTO[d.id]) return;
     assert(pedidosTxt.indexOf('"' + d.tipo + '"') >= 0,
       "la megadefensa " + d.id + " (" + d.grito + ") es de tipo '" + d.tipo + "' y NADIE la pide: queda invisible como estuvo siempre");
+  });
+  Object.keys(SIN_MOMENTO).forEach(function (id) {
+    var d = (MEGA.megadefensas || []).find(function (x) { return x.id === id; });
+    assert(d, "si " + id + " ya no existe en los datos, sacalo de SIN_MOMENTO");
   });
   /* y la cruz de defensa tiene que ser una de las que preguntan */
   var def = MATCH.slice(MATCH.indexOf("abrirMenuDefensa() {"));

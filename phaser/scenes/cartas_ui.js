@@ -41,14 +41,32 @@
       return this._cartas;
     },
 
-    /* la mano del que estás controlando AHORA */
-    manoActual: function () {
+    /* ══════════════════════════════════════════════════════════════════════
+       LA MANO DE UN JUGADOR CUALQUIERA, no solo del que controlás.
+
+       Todo el sistema colgaba de st.ctrl, y el arquero NUNCA es st.ctrl: lo
+       excluyen masCercanoAPelota, receptoresPase, receptorAlVacio,
+       scoreMarcador, cambiarA (que lo rechaza explícito), el saque tras
+       atajada y el kickoff. Vos además sos ATA hardcodeado.
+
+       Consecuencia: las DOS cartas del arquero —LA TRANQUERA y EL PATADÓN—
+       eran inalcanzables. Dos de las ocho, el 25% del sistema. Y
+       d_decisiones.test.js:48 certificaba en verde que existían los cuatro
+       puestos, así que el sistema PARECÍA completo. Hasta hay una pose
+       (arquero_despeje_celeste) que se carga en cada arranque solo para una
+       carta que no se puede ver.
+       ══════════════════════════════════════════════════════════════════════ */
+    manoDeJugador: function (idx) {
       var C = window.PampaCartas, D = this.game.registry.get("megacosas");
       var st = this.st;
       if (!C || !D || !st) return [];
-      var j = st.mios[st.ctrl];
+      var j = st.mios[idx];
       if (!j) return [];
-      return C.manoDe(D, this.cartasEstado(), st.ctrl, j, st.minuto || 0);
+      return C.manoDe(D, this.cartasEstado(), idx, j, st.minuto || 0);
+    },
+    /* la mano del que estás controlando AHORA */
+    manoActual: function () {
+      return this.manoDeJugador(this.st ? this.st.ctrl : -1);
     },
 
     /* la opción de centro para la cruz, o null si este jugador no tiene esa
