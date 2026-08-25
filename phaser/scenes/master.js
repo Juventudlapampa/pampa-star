@@ -427,6 +427,32 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
     this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.scene.start("editor"));
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     ¿ES EL CLÁSICO?
+
+     Se deducía buscando el nombre de tu pueblo ADENTRO del nombre del rival:
+     `rival.indexOf(save.pueblo) >= 0`. Cruzado contra divisiones.json, eso
+     significaba que para Toay, Eduardo Castex, Intendente Alvear y Guatraché
+     NO matcheaba ningún rival de ninguna división, y que de los seis que sí,
+     cinco matcheaban SOLO en Primera A. O sea: en Primera B, donde empieza
+     toda carrera, el clásico existía únicamente para Winifreda, y en Regional,
+     Nacional y Mundial para nadie.
+
+     El evento con más carga emocional del juego era, para casi todo el mundo,
+     contenido que no se veía nunca. Y encima la subcadena PERDÍA dos derbis de
+     verdad: el rival de Eduardo Castex se llama "Ferrocarril de Castex" (dice
+     sólo Castex) y el de Intendente Alvear, "Alvear Fútbol" (sólo Alvear).
+
+     Ahora el rival clásico está declarado en data/roster_pampeano.json y acá se
+     compara por igualdad. Los diez pueblos tienen el suyo.
+     ══════════════════════════════════════════════════════════════════════ */
+  esClasico(rival) {
+    const R = this.game.registry.get("roster");
+    const meta = R && R.clubes_por_pueblo && R.clubes_por_pueblo[this.save.pueblo];
+    if (!meta || !meta.clasico) return false;
+    const lista = Array.isArray(meta.clasico) ? meta.clasico : [meta.clasico];
+    return lista.indexOf(rival) >= 0;
+  }
   /* el nivel de ESTA carrera: el escalon de la liga, con marca de agua alta.
      Un save viejo sin nivelMax deriva del escalon actual, asi que nadie queda
      peor que antes. */
@@ -1220,7 +1246,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const idxMio = pos.findIndex(f => f.equipo === t.miClub), idxRival = pos.findIndex(f => f.equipo === rival);
     const ctx = {
       fecha: t.fecha, division: this.save.division,
-      clasico: (this.save.pueblo && rival.indexOf(this.save.pueblo) >= 0) || false,
+      clasico: this.esClasico(rival),
       posMia: idxMio + 1, posRival: idxRival + 1, racha: this.save.racha | 0,
       marcas: (this.save.origen && this.save.origen.marcas) || []
     };

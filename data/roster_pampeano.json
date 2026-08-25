@@ -13,7 +13,8 @@
     31,
     41
    ],
-   "zona": "centro"
+   "zona": "centro",
+   "clasico": "Deportivo Winifreda"
   },
   "Toay": {
    "apodo": "El Caldén de Toay",
@@ -24,7 +25,8 @@
     32,
     42
    ],
-   "zona": "centro"
+   "zona": "centro",
+   "clasico": "Capital de Santa Rosa"
   },
   "General Pico": {
    "apodo": "El Viento de General Pico",
@@ -35,7 +37,8 @@
     33,
     43
    ],
-   "zona": "norte"
+   "zona": "norte",
+   "clasico": "Estrella de General Pico"
   },
   "Santa Rosa": {
    "apodo": "Polvo de Santa Rosa",
@@ -46,7 +49,8 @@
     34,
     44
    ],
-   "zona": "centro"
+   "zona": "centro",
+   "clasico": "Capital de Santa Rosa"
   },
   "Victorica": {
    "apodo": "Ruta de Victorica",
@@ -57,7 +61,8 @@
     35,
     45
    ],
-   "zona": "oeste"
+   "zona": "oeste",
+   "clasico": "Camino de Victorica"
   },
   "Eduardo Castex": {
    "apodo": "Pampa de Eduardo Castex",
@@ -68,7 +73,8 @@
     36,
     46
    ],
-   "zona": "norte"
+   "zona": "norte",
+   "clasico": "Ferrocarril de Castex"
   },
   "Realicó": {
    "apodo": "Churrasco de Realicó",
@@ -79,7 +85,8 @@
     37,
     47
    ],
-   "zona": "norte"
+   "zona": "norte",
+   "clasico": "Unión de Realicó"
   },
   "Intendente Alvear": {
    "apodo": "Mate de Intendente Alvear",
@@ -90,7 +97,8 @@
     38,
     48
    ],
-   "zona": "norte"
+   "zona": "norte",
+   "clasico": "Alvear Fútbol"
   },
   "Guatraché": {
    "apodo": "Laucha de Guatraché",
@@ -101,7 +109,8 @@
     39,
     49
    ],
-   "zona": "sur"
+   "zona": "sur",
+   "clasico": "Sal y Cal de Macachín"
   },
   "Macachín": {
    "apodo": "Cacique de Macachín",
@@ -112,7 +121,8 @@
     40,
     50
    ],
-   "zona": "este"
+   "zona": "este",
+   "clasico": "Sal y Cal de Macachín"
   }
  },
  "jugadores": [
@@ -1117,5 +1127,6 @@
    }
   }
  ],
- "_zonas": "D4 · EL MAPA POR ZONAS. La zona de cada pueblo (norte/centro/oeste/este/sur) es lo que usa el mapa esquematico de la eleccion de club, porque el proyecto NO TIENE coordenadas de ningun pueblo y la orden dice explicitamente que no se inventen. PENDIENTE DE RODRI: revisar estas zonas y, cuando quiera, cargar x/y exactos (0..1, 0,0 arriba a la izquierda del rectangulo de la provincia) al lado de la zona. El mapa usa la coordenada SI ESTA y la zona si no: conviven, no hay que migrar nada."
+ "_zonas": "D4 · EL MAPA POR ZONAS. La zona de cada pueblo (norte/centro/oeste/este/sur) es lo que usa el mapa esquematico de la eleccion de club, porque el proyecto NO TIENE coordenadas de ningun pueblo y la orden dice explicitamente que no se inventen. PENDIENTE DE RODRI: revisar estas zonas y, cuando quiera, cargar x/y exactos (0..1, 0,0 arriba a la izquierda del rectangulo de la provincia) al lado de la zona. El mapa usa la coordenada SI ESTA y la zona si no: conviven, no hay que migrar nada.",
+ "_clasicos": "EL CLASICO, DECLARADO. Antes se deducia buscando el nombre de tu pueblo ADENTRO del nombre del rival (rival.indexOf(save.pueblo) >= 0). Cruzado contra data/divisiones.json: para Toay, Eduardo Castex, Intendente Alvear y Guatrache no matcheaba NINGUN rival de NINGUNA division, y de los seis que si, cinco matcheaban SOLO en primera_a — o sea que en Primera B, donde empieza toda carrera, el clasico existia unicamente para Winifreda. En Regional, Nacional y Mundial no matcheaba nadie, porque ahi los rivales son 'Bahia del Sur', 'Norte Grande', 'Brasil'. El evento con mas carga emocional del juego era, para casi todo el mundo, contenido que no se veia nunca. Y la subcadena ademas PERDIA dos derbis reales: el rival de Eduardo Castex se llama 'Ferrocarril de Castex' (dice solo Castex) y el de Intendente Alvear, 'Alvear Futbol' (dice solo Alvear). Ahora el rival clasico se declara acá y master.js compara por igualdad. Los dos que no tenian ninguno se resolvieron por vecindad REAL, no inventada: Toay y Santa Rosa son pueblos pegados y comparten la zona 'centro' en este mismo archivo, y Guatrache y Macachin son los dos del sudeste. [DECISION MIA] Esos dos son mi criterio: se revierten cambiando el string. Lo que NO se toca acá es en que division cae cada clasico — eso lo decide divisiones.json — asi que nueve de los diez clasicos viven en primera_a y solo Winifreda tiene el suyo en primera_b. Si Rodri quiere clasicos declarados tambien para Primera B, es agregar un segundo rival por pueblo."
 }
