@@ -146,6 +146,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._pulsoAcum = 0; this._pulsoMovioHasta = 0;          // V8 §1: el acumulador del latido, limpio por partido
     this._panelFlip = false;                                 // V8 §3: la memoria del flip del panel
     this._hudFichas = null; this.txtFichas = null;           // V8 §3: las fichas del jugadón, limpias por partido
+    /* ══════════════════════════════════════════════════════════════════════
+       ESTA LÍNEA FALTABA Y CONGELABA EL SEGUNDO PARTIDO DE LA SESIÓN.
+
+       Cuando cablee textoDeLaMano() copie el patron de dibujo de txtFichas
+       (cache perezoso: si no existe, lo creo) y NO copie el de LIMPIEZA, que
+       esta justo arriba. Phaser REUSA la instancia de la escena en
+       scene.restart(), asi que `this.txtMano` seguia apuntando al Text
+       DESTRUIDO del partido anterior: la guarda `if (!this.txtMano)` daba
+       falso, no lo recreaba, y el primer setText tiraba
+       "TypeError: Cannot read properties of null (reading 'cut')".
+
+       Y en Phaser eso no es un error mas: el RAF es
+       `step(t){ callback(t); if (isRunning) requestAnimationFrame(step) }`
+       — si el callback tira, NO SE VUELVE A PEDIR EL FRAME. El juego queda
+       clavado. Pasaba en la fecha 2 del Master y en "↺ OTRO PARTIDO", apenas
+       cambiaba la mano (al defender, o cuando una carta entra en recarga).
+
+       Es la leccion de P1 por enesima vez, y esta vez la estrene yo mismo el
+       mismo dia que escribi el guardian que la vigila. Lo cazo la auditoria.
+       ══════════════════════════════════════════════════════════════════════ */
+    this._hudMano = null; this.txtMano = null;
     this._jg = null; this._jgLogica = null;                  // V8 §3: la plataforma muere con la escena
     this._def = null;                                        // V6 §4: LA DEFINICIÓN muere con la escena
     this._cartas = null;                                     // D1: las cartas arrancan todas listas cada partido
