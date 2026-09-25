@@ -541,7 +541,9 @@
       var kR = this.poseRivalNaranja ? this.poseRivalNaranja("corriendo") : this.poseKey("corriendo");
       if (kR) { var sr = this.add.image(480, 150, kR); sr.setScale(115 / sr.height); sr.setFlipX(true); this.cineContent.add(sr); }
       this._jg.sprites.push(this.jugadonGlobo(480, 84, "▼ " + (rival.nombre || "RIVAL").toUpperCase().slice(0, 12) + " INSINÚA: " + this._jgLogica.movidaRival.n));
-      var kYo = this.poseHeroeTenida ? (this.poseHeroeTenida(st.mios[st.ctrl]) || this.poseKey("bloqueo")) : this.poseKey("bloqueo");
+      /* V10: el respaldo era el bloqueo con la camiseta del rival — sos vos: la nuestra */
+      var kBloqMio = this.poseDelEquipo ? this.poseDelEquipo("bloqueo", st.mios[st.ctrl]) : this.poseKey("bloqueo");
+      var kYo = this.poseHeroeTenida ? (this.poseHeroeTenida(st.mios[st.ctrl]) || kBloqMio) : kBloqMio;
       if (kYo) { var sy = this.add.image(480, 350, kYo); sy.setScale(120 / sy.height); this.cineContent.add(sy); }
       var C = J.CIERRES, wpx = 210;
       C.forEach(function (c, i) {

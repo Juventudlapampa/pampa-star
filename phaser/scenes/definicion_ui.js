@@ -83,8 +83,16 @@
       return this.figuraCine(id, quienLaPide || "arquero", "arquero_vuela");
     },
     /* sprite de pose con fallback: pose ilustrada grande o heroico escalado */
-    poseSprite(id, x, y, alturaDeseada, fallback) {
+    poseSprite(id, x, y, alturaDeseada, fallback, bando) {
       var k = this.poseKey(id);
+      /* V10 · EL BANDO DE LA POSE. Sin bando, la pose tal cual (como antes).
+         "mio": si la pose es de kit rival (bloqueo, barrida), vestida con la
+         nuestra. "rival": si la pose es del héroe (celeste), teñida al naranja
+         — el rival que te remata en la Definición salía con la camiseta del
+         héroe. */
+      var man = this.game.registry.get("poses"), defP = man && man.poses && man.poses[id];
+      if (k && bando === "mio" && this.poseDelEquipo) k = this.poseDelEquipo(id) || k;
+      else if (k && bando === "rival" && defP && defP.quien === "heroe" && this.poseRivalNaranja) k = this.poseRivalNaranja(id) || k;
       if (k) {
         var s = this.add.image(x, y, k);
         /* A3: por alto_rel del manifiesto (ver escalaDePose en match.js) */
@@ -629,11 +637,15 @@
         ? (o.bloqueado ? "bloqueo" : o.poseTiro)
         : (o.bloqueado ? (this._def.plantado ? "bloqueo" : "barrida") : "remate");
       var jj = o.ofensiva ? this.st.mios[this.st.ctrl] : (this._def.tirador || this.st.rivales[0]);
+      /* V10: de quién es el cuerpo del plano. Pateás vos → tu tiro (o el rival
+         que te bloqueó); te patean → tu defensor que se plantó (o el rival
+         que remata) */
+      var bandoTeatro = o.ofensiva ? (o.bloqueado ? "rival" : "mio") : (o.bloqueado ? "mio" : "rival");
       var spr = this.poseSprite(poseId, W * 0.34, H * 0.52, 400, function () {
         var b = (o.ofensiva ? "h_mio" + self.st.ctrl : "h_riv" + ((jj.numero || 1) - 1));
         var k = b + "_tiro_2";
         return self.textures.exists(k) ? self.add.sprite(0, 0, k).setScale(3.6) : null;
-      });
+      }, bandoTeatro);
       this.cineContent.add(spr);
       this._def.shakeSpr = spr;   // sacudida 2-3px de esfuerzo (updateDefinicion)
       this.lineasVelocidad(W / 2, H * 0.45, 1.2, o.ofensiva ? 0xffd84d : 0xff8a50);
@@ -651,7 +663,9 @@
       var ball = this.add.sprite(W * 0.42, H * 0.6, "ball").setScale(2.2);
       this.cineContent.add(ball);
       this.tweens.add({ targets: ball, x: bx, y: by, scale: 0.9, duration: this.msV(520), ease: "Quad.easeIn" });
-      var arqPose = this.poseSprite("arquero_vuela", W * 0.74, H * 0.4, 260, function () { return null; });
+      /* V10: si te patean a vos, el que vuela es TU arquero (sus poses _celeste) */
+      var idVuela = !o.ofensiva && this.poseKey("arquero_vuela_celeste") ? "arquero_vuela_celeste" : "arquero_vuela";
+      var arqPose = this.poseSprite(idVuela, W * 0.74, H * 0.4, 260, function () { return null; });
       this.cineContent.add(arqPose);
       var zA = D.zona(o.ofensiva ? this._def.zonaCPU : this._def.zonaMia);
       this.tweens.add({ targets: arqPose, x: W / 2 - 180 + zA.col * 120 + 60, y: 98 + zA.fila * 43 + 40, duration: this.msV(520), ease: "Quad.easeOut" });
@@ -695,8 +709,13 @@
         sub = o.gol ? (o.dz >= 2 ? "te fue al otro palo…" : "no alcanzó…") : (o.dz === 0 ? "¡LE ADIVINASTE LA ZONA!" : "¡llegaste con lo justo!");
         color = o.gol ? 0xe3503e : 0x7ee08a;
         poseId = o.gol ? "arquero_vuela" : "arquero_ataja";
+        /* V10: es TU arquero el que vuela o ataja: sus poses propias */
+        if (this.poseKey(poseId + "_celeste")) poseId = poseId + "_celeste";
       }
-      var spr = this.poseSprite(poseId, W * 0.5, H * 0.48, 420, function () { return null; });
+      /* V10: el bloqueo es del que tapó (tuyo si te patearon); el festejo, tuyo;
+         los arqueros quedan como están (van con el buzo de arquero) */
+      var bandoRev = o.bloqueado ? (o.ofensiva ? "rival" : "mio") : (o.ofensiva && o.gol ? "mio" : undefined);
+      var spr = this.poseSprite(poseId, W * 0.5, H * 0.48, 420, function () { return null; }, bandoRev);
       this.cineContent.add(spr);
       spr.setAlpha(0); this.tweens.add({ targets: spr, alpha: 1, duration: 120 });
       /* V7 §0.1: la pelota ilustrada fue recortada del PNG — la del JUEGO se

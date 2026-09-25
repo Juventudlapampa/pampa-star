@@ -62,7 +62,9 @@
   "barrida": {
    "archivo": "pose_barrida.webp",
    "quien": "defensor",
-   "n": "Defensor barriéndose"
+   "n": "Defensor barriéndose",
+   "kit": "rival",
+   "_kit": "V10: dibujada con la camiseta del RIVAL (naranja a rayas). Cuando la usa un jugador tuyo, logic/vestir.js la viste con NUESTRA camiseta en tiempo de ejecución (celeste lisa: sin rayas, que son la marca del rival). El archivo no se toca."
   },
   "arquero_vuela": {
    "archivo": "pose_arquero_vuela_v2.webp",
@@ -144,7 +146,9 @@
   "bloqueo": {
    "archivo": "pose_bloqueo.webp",
    "quien": "defensor",
-   "n": "Bloqueo plantado"
+   "n": "Bloqueo plantado",
+   "kit": "rival",
+   "_kit": "V10: ver barrida."
   },
   "corriendo": {
    "archivo": "pose_corriendo.webp",

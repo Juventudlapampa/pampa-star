@@ -396,6 +396,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ARTE: la pintura de la viñeta (la más usada) se pinta ya, en un cuadro
        aparte, y no en la primera gambeta del partido. Tarda 12-35 ms. */
     if (this.texturaDeFondo) this.time.delayedCall(120, () => { try { this.texturaDeFondo("escena"); } catch (e) { /* sin pintura: el plano dibuja el fondo viejo */ } });
+    /* V10: las dos poses de defensor vestidas con nuestra camiseta, cada una en
+       su cuadro (130-190 ms cada una), antes del primer bloqueo */
+    if (this.poseDelEquipo) {
+      this.time.delayedCall(900, () => { try { this.poseDelEquipo("bloqueo"); } catch (e) { /* se viste al usarla */ } });
+      this.time.delayedCall(1700, () => { try { this.poseDelEquipo("barrida"); } catch (e) { /* se viste al usarla */ } });
+    }
     /* P5: si balance.musica.archivos declara rutas, esos temas pasan a sonar
        de archivo y el chiptune se calla para ellos. Vacio = todo sintetizado. */
     /* M3 · el registro es global y una sola vez, no por escena (ver abajo) */
@@ -1306,9 +1312,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      ══════════════════════════════════════════════════════════════════════ */
   /* fuerza la pose del panel por unos ms: así se VE un quite o un remate que
      no llega a viñeta. Devuelve false si no pudo (y eso se cuenta como deuda). */
-  poseTramite(poseId, ms) {
+  poseTramite(poseId, ms, deMiEquipo) {
     if (!this._split || !this.panelJug) return false;
-    const key = this.poseKey(poseId);
+    /* V10: el quite es tuyo — la barrida va con nuestra camiseta */
+    const key = deMiEquipo && this.poseDelEquipo ? this.poseDelEquipo(poseId) : this.poseKey(poseId);
     if (!key) return false;
     this._poseForzada = { key: key, hasta: this.time.now + (ms || 700) };
     this.panelJug.setTexture(key);
@@ -3735,6 +3742,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!k) return null;
     if (cfg.rival.esRival && this.poseRivalNaranja) k = this.poseRivalNaranja(id) || k;
     else if (!cfg.rival.esRival && cfg.rival.j.esVos && this.poseHeroeTenida) k = this.poseHeroeTenida(cfg.rival.j, id) || k;
+    /* V10: el antagonista tuyo con una pose de kit rival, vestido con la nuestra */
+    if (!cfg.rival.esRival && this.poseDelEquipo && k === this.poseKey(id)) k = this.poseDelEquipo(id, cfg.rival.j) || k;
     return k;
   }
   /* cfg: { etiqueta, prota:{j,esRival,anim}, rival:{j,esRival,anim}|null, gana,
@@ -3813,6 +3822,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       let kPose = this.poseKey(poseId);
       if (cfg.prota && cfg.prota.esRival && this.poseRivalNaranja) kPose = this.poseRivalNaranja(poseId) || kPose;
       else if (cfg.prota && cfg.prota.j && cfg.prota.j.esVos && this.poseHeroeTenida) kPose = this.poseHeroeTenida(cfg.prota.j, poseId) || kPose;
+      /* V10: si la pose viene dibujada con la camiseta del rival (bloqueo,
+         barrida) y la hace uno de los tuyos, va vestida con la nuestra */
+      if (cfg.prota && !cfg.prota.esRival && kPose === this.poseKey(poseId) && this.poseDelEquipo) kPose = this.poseDelEquipo(poseId, cfg.prota.j) || kPose;
       sp = this.add.image(-200, H * 0.52, kPose);
       sp.setScale((cfg.especial ? 420 : 360) / sp.height);
       if (cfg.poseFlip) sp.setFlipX(true);
@@ -4535,7 +4547,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         arquero: "arquero_ataja"
       };
       const id = POSE[cfg.anim] || (cfg.gana ? "gambeta_gana" : "gambeta_pierde");
-      const listo = this.poseTramite(id, (this.BAL.feel && this.BAL.feel.resolucion_min_ms || 1600) * 0.55);
+      /* el quite y el corte del trámite son TUYOS (¡RECUPERASTE! / SE TE
+         ESCAPÓ); el bloqueo que llega acá es el del rival que te tapó el tiro */
+      const mia = cfg.anim === "quite" || cfg.anim === "corte";
+      const listo = this.poseTramite(id, (this.BAL.feel && this.BAL.feel.resolucion_min_ms || 1600) * 0.55, mia);
       /* si NO se pudo, se anota: una acción muda es una deuda, no un silencio.
          El test p3_tramite lee este contador. */
       if (!listo) {

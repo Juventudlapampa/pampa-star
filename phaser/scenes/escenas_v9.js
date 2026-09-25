@@ -78,11 +78,17 @@
     poseDePlano(poseId, j, esRival) {
       var k = this.poseKey(poseId);
       if (!k) return null;
+      /* V10: TU arquero tiene sus poses propias (_celeste); el plano de "te
+         rematan" pedía la genérica y tu arquero volaba de naranja */
+      if (!esRival && this.poseKey(poseId + "_celeste")) return this.poseKey(poseId + "_celeste");
       if (esRival && this.poseRivalNaranja) return this.poseRivalNaranja(poseId) || k;
       /* B3-D: antes solo teñía la pose 'corriendo' — en el resto salía el
          celeste del PNG aunque hubieras elegido otra camiseta. */
-      if (j && j.esVos && this.poseHeroeTenida) return this.poseHeroeTenida(j, poseId) || k;
-      return k;
+      var kh = (j && j.esVos && this.poseHeroeTenida) ? this.poseHeroeTenida(j, poseId) : null;
+      if (kh) return kh;
+      /* V10: tus defensores con bloqueo/barrida salían con la camiseta del
+         rival (esas dos poses solo existen con ese kit): van vestidos con la nuestra */
+      return this.poseDelEquipo ? (this.poseDelEquipo(poseId, j) || k) : k;
     },
     figuraDePlano(poseId, j, esRival, x, y, alto, flip) {
       var k = this.poseDePlano(poseId, j, esRival), sp;
@@ -91,7 +97,10 @@
         /* A3: por alto_rel del manifiesto — las figuras acostadas (el arquero
            volando mide 1905x746) necesitan su propia fraccion o se salen de
            pantalla al escalarlas por altura */
-        sp.setScale(this.escalaDePose ? this.escalaDePose(poseId, alto, sp) : (alto / sp.height));
+        /* V10: la escala con las proporciones de la pose que SALIÓ (la de tu
+           arquero, _celeste, tiene otro alto_rel que la genérica) */
+        var idEf = k.indexOf("pose_") === 0 ? k.slice(5) : poseId;
+        sp.setScale(this.escalaDePose ? this.escalaDePose(idEf, alto, sp) : (alto / sp.height));
       } else {
         sp = this.add.rectangle(x, y, alto * 0.32, alto, esRival ? 0xff8a50 : 0x4fc3f7);
       }

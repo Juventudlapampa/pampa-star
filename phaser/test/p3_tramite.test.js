@@ -42,7 +42,9 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 
 /* ---------- [1] EL TRÁMITE PASA POR EL PANEL, NO SOLO POR mundoLayer ---------- */
 (function () {
-  assert(/poseTramite\(poseId, ms\)/.test(SRC), "tiene que existir poseTramite()");
+  /* V10: ahora recibe un tercer parámetro (deMiEquipo: el quite tuyo va con
+     nuestra camiseta); la firma puede crecer, la función tiene que estar */
+  assert(/poseTramite\(poseId, ms[,)]/.test(SRC), "tiene que existir poseTramite()");
   var anim = SRC.slice(SRC.indexOf("  animarResolucion(cfg) {"));
   anim = anim.slice(0, anim.indexOf("\n  }") + 4);
   assert(/this\._split/.test(anim),

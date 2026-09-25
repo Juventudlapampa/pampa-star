@@ -908,6 +908,40 @@
       return true;
     },
 
+    /* LA POSE CON NUESTRA CAMISETA. Las poses que el manifiesto marca
+       kit:"rival" (barrida, bloqueo) están dibujadas con la del rival; cuando
+       las usa un jugador tuyo, logic/vestir.js separa la tela de la piel por
+       regiones de tinta y la viste de celeste LISA (sin rayas: son la marca
+       del rival). Si es VOS con una camiseta elegida, va con esa. Se hace una
+       vez por pose y color (130-190 ms) y queda como textura. Si algo falla,
+       vuelve la pose original: nunca queda vacío. */
+    poseDelEquipo(id, j) {
+      var src = this.poseKey ? this.poseKey(id) : null;
+      if (!src) return null;
+      var man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
+      if (!def || def.kit !== "rival" || !window.PampaVestir) return src;
+      var destino = "#4fc3f7";
+      if (j && j.esVos && j.look && window.PampaAvatar) {
+        var look = window.PampaAvatar.validarLook(j.look), CM = this.game.registry.get("caras");
+        if (look.tCam > 0 && CM && CM.camisetas && CM.camisetas.length) destino = CM.camisetas[(look.tCam - 1) % CM.camisetas.length].hex;
+      }
+      var key = "poseE_" + id + "_" + String(destino).replace("#", "");
+      if (this.textures.exists(key)) return key;
+      try {
+        var img = this.textures.get(src).getSourceImage(), w = img.width, h = img.height;
+        var ct = this.textures.createCanvas(key, w, h), c = ct.getContext();
+        c.drawImage(img, 0, 0);
+        var datos = c.getImageData(0, 0, w, h);
+        window.PampaVestir.vestir(datos.data, w, h, { destino: destino });
+        c.putImageData(datos, 0, 0);
+        ct.refresh();
+        return key;
+      } catch (e) {
+        console.error("[vestir] " + id + ": " + (e && e.message));
+        if (this.textures.exists(key)) this.textures.remove(key);
+        return src;
+      }
+    },
     /* una textura del panel, pintada una vez y anotada en el registro para
        soltarse junto con las del cine al cambiar de ambiente */
     texturaDePanel(tipo, amb, w, h, pintor) {
