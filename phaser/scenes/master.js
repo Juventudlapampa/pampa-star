@@ -78,6 +78,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     this.save = null;
     try { const r = localStorage.getItem("pampa_master_v1"); if (r) this.save = JSON.parse(r); } catch (e) { }
+    /* ARTE: con la partida leída ya se sabe la división: su cancha va de fondo */
+    if (this.fondoDeLaDivision) { try { this.fondoDeLaDivision(); } catch (e) { /* queda el radial */ } }
 
     /* ¿volvemos de un partido de la fecha? el resultado viene por el registry.
        (§4 inline: scene.restart() reusa la instancia — _ultimo se limpia acá
@@ -263,7 +265,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const r = this.resumenDeLaCarrera();
     if (!r) { this.scene.restart(); return; }
     this.children.removeAll();
-    this.fondoDePiel();
+    /* ARTE: el radial y la cancha de tu división (cine_arte.js) */
+    if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
 
     this.add.text(W / 2, 60, "¿EMPEZAR OTRA CARRERA?", {
       fontFamily: window.PF.display, fontSize: "18px", color: "#e3503e" }).setOrigin(0.5);
@@ -581,6 +584,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!V || !D || !D.origen) { this._crearCarrera(divId, null); return; }
     paso = paso || 0; elegidas = elegidas || [];
     this.children.removeAll();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
     const p = D.origen[paso];
     /* O2 · LA ENTREVISTA. El contenido y las consecuencias son EXACTAMENTE las
        mismas —los stats salen de D.origen y esta pantalla no los mira—; lo que
@@ -802,6 +806,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       return;
     }
     this.children.removeAll();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
 
     /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
        te estás preparando. El título de la pantalla pasa a apoyo. */
@@ -1213,6 +1218,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctx);
     this.children.removeAll();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
     this.add.text(W / 2, 34, ["LUNES", "MIÉRCOLES", "VIERNES"][ranura] + " · ¿qué hacés?", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 60, "te quedan " + sem.energia + " de energía", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
     const porFila = 2, ancho = 380, alto = 74;
@@ -1319,6 +1325,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const ev = this._semEvento;
     if (!V || !ev || !ev.opciones || !ev.opciones.length) { this._semEventoResuelto = true; alSeguir(); return; }
     this.children.removeAll();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
     /* E · acá el PRINCIPAL es lo que pasó: el resto es marco. */
     this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
     this.add.text(W / 2, 140, ev.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);

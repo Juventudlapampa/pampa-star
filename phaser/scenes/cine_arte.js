@@ -800,10 +800,58 @@
   /* ======================================================================
      EL MIXIN: la escena pide un fondo por tipo y lo recibe detrás del plano.
      ====================================================================== */
-  if (!window.PampaMatch) return;
   /* las pinturas vivas: clave de textura → ambiente (las texturas son del
      juego entero, no de la escena, así que el registro también) */
   var PINTADAS = {};
+  function soltarOtras(scene, ambId) {
+    A.pinturasDeOtroAmbiente(PINTADAS, ambId).forEach(function (k) {
+      if (scene.textures.exists(k)) scene.textures.remove(k);
+      delete PINTADAS[k];
+    });
+  }
+
+  /* ======================================================================
+     EL FONDO DEL MASTER: la tabla, la semana y los eventos pasan en TU
+     cancha. Es la misma pintura de la viñeta del partido —misma semilla,
+     mismo lugar—, desenfocada y bajo un velo oscuro del color del marco para
+     que el texto se lea igual que antes. Subís de división y el menú
+     también cambia de hora.
+     ====================================================================== */
+  if (window.PampaMasterScene) Object.assign(window.PampaMasterScene.prototype, {
+    fondoDeLaDivision() {
+      var data = this.game.registry.get("ambientes");
+      if (!data || !data.ambientes) return null;
+      var amb = A.ambienteDe(this.save && this.save.division, data);
+      if (!amb.pal) return null;
+      var key = A.claveDeFondo("menu", amb.id);
+      if (!this.textures.exists(key)) {
+        soltarOtras(this, amb.id);
+        var ct = this.textures.createCanvas(key, W, H);
+        if (!ct) return null;
+        try {
+          var c = ct.getContext(), tmp = lienzo(W, H);
+          P.pintar(tmp.getContext("2d"), "escena", amb.pal, data.golpe, { semilla: A.claveDeFondo("escena", amb.id) });
+          c.filter = "blur(3px)"; c.drawImage(tmp, 0, 0); c.filter = "none";
+          var borde = (this.piel && this.piel().fondo_borde) || "#06120b";
+          var g = c.createLinearGradient(0, 0, 0, H);
+          g.addColorStop(0, rgba(borde, 0.6)); g.addColorStop(0.45, rgba(borde, 0.74)); g.addColorStop(1, rgba(borde, 0.88));
+          c.fillStyle = g; c.fillRect(0, 0, W, H);
+          ct.refresh();
+          PINTADAS[key] = amb.id;
+        } catch (e) { this.textures.remove(key); return null; }
+      }
+      return this.add.image(0, 0, key).setOrigin(0, 0).setDepth(-9999);
+    },
+    /* el marco completo de una vista del Master: el radial de la piel y la
+       cancha de la división encima. Las vistas hacen children.removeAll() y se
+       llevaban el fondo con todo lo demás (la semana quedaba en negro liso). */
+    fondoDelMaster() {
+      if (this.fondoDePiel) this.fondoDePiel();
+      try { return this.fondoDeLaDivision(); } catch (e) { return null; }
+    }
+  });
+
+  if (!window.PampaMatch) return;
   /* los pies medidos de cada pose (clave de textura → fracciones) */
   var PIES = {};
   Object.assign(window.PampaMatch.prototype, {
