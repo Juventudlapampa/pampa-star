@@ -435,6 +435,8 @@ window.PampaAvatarArte = (function () {
   function tenirImagen(scene, srcKey, dstKey, mapa) {
     if (scene.textures.exists(dstKey)) return dstKey;
     if (!scene.textures.exists(srcKey)) return null;
+    /* V10: la fuente, sin el anillo violeta del recorte (logic/halo.js) */
+    if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(srcKey);
     var src = scene.textures.get(srcKey).getSourceImage();
     var cv = scene.textures.createCanvas(dstKey, src.width, src.height);
     var c2 = cv.getContext();

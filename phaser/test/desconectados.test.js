@@ -285,6 +285,7 @@ var ESCRITOS_OK = {
   "__PAMPA_MUSICA_FECHA": "contador de diagnóstico de música, se lee desde la verificación",
   "__PAMPA_MUSICA_MALOS": "idem, momentos desconocidos",
   "__PAMPA_MUSICA_TARDIOS": "idem, pedidos de escenas muertas",
+  "__PAMPA_HALO": "estadísticas de la limpieza del anillo violeta (cuántas imágenes, cuántos píxeles, cuánto tardó): se leen desde la verificación, como los contadores de música",
   "_entrarDefinicionDefVieja": "el camino viejo de la definición, que se conserva a propósito para poder volver",
   "_panelReveal": "bandera de una sola pasada: se escribe para NO repetir el reveal, no para leerse",
   "_tramiteMudoUltimo": "marca anti-repetición del trámite mudo",

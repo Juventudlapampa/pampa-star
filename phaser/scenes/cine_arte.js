@@ -800,6 +800,86 @@
   /* ======================================================================
      EL MIXIN: la escena pide un fondo por tipo y lo recibe detrás del plano.
      ====================================================================== */
+  /* ======================================================================
+     EL ANILLO VIOLETA (logic/halo.js), enganchado al administrador de
+     texturas: cada ilustración de personaje (pose_, cara_, ident_) se limpia
+     en memoria apenas se carga, antes de que la use ninguna escena. Los
+     archivos no se tocan. Lo llama index.html en postBoot.
+     ====================================================================== */
+  window.PampaHaloEnganchar = function (game) {
+    var HA = window.PampaHalo;
+    if (!HA || !game || !game.textures) return;
+    /* estado por clave: 1 = en la cola, 2 = mirada */
+    var estado = {}, cola = [], programado = false;
+    var stats = { miradas: 0, limpiadas: 0, px: 0, ms: 0, claves: [] };
+    function limpiar(key) {
+      if (estado[key] === 2) return;
+      estado[key] = 2;
+      var t0 = performance.now();
+      try {
+        var tex = game.textures.exists(key) ? game.textures.get(key) : null;
+        var fuente = tex && tex.source && tex.source[0];
+        var src = fuente && fuente.image;
+        if (!src || !src.width || typeof HTMLImageElement === "undefined" || !(src instanceof HTMLImageElement)) return;
+        stats.miradas++;
+        var cv = document.createElement("canvas");
+        cv.width = src.width; cv.height = src.height;
+        var c = cv.getContext("2d", { willReadFrequently: true });
+        c.drawImage(src, 0, 0);
+        /* primero una muestra de 24 filas: si no hay halo, no se lee entera */
+        var filas = [];
+        for (var f = 1; f <= 24; f++) filas.push(c.getImageData(0, Math.floor(cv.height * f / 25), cv.width, 1).data);
+        var mu = HA.muestra(filas, cv.width);
+        if (mu.saltos >= 8 && mu.ratio < 0.15) return;
+        var datos = c.getImageData(0, 0, cv.width, cv.height);
+        var r = HA.quitar(datos.data, cv.width, cv.height);
+        if (!r.limpiados) return;
+        c.putImageData(datos, 0, 0);
+        /* EN EL LUGAR: la misma textura pasa a tener la imagen limpia y se
+           vuelve a subir a la GPU. Los sprites que ya la usaban la ven limpia;
+           nada queda apuntando a una textura muerta. */
+        fuente.image = cv;
+        fuente.isCanvas = true;
+        if (fuente.update) fuente.update();
+        stats.limpiadas++; stats.px += r.limpiados; stats.claves.push(key);
+      } catch (e) {
+        console.error("[halo] " + key + ": " + (e && e.message));
+      } finally {
+        stats.ms += performance.now() - t0;
+      }
+    }
+    /* la cola se trabaja entre cuadros, de a tandas de 12 ms: la carga no se
+       traba (limpiar todo de una costaba 1,3 s de bloqueo) */
+    var canal = typeof MessageChannel !== "undefined" ? new MessageChannel() : null;
+    function tanda() {
+      programado = false;
+      var t0 = performance.now();
+      while (cola.length && performance.now() - t0 < 12) limpiar(cola.shift());
+      if (cola.length) programar();
+    }
+    if (canal) canal.port1.onmessage = tanda;
+    function programar() {
+      if (programado) return;
+      programado = true;
+      if (canal) canal.port2.postMessage(0); else setTimeout(tanda, 0);
+    }
+    game.textures.on("addtexture", function (key) {
+      if (estado[key] || !HA.aplica(key)) return;
+      estado[key] = 1;
+      cola.push(key);
+      programar();
+    });
+    /* quien DERIVA una imagen de otra (el teñido de tu pinta, la camiseta del
+       equipo, los pies medidos) pide que la fuente esté limpia antes */
+    window.PampaHaloAsegurar = function (key) {
+      if (estado[key] !== 1) return;
+      var i = cola.indexOf(key);
+      if (i >= 0) cola.splice(i, 1);
+      limpiar(key);
+    };
+    window.__PAMPA_HALO = stats;
+  };
+
   /* las pinturas vivas: clave de textura → ambiente (las texturas son del
      juego entero, no de la escena, así que el registro también) */
   var PINTADAS = {};
@@ -918,6 +998,7 @@
     poseDelEquipo(id, j) {
       var src = this.poseKey ? this.poseKey(id) : null;
       if (!src) return null;
+      if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(src);
       var man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
       if (!def || def.kit !== "rival" || !window.PampaVestir) return src;
       var destino = "#4fc3f7";
@@ -1019,6 +1100,7 @@
        Devuelve fracciones de la imagen: {cx, w, yb}. */
     pieDePose(key) {
       if (PIES[key]) return PIES[key];
+      if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(key);
       var def = { cx: 0.5, w: 0.5, yb: 1 };
       try {
         var src = this.textures.get(key).getSourceImage();
