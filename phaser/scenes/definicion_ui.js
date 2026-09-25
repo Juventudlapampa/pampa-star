@@ -684,11 +684,10 @@
       var pmD = this.game.registry.get("poses");
       var defD = pmD && pmD.poses && pmD.poses[poseId];
       if (defD && defD.pelota && this.textures.exists("ball") && spr.displayWidth) {
-        var ballH = this.textures.get("ball").getSourceImage().height || 16;
-        var escB = Math.max(1.6, (defD.pelota.r * 2 * spr.displayHeight) / ballH);
+        var TPd = this.texPelota ? this.texPelota(Math.max(1.6 * 16, defD.pelota.r * 2 * spr.displayHeight)) : { key: "ball", esc: 1.6 };
         var bb = this.add.sprite(
           spr.x + (defD.pelota.x - 0.5) * spr.displayWidth * (spr.flipX ? -1 : 1),
-          spr.y + (defD.pelota.y - 0.5) * spr.displayHeight, "ball").setScale(escB).setAlpha(0);
+          spr.y + (defD.pelota.y - 0.5) * spr.displayHeight, TPd.key).setScale(TPd.esc).setAlpha(0);
         this.cineContent.add(bb);
         this.tweens.add({ targets: bb, alpha: 1, duration: 120 });
       }

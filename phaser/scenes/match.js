@@ -966,20 +966,46 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        los setScale del juego siguen valiendo sin cambiar ninguno. */
     const orig = this.textures.get("ball").getSourceImage();
     const W = orig.width || 16, H = orig.height || 16;
-    const rt = this.make.renderTexture({ width: W, height: H, add: false });
-    const img = this.add.image(0, 0, K).setOrigin(0, 0).setVisible(false);
     const src = this.textures.get(K).getSourceImage();
-    img.setDisplaySize(W, H);
-    rt.draw(img, 0, 0);
-    img.destroy();
+    /* ══ LA PELOTA ERA INVISIBLE (del 19/ago al 24/sep de 2026) ══
+       Acá se rasterizaba con una renderTexture y después se registraba "ball"
+       con addImage(fuente de la renderTexture). En WebGL esa fuente no es
+       una imagen: es la textura de GPU de la renderTexture, y la "ball" nueva
+       quedaba VACÍA. Todo sprite "ball" del juego dibujaba nada. Se veía en
+       las capturas y nadie lo leyó así: el arquero de A5_atajada_arreglada
+       abraza un agujero negro —el hueco donde se recortó la pelota dibujada,
+       que la del juego tenía que tapar—, y la chilena patea el aire.
+       Ahora se rasteriza en un CANVAS 2D, que es una imagen de verdad para
+       cualquier renderer, y se registra con addCanvas. Medido en pantalla:
+       ver phaser/test/pelota_visible.test.js. */
+    const rasterizar = (lado) => {
+      const cv = document.createElement("canvas");
+      cv.width = lado; cv.height = lado;
+      const c = cv.getContext("2d");
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+      c.drawImage(src, 0, 0, lado, lado);
+      return cv;
+    };
     this.textures.addImage("ball_gajos", orig);               // la de gajos, por si hay que volver
-    rt.saveTexture("ball_potrero");
     /* y "ball" pasa a ser la nueva: se quita y se vuelve a poner con el mismo
        nombre, pero ANTES de que exista un solo sprite que la use (esta funcion
        corre en el primer renglon de create) */
     this.textures.remove("ball");
-    this.textures.addImage("ball", this.textures.get("ball_potrero").getSourceImage());
+    this.textures.addCanvas("ball", rasterizar(Math.max(W, H)));
+    /* ARTE · la misma pelota en alta, para los planos donde se la ve de cerca
+       (la que se pega a la pose ilustrada mide 100 px o más: a 16 px de
+       fuente eran cuatro manchas). Se usa con texPelota(), que ajusta la escala. */
+    if (!this.textures.exists("ball_hd")) this.textures.addCanvas("ball_hd", rasterizar(128));
     return true;
+  }
+  /* la textura de pelota para un tamaño en pantalla: la de 16 px para lo
+     chico (todo el juego escala contra ella) y la de 128 cuando se la ve de
+     cerca. Devuelve { key, esc } con la escala que da ese alto en pantalla. */
+  texPelota(altoPantalla) {
+    const hd = altoPantalla > 40 && this.textures.exists("ball_hd");
+    const key = hd ? "ball_hd" : "ball";
+    const alto = this.textures.get(key).getSourceImage().height || 16;
+    return { key, esc: altoPantalla / alto };
   }
 
   /* ══════════════════════════════════════════════════════════════════════════
@@ -3745,9 +3771,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const dW = sp.width * sp.scaleX, dH = sp.height * sp.scaleY;
       const offX = posePel ? (posePel.x - 0.5) * dW * (cfg.poseFlip ? -1 : 1) : 78;
       const offY = posePel ? (posePel.y - 0.5) * dH : 150;
-      const ballH = this.textures.get("ball").getSourceImage().height || 16;
-      const esc = posePel && posePel.r ? Math.max(1.6, (posePel.r * 2 * dH) / ballH) : 2.4;
-      const bb = this.add.sprite(-200 + offX, H * 0.52 + offY, "ball").setScale(esc);
+      /* el alto en pantalla manda; texPelota elige la de 16 o la de 128 */
+      const altoB = posePel && posePel.r ? Math.max(1.6 * 16, posePel.r * 2 * dH) : 2.4 * 16;
+      const TP = this.texPelota(altoB);
+      const bb = this.add.sprite(-200 + offX, H * 0.52 + offY, TP.key).setScale(TP.esc);
       this.cineContent.add(bb);
       this.tweens.add({ targets: bb, x: W * 0.3 + offX, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
     }
