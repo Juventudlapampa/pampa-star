@@ -841,7 +841,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          de la decisión que antes no existía */
       const md = this.save.modFecha;
       if (md && md.opcion) {
-        this.add.text(W / 2, ySup, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
+        const tl = this.add.text(W / 2, ySup, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
+        /* abajo del titular pisaba el borde de la tira de los días (arranca en
+           y=134). Si entra a lo ancho, va en el MISMO renglón que el titular:
+           los dos se corren para quedar centrados juntos. La flecha lo separa
+           del titular por forma, no solo por color. */
+        const junto = te.width + 14 + tl.width;
+        if (ySup + tl.height > 130 && te.height < 24 && junto <= W - 60) {
+          te.setOrigin(0, 0).setX(W / 2 - junto / 2);
+          tl.setOrigin(0, 0).setPosition(te.x + te.width + 14, te.y + (te.height - tl.height) / 2);
+        }
       }
     }
 
