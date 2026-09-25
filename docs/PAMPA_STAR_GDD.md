@@ -333,7 +333,9 @@ Cada jugador tiene nombre, apodo, pueblo, posición, un **rasgo** y una **histor
 
 ## 9.2 Los clubes
 
-**10 clubes por pueblo**, cada uno con su apodo y sus 5 jugadores: El Bagual de Winifreda, El Caldén de Toay, El Viento de General Pico, y así. El ecosistema real del fútbol pampeano convertido en plantel de JRPG.
+**10 clubes por pueblo**, cada uno con su apodo y sus 5 jugadores: El Bagual de Winifreda, El Caldén de Toay, El Viento de General Pico, y así. El ecosistema del fútbol pampeano convertido en plantel de JRPG.
+
+**La liga y los clubes son inventados** (Sección 11, sept 2026): la Primera B del clásico y del Master eran los nueve clubes reales de una liga pampeana, con sus colores; ahora juegan la **Liga de la Llanura** clubes ficticios (Jagüel Viejo, Espejo de Sal, Tolvanera FC…), verificados en la web contra clubes y ligas reales. Tu club del Master lleva el apodo de tu localidad. Las localidades sí son las reales: son geografía pública. Detalle en `docs/ARTE_V10.md`.
 
 ## 9.3 El relator
 

@@ -122,28 +122,96 @@ ancho y el titular es de un renglón; si no, queda donde estaba.
 
 **10 · "puma" fuera de la lista de marcas del test.** En La Pampa es un animal.
 
+**11 · Los nombres nuevos de los clubes y de la liga.** Elegí, entre los
+candidatos verificados, los más cortos y con el tono de los apodos del roster
+(paisaje, flora, viento, oficios). Mantuve el ORDEN y la FUERZA (`f`) de cada
+club, así el campeonato juega igual. Corregí dos localidades que estaban mal
+("Cochico" no es una localidad: el club era de Victorica; y el club de Telén
+no podía estar en Telén dos veces).
+*Se revierte:* `data/divisiones.json` y `CLUBES` en `index.html` — nunca a
+nombres reales (el test de Sección 11 lo impide).
+
+**12 · Tu club del Master se llama con el apodo de tu localidad.** El diseño
+ya definía los clubes por su apodo (GDD §9.2). Los diez se verificaron.
+*Se revierte:* `nombreDeTuClub` en `phaser/logic/master.js`.
+
+**13 · La radio queda sin nombre propio** ("la FM del pueblo"). Cualquier nombre
+inventado habría que verificarlo, y el cupo de búsquedas se agotó.
+
+**14 · Borrar las rayas al vestir a tus defensores.** La camiseta a rayas es la
+marca del rival para quien no distingue colores. Queda celeste lisa.
+*Se revierte:* sacar `kit: "rival"` de bloqueo y barrida en el manifiesto de poses.
+
+**15 · Los retratos rotos del grupo compañero, fuera del grupo.** No se veían
+con el flag por defecto; con el flag apagado salían rotos y todos iguales.
+*Se revierte:* volver a listarlos en `data/portraits_manifest.json`.
+
+**16 · El anillo violeta se limpia en memoria, no en los archivos.** Por tu regla
+de no reprocesar. Cuesta ~1 s de trabajo repartido entre cuadros al cargar.
+*Se revierte:* sacar el `postBoot` de `phaser/index.html`.
+
 ---
 
-## PARA RODRI
+## SEGUNDA VUELTA · "hacé lo que me mandás a mí"
 
-**Decisiones tuyas (Sección 11):**
+La primera versión de este documento terminaba con una lista PARA RODRI.
+Rodri contestó que la hiciera yo. Esto es lo que salió:
 
-- `assets/ui/relatores.webp` — el panel de la derecha tiene a la relatora con un
-  escote marcado y en pose de glamour, mientras los dos varones aparecen
-  trabajando. Hoy **no lo carga ningún código**, así que no sale en pantalla.
-  Si algún día se usa: recorte a la franja de arriba (caras con auriculares) o
-  regenerar ese panel con ropa cerrada y micrófono. No lo toqué.
-- De la auditoría, siguen abiertos: **FM El Caldén** (radio real, en
-  `data/entrevista.json`) y **los clubes reales de la Liga Cultural** en la
-  Primera B.
+| commit | qué |
+|---|---|
+| `1a4c419` | **Tu equipo con tu camiseta.** Te había dicho que el bloqueo y la barrida no se podían teñir (la piel es casi del mismo naranja que la camiseta). Con más trabajo sí: `logic/vestir.js` separa la tela de la piel por las regiones que cierra la tinta, la tonalidad y el contacto, y **borra las rayas** (en el GDD son la marca no-cromática del rival). Tus defensores salen de celeste liso. De paso: tu arquero volaba con la pose genérica naranja, y el rival que te remata en la Definición salía de celeste. |
+| `6ab1cdd` | **relatores.webp** recortado a las tres caras con auriculares: sin el escote. |
+| `f611de7` | Los siete retratos del grupo compañero, con el alfa roto, salen del grupo (cada jugador cae a su cara de avatar, que es lo que ya se veía). |
+| `2b6fe56` | **El anillo violeta del recorte**, que tenían 26 de 51 ilustraciones, se limpia en memoria al cargar (`logic/halo.js`). Los archivos no se tocan. |
+| `f5db774` | **FM El Caldén** (hay tres radios reales con ese nombre) pasa a "la FM del pueblo"; dos marcas en textos del clásico ("Reflex", "tuppers") y dos **"Guts" visibles** que se habían escapado. |
+| (este) | **Los clubes y la liga reales.** Ver abajo. |
 
-**Arte que falta** (detalle en `docs/P11_PEDIDOS_DE_ARTE.md`, prioridad 0):
+### Los clubes reales
 
-- **Bloqueo y barrida con nuestra camiseta.** Hoy tus defensores salen con la
-  camiseta del rival. No se puede teñir: la piel de esas poses es del mismo
-  naranja que la camiseta.
-- La lista de lo que la barrida encontró roto en el arte que ya está (huecos,
-  halos, alfa roto, estilos que no pegan). No lo toqué: regla de no reprocesar.
+Un relevamiento con búsqueda web confirmó que la Primera B eran los nueve
+clubes **reales** de la liga cultural pampeana, con sus colores reales; que
+"Alvear Fútbol" (Primera A) es un club real y "Ferrocarril de Castex" se lee
+como los Ferro reales; que en el Regional "Patagonia Austral" es un club real,
+"Puntano de San Luis" casi, y "Litoral Norte" es un torneo real de la AFA; que
+en el Nacional "Comarca Andina" es una liga real; y que "Club " + localidad
+(tu club del Master) es como la gente nombra a clubes reales de varias
+localidades.
+
+| antes (real) | ahora (ficticio) |
+|---|---|
+| la Liga Cultural | **la Liga de la Llanura** |
+| los 9 de la Primera B | **Jagüel Viejo · Espejo de Sal · Viento Oeste · Rescoldo FC · Guanaco Bravo · Alpataco FC · Cardo Ruso FC · Cauce Viejo · Tolvanera FC**, con colores nuevos |
+| Alvear Fútbol · Ferrocarril de Castex | **Surco Hondo · Durmiente FC** |
+| Patagonia Austral · Puntano de San Luis · Litoral Norte | **Ñire Torcido · Quebrada Seca · Yerbal Rojo** |
+| Comarca Andina | **Mallín Alto** |
+| "Club " + localidad | **el apodo de tu localidad** ("El Bagual de Winifreda") |
+
+**Cómo se verificó cada nombre nuevo:** los de la Primera B y la liga, con dos
+búsquedas web independientes (quien los propuso y un escéptico que intentó
+refutarlos: el escéptico tumbó "Liga del Caldenal", que existe). Los otros
+seis, leyendo las listas de clubes de las ligas de cada región en Wikipedia,
+porque se agotó el cupo de búsquedas web de la sesión. Los diez apodos, contra
+los clubes y apodos reales de cada localidad.
+
+**Las partidas guardadas no se rompen.** En el clásico, el único nombre que se
+guarda es el de tu club (todo lo demás va por índice): se traduce por el HASH
+del nombre viejo, así el código no tiene escrito ningún nombre real. En el
+Master, la temporada en curso se traduce por POSICIÓN (la tabla guarda el
+orden de la división). Visto en el juego con partidas viejas armadas a mano:
+mismos puntos, misma fecha, ningún nombre real. Test: `migracion_nombres.test.js`.
+
+**La red:** `seccion11.test.js` tiene ahora la lista de clubes, ligas y medios
+reales que no pueden volver, más las marcas de texto y "Guts" en cualquier forma.
+
+## PARA RODRI (lo que queda)
+
+- **Estilos que no pegan** (`pose_festejo`, `pose_cansado`, `retrato_juvenil`;
+  pelo castaño en `pose_tiro` y `pose_volea`): hace falta arte nuevo, no hay
+  arreglo por código. Detalle en `docs/P11_PEDIDOS_DE_ARTE.md`.
+- **Mirá los nombres nuevos de los clubes.** Los elegí yo (con el tono de los
+  apodos del roster) y están verificados, pero son la cara de la liga: si
+  alguno no te gusta, se cambia en `data/divisiones.json` y en `CLUBES` del
+  clásico, en el mismo orden, y la migración sigue funcionando.
 
 ---
 

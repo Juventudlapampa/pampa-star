@@ -1,6 +1,6 @@
 # ⚽ PAMPA STAR
 
-Juego de **carrera futbolística pampeana** por comandos. Un pibe que arranca en la **Primera B de la Liga Cultural de Fútbol de La Pampa** y sueña con llegar al Mundial. Cruza el motor por comandos de *Captain Tsubasa* con la capa de vida y progresión de *New Star Soccer*.
+Juego de **carrera futbolística pampeana** por comandos. Un pibe que arranca en la **Primera B de una liga de pueblo de La Pampa** (la Liga de la Llanura, inventada, como todos sus clubes) y sueña con llegar al Mundial. Cruza el motor por comandos de *Captain Tsubasa* con la capa de vida y progresión de *New Star Soccer*.
 
 > Título provisorio · proyecto de la Subsecretaría de Juventudes de La Pampa.
 
