@@ -34,19 +34,31 @@
     fondoDeCancha(conTribuna) {
       var g = this.cineBG, horizonte = Math.round(H * 0.34);
       g.clear();
-      g.fillStyle(0x0e2c44, 1); g.fillRect(0, 0, W, horizonte);
-      g.fillStyle(0x1f7a3c, 1); g.fillRect(0, horizonte, W, H - horizonte);
-      /* franjas de pasto que se ENSANCHAN hacia adelante: da la fuga sin 3D */
-      g.fillStyle(0x2e7d32, 1);
-      var y = horizonte, alto = 7, k = 0;
-      while (y < H) {
-        if (k % 2 === 0) g.fillRect(0, y, W, alto);
-        y += alto; alto += 6; k++;
+      /* ARTE · el pasto pintado (cine_arte.js), con la costura de tierra que
+         lo une al pie de la ilustración. De noche la ilustración, que está
+         pintada de día, se tiñe a la hora del partido: la noche americana */
+      var tinte = this.tinteIlustrado ? this.tinteIlustrado() : null;
+      var tierra = tinte != null && window.PampaAmbiente ? window.PampaAmbiente.multiplicar("#d1a36f", tinte) : null;
+      var pintado = !!(this.fondoCine && this.fondoCine("cancha_alta", { y0: horizonte, tierra: tierra }));
+      if (!pintado) {
+        g.fillStyle(0x0e2c44, 1); g.fillRect(0, 0, W, horizonte);
+        g.fillStyle(0x1f7a3c, 1); g.fillRect(0, horizonte, W, H - horizonte);
+        /* franjas de pasto que se ENSANCHAN hacia adelante: da la fuga sin 3D */
+        g.fillStyle(0x2e7d32, 1);
+        var y = horizonte, alto = 7, k = 0;
+        while (y < H) {
+          if (k % 2 === 0) g.fillRect(0, y, W, alto);
+          y += alto; alto += 6; k++;
+        }
+        g.fillStyle(0xeafff0, 0.2); g.fillRect(0, horizonte, W, 3);
       }
-      g.fillStyle(0xeafff0, 0.2); g.fillRect(0, horizonte, W, 3);
-      if (conTribuna !== false && this.textures.exists("fondo_tribuna")) {
+      /* la tribuna de chapa es la del pueblo: en estadio la pintura ya trae las
+         gradas (y si no hubo pintura, vuelve la ilustración: nunca queda vacío) */
+      var esPueblo = !pintado || !this.ambienteEsPueblo || this.ambienteEsPueblo();
+      if (conTribuna !== false && esPueblo && this.textures.exists("fondo_tribuna")) {
         var t = this.add.image(W / 2, horizonte, "fondo_tribuna").setOrigin(0.5, 1);
         t.setScale(W / t.width);
+        if (tinte != null) t.setTint(tinte);
         this.cineContent.add(t);
       }
       /* ACA LLAMABA A this.hinchadaViva(), que NO EXISTE en ningun archivo.

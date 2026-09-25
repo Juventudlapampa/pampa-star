@@ -393,6 +393,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (window.PampaTribunaUI) window.PampaTribunaUI.montar(this);
     this.buildBotonAccion();
     this.buildCineBase();
+    /* ARTE: la pintura de la viñeta (la más usada) se pinta ya, en un cuadro
+       aparte, y no en la primera gambeta del partido. Tarda 12-35 ms. */
+    if (this.texturaDeFondo) this.time.delayedCall(120, () => { try { this.texturaDeFondo("escena"); } catch (e) { /* sin pintura: el plano dibuja el fondo viejo */ } });
     /* P5: si balance.musica.archivos declara rutas, esos temas pasan a sonar
        de archivo y el chiptune se calla para ellos. Vacio = todo sintetizado. */
     /* M3 · el registro es global y una sola vez, no por escena (ver abajo) */
@@ -2840,6 +2843,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      de presentación, no sprites del mundo — el presupuesto de 3 se respeta. */
   buildCineBase() {
     const W = 960, H = 540;
+    /* ARTE · el fondo PINTADO del plano (cine_arte.js): primero de todo, así
+       lo que cada plano dibuja en cineBG (el arco, las siluetas) va encima.
+       Arranca oculto; cada plano lo pide con fondoCine() después de
+       limpiarContenido(), que lo apaga. */
+    this.cineFondo = this.add.image(W / 2, H / 2, "__WHITE").setVisible(false); this.cineLayer.add(this.cineFondo);
     this.cineBG = this.add.graphics(); this.cineLayer.add(this.cineBG);
     this.cineContent = this.add.container(0, 0); this.cineLayer.add(this.cineContent);
     this.cineFX = this.add.graphics(); this.cineLayer.add(this.cineFX);
@@ -2848,7 +2856,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
     this.cineBlack = this.add.rectangle(W / 2, H / 2, W, H, 0x000000).setAlpha(0); this.cineLayer.add(this.cineBlack);
   }
-  limpiarContenido() { this.cineContent.removeAll(true); this.cineFX.clear(); }
+  limpiarContenido() {
+    this.cineContent.removeAll(true); this.cineFX.clear();
+    /* la pintura de fondo se apaga con el contenido: el plano que la quiere la
+       vuelve a pedir, y el que no (jugadón, cartas) no hereda la del anterior */
+    if (this.cineFondo) this.cineFondo.setVisible(false);
+  }
   corte(fn) {
     this.cineBlack.setAlpha(1);
     this.tweens.add({ targets: this.cineBlack, alpha: 0, duration: this.BAL.cine.corte_ms, delay: 20 });
@@ -2857,12 +2870,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   lineasVelocidad(cx, cy, inten, tinte) {
     const g = this.cineFX, n = this.BAL.cine.lineas_velocidad;
     g.clear();
+    /* ARTE · la línea de velocidad de anime es una CUÑA: fina del lado del
+       centro, ancha afuera. Antes era un trazo de ancho parejo, que se lee
+       como un palito. Una de cada cinco va más gruesa y más larga: el ritmo
+       irregular es lo que la hace dibujada y no generada. */
     for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
+      const a = (i / n) * Math.PI * 2 + (i % 3) * 0.06;
       const r0 = 60 + ((i * 53 + this.time.now * 0.25) % 200);
-      const r1 = r0 + 70 * inten;
-      g.lineStyle(2 + 2 * inten, tinte || 0xffffff, 0.18 + 0.28 * inten);
-      g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.strokePath();
+      const larga = i % 5 === 0;
+      const r1 = r0 + 70 * inten * (larga ? 1.5 : 1) + (i % 4) * 14;
+      const w = (1.4 + 1.6 * inten) * (larga ? 1.8 : 1);
+      const co = Math.cos(a), si = Math.sin(a);
+      g.fillStyle(tinte || 0xffffff, 0.2 + 0.3 * inten);
+      g.fillTriangle(cx + co * r0, cy + si * r0,
+        cx + co * r1 - si * w, cy + si * r1 + co * w,
+        cx + co * r1 + si * w, cy + si * r1 - co * w);
     }
   }
   texturaCineJugador() {
@@ -2919,7 +2941,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   planoPie() {
     const W = 960, H = 540, C = this.BAL.cine;
     this.limpiarContenido();
-    this.cineBG.clear(); this.cineBG.fillStyle(0x2a130b, 1); this.cineBG.fillRect(0, 0, W, H);
+    this.cineBG.clear();
+    /* ARTE: el golpe — degradé radial y líneas de foco (antes, marrón liso) */
+    if (!this.fondoCine || !this.fondoCine("golpe", { bando: "oro", cx: 0.5, cy: 0.5 })) { this.cineBG.fillStyle(0x2a130b, 1); this.cineBG.fillRect(0, 0, W, H); }
     this.cineLabel.setText("· el pie ·");
     /* B3: era "cine_pie", bloques. Ahora el primer plano del pie es la pose de
        remate ilustrada, encuadrada abajo para que se lea la pierna. */
@@ -3006,6 +3030,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   dibujarCanchaProfunda(vp, nearY) {
     const W = 960, H = 540, g = this.cineBG;
     g.clear();
+    /* ARTE: la cancha pintada, con la misma fuga y el mismo pasillo que usa
+       la pelota (el pintor recibe vp, nearY y k). Antes: un cielo liso, un
+       trapecio verde y los costados en negro. */
+    if (this.fondoCine && this.fondoCine("profunda", { vp: vp, nearY: nearY, k: this.BAL.cine.persp.k })) return;
     g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, vp.y);
     g.fillStyle(0x2a9d4f, 1);
     g.fillPoints([{ x: 0, y: H }, { x: W, y: H }, { x: vp.x + 34, y: vp.y }, { x: vp.x - 34, y: vp.y }], true);
@@ -3028,7 +3056,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   planoEsfuerzo() {
     const W = 960, H = 540, C = this.BAL.cine;
     this.limpiarContenido();
-    this.cineBG.clear(); this.cineBG.fillStyle(0x1a1206, 1); this.cineBG.fillRect(0, 0, W, H);
+    this.cineBG.clear();
+    if (!this.fondoCine || !this.fondoCine("golpe", { bando: "mio", cx: 0.5, cy: 0.52 })) { this.cineBG.fillStyle(0x1a1206, 1); this.cineBG.fillRect(0, 0, W, H); }
     this.cineLabel.setText("· el esfuerzo ·");
     this.lineasVelocidad(W / 2, H / 2, 1, 0xffd84d);
     const jug = this.add.sprite(W / 2, H / 2 + 20, this.texturaCineJugador()).setScale(2.6).setAngle(4);
@@ -3040,9 +3069,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   planoArquero() {
     const W = 960, H = 540, C = this.BAL.cine;
     this.limpiarContenido();
-    this.cineBG.clear(); this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
     const A = this.arcoCine();
-    this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, A.linea, W, H - A.linea);
+    this.cineBG.clear();
+    /* ARTE: detrás del arco, la cancha pintada (tribuna o estadio según la
+       división, el pasto con su fuga, las áreas y la sombra del arco) */
+    if (!this.fondoCine || !this.fondoCine("arco", { arco: A })) {
+      this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
+      this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, A.linea, W, H - A.linea);
+    }
     this.cineLabel.setText("· el arquero ·");
     /* B3: era "cine_arquero", el muñequito de bloques — ESTA es la figura que
        Rodri capturó. Ahora es la pose ilustrada de estirada. */
@@ -3102,6 +3136,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillRect(A.izq - 6, A.travesano - 6, 8, A.h + 6);
     g.fillRect(A.der, A.travesano - 6, 8, A.h + 6);
     g.fillRect(A.izq - 6, A.travesano - 6, A.w + 14, 8);
+    /* ARTE · el palo es un caño, no una tira: la mitad en sombra le da el
+       volumen (el mismo gris que la sombra del cel de las poses) */
+    g.fillStyle(0xb4c2cc, 1);
+    g.fillRect(A.izq - 2, A.travesano + 2, 4, A.h - 2);
+    g.fillRect(A.der + 4, A.travesano + 2, 4, A.h - 2);
+    g.fillRect(A.izq - 2, A.travesano - 1, A.w + 6, 3);
     return A;
   }
   planoDesenlace() {
@@ -3110,11 +3150,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._cineSkip = null; this._cineTimer = null;
     const W = 960, H = 540, C = this.BAL.cine, EP = this.BAL.epica, res = this.res, st = this.st, P = window.PampaPartido;
     this.limpiarContenido();
-    this.cineBG.clear(); this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
     /* P2: el pasto arranca en la LÍNEA del arco — el arco se apoya en la
        cancha en vez de flotar 86 px por encima como antes */
     const A = this.arcoCine();
-    this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, A.linea, W, H - A.linea);
+    this.cineBG.clear();
+    if (!this.fondoCine || !this.fondoCine("arco", { arco: A })) {
+      this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
+      this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, A.linea, W, H - A.linea);
+    }
     this.cineLabel.setText("· el desenlace ·");
     this.dibujarArcoCine(this.cineBG);
     const gx = A.cx, gy = A.linea, gw = A.w, gh = A.h;
@@ -3717,17 +3760,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.limpiarContenido();
     const W = 960, H = 540, g = this.cineBG, rivProta = !!cfg.prota.esRival;
     g.clear();
-    g.fillStyle(0x081c10, 1); g.fillRect(0, 0, W, H);
-    /* banda diagonal del bando protagonista + pasto al pie (viñeta de manga) */
-    g.fillStyle(rivProta ? 0x2a0b0b : 0x0b1c2a, 1);
-    g.fillTriangle(0, 0, W * 0.66, 0, W * 0.34, H); g.fillTriangle(0, 0, W * 0.34, H, 0, H);
-    g.fillStyle(0x1f7a3c, 1); g.fillRect(0, H * 0.8, W, H * 0.2);
-    g.fillStyle(0x2e7d32, 1); for (let x = 0; x < W; x += 120) g.fillRect(x, H * 0.8, 60, H * 0.2);
+    /* ARTE · la viñeta sobre una PINTURA: cielo, horizonte pampeano (o el
+       estadio, según la división) y pasto con fuga. En lo especial, el golpe
+       abstracto con líneas de foco. Si el rival protagoniza, la pintura se
+       entibia apenas: es un acento — el bando lo dicen las placas con nombre. */
+    const pintado = !!(this.fondoCine && (cfg.especial
+      ? this.fondoCine("golpe", { bando: rivProta ? "rival" : "oro", cx: 0.3, cy: 0.5 })
+      : this.fondoCine("escena", { tinte: rivProta ? 0xffe4d4 : null })));
+    if (!pintado) {
+      g.fillStyle(0x081c10, 1); g.fillRect(0, 0, W, H);
+      /* banda diagonal del bando protagonista + pasto al pie (viñeta de manga) */
+      g.fillStyle(rivProta ? 0x2a0b0b : 0x0b1c2a, 1);
+      g.fillTriangle(0, 0, W * 0.66, 0, W * 0.34, H); g.fillTriangle(0, 0, W * 0.34, H, 0, H);
+      g.fillStyle(0x1f7a3c, 1); g.fillRect(0, H * 0.8, W, H * 0.2);
+      g.fillStyle(0x2e7d32, 1); for (let x = 0; x < W; x += 120) g.fillRect(x, H * 0.8, 60, H * 0.2);
+    }
     /* siluetas: CONTRA CUÁNTOS pateás (defensores en el camino; el arquero es el rival del plano) */
     if (cfg.siluetas != null) {
       for (let k = 0; k < Math.min(cfg.siluetas, 5); k++) {
-        const sx = W * 0.5 + k * 62, sy = H * 0.4 - k * 24, e = 1 - k * 0.13;
-        g.fillStyle(0x0a1f13, 0.75);
+        /* sobre la pintura, los defensores se paran EN EL PASTO, cerca del
+           horizonte (lejos = más chicos y más arriba); antes flotaban en el
+           cielo de un fondo que no tenía horizonte */
+        const sx = pintado ? W * 0.47 + k * 70 : W * 0.5 + k * 62;
+        const e = pintado ? 0.82 - k * 0.1 : 1 - k * 0.13;
+        const sy = pintado ? H * 0.62 + 8 - k * 3 - 14 * e : H * 0.4 - k * 24;
+        g.fillStyle(pintado ? 0x14202e : 0x0a1f13, pintado ? 0.62 : 0.75);
         g.fillEllipse(sx, sy - 58 * e, 24 * e, 24 * e); g.fillRoundedRect(sx - 15 * e, sy - 46 * e, 30 * e, 60 * e, 8);
       }
       const tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
@@ -3771,7 +3828,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const dW = sp.width * sp.scaleX, dH = sp.height * sp.scaleY;
       const offX = posePel ? (posePel.x - 0.5) * dW * (cfg.poseFlip ? -1 : 1) : 78;
       const offY = posePel ? (posePel.y - 0.5) * dH : 150;
-      /* el alto en pantalla manda; texPelota elige la de 16 o la de 128 */
+      /* ARTE: el alto en pantalla manda; texPelota elige la de 16 o la de 128 */
       const altoB = posePel && posePel.r ? Math.max(1.6 * 16, posePel.r * 2 * dH) : 2.4 * 16;
       const TP = this.texPelota(altoB);
       const bb = this.add.sprite(-200 + offX, H * 0.52 + offY, TP.key).setScale(TP.esc);
@@ -3779,6 +3836,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: bb, x: W * 0.3 + offX, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
     }
     if (cfg.protaAngle && !sp._esPose) sp.setAngle(cfg.protaAngle);   // la chilena ilustrada ya viene dada vuelta
+    /* ARTE · la sombra de contacto: aparece donde el protagonista aterriza, así
+       se para en el pasto en vez de flotar delante de la pintura */
+    if (pintado && !cfg.especial && this.sombraBajoPies) {
+      const so = this.sombraBajoPies(sp, W * 0.3);
+      if (so) { so.setAlpha(0); this.tweens.add({ targets: so, alpha: 1, duration: F.entrada_ms || 420 }); }
+    }
     this.cineContent.add(sp);
     /* B2 · el protagonista no entra en línea recta a velocidad constante: se
        pasa un poco del destino y vuelve. Es el rebote, y es lo que separa un
@@ -3816,6 +3879,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         sr._esPose = true;
       } else {
         sr = this.add.sprite(W + 140, H * 0.62, this.texturaEscena(cfg.rival.j, cfg.rival.esRival, cfg.rival.anim, 0)).setScale(F.escala_rival || 2.9).setFlipX(true);
+      }
+      if (pintado && !cfg.especial && this.sombraBajoPies) {
+        const so = this.sombraBajoPies(sr, W * 0.72);
+        if (so) { so.setAlpha(0); this.tweens.add({ targets: so, alpha: 1, duration: (F.entrada_ms || 420) * 1.15 }); }
       }
       this.cineContent.add(sr);
       this.tweens.add({ targets: sr, x: W * 0.72, duration: (F.entrada_ms || 420) * 1.15, ease: "Quad.easeOut" });
@@ -4055,9 +4122,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.limpiarContenido();
     const j = jRet || this.st.mios[this.st.ctrl];
     const g = this.cineBG; g.clear();
-    g.fillStyle(0x081c10, 1); g.fillRect(0, 0, 960, 540);
-    g.fillStyle(esRivalRet ? 0x2a0b0b : 0x0b1c2a, 1);
-    g.fillTriangle(0, 0, 634, 0, 326, 540); g.fillTriangle(0, 0, 326, 540, 0, 540);
+    /* ARTE: el golpe del anuncio, con el juego de colores del dueño */
+    if (!this.fondoCine || !this.fondoCine("golpe", { bando: esRivalRet ? "rival" : "mio", cx: 0.32, cy: 0.54 })) {
+      g.fillStyle(0x081c10, 1); g.fillRect(0, 0, 960, 540);
+      g.fillStyle(esRivalRet ? 0x2a0b0b : 0x0b1c2a, 1);
+      g.fillTriangle(0, 0, 634, 0, 326, 540); g.fillTriangle(0, 0, 326, 540, 0, 540);
+    }
     /* pose ilustrada del dueño (mía = remate, rival = barrida); si no, el retrato grande */
     /* B3-E: la pose sale del PUESTO del que hace el especial, no solo del
        bando. Un arquero que hace una megaatajada tiene que verse atajando. */

@@ -125,6 +125,7 @@
     <script src="logic/mapa.js"></script>
     <script src="logic/cartas.js"></script>
     <script src="logic/foco.js"></script>
+  <script src="logic/ambiente.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/piel_ui.js"></script>
   <script src="scenes/sprites.js"></script>
@@ -142,6 +143,7 @@
     <script src="scenes/cartas_ui.js"></script>
     <script src="scenes/foco_ui.js"></script>
   <script src="scenes/escenas_v9.js"></script>
+  <script src="scenes/cine_arte.js"></script>
   <script>
   /* TANDA DE PIEL: el mixin de piel entra en las cuatro escenas. Va acá, al
      final, porque necesita que todas las clases estén definidas. */
@@ -220,6 +222,9 @@
   /* M2 · EL MAPA DE MÚSICA. Si no está, el juego sigue con el sintetizador:
      no hay pantalla que dependa de esto. */
   const pAudio = fetch("../data/audio.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  /* LA LUZ DE LA ESCALERA: las paletas de los fondos pintados del cine. Si
+     falta, cada plano dibuja su fondo de siempre (cine_arte.js devuelve false). */
+  const pAmbientes = fetch("../data/ambientes.json").then(r=>r.ok?r.json():null).catch(()=>null);
   /* V8 §5: esperar las fuentes antes de crear textos — tope 8s (en celu con
      red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
@@ -242,7 +247,7 @@
       });
     }catch(e){}
   });
-  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pSemana, pEntrevista, pTribuna, pAudio, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio])=>{
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pSemana, pEntrevista, pTribuna, pAudio, pAmbientes, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes])=>{
     window.__PAMPA_VIDA = vida;
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;
@@ -264,9 +269,9 @@
       window.PF.escMin = bal.piel.esc_min;
       window.PF.escMax = bal.piel.esc_max;
     }
-    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio);
+    arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes);
   });
-  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio){
+  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes){
     /* El manifest de caras dice cuántas caras y cuántos tonos de camiseta hay.
        validarLook (logic/avatar.js) es lógica pura y no lee JSON, así que se lo
        avisamos acá, una sola vez, antes de crear el juego: si no, los índices
@@ -284,7 +289,7 @@
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);

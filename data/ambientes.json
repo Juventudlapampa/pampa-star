@@ -1,0 +1,295 @@
+{
+  "_schema": "pampa-star/ambientes@1",
+  "_doc": "LA LUZ DE LA ESCALERA. Los fondos del cine (escenas, planos del remate, la Definición) se pintan por código en phaser/scenes/cine_arte.js, y la paleta sale de acá. Cada división juega a otra hora: la Primera B es la siesta del domingo en la cancha del pueblo, y el Mundial es la gran noche con torres de luz. Subir de división se VE. La luz es ambiente y nunca información: el bando de cada jugada lo dicen las placas con nombre y la palabra VOS, no el color del cielo. Colores en hex #rrggbb. Cambiar una paleta es cambiar este archivo; los fondos se repintan solos en el próximo partido.",
+  "por_division": {
+    "primera_b": "siesta",
+    "primera_a": "tarde",
+    "regional": "atardecer",
+    "nacional": "noche",
+    "mundial": "gran_noche",
+    "sin_division": "tarde"
+  },
+  "ambientes": {
+    "siesta": {
+      "n": "la siesta del domingo",
+      "cielo": [
+        "#2b73c4",
+        "#58a6e6",
+        "#9fd0f2",
+        "#e4f1ec"
+      ],
+      "sol": {
+        "x": 0.8,
+        "y": 0.22,
+        "r": 20,
+        "disco": "#fffdf0",
+        "halo": "#fff6c8",
+        "halo_r": 190,
+        "halo_a": 0.55
+      },
+      "nube": {
+        "luz": "#ffffff",
+        "sombra": "#b3cbe0",
+        "base": "#93b2cf",
+        "n": 5,
+        "desde_abajo": false
+      },
+      "lejos": "#7fa39a",
+      "campo": [
+        "#d2b870",
+        "#b89c58"
+      ],
+      "monte": "#56643a",
+      "monte_luz": "#7d8a4c",
+      "pasto": [
+        "#6fb257",
+        "#4f9f45",
+        "#3b8a38",
+        "#2c722e"
+      ],
+      "franja": 0.07,
+      "tierra": "#b08a55",
+      "peladas": 4,
+      "bruma": "#e6efe4",
+      "tribuna": "pueblo",
+      "luces": false,
+      "chapa": "#a55a33",
+      "gente": [
+        "#5b3a2a",
+        "#3e2a22",
+        "#7a5238",
+        "#2f3b4a",
+        "#e8e2d0",
+        "#6ec3ec"
+      ],
+      "sombra": 0.3,
+      "tinte_ilustrado": null
+    },
+    "tarde": {
+      "n": "la tarde",
+      "cielo": [
+        "#3572b8",
+        "#6aa5d8",
+        "#b9d4e0",
+        "#f2dcb0"
+      ],
+      "sol": {
+        "x": 0.84,
+        "y": 0.5,
+        "r": 24,
+        "disco": "#fff4d0",
+        "halo": "#ffe2a0",
+        "halo_r": 230,
+        "halo_a": 0.6
+      },
+      "nube": {
+        "luz": "#fff3e0",
+        "sombra": "#c4b4b8",
+        "base": "#a8969e",
+        "n": 5,
+        "desde_abajo": false
+      },
+      "lejos": "#9aa08a",
+      "campo": [
+        "#d6b468",
+        "#b99550"
+      ],
+      "monte": "#4f5a34",
+      "monte_luz": "#8a8a48",
+      "pasto": [
+        "#78ae52",
+        "#579c42",
+        "#418636",
+        "#306c2c"
+      ],
+      "franja": 0.07,
+      "tierra": "#b48650",
+      "peladas": 2,
+      "bruma": "#f0e2c4",
+      "tribuna": "pueblo",
+      "luces": false,
+      "chapa": "#9a5230",
+      "gente": [
+        "#5b3a2a",
+        "#3e2a22",
+        "#7a5238",
+        "#2f3b4a",
+        "#efe6d0",
+        "#6ec3ec"
+      ],
+      "sombra": 0.32,
+      "tinte_ilustrado": "#fff0dc"
+    },
+    "atardecer": {
+      "n": "el atardecer",
+      "cielo": [
+        "#27366e",
+        "#6a4f8e",
+        "#e0786a",
+        "#ffc47a"
+      ],
+      "sol": {
+        "x": 0.76,
+        "y": 0.96,
+        "r": 44,
+        "disco": "#fff0c0",
+        "halo": "#ffb070",
+        "halo_r": 300,
+        "halo_a": 0.7
+      },
+      "nube": {
+        "luz": "#ffb48c",
+        "sombra": "#6c4a7a",
+        "base": "#ffd49a",
+        "n": 6,
+        "desde_abajo": true
+      },
+      "lejos": "#8a5a6a",
+      "campo": [
+        "#b97a4e",
+        "#8e5a3e"
+      ],
+      "monte": "#3a2a36",
+      "monte_luz": "#6a3e3e",
+      "pasto": [
+        "#8a9a4c",
+        "#5e8a3c",
+        "#3f7032",
+        "#2a5428"
+      ],
+      "franja": 0.06,
+      "tierra": "#9a6a44",
+      "peladas": 0,
+      "bruma": "#ffc89a",
+      "tribuna": "estadio_chico",
+      "luces": true,
+      "chapa": "#5a3a3a",
+      "gente": [
+        "#3a2630",
+        "#2a1e28",
+        "#5a3a3a",
+        "#24304a",
+        "#e8c8a8",
+        "#6ec3ec"
+      ],
+      "sombra": 0.34,
+      "tinte_ilustrado": "#ffc09a"
+    },
+    "noche": {
+      "n": "la noche con torres",
+      "cielo": [
+        "#060c22",
+        "#0e1a3e",
+        "#1c3260",
+        "#34507a"
+      ],
+      "sol": null,
+      "nube": {
+        "luz": "#2c4270",
+        "sombra": "#162448",
+        "base": "#223660",
+        "n": 3,
+        "desde_abajo": true
+      },
+      "lejos": "#1a2848",
+      "campo": [
+        "#1e2c3e",
+        "#16202e"
+      ],
+      "monte": "#0c1424",
+      "monte_luz": "#1a2a40",
+      "pasto": [
+        "#5cb850",
+        "#43a044",
+        "#338a3a",
+        "#24662c"
+      ],
+      "franja": 0.08,
+      "tierra": "#6a5a44",
+      "peladas": 0,
+      "bruma": "#6a86b0",
+      "tribuna": "estadio",
+      "luces": true,
+      "chapa": "#20283a",
+      "gente": [
+        "#1a2034",
+        "#262c44",
+        "#3a3048",
+        "#2a3a5a",
+        "#9aa8c8",
+        "#6ec3ec"
+      ],
+      "sombra": 0.4,
+      "tinte_ilustrado": "#7d8cc0"
+    },
+    "gran_noche": {
+      "n": "la gran noche",
+      "cielo": [
+        "#0a0620",
+        "#1c1240",
+        "#34205a",
+        "#5a3a7a"
+      ],
+      "sol": null,
+      "nube": {
+        "luz": "#3a2a60",
+        "sombra": "#1c143a",
+        "base": "#2a1e4c",
+        "n": 2,
+        "desde_abajo": true
+      },
+      "lejos": "#241a40",
+      "campo": [
+        "#1c1830",
+        "#141026"
+      ],
+      "monte": "#0c0a1a",
+      "monte_luz": "#1e1834",
+      "pasto": [
+        "#62c058",
+        "#48a64a",
+        "#36903e",
+        "#266c30"
+      ],
+      "franja": 0.09,
+      "tierra": "#6a5a44",
+      "peladas": 0,
+      "bruma": "#8a78b8",
+      "tribuna": "estadio_grande",
+      "luces": true,
+      "chapa": "#1a1630",
+      "gente": [
+        "#1c1832",
+        "#2a2244",
+        "#3c2e50",
+        "#2a3a5a",
+        "#b8a8d8",
+        "#6ec3ec"
+      ],
+      "sombra": 0.42,
+      "tinte_ilustrado": "#8a80c8"
+    }
+  },
+  "golpe": {
+    "_doc": "El fondo abstracto del golpe (el pie, el esfuerzo, los anuncios de megacosa): degradé radial del centro a los bordes y líneas de foco. Tres juegos: el tuyo, el del rival y el dorado de lo épico.",
+    "mio": [
+      "#f4fbff",
+      "#8ad6f7",
+      "#2c88cc",
+      "#0a2450"
+    ],
+    "rival": [
+      "#fff5e6",
+      "#ffb483",
+      "#e0592c",
+      "#461006"
+    ],
+    "oro": [
+      "#fffbe4",
+      "#ffe07a",
+      "#e39a1e",
+      "#522604"
+    ]
+  },
+  "_sol": "sol.x es fraccion del ancho; sol.y es fraccion del CIELO de cada plano (0 = arriba, 1 = el horizonte), asi el sol queda en el mismo lugar del cielo aunque el horizonte cambie de altura entre planos. tinte_ilustrado: el tinte que se le aplica a las ilustraciones de fondo que vienen pintadas de dia (fondo_tribuna) para pasarlas a la hora del ambiente, el truco de noche americana del cine."
+}

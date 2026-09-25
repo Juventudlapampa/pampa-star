@@ -214,18 +214,28 @@
     defFondo(esMiArco) {
       var g = this.cineBG;
       g.clear();
-      g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, 120);                       // cielo
+      /* ARTE: el pasto pintado debajo de la tribuna (ver fondoDeCancha) */
+      var tinte = this.tinteIlustrado ? this.tinteIlustrado() : null;
+      var tierra = tinte != null && window.PampaAmbiente ? window.PampaAmbiente.multiplicar("#d1a36f", tinte) : null;
+      var pintado = !!(this.fondoCine && this.fondoCine("cancha_alta", { y0: 128, tierra: tierra }));
+      if (!pintado) { g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, 120); }     // cielo
       /* ARTE 2: la tribuna ILUSTRADA como capa lejana detrás del arco (fallback: la de código) */
-      if (this.textures.exists("fondo_tribuna")) {
+      /* la tribuna de chapa es la del pueblo: en estadio las gradas vienen en la pintura */
+      var esPueblo = !pintado || !this.ambienteEsPueblo || this.ambienteEsPueblo();
+      if (!esPueblo) { /* nada: ya están pintadas */ }
+      else if (this.textures.exists("fondo_tribuna")) {
         var trib = this.add.image(W / 2, 128, "fondo_tribuna").setOrigin(0.5, 1);
         trib.setScale(W / trib.width);
+        if (tinte != null) trib.setTint(tinte);
         this.cineContent.add(trib);
       } else {
         g.fillStyle(0x0e2c44, 1); g.fillRect(0, 78, W, 42);
         g.fillStyle(0xf6efdc, 0.3); for (var x = 8; x < W; x += 26) g.fillRect(x, 86 + (x % 3) * 6, 4, 4);
       }
-      g.fillStyle(0x2e7d32, 1); g.fillRect(0, 120, W, H - 120);                 // pasto
-      g.fillStyle(0x388e3c, 1); for (var y = 120; y < H; y += 64) g.fillRect(0, y, W, 32);
+      if (!pintado) {
+        g.fillStyle(0x2e7d32, 1); g.fillRect(0, 120, W, H - 120);                 // pasto
+        g.fillStyle(0x388e3c, 1); for (var y = 120; y < H; y += 64) g.fillRect(0, y, W, 32);
+      }
       /* EL ARCO al fondo (grande, seis zonas viven acá en fase 2) — en su propio
          graphics DENTRO de cineContent para quedar DELANTE de la tribuna */
       g = this.add.graphics();
@@ -602,10 +612,17 @@
       (this._def.zonaRects || []).forEach(function (r) { if (r.active) r.disableInteractive(); });
       this.limpiarContenido();
       this.cineBG.clear();
-      this.cineBG.fillStyle(0x081c10, 1); this.cineBG.fillRect(0, 0, W, H);
-      this.cineBG.fillStyle(o.ofensiva ? 0x0b1c2a : 0x2a0b0b, 1);
-      this.cineBG.fillTriangle(0, 0, W * 0.66, 0, W * 0.34, H); this.cineBG.fillTriangle(0, 0, W * 0.34, H, 0, H);
-      this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, H * 0.82, W, H * 0.18);
+      /* ARTE: el momento de la verdad va sobre el golpe (líneas de foco): el
+       tuyo si pateás vos, el del rival si te patean. Se guarda para que la
+       revelación lo vuelva a poner debajo del velo */
+      this._def.fondoTeatro = { bando: o.ofensiva ? "mio" : "rival", cx: 0.36, cy: 0.5 };
+      if (!this.fondoCine || !this.fondoCine("golpe", this._def.fondoTeatro)) {
+        this._def.fondoTeatro = null;
+        this.cineBG.fillStyle(0x081c10, 1); this.cineBG.fillRect(0, 0, W, H);
+        this.cineBG.fillStyle(o.ofensiva ? 0x0b1c2a : 0x2a0b0b, 1);
+        this.cineBG.fillTriangle(0, 0, W * 0.66, 0, W * 0.34, H); this.cineBG.fillTriangle(0, 0, W * 0.34, H, 0, H);
+        this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, H * 0.82, W, H * 0.18);
+      }
       /* LA POSE ilustrada (quieta, grande) — todo lo demás se mueve */
       /* ARTE 2: el INTERPONERSE plantado usa pose_bloqueo; la barrida, su pose */
       var poseId = o.ofensiva
@@ -650,6 +667,9 @@
     defRevelacion(o) {
       var self = this, snd = this.FLAGS.e6_cine ? this.SFX : null;
       this.limpiarContenido();
+      /* ARTE: limpiarContenido apaga la pintura; vuelve la del teatro, y el
+         velo de siempre la oscurece para que la revelación mande */
+      if (this._def && this._def.fondoTeatro && this.fondoCine) this.fondoCine("golpe", this._def.fondoTeatro);
       this.cineBG.fillStyle(0x081c10, 0.6); this.cineBG.fillRect(0, 0, W, H);
       var titulo, sub, color, poseId, jr;
       if (o.bloqueado) {
