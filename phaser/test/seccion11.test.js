@@ -72,6 +72,13 @@ FILES.forEach(f => {
     return /\bGUTS\b/.test(h);
   });
   hits.forEach(h => assert(false, "§11 'GUTS' VISIBLE en " + rel + ": " + h.slice(0, 70) + " → debe decir AGUANTE"));
+  /* SEPT 2026: la regla de arriba solo miraba GUTS en MAYÚSCULAS y se le
+     escaparon dos visibles en el clásico ("recuperás <b>Guts</b>", "-20 Guts
+     de …"). Esta mira "Guts" como palabra suelta adentro de un texto entre
+     comillas, en un solo renglón. Los identificadores (setGuts, rivalGuts,
+     guts-lab) no son palabra suelta y no entran. */
+  const RE_GUTS_PALABRA = /["'`][^"'`\n]*\bGuts\b[^"'`\n]*["'`]/g;
+  (s.match(RE_GUTS_PALABRA) || []).forEach(h => assert(false, "§11 'Guts' VISIBLE en " + rel + ": " + h.slice(0, 80) + " → debe decir aguante"));
 });
 
 /* ---------- 3) APUESTAS / DINERO REAL ---------- */

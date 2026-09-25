@@ -523,7 +523,7 @@ const VIVIR_EVENTOS = [
   {t:"Changa de fin de semana: descargaste bolsas en el acopio.", plata:60, animo:-2},
   {t:"Asado en la pensión con todo el equipo. Se quedó hablando de fútbol hasta cualquier hora.", plata:-15, animo:8},
   {t:"Le mandaste plata a tu familia en el pueblo. Te llamaron para agradecerte.", plata:-40, animo:10},
-  {t:"Viaje en micro a ver a tu familia: mates, tortas fritas y vuelta con tuppers.", plata:-10, animo:9},
+  {t:"Viaje en micro a ver a tu familia: mates, tortas fritas y vuelta con viandas.", plata:-10, animo:9},
   {t:"Cortaste el pasto de tres patios del barrio.", plata:45, animo:0},
   {t:"Tarde de río con la gente de la pensión. Volviste con la cabeza limpia.", plata:0, animo:7},
   {t:"En la pensión te guardaron guiso: noche tranquila y a dormir temprano.", plata:0, animo:5},
@@ -734,7 +734,7 @@ function mostrarLore(){
     `Naciste en <b>${esc(loc)}</b>, donde la pelota era lo único que sobraba. Jugaste donde se pudo, con lo que había, `+
     `hasta que armaste el bolso y te mudaste a <b>${esc(club.loc)}</b> para probarte en <b>${esc(club.n)}</b>, `+
     `un equipo que la pelea abajo y al que no le sobra nada. Nadie te está esperando. No hay cámaras, no hay contrato, no hay nada firmado. `+
-    `Hay una cancha, un vestuario que huele a Reflex, y noventa minutos por delante para empezar a demostrar. `+
+    `Hay una cancha, un vestuario que huele a linimento, y noventa minutos por delante para empezar a demostrar. `+
     `De acá al Mundial hay un camino largo. <b>Se empieza pateando la primera pelota.</b>`;
   showScreen("screen-lore");
 }
@@ -2576,7 +2576,7 @@ function halftime(){
     e.guts=clamp(e.guts+GUTS_ENTRETIEMPO,0,100);
   });
   setTag("ht");
-  $("combat-txt").innerHTML = `Final del primer tiempo: <b>${PS.gMe}-${PS.gRv}</b>. Naranjas, charla del técnico y recuperás <b>Guts</b>.`;
+  $("combat-txt").innerHTML = `Final del primer tiempo: <b>${PS.gMe}-${PS.gRv}</b>. Naranjas, charla del técnico y recuperás <b>aguante</b>.`;
   const grid=$("cmd-grid"); grid.innerHTML="";
   const b=document.createElement("button");
   b.className="cmd wide"; b.innerHTML=`<div class="cn">SEGUNDO TIEMPO ▶</div>`;
@@ -2724,7 +2724,7 @@ function rivalShot(){
     cmds.push({k:"despejar", cn:"DESPEJAR", ico:"👊", cost:0, my:base+7, def:atk, on:"despejarArq", sub:"más seguro · pelota dividida"});
     if(arq.ref!=="yo" && arq.vinculo>=50 && arq.guts>=20)
       cmds.push({k:"atajadaEsp", cn:"ATAJADA ESPECIAL", ico:"✨", cost:0, my:base+15, def:atk, on:"atajarEsp",
-        especialArq:arq, sub:`-20 Guts de ${esc(arq.nombre)} · vínculo ${arq.vinculo}`});
+        especialArq:arq, sub:`-20 de aguante de ${esc(arq.nombre)} · vínculo ${arq.vinculo}`});
   }
   PS.encounter={type:"arq", ref:arq};
   PS.cine={tipo:"duelo", enc:"arq", t:0, look: arq.look};   // V4.1: cuadro del remate rival vs tu arquero
