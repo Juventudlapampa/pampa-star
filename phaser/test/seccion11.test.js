@@ -39,7 +39,14 @@ const MARCAS = [
   { re: /captain\s+tsubasa/i, que: "marca de terceros" },
   { re: /new\s+star\s+soccer/i, que: "marca de terceros" },
   { re: /\bfifa\b/i, que: "marca de terceros" },
-  { re: /\bkonami\b|\bpes\b\s|\bea\s+sports\b/i, que: "marca de terceros" }
+  { re: /\bkonami\b|\bpes\b\s|\bea\s+sports\b/i, que: "marca de terceros" },
+  /* SEPT 2026 · la barrida visual del arte encontró marcas DEPORTIVAS en seis
+     imágenes (fondo del menú y los cuatro retratos rivales). En el texto no
+     había ninguna, pero esta lista solo vigilaba videojuegos: ahora vigila
+     también la indumentaria, para que un nombre de marca no entre ni como
+     nota. "puma" queda afuera a propósito: en La Pampa es un animal. */
+  { re: /\badidas\b|\bnike\b|\bhummel\b|\bumbro\b|\breebok\b|\bunder\s+armour\b|\bnew\s+balance\b/i, que: "marca deportiva" },
+  { re: /\btopper\b|\bmizuno\b|\bdiadora\b|\bjoma\b|\ble\s+coq\b|\bkappa\b|\bvolta\b/i, que: "marca deportiva" }
 ];
 FILES.forEach(f => {
   const s = fs.readFileSync(f, "utf8");

@@ -43,32 +43,9 @@
       "arquetipo": "companero",
       "n": "Banco: juvenil",
       "origen": "assets_drive/PERSONAJES_TANDA2/pampean_boy_watercolor.webp"
-    },
-    {
-      "archivo": "assets/retratos/retrato_rival_1.webp",
-      "arquetipo": "rival",
-      "n": "Banco: rival 1",
-      "origen": "assets_drive/PERSONAJES_TANDA2/rival_footballer_poster.webp"
-    },
-    {
-      "archivo": "assets/retratos/retrato_rival_2.webp",
-      "arquetipo": "rival",
-      "n": "Banco: rival 2",
-      "origen": "assets_drive/PERSONAJES_TANDA2/santa_rosa_defender_vector.webp"
-    },
-    {
-      "archivo": "assets/retratos/retrato_volante.webp",
-      "arquetipo": "rival",
-      "n": "Banco: volante rival",
-      "origen": "assets_drive/PERSONAJES_TANDA2/pampean_midfielder_watercolor.webp"
-    },
-    {
-      "archivo": "assets/retratos/retrato_delantero.webp",
-      "arquetipo": "rival",
-      "n": "Banco: delantero rival",
-      "origen": "assets_drive/PERSONAJES_TANDA2/pampean_footballer_minimalist.webp"
     }
   ],
+  "_seccion11": "SEPTIEMBRE 2026 · BARRIDA VISUAL DEL ARTE. Los cuatro retratos del arquetipo rival se sacaron del banco porque la barrida (dos revisores por imagen, y mirados de nuevo antes de sacarlos) encontró marcas deportivas reales: rival_1 y rival_2 con los chevrones registrados de una marca en hombros y mangas, y rival_1 además con un nombre de fabricante en el pecho; volante con la camiseta de una selección real (bastones, escudo con sol); delantero con las tiras de hombro y puño de otra marca. Los originales de assets_drive/PAMPA_STAR_PERSONAJES_TANDA2 (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist) traen lo mismo: NO volver a exportarlos. Con el grupo rival vacío, retratoKey() cae a la cara del avatar (match.js), que es lo que ya se veía con el flag v4_retratos64 prendido. Se revierte con git, pero solo con arte repintado sin marcas.",
   "sugerencias_de_tu_banco": "cuando armes el manifest real: assets_drive/PAMPA_STAR_Assets/png_transparent/avatar_1..6.png (bustos transparentes) y PAMPA_STAR_PERSONAJES_TANDA2/*.webp (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist, pampean_boy_watercolor); el DT y el utilero quedan para la presentación (H5).",
   "_relator_visible": "V9 (pedido de Rodri): para que el relator o relatora SE VEA durante el partido, agregar acá una clave \"relator\" con {archivo, n, pos, bocas:[...] opcional}. Mientras no exista, el relator sigue siendo solo la franja de texto. Ver data/COMO_AGREGAR_ARTE.md §6.",
   "personajes": [
