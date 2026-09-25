@@ -674,6 +674,113 @@
       P.vineta(c, 0.26);
     },
 
+    /* ======================================================= EL PANEL
+       La franja de arriba del partido (la que se ve TODO el tiempo). Tres
+       piezas: el cielo (quieto), el pasto (una baldosa que se desplaza en X
+       y en Y cuando el jugador corre, así que empalma por los cuatro lados) y
+       la profundidad (un velo fijo encima del pasto: la bruma arriba, la
+       sombra abajo — si fuera parte de la baldosa, se desplazaría con ella). */
+    panelCielo: function (c, w, h, pal, r) {
+      var st = pal.cielo, g = c.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, st[Math.max(0, st.length - 3)]); g.addColorStop(0.6, st[st.length - 2]); g.addColorStop(1, st[st.length - 1]);
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      var N = pal.nube;
+      if (N && N.n) for (var k = 0; k < 4; k++) P.nube(c, (k + 0.3 + r() * 0.4) * w / 4, h * (0.28 + r() * 0.22), 60 + r() * 50, 14 + r() * 8, N, r, pal.sol ? w * pal.sol.x : null);
+      if (pal.sol && pal.sol.y > 0.8) {
+        /* el sol del atardecer pegado al horizonte: solo su halo asoma */
+        c.save(); c.globalCompositeOperation = "screen";
+        var gs = c.createRadialGradient(w * pal.sol.x, h, 0, w * pal.sol.x, h, 220);
+        gs.addColorStop(0, rgba(pal.sol.halo, 0.8)); gs.addColorStop(1, rgba(pal.sol.halo, 0));
+        c.fillStyle = gs; c.fillRect(0, 0, w, h); c.restore();
+      }
+      if (pal.luces && !pal.sol) {
+        for (k = 0; k < 40; k++) { c.fillStyle = rgba("#ffffff", 0.3 + r() * 0.5); c.fillRect(Math.floor(r() * w), Math.floor(r() * h * 0.6), 1, 1); }
+        /* el resplandor de las torres, detrás de las gradas */
+        c.save(); c.globalCompositeOperation = "screen";
+        [0.12, 0.5, 0.88].forEach(function (fx) {
+          var gl = c.createRadialGradient(w * fx, h, 0, w * fx, h, 170);
+          gl.addColorStop(0, rgba("#fff4d0", 0.45)); gl.addColorStop(1, rgba("#fff4d0", 0));
+          c.fillStyle = gl; c.fillRect(0, 0, w, h);
+        });
+        c.restore();
+      }
+    },
+
+    panelPasto: function (c, S, pal, r) {
+      c.fillStyle = pal.pasto[1]; c.fillRect(0, 0, S, S);
+      /* franjas de corte inclinadas: en S px de alto se corren UN período
+         (S/2), así la baldosa empalma arriba con abajo */
+      var per = S / 2, ancho = per / 2, b, dx, dy;
+      for (b = -2 * S; b < 2 * S; b += per) {
+        c.fillStyle = rgba("#ffffff", pal.franja * 1.2);
+        c.beginPath(); c.moveTo(b, 0); c.lineTo(b + ancho, 0); c.lineTo(b + ancho + per, S); c.lineTo(b + per, S); c.closePath(); c.fill();
+      }
+      /* briznas y marquitas de tinta, repetidas en los bordes para empalmar */
+      function envolver(fn) { for (dx = -S; dx <= S; dx += S) for (dy = -S; dy <= S; dy += S) fn(dx, dy); }
+      for (var i = 0; i < 1100; i++) {
+        var x = r() * S, y = r() * S, L = 2 + r() * 4;
+        var col = rgba(r() < 0.5 ? luz(pal.pasto[1], 0.28) : luz(pal.pasto[3], -0.25), 0.3 + r() * 0.2);
+        envolver(function (ox, oy) { c.fillStyle = col; c.fillRect(x + ox, y + oy - L, 1, L); });
+      }
+      c.strokeStyle = rgba(luz(pal.pasto[3], -0.45), 0.35); c.lineWidth = 1;
+      for (i = 0; i < 18; i++) {
+        var tx = r() * S, ty = r() * S, tl = 4 + r() * 3;
+        envolver(function (ox, oy) {
+          c.beginPath(); c.moveTo(tx + ox - tl * 0.5, ty + oy - tl); c.lineTo(tx + ox, ty + oy); c.lineTo(tx + ox + tl * 0.35, ty + oy - tl * 1.1); c.stroke();
+        });
+      }
+    },
+
+    panelProfundidad: function (c, w, h, pal) {
+      var g = c.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, rgba(pal.bruma, 0.42)); g.addColorStop(0.3, rgba(pal.bruma, 0));
+      g.addColorStop(0.7, rgba("#000000", 0)); g.addColorStop(1, rgba("#000000", 0.28));
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+      if (pal.luces && !pal.sol) {
+        c.save(); c.globalCompositeOperation = "screen";
+        var gl = c.createRadialGradient(w / 2, h * 0.4, 0, w / 2, h * 0.4, w * 0.55);
+        gl.addColorStop(0, rgba("#e8ffd8", 0.14)); gl.addColorStop(1, rgba("#e8ffd8", 0));
+        c.fillStyle = gl; c.fillRect(0, 0, w, h); c.restore();
+      }
+    },
+
+    /* las gradas del estadio para el panel: empalman a los costados */
+    panelGradas: function (c, w, h, pal, r) {
+      c.fillStyle = luz(pal.chapa, 0.08); c.fillRect(0, 0, w, h);
+      var bandas = pal.tribuna === "estadio_grande" ? 3 : 2, hb = (h - 12) / bandas, b, x, y;
+      for (b = 0; b < bandas; b++) {
+        var y0 = b * hb;
+        for (y = y0 + 2; y < y0 + hb - 2; y += 3) {
+          for (x = r() * 3; x < w; x += 3 * (0.8 + r() * 0.5)) {
+            c.fillStyle = rgba(pal.gente[Math.floor(r() * pal.gente.length)], 0.5 + r() * 0.5);
+            c.fillRect(x, y, 2, 2);
+          }
+        }
+        c.fillStyle = rgba("#ffffff", 0.16); c.fillRect(0, y0 + hb - 1, w, 1);
+        var gb = c.createLinearGradient(0, y0, 0, y0 + hb);
+        gb.addColorStop(0, rgba("#000000", 0.3)); gb.addColorStop(0.35, rgba("#000000", 0)); gb.addColorStop(1, rgba("#000000", 0.1));
+        c.fillStyle = gb; c.fillRect(0, y0, w, hb);
+      }
+      if (pal.tribuna === "estadio_grande") {
+        c.save(); c.globalCompositeOperation = "screen";
+        for (var k = 0; k < 16; k++) {
+          var fx = r() * w, fy = r() * (h - 14);
+          var gf = c.createRadialGradient(fx, fy, 0, fx, fy, 5);
+          gf.addColorStop(0, rgba("#ffffff", 0.9)); gf.addColorStop(1, rgba("#ffffff", 0));
+          c.fillStyle = gf; c.fillRect(fx - 5, fy - 5, 10, 10);
+        }
+        c.restore();
+      }
+      /* los carteles lisos de la baranda, abajo (sin marca) */
+      var cx = 0, tonos = [luz(pal.monte_luz, 0.1), luz(pal.chapa, 0.25)];
+      for (k = 0; cx < w; k++) {
+        var cw = w / 12;
+        c.fillStyle = tonos[k % 2]; c.fillRect(cx, h - 12, cw - 2, 12);
+        c.fillStyle = rgba("#ffffff", 0.2); c.fillRect(cx, h - 12, cw - 2, 1);
+        cx += cw;
+      }
+    },
+
     /* la puerta de entrada: pinta un tipo de fondo sobre un contexto 960x540 */
     pintar: function (c, tipo, pal, golpes, o) {
       o = o || {};
@@ -750,6 +857,53 @@
       if (!key) { this.cineFondo.setVisible(false); return false; }
       this.cineFondo.setTexture(key).setPosition(W / 2, H / 2).setScale(1).setAlpha(1).clearTint().setVisible(true);
       if (o && o.tinte != null) this.cineFondo.setTint(o.tinte);
+      return true;
+    },
+
+    /* una textura del panel, pintada una vez y anotada en el registro para
+       soltarse junto con las del cine al cambiar de ambiente */
+    texturaDePanel(tipo, amb, w, h, pintor) {
+      var key = A.claveDeFondo(tipo, amb.id);
+      if (this.textures.exists(key)) return key;
+      var self = this;
+      A.pinturasDeOtroAmbiente(PINTADAS, amb.id).forEach(function (k) {
+        if (self.textures.exists(k)) self.textures.remove(k);
+        delete PINTADAS[k];
+      });
+      var ct = this.textures.createCanvas(key, w, h);
+      if (!ct) return null;
+      try { pintor(ct.getContext(), A.rngDe(key)); ct.refresh(); PINTADAS[key] = amb.id; }
+      catch (e) { console.error("[cine_arte] panel " + key + ": " + (e && e.message)); this.textures.remove(key); return null; }
+      return key;
+    },
+
+    /* EL PANEL con la luz del partido: cielo pintado, pasto pintado que
+       empalma, el velo de profundidad, y las gradas del estadio donde no se
+       juega en el pueblo (en el pueblo, la tribuna ilustrada teñida a la
+       hora). Si algo falla, el panel queda como estaba. */
+    pintarPanel() {
+      if (!this.panelLayer || !this.panelPasto) return false;
+      var amb = this.ambienteDelPartido(), pal = amb.pal;
+      if (!pal) return false;
+      var kc = this.texturaDePanel("panel_cielo", amb, W, 92, function (c, r) { P.panelCielo(c, W, 92, pal, r); });
+      if (kc) this.panelLayer.addAt(this.add.image(0, 30, kc).setOrigin(0, 0), 1);
+      var kp = this.texturaDePanel("panel_pasto", amb, 256, 256, function (c, r) { P.panelPasto(c, 256, pal, r); });
+      if (kp) {
+        this.panelPasto.setTexture(kp);
+        var kv = this.texturaDePanel("panel_prof", amb, W, 146, function (c) { P.panelProfundidad(c, W, 146, pal); });
+        if (kv) {
+          var velo = this.add.image(0, this.panelPasto.y - 73, kv).setOrigin(0, 0);
+          this.panelLayer.addAt(velo, this.panelLayer.getIndex(this.panelPasto) + 1);
+        }
+      }
+      if (this.panelTribuna) {
+        if (pal.tribuna !== "pueblo") {
+          var kg = this.texturaDePanel("panel_gradas", amb, W, 90, function (c, r) { P.panelGradas(c, W, 90, pal, r); });
+          if (kg) { this.panelTribuna.setTexture(kg); this.panelTribuna.setTileScale(1); this.panelTribuna.tilePositionY = 0; }
+        } else if (pal.tinte_ilustrado) {
+          this.panelTribuna.setTint(A.aNumero(pal.tinte_ilustrado));
+        }
+      }
       return true;
     },
 

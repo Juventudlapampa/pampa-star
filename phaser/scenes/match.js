@@ -894,7 +894,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* fillAlpha en 1 y el objeto en alpha 0: en Phaser el sexto parámetro es
        el fillAlpha, y si queda en 0 el rectángulo NO se ve aunque se anime
        .alpha (bug cazado midiendo el brillo del frame real) */
-    this.panelVelo = this.add.rectangle(480, 121 + 55, 960, 232, 0x040d08, 1)
+    /* ARTE: el velo arrancaba en y=60, a mitad del cielo. Con el cielo plano
+       de antes el borde no se veía; con el cielo pintado era una franja gris
+       cortando las nubes. Ahora cubre el panel entero, de 30 a 292. */
+    this.panelVelo = this.add.rectangle(480, 161, 960, 262, 0x040d08, 1)
       .setOrigin(0.5, 0.5).setAlpha(0);
     this.panelLayer.add(this.panelVelo);
     this._veloObj = 0;
@@ -935,6 +938,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelNombre = this.add.text(36, yFranja, "", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
+    /* ARTE · la luz del partido también en el panel (cine_arte.js): cielo y
+       pasto pintados, y gradas de estadio donde no se juega en el pueblo */
+    if (this.pintarPanel) { try { this.pintarPanel(); } catch (e) { /* el panel queda como estaba */ } }
     this.buildPanelProfundo();
   }
 

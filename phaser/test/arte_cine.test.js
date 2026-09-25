@@ -163,5 +163,21 @@ var HEX = /^#[0-9a-f]{6}$/i;
   console.log("[6] el bando lo dicen las placas; la luz es ambiente");
 })();
 
+/* ---------- [7] EL PANEL DEL PARTIDO ---------- */
+(function () {
+  var m = leer("phaser/scenes/match.js"), c = leer("phaser/scenes/cine_arte.js");
+  var i = m.indexOf("buildPanelEscena() {"), cuerpoPanel = m.slice(i, m.indexOf("buildPanelProfundo();", i) + 30);
+  assert(/this\.pintarPanel\(\)/.test(cuerpoPanel), "buildPanelEscena pinta el panel con la luz del partido");
+  /* el velo de foco cubre el panel ENTERO: si arranca más abajo que el
+     cielo, el borde corta las nubes (pasó: arrancaba en y=60) */
+  var v = cuerpoPanel.match(/panelVelo = this\.add\.rectangle\(480, (\d+), 960, (\d+)/);
+  assert(v && (+v[1] - +v[2] / 2) <= 30, "el velo de foco arranca en el borde de arriba del panel (y=30), no a mitad del cielo");
+  /* la baldosa de pasto empalma arriba con abajo: en S px de alto las
+     franjas se corren exactamente un período (S/2) */
+  assert(/var per = S \/ 2/.test(c) && /lineTo\(b \+ ancho \+ per, S\)/.test(c), "las franjas del pasto del panel se corren un período en el alto de la baldosa (empalma en Y)");
+  assert(/pal\.tribuna !== "pueblo"/.test(c.slice(c.indexOf("pintarPanel() {"))), "en estadio el panel pone gradas, no la tribuna del pueblo");
+  console.log("[7] el panel: luz del partido, velo entero, baldosa que empalma");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);
