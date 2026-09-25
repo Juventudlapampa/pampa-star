@@ -194,7 +194,42 @@
     };
   }
 
+  /* ══ LOS NOMBRES CAMBIAN, LA TEMPORADA SIGUE (Sección 11, sept 2026) ══
+     Los rivales de las divisiones pasaron de nombres de clubes reales a
+     ficticios. Una temporada guardada tiene los nombres viejos escritos en la
+     tabla, el fixture y los resultados. crear() arma la tabla como
+     [miClub, rival 0, rival 1, …] en el ORDEN de la división y nadie la
+     reordena, así que el rival k de la lista actual es tabla[k+1]: se
+     traduce por POSICIÓN, sin escribir un solo nombre viejo.
+     Si un nombre viejo aparece en la lista actual en OTRA posición, cambió el
+     orden y la traducción no es confiable: no se toca nada.
+     Devuelve true si cambió algo. */
+  function renombrarPorPosicion(t, rivales) {
+    if (!t || !Array.isArray(t.tabla) || !Array.isArray(rivales)) return false;
+    if (t.tabla.length !== rivales.length + 1 || !t.tabla[0] || t.tabla[0].equipo !== t.miClub) return false;
+    var mapa = {}, cambia = false, k;
+    for (k = 0; k < rivales.length; k++) {
+      var viejo = t.tabla[k + 1].equipo, nuevo = rivales[k];
+      if (viejo === nuevo) continue;
+      if (rivales.indexOf(viejo) >= 0 || viejo === t.miClub) return false;
+      mapa[viejo] = nuevo; cambia = true;
+    }
+    if (!cambia) return false;
+    renombrarEquipos(t, mapa);
+    return true;
+  }
+  /* aplica un mapa viejo→nuevo a tabla, fixture y resultados (y a miClub) */
+  function renombrarEquipos(t, mapa) {
+    var r = function (n) { return Object.prototype.hasOwnProperty.call(mapa, n) ? mapa[n] : n; };
+    t.tabla.forEach(function (f) { f.equipo = r(f.equipo); });
+    (t.fixture || []).forEach(function (fe) { fe.forEach(function (p) { p.local = r(p.local); p.visita = r(p.visita); }); });
+    (t.resultados || []).forEach(function (re) { (re.partidos || []).forEach(function (p) { p.local = r(p.local); p.visita = r(p.visita); }); });
+    if (t.miClub != null) t.miClub = r(t.miClub);
+    return t;
+  }
+
   return {
+    renombrarPorPosicion: renombrarPorPosicion, renombrarEquipos: renombrarEquipos,
     fixture: fixture, crear: crear, jugarFecha: jugarFecha, miPartido: miPartido,
     posiciones: posiciones, miPosicion: miPosicion, terminada: terminada,
     veredicto: veredicto, rng: rng,

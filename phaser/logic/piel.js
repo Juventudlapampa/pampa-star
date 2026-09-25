@@ -202,8 +202,8 @@
      EL NOMBRE QUE ENTRA SIN PARTIRSE.
 
      Los nombres de club no entran en el marcador ni en la tabla, y hasta la
-     pasada de coherencia se cortaban con slice(0, 14): salia "CULTURAL
-     ARGEN" y "DEPORTIVO WINI", partidos a la mitad de la palabra, en tres
+     pasada de coherencia se cortaban con slice(0, 14): los nombres de dos
+     palabras largas salian partidos a la mitad de la segunda, en tres
      lugares distintos.
 
      Cortar por caracteres es lo que hace eso. Las reglas de acá salen de

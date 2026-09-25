@@ -57,6 +57,27 @@ FILES.forEach(f => {
   });
 });
 
+/* ---------- 1b) CLUBES, LIGAS Y MEDIOS REALES DE LA PAMPA (sept 2026) ----------
+   El relevamiento de entidades reales (confirmadas en la web) encontró que la
+   Primera B eran los nueve clubes reales de una liga pampeana, con sus
+   colores; que había clubes y ligas reales en otras divisiones, una radio real
+   en la entrevista y dos marcas en textos del clásico. Se renombró todo a
+   ficción. Esta lista es la red para que no vuelvan: nombres EXACTOS, con
+   mayúsculas (el pampero como viento y las localidades sí se pueden nombrar). */
+const REALES = [
+  "Deportivo Winifreda", "El Pampero", "Centro Oeste", "Atlético Carro Quemado", "Deportivo Luan Toro",
+  "Cochico FC", "Deportivo Telén", "Atlético Caleufú", "Cultural Argentino",
+  "Liga Cultural", "Liga del Caldenal", "Liga Pampeana", "FM El Caldén", "FM Caldén",
+  "Alvear Fútbol", "Ferrocarril de Castex", "Patagonia Austral", "Puntano de San Luis", "Litoral Norte", "Comarca Andina"
+];
+const MARCAS_TEXTO = [/\bReflex\b/, /\btupper/i];
+FILES.forEach(f => {
+  const s = fs.readFileSync(f, "utf8");
+  const rel = path.relative(RAIZ, f);
+  REALES.forEach(n => assert(s.indexOf(n) < 0, "§11 entidad REAL en " + rel + ": «" + n + "» (club, liga o medio que existe: usar el nombre ficticio)"));
+  MARCAS_TEXTO.forEach(re => { const h = s.match(re); assert(!h, "§11 marca en un texto de " + rel + ": «" + (h ? h[0] : "") + "»"); });
+});
+
 /* ---------- 2) "GUTS" COMO TEXTO VISIBLE ----------
    Los identificadores internos y keys de save (gutsProximo, PS.guts, GUTS_*,
    clases CSS .guts) son retrocompatibilidad y NO se tocan: solo se caza el

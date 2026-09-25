@@ -7,7 +7,7 @@
    toque assets. El scope es phaser/ (el clásico de la raíz no se toca).
    ========================================================================== */
 "use strict";
-const VERSION = "v13-halo";
+const VERSION = "v14-clubes";
 const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",

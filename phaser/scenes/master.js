@@ -78,6 +78,24 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     this.save = null;
     try { const r = localStorage.getItem("pampa_master_v1"); if (r) this.save = JSON.parse(r); } catch (e) { }
+    /* SECCIÓN 11 · LA PARTIDA GUARDADA SE PONE AL DÍA. Los rivales de las
+       divisiones pasaron de clubes reales a ficticios y tu club dejó de
+       llamarse "Club " + localidad. Una temporada en curso los tiene escritos:
+       los rivales se traducen por POSICIÓN (la tabla guarda el orden de la
+       división) y tu club por su nombre viejo reconocible. Se guarda una vez. */
+    if (this.save && this.save.temporada && this.T && this.T.renombrarPorPosicion) {
+      let cambio = false;
+      const tp = this.save.temporada, dvs = this.DIV.divisiones[tp.division];
+      if (this.Ma.esNombreViejoDeTuClub(this.save.club, this.save.pueblo)) {
+        const nuevo = this.Ma.nombreDeTuClub(this.save.pueblo, this.game.registry.get("roster"));
+        const mapa = {}; mapa[this.save.club] = nuevo;
+        this.T.renombrarEquipos(tp, mapa);
+        this.save.club = nuevo;
+        cambio = true;
+      }
+      if (dvs && this.T.renombrarPorPosicion(tp, dvs.rivales)) cambio = true;
+      if (cambio) this.guardar();
+    }
     /* ARTE: con la partida leída ya se sabe la división: su cancha va de fondo */
     if (this.fondoDeLaDivision) { try { this.fondoDeLaDivision(); } catch (e) { /* queda el radial */ } }
 
@@ -400,7 +418,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.irA("editor");
     };
     this._crearCarrera = (divId, origen) => {
-      const club = "Club " + this.pueblos[this.pSel];
+      /* Sección 11: tu club lleva el APODO de tu localidad, no "Club " +
+         localidad (así se nombra a clubes reales). Ver logic/master.js */
+      const club = this.Ma.nombreDeTuClub(this.pueblos[this.pSel], this.game.registry.get("roster"));
       this.save = {
         v: 1, club, pueblo: this.pueblos[this.pSel], division: divId, temporadaN: 1, titulos: [],
         origen: origen || null, bolsaEventos: [], modFecha: null, racha: 0,
@@ -444,8 +464,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
      El evento con más carga emocional del juego era, para casi todo el mundo,
      contenido que no se veía nunca. Y encima la subcadena PERDÍA dos derbis de
-     verdad: el rival de Eduardo Castex se llama "Ferrocarril de Castex" (dice
-     sólo Castex) y el de Intendente Alvear, "Alvear Fútbol" (sólo Alvear).
+     verdad: los de Eduardo Castex y de Intendente Alvear, cuyo rival no llevaba
+     el nombre completo del pueblo.
 
      Ahora el rival clásico está declarado en data/roster_pampeano.json y acá se
      compara por igualdad. Los diez pueblos tienen el suyo.
@@ -557,8 +577,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const ficha = this.add.rectangle(fx + medioF, fichaY + 66, anchoF, 148, 0x0a1f13, 0.72).setStrokeStyle(3, 0xffd84d, 0.9);
     capa.add(ficha);
     capa.add(this.add.text(fx + medioF, fichaY + 12, "★ TU CLUB", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" }).setOrigin(0.5));
-    capa.add(this.add.text(fx + medioF, fichaY + 40, "Club " + sel, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
-    if (info.apodo) capa.add(this.add.text(fx + medioF, fichaY + 76, '"' + info.apodo + '"', { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    /* Sección 11: el nombre del club ES el apodo (antes: "Club " + localidad
+       arriba y el apodo entre comillas abajo). Abajo va la localidad. */
+    capa.add(this.add.text(fx + medioF, fichaY + 44, this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    capa.add(this.add.text(fx + medioF, fichaY + 82, "de " + sel, { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
     capa.add(this.add.text(fx + medioF, fichaY + 112, "arranca en " + divN, { fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2" }).setOrigin(0.5));
     const zN = (M.ZONAS[info.zona] || {}).n || "—";
     capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0.5));

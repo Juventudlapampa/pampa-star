@@ -96,7 +96,7 @@ console.log("[1] las 5 divisiones: silueta+patrón e inicial únicas dentro de c
   assert(distintos.length === 0,
     "el escudo cambia según el orden en que venga la lista (" + distintos.join(", ") + "): el desempate tiene " +
     "que ordenar alfabéticamente antes de resolver, si no el mismo club cambia de escudo entre pantallas.");
-  var c1 = E.escudoDe("Deportivo Winifreda"), c2 = E.escudoDe("Deportivo Winifreda");
+  var c1 = E.escudoDe("Jagüel Viejo"), c2 = E.escudoDe("Jagüel Viejo");
   assert(c1.semilla === c2.semilla && c1.forma === c2.forma, "dos llamadas seguidas dan el mismo escudo");
   console.log("[5] determinista: mismo club → mismo escudo, venga la lista como venga");
 })();

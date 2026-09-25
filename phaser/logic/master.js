@@ -97,7 +97,25 @@
     return st;
   }
 
+  /* ══ EL NOMBRE DE TU CLUB (Sección 11, sept 2026) ══
+     Era "Club " + localidad, y en varias localidades eso es cómo la gente
+     nombra a un club REAL (el de Santa Rosa, el de Macachín, el de
+     Winifreda). El diseño ya le daba a cada localidad un club con APODO
+     inventado (roster.clubes_por_pueblo[p].apodo: "El Bagual de Winifreda",
+     GDD §9.2): tu club se llama así. Si la localidad no tiene apodo, un
+     nombre de barrio que no es de nadie. */
+  function nombreDeTuClub(pueblo, roster) {
+    var info = roster && roster.clubes_por_pueblo && roster.clubes_por_pueblo[pueblo];
+    if (info && info.apodo) return info.apodo;
+    return "Los Pibes de " + (pueblo || "la Pampa");
+  }
+  /* el nombre viejo, para reconocer una partida guardada antes del cambio */
+  function esNombreViejoDeTuClub(club, pueblo) {
+    return !!pueblo && club === "Club " + pueblo;
+  }
+
   return { DIVISIONES: DIVISIONES, divisionPorNivel: divisionPorNivel,
     GOLES_POR_NIVEL: GOLES_POR_NIVEL,
+    nombreDeTuClub: nombreDeTuClub, esNombreViejoDeTuClub: esNombreViejoDeTuClub,
     nivelDeCarreraClasica: nivelDeCarreraClasica, nivelDeDivision: nivelDeDivision, PERFILES: PERFILES, perfilRival: perfilRival, aplicar: aplicar, hashClub: hashClub };
 });

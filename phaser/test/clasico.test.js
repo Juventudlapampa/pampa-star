@@ -13,9 +13,11 @@
      · en Regional, Nacional y Mundial no matcheaba nadie: los rivales son
        "Bahía del Sur", "Norte Grande", "Brasil".
 
-   Y la subcadena PERDÍA dos derbis de verdad: el rival de Eduardo Castex se
-   llama "Ferrocarril de Castex" (dice sólo Castex) y el de Intendente Alvear,
-   "Alvear Fútbol" (sólo Alvear).
+   Y la subcadena PERDÍA los derbis cuyo rival no lleva el nombre completo del
+   pueblo: el de Eduardo Castex y el de Intendente Alvear. (Sección 11, sept
+   2026: esos dos rivales se leían como clubes reales y se renombraron a
+   "Durmiente FC" y "Surco Hondo"; el test lee el clásico declarado del
+   roster, así que sigue valiendo con cualquier nombre.)
 
    El evento con más carga emocional del juego era, para la mayoría de las
    partidas, contenido que no se veía nunca. Y no había ningún error.
@@ -79,7 +81,9 @@ function divisionesConClasico(pueblo) {
 (function () {
   /* el control negativo: si diera verdadero contra cualquiera, el evento
      perdería el sentido por el otro lado */
-  assert(!esClasico("Winifreda", "El Pampero"), "Winifreda contra El Pampero NO es clásico");
+  /* un rival de la Primera B que NO es el declarado de Winifreda */
+  var otroB = DIV.divisiones.primera_b.rivales.filter(function (r) { return r !== R.clubes_por_pueblo.Winifreda.clasico; })[0];
+  assert(!esClasico("Winifreda", otroB), "Winifreda contra " + otroB + " NO es clásico");
   assert(!esClasico("Toay", "Brasil"), "nadie tiene un clásico en el Mundial");
   var falsos = 0, total = 0;
   PUEBLOS.forEach(function (p) {
@@ -94,13 +98,15 @@ function divisionesConClasico(pueblo) {
 /* ---------- [4] LA SUBCADENA NO PUEDE VOLVER ---------- */
 (function () {
   assert(!/rival\.indexOf\(this\.save\.pueblo\)/.test(MASTER),
-    "el match por subcadena no puede volver: perdía 'Ferrocarril de Castex' y 'Alvear Fútbol'");
+    "el match por subcadena no puede volver: perdía los derbis de Castex y de Alvear");
   assert(/esClasico\(rival\)/.test(MASTER), "los dos ctx tienen que usar el helper");
-  /* los dos derbis que la subcadena fallaba, fijados con nombre y apellido */
-  assert(esClasico("Eduardo Castex", "Ferrocarril de Castex"), "Eduardo Castex vs Ferrocarril de Castex es clásico");
-  assert(esClasico("Intendente Alvear", "Alvear Fútbol"), "Intendente Alvear vs Alvear Fútbol es clásico");
-  /* y que la subcadena efectivamente los perdía, para que quede el registro */
-  assert("Ferrocarril de Castex".indexOf("Eduardo Castex") < 0, "(la subcadena no los encontraba: por eso el bug)");
+  /* los dos derbis que la subcadena fallaba, fijados: se leen del roster */
+  ["Eduardo Castex", "Intendente Alvear"].forEach(function (p) {
+    var riv = R.clubes_por_pueblo[p].clasico;
+    assert(esClasico(p, riv), p + " vs " + riv + " es clásico");
+    /* y que la subcadena efectivamente lo perdía, para que quede el registro */
+    assert(riv.indexOf(p) < 0, "(la subcadena no encontraba a " + riv + " desde " + p + ": por eso el bug)");
+  });
   console.log("[4] los dos derbis que la subcadena perdía, fijados");
 })();
 

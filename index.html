@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PAMPA STAR · Tu carrera en la Liga Cultural</title>
+<title>PAMPA STAR · Tu carrera en la Liga de la Llanura</title>
 <meta name="description" content="Del potrero al Mundial: fútbol retro por comandos, hecho en La Pampa.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -256,7 +256,7 @@
   <section class="screen active hasbg" id="screen-title">
     <div class="intro-scroll" style="display:flex;flex-direction:column;justify-content:center;">
       <div class="brand">
-        <div class="kicker">Liga Cultural de Fútbol · La Pampa</div>
+        <div class="kicker">Liga de Fútbol de la Llanura · La Pampa</div>
         <img class="logo-img" id="title-logo" src="assets/ui/logo.webp" alt="PAMPA STAR"
              onerror="this.style.display='none';document.getElementById('title-h1').style.display='block';">
         <h1 id="title-h1" style="display:none">PAMPA<br>STAR</h1>
@@ -336,7 +336,7 @@
   <section class="screen" id="screen-season">
     <div class="se-scroll">
       <div class="se-head">
-        <div class="kicker" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase">Primera B · Liga Cultural</div>
+        <div class="kicker" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase">Primera B · Liga de la Llanura</div>
         <div class="se-fecha" id="se-fecha">FECHA 1 / 18</div>
       </div>
       <div id="se-campeon"></div>
@@ -554,17 +554,22 @@ function lookLabel(look){
   return `${PIELES[l.piel%PIELES.length].n} · ${PELOS[l.pelo%PELOS.length].n} · ${CAMISETAS[l.camiseta%CAMISETAS.length].n}`;
 }
 
-/* ---------- Clubes Primera B Liga Cultural (públicos) + colores de camiseta (HEX) ---------- */
+/* ---------- Clubes de la Primera B + colores de camiseta (HEX) ----------
+   Sección 11 (sept 2026): eran los nueve clubes REALES de una liga pampeana,
+   con sus colores reales. Ahora son ficticios, en el MISMO ORDEN (el orden es
+   la identidad: la tabla, el fixture y los goleadores guardados van por
+   índice, y migrarClub traduce el nombre guardado de tu club). Los nombres
+   se verificaron en la web contra clubes y ligas reales. */
 const CLUBES = [
-  {n:"Deportivo Winifreda",    loc:"Winifreda",    f:50, c1:"#d23b2e", c2:"#ffffff"},
-  {n:"El Pampero",             loc:"Guatraché",    f:53, c1:"#1769c4", c2:"#ffffff"},
-  {n:"Centro Oeste",           loc:"Telén",        f:49, c1:"#e8e8e8", c2:"#111111"},
-  {n:"Atlético Carro Quemado", loc:"Carro Quemado",f:46, c1:"#e8810f", c2:"#1a1a1a"},
-  {n:"Deportivo Luan Toro",    loc:"Luan Toro",    f:47, c1:"#7a3fb0", c2:"#ffffff"},
-  {n:"Cochico FC",             loc:"Cochico",      f:48, c1:"#8a1f3a", c2:"#f2d23a"},
-  {n:"Deportivo Telén",        loc:"Telén",        f:51, c1:"#1d4fd6", c2:"#ffd000"},
-  {n:"Atlético Caleufú",       loc:"Caleufú",      f:52, c1:"#0aa07a", c2:"#073b2d"},
-  {n:"Cultural Argentino",     loc:"General Pico", f:55, c1:"#cf1020", c2:"#ffffff"},
+  {n:"Jagüel Viejo",          loc:"Winifreda",   f:50, c1:"#efdfb0", c2:"#3d5a24"},
+  {n:"Espejo de Sal",         loc:"Guatraché",   f:53, c1:"#1f9e98", c2:"#3b2414"},
+  {n:"Viento Oeste",          loc:"Santa Rosa",  f:49, c1:"#c98a1b", c2:"#173f4f"},
+  {n:"Rescoldo FC",           loc:"Carro Quemado", f:46, c1:"#7d8085", c2:"#6d1a2a"},
+  {n:"Guanaco Bravo",         loc:"Luan Toro",   f:47, c1:"#7a4a2a", c2:"#ecd08a"},
+  {n:"Alpataco FC",           loc:"Victorica",   f:48, c1:"#26262a", c2:"#e58a98"},
+  {n:"Cardo Ruso FC",         loc:"Telén",       f:51, c1:"#b3a6d9", c2:"#26262a"},
+  {n:"Cauce Viejo",           loc:"Caleufú",     f:52, c1:"#3f5566", c2:"#ef8a2a"},
+  {n:"Tolvanera FC",          loc:"General Pico", f:55, c1:"#1b2a4a", c2:"#c3c8cf"},
 ];
 
 const STORE = "pampa_star_v1";
@@ -578,9 +583,43 @@ let career = loadCareer();
 function loadCareer(){
   try{
     const r=localStorage.getItem(STORE);
-    if(r){ const o=JSON.parse(r); if(o && typeof o==="object" && !Array.isArray(o)) return o; }
+    if(r){ const o=JSON.parse(r); if(o && typeof o==="object" && !Array.isArray(o)){
+      if(migrarClub(o)){ try{ localStorage.setItem(STORE, JSON.stringify(o)); }catch(e){} }
+      migrarPedido();
+      return o; } }
   }catch(e){}
   return null;
+}
+/* ══ SECCIÓN 11 (sept 2026) · LOS CLUBES DEJARON DE SER LOS REALES ══
+   Hasta acá CLUBES eran los nueve clubes reales de una liga pampeana, con sus
+   colores. Ahora son ficticios, en el MISMO ORDEN. Una carrera guardada tiene
+   escrito el nombre viejo de tu club (lo único que se guarda por nombre: la
+   tabla, el fixture y los goleadores van por índice). Sin migrar, myClubIdx()
+   no lo encuentra, devuelve 0 y pasás a ser otro club sin enterarte.
+   Se traduce por el HASH del nombre viejo (la misma función que usa el
+   Master), así el código no tiene escrito ningún nombre real. */
+function hashNombre(s){ let h=0; s=String(s||""); for(let i=0;i<s.length;i++) h=((h<<5)-h+s.charCodeAt(i))|0; return Math.abs(h); }
+function indiceViejo(nombre){
+  const MAPA={1911103447:0,1803748587:1,1434934931:2,1746747294:3,1654883650:4,1688989863:5,2040825152:6,750084291:7,933524905:8};
+  const i=MAPA[hashNombre(nombre)];
+  return i==null ? -1 : i;
+}
+function migrarClub(o){
+  if(!o || typeof o.club!=="string" || CLUBES.some(c=>c.n===o.club)) return false;
+  const i=indiceViejo(o.club);
+  if(i<0) return false;
+  o.club=CLUBES[i].n;
+  return true;
+}
+/* el pedido que el clásico le deja al partido de Phaser lleva el nombre del rival */
+function migrarPedido(){
+  try{
+    const r=localStorage.getItem("pampa_pedido_phaser"); if(!r) return;
+    const p=JSON.parse(r); if(!p || !p.rival || CLUBES.some(c=>c.n===p.rival)) return;
+    const i=indiceViejo(p.rival);
+    if(i<0) localStorage.removeItem("pampa_pedido_phaser");
+    else { p.rival=CLUBES[i].n; localStorage.setItem("pampa_pedido_phaser", JSON.stringify(p)); }
+  }catch(e){}
 }
 function saveCareer(){ try{ localStorage.setItem(STORE, JSON.stringify(career)); }catch(e){} }
 function freshStats(){ return {pase:52, tiro:58, gambeta:55, velocidad:60, resistencia:54, fisico:50, aereo:47, caracter:51}; }
@@ -780,7 +819,7 @@ $("btn-start").addEventListener("click", ()=>{
   mostrarLore();
 });
 
-/* ============================ TEMPORADA (Primera B, Liga Cultural) ============================
+/* ============================ TEMPORADA (Primera B, Liga de la Llanura) ============================
    Fixture ida y vuelta con 9 clubes: método del círculo con comodín "libre" (número impar,
    un equipo descansa por fecha). Mi partido se juega con el motor; los otros se simulan
    con la MISMA escala de goles (0–4 por equipo, sin goleadas raras).

@@ -232,7 +232,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.st = window.PampaPartido.crearPartido({ bal: this.BAL, mios: plantel.mios, rivales: plantel.rivales });
     this.nombreRival = plantel.nombreRival;
     /* FUSIÓN (flag partido_phaser): si la carrera clásica pidió este partido,
-       el rival lleva el nombre del club real y el final ofrece volver con el resultado */
+       el rival lleva el nombre del club del clásico y el final ofrece volver con el resultado */
     this._pedido = null;
     try { const r = localStorage.getItem("pampa_pedido_phaser"); if (r) this._pedido = JSON.parse(r); } catch (e) { }
     if (this._pedido && this._pedido.rival) this.nombreRival = this.nombreCorto(this._pedido.rival);
@@ -1845,8 +1845,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ══════════════════════════════════════════════════════════════════════
      PASADA DE COHERENCIA · EL NOMBRE QUE NO SE PARTE.
 
-     Era .toUpperCase().slice(0, 14) y salia "CULTURAL ARGEN" y "DEPORTIVO
-     WINI" — cortado a la mitad de la palabra, y en TRES lugares: el marcador
+     Era .toUpperCase().slice(0, 14) y los nombres largos salian cortados a
+     la mitad de la palabra, y en TRES lugares: el marcador
      de arriba, el cartel del resultado y la pantalla de fin.
 
      Cortar por caracteres es lo que hace eso. Ahora se corta por PALABRA: si

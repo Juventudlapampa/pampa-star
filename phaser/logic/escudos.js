@@ -184,10 +184,10 @@
       usadas[e.forma + "|" + e.patron] = true;
       out[n] = e;
     });
-    /* LAS INICIALES TAMBIÉN SE DESEMPATAN. En primera_b, "Centro Oeste" y
-       "Cochico FC" daban las dos "CO", y "Atlético Carro Quemado" y "Atlético
-       Caleufú" las dos "AC". La silueta ya los separa, pero la inicial está
-       para leer el club de un vistazo y dos "CO" no ayudan a nadie. Al segundo
+    /* LAS INICIALES TAMBIÉN SE DESEMPATAN. En una misma división, dos
+       clubes podían dar la misma inicial (pasó con dos pares en la Primera B).
+       La silueta ya los separa, pero la inicial está
+       para leer el club de un vistazo y dos iniciales iguales no ayudan a nadie. Al segundo
        (alfabético, así es estable) se le agrega una letra más de la palabra
        que los diferencia. */
     var vistas = {};
