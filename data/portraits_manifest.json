@@ -1,51 +1,9 @@
 {
   "_schema": "pampa-star/portraits@1",
   "_nota": "MANIFEST DE RETRATOS (doc v2 §6) — BANCO REAL de Rodri (assets_drive, optimizado a webp ~170KB; decisión de Rodri 11/jul: banco real, no placeholders). Para cambiar un retrato: pisá el archivo en assets/retratos/ CON EL MISMO NOMBRE (1:1) o editá 'archivo'/'n' acá. arquetipo: 'companero' = NPCs de tu equipo · 'rival' = rivales (asignación determinista por nombre del jugador). VOS y tus 4 amigos NO usan el banco: su retrato es la cara del avatar del editor. Si un archivo falta, cae solo a caras de avatar (tolerante).",
-  "retratos": [
-    {
-      "archivo": "assets/retratos/retrato_pibe_1.webp",
-      "arquetipo": "companero",
-      "n": "Banco: pibe 1",
-      "origen": "assets_drive/png_transparent/avatar_1.png"
-    },
-    {
-      "archivo": "assets/retratos/retrato_pibe_2.webp",
-      "arquetipo": "companero",
-      "n": "Banco: pibe 2",
-      "origen": "assets_drive/png_transparent/avatar_2.png"
-    },
-    {
-      "archivo": "assets/retratos/retrato_pibe_3.webp",
-      "arquetipo": "companero",
-      "n": "Banco: pibe 3",
-      "origen": "assets_drive/png_transparent/avatar_3.png"
-    },
-    {
-      "archivo": "assets/retratos/retrato_pibe_4.webp",
-      "arquetipo": "companero",
-      "n": "Banco: pibe 4",
-      "origen": "assets_drive/png_transparent/avatar_4.png"
-    },
-    {
-      "archivo": "assets/retratos/retrato_pibe_5.webp",
-      "arquetipo": "companero",
-      "n": "Banco: pibe 5",
-      "origen": "assets_drive/png_transparent/avatar_5.png"
-    },
-    {
-      "archivo": "assets/retratos/retrato_pibe_6.webp",
-      "arquetipo": "companero",
-      "n": "Banco: pibe 6",
-      "origen": "assets_drive/png_transparent/avatar_6.png"
-    },
-    {
-      "archivo": "assets/retratos/retrato_juvenil.webp",
-      "arquetipo": "companero",
-      "n": "Banco: juvenil",
-      "origen": "assets_drive/PERSONAJES_TANDA2/pampean_boy_watercolor.webp"
-    }
-  ],
+  "retratos": [],
   "_seccion11": "SEPTIEMBRE 2026 · BARRIDA VISUAL DEL ARTE. Los cuatro retratos del arquetipo rival se sacaron del banco porque la barrida (dos revisores por imagen, y mirados de nuevo antes de sacarlos) encontró marcas deportivas reales: rival_1 y rival_2 con los chevrones registrados de una marca en hombros y mangas, y rival_1 además con un nombre de fabricante en el pecho; volante con la camiseta de una selección real (bastones, escudo con sol); delantero con las tiras de hombro y puño de otra marca. Los originales de assets_drive/PAMPA_STAR_PERSONAJES_TANDA2 (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist) traen lo mismo: NO volver a exportarlos. Con el grupo rival vacío, retratoKey() cae a la cara del avatar (match.js), que es lo que ya se veía con el flag v4_retratos64 prendido. Se revierte con git, pero solo con arte repintado sin marcas.",
+  "_companeros": "SEPTIEMBRE 2026 · Los siete retratos del arquetipo companero salieron del grupo: pibe_1 a pibe_6 tienen el alfa ROTO (ojos, dientes y remeras transparentes, manchas beige opacas y damero alrededor: el recorte del fondo blanco se llevó los blancos de adentro), y juvenil es acuarela realista sin alfa, otro estilo. Con un grupo de uno solo, todos los compañeros sin look iban a tener la misma cara; con el grupo vacío, retratoKey() cae a la cara del avatar de cada jugador, que es lo que ya se ve con el flag v4_retratos64 prendido (default). Los archivos quedan en assets/retratos/ (no se descargan si no están acá). Para volver a usarlos: rehacer el recorte desde los originales de assets_drive y volver a listarlos.",
   "sugerencias_de_tu_banco": "cuando armes el manifest real: assets_drive/PAMPA_STAR_Assets/png_transparent/avatar_1..6.png (bustos transparentes) y PAMPA_STAR_PERSONAJES_TANDA2/*.webp (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist, pampean_boy_watercolor); el DT y el utilero quedan para la presentación (H5).",
   "_relator_visible": "V9 (pedido de Rodri): para que el relator o relatora SE VEA durante el partido, agregar acá una clave \"relator\" con {archivo, n, pos, bocas:[...] opcional}. Mientras no exista, el relator sigue siendo solo la franja de texto. Ver data/COMO_AGREGAR_ARTE.md §6.",
   "personajes": [
