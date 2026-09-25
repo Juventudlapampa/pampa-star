@@ -13,6 +13,49 @@ es lo que decide si vale la pena.
 
 ---
 
+## PRIORIDAD 0 · SEPTIEMBRE 2026 (tanda de arte V10)
+
+### 0.1 · BLOQUEO y BARRIDA con NUESTRA camiseta
+- **Dónde**: "te rematan" (tus defensores que saltan o se tiran a tapar) y la
+  Definición defensiva cuando se planta uno de los tuyos.
+- **Hoy**: tus defensores salen con la camiseta NARANJA A RAYAS del rival,
+  porque `pose_bloqueo` y `pose_barrida` existen solo en ese kit. La placa
+  dice el nombre en celeste, pero el dibujo es de otro equipo. Con los fondos
+  pintados nuevos se nota mucho más.
+- **Por qué no se tiñe por código**: en `pose_bloqueo` la piel de los brazos
+  (que cruzan el pecho) es casi del mismo naranja que la camiseta — medido:
+  la camiseta ronda #fc844c y la piel #fca46c. Un teñido por color pinta los
+  brazos de celeste. Y las poses de nuestro equipo que se parecen (`quite`,
+  `cabezazo_v2`) traen la pelota DIBUJADA, que en esa escena sería una
+  segunda pelota.
+- **Qué es**: las mismas dos poses, idénticas, con camiseta CELESTE LISA,
+  short BLANCO, medias celestes, botines negros. Sin número o con un número
+  que no sea el 10 (el 10 es VOS). **Sin pelota dibujada.**
+- **Formato**: como las otras poses — PNG con alfa nativo, sin halo, el
+  cuerpo entero adentro del lienzo (en la `pose_bloqueo` de hoy los botines
+  quedan cortados por el borde de abajo).
+- **Nombres**: `pose_bloqueo_celeste.webp`, `pose_barrida_celeste.webp`.
+
+### 0.2 · Lo que la barrida encontró roto en el arte que ya está (no lo toqué: regla de no reprocesar)
+- **Poses con el hueco de la pelota recortada**: `pose_cabezazo` (el disco se
+  come la frente y los ojos), `pose_chilena` (la punta del botín),
+  `pose_gambeta_gana` (media pantorrilla), `pose_remate` (el empeine),
+  `pose_arquero_ataja_v2` (190 px en el pecho). En el juego la pelota del
+  juego los tapa — y desde el 25/sep la pelota se ve de nuevo (estuvo
+  invisible cinco semanas y los huecos quedaban a la vista).
+- **Halo magenta/violeta del recorte**: las 8 caras, las 6 identidades,
+  `pose_corriendo`, `pose_barrida`, `pose_festejo`, `pose_arquero_vuela_v2`.
+  Sobre los fondos claros nuevos (la siesta) se nota más que antes.
+- **Retratos del banco `retrato_pibe_1` a `_6`**: alfa roto — ojos, bocas y
+  remeras transparentes, manchas de damero alrededor. Hoy no se ven (el flag
+  de retratos modulares está prendido), pero si se apaga, salen así.
+- **Estilos que no pegan**: `pose_festejo` (anime moderno, línea gruesa),
+  `pose_cansado` (vectorial, celeste turquesa), `retrato_juvenil` (acuarela
+  realista). `pose_tiro` y `pose_volea` tienen el pelo castaño y vincha: se
+  leen como otro jugador.
+
+---
+
 ## PRIORIDAD 1 · LO QUE HOY SE VE MAL POR FALTA DE ESTA PIEZA
 
 ### 1.1 · Retrato de NELDA

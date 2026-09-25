@@ -349,6 +349,8 @@ Cada jugador tiene nombre, apodo, pueblo, posición, un **rasgo** y una **histor
 
 Dibujar por código tiene techo bajo: un muñequito de rectángulos parece siempre un muñequito de rectángulos. Pero el código es excelente moviendo: tweens, cámara, líneas de velocidad, flashes, sacudidas y cortes impecables. Si se le pide dibujar, se pierde. Si se le dan dibujos y se le pide moverlos, gana.
 
+**Ajuste de septiembre 2026 (tanda V10, ver `docs/ARTE_V10.md`): los FONDOS sí los pinta el código.** El techo bajo es de los personajes. Un paisaje es otra cosa: cielo en degradé, nubes, horizonte, perspectiva del pasto, luces de estadio — geometría y color, lo que el código hace bien. Es la división del anime de verdad: **el personaje es un cel (Rodri), el fondo es una pintura (el código)**. Los fondos se pintan en `scenes/cine_arte.js` con la paleta de `data/ambientes.json` y ningún personaje se dibuja por código.
+
 ## 10.2 La técnica: animación limitada
 
 **El jugador NO se anima: se sostiene.** Cada acción es UNA pose ilustrada, quieta, grande, recortada. Todo lo demás es código:
@@ -369,6 +371,10 @@ Ilustración anime deportivo ochentoso. Cel shading con sombras duras de tres to
 
 **Convivencia deliberada:** las poses ilustradas conviven con la cancha en pixel art. No es inconsistencia — es el canon del género: en el original la cancha era de bloquecitos y los cut-ins eran dibujos con otro nivel de acabado.
 
+**Los fondos del cine, en cambio, son PINTURA** (V10): degradé en el cielo, nubes de tres tonos con la base plana, lo lejano apenas desenfocado. "Sin degradados" vale para los cels, no para el fondo: así se hacía el anime de los 80, cel nítido adelante y gouache atrás.
+
+**La luz sube con la escalera** (`data/ambientes.json`): Primera B = la siesta del domingo en la cancha del pueblo · Primera A = la tarde · Regional = el atardecer · Nacional = la noche con torres · Mundial = la gran noche. La viñeta, los planos del remate, la Definición, el panel del partido y los menús del Master cambian de hora con la división. **La luz es ambiente, nunca información:** el bando lo dicen las placas con nombre y la palabra VOS.
+
 ## 10.4 Los assets
 
 **Poses de acción** (`assets/poses/`, PNG con transparencia real, recortadas, sin halo): remate, chilena, cabezazo, barrida, arquero volando, arquero atajando, festejo. Pendientes: gambeta ganada, gambeta perdida, pared, bloqueo, corrida.
@@ -388,7 +394,7 @@ Ilustración anime deportivo ochentoso. Cel shading con sombras duras de tres to
 | Pelota | #FFFFFF borde #000000 | rombo en radar |
 | Jugador controlado | anillo #FFFFFF | anillo + nombre sobre la cabeza |
 | Aguante alto / medio / bajo | #2E7D32 / #F9A825 / #C62828 | **siempre con el número** |
-| Cancha | #2E7D32 / #388E3C | franjas alternadas |
+| Cancha | #2E7D32 / #388E3C | franjas alternadas (el radar; en el cine y el panel, el pasto de cada ambiente) |
 
 ---
 
