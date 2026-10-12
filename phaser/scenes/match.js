@@ -2566,10 +2566,43 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       P.perderPelota(st);
       const rival = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
       this.cutInEspecial("¡" + megaR.n.toUpperCase() + "!", megaR.grito, () => {
-        this.mostrarResolucion(megaR.grito + "\nTe la sacó con un movimiento especial.", "#e3503e", { anim: "gambeta", gana: false });
+        /* oct 2026: después del cut-in había un renglón de texto; la misma
+           jugada sin megacosa tiene viñeta. Ahora la tiene siempre. */
+        if (!this.hayEscenas() || !rival) {
+          this.mostrarResolucion(megaR.grito + "\nTe la sacó con un movimiento especial.", "#e3503e", { anim: "gambeta", gana: false });
+          return;
+        }
+        this.escenaCine({
+          etiqueta: "· " + String(megaR.n).toLowerCase() + " ·", accion: "gambeta",
+          prota: { j: rival, esRival: true, anim: "gambeta" },
+          pose: "gambeta_gana", poseFlip: true,
+          rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          poseRival: "gambeta_pierde",
+          gana: true, color: 0xe3503e, sfx: "gloves",
+          titulo: megaR.grito || "¡TE LA SACÓ!",
+          sub: "te la sacó con un movimiento especial · pelota rival",
+          alFinal: () => this.relatar("gambeta_lose")
+        });
       }, rival, true);
     } else {
       P.perderPelota(st);
+      /* oct 2026: la PARED cortada era un renglón de texto; la gambeta perdida,
+         una viñeta. Misma acción, misma animación: el que se metió en el 1-2
+         barriéndose, y vos con el pase en el aire. */
+      if (a.id === "pared" && this.hayEscenas() && rivalJ) {
+        this.escenaCine({
+          etiqueta: "· la pared ·", accion: "gambeta",
+          prota: { j: rivalJ, esRival: true, anim: "pase" },
+          pose: "barrida",
+          rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
+          poseRival: "pared",
+          gana: true, color: 0xe3503e, sfx: "gloves",
+          titulo: r.matriz === "leyeron" ? "¡TE LEYERON LA PARED!" : "¡TE CORTARON LA PARED!",
+          sub: r.matriz === "leyeron" ? "sabían que la devolvían · pelota rival" : "se metió en el medio del 1-2 · pelota rival",
+          alFinal: () => this.relatar("gambeta_lose")
+        });
+        return;
+      }
       if (a.id === "gambeta" && this.hayEscenas() && rivalJ) {
         /* la variante "perdés": VOS trastabillando (gambeta_pierde), la barrida atrás */
         this.escenaCine({
@@ -2597,10 +2630,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* BLOQUE A · el quite fuera del área es TRÁMITE: se resuelve en la
          cancha y no corta. Adentro del área sube a jugada y sí se ve — es la
          diferencia entre robarla en el mediocampo y salvarla sobre la línea. */
-      if (a.id === "quite" && this.hayEscenas() && rivalJ && this.escalonDe("quite", rivalJ)) {
+      /* MISMA ACCIÓN, MISMA ANIMACIÓN (oct 2026): con balance.drama.tramite_con_vinieta
+         el quite del medio TAMBIÉN tiene viñeta —rápida—; el de la zona de
+         peligro, entera. Antes uno tenía escena y el otro un renglón de texto,
+         y para el que juega era la misma acción: se veía al azar. */
+      const vinTramite = ((this.BAL.drama || {}).tramite_con_vinieta) !== false;
+      const quiteFuerte = a.id === "quite" && rivalJ && this.escalonDe("quite", rivalJ);
+      if (a.id === "quite" && this.hayEscenas() && rivalJ && (quiteFuerte || vinTramite)) {
         /* "la defendés": el RIVAL trastabilla (gambeta_pierde ESPEJADA) y vos abajo */
         this.escenaCine({
-          etiqueta: "· el quite ·", accion: "quite_area",
+          etiqueta: "· el quite ·", accion: "quite_area", rapida: !quiteFuerte,
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
           pose: "gambeta_pierde", poseFlip: true,              // ARTE 2: espejo — pierde él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
@@ -2630,14 +2669,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         });
         return;
       }
-      if (this.hayEscenas() && this.escalonDe("corte", rivalJ)) {
+      const corteFuerte = this.escalonDe("corte", rivalJ);
+      if (this.hayEscenas() && (corteFuerte || vinTramite)) {
         /* V8 D: el CORTE también se VE arriba (antes se resolvía en texto).
            BLOQUE A: solo si es en zona de peligro; el corte en el mediocampo
            es trámite y se resuelve en la cancha. */
         this.escenaCine({
-          etiqueta: "· el corte ·", accion: "corte",
+          /* accion "quite_area" (la jugada, escalón 2): con "corte" cobraba el
+             presupuesto del trámite (420 ms) y la viñeta duraba 0,6 s */
+          etiqueta: "· el corte ·", accion: "quite_area",
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
-          pose: "barrida", rapida: true,
+          pose: "barrida", rapida: !corteFuerte,
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "pase" } : null,
           /* G2: los dos salían barriéndose. El que perdió el pase no se barre:
              queda descolocado. */
@@ -2711,8 +2753,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         P.perderPelota(st);
         if (megaR) {
           const rival = st.rivales[rivalIdx];
+          /* oct 2026: después del cut-in, la viñeta del bloqueo (era un
+             renglón de texto; el mismo tiro tapado sin megacosa tiene escena).
+             El estado ya lo tocó perderPelota de arriba: desenlace "ya". */
           this.cutInEspecial("¡" + megaR.n.toUpperCase() + "!", megaR.grito, () => {
-            this.mostrarResolucion(megaR.grito + "\n¡Te tapó el tiro con un movimiento especial!", "#e3503e", { anim: "gambeta", gana: false });
+            this.escenaDelBloqueo(rival, {
+              titulo: megaR.grito || "¡TE LO TAPÓ!",
+              sub: "¡Te tapó el tiro con un movimiento especial!",
+              desenlace: "ya", relato: "bloqueo",
+              previo: () => { this.SFX && this.SFX.kick(); }
+            });
           }, rival, true);
         } else {
           /* ══════════════════════════════════════════════════════════════
@@ -2752,10 +2802,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        usa el partido para decidir si el tiro llega; acá decide además si el
        remate merece cambiar de plano. Desde adentro del área no: ahí ya hay
        viñeta propia y dos cortes seguidos se pisarían. */
-    (() => {
+    /* oct 2026: con escenas, el remate abre su viñeta en el MISMO cuadro, y el
+       plano profundo quedaba debajo: no se veía, pero sonaba su whoosh encima
+       del de la escena y su congelado frenaba la entrada. Solo sin escenas. */
+    if (!this.hayEscenas()) {
       const j = st.mios[st.ctrl];
       if (j) this.quizasProfundo("tiro", { distanciaArco: Math.abs(st.W - j.x) }, { rival: true });
-    })();
+    }
     if (!mega && this.FLAGS.v8_tiro_comandos !== false) { this.tiroPorComandos(rivalIdx); return; }
     if (!mega && this.FLAGS.v6_definicion) {
       this.entrarDefinicionOf({ rivalIdx: rivalIdx, libre: libre });
@@ -3709,7 +3762,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const j = st.mios[st.ctrl];
       st.pelota.x = j.x + 12; st.pelota.y = j.y;
       sub = "Rebotó y quedó picando. ¡Seguí!";
-    } else {
+    } else if (cfg.desenlace !== "ya") {
       P.perderPelota(st);
     }
     /* oct 2026: los guantes sonaban acá, en el cuadro 0 y encima de la

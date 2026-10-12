@@ -93,9 +93,11 @@ function rematando() {
   assert(!/mostrarResolucion\([^)]*TE LO TAPARON/.test(SRC),
     "A2: 'TE LO TAPARON' no puede resolverse con un cartel de texto");
   assert(/escenaDelBloqueo\(/.test(SRC), "A2: tiene que existir la escena del bloqueo");
-  /* y hay UNA sola, usada por los dos modos de que te corten */
+  /* y hay UNA sola, usada por los dos modos de que te corten. Oct 2026: el
+     marcador que te tapa CON MEGACOSA también (después de su cut-in), que
+     era un renglón de texto — "misma acción, misma animación" */
   var usos = (SRC.match(/this\.escenaDelBloqueo\(/g) || []).length;
-  assert(usos === 2, "A2: la escena del bloqueo se usa en los DOS casos —el marcador y el que se " +
+  assert(usos === 3, "A2: la escena del bloqueo se usa en los dos modos —el marcador (con y sin megacosa) y el que se " +
     "interpone en el camino— y en ningún otro lado (encontró " + usos + ")");
   /* la pose del bloqueo existe en el manifest y ahora la usa alguien */
   var MAN = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/poses_manifest.json"), "utf8"));
