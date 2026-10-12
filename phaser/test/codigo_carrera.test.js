@@ -226,8 +226,36 @@ function domDeMentira() {
   /* una carrera en curso en este "teléfono" */
   var mia = carrera("primera_a", 6);
   A.localStorage.setItem("pampa_master_v1", JSON.stringify(mia));
-  var s = A.nueva(); s.create();
+  var s = A.nueva();
+  /* REVISIÓN L03 · EL PISO TÁCTIL. El 💾 (y el ✕ de la salida, que copiaba)
+     era un Text de 12px que tocaba en 140x21 lógicos (medido en el
+     navegador): unos 15 px CSS de alto en el teléfono contra el piso de 61
+     lógicos. vestirPendientes solo agranda Rectangles, así que un Text
+     tocable tiene que pasar él solo por pisoTactil. Y ANTES de ser tocable:
+     en Phaser 3.80 setInteractive(área) sobre un objeto que ya tiene input
+     ignora el área nueva (medido: quedaba en 178x22). Se anota quién pasa y
+     si ya era tocable al pasar. */
+  var conPiso = [], yaTocable = [];
+  s.pisoTactil = function (o) { conPiso.push(o); if (o.input) yaTocable.push(o.text); return o; };
+  s.create();
   assert(s.textos().indexOf("💾 código de carrera") >= 0, "la tabla tiene \"💾 código de carrera\"");
+  var textosTocables = s.tocables().filter(function (o) { return o.type === "Text"; });
+  assert(textosTocables.length >= 2 && textosTocables.every(function (o) { return conPiso.indexOf(o) >= 0; }),
+    "SÍNTOMA: en la tabla, todo texto tocable pasa por pisoTactil (" + textosTocables.map(function (o) {
+      return o.text + (conPiso.indexOf(o) >= 0 ? " ✓" : " ✗"); }).join(" · ") + ")");
+  assert(yaTocable.length === 0, "y pasa ANTES de ser tocable, o Phaser ignora el área nueva (ya eran tocables: " + yaTocable.join(", ") + ")");
+  /* con 61 de alto, el área sube 2,5 px sobre el borde de abajo de JUGAR
+     (medido: un toque en (180, 485), adentro del botón dibujado, abría
+     ¿EMPEZAR OTRA CARRERA?). Phaser le da el toque al de más arriba en el
+     dibujo, así que los accesos se crean ANTES que los botones */
+  var antesQueLosBotones = function (esc) {
+    var l = esc.tocables(), txt = [], rec = [];
+    l.forEach(function (o, i) { if (o.type === "Text") txt.push(i); else if (o.type === "Rectangle") rec.push(i); });
+    return txt.length >= 2 && rec.length >= 2 && Math.max.apply(null, txt) < Math.min.apply(null, rec);
+  };
+  assert(antesQueLosBotones(s), "SÍNTOMA: en la tabla, los accesos de abajo se crean antes que los botones (en el borde gana el botón)");
+  assert(textosTocables.every(function (o) { return parseInt(o.style.fontSize, 10) >= 13; }),
+    "y su letra es de 13 o más (" + textosTocables.map(function (o) { return o.style.fontSize; }).join(", ") + ")");
   var acceso = s.tocables().find(function (o) { return o.text === "💾 código de carrera"; });
   s.tocar(acceso.x - 40, acceso.y);
   var tx = s.textos();
@@ -289,6 +317,7 @@ function domDeMentira() {
   var s4 = A.nueva(); s4.create();
   var acc4 = s4.tocables().find(function (o) { return o.text === "💾 código de carrera"; });
   assert(!!acc4 && s4.textos().indexOf("▶ NUEVA TEMPORADA") >= 0, "en FIN DE TEMPORADA también está el 💾 (control del test)");
+  assert(antesQueLosBotones(s4), "en FIN DE TEMPORADA los accesos también van antes que los botones");
   if (acc4) s4.tocar(acc4.x - 40, acc4.y);
   var lineas4 = s4.textos().filter(function (t) { return /^temporada /.test(t); });
   assert(lineas4.length === 1 && lineas4[0] === "temporada 3 terminada · 18 de 18 fechas · 2 títulos",

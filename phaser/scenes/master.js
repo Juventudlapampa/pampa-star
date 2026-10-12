@@ -371,17 +371,35 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     Object.keys(out).forEach((k) => { out[k] = Math.max(1, Math.min(techo, out[k])); });
     return out;
   }
-  salidaDeLaCarrera(W, H) {
-    const t = this.add.text(20, H - 26, "✕ empezar otra carrera", {
-      fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5",
+  /* ══════════════════════════════════════════════════════════════════════
+     REVISIÓN L03 · LOS DOS ACCESOS DE ABAJO, AL PISO TÁCTIL.
+     "✕ empezar otra carrera" y "💾 código de carrera" son textos chicos (no
+     botones), y vestirPendientes solo agranda Rectangles: medido en el
+     navegador, el 💾 tocaba en 140x21 lógicos, unos 15 px CSS de alto en el
+     teléfono contra el piso de 61 lógicos (44 CSS) de legibilidad.tap_min.
+     Ahora pasan por pisoTactil, que agranda el ÁREA centrada sin tocar el
+     dibujo, y la letra sube de 12 a 13. Siguen siendo discretos a propósito:
+     no compiten con JUGAR.
+     OJO CON EL ORDEN: pisoTactil va ANTES de hacerlo tocable. En Phaser 3.80
+     setInteractive(área) sobre un objeto que ya tiene input solo lo habilita
+     y IGNORA el área nueva (InputPlugin.enable). Medido en el navegador: con
+     el orden al revés quedaba en 178x22 aunque _tapArea dijera 61. */
+  accesoDeAbajo(x, H, texto, origenX, cb) {
+    const t = this.add.text(x, H - 26, texto, {
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5",
       backgroundColor: "#0a1f13aa", padding: { x: 8, y: 4 }
-    }).setOrigin(0, 0.5).setInteractive({ useHandCursor: true });
-    t.on("pointerdown", (p, x, y, ev) => {
+    }).setOrigin(origenX, 0.5);
+    if (this.pisoTactil) this.pisoTactil(t);
+    if (!t.input) t.setInteractive({ useHandCursor: true });
+    t.on("pointerdown", (p, xx, yy, ev) => {
       ev && ev.stopPropagation && ev.stopPropagation();
       const S = window.PampaSFX; if (S && S.ui) S.ui("abrir");
-      this.vistaBorrarCarrera();
+      cb();
     });
     return t;
+  }
+  salidaDeLaCarrera(W, H) {
+    return this.accesoDeAbajo(20, H, "✕ empezar otra carrera", 0, () => this.vistaBorrarCarrera());
   }
 
   /* "temporada 2 · fecha 8 de 18", o "temporada 2 terminada · 18 de 18
@@ -573,18 +591,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
   accesoAlCodigo(W, H) {
     if (!window.PampaCarrera) return null;
-    /* espejo de la salida (abajo a la izquierda): el mismo tamaño y la misma
-       forma, abajo a la derecha. No compite con JUGAR. */
-    const t = this.add.text(W - 20, H - 26, "💾 código de carrera", {
-      fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5",
-      backgroundColor: "#0a1f13aa", padding: { x: 8, y: 4 }
-    }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
-    t.on("pointerdown", (p, x, y, ev) => {
-      ev && ev.stopPropagation && ev.stopPropagation();
-      const S = window.PampaSFX; if (S && S.ui) S.ui("abrir");
-      this.vistaCodigo();
-    });
-    return t;
+    /* espejo de la salida (abajo a la izquierda): el mismo tamaño, la misma
+       forma y el mismo piso táctil, abajo a la derecha. No compite con JUGAR. */
+    return this.accesoDeAbajo(W - 20, H, "💾 código de carrera", 1, () => this.vistaCodigo());
   }
   vistaCodigo() {
     const W = this.scale.width, H = this.scale.height, C = window.PampaCarrera;
@@ -1983,6 +1992,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
 
     if (!T.terminada(t)) {
+      /* los dos accesos de abajo se crean ANTES que los botones (revisión
+         L03): con el piso táctil su área sube unos píxeles sobre el borde de
+         abajo de JUGAR / NUEVA TEMPORADA, y Phaser le da el toque al objeto
+         dibujado más arriba. Creados antes, en ese borde gana el botón. */
+      this.salidaDeLaCarrera(W, H);
+      this.accesoAlCodigo(W, H);
       /* la PRÓXIMA fecha: rival + su perfil de IA con nombre (sabés a qué venís) */
       const mp = T.miPartido(t);
       const fechaTxt = "FECHA " + (t.fecha + 1) + " de " + t.fixture.length;
@@ -2023,10 +2038,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         });
       }
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
-      this.salidaDeLaCarrera(W, H);
-      this.accesoAlCodigo(W, H);
     } else {
       /* FIN DE TEMPORADA: el veredicto de la escalera */
+      /* (los accesos antes que los botones: ver la otra rama) */
+      this.salidaDeLaCarrera(W, H);
+      this.accesoAlCodigo(W, H);
       const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
       let msj, color;
       /* M4 · idem "hype" (Ascenso, título, gloria): declarado, con archivo y sin
@@ -2055,8 +2071,6 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.scene.restart();
       });
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
-      this.salidaDeLaCarrera(W, H);
-      this.accesoAlCodigo(W, H);
     }
   }
 };
