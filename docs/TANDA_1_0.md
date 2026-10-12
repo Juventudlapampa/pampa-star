@@ -1036,7 +1036,7 @@ el paso del deploy.
   asignar `obj.input.hitArea` cuando ya hay input, y después medir que botones
   de 52 separados 60 no se pisen. Quedó propuesto como tarea aparte.
 - La tabla dice "★ **1 títulos**" (plural con uno), visible en
-  `rev03_falta_tu_fila.png`.
+  `rev03_falta_tu_fila.png`. *(Resuelto en la revisión del lote L04b.)*
 - En ¿EMPEZAR OTRA CARRERA? el renglón chico "el respaldo queda guardado…"
   queda pegado al marco del cursor del primer botón (ya pasaba con dos).
 
@@ -1548,16 +1548,20 @@ va a rematar):
   con el rematador (pose quieta, corte seco al remate) y dos botones del
   piso táctil, a 15/13 px, **sin reloj** (mérito, no reflejo):
   **🌟 SÚPER DEFENSA** ("gastás el envión · este remate no entra") y
-  **◀ GUARDAR EL ENVIÓN** ("atajan tu defensa y tu arquero"). El cursor
+  **◀ GUARDAR EL ENVIÓN** ("el envión sigue lleno · el remate puede
+  entrar"; salió diciendo "atajan tu defensa y tu arquero", una promesa que
+  el remate común no cumple: ver la revisión de este lote). El cursor
   arranca en la SÚPER DEFENSA; los botones responden
   `balance.envion.super_espera_ms` (450) después de abrirse, porque ESPACIO
-  viene apretado del partido. Un toque fuera de los botones no decide.
+  viene apretado del partido. Un toque fuera de los botones no decide (el
+  test lo prueba con el oyente de verdad desde la revisión).
 - Estado `SUPERDEF`: espera a quien juega, como un menú. El vigía de SEGUIR
   IGUAL (`index.html`, `ESPERAN`) no lo cuenta como trabado; el atrás y la P
   la piden para después, como en cualquier jugada.
 - `logic/definicion.conSuperDefensa(lectura, vos)` (pura): la lectura queda
-  bloqueada con motivo `super_defensa` y se tira quien juega (aunque no
-  hubiera nadie en la línea). La escena dice "🌟 ¡SÚPER DEFENSA!" y la
+  bloqueada con motivo `super_defensa` y pone el cuerpo quien juega (aunque
+  no hubiera nadie en la línea). La escena dice "🌟 ¡SÚPER DEFENSA!" ("pusiste
+  el cuerpo con todo el envión · pelota nuestra" desde la revisión) y la
   pelota es tuya.
 - `tribuna_ui.callar()`: los globos de Nelda y el Tuli viven arriba del
   cine (cámara de UI) y caían sobre la pregunta
@@ -1578,7 +1582,8 @@ defensa: 0 goles**. Contra el `escenas_v9.js` de antes: 56 goles en 200 y
 12 asserts en rojo. En el navegador, mudo: defendiendo con el envión en 100
 (`l04b_4_defendiendo_envion_lleno.png`), la pregunta
 (`l04b_4_pregunta.png`), un toque de verdad en SÚPER DEFENSA: "🌟 ¡SÚPER
-DEFENSA!" con VOS tirándote (`l04b_4_super_defensa_revela.png`) y de vuelta
+DEFENSA!" con VOS de pie poniendo el cuerpo, la pose del bloqueo
+(`l04b_4_super_defensa_revela.png`; decía "tirándote": ver la revisión) y de vuelta
 al partido con el envión en 0 y la pelota nuestra
 (`l04b_4_vuelta_al_partido.png`); con flecha abajo y ENTER, GUARDAR: el
 remate común y el envión sigue en 100 (`l04b_4_guardar_remate_comun.png`);
@@ -1700,3 +1705,104 @@ La versión visible sube a `v17-1.0-l04b` (index.html y sw.js, iguales).
 - El ítem `legibilidad-fuera-y-solapes` (ola 3) lista dos solapes que este
   lote ya resolvió (el club sobre el resultado y el logo sobre TOCÁ PARA
   EMPEZAR): quien lo implemente tiene que medir antes de volver a moverlos.
+
+### Revisión del lote L04b (dos revisores, cinco hallazgos)
+
+Los cinco se comprobaron contra el código y, los que se ven, en el
+navegador integrado, mudo (el arnés del oído; nunca el botón de mute del
+juego). Los cinco eran reales; uno (el del test de la tabla) con un
+matiz en la evidencia. Un commit por punto. Capturas en
+`.claude/shots/rev04b_*.png`.
+
+1. **El renglón de GUARDAR EL ENVIÓN prometía una atajada** (media;
+   commit f283e9f). Decía "atajan tu defensa y tu arquero" y con GUARDAR
+   el remate común entra unos 65 de cada 200 (medido en
+   `deudas_ola1.test.js` [4]), a veces sin nadie tuyo en la línea
+   (`l04b_4_guardar_remate_comun.png`). Es texto de decisión: se lee justo
+   antes de elegir. Ahora dice **"el envión sigue lleno · el remate puede
+   entrar"**, las dos consecuencias sin prometer. El test lee ese renglón
+   (sin "ataj") y mide 200 remates con GUARDAR: entran algunos y no todos
+   (64 a 66 en las corridas). Contra el `escenas_v9.js` de antes falla el
+   renglón. En el navegador: la pregunta con el texto nuevo adentro del
+   botón (279 px de 400, a 13 px; `rev04b_3_pregunta_guardar.png`) y un
+   toque de verdad en GUARDAR: el remate común ("¡ATAJADÓN!", "no había
+   nadie en el camino") con el envión en 100 (`rev04b_3_guardar_remate.png`).
+2. **El cartel de la súper defensa decía "te tiraste"** (baja; commit
+   d415ab2). La figura de quien juega en ese plano es la pose "bloqueo":
+   de pie, con los brazos cruzados (`l04b_4_super_defensa_revela.png`).
+   Ahora dice **"pusiste el cuerpo con todo el envión · pelota nuestra"**,
+   en la línea del bloqueo común ("puso el cuerpo en la línea"); los
+   comentarios de `escenas_v9.js` y de `conSuperDefensa` dicen lo mismo, y
+   la sección del lote ya no dice "con VOS tirándote". El test anota las
+   figuras del plano: quien juega va con la pose "bloqueo" y el cartel dice
+   "pusiste el cuerpo" y no "tiraste" (contra el de antes falla con el
+   síntoma). En el navegador: el cartel entero, con el subtítulo a la vista,
+   sobre VOS de pie (`rev04b_4_super_defensa_cartel.png`).
+3. **El encabezado de C1 decía "Cero botones."** (baja; commit fc64855).
+   `escenaRemateRival` abre, con el envión lleno, una pregunta de dos
+   botones. Ahora dice: cero botones de gestión (plantarse, achicar,
+   aguantar) y, con el envión lleno, UNA pregunta antes del remate; sin el
+   envión lleno, ninguna. Es un comentario: no hay pantalla.
+4. **"Un toque suelto no saltea nada" no tocaba nada** (baja; commit
+   b16f97b). El assert solo miraba que `_escSkip` fuera null, y eso lo pone
+   la propia pregunta. Ahora se arman los oyentes de pointerdown y
+   pointermove de VERDAD, cortados del texto de `match.js` como en
+   `atras.test.js` (con su assert si los renglones se separan), y con
+   `apuntar()` en condiciones de mover. Controles: en LIBRE el toque apunta
+   y en ESCENA saltea. En SUPERDEF, un toque y un arrastre fuera de los
+   botones: sigue la pregunta, el envión lleno, la pelota del rival, sin
+   cartel ni target. `match.js` no cambió. Contra dos copias rotas de
+   `match.js`: un oyente que en SUPERDEF confirma el cursor falla 2, un
+   `apuntar()` sin la guarda de LIBRE falla 1. En el navegador: dos toques
+   de verdad en el canvas fuera de los botones y la pregunta sigue, con el
+   envión en 100 (`rev04b_2_toque_suelto_superdef.png`); el mismo toque
+   sobre GUARDAR sí decide.
+5. **"★ 1 títulos" en el renglón del club** (baja; commit 7a119ad). El
+   renglón que L04b volvió a maquetar armaba n + " títulos". Ahora usa el
+   singular y el plural de `vistaCodigo`. El matiz: el test [3] sí tenía un
+   caso con un título (perdiste 1-3), pero no leía el texto; ahora lo lee
+   en los tres casos (0, 1 y 5), y contra el `master.js` de antes falla con
+   "★ 1 títulos". Era también una deuda anotada en la revisión de L03. En
+   el navegador, sin tocar el save (las escrituras de `pampa_master`
+   quedaron bloqueadas en la página y no hubo ninguna): "El Caldén de Toay ·
+   ★ 1 título" al lado de "✘ PERDISTE 1-3"
+   (`rev04b_5_tabla_un_titulo.png`) y "2 títulos" con dos
+   (`rev04b_5_tabla_dos_titulos.png`).
+
+Al terminar, el localStorage del panel quedó igual al respaldo que hice al
+empezar (`rev04b_ls_backup.json`, mandado como `data:...;base64,`), con
+el sonido en SÍ. La versión visible sube a `v17-1.0-l04br` (index.html y
+sw.js, iguales).
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L04b)
+
+1. **El texto de GUARDAR dice las dos consecuencias** ("el envión sigue
+   lleno · el remate puede entrar") en vez de la propuesta del revisor ("el
+   remate de siempre: puede entrar"): queda en paralelo con la otra opción
+   ("gastás el envión · este remate no entra") y dice qué pasa con el
+   envión, que es lo que se está decidiendo. *Revertir:* el `s` de la
+   segunda opción de `OPS` en `preguntarSuperDefensa` y el assert del
+   renglón en [4].
+2. **El bucle de GUARDAR pide 0 < goles < 200, no un rango.** El número
+   cambia con el azar del remate (64 a 66 en las corridas); lo que importa
+   es que el texto "puede entrar" sea verdad y que no entren todos.
+   *Revertir:* sacar el bucle de [4].
+3. **El oyente del toque se corta del texto de `match.js` y no se mudó a
+   un método.** Es el mismo arreglo que ya usan `atras.test.js` y
+   `pausa_ocultar.test.js`; mover el oyente era tocar `create()` solo por
+   un test. *Revertir:* volver el assert a `!s._escSkip` con el mensaje
+   "no queda _escSkip armado".
+4. **La versión `v17-1.0-l04br`.** *Revertir:* volver las dos a
+   `v17-1.0-l04b`.
+
+### Deudas que vi y no son de este lote
+
+- En el plano del remate rival (C1), el subtítulo del cartel (y=492) pasa
+  por encima de las placas de nombre (VOS en y≈486 y el rematador en
+  y≈497): "pusiste el cuerpo…" cruza las dos (`rev04b_4_cartel_zoom.png`)
+  y "quedó solo contra tu arquero…" cruza la del rematador
+  (`rev04b_3_guardar_remate.png`). Ya pasaba con los textos de antes: es
+  del ítem de legibilidad del partido (ola 3).
+- Con dos o más títulos el renglón del club dice "★ · ★ 2 títulos": el
+  " · ★" repetido mete el separador entre las estrellas y se lee como
+  otra cosa (`rev04b_5_tabla_dos_titulos.png`).
