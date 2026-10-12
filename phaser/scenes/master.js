@@ -89,7 +89,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ══════════════════════════════════════════════════════════════════════
      L04 · EL ATRÁS DEL TELÉFONO EN EL MASTER: la vista anterior.
 
-     Antes el gesto atrás de Android sacaba de la página desde cualquier
+     Antes el gesto atrás del teléfono sacaba de la página desde cualquier
      vista (0 oyentes de popstate). Ahora cada vista que no es "la de
      arriba" deja dicho a dónde vuelve en _atrasVista, y vaciarVista() lo
      borra al cambiar: la semana y el evento vuelven a la tabla, el día

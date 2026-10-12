@@ -618,7 +618,7 @@
      la página sigue visible, el requestAnimationFrame sigue corriendo y el
      rival avanzaba sin que se viera. Con la pestaña oculta Phaser sí frena su
      loop (no hay cuadros), pero la música es un new Audio de sfx.js y seguía
-     sonando arriba de WhatsApp (medido: paused=false).
+     sonando arriba de la otra app (medido: paused=false).
 
      Dos motivos, que se suman:
        · "vertical": la MISMA consulta del @media de #rotate. Mientras vale, el
@@ -681,7 +681,7 @@
     };
     if (mq) {
       if (mq.addEventListener) mq.addEventListener("change", P.evaluar);
-      else if (mq.addListener) mq.addListener(P.evaluar);   // Safari viejo
+      else if (mq.addListener) mq.addListener(P.evaluar);   // navegadores viejos
       /* y por las dudas, también al cambiar el tamaño o la orientación:
          evaluar() es idempotente, y hay navegadores de teléfono viejos que
          no siempre avisan el "change" de una consulta */
@@ -700,9 +700,9 @@
      EL ATRÁS DEL TELÉFONO (tanda 1.0, L04).
 
      Lo que estaba mal, medido: popstate, pushState, beforeunload y pagehide
-     daban 0 resultados en phaser/ (grep). En Android el gesto atrás
+     daban 0 resultados en phaser/ (grep). En el teléfono el gesto atrás
      (deslizar desde el borde, que en horizontal queda bajo los pulgares) o
-     la tecla atrás salía de la página: abierto desde WhatsApp en una
+     la tecla atrás salía de la página: abierto desde un link en un mensaje, en una
      pestaña sin historial, la cerraba; instalado, cerraba la app. Y el
      partido en curso se perdía entero.
 
@@ -713,7 +713,7 @@
      otra vez para salir" y el segundo atrás dentro de la ventana sale de
      verdad (no se repone el escalón y se hace history.back()).
 
-     EL ESCALÓN SE PONE CON EL PRIMER TOQUE, no al cargar: Chrome marca como
+     EL ESCALÓN SE PONE CON EL PRIMER TOQUE, no al cargar: el navegador marca como
      salteable la entrada que una página agrega sin que nadie la haya tocado
      (la intervención contra el secuestro del botón atrás), y el gesto se la
      saltearía saliendo igual. El primer toque llega siempre: es la compuerta
@@ -780,7 +780,7 @@
       if (d === "salir") {
         /* no se repone: el escalón ya se consumió y estamos en la entrada
            de la página. back() va a lo que había antes; si no había nada
-           (una pestaña abierta desde WhatsApp), el próximo atrás es el del
+           (una pestaña abierta desde un link en un mensaje), el próximo atrás es el del
            sistema. Un toque nuevo vuelve a poner el escalón. */
         AT.armado = false;
         AT.ultimoConfirmar = -Infinity;

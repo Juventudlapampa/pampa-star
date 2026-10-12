@@ -5,7 +5,7 @@
      · al terminar un amistoso el único botón era "↺ OTRO PARTIDO"
        (scene.restart). Con la PWA instalada, que no tiene barra ni botón
        atrás, no había forma de volver al menú sin cerrar la app;
-     · no había pausa: ESC solo cancelaba menús y un WhatsApp en medio del
+     · no había pausa: ESC solo cancelaba menús y un mensaje en medio del
        partido dejaba el reloj corriendo;
      · la pantalla final no tenía cursor: ni Enter ni flechas.
 

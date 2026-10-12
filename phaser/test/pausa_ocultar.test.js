@@ -8,7 +8,7 @@
        Phaser no se pausa porque se esconda el lienzo, la página sigue
        visible y el rival avanzaba sin que se viera;
      · la música es un new Audio (sfx.js, registrarArchivos) y con la pestaña
-       oculta seguía con paused=false: pasabas a WhatsApp y sonaba encima.
+       oculta seguía con paused=false: pasabas a otra app y sonaba encima.
 
    LO QUE SE PRUEBA:
      [1] index.html y sfx.js tienen los oyentes: matchMedia con la MISMA
@@ -51,7 +51,7 @@ var CONSULTA_CSS = null;
     "la consulta del JS es la misma del CSS (" + (mjs && mjs[1]) + " vs " + CONSULTA_CSS + ")");
   assert(/window\.matchMedia\(CONSULTA\)/.test(INDEX), "index.html llama a matchMedia con esa consulta");
   assert(/mq\.addEventListener\("change", P\.evaluar\)/.test(INDEX) && /mq\.addListener\(P\.evaluar\)/.test(INDEX),
-    "y escucha sus cambios (con el addListener de los Safari viejos)");
+    "y escucha sus cambios (con el addListener de los navegadores viejos)");
   /* el "change" de una consulta se despacha en el paso de render del
      navegador: en el panel integrado oculto no llegó nunca (medido: la
      consulta daba true y el oyente no corrió). resize y orientationchange

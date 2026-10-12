@@ -1,11 +1,11 @@
 /* ============================================================================
-   PAMPA STAR · L04 — EL GESTO "ATRÁS" DE ANDROID NO TE SACA DEL PARTIDO
+   PAMPA STAR · L04 — EL GESTO "ATRÁS" DEL TELÉFONO NO TE SACA DEL PARTIDO
 
    LO QUE ESTABA MAL (medido en el código de antes de este lote):
      · popstate, pushState, beforeunload y pagehide daban 0 resultados en
-       phaser/ (grep). En Android el gesto atrás (deslizar desde el borde, que
+       phaser/ (grep). En el teléfono el gesto atrás (deslizar desde el borde, que
        en horizontal queda bajo los pulgares) o la tecla atrás salía de la
-       página: abierto desde WhatsApp en una pestaña sin historial, la
+       página: abierto desde un mensaje en una pestaña sin historial, la
        cerraba; instalado, cerraba la app. El partido se perdía entero;
      · index.html no fijaba overscroll-behavior ni touch-action, y Phaser
        cancela el toque solo cuando el blanco es el lienzo
@@ -150,7 +150,7 @@ function mundo(opts) {
   if (!bloque) return;
   /* el escalón: con el primer toque, una vez */
   var M = mundo();
-  assert(M.hist.pushes === 0, "al cargar no se empuja nada (Chrome saltea las entradas sin toque)");
+  assert(M.hist.pushes === 0, "al cargar no se empuja nada (el navegador saltea las entradas sin toque)");
   M.disparar("pointerup");
   assert(M.hist.pushes === 1 && M.hist.state && M.hist.state.pampa === 1, "el primer toque pone el escalón {pampa:1}");
   M.disparar("pointerup"); M.disparar("keydown");

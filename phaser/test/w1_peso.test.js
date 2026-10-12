@@ -2,7 +2,7 @@
    PAMPA STAR · W1 — LO QUE CARGA EL JUEGO NO PUEDE ENGORDAR SOLO
 
    El problema: las 32 piezas de arte entraron como PNG y el juego pasó a pedir
-   34 MB en cada arranque. Este juego se comparte por link de WhatsApp: 34 MB
+   34 MB en cada arranque. Este juego se comparte por link en un mensaje: 34 MB
    con datos es gente que cierra la pestaña antes de ver nada.
 
    Convertidos a WEBP calidad 88 quedaron en 5,28 MB — el 15%. En cel shading de

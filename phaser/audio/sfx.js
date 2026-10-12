@@ -307,7 +307,7 @@
 
      Medido: la música es un new Audio (registrarArchivos) y con la pestaña
      oculta seguía con paused=false. Phaser frena su loop al ocultarse, pero
-     estos <audio> no son de Phaser: pasabas a WhatsApp y el tema seguía
+     estos <audio> no son de Phaser: pasabas a otra app y el tema seguía
      sonando arriba de tu chat. Lo mismo al girar el teléfono a vertical,
      donde el lienzo se esconde por CSS y la página sigue "visible".
 
@@ -373,7 +373,7 @@
     try { var p = ctx.resume(); if (p && p.catch) p.catch(function () { }); } catch (e) { }
     return true;
   }
-  /* pestaña oculta = WhatsApp, la pantalla de inicio, otra app, el teléfono
+  /* pestaña oculta = otra app de mensajes, la pantalla de inicio, el teléfono
      bloqueado. Lo engancha el propio motor de sonido, una vez, al cargar: no
      depende de que exista el juego ni de en qué escena está. */
   function alCambiarVisibilidad() {

@@ -5209,7 +5209,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ══════════════════════════════════════════════════════════════════════
      TANDA 1.0 (L04) · EL BOTÓN DE PAUSA, AL LADO DEL SONIDO.
 
-     No había pausa: ESC solo cancelaba menús, y un WhatsApp en medio del
+     No había pausa: ESC solo cancelaba menús, y un mensaje en medio del
      partido dejaba el reloj corriendo. Va en la barra del marcador, a la
      derecha del 🔊, con su palabra (no solo el ícono: ⏸ solo no lo lee
      todo el mundo, y la forma + el texto no dependen del color).

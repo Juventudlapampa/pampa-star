@@ -2,9 +2,9 @@
    PAMPA STAR · phaser/logic/atras.js — QUÉ HACE EL "ATRÁS" (lógica pura)
 
    Lo que estaba mal, medido: popstate, pushState, beforeunload y pagehide
-   daban 0 resultados en phaser/ (grep). En Android el gesto atrás (deslizar
+   daban 0 resultados en phaser/ (grep). En el teléfono el gesto atrás (deslizar
    desde el borde, que en horizontal queda justo bajo los pulgares) o la tecla
-   atrás SALE de la página: si el juego se abrió desde WhatsApp en una pestaña
+   atrás SALE de la página: si el juego se abrió desde un mensaje en una pestaña
    sin historial, la cierra; en la PWA instalada, cierra la app. Y el partido
    en curso se pierde entero, porque nada del partido vive en el save hasta el
    pitazo.
