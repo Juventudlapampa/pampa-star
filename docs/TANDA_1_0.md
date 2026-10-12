@@ -228,7 +228,9 @@ de la enfermedad de lo construido y desconectado.
    cuadro: un `delayedCall` que tira no vuelve a dispararse (Phaser lo marca
    como despachado antes de llamarlo). Sin esta opción, cualquier error así
    te sacaba de la fecha. No se ofrece después del tope. *Revertir:* borrar el
-   botón `tb-seguir`.
+   botón `tb-seguir`. **Cambió en la revisión del lote:** tampoco se ofrece con
+   una escena a medio armar, y después de apretarlo vigila que el partido
+   siga (ver "Revisión del lote L01", puntos 1 y 4).
 3. **"Tres errores seguidos" = tres errores sin ~2 s de juego limpio en el
    medio** (`limpiosParaOlvidar: 120` cuadros), no tres cuadros consecutivos.
    Con la pausa nunca hay dos cuadros seguidos con error, y apretar SEGUIR
@@ -250,7 +252,9 @@ de la enfermedad de lo construido y desconectado.
    TODO el caché de assets en `activate`, y el crítico de la ola 2 (L05,
    `cache-que-no-se-tira`) pide justamente no hacer eso. Se sube en el
    deploy, con la estrategia nueva. El test obliga a que index.html y sw.js
-   digan lo mismo.
+   digan lo mismo. **Cambió en la revisión del lote:** la versión que se ve y
+   el nombre del caché se separaron, así que subirla ya no barre nada, y pasó
+   a `v17-1.0-l01` (ver "Revisión del lote L01", punto 9).
 8. **El informe tapa de más antes que de menos.** `equipo` también se tapa (los
    clubes de la tabla son ficticios) y los secretos de menos de 3 letras no se
    tapan, porque se comerían palabras del mensaje. `dónde` prefiere el código
@@ -263,6 +267,145 @@ de la enfermedad de lo construido y desconectado.
    el origen en `pintarAviso`.
 10. **El informe queda siempre a la vista al apretar COPIAR**, aunque el
     portapapeles ande: así se ve qué se manda, y que no lleva ningún nombre.
+    (En la revisión se arregló que a 800x360 se viera el final del informe y
+    no el principio: punto 10 de abajo.)
+
+### Revisión del lote L01 (dos revisores, once hallazgos)
+
+Los once se comprobaron contra el código y, los que se ven, en el navegador.
+Los once eran reales; el sexto ("VOLVER AL MENÚ no rearranca el editor") era
+el caso 2 del primero y se arregló junto con él. Cada punto es un commit.
+Las capturas están en `.claude/shots/rev_*.png`; las del aviso DOM salen de
+un navegador sin ventana y mudo, porque la captura del panel integrado no
+dibuja con la ventana atrás (se colgó otra vez). El arnés está en
+`.claude/rev_forzar.html`.
+
+1. **VOLVER AL MENÚ no volvía al menú si el error salió de un create()**
+   (`index.html`, commit 9a3b732). Tres casos, medidos con el Phaser de
+   verdad: (a) `processQueue` de Phaser 3.80 no vacía la cola si una op tira,
+   y desde la segunda visita el create corre adentro de la cola (el Loader
+   saltea lo ya bajado): tras VOLVER AL MENÚ, el cuadro siguiente re-corría
+   `[stop editor, start master]` y volvía a la escena rota (editor 5→8,
+   master 8→4, el mismo error otra vez); (b) con el editor roto en CREATING,
+   `SceneManager.start` no hace nada en START..CREATING: el aviso se iba y
+   quedaba el editor a medio armar (`rev_antes_editor_roto.png`); (c) si tira
+   el init de la primera escena, Game.start nunca corre y loop.wake() sólo
+   prende un rAF vacío. Ahora: se vacía la cola vieja, se frenan TODAS las
+   escenas (el menú también) y se arranca el editor; si no queda RUNNING, el
+   aviso vuelve con sólo RECARGAR; con una escena a medio armar no se ofrece
+   SEGUIR IGUAL; sin juego andando, sólo RECARGAR. Verificado: test [5] con
+   un SceneManager de mentira que copia la semántica de 3.80 (con el código
+   anterior fallaban 12 asserts) y en el navegador los cuatro casos
+   (`rev_a_…`, `rev_b_…`, `rev_c_solo_recargar_800x360.png`,
+   `rev_d_sin_loop_800x360.png`).
+2. **La flecha quedaba apretada después de SEGUIR IGUAL** (commit 67d96ae).
+   El keyup se corta con el aviso y Phaser sólo resetea teclas con el BLUR o
+   con la pausa de la ESCENA. Medido: el jugador corrió solo de x=505 a
+   x=521,5. Ahora SEGUIR y VOLVER AL MENÚ sueltan las teclas de todas las
+   escenas (`resetKeys`); con el arreglo, quieto (505→505).
+3. **Un script que bajó pero no se pudo leer se informaba como "conexión
+   floja"** (commit 61dd511). El "no bajó: PampaMatch" pisaba el SyntaxError.
+   Ahora, si ningún `<script>` falló al bajar y falta una clase, el aviso es
+   "El juego no pudo arrancar" (habla del navegador y de la señal), y el
+   informe lleva el primer error del arranque, dónde (del evento: el stack de
+   un SyntaxError no trae renglones "at") y "no arrancó: PampaMatch".
+   Verificado con una copia de index.html con un match.js roto
+   (`rev_no_abre_800x360.png`).
+4. **SEGUIR IGUAL podía dejar el partido colgado sin aviso** (commit
+   fef99eb). Si el callback que tiró era el que avanzaba la jugada, el
+   partido quedaba en ESCENA/RESOLUCIÓN con el reloj en 0:00 para siempre
+   (`rev_vigia_colgado_6s.png`). Ahora un vigía: si después de SEGUIR el
+   partido no cambia de estado ni corre su reloj durante
+   `balance.red_de_errores.vigia_seguir_ms` (12 s), el aviso vuelve sin
+   SEGUIR. Verificado: a los 12 s vuelve; con un error suelto en LIBRE se
+   desarma a los 300 ms y no hubo aviso falso en 20 s.
+5. **La cola de avisos mostraba "Marcás con" viejos o contradictorios**
+   (commit 75c2411). `avisar(txt, {clave, toque})`: el de la misma clave se
+   reemplaza en su lugar; el que contesta a un toque sale ya y, si no hay
+   lugar, saca al más viejo. Verificado: cuatro toques reales al mapa dejan un
+   solo "Marcás con BRUNO" (`rev_marcas_con_4toques.png`), y PASE sin
+   receptores con dos avisos a la vista sale en el mismo cuadro
+   (`rev_pase_sin_receptor_ya.png`).
+6. **La ficha de la semana no esperaba al tutorial y la pisaba el relator**
+   (commit 0e24df2). La franja del ticker ahora espera también detrás del menú
+   de tempo y del tutorial, y la ficha va con prioridad: durante su tiempo, la
+   frase del relator espera detrás. **Encontrado verificándolo:** al elegir el
+   tempo, el tutorial se abría un renglón DESPUÉS de soltar los avisos, así
+   que el tempo y el perfil del rival se pintaban y quedaban tapados por el
+   velo. Ahora el tutorial se abre antes. Y `_relPendiente` no se reiniciaba
+   en `init()` (P1). Verificado: `rev_tutorial_sin_nada_detras.png` y
+   `rev_tras_tutorial_ficha_y_avisos.png` (perfil, tempo y ficha a la vista
+   al cerrar el tutorial).
+7. **El censo [5] daba por guardado cualquier texto después de un `if
+   (!this._split)`** (commit 4c1e778). Ahora sigue la profundidad de llaves.
+   Con un texto metido fuera de la guarda en create(), el censo nuevo falla;
+   el anterior daba 55 verdes.
+8. **Sección 11: "WhatsApp" y nombres de navegadores en comentarios**
+   (commit 30fbc15). Reescritos ("para pegar en un mensaje", stacks "con at"
+   y "con @", "un navegador sin ventana"), y también la _nota vieja de
+   `audio_mezcla` que decía "en Chrome".
+9. **La versión visible no distinguía builds** (commit 5536aed). `CACHE`
+   (nombre del caché, queda "v16-toma") y `VERSION` (la que se ve) van
+   separados en sw.js; la versión pasa a `v17-1.0-l01`. Verificado: el
+   service worker nuevo conservó una pose ya bajada en el caché y barrió uno
+   viejo; el editor dice "versión v17-1.0-l01" (`rev_version_editor.png`).
+10. **A 800x360, con el informe abierto, no se veían el título ni las
+    primeras líneas** (commit 018dad5). El informe vuelve a su primer
+    renglón después del `select()`, y a 420 px de alto o menos la caja aprieta
+    sus aires (los botones siguen de 48 px). Verificado:
+    `rev_copiar_antes_60000.png` (antes) y `rev_copiar_final_800x360.png`
+    (todo a la vista, del título a la versión, con versión, escena y error).
+
+**PASO DEL DEPLOY (obligatorio desde ahora).** En cada publicación que toque
+`phaser/`, subir juntas `VERSION` de `phaser/sw.js` y `window.PAMPA_VERSION`
+de `phaser/index.html` (informe.test.js obliga a que sean iguales). Subirla
+ya no barre el caché de assets: eso lo hace `CACHE`, que no se toca hasta
+L05 (`cache-que-no-se-tira`), donde se reemplaza por las dos cachés.
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L01)
+
+1. **VOLVER AL MENÚ frena también el menú y lo rearranca**, aunque esté
+   RUNNING (Phaser haría lo mismo con un start sobre una escena corriendo).
+   Si el menú no arranca, el aviso vuelve con sólo RECARGAR en vez de
+   recargar solo: antes recargaba sin decir nada y, si el error se repetía,
+   la persona no entendía qué pasaba. *Revertir:* en `R.volverAlMenu`, el
+   `catch` puede volver a `location.reload()`.
+2. **Una escena "a medio armar" es una activa en START, INIT o CREATING en
+   reposo.** `bootScene` es sincrónico, así que no hay otra forma de quedar
+   ahí. INIT sin `active` es la escena agregada que nunca arrancó, y LOADING
+   es esperar archivos: ninguna de las dos cuenta. *Ajustar:* `R.escenaRota`.
+3. **El keyup se sigue cortando con el aviso a la vista**, y al salir se
+   sueltan todas las teclas. Dejarlo pasar (la otra opción del revisor) no
+   alcanzaba: Phaser emite `keyup-X` aunque nunca haya visto el keydown.
+4. **"El juego no pudo arrancar" cuando faltan clases pero ningún script
+   falló al bajar**, haya o no un error registrado. Un archivo cortado a la
+   mitad también da un SyntaxError, por eso el texto nombra la señal y el
+   navegador. Ofrece REINTENTAR, igual que "no bajó".
+5. **El vigía de SEGUIR IGUAL espera 12 s y sólo mira el partido.** Medido en
+   un partido entero del Master jugado al azar: el tramo más largo sin cambio
+   en un estado automático fue el CINE (2,8 s); la cadena más larga posible
+   (megacorrida) son 2 viñetas de 2,6 s. Los estados que esperan a quien
+   juega (MENU, PASE, TEMPO_MENU, TUTORIAL, FINAL, DEFINICION, JUGADON) no
+   cuentan: la Definición espera el toque indefinidamente (medido: 333 s
+   quieta sin que nadie toque). El editor y el Master no tienen vigía: son
+   pantallas que esperan un toque. *Ajustar:*
+   `balance.red_de_errores.vigia_seguir_ms`.
+6. **Las claves de avisos:** `marcacion` ("Marcás con…", las tres llamadas),
+   `pase` ("No hay a quién dársela…") y `motivo` (el "✗ motivo" de
+   foco_ui.js), las tres como respuesta a un toque. El resto de los avisos
+   sigue en la cola común. *Ajustar:* el segundo argumento de cada
+   `avisar()`.
+7. **La frase del relator que llega con la ficha a la vista no se tira: espera
+   detrás** (un solo lugar de espera, y una frase no desplaza a una ficha que
+   espera). Sale tarde, como ya pasaba con las frases que esperan al HUD
+   (V9 §8).
+8. **El guardián de Sección 11 no se amplió a navegadores ni redes.** El ítem
+   `navegadores-de-redes-y-guardado` del backlog necesita reconocer esos
+   nombres en el user agent; ampliarlo hoy lo dejaría en rojo.
+9. **La versión `v17-1.0-l01`**: número nuevo (la tanda 1.0 cambia mucho) y
+   el lote, para que cada lote que se publique se distinga (`-l02`…).
+   *Revertir:* volver `VERSION`/`PAMPA_VERSION` a "v16-toma"; `CACHE` no hace
+   falta tocarlo.
 
 ### Deudas que vi y no son de este lote
 
