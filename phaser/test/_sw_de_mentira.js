@@ -7,7 +7,7 @@
        lo que importa acá: Cache.put RECHAZA las respuestas 206 (por eso la
        música no entraba nunca), match acepta ignoreSearch, y las cachés
        sobreviven entre una versión del worker y la siguiente;
-     · una red de mentira que sirve los archivos del repo como GitHub Pages
+     · una red de mentira que sirve los archivos del repo como el hosting del sitio
        (con Range devuelve 206) y que se puede caer (el fetch rechaza),
        colgar (el fetch no vuelve nunca) o fallar en una ruta (404). Anota
        cada pedido: ruta, modo de caché y Range;
@@ -21,7 +21,7 @@
 var fs = require("fs"), path = require("path"), vm = require("vm");
 var RAIZ = path.join(__dirname, "..", "..");
 var ORIGEN = "https://x.test";
-var BASE = ORIGEN + "/repo/";                  // la raíz del sitio (como un repo de GitHub Pages)
+var BASE = ORIGEN + "/repo/";                  // la raíz del sitio (como un repo publicado en el hosting)
 var SW_URL = BASE + "phaser/sw.js";
 
 /* ---------- el CacheStorage ---------- */

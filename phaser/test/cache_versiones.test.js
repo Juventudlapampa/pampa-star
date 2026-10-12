@@ -12,7 +12,7 @@
        contesta 206 y Cache.put rechaza los 206. Volvía a bajar en cada
        sesión;
      · además activate borraba TODA caché con otro nombre, aunque fuera de
-       otro juego de la misma cuenta (GitHub Pages comparte el origen).
+       otro juego de la misma cuenta (el hosting comparte el origen entre los repos).
 
    LO QUE SE PRUEBA (phaser/sw.js de verdad, corriendo en node sobre un
    CacheStorage y una red de mentira: test/_sw_de_mentira.js):

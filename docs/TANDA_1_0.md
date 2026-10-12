@@ -1806,3 +1806,343 @@ sw.js, iguales).
 - Con dos o más títulos el renglón del club dice "★ · ★ 2 títulos": el
   " · ★" repetido mete el separador entre las estrellas y se lee como
   otra cosa (`rev04b_5_tabla_dos_titulos.png`).
+
+---
+
+## Ola 2 · Que cargue y se juegue en el celular — lote L05-sw
+
+Cuatro ítems sobre el service worker y la red floja, en el orden de sus
+dependencias. Las correcciones del crítico cambiaron el reparto: el tope de
+3 s pasó de `sw-robusto` a `arranque-con-senal-floja`, la música sin Range a
+`cache-que-no-se-tira`, y `sw-robusto` quedó solo con el aviso de versión.
+
+**Cómo se probó en pantalla, y por qué así.** El navegador integrado NO
+registra service workers contra un server de localhost que no arrancó él:
+`register("sw.js")` da "An unknown error occurred when fetching the script"
+y el pedido de sw.js no llega nunca al server (probado contra el
+`server.js` del repo en el puerto 8127, mismo error). Con un server
+arrancado por `preview_start` anda. Así que el server de prueba
+(`.claude/server_red.js`, fuera del repo) se arranca con una entrada
+`pampa-star-red` en el `.claude/launch.json` de la carpeta de trabajo
+(puerto 8126; runtimeArgs `["pampa-star/.claude/server_red.js",
+"pampa-star", "8126"]`). Sirve el repo como GitHub Pages (ETag, 304,
+`max-age=600`, Range con 206) y desde `/__ctl` simula: red **caída** (corta
+el socket: el fetch falla), red **colgada**, red **lenta** (cada respuesta
+tarda N ms), un **deploy** (otra VERSION en sw.js e index.html), una
+**huella cambiada** de un asset, un archivo que **falla** N veces y un
+sw.js **alternativo** (el de antes del lote). Lleva el registro de cada
+pedido que le llega. Todo mudo con el arnés del oído; nunca el mute del
+juego. Capturas en `.claude/shots/l05_*`.
+
+### sw-precache · precache completo y versión de assets automática
+
+**Qué estaba mal (medido con node contra el sw.js de antes).** Al PRECACHE
+le faltaban 8 de los 75 recursos del arranque: `logic/musica.js`,
+`logic/mapa.js`, `logic/cartas.js`, `logic/foco.js`, `scenes/cartas_ui.js`,
+`scenes/foco_ui.js`, `../data/eventos_temporada.json` y
+`../data/audio.json`. El worker se registra en "load", así que en la
+primera visita esos pedidos no pasaban por él: sin red, la segunda visita
+abría sin mapa (la lista de localidades), sin cartas, sin cursor, sin
+eventos y sin música. Y como los assets salen primero de la caché, para que
+un cambio llegara había que acordarse de subir la versión: 13 de los 16
+commits de arte no tocaron sw.js (d6c88ae, el fondo del menú con el logo de
+una marca, entre ellos).
+
+**Qué se hizo** (commit a0721fc):
+
+- Los 8 entran al PRECACHE (y `logic/carga.js`, nuevo de este lote).
+- **`ASSETS_HUELLA`** en sw.js: tamaño y los primeros 12 caracteres del
+  SHA-256 de los 105 archivos servidos: todo `assets/` menos `_fuente/` y
+  los `.md`, el motor (`phaser/vendor/*.js`) y los dos íconos. No se edita
+  a mano: `node phaser/test/sw_precache.test.js --escribir`. La usa el
+  borrado selectivo de `cache-que-no-se-tira` (abajo), como pidió el
+  crítico: una pose retocada ya no barre nada.
+- `phaser/test/sw_precache.test.js` (con su ayudante `_huella.js`): todo
+  `<script src>`, todo fetch de un `.json`, toda `@font-face`, el manifest,
+  los íconos y los `load.json` de las escenas están en el PRECACHE (así los
+  módulos nuevos del backlog —save_master, carrera, destellos, compartir,
+  entorno, atrás, informe, registro, cuidado, tutorial— no pueden repetir el
+  olvido); cada entrada existe en disco (con la instalación atómica, un
+  nombre mal escrito dejaría al worker sin instalarse nunca); la huella es
+  la del disco; y el guardián se prueba solo sobre una COPIA de una pose
+  (los originales de `assets/` no se tocan).
+
+**Cómo se verificó.** Contra el sw.js de antes el test falla 18 asserts
+(los 8, la huella y lo que va a la caché de assets). **Un byte cambiado en
+una pose pone la suite en rojo:** en una copia del repo (git ls-files, sin
+`_fuente`) la suite dio verde; con un byte de `pose_remate.webp` cambiado
+en la copia (misma medida, 98.626 bytes) dio "✗ FALLA sw_precache.test.js ·
+cambiados: assets/poses/pose_remate.webp → corré: node
+phaser/test/sw_precache.test.js --escribir". En el navegador, con el server
+caído después de una visita: los ocho en la caché, el Master con el mapa
+(`l05_1_offline_master_mapa.png`) y el partido con la mano de cartas
+"◆ FOGONAZO ◆ PUÑALADA" (`l05_1_offline_partido_cartas.png`).
+
+### cache-que-no-se-tira · un deploy nuevo no le hace bajar todo de nuevo a quien ya jugó
+
+**Qué estaba mal (medido).** Todo iba a una caché y activate borraba
+cualquier otra: cada versión tiraba poses, caras y fondos (14.102.712 bytes
+de assets servidos, du sobre git ls-files). Por eso desde L01 el nombre de
+la caché estaba congelado en "v16-toma". La música no entraba nunca: el
+`<audio>` pide con Range, el server contesta 206 y `Cache.put` rechaza los
+206. En el navegador: después de dos visitas con el worker de antes,
+"v16-toma" tenía 72 assets y **0 temas**. Además activate borraba TODA
+caché con otro nombre, también las de otros juegos de la cuenta (GitHub
+Pages comparte el origen entre los repos).
+
+**Qué se hizo** (commit 98dece9, `phaser/sw.js`):
+
+1. **Dos cachés.** `pampa-codigo-<VERSION>` (html, js, json) se barre en
+   cada versión; `pampa-assets` sobrevive. Cada asset se guarda con su
+   huella en la clave (`ruta?h=<huella>`): si un asset cambia, cambia su
+   clave, se baja solo ese, y activate borra las entradas cuya huella ya no
+   es la de ahora. Un archivo nuevo de `assets/` sin huella todavía se
+   sirve como `?h=sin` y se barre en la activación siguiente.
+2. **La música.** Al server se le pide el archivo entero SIN Range (con
+   `cache: "no-cache"` para no guardar con la huella nueva una copia vieja
+   de la caché HTTP), se guarda el 200, y al `<audio>` se le contesta el
+   206 justo que pidió, cortado de ese 200. Se precachean tres temas
+   (`TEMAS_PRECACHE`, por su clave de audio.json): el del menú y la intro
+   (opening) y los dos del partido, que alternan por fecha.
+3. **La mudanza.** Antes de bajar nada, lo que está en una caché vieja
+   nuestra ("v16-toma") y coincide con la huella (tamaño y SHA-256
+   recalculados en el worker con crypto.subtle) pasa a `pampa-assets` sin
+   red. Sin esto, el deploy de este lote le hacía bajar todo una vez más a
+   cada persona que ya jugó.
+4. **Calentar.** En la primera visita la intro pide sus 40 imágenes ANTES
+   de que el worker controle la página: no pasaban por él y sin red, en la
+   segunda visita, faltaban (medido: 32 fallas). Cuando el worker toma la
+   página, index.html le pasa la lista de assets que bajaron por fuera y él
+   los guarda desde la caché HTTP del navegador (`force-cache`: no cuesta
+   red), solo si su huella coincide. La música no (el `<audio>` la pidió en
+   pedazos).
+5. **activate solo borra lo nuestro**: `pampa-codigo-*` de otra versión y
+   los nombres viejos de este archivo (`pampa-star-v*`, `v1x-*`, sacados de
+   git log).
+6. **`window.__PAMPA_RED` y `?perf=1`** (`logic/carga.js`): lo que bajó de
+   la red y lo que salió de la caché, en un renglón abajo a la izquierda.
+   Los bytes salen del `transferSize` de los tiempos de recurso del propio
+   worker: con el Content-Length, una instalación de puros 304 daba 2,5 MB.
+
+**Tests.** `cache_versiones.test.js` corre el sw.js real en node sobre un
+CacheStorage y una red de mentira (`_sw_de_mentira.js`, que rechaza los
+206 en `put` como los navegadores): **se instala v1, se piden 3 imágenes,
+se instala v2 sin cambiar assets y no vuelve a pedirse ninguna imagen**; con
+la huella de una cambiada se pide exactamente esa; un pedido Range a un
+.ogg deja en caché un 200 y contesta 206 con los bytes justos; la mudanza;
+calentar; la caché de otro juego sobrevive. Contra el sw.js de antes falla
+con cada síntoma. `informe.test.js` cambió su assert del CACHE congelado de
+L01 (lo que cuida sigue siendo lo mismo: subir VERSION no tira las poses).
+
+**Cómo se verificó en pantalla.**
+- La mudanza de verdad: con el worker de antes servido por el server de
+  prueba, dos visitas (72 assets en "v16-toma", 0 temas); al pasar al
+  worker nuevo, `pampa-assets` quedó con 75 (72 mudados **sin un solo
+  pedido al server** y los 3 temas bajados) y "v16-toma" desapareció.
+- **Un deploy con otra VERSION**: 0 pedidos de assets al server; el código,
+  65 revalidaciones 304 y 1 index.html; `?perf=1` dijo "RED 0,03 MB en 66
+  pedidos · de la caché 45" (`l05_2_deploy_perf.jpg`).
+- **Una huella cambiada** (pose_remate): activate borró su entrada y el
+  único pedido de asset al server fue esa pose.
+- **Sin red después de una sola visita**: la intro cargó 40 de 40 imágenes
+  (32 habían bajado por fuera del worker y las guardó calentar, sin pedirlas
+  de nuevo), y con un toque real en TOCÁ PARA EMPEZAR **sonó el tema del
+  menú desde la caché**: Victory_Lap_At_Dawn sin pausa, de 0,2 a 2,8 s en
+  2,5 s reales, 30,66 s en búfer, sin error, señal en el analizador mudo
+  (`l05_2_offline_compuerta_perf.jpg`, `l05_2_offline_opening_musica.jpg`).
+
+### arranque-con-senal-floja · con señal que se cuelga, el juego arranca igual desde la caché
+
+**Qué estaba mal (leído en el código).** (1) Los 14 JSON del arranque
+tenían `.catch`, que atrapa el rechazo pero no la espera, y el
+`Promise.all` esperaba a todos: un JSON colgado era pantalla negra sin
+aviso. (2) La config de Phaser no fijaba `loader`: `loaderTimeout` vale 0
+(sin tope) en vendor/phaser.min.js, y los preload se tragaban el
+`loaderror` (el Master ni lo escuchaba). (3) sw.js usaba la caché solo si
+la red FALLABA, no si TARDABA. (4) El precache era `allSettled` +
+`skipWaiting`: una instalación a medias se activaba igual y activate
+borraba la caché anterior. (5) Sin `ignoreSearch`, un link con `?ref=` no
+abría sin red.
+
+**Qué se hizo** (commit 85850a3):
+
+1. `index.html`: **`jsonConTope`** con AbortController y `TOPE_JSON_MS`
+   (8 s) para los 14 JSON; si vence, el pedido se corta y sigue el respaldo
+   de siempre (`BALANCE_FALLBACK` o null). Los topes vencidos quedan en
+   `__PAMPA_RED.topes`. Y la marca "pampa-arranque": `?perf=1` dice
+   "arrancó en N s".
+2. `config.loader.timeout` desde **`balance.red_floja.loader_timeout_ms`**
+   (15.000, con su `_nota`: alcanza para la imagen más pesada,
+   `cara_colorado.png`, 336.798 bytes, a 180 kbps). En los cuatro preload,
+   **`PampaCarga.reintentarUnaVez(this.load)`**: lo que falla se vuelve a
+   encolar una vez con la misma clave; la segunda vez se deja y el juego
+   sigue con su respaldo. El registro vive en el cierre de cada preload
+   (Phaser borra los oyentes del loader al apagar la escena): nada queda en
+   la instancia (P1).
+3. `sw.js`: **la red con tope de 3 s** (`TOPE_RED_MS`). Si hay copia y la
+   red no contestó, contesta la copia y la red actualiza de fondo. Pasado
+   un tope, la señal queda **"floja" 30 s** (`FLOJA_MS`): lo que tiene copia
+   sale al toque. El código se pide con `cache: "no-cache"`.
+4. **Instalación atómica**: todo lo crítico se baja primero a memoria, con
+   un reintento por archivo; si algo no baja, la instalación falla: no hay
+   skipWaiting, el worker nuevo no se activa y la caché anterior queda
+   entera. Recién con todo en la mano se escribe.
+5. **Navegación sin red**: cae a `index.html` sin mirar lo que va después
+   del "?".
+
+**Tests.** `red_lenta.test.js`: (a) los 14 JSON van por jsonConTope y
+ninguno suelto; la función cortada de index.html y corrida con reloj de
+mentira da el respaldo a los 8 s y corta el pedido; loader.timeout y los
+cuatro preload. (a2) el reintento con un loader de mentira. (b) **con un
+fetch que nunca resuelve y copia en caché, sw.js responde a los 3.000 ms
+simulados**; el siguiente, en 0 ms; la red tarde actualiza la caché; la red
+a tiempo gana. (c) **con scenes/match.js en 404 no se instala, no hay
+skipWaiting y la caché anterior sigue con sus 67 entradas**; con un tropiezo
+que se arregla al reintentar, se instala. (d) **sin red, `./?ref=compartir`,
+`index.html?embed=1` y `./` devuelven el index.html guardado**. Contra el
+sw.js de antes (y el del commit anterior) fallan (b), (c) y (d).
+
+**Cómo se verificó en pantalla.**
+- **Con 20 s de latencia en cada pedido** (server lento), después de una
+  visita: el juego arrancó a los **3,1 s** (la página a los 3,0 por el tope,
+  todo lo demás de la caché al toque: 97 respuestas), la intro cargó sin
+  fallas (`l05_3_latencia20s_arranca_3s.jpg`). La primera medición dio
+  6,2 s: el server de prueba dejaba pasar rápido `silencio_dev.js`, esa
+  respuesta a tiempo apagaba lo "flojo" y los JSON volvían a esperar 3 s.
+  Se arregló el server de prueba (ahora solo `oido.js` esquiva la red mala),
+  no el juego.
+- **Sin red, `phaser/?ref=compartir` abre el juego**, arrancado en 0,1 s,
+  intro sin fallas (`l05_3_sinred_ref_compartir.jpg`).
+- **El reintento en el loader de Phaser de verdad**: `pose_tiro` forzada a
+  fallar una vez: el server vio 404 y después 200, y la textura quedó
+  (1.844 px de ancho). `pose_pase` fallando siempre: dos pedidos (el
+  original y el reintento), "perdido", y el partido siguió a su menú de
+  tempo (`l05_3_pose_que_no_baja_sigue.png`).
+
+### sw-robusto · "Hay una versión nueva · TOCÁ PARA ACTUALIZAR"
+
+**Qué estaba mal.** No había oyente de `controllerchange` (grep vacío). Con
+skipWaiting el worker nuevo toma la página en medio de la sesión y la
+página sigue con el código viejo hasta que alguien la cierra; instalada,
+sin botón de recargar, pueden ser días.
+
+**Qué se hizo** (commit 56f0896):
+
+- `sw.js` contesta `"version?"` con su VERSION y la anuncia a las páginas
+  al activarse.
+- `index.html`: al cambiar de worker le pregunta la versión. Si no es la de
+  la página aparece el cartel **"↻ Hay una versión nueva · TOCÁ PARA
+  ACTUALIZAR"** con **"✕ DESPUÉS"** al lado: botones de 48 px con ícono y
+  texto, arriba a la izquierda, debajo de los avisos que mandan (z-index
+  55). Tocarlo recarga; DESPUÉS lo esconde hasta la versión siguiente. En
+  un partido o con "Algo se trabó" espera y vuelve a mirar cada
+  `balance.red_floja.version_reintento_ms` (2.000).
+- `logic/carga.js` **`decidirAvisoVersion`**: con la misma versión no hace
+  nada. Es lo que pasa en casi toda primera carga después de un deploy: la
+  página ya trajo el código nuevo de la red y recargar no cambiaría nada.
+
+**Tests.** `aviso_version.test.js`: la tabla de la decisión; el cartel en
+index.html; el script de LA RED de index.html corriendo con un navegador de
+mentira (pregunta al cambiar de worker, espera el partido y aparece al
+terminar, ACTUALIZAR recarga, DESPUÉS hasta la próxima, espera con "Algo
+se trabó"); sw.js real contesta y anuncia su versión.
+
+**Cómo se verificó en pantalla.** Deploy en pleno partido: el worker nuevo
+tomó la página (controllerchange) y el cartel no apareció
+(`l05_4_partido_sin_cartel.jpg`); al salir al Master, apareció. La primera
+versión iba centrada y partía el texto en dos renglones
+(`l05_4_antes_cartel_partido_en_dos.jpg`: con `left:50%` el ancho quedaba
+en 480 px), y en un renglón tapaba CARRERA del editor (a 800x360 empieza
+en x≈580): quedó arriba a la izquierda, de 8 a 462 px a 800x360, con letra
+de 14 px (`l05_4_cartel_version_final_800x360.jpg`). Un toque real en el
+cartel recargó la página con la versión nueva; un toque en DESPUÉS lo
+escondió sin recargar y no volvió.
+
+**Paso del deploy (reemplaza al de L01).**
+1. Si tocaste `phaser/`: subí juntas `VERSION` de sw.js y
+   `window.PAMPA_VERSION` de index.html (informe.test.js). Ahora solo barre
+   el código (unos 1,5 MB, casi todo 304).
+2. Si agregaste, cambiaste o borraste algo en `assets/` (o el motor, o los
+   íconos): `node phaser/test/sw_precache.test.js --escribir` y commiteá
+   sw.js junto con el asset. Si no, la suite queda en rojo.
+3. Un script o JSON nuevo que carga index.html va al PRECACHE (la suite
+   también lo exige).
+
+La versión visible sube a `v17-1.0-l05` (index.html y sw.js, iguales).
+
+### DECISIONES QUE TOMÉ YO (lote L05-sw)
+
+1. **La huella cubre todo `assets/` servido, no solo lo de los
+   manifests**, más el motor y los íconos. Hay assets con ruta fija en el
+   código (`fondo_pueblo.webp` en la intro) y fuentes que no están en
+   ningún manifest. *Revertir:* `listarAssets` en `test/_huella.js`.
+2. **La huella va en la clave de la caché** (`ruta?h=…`) y no en un índice
+   aparte: no hay lectura y escritura cruzadas entre pedidos simultáneos, y
+   borrar lo viejo es comparar la clave con `ASSETS_HUELLA`. *Revertir:* no
+   tiene un interruptor; es el corazón de `cache-que-no-se-tira`.
+3. **A la música se le contesta el 206 que pidió**, cortado del 200 que
+   queda en la caché (el ítem decía "se responde con él"). El `<audio>` pide
+   un rango y el corte es lo que hacen las bibliotecas de service workers para
+   que el reproductor pueda saltar y dar la vuelta. *Revertir:* en `responderAsset`, devolver `res`
+   en vez de `recortar(res, rango)`.
+4. **Los tres temas del precache: opening, partido y partido_alt**, no los
+   "3 más usados" medidos (no hay métrica de uso, por decisión de Rodri). El
+   del menú es el que pide el criterio; los del partido, donde más tiempo se
+   pasa. Los de la semana entran a la caché la primera vez que suenan.
+   *Revertir:* `TEMAS_PRECACHE` en sw.js.
+5. **La mudanza desde "v16-toma"** y **calentar** no estaban pedidos. Sin
+   la mudanza, el deploy de este mismo lote le hacía bajar todo de nuevo a
+   quien ya jugó; sin calentar, "después de una visita abre sin red" fallaba
+   con las ilustraciones de la intro. *Revertir:* sacar `rescatar()` de
+   `instalar()` y el mensaje "calentar" (sw.js e index.html).
+6. **activate borra solo cachés nuestras.** *Revertir:* `esNuestraVieja`.
+7. **Lo "flojo" dura 30 s** y no estaba en el ítem: sin eso, 3 s de la
+   página + 3 de los scripts + 3 de los JSON pasaban los 5 s del criterio.
+   Una respuesta de la red a tiempo lo apaga. *Revertir:* `FLOJA_MS = 0`.
+8. **El código se pide "no-cache"** (revalidando): medido, un deploy trajo
+   index.html nuevo con carga.js viejo de la caché HTTP (GitHub Pages lo
+   deja fresco 10 minutos). Si no cambió, es un 304 de unos 300 bytes.
+   *Revertir:* `fetch(req)` en `redPrimero`.
+9. **Los topes de 8 s (JSON) y 3 s (worker) viven en el código**, no en el
+   balance: corren antes de que el balance exista. Están anotados en la
+   `_nota` de `balance.red_floja`. *Revertir:* `TOPE_JSON_MS` y
+   `TOPE_RED_MS`.
+10. **El cartel de versión**: arriba a la izquierda (no al centro, medido),
+    con DESPUÉS (el ítem no lo pedía: sin él, quien no quiere recargar no
+    tiene cómo sacárselo de encima), solo si la versión del worker es otra
+    (si no, aparecía en casi toda primera carga después de un deploy sin
+    nada que actualizar), y "fuera del partido" = la escena del partido no
+    está activa (la pantalla del final cuenta como partido). *Revertir:*
+    `#version-nueva` en el CSS, el botón `vn-despues` y
+    `decidirAvisoVersion`.
+11. **`?perf=1` muestra solo la red** (el lote de precalentamiento le suma
+    el cuadro más largo y los MB de texturas). *Revertir:* el `#perf` de
+    index.html.
+12. **El server de prueba y la entrada `pampa-star-red`** del
+    `.claude/launch.json` de la carpeta de trabajo: el server queda en
+    `pampa-star/.claude/` (ignorado); la entrada del launch.json la saqué al
+    terminar para dejar la configuración como estaba (para volver a probar:
+    la línea de arriba, en "Cómo se probó").
+13. **La versión `v17-1.0-l05`.** *Revertir:* volver las dos a
+    `v17-1.0-l04br`.
+14. **El localStorage del puerto 8123** (el de Rodri): no lo usé para
+    probar (todo fue en el 8126, otro origen). Hice un respaldo antes
+    (`.claude/shots/l05_ls_backup_8123.json`, como `data:...;base64,`) y al
+    final lo comparé: igual.
+
+### Deudas que vi y no son de este lote
+
+- `phaser/manifest.webmanifest` dice "la carrera de un pibe pampeano" en
+  `description`: es lo que muestra el celular al instalar. Lenguaje
+  institucional.
+- Arnés del oído: `OIDO.hasta(cond)` avanza de a 50 ms y nunca cede una
+  tarea completa (solo cede cada 6 cuadros), así que mientras corre no se
+  procesan las respuestas de red: un preload parece "trabado" (archivos en
+  la lista sin arrancar) cuando el juego está bien. Para esperar cargas,
+  avanzar y ceder con `OIDO.ceder()` en el medio.
+- El navegador integrado no registra service workers contra servers de
+  localhost que no arrancó `preview_start` (ver arriba): para probar algo
+  de la PWA hace falta una entrada en launch.json.
+- Los temas que no están en el precache entran a la caché la primera vez
+  que suenan con el worker ya controlando la página: en una primera visita
+  muy corta pueden quedar afuera (calentar no trae música, a propósito).

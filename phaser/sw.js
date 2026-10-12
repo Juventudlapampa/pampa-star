@@ -40,7 +40,7 @@
    cada publicación que toque phaser/: ahora eso solo barre el código.
    ========================================================================== */
 "use strict";
-const VERSION = "v17-1.0-l04br";
+const VERSION = "v17-1.0-l05";
 const CODIGO = "pampa-codigo-" + VERSION;
 const ASSETS = "pampa-assets";
 /* los temas que se bajan al instalar, por su clave de data/audio.json: el
@@ -216,7 +216,7 @@ const RAIZ_RUTA = new URL(RAIZ).pathname;
 const tiene = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 /* "assets/poses/x.webp", "phaser/logic/x.js"… o null si es de otro origen o
-   de afuera de la raíz: en GitHub Pages todos los repos de una cuenta
+   de afuera de la raíz: en el hosting del sitio todos los repos de una cuenta
    comparten el origen, y lo de otro sitio no es asunto de este worker */
 function rutaDe(url) {
   let u;
@@ -471,7 +471,7 @@ function redPrimero(e) {
   const ruta = rutaDe(req.url);
   const t0 = Date.now();
   /* "no-cache": que la caché HTTP del navegador no conteste con un archivo
-     de antes del deploy (GitHub Pages lo deja fresco 10 minutos) y se
+     de antes del deploy (el hosting lo deja fresco 10 minutos) y se
      mezclen versiones. Pasó en el navegador de prueba: después de un deploy
      la página trajo index.html nuevo y logic/carga.js viejo. Si el archivo
      no cambió, el server contesta 304: unos 300 bytes. */
