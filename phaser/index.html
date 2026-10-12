@@ -30,11 +30,256 @@
   #rotate b{color:#ffd84d;font-size:1.1rem;}
   @keyframes spin{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
   @media (orientation:portrait) and (max-width:820px){ #rotate{display:flex;} #game{display:none;} }
+  /* LA RED DE ERRORES (tanda 1.0): el aviso "Algo se trabó" es DOM, no Phaser,
+     porque tiene que aparecer aunque el motor no haya bajado. Va arriba de
+     todo (también del "Girá el celular") y se scrollea si no entra en 360 px. */
+  #trabado{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+    background:rgba(6,18,11,.94);padding:12px;box-sizing:border-box;overflow:auto;}
+  #trabado[hidden], #trabado [hidden]{display:none !important;}
+  #trabado .caja{max-width:640px;width:100%;max-height:100%;overflow:auto;box-sizing:border-box;
+    background:#0A1F13;border:3px solid #F5C400;border-radius:12px;padding:14px 18px;text-align:center;}
+  #trabado h1{margin:0 0 6px;font-size:22px;color:#FFD84D;font-weight:normal;}
+  #trabado h1 .ico{display:inline-block;margin-right:8px;font-size:24px;}
+  #trabado p{margin:6px 0;font-size:16px;line-height:1.3;}
+  #trabado .botones{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0 4px;}
+  #trabado button{font:inherit;font-size:16px;min-height:48px;min-width:150px;padding:8px 14px;cursor:pointer;
+    border:3px solid #06120b;border-radius:10px;background:#F6EFDC;color:#0A1F13;box-shadow:0 4px 0 #06120b;}
+  #trabado button.prim{background:#7EE08A;}
+  #trabado button.sec{min-width:0;background:#9FB3A5;}
+  #trabado button:focus-visible{outline:3px solid #FFD84D;outline-offset:3px;}
 </style>
 </head>
 <body>
   <div id="game"></div>
   <div id="rotate"><div class="ico">📱↻</div><b>Girá el celular</b><div>PAMPA STAR se juega apaisado (horizontal).</div></div>
+  <!-- LA RED DE ERRORES: el aviso vive acá, antes que cualquier script, así
+       existe aunque no baje nada. Los botones se prenden según el caso. -->
+  <div id="trabado" role="alertdialog" aria-modal="true" aria-labelledby="tb-tit" hidden>
+    <div class="caja">
+      <h1><span class="ico" aria-hidden="true">⚠</span><span id="tb-tit">Algo se trabó</span></h1>
+      <p id="tb-txt"></p>
+      <div class="botones">
+        <button type="button" id="tb-menu" class="prim">◀ VOLVER AL MENÚ</button>
+        <button type="button" id="tb-reintentar" class="prim">↻ REINTENTAR</button>
+        <button type="button" id="tb-recargar">↻ RECARGAR</button>
+        <button type="button" id="tb-seguir" class="sec">▶ SEGUIR IGUAL</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════════════════
+     LA RED DE ERRORES (tanda 1.0) · va PRIMERO, antes que el motor.
+
+     Lo que estaba mal, medido: no había ni un onerror ni un
+     unhandledrejection en todo phaser/. Y el loop de Phaser 3.80 es
+     `step(t){ callback(t); if (running) requestAnimationFrame(step) }`: si
+     el callback tira, el cuadro siguiente no se pide NUNCA. Un delayedCall
+     que tiraba dejó loop.frame clavado en 4119 con running=true: el juego
+     congelado y nada que se entere. Con scenes/match.js sin bajar, ir a la
+     cancha dejaba 0 escenas y el lienzo negro. Y la PWA instalada (display
+     standalone) ni siquiera tiene botón de recargar.
+
+     Ahora:
+       · el paso del juego va envuelto en try/catch (envolver, abajo): el
+         error se guarda y se avisa, y el loop sigue pidiendo cuadros;
+       · el aviso "Algo se trabó" ofrece VOLVER AL MENÚ (frena las escenas y
+         arranca el editor, sin tocar el save) y RECARGAR. Mientras está a la
+         vista el juego se PAUSA (game.pause): el partido no sigue corriendo
+         detrás de una caja que lo tapa;
+       · con `tope` errores sin juego limpio en el medio, loop.sleep(): un
+         error de todos los cuadros no puede llenar la memoria de registros;
+       · los errores de afuera del loop (los toques los procesa Phaser en el
+         evento del DOM, no en el cuadro) y las promesas rechazadas muestran
+         el mismo aviso;
+       · si un script no bajó, o falta una de las clases obligatorias, no se
+         crea el juego: "No terminó de bajar el juego" con REINTENTAR.
+
+     Todo en ES5 a propósito: si el navegador no entiende las clases de las
+     escenas, esto tiene que poder decirlo igual.
+     ═══════════════════════════════════════════════════════════════════════ */
+  (function () {
+    "use strict";
+    var R = window.PampaRed = {
+      /* las cuatro clases de escena y lo que usan sin preguntar: si falta una,
+         el juego arranca y se muere en el primer cambio de pantalla */
+      OBLIGATORIOS: ["Phaser", "PampaIntro", "PampaEditor", "PampaMasterScene", "PampaMatch",
+        "PampaPartido", "PampaTemporada", "PampaMaster", "PampaAvatar", "PampaSFX"],
+      menu: "editor",          // a dónde lleva VOLVER AL MENÚ
+      tope: 3,                 // errores sin juego limpio en el medio → loop.sleep()
+      limpiosParaOlvidar: 120, // ~2 s de juego sin error y la cuenta vuelve a cero
+      seguidos: 0, limpios: 0,
+      errores: 0,              // en esta sesión (va al informe)
+      ultimo: null,            // el último registro guardado
+      faltan: [],              // scripts que no bajaron
+      arrancado: false,        // hasta que existe el juego, decide arrancarCon
+      dormido: false,
+      tipo: null               // el aviso a la vista: "trabado" | "no_bajo" | null
+    };
+    function $(id) { return document.getElementById(id); }
+    function juego() { return window.PAMPA_GAME || null; }
+
+    /* qué escena corre y, si es el partido, en qué momento (sólo números) */
+    R.contexto = function () {
+      var out = { escena: "", estado: null };
+      try {
+        var g = juego(); if (!g || !g.scene) return out;
+        var act = g.scene.getScenes(true);
+        out.escena = act.map(function (s) { return s.sys.settings.key; }).join("+");
+        var m = g.scene.getScene("match");
+        if (m && act.indexOf(m) >= 0 && m.st) {
+          out.estado = { estado: m.estado, tiempo: m.st.tiempo, minuto: m.st.minuto, golesMio: m.st.golesMio, golesRival: m.st.golesRival };
+        }
+      } catch (e) { /* sin contexto: el informe dice "ninguna" */ }
+      return out;
+    };
+    R.registrar = function (err, origen) {
+      R.errores++;
+      var ctx = R.contexto();
+      var rec = {
+        cuando: new Date().toISOString(), origen: origen,
+        mensaje: String((err && err.message) || err).split("\n")[0].slice(0, 160),
+        stack: String((err && err.stack) || "").slice(0, 1500),
+        escena: ctx.escena, estado: ctx.estado
+      };
+      R.ultimo = rec;
+      try { localStorage.setItem("pampa_ultimo_error", JSON.stringify(rec)); } catch (e) { }
+      try { console.error("[PAMPA STAR] error (" + origen + "):", err); } catch (e) { }
+      return rec;
+    };
+    /* un error más sin juego limpio en el medio; al tope, el loop se duerme */
+    R.contar = function () {
+      R.seguidos++; R.limpios = 0;
+      if (R.seguidos >= R.tope) {
+        var g = juego();
+        try { if (g && g.loop && g.loop.running) g.loop.sleep(); } catch (e) { }
+        R.dormido = true;
+      }
+    };
+    R.faltantes = function () {
+      return R.OBLIGATORIOS.filter(function (n) { return !window[n]; })
+        .concat(R.faltan.map(function (s) { return String(s).split("/").slice(-2).join("/"); }));
+    };
+    function boton(id, ver) { var b = $(id); if (b) b.hidden = !ver; }
+    R.mostrar = function (tipo) {
+      var caja = $("trabado"); if (!caja) return;
+      var noBajo = tipo === "no_bajo", g = juego();
+      /* un "no bajó" no se pisa con un "se trabó": el que manda es el primero */
+      if (R.tipo === "no_bajo" && !noBajo) return;
+      R.tipo = tipo;
+      $("tb-tit").textContent = noBajo ? "No terminó de bajar el juego" : "Algo se trabó";
+      $("tb-txt").textContent = noBajo
+        ? "La conexión está floja. Probá de nuevo cuando tengas señal."
+        : "Lo que tenías guardado sigue ahí: volver al menú no lo toca.";
+      boton("tb-menu", !noBajo && !!g);
+      boton("tb-reintentar", noBajo);
+      boton("tb-recargar", !noBajo);
+      boton("tb-seguir", !noBajo && !!g && !R.dormido);
+      caja.hidden = false;
+      /* el partido no sigue corriendo detrás del aviso */
+      if (g && g.pause && !noBajo) { try { g.pause(); } catch (e) { } }
+      var prim = $(noBajo ? "tb-reintentar" : (g ? "tb-menu" : "tb-recargar"));
+      try { if (prim) prim.focus(); } catch (e) { }
+    };
+    R.ocultar = function () { var c = $("trabado"); if (c) c.hidden = true; R.tipo = null; };
+    R.volverAlMenu = function () {
+      var g = juego(); if (!g) { location.reload(); return; }
+      R.ocultar();
+      try {
+        if (g.loop && !g.loop.running) g.loop.wake();
+        R.dormido = false;
+        if (g.resume) g.resume();
+        /* la fecha del Master que se estaba jugando no queda colgada en el
+           registry: si quedaba, ¡A LA CANCHA! del editor la volvía a jugar y
+           el resultado se cargaba a la carrera */
+        if (g.registry) g.registry.remove("masterPartido");
+        g.scene.getScenes(false).forEach(function (s) {
+          var k = s.sys.settings.key, st = s.sys.settings.status;
+          if (k !== R.menu && st > 0 && st < 8) g.scene.stop(k);   // 0 = PENDING, 8 = SHUTDOWN
+        });
+        g.scene.start(R.menu);
+      } catch (e) {
+        /* si ni siquiera se puede volver, lo único que queda es recargar */
+        R.registrar(e, "menu");
+        location.reload();
+      }
+    };
+    R.seguir = function () { R.ocultar(); var g = juego(); if (g && g.resume) g.resume(); };
+    /* el envoltorio del paso del juego. Se llama en arrancarCon, antes de
+       new Phaser.Game: Game.start() hace loop.start(this.step.bind(this)),
+       así que lo que se ata es ESTE step, no el original. */
+    R.envolver = function (Ph) {
+      var P = Ph && Ph.Game && Ph.Game.prototype;
+      if (!P || P.__red) return false;
+      var paso = P.step;
+      P.step = function (time, delta) {
+        try {
+          paso.call(this, time, delta);
+          if (!this.isPaused && ++R.limpios >= R.limpiosParaOlvidar) R.seguidos = 0;
+        } catch (e) {
+          R.registrar(e, "cuadro");
+          R.contar();
+          R.mostrar("trabado");
+        }
+      };
+      P.__red = true;
+      return true;
+    };
+
+    /* los de afuera del loop. EN CAPTURA, porque un <script> que no baja
+       dispara su error en el elemento y no burbujea: sólo se lo ve bajando. */
+    function ignorable(ev) {
+      var msg = String((ev && ev.message) || "");
+      if (/ResizeObserver loop/i.test(msg)) return true;        // aviso del navegador, no un error
+      if (msg === "Script error." && !ev.error) return true;     // de otro origen (una extensión): no es nuestro
+      var f = String((ev && ev.filename) || "");
+      if (f && location.origin && location.origin !== "null" && f.indexOf(location.origin) !== 0) return true;
+      return false;
+    }
+    window.addEventListener("error", function (ev) {
+      var t = ev && ev.target;
+      if (t && t !== window && t.tagName) {
+        if (String(t.tagName).toUpperCase() === "SCRIPT") {
+          var src = t.src || "?";
+          if (R.faltan.indexOf(src) < 0) R.faltan.push(src);
+          R.registrar(new Error("no bajó " + src), "arranque");
+          R.mostrar("no_bajo");
+        }
+        return;
+      }
+      if (ignorable(ev)) return;
+      R.registrar(ev.error || ev.message, "evento");
+      /* durante el arranque decide arrancarCon: un error de un script que no
+         es obligatorio no tiene por qué frenar el juego */
+      if (!R.arrancado) return;
+      R.contar();
+      R.mostrar("trabado");
+    }, true);
+    window.addEventListener("unhandledrejection", function (ev) {
+      var r = ev && ev.reason;
+      /* audio: un play() cortado por un pause() o sin gesto todavía. Ruido del
+         navegador, no algo que se haya trabado */
+      if (r && (r.name === "AbortError" || r.name === "NotAllowedError")) return;
+      R.registrar(r, "promesa");
+      if (!R.arrancado) return;
+      R.contar();
+      R.mostrar("trabado");
+    });
+    /* con el aviso a la vista, el teclado es del aviso: Phaser escucha en
+       window y un ESPACIO le abría el menú de jugadas al partido de atrás.
+       Se corta la propagación, no el default: Enter sobre un botón lo sigue
+       apretando. */
+    ["keydown", "keyup"].forEach(function (tipo) {
+      window.addEventListener(tipo, function (ev) { if (R.tipo) ev.stopImmediatePropagation(); }, true);
+    });
+    /* el aviso está arriba de este script en el HTML: los botones ya existen */
+    var on = function (id, f) { var b = $(id); if (b) b.addEventListener("click", f); };
+    on("tb-menu", R.volverAlMenu);
+    on("tb-recargar", function () { location.reload(); });
+    on("tb-reintentar", function () { location.reload(); });
+    on("tb-seguir", R.seguir);
+  })();
+  </script>
 
 
   <script>
@@ -275,8 +520,33 @@
       window.PF.escMax = bal.piel.esc_max;
     }
     arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes);
+  }).catch((e)=>{
+    /* RED DE ERRORES (4): cada fetch ya traía su catch, pero lo que pase
+       ADENTRO del then (arrancarCon, new Phaser.Game) se perdía en una promesa
+       rechazada que nadie miraba: pantalla negra. Si el juego no llegó a
+       existir, lo honesto es "no terminó de bajar"; si existe, "se trabó". */
+    const R = window.PampaRed;
+    if (!R) return;
+    R.registrar(e, "arranque");
+    R.mostrar(window.PAMPA_GAME ? "trabado" : "no_bajo");
   });
   function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes){
+    /* RED DE ERRORES (3): ANTES de crear el juego, que esté todo lo que el
+       juego usa sin preguntar. Con scenes/match.js sin bajar el juego
+       arrancaba igual, en la intro, y al ir a la cancha quedaban 0 escenas y
+       el lienzo negro. Ahora no se crea: se avisa y se ofrece REINTENTAR. */
+    const R = window.PampaRed;
+    if (R) {
+      const falta = R.faltantes();
+      if (falta.length) {
+        R.registrar(new Error("no bajó: " + falta.join(", ")), "arranque");
+        R.mostrar("no_bajo");
+        return;
+      }
+      /* RED DE ERRORES (1): el paso del juego, envuelto antes de que el
+         juego lo ate a su loop */
+      R.envolver(window.Phaser);
+    }
     /* El manifest de caras dice cuántas caras y cuántos tonos de camiseta hay.
        validarLook (logic/avatar.js) es lógica pura y no lee JSON, así que se lo
        avisamos acá, una sola vez, antes de crear el juego: si no, los índices
@@ -298,6 +568,9 @@
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);
+    /* desde acá, un error se avisa con "Algo se trabó" (antes del juego lo
+       decide el chequeo de arriba) */
+    if (R) R.arrancado = true;
   }
   </script>
 </body>
