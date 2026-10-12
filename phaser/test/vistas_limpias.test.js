@@ -95,8 +95,11 @@ function interactivosVisibles(s) {
     assert(!o || o.scene, "un toque en (" + p + ") no puede caer en un objeto destruido");
     assert(s.textos().indexOf("¿EMPEZAR OTRA CARRERA?") < 0,
       "SÍNTOMA: tocar el rincón vacío (" + p + ") de la semana abría ¿EMPEZAR OTRA CARRERA?");
-    assert(!o || s.textos().join("|") === antes || o.type !== "Text",
-      "el toque en (" + p + ") no cambia de pantalla");
+    /* revisión L03: antes era `!o || textos === antes || o.type !== "Text"`,
+       que pasaba igual si el toque caía en un Rectangle (un botón) que SÍ
+       cambiaba la vista. Ahora se pide lo que dice el mensaje */
+    assert(s.textos().join("|") === antes,
+      "el toque en (" + p + ") no cambia de pantalla (tocó: " + (o ? o.type + " " + (o.text || "") : "nada") + ")");
   });
   console.log("[2] tabla " + enTabla + " zonas → semana " + tocablesSemana + " = " + visibles + " visibles · los rincones vacíos no hacen nada");
 })();
