@@ -130,8 +130,12 @@ function juegoDeMentira(env) {
   Game.prototype.step = function () { if (this.romper) { var x = null; return x.x; } this.pasos++; };
   var Ph = { Game: Game };
   var g = Object.create(Game.prototype);
-  var match = { sys: { settings: { key: "match", status: 5 } }, estado: "LIBRE", st: { tiempo: 2, minuto: 85, golesMio: 1, golesRival: 0 } };
-  var editor = { sys: { settings: { key: "editor", status: 8 } } };
+  /* el KeyboardPlugin de cada escena: resetKeys suelta todas (como Key.reset de Phaser) */
+  function teclado() {
+    return { flecha: { isDown: false }, resets: 0, resetKeys: function () { this.resets++; this.flecha.isDown = false; return this; } };
+  }
+  var match = { sys: { settings: { key: "match", status: 5 } }, input: { keyboard: teclado() }, estado: "LIBRE", st: { tiempo: 2, minuto: 85, golesMio: 1, golesRival: 0 } };
+  var editor = { sys: { settings: { key: "editor", status: 8 } }, input: { keyboard: teclado() } };
   g.romper = true; g.pasos = 0; g.isPaused = false; g.pausas = 0; g.isRunning = true;
   g.pause = function () { this.isPaused = true; this.pausas++; };
   g.resume = function () { this.isPaused = false; };
@@ -146,7 +150,7 @@ function juegoDeMentira(env) {
   g.registry = { get: function () { return null; }, remove: function (k) { g.sacados.push(k); } };
   env.win.PAMPA_GAME = g;
   env.R.arrancado = true;
-  return { Ph: Ph, g: g };
+  return { Ph: Ph, g: g, match: match, editor: editor };
 }
 
 /* ---------- [2] LA RED, CORRIENDO ---------- */
@@ -247,6 +251,21 @@ function juegoDeMentira(env) {
   assert(cortado, "con el aviso a la vista, las teclas no le llegan a Phaser");
   var keyCap = (env2.wl.keydown || []).every(function (l) { return l.cap; });
   assert(keyCap, "y se cortan EN CAPTURA (Phaser escucha en window, en burbuja)");
+  /* la flecha que quedaba apretada: el keydown llegó ANTES del error, el keyup
+     se cortó con el aviso encima, y el KeyboardPlugin no resetea con
+     game.pause(). Al salir del aviso, las teclas se sueltan. */
+  var flecha = J.match.input.keyboard.flecha;
+  flecha.isDown = true;
+  var keyupCortado = false;
+  env2.disparar("keyup", { stopImmediatePropagation: function () { keyupCortado = true; } });
+  assert(keyupCortado, "con el aviso a la vista, el keyup tampoco le llega a Phaser");
+  env2.el("tb-seguir").click();
+  assert(flecha.isDown === false,
+    "SÍNTOMA DE LA FLECHA PEGADA: después de SEGUIR IGUAL la tecla soltada con el aviso encima tiene que quedar suelta (el jugador corría solo)");
+  flecha.isDown = true;
+  env2.disparar("unhandledrejection", { reason: new Error("otra promesa rota") });
+  env2.el("tb-menu").click();
+  assert(flecha.isDown === false, "y lo mismo con VOLVER AL MENÚ");
   console.log("[3] afuera del loop: script que no baja → REINTENTAR · toque y promesa → aviso · ruido del navegador ignorado");
 })();
 

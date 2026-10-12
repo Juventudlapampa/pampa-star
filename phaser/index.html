@@ -298,6 +298,7 @@
       try {
         if (g.loop && !g.loop.running) g.loop.wake();
         R.dormido = false;
+        R.soltarTeclas(g);
         if (g.resume) g.resume();
         /* la fecha del Master que se estaba jugando no queda colgada en el
            registry: si quedaba, ¡A LA CANCHA! del editor la volvía a jugar y
@@ -338,7 +339,29 @@
         R.mostrar("trabado");
       }
     };
-    R.seguir = function () { R.ocultar(); var g = juego(); if (g && g.resume) g.resume(); };
+    /* LAS TECLAS QUE PHASER CREE APRETADAS. Con el aviso a la vista se corta
+       también el keyup (abajo), y el KeyboardPlugin de Phaser 3.80 sólo hace
+       resetKeys con el BLUR del juego y con el PAUSE/SLEEP de la ESCENA:
+       game.pause() emite el PAUSE del juego, no el de la escena. Una flecha
+       apretada cuando saltó el error y soltada con el aviso encima quedaba
+       isDown, y el update del partido mira cursors/wasd.isDown en cada cuadro:
+       después de SEGUIR IGUAL el jugador corría solo (revisión del lote).
+       Dejar pasar el keyup no alcanzaba: Phaser emite keyup-X aunque nunca
+       haya visto ese keydown. Al salir del aviso se sueltan todas. */
+    R.soltarTeclas = function (g) {
+      try {
+        g.scene.getScenes(false).forEach(function (s) {
+          var kb = s.input && s.input.keyboard;
+          if (kb && kb.resetKeys) kb.resetKeys();
+        });
+      } catch (e) { }
+    };
+    R.seguir = function () {
+      R.ocultar();
+      var g = juego(); if (!g) return;
+      R.soltarTeclas(g);
+      if (g.resume) g.resume();
+    };
     R.copiar = function () {
       var txt = R.informe(), c = R.contacto();
       var destino = c && c.mail ? " a " + c.mail : " a quien te pasó el juego";
@@ -424,7 +447,8 @@
     /* con el aviso a la vista, el teclado es del aviso: Phaser escucha en
        window y un ESPACIO le abría el menú de jugadas al partido de atrás.
        Se corta la propagación, no el default: Enter sobre un botón lo sigue
-       apretando. */
+       apretando. El keyup también se corta, y por eso al salir del aviso se
+       sueltan las teclas (R.soltarTeclas, arriba). */
     ["keydown", "keyup"].forEach(function (tipo) {
       window.addEventListener(tipo, function (ev) { if (R.tipo) ev.stopImmediatePropagation(); }, true);
     });
