@@ -1086,6 +1086,10 @@ tenía cursor: ni Enter ni flechas.
   Aparecen 700 ms después del pitazo (`pausa.final_espera_ms`): ESPACIO es la
   acción del partido y en el cursor confirma. Y el cursor ya no confirma con
   la **repetición** de una tecla sostenida (`foco_ui.js`, `ev.repeat`).
+  *Corregido en la revisión:* en el partido esa repetición ya la filtraba
+  Phaser (ESPACIO y ENTER tienen objeto Key); el filtro de `foco_ui` es el que
+  cuenta en el Master. Y atrás y ESC también esperan los 700 ms: son el botón
+  donde arranca el cursor (ver "Revisión del lote L04").
 - **⚡ ACCIÓN ya no reaparece en el final ni en la pausa** (deuda que anotó
   L01): con dos salidas en la fila de abajo quedaba montado sobre ↺ OTRO
   PARTIDO (`l04_final_amistoso.png`).
@@ -1143,7 +1147,10 @@ WhatsApp.
   nace después del oyente. A los dos motivos les avisa al juego con el evento
   `"ocultar"`.
 - `match.js`: con `"ocultar"` y el reloj corriendo (LIBRE), el partido abre
-  su PAUSA. Al volver no arranca solo: arranca con SEGUIR.
+  su PAUSA. Al volver no arranca solo: arranca con SEGUIR. *Revisión:* la
+  abre callada (sin el "abrir" de una cruz que no se ve), un atrás en
+  vertical ya no la cierra, y el tema que se cambia o se calla en la pausa
+  vuelve a 0.
 - No se pisa con "Algo se trabó": volver a horizontal no reanuda con el aviso
   a la vista, y SEGUIR IGUAL / VOLVER AL MENÚ del aviso no reanudan en
   vertical.
@@ -1190,7 +1197,9 @@ para recargar o mantener apretado para el menú de copiar.
 - **`logic/atras.js`** (puro): `decidir(estado, ms)` devuelve `pausa`,
   `cerrar_menu`, `volver`, `confirmar_salida` o `salir`.
   - partido: LIBRE pausa; la cruz con ✕ y el pase dirigido se cierran; la
-    PAUSA es SEGUIR; el final sale por su botón principal; el menú de tempo
+    PAUSA es SEGUIR; el final sale por su botón principal (desde la
+    revisión: el botón donde arranca el cursor, con los botones ya a la
+    vista; en el puente con el clásico, APLICAR); el menú de tempo
     (antes de empezar) vuelve sin jugar; todo lo demás (una escena, la cruz
     que hay que contestar, la Definición) pide la pausa. **Nunca sale del
     partido**: para eso está la salida de la PAUSA.
@@ -1205,7 +1214,8 @@ para recargar o mantener apretado para el menú de copiar.
   (`estadoAtras()`) y manda `"atras"` al juego; para salir no lo repone y hace
   `history.back()` (si no había a dónde volver, el próximo atrás es el del
   sistema, y un toque nuevo vuelve a poner el escalón). Con "Algo se trabó" a
-  la vista no hace nada. El aviso es DOM (`#atras-aviso`, arriba del "Girá el
+  la vista no hace nada; con el teléfono en vertical, nada de lo que es del
+  juego (revisión). El aviso es DOM (`#atras-aviso`, arriba del "Girá el
   celular"). CSS en `html,body`: `overscroll-behavior:none`,
   `touch-action:none`, `user-select:none` y `-webkit-touch-callout:none`;
   `textarea` e `input` los recuperan (el código de carrera se pega
@@ -1308,3 +1318,132 @@ La versión visible sube a `v17-1.0-l04` (index.html y sw.js, iguales).
 - Una pausa pedida durante el tutorial entra apenas se cierra el tutorial.
 - El PRECACHE de `sw.js` no tiene `foco_ui.js`, `cartas_ui.js`,
   `logic/foco.js` y otros que index.html carga: es `sw-precache` (L05).
+
+### Revisión del lote L04 (dos revisores, once hallazgos)
+
+Los once se comprobaron contra el código y, los que se ven o se oyen, en el
+navegador integrado, mudo (`silencio_dev.js` del server más el arnés del
+oído; nunca el botón de mute del juego). Los once eran reales. Cuatro venían
+repetidos por los dos revisores (las marcas en los comentarios, el atrás en
+vertical, el final del puente con el clásico y el "abrir" de la pausa
+invisible), así que quedaron siete puntos, un commit cada uno. Capturas en
+`.claude/shots/rev04_*.png`.
+
+1. **Sección 11: nombres de marcas otra vez en los comentarios de `phaser/`**
+   (commit 3411f7a). `git grep -i` de esos nombres en `phaser/` (sin `vendor`
+   ni `test`) daba 0 en la base del lote y 13 al final: la app de mensajes
+   en `sfx.js`, `index.html`, `logic/atras.js` y `match.js`, dos navegadores
+   y el sistema del teléfono en `index.html`, `atras.js` y `master.js`, y la
+   `_nota` `_atras` de `balance.json` con el aviso corto del sistema por su
+   nombre de API. Lo mismo que había limpiado la revisión de L01. Ahora:
+   "otra app", "un link en un mensaje", "el gesto atrás del teléfono",
+   "navegadores viejos", "el navegador marca como salteable", "un aviso corto
+   del sistema del teléfono". También los encabezados y mensajes de los tres
+   tests del lote y un comentario viejo de `w1_peso.test.js`. Verificado: el
+   mismo grep da solo los user agents de ejemplo de `informe.test.js` y
+   `red_de_errores.test.js`, que son datos de prueba. Son comentarios: no hay
+   pantalla.
+2. **Un atrás con el teléfono en vertical cerraba la PAUSA y al volver el
+   partido arrancaba solo** (`index.html`, commit 2cc0820). Reproducido: al
+   girar, el partido abre la PAUSA; un atrás decidía `cerrar_menu`, el
+   partido quedaba en LIBRE con `st.modo` "juego" (y sonaba "cerrar"), y al
+   volver a horizontal `g.resume()` hacía correr el reloj sin SEGUIR. Con un
+   número impar de atrás, siempre. Ahora, con `PampaPausa.retiene()`, lo que
+   es del juego (`pausa`, `cerrar_menu`, `volver`) no se manda: se repone el
+   escalón y nada más. Pasan `confirmar_salida` y `salir` del editor y la
+   intro (ver decisiones). Verificado: `atras.test.js` [3] (vertical con
+   partido, Master y editor) y [3b], de punta a punta con PampaPausa, el
+   atrás de `index.html` y `match.js` real (contra el código anterior, 7
+   asserts en rojo); en el navegador, a 360x800, cuatro `history.back()` con
+   el popstate contado y la PAUSA intacta, y a 800x360 5 s de reloj con el
+   minuto quieto y la cruz a la vista (`rev04_vertical_atras_horizontal.png`).
+3. **El "abrir" de la pausa sonaba con el "Girá el celular" a la vista**
+   (`match.js`, commit 6e4d654). En vertical el contexto de los efectos no se
+   suspende y `abrirPausa` llamaba a `ui("abrir")` de una cruz que no se ve
+   (en el registro del oído: `ui:abrir` en el mismo instante que
+   `pausarMusica(vertical)`). `abrirPausa({ callada: true })` desde
+   `alOcultar`; la pausa pedida a mano sigue sonando. Verificado:
+   `pausa_ocultar.test.js` [4] corre ahora el oyente de verdad (los renglones
+   de `create()`) y `atras.test.js` [3b]; en el navegador, vertical y
+   pestaña oculta sin "abrir", la tecla P con "abrir"
+   (`rev04_pausa_callada_al_volver.png`).
+4. **En el final del puente con el clásico, atrás y ESC iban al editor y
+   perdían la fecha** (`match.js`, commit 181aa9a). `_salidaFinal` era
+   siempre VOLVER AL MENÚ desde el pitazo; ahí la principal es ▶ APLICAR Y
+   VOLVER A LA CARRERA, la que escribe `pampa_resultado_phaser` (reproducido:
+   `irA ["editor"]`, nada escrito). Y ESC no esperaba los 700 ms. Ahora
+   `_salidaFinal` es el botón donde arranca el cursor y se pone recién cuando
+   aparecen los botones. Verificado: `pausa.test.js` [5] en los tres finales
+   (contra el código anterior, 8 asserts en rojo); en el navegador, con
+   `pampa_pedido_phaser` puesto, ESC en el pitazo no hizo nada, a los 700 ms
+   el cursor en APLICAR (`rev04_final_puente_aplicar.png`) y un ESC escribió
+   `{"fecha":3,"golesMio":2,"golesRival":1}` y volvió al clásico. El
+   localStorage del panel se respaldó antes y se restauró después.
+5. **El tema pausado y reemplazado en la pausa quedaba a mitad de camino**
+   (`sfx.js`, commit c3f50f8). Reproducido con el reproductor de verdad en
+   node: la entrada pausada a los 5 s quedaba en 5 cuando el tope de
+   `alTerminarMusica` pedía el tema del partido con la pestaña oculta, y el
+   partido siguiente la arrancaba desde el medio. `pausarMusica` anota el que
+   pausó en el lugar y `reanudarMusica` lo rebobina si el que vuelve es otro
+   (o se pidió silencio). Verificado: `pausa_ocultar.test.js` [2b] (contra el
+   anterior, 3 en rojo); en el navegador, la entrada en 5,2 s, oculta, el
+   tope pidió "partido", al volver sonó The Winning Strike con la entrada en
+   0, y el partido siguiente arrancó la entrada en 0,01 s. Es sonido: no hay
+   captura.
+6. **La pausa mostraba la ayuda de teclado en el celular** (`match.js`,
+   commit eb4ce00). Phaser crea el plugin de teclado también en el teléfono
+   (medido emulando uno: `touch` verdadero y `keyboard` presente). La misma
+   guarda que las otras ayudas: `keyboard && !device.input.touch`.
+   Verificado: `pausa.test.js` [2]; en el navegador a 740x360 con emulación
+   de teléfono, la cruz sin la línea (`rev04_pausa_celular_sin_teclado.png`).
+7. **El porqué del filtro de repetición no se cumplía en el partido**
+   (`foco_ui.js`, `balance.json`, commit 6ff2a0b). En el partido ESPACIO y
+   ENTER tienen objeto Key, y Phaser 3.80 no emite `keydown-X` para una Key
+   que ya estaba apretada (`KeyboardPlugin.update` en
+   `vendor/phaser.min.js`): esa repetición nunca llegaba al cursor. Donde sí
+   pasaba es en el Master, sin objetos Key: con el `foco_ui` de antes, un
+   ENTER sostenido en ¿EMPEZAR OTRA CARRERA? confirmaba SEGUIR. El filtro se
+   queda; cambian el comentario, la `_nota` y esta doc, y `pausa.test.js` [7]
+   lo prueba donde importa. En el navegador, en un partido de verdad: un
+   keydown de ENTER cuenta 1, dos con repeat siguen en 1, soltar y apretar
+   da 2.
+
+La versión visible sube a `v17-1.0-l04r` (index.html y sw.js, iguales).
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L04)
+
+1. **En vertical, el editor y la intro igual pueden salir con atrás.** Los
+   revisores proponían tratar el vertical como "Algo se trabó" (no hacer
+   nada); así no había forma de salir de la página sin girar el teléfono. El aviso
+   "Tocá ATRÁS otra vez para salir" es DOM y se ve arriba del "Girá el
+   celular", así que confirmar y salir no tocan nada que no se vea.
+   *Revertir:* en `AT.alAtras`, sacar las dos excepciones de
+   `d !== "salir" && d !== "confirmar_salida"`.
+2. **Atrás y ESC en el final esperan los 700 ms y son el botón del cursor en
+   los tres finales**, no solo APLICAR en el puente. Cambia la decisión 7 del
+   lote ("el atrás no espera: es un gesto"): un ESC o un atrás apretado para
+   pausar justo en el pitazo salteaba el GANASTE. *Revertir:* volver a fijar
+   `_salidaFinal` en `finDelPartido` (con `aplicar` cuando hay `_pedido`).
+3. **La pausa por "ocultar" se abre callada también con la pestaña oculta**,
+   no solo en vertical: al volver la cruz ya está abierta y no hay nada que
+   se vea abrirse. *Revertir:* que `alOcultar` reciba el motivo y pase
+   `{ callada: ev.motivo === "vertical" }`.
+4. **El tema reemplazado se rebobina al volver, no al cambiar**: si en la
+   misma pausa se vuelve a pedir el de antes, sigue desde donde estaba (lo
+   pide `pausa_ocultar.test.js` [2]). *Revertir:* rebobinar en la rama
+   `musicaEnPausa()` de `musicaTema`.
+5. **El guardián de Sección 11 no se amplió**, igual que en L01: el ítem
+   navegadores-de-redes-y-guardado necesita nombrar navegadores y el ítem
+   compartir pide un botón para la app de mensajes (ver deudas).
+6. **La versión `v17-1.0-l04r`.** *Revertir:* volver las dos a
+   `v17-1.0-l04`.
+
+### Deudas que vi y no son de este lote
+
+- El ítem `compartir` del backlog pide un "botón WhatsApp": choca con
+  Sección 11. Resolverlo en ese ítem (por ejemplo, MANDAR POR MENSAJE con la
+  hoja de compartir del sistema).
+- `atras.test.js` [3b] y `pausa_ocultar.test.js` [4] copian los oyentes de
+  `create()` cortando el texto del archivo: si esos renglones dejan de estar
+  juntos, el test lo dice ("create() tiene los oyentes … juntos"), pero hay
+  que mover el corte.

@@ -304,6 +304,8 @@ function oido() { return creados.filter(function (e) { return !e.paused && !e.mu
   var PM = require("./_partido_de_mentira.js"), E = PM.escena(), s = E.s;
   var i0 = M.indexOf("    const alOcultar = "), fin = 'this.events.once("shutdown", () => this.game.events.off("ocultar", alOcultar));';
   var i1 = M.indexOf(fin, i0);
+  assert(i0 > 0 && i1 > i0 && i1 - i0 < 2000, "create() tiene el oyente de 'ocultar' y su shutdown juntos (si se separan, mover el corte)");
+  if (!(i0 > 0 && i1 > i0)) { console.log("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }
   (new Function(M.slice(i0, i1 + fin.length))).call(s);
   s.st.modo = "juego";
   s.game.events.emit("ocultar", { motivo: "oculto" });

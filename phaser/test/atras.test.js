@@ -243,7 +243,8 @@ function mundo(opts) {
   var SRC = PM.leer("phaser/scenes/match.js").replace(/\r\n/g, "\n");
   var i0 = SRC.indexOf("    const alOcultar = "), fin = 'this.events.once("shutdown", () => this.game.events.off("atras", alAtrasDelTelefono));';
   var i1 = SRC.indexOf(fin, i0);
-  assert(i0 > 0 && i1 > i0, "create() tiene los oyentes de 'ocultar' y 'atras' juntos");
+  assert(i0 > 0 && i1 > i0, "create() tiene los oyentes de 'ocultar' y 'atras' juntos (si se separan, mover el corte)");
+  if (!(i0 > 0 && i1 > i0)) return;
   var E = PM.escena(), s = E.s;
   (new Function(SRC.slice(i0, i1 + fin.length))).call(s);   // los oyentes de verdad, con this = el partido
   s.st.modo = "juego";
