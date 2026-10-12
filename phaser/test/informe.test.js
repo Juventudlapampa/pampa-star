@@ -12,7 +12,7 @@
      [1] el informe (logic/informe.js) trae la versión y la escena, y es corto.
      [2] con un save que tiene nombre, apodo, club y amigos, NINGUNO aparece,
          aunque el mensaje del error los traiga adentro.
-     [3] las piezas: dónde (Chrome, Firefox/Safari, prefiere el código propio
+     [3] las piezas: dónde (stack con "at" y con "@", prefiere el código propio
          al motor), el estado del partido sólo con números.
      [4] window.PAMPA_VERSION de index.html es IGUAL a la VERSION de sw.js, el
          informe está en el precache, el editor muestra la versión y el
@@ -96,8 +96,8 @@ var BASE = {
 
 /* ---------- [3] LAS PIEZAS ---------- */
 (function () {
-  assert(I.lugar("TypeError: x\n    at a (http://h/phaser/scenes/match.js?v=3:10:5)") === "scenes/match.js:10:5", "Chrome, con ?v= en la ruta");
-  assert(I.lugar("avisar@http://h/phaser/scenes/match.js:5447:12\nstep@http://h/phaser/vendor/phaser.min.js:1:9") === "scenes/match.js:5447:12", "Firefox y Safari");
+  assert(I.lugar("TypeError: x\n    at a (http://h/phaser/scenes/match.js?v=3:10:5)") === "scenes/match.js:10:5", "stack con 'at', con ?v= en la ruta");
+  assert(I.lugar("avisar@http://h/phaser/scenes/match.js:5447:12\nstep@http://h/phaser/vendor/phaser.min.js:1:9") === "scenes/match.js:5447:12", "stack con '@'");
   assert(I.lugar("    at a (http://h/phaser/vendor/phaser.min.js:1:812345)\n    at b (http://h/phaser/scenes/editor.js:40:3)") === "scenes/editor.js:40:3",
     "prefiere el código del juego al motor");
   assert(I.lugar("    at a (http://h/phaser/vendor/phaser.min.js:1:812345)") === "vendor/phaser.min.js:1:812345", "si sólo está el motor, el motor");
@@ -117,7 +117,7 @@ var BASE = {
   assert(/dónde: scenes\/match\.js:812:31/.test(t2), "con el lugar del evento cuando el stack no lo trae");
   assert(/no arrancó: PampaMatch/.test(t2) && !/no bajó/.test(t2), "y nombra la clase que no arrancó (sin decir que no bajó)");
   assert(!/dónde/.test(I.armar({ version: "v1", lugar: "Rocío <b>" })), "un lugar que no tiene forma de archivo.js:línea:col no entra");
-  console.log("[3] dónde (Chrome, Firefox/Safari, motor) · estado sólo con números · scripts que no bajaron");
+  console.log("[3] dónde (stack con at y con @, motor) · estado sólo con números · scripts que no bajaron");
 })();
 
 /* ---------- [4] LA VERSIÓN, UNA SOLA, Y A LA VISTA ---------- */

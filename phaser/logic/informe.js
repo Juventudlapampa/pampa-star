@@ -6,7 +6,7 @@
    no aparecían en intro.js ni en editor.js, y la única versión del juego vivía
    adentro de sw.js, donde nadie la ve. La red de errores de index.html guarda
    el último error en pampa_ultimo_error y, en el aviso "Algo se trabó", el
-   botón COPIAR INFORME arma ESTE texto: corto, para pegar en un WhatsApp.
+   botón COPIAR INFORME arma ESTE texto: corto, para pegar en un mensaje.
 
    LO QUE NUNCA LLEVA: nombre, apodo, club, localidad ni nada del save. El
    informe no lee el save para escribir; lo lee sólo para TAPAR. El mensaje de
@@ -77,8 +77,8 @@
   }
 
   /* dónde: el primer archivo .js:línea:columna del stack, con la ruta corta.
-     Chrome: "    at PampaMatch.avisar (http://x/phaser/scenes/match.js:5447:12)"
-     Firefox y Safari: "avisar@http://x/phaser/scenes/match.js:5447:12"
+     formato con "at":  "    at PampaMatch.avisar (http://x/phaser/scenes/match.js:5447:12)"
+     formato con "@":   "avisar@http://x/phaser/scenes/match.js:5447:12"
      Se prefiere el primer renglón que NO es del motor: un error que salta
      adentro de phaser.min.js casi siempre lo provocó una escena que le pasó
      algo roto, y "vendor/phaser.min.js:1:812345" no le dice nada a nadie. */
