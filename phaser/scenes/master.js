@@ -27,6 +27,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._semEvento = undefined;
     this._semEventoResuelto = false;
     this._musicaSemanaPuesta = false;
+    /* la caja del código de carrera (DOM): si quedó abierta, se va */
+    this.cerrarCaja();
+    this._cajaGancho = false;
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -534,6 +537,210 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.scene.restart();
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 · EL CÓDIGO DE CARRERA (logic/carrera.js)
+
+     La carrera son de 10 a 37 horas y vivía solo en localStorage, sin forma
+     de sacarla ni de pasarla a otro teléfono. Ahora:
+       · en la tabla, "💾 código de carrera" la muestra como texto para
+         copiar o compartir (por mensaje, a una nota);
+       · al elegir club, "📋 PEGAR UN CÓDIGO" la trae de vuelta, con la misma
+         fecha y la misma tabla. Lo que hubiera antes queda respaldado en
+         pampa_master_v1_borrada, y un código alterado se rechaza con su
+         motivo SIN tocar nada;
+       · al crear o traer una carrera se le pide al navegador que no borre el
+         almacenamiento (navigator.storage.persist).
+     El texto se pega en una caja del DOM (un textarea): es lo único que
+     acepta "mantener apretado → pegar" en cualquier teléfono.
+     ══════════════════════════════════════════════════════════════════════ */
+  pedirQueNoSeBorre() {
+    try {
+      if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().catch(() => { });
+      }
+    } catch (e) { }
+  }
+  accesoAlCodigo(W, H) {
+    if (!window.PampaCarrera) return null;
+    /* espejo de la salida (abajo a la izquierda): el mismo tamaño y la misma
+       forma, abajo a la derecha. No compite con JUGAR. */
+    const t = this.add.text(W - 20, H - 26, "💾 código de carrera", {
+      fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5",
+      backgroundColor: "#0a1f13aa", padding: { x: 8, y: 4 }
+    }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+    t.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation();
+      const S = window.PampaSFX; if (S && S.ui) S.ui("abrir");
+      this.vistaCodigo();
+    });
+    return t;
+  }
+  vistaCodigo() {
+    const W = this.scale.width, H = this.scale.height, C = window.PampaCarrera;
+    if (!C || !this.save) { this.scene.restart(); return; }
+    const codigo = C.exportar(this.save);
+    this.vaciarVista();
+    if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
+    this.add.text(W / 2, 46, "💾 CÓDIGO DE CARRERA", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 74, "Tu carrera entera, en un texto. Guardalo en un mensaje o en una nota: si el teléfono borra el juego, o si cambiás de teléfono, lo pegás en MODO MASTER → PEGAR UN CÓDIGO y seguís desde esta fecha.", {
+      fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", align: "center", wordWrap: { width: 780 }, lineSpacing: 2 }).setOrigin(0.5, 0);
+    /* lo que lleva, con números: así se reconoce un código viejo de uno nuevo */
+    const t = this.save.temporada || {};
+    const div = (this.Ma.DIVISIONES.find(d => d.id === this.save.division) || {}).n || this.save.division;
+    this.add.rectangle(W / 2, 196, 640, 92, 0x0a1f13, 0.82).setStrokeStyle(3, 0xffd84d, 0.9);
+    this.add.text(W / 2, 166, this.save.club + " · " + div, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
+    this.add.text(W / 2, 192, "temporada " + (this.save.temporadaN | 0) + " · fecha " + ((t.fecha | 0) + 1) + " de " + ((t.fixture || []).length || "?") +
+      " · " + (this.save.titulos || []).length + " títulos", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
+    this.add.text(W / 2, 220, codigo.length.toLocaleString("es-AR") + " letras · empieza con " + codigo.slice(0, 20) + "…", {
+      fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0.5);
+    /* el resultado de copiar o compartir, con su signo (no solo color) */
+    const estado = this.add.text(W / 2, 258, "", { fontFamily: window.PF.texto, fontSize: "14px", color: "#7ee08a", align: "center", wordWrap: { width: 780 } }).setOrigin(0.5);
+    const decir = (txt) => { if (estado.scene) estado.setText(txt).setColor(/^✗/.test(txt) ? "#e3503e" : "#7ee08a"); };
+
+    const piel = (this.game.registry.get("balance") || {}).piel;
+    const puedeCompartir = typeof navigator !== "undefined" && typeof navigator.share === "function";
+    const ops = [{ t: "📋 COPIAR EL CÓDIGO", c: 0x7ee08a, cb: () => this.copiarCodigo(codigo, decir) }];
+    if (puedeCompartir) ops.push({ t: "📤 COMPARTIR", c: 0xffd84d, cb: () => this.compartirCodigo(codigo, decir) });
+    ops.push({ t: "◀ VOLVER A LA TABLA", c: 0xf6efdc, cb: () => this.scene.restart() });
+    const items = ops.map((o, i) => {
+      const y = Math.round(window.PampaPiel.yDeOpcion(i, ops.length, 52, piel));
+      return { obj: this.boton(W / 2, y, 420, o.t, o.c, o.cb), cb: o.cb };
+    });
+    if (this.grupoFoco) this.grupoFoco(items, { inicial: 0, volver: () => this.scene.restart() });
+    this.vestirPendientes && this.vestirPendientes();
+  }
+  copiarCodigo(codigo, decir) {
+    const aMano = () => {
+      const caja = this.cajaDeTexto({
+        titulo: "💾 Tu código de carrera",
+        texto: "No se pudo copiar solo. Está todo seleccionado: copialo (mantené apretado, o Ctrl+C) y guardalo donde quieras.",
+        valor: codigo, soloLectura: true,
+        botones: [{ texto: "✔ LISTO", principal: true, accion: () => this.cerrarCaja() }]
+      });
+      /* el camino viejo de copiar, por si el navegador lo deja */
+      try { if (caja && document.execCommand && document.execCommand("copy")) caja.decir("✔ Ya quedó copiado."); } catch (e) { }
+    };
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(codigo).then(() => decir("✔ Copiado. Pegalo en un mensaje o en una nota para guardarlo."), aMano);
+        return;
+      }
+    } catch (e) { }
+    aMano();
+  }
+  compartirCodigo(codigo, decir) {
+    try {
+      navigator.share({ title: "Pampa Star · código de carrera",
+        text: "Mi carrera de Pampa Star. Para seguirla: MODO MASTER → PEGAR UN CÓDIGO.\n\n" + codigo })
+        .then(() => decir("✔ Listo."), () => { });
+    } catch (e) { decir("✗ No se pudo compartir: probá con COPIAR EL CÓDIGO."); }
+  }
+  pegarCodigo() {
+    this.cajaDeTexto({
+      titulo: "📋 PEGAR UN CÓDIGO DE CARRERA",
+      texto: "Pegá acá el código que guardaste (empieza con PAMPA1.). La carrera sigue en la fecha en que lo copiaste.",
+      valor: "", soloLectura: false,
+      botones: [
+        { texto: "▶ SEGUIR ESA CARRERA", principal: true, accion: (valor, decir) => {
+          const r = window.PampaCarrera.importar(valor, { ids: this.idsDeDivisiones(), saneo: this.opcionesDeSaneo() });
+          /* un código que no sirve se dice, y no se toca nada */
+          if (!r.ok) { decir("✗ " + r.error); return; }
+          this.cerrarCaja();
+          this.importarCarrera(r.save);
+        } },
+        { texto: "✕ CANCELAR", accion: () => this.cerrarCaja() }
+      ]
+    });
+  }
+  importarCarrera(save) {
+    try {
+      /* la red, como en borrarCarrera: lo que hubiera se guarda antes */
+      const viejo = localStorage.getItem("pampa_master_v1");
+      if (viejo) localStorage.setItem("pampa_master_v1_borrada", viejo);
+    } catch (e) { }
+    this.save = save;
+    this.guardar();
+    this.pedirQueNoSeBorre();
+    this.game.registry.set("masterPartido", null);
+    this.game.registry.set("masterResultado", null);
+    this.game.registry.set("carreraPendiente", null);
+    this.scene.restart();
+  }
+  /* la caja de texto, en el DOM (estilos en index.html, #cajacodigo) */
+  cajaDeTexto(o) {
+    this.cerrarCaja();
+    if (typeof document === "undefined" || !document.body) return null;
+    const kb = this.input && this.input.keyboard;
+    if (kb) kb.enabled = false;
+    const fondo = document.createElement("div");
+    fondo.id = "cajacodigo";
+    fondo.setAttribute("role", "dialog");
+    fondo.setAttribute("aria-modal", "true");
+    const caja = document.createElement("div");
+    caja.className = "caja";
+    const h = document.createElement("h1");
+    h.textContent = o.titulo;
+    const p = document.createElement("p");
+    p.textContent = o.texto;
+    const ta = document.createElement("textarea");
+    ta.value = o.valor || "";
+    ta.readOnly = !!o.soloLectura;
+    ta.spellcheck = false;
+    ta.setAttribute("autocapitalize", "off");
+    ta.setAttribute("autocomplete", "off");
+    ta.setAttribute("aria-label", o.titulo);
+    const msg = document.createElement("p");
+    msg.className = "msg";
+    msg.setAttribute("role", "alert");
+    const decir = (t) => { msg.textContent = t || ""; msg.className = "msg" + (/^✗/.test(t || "") ? " mal" : ""); };
+    const fila = document.createElement("div");
+    fila.className = "botones";
+    (o.botones || []).forEach((b) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.textContent = b.texto;
+      if (b.principal) el.className = "prim";
+      el.addEventListener("click", () => b.accion(ta.value, decir));
+      fila.appendChild(el);
+    });
+    caja.appendChild(h); caja.appendChild(p); caja.appendChild(ta); caja.appendChild(msg); caja.appendChild(fila);
+    fondo.appendChild(caja);
+    /* las teclas son de la caja: Phaser escucha en window, y un Enter o un
+       espacio tipeados acá movían el cursor de la pantalla de atrás */
+    ["keydown", "keyup", "keypress"].forEach((t) => fondo.addEventListener(t, (e) => {
+      e.stopPropagation();
+      if (t === "keydown" && e.key === "Escape") this.cerrarCaja();
+    }));
+    /* Y LOS TOQUES TAMBIÉN. Phaser escucha mousedown y touchstart en window
+       (para los que caen fuera del lienzo) y les hace el hit test con la
+       posición: verificado con un clic de verdad en el navegador, tocar
+       "SEGUIR ESA CARRERA" apretaba también ARRANCAR EN LA PRIMERA B, que
+       estaba debajo, y se iba al editor. Se cortan en la caja, y además la
+       entrada de la escena se apaga mientras la caja está abierta. */
+    ["mousedown", "mouseup", "touchstart", "touchend", "touchmove", "pointerdown", "pointerup", "wheel"]
+      .forEach((t) => fondo.addEventListener(t, (e) => e.stopPropagation()));
+    if (this.input) this.input.enabled = false;
+    document.body.appendChild(fondo);
+    try { ta.focus(); if (o.soloLectura) ta.select(); } catch (e) { }
+    this._caja = { el: fondo, ta, decir };
+    /* si la escena se apaga con la caja abierta (VOLVER AL MENÚ del aviso de
+       error, por ejemplo), la caja se va con ella. Un gancho por vida de la
+       escena, como el del cursor. */
+    if (!this._cajaGancho) {
+      this._cajaGancho = true;
+      this.events.once("shutdown", () => { this._cajaGancho = false; this.cerrarCaja(); });
+    }
+    return this._caja;
+  }
+  cerrarCaja() {
+    const c = this._caja;
+    if (c && c.el && c.el.parentNode) c.el.parentNode.removeChild(c.el);
+    this._caja = null;
+    if (this.input) this.input.enabled = true;
+    const kb = this.input && this.input.keyboard;
+    if (kb) kb.enabled = true;
+  }
+
   vistaElegir() {
     const W = this.scale.width, H = this.scale.height;
     this.add.text(W / 2, 26, "🏆 MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
@@ -614,6 +821,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         })
       };
       this.guardar();
+      /* tanda 1.0: que el navegador no la borre por falta de uso */
+      this.pedirQueNoSeBorre();
       this.scene.restart();
     };
     this.boton(W / 2, H - 156, 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id));
@@ -632,7 +841,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.boton(W / 2, H - 100, 480, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id));
       this.add.text(W / 2, H - 72, "el save del clásico queda RESPALDADO (pampa_star_v1_backup_pre_v7) y no se toca", { fontFamily: window.PF.texto, fontSize: "10px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
     }
-    this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
+    /* tanda 1.0: el código de carrera se pega acá, donde se empieza. Va al
+       lado de VOLVER, del mismo tamaño: es la otra forma de entrar */
+    if (window.PampaCarrera) {
+      this.boton(W / 2 - 160, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
+      this.boton(W / 2 + 160, H - 40, 300, "📋 PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo());
+    } else {
+      this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
+    }
   }
   /* ══════════════════════════════════════════════════════════════════════
      ¿ES EL CLÁSICO?
@@ -1796,6 +2012,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       }
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
       this.salidaDeLaCarrera(W, H);
+      this.accesoAlCodigo(W, H);
     } else {
       /* FIN DE TEMPORADA: el veredicto de la escalera */
       const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
@@ -1827,6 +2044,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       });
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
       this.salidaDeLaCarrera(W, H);
+      this.accesoAlCodigo(W, H);
     }
   }
 };

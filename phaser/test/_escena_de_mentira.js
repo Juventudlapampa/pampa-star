@@ -214,6 +214,8 @@ function armar(opts) {
 
     /* ---- lo que hace quien juega ---- */
     s.tocar = function (x, y) {
+      /* con la entrada de la escena apagada, Phaser no procesa toques */
+      if (input.enabled === false) return null;
       var vivos = input._list.filter(function (o) { return o.input && o.input.enabled && o.scene; });
       var tocados = vivos.filter(function (o) {
         var ox = o.parentContainer ? o.parentContainer.x : 0, oy = o.parentContainer ? o.parentContainer.y : 0;
