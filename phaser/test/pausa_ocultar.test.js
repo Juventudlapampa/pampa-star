@@ -25,7 +25,8 @@
          de mentira: vertical → game.pause() + música + aviso "ocultar" al
          juego; horizontal → game.resume(), salvo que el aviso "Algo se
          trabó" lo tenga parado.
-     [4] el partido escucha "ocultar" y abre su PAUSA si estaba en LIBRE.
+     [4] el partido escucha "ocultar" y abre su PAUSA si estaba en LIBRE,
+         callada (revisión L04: la cruz no se ve, el "abrir" no suena).
 
    Corré:  node phaser/test/pausa_ocultar.test.js
    ========================================================================== */
@@ -257,18 +258,25 @@ function oido() { return creados.filter(function (e) { return !e.paused && !e.mu
   var M = leer("phaser/scenes/match.js").replace(/\r\n/g, "\n");
   var cre = M.slice(M.indexOf("  create() {"));
   cre = cre.slice(0, cre.indexOf("\n  }\n"));
-  assert(/const alOcultar = \(\) => \{ if \(this\.estado === "LIBRE"\) this\.abrirPausa\(\); \};/.test(cre),
-    "create() tiene un oyente que abre la PAUSA si el reloj corría (LIBRE)");
+  assert(/const alOcultar = \(\) => \{ if \(this\.estado === "LIBRE"\) this\.abrirPausa\(\{ callada: true \}\); \};/.test(cre),
+    "create() tiene un oyente que abre la PAUSA, callada, si el reloj corría (LIBRE)");
   assert(/this\.game\.events\.on\("ocultar", alOcultar\)/.test(cre), "colgado del evento \"ocultar\" del juego");
   assert(/this\.events\.once\("shutdown", \(\) => this\.game\.events\.off\("ocultar", alOcultar\)\)/.test(cre),
     "y se descuelga con el shutdown: el emisor del juego sobrevive a la escena (si no, se apilan)");
-  /* corriendo: el mismo oyente sobre el partido de mentira */
+  /* corriendo: el oyente de VERDAD (los tres renglones de create(), con
+     this = el partido de mentira) */
   var PM = require("./_partido_de_mentira.js"), E = PM.escena(), s = E.s;
+  var i0 = M.indexOf("    const alOcultar = "), fin = 'this.events.once("shutdown", () => this.game.events.off("ocultar", alOcultar));';
+  var i1 = M.indexOf(fin, i0);
+  (new Function(M.slice(i0, i1 + fin.length))).call(s);
   s.st.modo = "juego";
-  var alOcultar = function () { if (s.estado === "LIBRE") s.abrirPausa(); };
-  s.game.events.on("ocultar", alOcultar);
   s.game.events.emit("ocultar", { motivo: "oculto" });
   assert(s.estado === "PAUSA" && s.st.modo === "congelado", "con el reloj corriendo, irse a otra app abre la PAUSA");
+  /* REVISIÓN L04 · la partitura: en vertical el contexto de los efectos no
+     se suspende, y el "abrir" sonaba con el "Girá el celular" a la vista */
+  assert(E.ui.indexOf("abrir") < 0, "SÍNTOMA: la PAUSA que abre 'ocultar' suena 'abrir' con la cruz sin verse (" + E.ui.join(",") + ")");
+  var C = PM.escena(); C.s.st.modo = "juego"; C.s.pedirPausa();
+  assert(C.ui.indexOf("abrir") >= 0, "control: la PAUSA pedida a mano (⏸, P, atrás) sí suena 'abrir'");
   var min = s.st.minuto;
   for (var k = 0; k < 33; k++) s.update(k * 300, 300);   // 10 s de cuadros
   assert(s.st.minuto === min, "y 10 s después el minuto no avanzó (" + min + " → " + s.st.minuto + ")");

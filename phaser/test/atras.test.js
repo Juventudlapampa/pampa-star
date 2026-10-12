@@ -275,6 +275,7 @@ function mundo(opts) {
 
   girar(true);
   assert(s.estado === "PAUSA" && juego.pausado, "control: girar a vertical abre la PAUSA y pausa el juego (" + s.estado + ")");
+  assert(E.ui.indexOf("abrir") < 0, "y la abre callada: la cruz no se ve (" + E.ui.join(",") + ")");
   var uiAntes = E.ui.length;
   atras();
   assert(s.estado === "PAUSA" && s.st.modo === "congelado", "SÍNTOMA: un atrás en vertical cerró la PAUSA sin que se viera (" + s.estado + ", " + s.st.modo + ")");

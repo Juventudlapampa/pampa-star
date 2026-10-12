@@ -527,8 +527,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        congelado con el juego entero —pestaña oculta: sin cuadros; vertical:
        game.pause()— y sigue al volver, con la persona mirando; una pausa
        pedida acá saltaría después, ya sin motivo. El emisor del juego
-       sobrevive a la escena: el oyente se va con su shutdown. */
-    const alOcultar = () => { if (this.estado === "LIBRE") this.abrirPausa(); };
+       sobrevive a la escena: el oyente se va con su shutdown.
+       Se abre CALLADA (revisión L04): en vertical el contexto de los efectos
+       no se suspende y el "abrir" sonaba con el "Girá el celular" a la vista,
+       de una cruz que no se ve. Al volver la cruz ya está abierta: no hay
+       nada que suene "abrirse" (la partitura: el sonido, cuando se ve). */
+    const alOcultar = () => { if (this.estado === "LIBRE") this.abrirPausa({ callada: true }); };
     this.game.events.on("ocultar", alOcultar);
     this.events.once("shutdown", () => this.game.events.off("ocultar", alOcultar));
     /* L04 · EL ATRÁS DEL TELÉFONO: index.html ya decidió con logic/atras.js
@@ -5278,7 +5282,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     return false;
   }
-  abrirPausa() {
+  abrirPausa(opciones) {
     if (!this.st || this.estado !== "LIBRE") return false;
     this._pausaPedida = false;
     this._pausaModo = this.st.modo;
@@ -5336,7 +5340,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     /* sin `volver`: el ESC lo atiende el keydown-ESC del partido (ver create) */
     if (this.grupoFoco) this.grupoFoco(items, { inicial: 0 });
-    const S = this.SFX; if (S && S.ui) S.ui("abrir");
+    /* callada: la abrió el giro o la otra app, con la cruz sin verse (alOcultar) */
+    const S = this.SFX; if (S && S.ui && !(opciones && opciones.callada)) S.ui("abrir");
     this.selloMenu();
     return true;
   }
