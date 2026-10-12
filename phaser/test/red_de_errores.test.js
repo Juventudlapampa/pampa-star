@@ -98,7 +98,9 @@ function entorno() {
         id: id, hidden: id === "trabado" || id === "tb-informe", textContent: "", value: "", hijos: [], ls: {},
         addEventListener: function (t, f) { (this.ls[t] = this.ls[t] || []).push(f); },
         appendChild: function (c) { this.hijos.push(c); },
-        focus: function () { env.foco = id; }, select: function () { },
+        focus: function () { env.foco = id; },
+        /* como el navegador: select() lleva el texto al final de la selección */
+        select: function () { this.scrollTop = 999; }, scrollTop: 0,
         click: function () { (this.ls.click || []).forEach(function (f) { f({}); }); }
       };
     }
@@ -314,6 +316,12 @@ function juegoDeMentira(env) {
   env.el("tb-copiar").click();
   var txt = env.el("tb-informe").value;
   assert(!env.el("tb-informe").hidden && txt.length > 0, "sin navigator.clipboard, el informe queda a la vista para copiar a mano");
+  assert(env.el("tb-informe").scrollTop === 0,
+    "SÍNTOMA DEL INFORME AL REVÉS: después de select() el informe se muestra desde su primer renglón (versión, escena, error), no desde el final");
+  var mBaja = HTML.match(/@media \(max-height:\s*(\d+)px\)\s*\{([\s\S]*?)\n  \}/);
+  assert(mBaja && +mBaja[1] >= 360 && /#trabado textarea\{[^}]*height/.test(mBaja[2]),
+    "a 360 px de alto (celular apaisado) la caja aprieta sus aires para que entren el título y el principio del informe");
+  assert(mBaja && !/min-height/.test(mBaja[2]), "y los botones no se achican: siguen de 48 px de alto");
   assert(txt.indexOf("versión: " + env.win.PAMPA_VERSION) >= 0 && /escena: match/.test(txt), "el informe trae la versión y la escena");
   ["Rocío", "Benítez", "Pato", "Halcones"].forEach(function (s) {
     assert(txt.indexOf(s) < 0, "el informe NO lleva '" + s + "' (dato del save)");

@@ -51,6 +51,18 @@
     background:#06120b;color:#F6EFDC;border:2px solid #9FB3A5;border-radius:6px;padding:6px;resize:none;}
   #trabado .ver{font-size:13px;color:#9FB3A5;margin-top:8px;}
   #trabado a{color:#FFD84D;}
+  /* celular apaisado (800x360 y menos): con el informe abierto la caja no
+     entraba y el título quedaba fuera de la vista (revisión del lote). Se
+     aprietan los aires, no los botones: siguen de 48 px de alto. */
+  @media (max-height:420px){
+    #trabado{padding:6px;}
+    #trabado .caja{padding:8px 14px;}
+    #trabado h1{margin:0 0 2px;font-size:20px;}
+    #trabado p{margin:3px 0;}
+    #trabado .botones{gap:8px;margin:6px 0 2px;}
+    #trabado textarea{height:6.6em;margin-top:4px;}
+    #trabado .ver{margin-top:4px;}
+  }
 </style>
 </head>
 <body>
@@ -435,8 +447,22 @@
          contestar NUNCA (visto en un navegador sin ventana: la promesa queda colgada,
          ni resuelve ni rechaza) y el botón parecía no hacer nada. Si contesta
          que sí, la ayuda pasa a "ya está copiado". */
-      try { ta.focus(); ta.select(); } catch (e) { }
+      try { ta.focus({ preventScroll: true }); } catch (e) { try { ta.focus(); } catch (e2) { } }
+      try { ta.select(); } catch (e) { }
       $("tb-ayuda").textContent = "Copiá este texto y mandalo" + destino + ".";
+      /* REVISIÓN DEL LOTE: select() lleva el texto al FINAL de la selección.
+         A 800x360 se veían sólo "pantalla", "instalada", "navegador" y
+         "hora": las líneas que importan (versión, escena y la de "error:", la
+         única que podría traer un dato privado) quedaban fuera de la vista, y
+         la caja, que no entraba, escondía el título (visto en captura). El
+         informe se muestra desde su primer renglón; la caja entra entera a
+         800x360 con los aires apretados (el @media de arriba), y en pantallas
+         más bajas el navegador la corre hasta dejar el informe a la vista.
+         Otra vez en el cuadro siguiente: hay navegadores que aplican el
+         scroll del select() recién al acomodar la página. */
+      var alPrincipio = function () { try { ta.scrollTop = 0; } catch (e) { } };
+      alPrincipio();
+      setTimeout(alPrincipio, 0);
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(txt).then(function () {
