@@ -245,13 +245,21 @@ async function leerRes(res) {
   return { status: res.status, bytes: buf.length, buf: buf, texto: buf.toString("utf8"), headers: h };
 }
 
-/* el texto de sw.js con una VERSION y/o una huella cambiadas (un "deploy") */
+/* el texto de sw.js con una VERSION y/o una huella cambiadas (un "deploy").
+   huellas: [ruta] cambia un carácter de la huella (el archivo del server
+   ya no coincide: como una copia vieja); huellaNueva: { ruta: "n-hex" } la
+   pone exacta (para un asset retocado de verdad, con sus bytes nuevos en
+   red.cambios: desde la revisión L05 el worker no guarda lo que no
+   coincide con la huella) */
 function variante(texto, cambios) {
   var t = texto;
   if (cambios.version) t = t.replace(/const VERSION = "[^"]+";/, 'const VERSION = "' + cambios.version + '";');
+  function reRuta(ruta) { return new RegExp('("' + ruta.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + '": ")(\\d+)-([0-9a-f]+)"'); }
   (cambios.huellas || []).forEach(function (ruta) {
-    var re = new RegExp('("' + ruta.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + '": ")(\\d+)-([0-9a-f]+)"');
-    t = t.replace(re, function (m, a, n, h) { return a + n + "-" + (h.slice(0, -1) + (h.slice(-1) === "0" ? "1" : "0")) + '"'; });
+    t = t.replace(reRuta(ruta), function (m, a, n, h) { return a + n + "-" + (h.slice(0, -1) + (h.slice(-1) === "0" ? "1" : "0")) + '"'; });
+  });
+  Object.keys(cambios.huellaNueva || {}).forEach(function (ruta) {
+    t = t.replace(reRuta(ruta), function (m, a) { return a + cambios.huellaNueva[ruta] + '"'; });
   });
   if (cambios.precacheExtra) t = t.replace('const PRECACHE = [', 'const PRECACHE = [\n  ' + cambios.precacheExtra.map(JSON.stringify).join(", ") + ",");
   return t;

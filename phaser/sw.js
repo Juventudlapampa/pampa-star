@@ -310,9 +310,24 @@ function avisarATodos(datos) {
 function pedirAsset(ruta, modo) {
   return fetch(new Request(RAIZ + ruta, { cache: modo || "no-cache" }));
 }
+/* ¿lo que devolvió la red ES el archivo de la huella de ahora? (revisión
+   L05) El "no-cache" de pedirAsset esquiva la caché HTTP del navegador,
+   pero no la copia vieja que puede tener la CDN del hosting mientras se
+   propaga un deploy. responderAsset e instalar guardaban sin mirar (calentar
+   y la mudanza sí miraban), y esa copia quedaba con la clave de la huella
+   NUEVA hasta el próximo cambio de ese asset. Un asset sin huella todavía
+   ("?h=sin") no tiene contra qué comparar: se guarda y se barre solo. */
+async function esLaDeAhora(ruta, res) {
+  return !tiene(ASSETS_HUELLA, ruta) || (await huellaDe(res)) === ASSETS_HUELLA[ruta];
+}
+/* al instalar, una copia con otra huella cuenta como NO bajada: con el
+   reintento de conReintento, si sigue vieja la instalación atómica no
+   termina y el worker anterior sigue con su caché (el navegador vuelve a
+   probar en la próxima visita) */
 async function bajarAsset(ruta) {
   const res = await pedirAsset(ruta);
   if (!res.ok || res.status !== 200) throw new Error("asset " + res.status + " " + ruta);
+  if (!(await esLaDeAhora(ruta, res))) throw new Error("asset con otra huella (¿una copia vieja de la CDN?) " + ruta);
   return res;
 }
 
@@ -374,8 +389,12 @@ async function responderAsset(e, ruta) {
     const soltar = () => { if (enVuelo.get(clave) === vuelo) enVuelo.delete(clave); terminar(); };
     try { res = await pedirAsset(ruta); } catch (err) { soltar(); throw err; }
     if (res.ok && res.status === 200) {
+      /* se sirve igual (es lo que hay), pero con otra huella no se guarda:
+         el pedido siguiente vuelve a la red */
       const copia = res.clone();
-      e.waitUntil(cache.put(clave, copia).catch(() => { }).then(soltar));
+      e.waitUntil(esLaDeAhora(ruta, copia)
+        .then((si) => (si ? cache.put(clave, copia) : null))
+        .catch(() => { }).then(soltar));
     } else soltar();
   }
   const rango = e.request.headers.get("range");

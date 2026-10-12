@@ -39,7 +39,12 @@
          lo que la página bajó por fuera (logic/carga.js), y el renglón de
          ?perf=1;
      [9] un archivo nuevo de assets/ sin huella todavía se sirve, y se barre
-         en la activación siguiente (no queda colgado para siempre).
+         en la activación siguiente (no queda colgado para siempre);
+     [10] (revisión L05) una copia vieja que devuelve la red (la CDN del
+         hosting mientras se propaga un deploy) se sirve pero NO se guarda
+         con la huella nueva; al instalar cuenta como no bajada (frena la
+         instalación atómica, salvo que el reintento traiga la buena); un
+         tema viejo del precache no entra y la instalación sigue.
    Con PAMPA_SW=<ruta> corre contra otro sw.js (el de antes falla [1], [3],
    [5] y [6]).
 
@@ -120,7 +125,13 @@ var esAssetRuta = function (r) { return /^assets\//.test(r) || /^phaser\/vendor\
 
   /* ---------- [4] v3 con la huella de UNA pose cambiada ---------- */
   red.limpiar();
-  var W3 = M.cargar(M.variante(SW, { version: "v-prueba-3", huellas: [POSES[1]] }), mundo);
+  /* la pose retocada DE VERDAD: bytes nuevos en el server y su huella en
+     sw.js (desde la revisión L05 el worker no guarda lo que no coincide con
+     la huella, así que cambiar solo la huella ya no alcanza para simularlo) */
+  var retocada = Buffer.concat([fs.readFileSync(path.join(RAIZ, POSES[1])), Buffer.from("retoque")]);
+  red.cambios[POSES[1]] = retocada;
+  var huellaRetocada = {}; huellaRetocada[POSES[1]] = require("./_huella.js").huellaDeBuffer(retocada);
+  var W3 = M.cargar(M.variante(SW, { version: "v-prueba-3", huellaNueva: huellaRetocada }), mundo);
   var H3 = W3.leer("typeof ASSETS_HUELLA !== 'undefined' ? ASSETS_HUELLA : {}");
   await W3.instalar(); await W3.activar();
   var claves = caches.claves("pampa-assets");
@@ -225,6 +236,55 @@ var esAssetRuta = function (r) { return /^assets\//.test(r) || /^phaser\/vendor\
   await W9.activar();
   assert(c9.claves("pampa-assets").indexOf("assets/ui/nuevo.webp?h=sin") < 0, "y la activación siguiente lo barre");
   console.log("[9] asset sin huella: se sirve y se barre en la activación siguiente");
+
+  /* ---------- [10] una copia vieja de la red no se guarda con la huella nueva ---------- */
+  /* REVISIÓN L05: responderAsset e instalar guardaban lo que devolvía la red
+     sin calcular su huella (calentar y la mudanza sí la calculaban). El
+     "no-cache" no cubre la copia vieja que puede tener la CDN del hosting
+     mientras se propaga un deploy: esa copia quedaba con la clave de la
+     huella NUEVA y nada la volvía a revisar hasta el próximo cambio de ese
+     asset (el mismo síntoma de d6c88ae, en una ventana chica). */
+  var c10 = M.crearCaches(), red10 = M.crearRed();
+  var W10 = M.cargar(SW, { caches: c10, red: red10, reloj: M.crearReloj(), mensajes: [] });
+  await W10.instalar(); await W10.activar();
+  var vieja10 = "assets/poses/pose_volea.webp";
+  red10.cambios[vieja10] = Buffer.from("la pose de antes del deploy, todavía en la CDN");
+  ev = W10.pedir(vieja10);
+  var r10 = await M.leerRes(await ev.res); await ev.lista();
+  assert(r10.status === 200 && r10.texto === "la pose de antes del deploy, todavía en la CDN", "la copia vieja se sirve (es lo que hay)");
+  assert(c10.claves("pampa-assets").indexOf(vieja10 + "?h=" + hDe(vieja10)) < 0,
+    "SÍNTOMA DE LA COPIA VIEJA CON CLAVE NUEVA: no se guarda con la huella de ahora (hay: " + c10.claves("pampa-assets").filter(function (k) { return k.indexOf("pose_volea") >= 0; }).join(", ") + ")");
+  delete red10.cambios[vieja10];
+  red10.limpiar();
+  ev = W10.pedir(vieja10); await ev.res; await ev.lista();
+  assert(red10.pedidosA(/pose_volea/).length === 1 && c10.claves("pampa-assets").indexOf(vieja10 + "?h=" + hDe(vieja10)) >= 0,
+    "el pedido siguiente vuelve a la red y, ya con la buena, la guarda");
+  /* al instalar: un asset del PRECACHE con otra huella cuenta como no bajado */
+  var fuente = "assets/fonts/VT323-Regular.ttf";
+  var c10b = M.crearCaches(), red10b = M.crearRed();
+  red10b.cambios[fuente] = Buffer.from("la tipografía de antes");
+  var W10b = M.cargar(SW, { caches: c10b, red: red10b, reloj: M.crearReloj(), mensajes: [] });
+  var ins10 = await W10b.instalar();
+  assert(!ins10.ok && !W10b.estado.skipWaiting && c10b.claves("pampa-assets").every(function (k) { return k.indexOf("VT323") < 0; }),
+    "al instalar, una tipografía con otra huella (dos veces: con el reintento) frena la instalación atómica y no se guarda");
+  var c10c = M.crearCaches(), red10c = M.crearRed(), vez = 0;
+  Object.defineProperty(red10c.cambios, fuente, { configurable: true, enumerable: true,
+    get: function () { return vez++ === 0 ? Buffer.from("la tipografía de antes") : undefined; } });
+  var W10c = M.cargar(SW, { caches: c10c, red: red10c, reloj: M.crearReloj(), mensajes: [] });
+  var ins10c = await W10c.instalar();
+  assert(ins10c.ok && c10c.claves("pampa-assets").indexOf(fuente + "?h=" + hDe(fuente)) >= 0 &&
+    c10c.entrada("pampa-assets", fuente + "?h=" + hDe(fuente)).buf.byteLength === fs.statSync(path.join(RAIZ, fuente)).size,
+    "si la copia vieja era de un momento, el reintento trae la buena, se instala y se guarda la de verdad");
+  /* la música del precache, igual (a lo que dé: la instalación sigue) */
+  var c10d = M.crearCaches(), red10d = M.crearRed();
+  var temasPre = temas.map(function (k) { return k.split("?")[0]; });
+  red10d.cambios[temasPre[0]] = Buffer.from("un tema de antes");
+  var W10d = M.cargar(SW, { caches: c10d, red: red10d, reloj: M.crearReloj(), mensajes: [] });
+  var ins10d = await W10d.instalar();
+  assert(ins10d.ok && c10d.claves("pampa-assets").every(function (k) { return k.indexOf(temasPre[0]) < 0; }) &&
+    c10d.claves("pampa-assets").filter(function (k) { return /^assets\/musica\//.test(k); }).length === 2,
+    "un tema del precache con otra huella no se guarda, y la instalación sigue con los otros dos");
+  console.log("[10] copia vieja de la red: se sirve pero no se guarda con la huella nueva; al instalar frena (o el reintento trae la buena); un tema viejo, afuera");
 
   console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
   process.exit(mal === 0 ? 0 : 1);
