@@ -132,7 +132,7 @@ function juegoDeMentira(env) {
   var g = Object.create(Game.prototype);
   var match = { sys: { settings: { key: "match", status: 5 } }, estado: "LIBRE", st: { tiempo: 2, minuto: 85, golesMio: 1, golesRival: 0 } };
   var editor = { sys: { settings: { key: "editor", status: 8 } } };
-  g.romper = true; g.pasos = 0; g.isPaused = false; g.pausas = 0;
+  g.romper = true; g.pasos = 0; g.isPaused = false; g.pausas = 0; g.isRunning = true;
   g.pause = function () { this.isPaused = true; this.pausas++; };
   g.resume = function () { this.isPaused = false; };
   g.loop = { running: true, dormidas: 0, sleep: function () { this.running = false; this.dormidas++; }, wake: function () { this.running = true; } };
@@ -140,7 +140,8 @@ function juegoDeMentira(env) {
   g.scene = {
     getScenes: function (act) { return act ? [match].filter(function (s) { return s.sys.settings.status === 5; }) : [editor, match]; },
     getScene: function (k) { return k === "match" ? match : editor; },
-    stop: function (k) { g.paradas.push(k); }, start: function (k) { g.arrancadas.push(k); }
+    stop: function (k) { g.paradas.push(k); g.scene.getScene(k).sys.settings.status = 8; },
+    start: function (k) { g.arrancadas.push(k); g.scene.getScene(k).sys.settings.status = 5; }
   };
   g.registry = { get: function () { return null; }, remove: function (k) { g.sacados.push(k); } };
   env.win.PAMPA_GAME = g;
@@ -190,7 +191,7 @@ function juegoDeMentira(env) {
   assert(g.loop.running, "VOLVER AL MENÚ despierta el loop: el juego vuelve a pedir cuadros");
   assert(!g.isPaused, "y lo despausa");
   assert(g.paradas.indexOf("match") >= 0 && g.arrancadas.indexOf("editor") >= 0, "frena el partido y arranca el editor");
-  assert(g.paradas.indexOf("editor") < 0, "el editor no se frena (se arranca)");
+  assert(g.paradas.indexOf("editor") < 0, "el editor estaba apagado (SHUTDOWN): no hay nada que frenar, se arranca");
   assert(g.sacados.indexOf("masterPartido") >= 0, "la fecha del Master no queda colgada en el registry");
   assert(env.store.pampa_master_v1 === saveAntes, "el save NO se toca");
   assert(env.el("trabado").hidden, "el aviso se va");
@@ -276,6 +277,126 @@ function juegoDeMentira(env) {
     console.log("[4] COPIAR INFORME: con y sin portapapeles · versión y escena · sin nombre ni club");
   });
 })().then(function () {
+  parte5();
   console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
   process.exit(mal === 0 ? 0 : 1);
 });
+
+/* ---------- [5] VOLVER AL MENÚ CONTRA EL SceneManager DE PHASER 3.80 ----------
+   Lo que encontró la revisión del lote, medido después en el navegador con el
+   Phaser de verdad: el juego de mentira de [2] no tiene cola ni estados de
+   escena, así que no podía ver que
+     · processQueue es `for (i...) this[op](...); this._queue.length = 0`: si
+       un create() tira adentro de un cambio de pantalla, la cola NO se vacía, y
+       el cuadro siguiente la vuelve a correr (editor 5→8, master 8→4: volvía a
+       la escena rota, no al menú);
+     · SceneManager.start hace `if (status >= START && status <= CREATING)
+       return this`: con el editor roto en CREATING, VOLVER AL MENÚ escondía el
+       aviso y no pasaba nada (editor a medio armar, sin aviso);
+     · si el juego nunca arrancó (isRunning false), loop.wake() sólo prende un
+       requestAnimationFrame vacío.
+   Este SceneManager de mentira copia esas tres semánticas de vendor/phaser.min.js. */
+function juegoConEscenas(env, rotas) {
+  var C = { PENDING: 0, INIT: 1, START: 2, LOADING: 3, CREATING: 4, RUNNING: 5, SHUTDOWN: 8 };
+  var esc = {};
+  ["intro", "editor", "master", "match"].forEach(function (k) {
+    esc[k] = { creadas: 0, sys: { settings: { key: k, status: C.INIT, active: false } } };   // agregada, nunca arrancada
+  });
+  var sm = {
+    _queue: [],
+    getScenes: function (act) {
+      var l = Object.keys(esc).map(function (k) { return esc[k]; });
+      return act ? l.filter(function (s) { return s.sys.settings.status === C.RUNNING; }) : l;
+    },
+    getScene: function (k) { return esc[k] || null; },
+    queueOp: function (op, a, b) { this._queue.push({ op: op, keyA: a, keyB: b }); },
+    /* como Phaser 3.80: si una op tira, la cola queda como estaba */
+    processQueue: function () {
+      for (var i = 0; i < this._queue.length; i++) { var s = this._queue[i]; this[s.op](s.keyA, s.keyB); }
+      this._queue.length = 0;
+    },
+    start: function (k) {
+      var s = esc[k], c = s.sys.settings;
+      if (c.status >= C.START && c.status <= C.CREATING) return this;   // como Phaser 3.80
+      c.status = C.START; c.active = true;      // Systems.start
+      c.status = C.INIT;                        // bootScene: después de init()
+      c.status = C.CREATING; s.creadas++;       // nada que bajar: create() corre acá mismo
+      if (rotas[k] > 0) { rotas[k]--; throw new TypeError(k + ".create: Cannot read properties of undefined (reading 'x')"); }
+      c.status = C.RUNNING;
+      return this;
+    },
+    stop: function (k) { var c = esc[k].sys.settings; if (c.status !== C.SHUTDOWN) { c.status = C.SHUTDOWN; c.active = false; } return this; }
+  };
+  function Game() { }
+  Game.prototype.step = function () { if (this.isPaused) return; this.scene.processQueue(); this.cuadros++; };
+  var g = Object.create(Game.prototype);
+  g.scene = sm; g.cuadros = 0; g.isPaused = false; g.isRunning = true;
+  g.pause = function () { this.isPaused = true; };
+  g.resume = function () { this.isPaused = false; };
+  g.loop = { running: true, sleep: function () { this.running = false; }, wake: function () { this.running = true; } };
+  g.registry = { get: function () { return null; }, remove: function () { } };
+  /* ScenePlugin.start desde una escena: encola el stop de sí misma y el start del destino */
+  g.irA = function (desde, hacia) { sm.queueOp("stop", desde); sm.queueOp("start", hacia); };
+  env.win.PAMPA_GAME = g;
+  env.R.arrancado = true;
+  env.R.envolver({ Game: Game });
+  return { g: g, esc: esc, C: C };
+}
+function parte5() {
+  function estados(J) { return Object.keys(J.esc).map(function (k) { return k + ":" + J.esc[k].sys.settings.status; }).join(" "); }
+
+  /* A · el create del Master tira en el cambio de pantalla (la cola vieja) */
+  var env = entorno(), R = env.R, J = juegoConEscenas(env, { master: 99 }), g = J.g;
+  g.scene.start("editor"); g.step(0, 16);
+  g.irA("editor", "master");
+  g.step(0, 16);
+  assert(!env.el("trabado").hidden && J.esc.master.sys.settings.status === J.C.CREATING,
+    "el create del Master tira en el cambio de pantalla: aviso a la vista y Master a medio armar (" + estados(J) + ")");
+  assert(g.scene._queue.length === 2, "(la semántica de Phaser 3.80: la cola del cambio de pantalla quedó sin vaciar)");
+  assert(env.el("tb-seguir").hidden, "con una escena a medio armar no se ofrece SEGUIR IGUAL: esa pantalla quedaría congelada");
+  assert(!env.el("tb-menu").hidden, "VOLVER AL MENÚ sí se ofrece");
+  var errAntes = R.errores;
+  env.el("tb-menu").click();
+  for (var i = 0; i < 10; i++) g.step(0, 16);
+  assert(J.esc.editor.sys.settings.status === J.C.RUNNING,
+    "SÍNTOMA DE LA COLA VIEJA: después de VOLVER AL MENÚ y diez cuadros el editor tiene que seguir RUNNING (" + estados(J) + ")");
+  assert(J.esc.master.sys.settings.status !== J.C.CREATING && R.errores === errAntes,
+    "y no se vuelve a la escena rota ni se repite el error (" + (R.errores - errAntes) + " errores nuevos)");
+  assert(env.el("trabado").hidden && g.cuadros >= 10, "el aviso se fue y el juego pasa cuadros");
+
+  /* B · el que tiró es el propio editor, una vez (un save raro que VOLVER AL MENÚ ya sacó) */
+  env = entorno(); R = env.R; J = juegoConEscenas(env, { editor: 1 }); g = J.g;
+  g.scene.start("master"); g.step(0, 16);
+  g.irA("master", "editor");
+  g.step(0, 16);
+  assert(J.esc.editor.sys.settings.status === J.C.CREATING && !env.el("trabado").hidden, "el create del editor tira: queda en CREATING y sale el aviso");
+  env.el("tb-menu").click();
+  assert(J.esc.editor.creadas === 2 && J.esc.editor.sys.settings.status === J.C.RUNNING,
+    "SÍNTOMA DEL EDITOR EN CREATING: VOLVER AL MENÚ tiene que frenarlo y arrancarlo de nuevo, no quedarse en el start que no hace nada (" + estados(J) + ", create x" + J.esc.editor.creadas + ")");
+  assert(env.el("trabado").hidden, "y el aviso se va porque el menú arrancó");
+
+  /* C · el editor tira siempre: el aviso vuelve, ahora sólo con RECARGAR */
+  env = entorno(); R = env.R; J = juegoConEscenas(env, { editor: 99 }); g = J.g;
+  g.scene.start("master"); g.step(0, 16);
+  g.irA("master", "editor");
+  g.step(0, 16);
+  env.el("tb-menu").click();
+  assert(!env.el("trabado").hidden, "si el menú tampoco arranca, el aviso NO desaparece en silencio");
+  assert(env.el("tb-menu").hidden && env.el("tb-seguir").hidden && !env.el("tb-recargar").hidden,
+    "y queda sólo RECARGAR (VOLVER AL MENÚ ya no lleva a ningún lado)");
+  assert(env.foco === "tb-recargar", "con el foco en RECARGAR");
+  assert(/recargar no lo toca/.test(env.el("tb-txt").textContent), "y el texto habla de recargar, no de volver al menú");
+  assert(R.menuRoto && R.ultimo && R.ultimo.origen === "menu", "el error del menú queda registrado (origen 'menu')");
+
+  /* D · el juego existe pero nunca arrancó (el init de la primera escena tiró
+     adentro de texturesReady, antes de Game.start) */
+  env = entorno(); R = env.R; J = juegoConEscenas(env, {}); g = J.g;
+  g.isRunning = false;
+  env.disparar("error", { target: env.win, message: "x", error: new TypeError("intro.init roto"), filename: "http://localhost:8123/phaser/scenes/intro.js" });
+  assert(!env.el("trabado").hidden, "un error antes de que el loop arranque muestra el aviso");
+  assert(env.el("tb-menu").hidden && env.el("tb-seguir").hidden && !env.el("tb-recargar").hidden,
+    "SÍNTOMA DEL LOOP VACÍO: sin juego andando sólo se ofrece RECARGAR (VOLVER AL MENÚ y SEGUIR IGUAL dejaban la pantalla muerta)");
+  R.volverAlMenu();
+  assert(env.recargas.n === 1, "y si igual se llama a volverAlMenu, recarga");
+  console.log("[5] contra la semántica de Phaser 3.80: cola vieja vaciada · el menú roto se frena y rearranca · si no arranca, sólo RECARGAR · sin loop, sólo RECARGAR");
+}

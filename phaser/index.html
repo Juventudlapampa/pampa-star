@@ -128,10 +128,29 @@
       faltan: [],              // scripts que no bajaron
       arrancado: false,        // hasta que existe el juego, decide arrancarCon
       dormido: false,
+      menuRoto: false,         // VOLVER AL MENÚ ya probó y el menú no arrancó: queda RECARGAR
       tipo: null               // el aviso a la vista: "trabado" | "no_bajo" | null
     };
     function $(id) { return document.getElementById(id); }
     function juego() { return window.PAMPA_GAME || null; }
+    /* los estados de escena de Phaser 3.80 (Scene CONST, en vendor/phaser.min.js) */
+    var ESC = { INIT: 1, START: 2, LOADING: 3, CREATING: 4, RUNNING: 5, SHUTDOWN: 8 };
+    /* una escena que quedó A MEDIO ARMAR: su init, su preload o su create tiró.
+       SceneManager.start → bootScene es sincrónico (init, preload y, si no hay
+       nada que bajar, create), así que en reposo una escena activa en START,
+       INIT o CREATING no está arrancando: se rompió ahí. INIT sin `active` es
+       otra cosa, la escena agregada que nunca se arrancó. LOADING sí es
+       legítimo: está esperando sus archivos. */
+    R.escenaRota = function (g) {
+      var rota = null;
+      try {
+        g.scene.getScenes(false).forEach(function (s) {
+          var c = s.sys.settings, st = c.status;
+          if (!rota && c.active && (st === ESC.INIT || st === ESC.START || st === ESC.CREATING)) rota = c.key;
+        });
+      } catch (e) { }
+      return rota;
+    };
 
     /* qué escena corre y, si es el partido, en qué momento (sólo números) */
     R.contexto = function () {
@@ -226,14 +245,28 @@
       /* un "no bajó" no se pisa con un "se trabó": el que manda es el primero */
       if (R.tipo === "no_bajo" && !noBajo) return;
       R.tipo = tipo;
+      /* qué salidas son de verdad (revisión del lote: VOLVER AL MENÚ y SEGUIR
+         IGUAL dejaban la pantalla muerta en tres casos):
+         · el juego existe pero nunca arrancó (g.isRunning false): Game.start()
+           corre en texturesReady DESPUÉS del init/preload de la primera
+           escena; si eso tiró, el loop nunca recibió el paso del juego y
+           loop.wake() sólo arranca un requestAnimationFrame vacío. Sólo RECARGAR.
+         · el menú ya no arrancó una vez (menuRoto): sólo RECARGAR.
+         · hay una escena a medio armar: SEGUIR IGUAL deja esa pantalla
+           congelada para siempre (su create no vuelve a correr), así que no
+           se ofrece. VOLVER AL MENÚ sí, porque la frena. */
+      var anda = !!g && g.isRunning !== false;
+      var puedeMenu = !noBajo && anda && !R.menuRoto;
+      var puedeSeguir = puedeMenu && !R.dormido && !R.escenaRota(g);
       $("tb-tit").textContent = noBajo ? "No terminó de bajar el juego" : "Algo se trabó";
       $("tb-txt").textContent = noBajo
         ? "La conexión está floja. Probá de nuevo cuando tengas señal."
-        : "Lo que tenías guardado sigue ahí: volver al menú no lo toca.";
-      boton("tb-menu", !noBajo && !!g);
+        : puedeMenu ? "Lo que tenías guardado sigue ahí: volver al menú no lo toca."
+          : "Lo que tenías guardado sigue ahí: recargar no lo toca.";
+      boton("tb-menu", puedeMenu);
       boton("tb-reintentar", noBajo);
       boton("tb-recargar", !noBajo);
-      boton("tb-seguir", !noBajo && !!g && !R.dormido);
+      boton("tb-seguir", puedeSeguir);
       $("tb-copiar").textContent = "📋 COPIAR INFORME";
       $("tb-informe").hidden = true;
       $("tb-ayuda").textContent = "";
@@ -253,13 +286,15 @@
       caja.hidden = false;
       /* el partido no sigue corriendo detrás del aviso */
       if (g && g.pause && !noBajo) { try { g.pause(); } catch (e) { } }
-      var prim = $(noBajo ? "tb-reintentar" : (g ? "tb-menu" : "tb-recargar"));
+      var prim = $(noBajo ? "tb-reintentar" : (puedeMenu ? "tb-menu" : "tb-recargar"));
       try { if (prim) prim.focus(); } catch (e) { }
     };
     R.ocultar = function () { var c = $("trabado"); if (c) c.hidden = true; R.tipo = null; };
     R.volverAlMenu = function () {
-      var g = juego(); if (!g) { location.reload(); return; }
+      var g = juego();
+      if (!g || g.isRunning === false || R.menuRoto) { location.reload(); return; }
       R.ocultar();
+      var sm = g.scene;
       try {
         if (g.loop && !g.loop.running) g.loop.wake();
         R.dormido = false;
@@ -268,15 +303,39 @@
            registry: si quedaba, ¡A LA CANCHA! del editor la volvía a jugar y
            el resultado se cargaba a la carrera */
         if (g.registry) g.registry.remove("masterPartido");
-        g.scene.getScenes(false).forEach(function (s) {
-          var k = s.sys.settings.key, st = s.sys.settings.status;
-          if (k !== R.menu && st > 0 && st < 8) g.scene.stop(k);   // 0 = PENDING, 8 = SHUTDOWN
+        /* LA COLA VIEJA. El processQueue de Phaser 3.80 es
+           `for (i...) this[op](keyA, keyB); this._queue.length = 0`: si un
+           create() tira adentro de un cambio de pantalla, la cola NO se vacía.
+           Y pasa en el camino normal: desde la segunda visita el Loader saltea
+           lo que ya bajó y el create corre ahí mismo, dentro de la cola. El
+           cuadro siguiente la volvía a correr: frenaba el editor recién
+           arrancado y volvía a la escena rota (medido en el navegador con el
+           create del Master roto: editor 5→8, master 8→4 y el mismo error otra
+           vez, sumando hacia loop.sleep). */
+        if (sm._queue && sm._queue.length) sm._queue.length = 0;
+        /* se frenan TODAS, el menú también: si el que se rompió es el editor,
+           queda en CREATING, y SceneManager.start hace
+           `if (status >= START && status <= CREATING) return this`. Sin este
+           stop, VOLVER AL MENÚ escondía el aviso y no pasaba nada: el editor a
+           medio armar y congelado, sin aviso y sin RECARGAR (medido). Un stop
+           que tira no frena a los demás. */
+        sm.getScenes(false).forEach(function (s) {
+          var st = s.sys.settings.status;
+          if (st > 0 && st < ESC.SHUTDOWN) {   // 0 = PENDING
+            try { sm.stop(s.sys.settings.key); } catch (e) { R.registrar(e, "menu"); }
+          }
         });
-        g.scene.start(R.menu);
+        sm.start(R.menu);
+        /* y que haya arrancado de verdad: RUNNING, o LOADING si todavía está
+           bajando lo suyo. Si su create tiró, la excepción ya cae abajo. */
+        var m = sm.getScene(R.menu), stM = m && m.sys.settings.status;
+        if (stM !== ESC.RUNNING && stM !== ESC.LOADING) throw new Error("el menú no arrancó (estado " + stM + ")");
       } catch (e) {
-        /* si ni siquiera se puede volver, lo único que queda es recargar */
+        /* ni siquiera el menú arranca: el aviso vuelve, ahora sólo con
+           RECARGAR (antes recargaba solo, sin decir nada) */
         R.registrar(e, "menu");
-        location.reload();
+        R.menuRoto = true;
+        R.mostrar("trabado");
       }
     };
     R.seguir = function () { R.ocultar(); var g = juego(); if (g && g.resume) g.resume(); };
