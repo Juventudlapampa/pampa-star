@@ -367,6 +367,12 @@ Dibujar por código tiene techo bajo: un muñequito de rectángulos parece siemp
 
 Regla de producción: **tres poses excelentes valen más que quince pobres.**
 
+**Octubre 2026: la cámara también actúa** (`docs/AUDIO_SINCRONIA_Y_TOMA.md`). La pose sigue quieta. Lo que se mueve es la cámara:
+
+- **La cámara viva**, en todas las viñetas: mientras la pose se sostiene, las figuras se acercan más que el fondo, que se corre al revés (paralaje de dos planos). Se clava en el silencio y golpea con un zoom en la revelación.
+- **La toma del remate**: la ilustración del remate va montada en una malla 3D. La cámara gira alrededor del jugador suspendido mientras la pierna sube y baja; eso sale de deformar la misma pose con dos huesos medidos (cadera y rodilla), sin dibujos nuevos. La patada suena en el contacto.
+- **Misma acción, misma animación**: toda acción resuelta tiene su viñeta, y el escalón decide solo si va rápida o entera.
+
 ## 10.3 El estilo
 
 Ilustración anime deportivo ochentoso. Cel shading con sombras duras de tres tonos. Contornos negros gruesos. Sin degradados, sin dithering, sin textura. Proporción heroica (~3,5 cabezas). Alto contraste, legible como silueta en chico.
@@ -412,6 +418,13 @@ Chiptune procedural original, sin librerías de licencia dudosa y sin música aj
 - Tictac en los últimos cinco minutos. **Descuento sorpresa:** no sabés el segundo exacto del final.
 
 Desbloqueo con el primer toque (política de autoplay), mute compartido con el motor clásico.
+
+**Cómo es hoy (octubre 2026, ver `docs/AUDIO_SINCRONIA_Y_TOMA.md`).** La música son doce OGG (`data/audio.json`), pedidos por una sola puerta (`pedirMusica`). Los efectos se sintetizan en `phaser/audio/sfx.js`. Cuatro reglas que salieron de medir el juego con un oído de prueba:
+
+- **Un tema a la vez, siempre.** El tema que sale termina de salir. Antes se quedaban colgados dos y tres temas.
+- **La mezcla por números.** Los golpes van 4 a 5 dB por encima de la música, la interfaz bastante por debajo, y todo pasa por un limitador. Las perillas están en `balance.audio_mezcla`.
+- **Un solo reloj.** Lo que se ve y lo que suena no se separan cuando el juego se traba (`scenes/reloj.js`).
+- **La partitura.** La verdad se toca cuando se decide; lo que se siente, cuando se ve. En el gol: patada en el contacto, red en el impacto, silencio, y fanfarria con hinchada. Cada cosa una vez.
 
 Esta estructura —un tema con la pelota, otro cuando la tiene el rival, uno más urgente en los últimos cinco minutos— es exactamente la del original. No es casualidad: es lo que hace que el partido respire.
 
