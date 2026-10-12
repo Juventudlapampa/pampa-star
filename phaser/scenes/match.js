@@ -522,6 +522,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase(), { clave: "marcacion", toque: true });
       });
     }
+    /* L04 · GIRAR A VERTICAL O IRSE A OTRA APP (index.html, PampaPausa): el
+       juego avisa "ocultar" y, si el reloj estaba corriendo, el partido abre
+       su PAUSA. Al volver no arranca solo: arranca con SEGUIR. Fuera de LIBRE
+       no se pide: lo que esté corriendo (una escena, el jugadón) queda
+       congelado con el juego entero —pestaña oculta: sin cuadros; vertical:
+       game.pause()— y sigue al volver, con la persona mirando; una pausa
+       pedida acá saltaría después, ya sin motivo. El emisor del juego
+       sobrevive a la escena: el oyente se va con su shutdown. */
+    const alOcultar = () => { if (this.estado === "LIBRE") this.abrirPausa(); };
+    this.game.events.on("ocultar", alOcultar);
+    this.events.once("shutdown", () => this.game.events.off("ocultar", alOcultar));
 
     /* guía breve pegada al portador (los textos del MUNDO escalan con la vista elevada) */
     this._fsMundo = this._vista4 ? Math.round(this.V2.ZOOM / this._zoomBase * 10) / 10 : 1;

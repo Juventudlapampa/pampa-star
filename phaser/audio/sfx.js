@@ -297,8 +297,92 @@
 
   function pararArchivo(seco) {
     archivoSonando = null;
+    pendiente = null;          // L04: lo que se calló a propósito no vuelve al reanudar
     soltarDuckYa();
     despedirLosDemas(null, seco);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 (L04) · LA MÚSICA SE CALLA CUANDO NO SE VE EL JUEGO.
+
+     Medido: la música es un new Audio (registrarArchivos) y con la pestaña
+     oculta seguía con paused=false. Phaser frena su loop al ocultarse, pero
+     estos <audio> no son de Phaser: pasabas a WhatsApp y el tema seguía
+     sonando arriba de tu chat. Lo mismo al girar el teléfono a vertical,
+     donde el lienzo se esconde por CSS y la página sigue "visible".
+
+     pausarMusica(motivo) / reanudarMusica(motivo). Los motivos se suman
+     ("oculto", "vertical"): la música vuelve recién cuando no queda ninguno.
+     Al pausar se recuerda el tema que SONABA (no el último pedido: un tema
+     de una pasada que ya terminó no tiene que volver a empezar) y se pausa
+     en el lugar, sin tocar currentTime: al volver sigue el mismo tema desde
+     donde estaba, con un fundido de entrada. Un tema que se estaba yendo
+     termina de irse. Un pedido que llega con la música en pausa (el tope de
+     alTerminarMusica, que es un setTimeout y corre igual) cambia el tema
+     pendiente pero no suena hasta volver. El mute no se toca: es otra cosa,
+     y lo que estaba muteado vuelve muteado.
+     ══════════════════════════════════════════════════════════════════════ */
+  var motivosPausa = {};
+  var pendiente = null;      // el elemento que vuelve a sonar al reanudar
+  function musicaEnPausa() {
+    for (var k in motivosPausa) if (motivosPausa[k]) return true;
+    return false;
+  }
+  function pausarMusica(motivo) {
+    var ya = musicaEnPausa();
+    motivosPausa[motivo || "pausa"] = true;
+    if (ya) return false;
+    soltarDuckYa();
+    pendiente = (archivoSonando && !archivoSonando.__saliendo && !archivoSonando.paused) ? archivoSonando : null;
+    elementos.forEach(function (el) {
+      detenerRampa(el);
+      if (el.__saliendo) { el.__saliendo = false; try { el.pause(); el.currentTime = 0; } catch (e) { } return; }
+      try { if (!el.paused) el.pause(); } catch (e) { }
+    });
+    if (pendiente) { try { pendiente.volume = volArchivo; } catch (e) { } }
+    return true;
+  }
+  function reanudarMusica(motivo) {
+    if (!motivosPausa[motivo || "pausa"]) return false;
+    delete motivosPausa[motivo || "pausa"];
+    if (musicaEnPausa()) return false;
+    var el = pendiente;
+    pendiente = null;
+    if (!el || el !== archivoSonando) return true;
+    try { el.muted = muted; } catch (e) { }
+    try { el.volume = 0; var pr = el.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) { }
+    rampa(el, 0, volArchivo, FUNDIDO_MS);
+    return true;
+  }
+
+  /* los EFECTOS (WebAudio) también: el contexto se suspende al ocultarse y
+     vuelve al mostrarse, solo si lo suspendimos nosotros (si estaba
+     suspendido porque todavía no hubo un toque, lo destraba unlock(), como
+     siempre). Con el mute puesto los efectos no suenan igual: tone() y
+     noise() lo miran. */
+  var ctxSuspendidoPorOculto = false;
+  function suspenderEfectos() {
+    if (!ctx || ctx.state !== "running" || !ctx.suspend) return false;
+    ctxSuspendidoPorOculto = true;
+    try { var p = ctx.suspend(); if (p && p.catch) p.catch(function () { }); } catch (e) { }
+    return true;
+  }
+  function reanudarEfectos() {
+    if (!ctx || !ctxSuspendidoPorOculto) return false;
+    ctxSuspendidoPorOculto = false;
+    try { var p = ctx.resume(); if (p && p.catch) p.catch(function () { }); } catch (e) { }
+    return true;
+  }
+  /* pestaña oculta = WhatsApp, la pantalla de inicio, otra app, el teléfono
+     bloqueado. Lo engancha el propio motor de sonido, una vez, al cargar: no
+     depende de que exista el juego ni de en qué escena está. */
+  function alCambiarVisibilidad() {
+    if (typeof document === "undefined") return;
+    if (document.hidden) { pausarMusica("oculto"); suspenderEfectos(); }
+    else { reanudarMusica("oculto"); reanudarEfectos(); }
+  }
+  if (typeof document !== "undefined" && document.addEventListener) {
+    document.addEventListener("visibilitychange", alCambiarVisibilidad);
   }
 
   /* mapa: { id: { archivo, loop } }. Devuelve cuántos quedaron listos. */
@@ -396,6 +480,15 @@
       soltarDuckYa();
       archivoSonando = entrante;
       entrante.__saliendo = false;
+      /* L04: con la música en pausa (pestaña oculta, teléfono en vertical)
+         el pedido cambia el tema que va a volver, pero no suena todavía */
+      if (musicaEnPausa()) {
+        pendiente = entrante;
+        despedirLosDemas(entrante, true);
+        detenerRampa(entrante);
+        try { entrante.volume = volArchivo; } catch (e) {}
+        return;
+      }
       despedirLosDemas(entrante, seco);
       try { entrante.muted = muted; } catch (e) {}
       try { var pr = entrante.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) {}
@@ -455,7 +548,7 @@
   }
   function musicaDuck(ms) {
     var el = archivoSonando;
-    if (!el || el.__saliendo) return;
+    if (!el || el.__saliendo || musicaEnPausa()) return;   // L04: no se baja lo que está en pausa
     ms = Math.max(160, ms || 500);
     var fin = ahoraMs() + ms;
     if (duck.el !== el) {
@@ -490,6 +583,8 @@
     configurarMezcla: configurarMezcla,
     musicaTema: musicaTema,
     musicaDuck: musicaDuck,
+    /* L04: la pausa de la música (pestaña oculta, teléfono en vertical) */
+    pausarMusica: pausarMusica, reanudarMusica: reanudarMusica, musicaEnPausa: musicaEnPausa,
     registrarArchivos: registrarArchivos, hayArchivo: hayArchivo,   // M2: data/audio.json
     alTerminarMusica: alTerminarMusica,
     /* M3 · musicaUrgente() sigue existiendo porque el partido la llama en el

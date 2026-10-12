@@ -356,7 +356,9 @@
         if (g.loop && !g.loop.running) g.loop.wake();
         R.dormido = false;
         R.soltarTeclas(g);
-        if (g.resume) g.resume();
+        /* L04: con el teléfono en vertical el juego sigue parado (lo
+           reanuda la vuelta a horizontal, PampaPausa.sacar) */
+        if (g.resume && !(window.PampaPausa && window.PampaPausa.retiene())) g.resume();
         /* la fecha del Master que se estaba jugando no queda colgada en el
            registry: si quedaba, ¡A LA CANCHA! del editor la volvía a jugar y
            el resultado se cargaba a la carrera */
@@ -465,7 +467,7 @@
       R.ocultar();
       var g = juego(); if (!g) return;
       R.soltarTeclas(g);
-      if (g.resume) g.resume();
+      if (g.resume && !(window.PampaPausa && window.PampaPausa.retiene())) g.resume();   // L04: ídem
       R.armarVigia(g);
     };
     R.copiar = function () {
@@ -582,6 +584,93 @@
     on("tb-reintentar", function () { location.reload(); });
     on("tb-seguir", R.seguir);
     on("tb-copiar", R.copiar);
+  })();
+  </script>
+  <script>
+  /* ═══════════════════════════════════════════════════════════════════════
+     LA PAUSA DE AFUERA (tanda 1.0, L04) · girar a vertical o irse a otra app.
+
+     Lo que estaba mal, medido: matchMedia y visibilitychange no aparecían en
+     ninguna parte (grep). El "Girá el celular" es solo CSS (el @media de
+     arriba esconde #game), y Phaser no se pausa porque se esconda el lienzo:
+     la página sigue visible, el requestAnimationFrame sigue corriendo y el
+     rival avanzaba sin que se viera. Con la pestaña oculta Phaser sí frena su
+     loop (no hay cuadros), pero la música es un new Audio de sfx.js y seguía
+     sonando arriba de WhatsApp (medido: paused=false).
+
+     Dos motivos, que se suman:
+       · "vertical": la MISMA consulta del @media de #rotate. Mientras vale, el
+         juego se pausa entero (PAMPA_GAME.pause(): no corre ni el update ni
+         los tweens) y la música también. Se evalúa al cargar y otra vez al
+         crear el juego (aplicar), porque el juego nace después de esto.
+       · "oculto": lo frena Phaser; la música y los efectos los calla el propio
+         sfx.js (su listener de visibilitychange).
+     En los dos casos se avisa al juego con el evento "ocultar": el partido,
+     si estaba en LIBRE, abre su PAUSA. Al volver no arranca solo: arranca
+     cuando quien juega toca SEGUIR.
+
+     El juego se reanuda solo si nadie más lo tiene parado: ni otro motivo ni
+     el aviso "Algo se trabó" (que también usa game.pause). Y al revés, SEGUIR
+     IGUAL y VOLVER AL MENÚ del aviso no reanudan con el teléfono en vertical.
+     ═══════════════════════════════════════════════════════════════════════ */
+  (function () {
+    "use strict";
+    var CONSULTA = "(orientation: portrait) and (max-width: 820px)";
+    var P = window.PampaPausa = { CONSULTA: CONSULTA, motivos: {} };
+    function juego() { return window.PAMPA_GAME || null; }
+    P.retiene = function () { for (var k in P.motivos) if (P.motivos[k]) return true; return false; };
+    P.puedeCorrer = function () { return !P.retiene() && !(window.PampaRed && window.PampaRed.tipo); };
+    function avisarAlJuego(motivo) {
+      var g = juego();
+      if (!g || !g.events) return;
+      try { g.events.emit("ocultar", { motivo: motivo }); } catch (e) { }
+    }
+    P.poner = function (motivo) {
+      if (P.motivos[motivo]) return false;
+      P.motivos[motivo] = true;
+      avisarAlJuego(motivo);
+      var g = juego(), S = window.PampaSFX;
+      if (g && g.pause) { try { g.pause(); } catch (e) { } }
+      if (S && S.pausarMusica) S.pausarMusica(motivo);
+      return true;
+    };
+    P.sacar = function (motivo) {
+      if (!P.motivos[motivo]) return false;
+      delete P.motivos[motivo];
+      var g = juego(), S = window.PampaSFX;
+      if (g && g.resume && P.puedeCorrer()) { try { g.resume(); } catch (e) { } }
+      if (S && S.reanudarMusica) S.reanudarMusica(motivo);
+      return true;
+    };
+    /* el juego recién creado: si ya estaba en vertical, nace en pausa */
+    P.aplicar = function () {
+      var g = juego(), S = window.PampaSFX;
+      if (!P.motivos.vertical) return false;
+      if (g && g.pause) { try { g.pause(); } catch (e) { } }
+      if (S && S.pausarMusica) S.pausarMusica("vertical");
+      return true;
+    };
+    var mq = null;
+    try { mq = window.matchMedia ? window.matchMedia(CONSULTA) : null; } catch (e) { mq = null; }
+    P.evaluar = function () {
+      if (!mq) return false;
+      if (mq.matches) P.poner("vertical"); else P.sacar("vertical");
+      return !!mq.matches;
+    };
+    if (mq) {
+      if (mq.addEventListener) mq.addEventListener("change", P.evaluar);
+      else if (mq.addListener) mq.addListener(P.evaluar);   // Safari viejo
+      /* y por las dudas, también al cambiar el tamaño o la orientación:
+         evaluar() es idempotente, y hay navegadores de teléfono viejos que
+         no siempre avisan el "change" de una consulta */
+      window.addEventListener("resize", P.evaluar);
+      window.addEventListener("orientationchange", P.evaluar);
+      P.evaluar();
+    }
+    /* la pestaña oculta: el partido abre su PAUSA (la música la calla sfx.js) */
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) avisarAlJuego("oculto");
+    });
   })();
   </script>
 
@@ -895,6 +984,8 @@
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);
+    /* L04: si el teléfono ya estaba en vertical, el juego nace en pausa */
+    if (window.PampaPausa) window.PampaPausa.aplicar();
     /* desde acá, un error se avisa con "Algo se trabó" (antes del juego lo
        decide el chequeo de arriba) */
     if (R) R.arrancado = true;
