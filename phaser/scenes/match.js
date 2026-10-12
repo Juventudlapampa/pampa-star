@@ -5339,7 +5339,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; op.cb(); });
       items.push({ obj: r, caja: { x: op.x - W / 2, y: op.y - H / 2, w: W, h: H }, cb: () => op.cb() });
     });
-    if (this.input && this.input.keyboard) {
+    /* la ayuda de teclado, con la guarda de las demás (ESPACIO = ACCIÓN, la
+       intro): Phaser crea el plugin de teclado también en el teléfono, y con
+       mirar solo `keyboard` la línea salía en el celular, sobre el mapa */
+    if (this.input && this.input.keyboard && !this.sys.game.device.input.touch) {
       const pie = this.add.text(480, 430, "teclado: flechas y ENTER · P o ESC para seguir", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5);
       this.menuLayer.add(pie);
     }

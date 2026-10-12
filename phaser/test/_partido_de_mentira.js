@@ -144,7 +144,9 @@ function escena(opts) {
   reg.set("balance", BAL);
   s.game = { registry: { get: function (k) { return reg.get(k); }, set: function (k, v) { reg.set(k, v); }, remove: function (k) { reg.delete(k); } }, events: new Emisor() };
   s.scene = { restart: function () { E.restarts++; }, start: function (k) { E.irA.push("start:" + k); } };
-  s.sys = { settings: { key: "match", status: 5 }, isActive: function () { return true; } };
+  /* opts.tactil: un teléfono (device.input.touch de Phaser) */
+  s.sys = { settings: { key: "match", status: 5 }, isActive: function () { return true; },
+    game: { device: { input: { touch: !!opts.tactil } } } };
   s.irA = function (k) { E.irA.push(k); return true; };
   var muted = false;
   s.SFX = W.PampaSFX = {

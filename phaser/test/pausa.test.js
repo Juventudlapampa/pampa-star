@@ -118,6 +118,13 @@ function espiarTick(E) {
   assert(s.estado === "LIBRE" && s.st.modo === "juego", "ENTER sobre SEGUIR vuelve a LIBRE");
   assert(E.botones().length === 0 && !s._foco, "al seguir, la cruz y el cursor se van");
 
+  /* la ayuda de teclado: en la compu sí, en el teléfono no (revisión L04:
+     Phaser crea el teclado también en el celular, y la línea salía ahí) */
+  var K = PM.escena(); K.s.abrirPausa();
+  assert(K.textos().some(function (x) { return /^teclado:/.test(x); }), "con teclado y sin pantalla táctil, la pausa dice las teclas");
+  var Tt = PM.escena({ tactil: true }); Tt.s.abrirPausa();
+  assert(!Tt.textos().some(function (x) { return /teclado/.test(x); }), "SÍNTOMA: en el teléfono la pausa muestra la ayuda de teclado (" + Tt.textos().join(" | ") + ")");
+
   var M = PM.escena({ master: true });
   M.s.abrirPausa();
   var txm = M.textos();
