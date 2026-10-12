@@ -12,7 +12,8 @@
          con tildes, ñ, emojis y a cualquier altura de la temporada
      [2] un código alterado se rechaza CON MENSAJE: una letra cambiada, uno
          cortado, otro prefijo, otra versión, vacío. Y el que viene con
-         espacios, saltos de línea o el texto del mensaje adelante, entra
+         espacios, saltos de línea o el texto del mensaje adelante, entra.
+         Y con texto DETRÁS también (revisión L03: antes se rechazaba)
      [3] 300 alteraciones de una letra al azar: ninguna tira, ninguna entra
      [4] las piezas (UTF-8, LZW de 9 a 16 bits, base64) con datos al azar,
          incluido un diccionario lleno
@@ -121,11 +122,36 @@ function carrera(div, fechas, club) {
     var r = C.importar(c[1], OPTS);
     assert(r.ok && igual(r.save, s), c[0] + ": entra igual (" + r.error + ")");
   });
+  /* ── REVISIÓN L03 · TEXTO DETRÁS DEL CÓDIGO ──
+     Medido: importar juntaba todo y las palabras de después se pegaban a
+     los datos. codigo + "\nguardado el martes", + " ok" y + "\nhttps://…" se
+     rechazaban como rotos con un código ENTERO (y "copialo de nuevo,
+     entero" no lo arreglaba: copiarlo trae el mismo texto de más). */
+  var detras = [
+    ["un salto y una palabra detrás", cod + "\nguardalo bien"],
+    ["un salto y una frase detrás", cod + "\nguardado el martes"],
+    ["un espacio y una palabra detrás", cod + " ok"],
+    ["una URL detrás", cod + "\nhttps://ejemplo.org"],
+    ["una firma de la aplicación detrás", cod + "\n\nEnviado desde mi teléfono"],
+    ["texto adelante y detrás, con saltos cada 60", "Mi carrera:\n" + cod.replace(/(.{60})/g, "$1\n") + "\nnota para mí: la del martes"],
+    ["dos códigos, uno por renglón (vale el primero)", cod + "\n" + C.exportar(carrera("primera_b", 2))]
+  ];
+  detras.forEach(function (c) {
+    var r = C.importar(c[1], OPTS);
+    assert(r.ok && igual(r.save, s), "SÍNTOMA: " + c[0] + ": entra igual (" + r.error + ")");
+  });
+  /* y probar cortes no deja entrar uno alterado: una letra cambiada CON
+     texto detrás se sigue rechazando */
+  var altDetras = C.importar(cambiar(punto + 40) + "\nguardalo bien", OPTS);
+  assert(!altDetras.ok && altDetras.error === C.ERRORES.roto, "una letra cambiada con texto detrás se sigue rechazando (" + altDetras.error + ")");
+  /* el mensaje no afirma lo que no se puede saber */
+  assert(!/le cambió alguna letra/.test(C.ERRORES.roto) && /puede/.test(C.ERRORES.roto),
+    "el mensaje de roto no afirma qué le pasó al código (dice: " + C.ERRORES.roto + ")");
   /* uno bien formado pero que no es una carrera jugable */
   var raro = C.exportar({ hola: "mundo" });
   var rr = C.importar(raro, OPTS);
   assert(!rr.ok && rr.error === C.ERRORES.injugable, "un código bien hecho pero sin carrera adentro se rechaza (" + rr.error + ")");
-  console.log("[2] " + rechazos.length + " alterados rechazados con mensaje · " + otros.length + " ajenos con el suyo · " + envuelto.length + " envueltos entran");
+  console.log("[2] " + rechazos.length + " alterados rechazados con mensaje · " + otros.length + " ajenos con el suyo · " + envuelto.length + " envueltos y " + detras.length + " con texto detrás entran");
 })();
 
 /* ---------- [3] 300 ALTERACIONES AL AZAR ---------- */

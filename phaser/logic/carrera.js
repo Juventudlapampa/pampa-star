@@ -19,6 +19,8 @@
                 nueva se rechaza diciendo que hay que actualizar.
      · crc32    de los bytes del JSON: una letra cambiada, uno cortado o uno
                 mezclado con otro texto se rechaza con mensaje, sin pisar nada.
+                Texto adelante o DETRÁS del código (separado por un espacio,
+                un salto o comillas) no molesta: importar lo busca y lo corta.
      · datos    el JSON del save en UTF-8, comprimido con LZW de ancho variable
                 (9 a 16 bits) y escrito en base64 para URL (A-Z a-z 0-9 - _),
                 que pasa entero por cualquier mensajería y no lleva puntos.
@@ -48,7 +50,9 @@
     vacio: "No pegaste nada todavía.",
     ajeno: "Eso no es un código de carrera de Pampa Star.",
     nuevo: "Este código es de una versión más nueva del juego: recargá la página y probá de nuevo.",
-    roto: "El código está incompleto o le cambió alguna letra. Copialo de nuevo, entero.",
+    /* no afirma QUÉ le pasó (cortado, una letra distinta, algo pegado en el
+       medio): desde acá no se puede saber, y un consejo falso no ayuda */
+    roto: "El código no se pudo leer: puede faltarle un pedazo o tener alguna letra distinta. Copialo de nuevo desde donde lo guardaste, de PAMPA hasta la última letra.",
     injugable: "El código se leyó, pero la carrera que trae no se puede jugar."
   };
 
@@ -191,22 +195,52 @@
   /* ---------- la vuelta: el código a save, o el motivo ----------
      opts.ids y opts.saneo van a save_master.sanear (las divisiones que valen y
      cómo rehacer una temporada). Devuelve { ok, save, reparado, error }. */
+  /* los datos de un código, o null si no son los que firma el crc */
+  function leerDatos(datos, crc) {
+    var comp = deBase64(datos);
+    if (!comp) return null;
+    var bytes = descomprimir(comp);
+    if (!bytes || !bytes.length) return null;
+    return hex8(crc32(bytes)) === hex8(crc.toLowerCase()) ? bytes : null;
+  }
+  var SEPARADOR = /[\s"'«»“”]/;
+  var MAX_CORTES = 200;               // intentos de dónde terminan los datos
+
   function importar(codigo, opts) {
     opts = opts || {};
     var falla = function (k) { return { ok: false, save: null, reparado: [], error: ERRORES[k], clave: k }; };
     /* se pega con saltos de línea, espacios o comillas de un mensaje: afuera.
        Y se BUSCA el código adentro del texto (no tiene que estar solo): al
-       compartir va con un renglón que explica qué es, y se pega todo junto */
-    var c = String(codigo == null ? "" : codigo).replace(/[\s"'«»“”]+/g, "");
+       compartir va con un renglón que explica qué es, y se pega todo junto.
+       De cada letra que queda se anota si en el original venía SEPARADA de
+       la anterior: ahí puede terminar el código (ver abajo). */
+    var texto = String(codigo == null ? "" : codigo);
+    var c = "", separada = [], hubo = false;
+    for (var i = 0; i < texto.length; i++) {
+      var ch = texto.charAt(i);
+      if (SEPARADOR.test(ch)) { hubo = true; continue; }
+      separada.push(hubo && c.length > 0);
+      c += ch; hubo = false;
+    }
     if (!c) return falla("vacio");
     var m = /PAMPA(\d+)\.([0-9a-fA-F]{1,8})\.([A-Za-z0-9_-]+)/.exec(c);
     if (!m) return falla(c.toUpperCase().indexOf(PREFIJO) === 0 ? "roto" : "ajeno");
     if (parseInt(m[1], 10) > VERSION_CODIGO) return falla("nuevo");
-    var comp = deBase64(m[3]);
-    if (!comp) return falla("roto");
-    var bytes = descomprimir(comp);
-    if (!bytes || !bytes.length) return falla("roto");
-    if (hex8(crc32(bytes)) !== hex8(m[2].toLowerCase())) return falla("roto");
+    /* ── DÓNDE TERMINA EL CÓDIGO (revisión del lote L03) ──
+       Al juntar todo, lo que viene DETRÁS del código se pegaba a los datos:
+       medido en node, codigo + "\nguardalo bien", + " ok" o + "\nhttps://…"
+       se rechazaban como rotos, con un código entero. Las letras de los datos
+       y las de una palabra son las mismas, así que no hay una marca que diga
+       dónde termina: se prueba primero entero y después cortando en cada
+       separador del original, de más largo a más corto. Vale el primero que
+       firma el crc32 (una coincidencia por azar es 1 en 4.294.967.296), así
+       que probar no puede dejar entrar uno alterado. */
+    var ini = m.index + m[0].length - m[3].length;
+    var largos = [m[3].length];
+    for (var k = m[3].length - 1; k > 0 && largos.length < MAX_CORTES; k--) if (separada[ini + k]) largos.push(k);
+    var bytes = null;
+    for (var j = 0; j < largos.length && !bytes; j++) bytes = leerDatos(m[3].slice(0, largos[j]), m[2]);
+    if (!bytes) return falla("roto");
     var save;
     try { save = JSON.parse(deUtf8(bytes)); } catch (e) { return falla("roto"); }
     var SM = (typeof window !== "undefined" && window.PampaSaveMaster) || tryRequire("./save_master.js");
