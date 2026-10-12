@@ -278,8 +278,38 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   assert(chicos.length === 0, "ningún texto de la pregunta baja de 13 px (" + chicos.join(" | ") + ")");
   assert(s._foco && s._foco.vivo && s._foco.i === 0 && /SÚPER DEFENSA/.test(textosCine(E).filter(function (t) { return Math.abs(t.y - (s._foco.items[0].obj.y - 11)) < 1; }).map(function (t) { return t.text; }).join("")),
     "el cursor arranca en la SÚPER DEFENSA");
-  /* un toque fuera de los botones no decide (no hay _escSkip ni apuntar en SUPERDEF) */
-  assert(!s._escSkip, "en la pregunta un toque suelto no saltea nada");
+  /* un toque fuera de los botones no decide. Revisión L04b: este renglón
+     solo miraba que _escSkip fuera null, que lo pone la propia pregunta;
+     no corría ni el oyente de pointerdown de create() ni apuntar(). Ahora
+     se arman los oyentes de VERDAD, cortados de match.js como en
+     atras.test.js, y se toca la cancha. apuntar() queda armado para mover
+     (sin pantalla partida, cámara 1:1): si el oyente o apuntar dejaran
+     pasar el toque en SUPERDEF, aparecería un target o se decidiría. */
+  var MSRC = PM.leer(VIEJO || "phaser/scenes/match.js").replace(/\r\n/g, "\n");
+  var p0 = MSRC.indexOf("    this._punteroListo = false;\n    this.input.on(\"pointerdown\"");
+  var finP = 'this.input.on("pointermove", (p) => { if (p.isDown && this._punteroListo) this.apuntar(p); });';
+  var p1 = MSRC.indexOf(finP, p0);
+  assert(p0 > 0 && p1 > p0 && p1 - p0 < 1500, "create() tiene los oyentes de pointerdown y pointermove juntos (si se separan, mover el corte)");
+  function conOyentes(sx) {
+    sx._split = false; sx.radar = null; sx._vista4 = false; sx.SX = 1; sx.SY = 1; sx._uiTocado = 0; sx.time.now = 1000;
+    sx.cameras.main.getWorldPoint = function (x, y) { return { x: x, y: y }; };
+    if (p0 > 0 && p1 > p0) (new Function(MSRC.slice(p0, p1 + finP.length))).call(sx);   // con this = el partido
+    return sx;
+  }
+  /* control: en LIBRE el mismo toque SÍ apunta, y en ESCENA SÍ saltea (si no, esto no mide nada) */
+  var s0 = conOyentes(armar().s), salteos = 0;
+  s0.estado = "LIBRE"; s0.input.emit("pointerdown", { x: 300, y: 200 });
+  assert(!!s0.target, "control: en LIBRE un toque en la cancha apunta (target " + JSON.stringify(s0.target) + ")");
+  s0.estado = "ESCENA"; s0._escSkip = function () { salteos++; }; s0.input.emit("pointerdown", { x: 300, y: 200 });
+  assert(salteos === 1, "control: en ESCENA el toque saltea la escena (" + salteos + ")");
+  /* la pregunta: un toque y un arrastre fuera de los botones (están de x=500 a 900) */
+  conOyentes(s);
+  s.input.emit("pointerdown", { x: 300, y: 200 });
+  s.input.emit("pointermove", { x: 320, y: 220, isDown: true });
+  assert(s.estado === "SUPERDEF" && s.st.envion === max && s.st.posesion === "rival" && E.punch.length === 0,
+    "en la pregunta un toque suelto no decide nada (estado " + s.estado + ", envión " + s.st.envion + ", " + s.st.posesion + ")");
+  assert(s.target == null, "en la pregunta un toque suelto no apunta a nadie (target " + JSON.stringify(s.target) + ")");
+  assert(!s._escSkip && botonesCine(E).length === 2, "y no hay salteo armado: los dos botones siguen esperando");
   assert(s._tribuna.cont.alpha === 0 && E.tribunaIrse === 1, "los dos de la tribuna se callan: sus globos caían sobre la pregunta");
   /* tocar SÚPER DEFENSA: gasta el envión, no es gol, la pelota es tuya */
   var golesAntes = s.st.golesRival;
