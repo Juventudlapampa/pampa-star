@@ -4,8 +4,8 @@
    POR QUÉ: una carrera del Master son de 10 a 37 horas y vivía SOLO en
    localStorage: grep de exportar / importar / storage.persist daba 0, y el
    respaldo de borrarCarrera está en el mismo almacenamiento. Si el navegador
-   lo borra (Safari en iPhone lo hace a los 7 días sin uso si el juego no está
-   instalado), o si cambiás de teléfono, la carrera se perdía.
+   lo borra (el de algunos teléfonos lo hace a los 7 días sin uso si el juego
+   no está instalado), o si cambiás de teléfono, la carrera se perdía.
 
    Lo que fija este test:
      [1] la ida y vuelta: exportar → importar da el MISMO save (deepEqual),

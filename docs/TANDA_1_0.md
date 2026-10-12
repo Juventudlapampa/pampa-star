@@ -629,3 +629,267 @@ pantalla, no explote; **no la recableé**, porque es una decisión de diseño
   el ítem de lenguaje institucional de la ola 3.
 - En el Master, el menú "¿QUÉ PARTIDO JUGAMOS?" sale en cada fecha; elegir el
   tempo una vez al crear la carrera ya es un ítem del backlog.
+
+---
+
+## Ola 1 · Que nada se rompa — lote L03-saves
+
+Los cuatro ítems tocan la carrera del Master y comparten una herramienta
+nueva de prueba: `phaser/test/_escena_de_mentira.js` (no es un test: `test.sh`
+corre solo los `*.test.js`). Carga `scenes/master.js` y `scenes/foco_ui.js`
+REALES en node con un Phaser de mentira que imita lo que importa acá: la lista
+de dibujo y la de entrada (un objeto destruido sale de las dos; uno sacado sin
+destruir sigue tocable), el emisor con la semántica de eventemitter3 (el emit
+recorre una copia de los oyentes), el toque (`tocar(x, y)`), el teclado
+(`teclas("ONE")`) y los `delayedCall` disparados a mano. Así los criterios de
+aceptación se miden con el código del juego y no con una copia.
+
+### master-sin-fantasmas · las vistas se vacían de verdad
+
+**Qué estaba mal (medido).** Las cinco vistas que se repintan sin cambiar de
+escena (entrevista, semana, evento, día suelto, confirmación de borrar)
+limpiaban con el `removeAll` del DisplayList. En Phaser 3.80.1 eso es
+`Structs.List.removeAll(skipCallback)`: saca de la lista de dibujo pero no
+destruye, y `removeAll(true)` tampoco (el `true` solo saltea callbacks). Con
+el código de antes sobre la escena de mentira: la semana tenía 13 zonas
+táctiles con 8 a la vista, tocar (100,514) o (60,514) abría "¿EMPEZAR OTRA
+CARRERA?" (el ✕ de la tabla seguía ahí abajo), la entrevista pasaba de 4 a 8 a
+16 zonas, y después de 4 repintados de la semana había 4 oyentes de la tecla 1
+y UNA tecla llenaba 3 ranuras (los `keyboard.once` se apilaban). `foco_ui.js`
+colgaba un `events.on("shutdown")` por arranque: 1, 2, 3, 4.
+
+**Qué se hizo.**
+- `master.js`: `init()` (la escena no tenía) que reinicia lo que es memoria de
+  una entrada: atajos, reloj de la semana, evento, música, la caja del código.
+  `vaciarVista()` cierra el cursor, suelta los atajos y el reloj de la semana
+  y DESTRUYE cada hijo; reemplaza las cinco llamadas. `atajo()` y
+  `soltarAtajos()`: los atajos de una vista se anotan y se van con ella.
+- El momento de la acción (la animación de cada acción de la semana) suelta
+  los atajos y el cursor de la semana de abajo: con el momento abierto, otra
+  tecla o un Enter sobre la tarjeta enfocada llenaba otra ranura. Ahora se
+  saltea también con Enter o Espacio.
+- `foco_ui.js`: `events.once("shutdown")`, que la bandera vuelve a armar.
+- `cine_arte.js`: el comentario que nombraba el `removeAll`.
+
+**Cómo se verificó.**
+- `vistas_limpias.test.js` (25 asserts): el guardián estático (ni
+  `children.removeAll(` ni `events.on("shutdown"` en `phaser/scenes`, ni
+  `keyboard.once` en `master.js`) y los cuatro síntomas corriendo el código
+  real. Contra el `master.js` y el `foco_ui.js` de antes da 14 fallas con los
+  números de arriba (`node phaser/test/vistas_limpias.test.js <viejo/master.js>
+  <viejo/foco_ui.js>`).
+- **En el navegador integrado** (mudo, con el arnés del oído), con clics y
+  teclas de verdad sobre el lienzo: tabla 3 zonas = 3 visibles, evento 2,
+  semana 8 = 8; los toques en (100,514), (60,514) y (200,470) no cambian de
+  pantalla; la tecla 1 llena solo el lunes y la 2 con el momento abierto no
+  hace nada (`l03_v1_semana_una_ranura.png`); la entrevista 4 → 4 → 4
+  (`l03_v1_entrevista_p3.png`); oyentes de shutdown 13 en cuatro arranques
+  seguidos (los de Phaser más uno del cursor, constante).
+
+### save-idempotente · recargar no duplica mejoras y el resultado se guarda al pitazo
+
+**Qué estaba mal (medido).** Con el `master.js` de antes: tres ENTRENAR TIRO
+(+3), a la cancha, y cuatro "recargas" (crear la escena desde el save y tocar
+JUGAR LA FECHA) dejaban tiro en **+15**. `cerrarSemana` sumaba los
+permanentes en cada llamada; la semana solo se daba por terminada al volver
+con el resultado, que vivía en el registry (memoria de la página) y se
+escribía al tocar SEGUIR: cerrar la pestaña en GANASTE perdía la fecha. El
+evento de la semana se volvía a sortear con la bolsa ya gastada (otro evento,
+otra decisión).
+
+**Qué se hizo.**
+- `logic/semana.js`: todo lo de una fecha se marca con LA FECHA (temporada +
+  número). `claveDeFecha` / `esLaFecha`; `semanaCerrada` (reconoce también una
+  semana cerrada por el código de antes: `semanaResumen` + semana armada sin
+  marca, porque solo cerrarSemana escribe ese resumen y el lunes lo vuelve a
+  null); `cerrarSemana` (la cuenta que vivía en master.js, igual, pero suma
+  una vez por fecha y la segunda llamada devuelve lo que dejó la primera);
+  `eventoDeLaFecha` (se sortea una vez y queda en `save.eventoFecha`, con su
+  `resuelto`); `anotarResultado` y `resultadoQueCorresponde`.
+- `master.js`: `create` aplica el resultado de esta fecha, venga del save
+  (`resultadoPendiente`) o del registry, una sola vez, y lo borra; un
+  pendiente de otra fecha se tira. `irALaCancha()` arma `masterPartido` con
+  `temporadaN` y `fecha` y deja `save.enCancha`. Con la semana ya cerrada, la
+  tabla ofrece **↺ REPETIR EL PARTIDO** con el renglón "volviste sin terminar
+  el partido: la semana ya está jugada y entrás como llegaste": va directo a la
+  cancha, sin rehacer la semana ni el evento (la regla de Rodri para abandonar
+  una fecha). `prepararEvento()` lee el evento anotado.
+- `match.js`: `finDelPartido` anota el resultado en `pampa_master_v1` AL
+  PITAZO (`anotarResultadoEnLaCarrera`); el registry queda de respaldo.
+- `lesion.test.js` [4] prueba la molestia de la semana corriendo
+  `cerrarSemana` (antes buscaba la línea en master.js, que se mudó).
+
+**Cómo se verificó.**
+- `save_idempotente.test.js` (45 asserts): cinco cierres de la misma semana
+  con el save ida y vuelta por JSON dejan tiro en +3; master real con 4
+  recargas: REPETIR en las cuatro, tiro +3, mismo evento, misma bolsa, misma
+  decisión, y REPETIR manda a la cancha lo mismo; un pendiente con el
+  registry también cargado y tres entradas a la escena avanzan la fecha
+  exactamente 1 y la tabla dice ✔ GANASTE 2-1; un pendiente viejo o un
+  resultado sin marca no se aplican; el pitazo está antes del botón.
+  `save_viejo.test.js` [8]: una semana cerrada por el código de antes no
+  vuelve a sumar.
+- **En el navegador integrado**: semana con ENTRENAR TIRO (+1), JUGAR ASÍ,
+  partido con tiro 51. Tres recargas de la página: la tabla dice ↺ REPETIR EL
+  PARTIDO con su aviso (`l03_v2_recarga1_tabla.png`), el partido arranca con
+  tiro 51 y el save sigue en +1, con el mismo evento y la misma bolsa. Final
+  forzado (reloj al 92' con el marcador 2-1, el pitazo de verdad): en GANASTE
+  el save ya tiene `resultadoPendiente` sin tocar SEGUIR
+  (`l03_v2_ganaste.png`); se navega fuera (la pestaña cerrada) y al volver la
+  tabla tiene la fecha sumada: PJ 1, 2-1, 3 puntos, FECHA 2 de 18
+  (`l03_v2_volver_tabla_sumada.png`).
+
+### save-saneado · un save roto no traba el Master
+
+**Qué estaba mal (medido en la auditoría).** `master.create` hacía
+`JSON.parse` y usaba el save tal cual: sin `titulos` tiraba TypeError en la
+tabla, sin `tabla` en `temporada.posiciones()`, y la pantalla quedaba sin
+botones en cada entrada. Un JSON cortado caía en silencio a elegir club y la
+carrera nueva pisaba el texto sin respaldo. `v: 1` se escribía y no lo leía
+nadie.
+
+**Qué se hizo.**
+- `logic/save_master.js` (nuevo, UMD puro): `sanear(crudo, idsDivisiones,
+  opts)` → `{ save, reparado[], irrecuperable, motivo }`. Completa los campos
+  que fueron llegando con las tandas, lee la versión, limpia la semana en
+  curso y las marcas por fecha sin forma, y valida la temporada: resultados
+  legibles; fixture (si no sirve, se rearma desde el orden de la tabla, que es
+  el de `crear`); tabla (si falta, se rearma desde los resultados y sale igual
+  a la que había); números de la tabla; tu club adentro; división entre las
+  que existen; fecha entre 0 y el largo del fixture. Al final la prueba con la
+  lógica de la temporada (posiciones, una fecha, el veredicto): si no se
+  juega, irrecuperable.
+- `master.js`: `create` sanea antes de usar y guarda lo reparado. Lo
+  irrecuperable se copia tal cual a `pampa_master_v1_corrupta` y
+  `vistaSaveRoto` dice **"Tu carrera guardada no se pudo leer. Quedó un
+  respaldo."** con ▶ EMPEZAR OTRA y ✎ VOLVER AL EDITOR. La carrera nueva
+  escribe `v` con la constante del módulo.
+- `index.html` lo carga y `sw.js` lo precachea.
+
+**Cómo se verificó.**
+- `save_corrupto.test.js` (115 asserts): 25 variantes (cortado, `[]`, `{}`,
+  un texto, un número, sin títulos, sin tabla, división inexistente, fecha 99,
+  negativa o de texto, sin miClub, miClub ajeno, fixture roto, números rotos,
+  temporada que no es objeto, semana y mejoras con basura, save viejo sin
+  campos nuevos, marcas rotas…): ninguna tira y cada una sale jugable o
+  irrecuperable. 400 saves mutados al azar: 359 jugables, 41 irrecuperables, 0
+  excepciones, 0 a medias. Master real: sin títulos y sin tabla aparece la
+  tabla con sus botones; cortado, el aviso, las dos salidas, el cursor en
+  VOLVER y el respaldo.
+- **En el navegador integrado**: un save sin `titulos` cargado a mano abre la
+  tabla con JUGAR LA FECHA, EDITOR / PINTA y la salida, y queda guardado con
+  `titulos: []` (`l03_v3_sin_titulos_tabla.png`); uno cortado a 300 letras
+  muestra el aviso (`l03_v3_save_cortado.png`), el texto queda igual en
+  `pampa_master_v1_corrupta` y el save no se toca.
+
+### codigo-de-carrera · el respaldo de la carrera: código para exportar e importar, y storage.persist
+
+**Qué estaba mal.** La carrera (de 10 a 37 horas) vivía solo en
+localStorage; grep de exportar, importar y `storage.persist` en `phaser/`: 0.
+El respaldo de borrarCarrera está en el mismo almacenamiento. Dato de
+plataforma, no reproducido: el navegador de algunos teléfonos borra el
+almacenamiento de un sitio que no se visita en 7 días si no está instalado.
+
+**Qué se hizo.**
+- `logic/carrera.js` (nuevo, UMD puro): `exportar(save)` →
+  `PAMPA1.<crc32>.<datos>`: el JSON en UTF-8, comprimido con LZW de ancho
+  variable (9 a 16 bits) y en base64 para URL. Mide de 2.900 a 4.100 letras
+  (de 2,3 a 2,8 veces menos que el JSON). `importar(codigo)` busca el código
+  adentro del texto pegado (saltos de línea, espacios, comillas o el renglón
+  del mensaje adelante), verifica versión y CRC, descomprime y lo pasa por
+  `sanear`. Cada rechazo tiene su mensaje: vacío, ajeno, de una versión más
+  nueva, incompleto o con una letra cambiada, o sin carrera jugable.
+- `master.js`: en la tabla, **💾 código de carrera** (espejo de la salida,
+  abajo a la derecha) abre la vista del código con club, división, temporada,
+  fecha y largo: 📋 COPIAR EL CÓDIGO (si el navegador no deja, una caja con el
+  texto seleccionado para copiarlo a mano) y 📤 COMPARTIR cuando el navegador
+  tiene `navigator.share`. Al elegir club, **📋 PEGAR UN CÓDIGO** abre la caja
+  para pegar: un código malo dice el motivo (✗ y texto) y no toca nada; uno
+  bueno respalda lo que hubiera en `pampa_master_v1_borrada`, trae la carrera
+  y pide `navigator.storage.persist()`. Crear la carrera también lo pide.
+- La caja es DOM (un textarea es lo único que acepta "mantener apretado →
+  pegar" en cualquier teléfono), con la piel del aviso de error en
+  `index.html` (`#cajacodigo`). Corta las teclas Y los toques, y apaga la
+  entrada de la escena mientras está abierta: probando con un clic de verdad,
+  SEGUIR ESA CARRERA apretaba también ARRANCAR EN LA PRIMERA B, que estaba
+  debajo (Phaser escucha mousedown y touchstart en `window`), y se iba al
+  editor.
+
+**Cómo se verificó.**
+- `codigo_carrera.test.js` (67 asserts): ida y vuelta deepEqual en cuatro
+  carreras (recién creada, a mitad, terminada, club con tildes y ñ); 7
+  alterados (una letra, cortado, letras de más, crc cambiado, dos pegados) y 5
+  ajenos rechazados con su mensaje; 3 envueltos que entran; 300 alteraciones
+  de una letra al azar: 300 rechazadas, 0 entran, 0 excepciones; LZW y base64
+  con 60 tiras al azar y el diccionario lleno, CRC estándar; y master real con
+  una caja de DOM de mentira (alterado: mensaje, save intacto y los toques no
+  pasan; bueno: respaldo, persist y misma fecha).
+- **En el navegador integrado**, con dos orígenes como dos navegadores
+  (`localhost:8123` y `127.0.0.1:8123` tienen almacenamientos separados): en
+  localhost, una carrera en la fecha 6 abre la vista del código
+  (`l03_v4_vista_codigo.png`); COPIAR con un clic de verdad: el navegador del
+  panel niega el portapapeles ("Write permission denied") y aparece la caja
+  con el código seleccionado. En 127.0.0.1, vacío, PEGAR UN CÓDIGO: con una
+  letra cambiada dice "✗ El código está incompleto o le cambió alguna letra.
+  Copialo de nuevo, entero.", la escena sigue en elegir club y el
+  almacenamiento sigue vacío; el bueno, con el renglón del mensaje adelante,
+  trae la carrera: FECHA 6 de 18 y la tabla idéntica a la de localhost
+  (`l03_v4_tabla_origen.png` y `l03_v4_destino_tabla.png`). A 800x360 la caja
+  entra entera, con botones de 48 px.
+
+### DECISIONES QUE TOMÉ YO (L03-saves)
+
+1. **Los atajos se sueltan, no se leen de un oyente único.** De las dos
+   salidas que daba el ítem elegí anotar cada atajo y soltarlo en
+   `vaciarVista()` (`atajo()` / `soltarAtajos()`): cambia menos el código de
+   cada vista. *Revertir:* volver a `keyboard.once` (vuelve el bug).
+2. **El momento de la acción se lleva los atajos y el cursor**, y se saltea con
+   Enter o Espacio. No lo pedía el ítem, pero era la misma clase de bug (una
+   tecla, dos ranuras). *Revertir:* sacar las líneas del principio y del final
+   de `momentoDeAccion`.
+3. **El guardián mira el texto crudo, comentarios incluidos**: un
+   `children.removeAll(` escrito como receta en un comentario se copia. Por eso
+   cambié el comentario de `cine_arte.js`. *Aflojar:* sacar los comentarios
+   antes de buscar en `vistas_limpias.test.js` [1].
+4. **Un resultado sin marca de fecha no se aplica.** El arnés de pruebas arma
+   `masterPartido` a mano, sin fecha: desde ahora ese partido NO le suma una
+   fecha a la carrera al tocar SEGUIR (antes sí, aunque no fuera la fecha que
+   tocaba). Para probar el Master entero hay que entrar por JUGAR LA FECHA.
+   *Revertir:* que `resultadoQueCorresponde` acepte uno del registry sin
+   `temporadaN` ni `fecha`.
+5. **REPETIR EL PARTIDO aparece con la semana cerrada**, no con `enCancha`:
+   así también lo ve un save que cerró la semana con el código de antes.
+   `enCancha` queda escrito para la regla de abandono de L04 (PAUSA → SALIR).
+   *Revertir:* la condición `repetir` de `vistaTemporada`.
+6. **El evento se guarda por id**, no entero: si mañana cambia el texto en
+   `data/eventos_temporada.json`, la semana en curso muestra el nuevo; si el id
+   desaparece, esa semana no tiene evento.
+7. **Saneo:** la división inexistente hace volver a empezar la temporada en la
+   de la marca de agua (`nivelMax`) o en la primera, conservando títulos,
+   mejoras y origen; la fecha fuera de rango vuelve a la de los resultados (no
+   a cero); sin club, JSON roto o algo que no es un objeto son irrecuperables.
+   En la pantalla del save roto el cursor arranca en VOLVER AL EDITOR, y
+   EMPEZAR OTRA no pisa `pampa_master_v1_borrada` (el roto ya quedó en
+   `_corrupta`).
+8. **El código no se achica más**: no saqué el fixture (que se puede rearmar)
+   ni los nombres repetidos. Con LZW genérico la ida y vuelta es exacta por
+   construcción y el código entra en un mensaje (≈4.000 letras). *Achicar:*
+   sacar `temporada.fixture` antes de exportar y rearmarlo al importar.
+9. **`storage.persist` se pide al crear y al traer una carrera**, no en cada
+   entrada (en algunos navegadores muestra un permiso).
+10. **La versión sube a `v17-1.0-l03`** (index.html y sw.js, iguales), por el
+    paso del deploy. No barre el caché de assets. *Revertir:* volver a
+    `v17-1.0-l02`.
+
+### Deudas que vi y no son de este lote
+
+- En la tabla, el renglón **"✔ GANASTE 2-1" pisa el nombre del club** (y=84
+  contra y=78), visible en `l03_v2_volver_tabla_sumada.png`. Ya pasaba antes
+  al volver con SEGUIR.
+- El botón **⚡ACCIÓN reaparece en la pantalla final** (ya anotada en L01 y
+  L02), visto otra vez en `l03_v2_ganaste.png`.
+- Elegir club dice "de la PRIMERA B de tu **pueblo** al MUNDIAL": va con el
+  ítem de lenguaje institucional de la ola 3.
+- El portapapeles automático no se pudo ver funcionando en el panel (lo niega
+  el navegador del panel); en el test corre con un portapapeles de mentira y en
+  el panel se vio el camino de la caja. Falta mirarlo en un teléfono.

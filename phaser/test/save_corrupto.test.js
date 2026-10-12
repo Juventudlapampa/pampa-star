@@ -1,7 +1,7 @@
 /* ============================================================================
    PAMPA STAR · UN SAVE ROTO NO TRABA EL MASTER (tanda 1.0, L03 · save-saneado)
 
-   EL BUG, medido en Chrome: master.create hacía JSON.parse y usaba el save tal
+   EL BUG, medido en el navegador: master.create hacía JSON.parse y usaba el save tal
    cual. Sin `titulos` tiraba TypeError en la tabla (master.js:1404), sin
    `tabla` en temporada.js:131: la pantalla quedaba sin botones en cada
    entrada. Un JSON cortado caía en silencio a "elegí tu club" y la carrera

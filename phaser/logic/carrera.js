@@ -6,8 +6,9 @@
    auditoría) y vivía SOLO en localStorage. No había forma de exportarla ni
    de pasarla a otro teléfono (grep de exportar/importar/storage.persist: 0),
    y el respaldo de borrarCarrera está en el mismo almacenamiento. Dato de
-   plataforma, no reproducido acá: Safari en iPhone borra el almacenamiento de
-   un sitio que no se visita en 7 días si no está instalado como app.
+   plataforma, no reproducido acá: el navegador de algunos teléfonos borra el
+   almacenamiento de un sitio que no se visita en 7 días si no está instalado
+   como app.
 
    EL CÓDIGO es la carrera entera en un texto que se puede copiar, mandar por
    mensaje y pegar en otro navegador:
@@ -20,7 +21,7 @@
                 mezclado con otro texto se rechaza con mensaje, sin pisar nada.
      · datos    el JSON del save en UTF-8, comprimido con LZW de ancho variable
                 (9 a 16 bits) y escrito en base64 para URL (A-Z a-z 0-9 - _),
-                que pasa entero por WhatsApp y no lleva puntos.
+                que pasa entero por cualquier mensajería y no lleva puntos.
 
    Por qué LZW y no la compresión del navegador: CompressionStream es
    asíncrona y no está en node; esto tiene que correr igual en los dos y en

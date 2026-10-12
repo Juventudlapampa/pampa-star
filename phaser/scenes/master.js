@@ -149,7 +149,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* ══════════════════════════════════════════════════════════════════════
        TANDA 1.0 · EL SAVE SE SANEA ANTES DE USARLO.
 
-       Era JSON.parse y adelante: medido en Chrome, un save sin `titulos`
+       Era JSON.parse y adelante: medido en el navegador, un save sin `titulos`
        tiraba TypeError en la tabla y uno sin `tabla` en la temporada, y la
        pantalla quedaba sin botones en CADA entrada. Un texto cortado caía en
        silencio a elegir club y la carrera nueva lo pisaba sin respaldo.

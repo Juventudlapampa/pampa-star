@@ -2,7 +2,7 @@
    PAMPA STAR · phaser/logic/save_master.js — LA CARRERA GUARDADA, SANEADA
    (tanda 1.0, L03 · save-saneado)
 
-   EL BUG, medido en Chrome: master.create hacía JSON.parse del save y lo usaba
+   EL BUG, medido en el navegador: master.create hacía JSON.parse del save y lo usaba
    tal cual. Un save sin `titulos` tiraba TypeError en la tabla
    (this.save.titulos.length) y uno sin `tabla` en temporada.posiciones(): la
    pantalla quedaba sin botones, en cada entrada, para siempre. Un JSON
