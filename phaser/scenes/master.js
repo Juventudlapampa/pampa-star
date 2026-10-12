@@ -1958,13 +1958,26 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       lg.setAlpha(0.9);
     }
     this.add.text(W / 2, 56, div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 78, this.save.club + (this.save.titulos.length ? " · ★".repeat(Math.min(5, this.save.titulos.length)) + " " + this.save.titulos.length + " títulos" : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    const clubTxt = this.add.text(W / 2, 78, this.save.club + (this.save.titulos.length ? " · ★".repeat(Math.min(5, this.save.titulos.length)) + " " + this.save.titulos.length + " títulos" : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* resultado de la última fecha jugada (si venimos del partido) */
+    /* L04b · EL RESULTADO PISABA AL CLUB. Iba centrado en y=84 y el club en
+       y=78, los dos de 12 px: seis píxeles de diferencia, el "✔ GANASTE 2-1"
+       montado sobre "El Bagual de Winifreda" (l03_v2_volver_tabla_sumada.png).
+       Abajo no hay lugar libre: en y=94 vive el aviso de ZONA DE DESCENSO y
+       en y=114 los encabezados de la tabla. Va en el MISMO renglón que el
+       club, a la derecha, y los dos se centran juntos con su ancho medido
+       (Text.width, que Phaser calcula al crearlo): el club con sus títulos
+       más largo (≈52 caracteres) y el resultado entran en unos 430 px de 960.
+       La marca ✔ / = / ✘ dice el resultado sin el color. */
     if (this._ultimo) {
       const gano = this._ultimo.golesMio > this._ultimo.golesRival;
       const empate = this._ultimo.golesMio === this._ultimo.golesRival;
-      this.add.text(W / 2, 84, (gano ? "✔ GANASTE " : empate ? "= EMPATASTE " : "✘ PERDISTE ") + this._ultimo.golesMio + "-" + this._ultimo.golesRival, { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: gano ? "#7ee08a" : empate ? "#f6c11d" : "#e3503e" }).setOrigin(0.5);
+      const resTxt = this.add.text(W / 2, 78, (gano ? "✔ GANASTE " : empate ? "= EMPATASTE " : "✘ PERDISTE ") + this._ultimo.golesMio + "-" + this._ultimo.golesRival, { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: gano ? "#7ee08a" : empate ? "#f6c11d" : "#e3503e" }).setOrigin(0, 0.5);
+      const aire = 22, total = clubTxt.width + aire + resTxt.width;
+      const x0 = Math.round(W / 2 - total / 2);
+      clubTxt.setOrigin(0, 0.5).setX(x0);
+      resTxt.setX(Math.round(x0 + clubTxt.width + aire));
     }
 
     /* LA TABLA (monospace, forma antes que color: ► marca mi fila) */
