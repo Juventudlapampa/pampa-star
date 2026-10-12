@@ -665,23 +665,69 @@ var TEXTOS_MUNDO_OK = {
   assert(!/this\.avisar\("📋/.test(SRC_M) && /anunciarEnTicker\(this\._vidaFicha, "📋", \{ prioridad: true \}\)/.test(SRC_M),
     "la ficha de la semana va al ticker del relator (que tiene su espera), no a avisar()");
 
-  /* ---- (b) el censo: textos que van a mundoLayer ---- */
-  var cod = sinComentarios(SRC_M), L5 = cod.split("\n"), metodo = "?", inicio = 0, textosMundo = [];
-  L5.forEach(function (l, i) {
-    var mh = l.match(/^  (?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{\s*$/);
-    if (mh) { metodo = mh[1]; inicio = i; }
-    var ma = l.match(/mundoLayer\.add\(([^;]*)\)/);
-    if (!ma) return;
-    var cuerpoHasta = L5.slice(inicio, i + 1).join("\n");
-    (ma[1].match(/(?:this\.)?[A-Za-z_$][\w$]*/g) || []).forEach(function (tok) {
-      var id = tok.replace(/^this\./, ""), esText;
-      if (/^this\./.test(tok)) esText = new RegExp("this\\." + id + "\\s*=\\s*this\\.add\\.text\\(").test(cod);
-      else esText = new RegExp("(?:const|let|var)\\s+" + id + "\\s*=\\s*this\\.add\\.text\\(").test(cuerpoHasta);
-      if (!esText) return;
-      var guardado = /if \(!this\._split\)/.test(cuerpoHasta);
-      textosMundo.push({ metodo: metodo, linea: i + 1, id: id, guardado: guardado });
+  /* ---- (b) el censo: textos que van a mundoLayer ----
+     REVISIÓN DEL LOTE: "guardado" era `/if \(!this\._split\)/` sobre el
+     método ENTERO hasta la línea. En create() (el método más largo) el único
+     `if (!this._split)` es el de la guía: un mundoLayer.add(texto) agregado
+     más abajo, FUERA de la guarda, pasaba el censo. Ahora se sigue la
+     profundidad de llaves: cuenta como guardada sólo la línea que cae ADENTRO
+     de un bloque `if (!this._split) {` que todavía no cerró, o la que trae la
+     guarda en el mismo renglón, antes del add. Las cadenas se vacían antes de
+     contar llaves (un "{" adentro de un texto no abre nada). */
+  function sinCadenas(l) {
+    return l.replace(/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\\n]|\\.)*`/g, '""');
+  }
+  function censoMundo(cod) {
+    var L = cod.split("\n"), metodo = "?", inicio = 0, out = [], prof = 0, guardas = [];
+    L.forEach(function (l, i) {
+      var mh = l.match(/^  (?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{\s*$/);
+      if (mh) { metodo = mh[1]; inicio = i; guardas = []; }
+      var limpia = sinCadenas(l);
+      var mg = limpia.match(/if \(!this\._split\)\s*\{/), iLlaveGuarda = mg ? mg.index + mg[0].length - 1 : -1;
+      var iAdd = limpia.indexOf("mundoLayer.add("), guardadoAca = null;
+      for (var c = 0; c < limpia.length; c++) {
+        if (c === iAdd) {
+          var iG = limpia.indexOf("if (!this._split)");
+          guardadoAca = guardas.length > 0 || (iG >= 0 && iG < iAdd);
+        }
+        if (limpia[c] === "{") { if (c === iLlaveGuarda) guardas.push(prof); prof++; }
+        else if (limpia[c] === "}") { prof--; while (guardas.length && prof <= guardas[guardas.length - 1]) guardas.pop(); }
+      }
+      var ma = l.match(/mundoLayer\.add\(([^;]*)\)/);
+      if (!ma) return;
+      var cuerpoHasta = L.slice(inicio, i + 1).join("\n");
+      (ma[1].match(/(?:this\.)?[A-Za-z_$][\w$]*/g) || []).forEach(function (tok) {
+        var id = tok.replace(/^this\./, ""), esText;
+        if (/^this\./.test(tok)) esText = new RegExp("this\\." + id + "\\s*=\\s*this\\.add\\.text\\(").test(cod);
+        else esText = new RegExp("(?:const|let|var)\\s+" + id + "\\s*=\\s*this\\.add\\.text\\(").test(cuerpoHasta);
+        if (!esText) return;
+        out.push({ metodo: metodo, linea: i + 1, id: id, guardado: !!guardadoAca });
+      });
     });
-  });
+    return out;
+  }
+  /* el censo, probado contra un create() de mentira: la guía adentro de la
+     guarda, y un texto nuevo DESPUÉS de que la guarda cerró */
+  var DE_MENTIRA = [
+    "  create() {",
+    "    if (!this._split) {",
+    "      const guia = this.add.text(0, 0, \"tocá { la cancha\", {});",
+    "      this.mundoLayer.add(guia);",
+    "    }",
+    "    const nuevo = this.add.text(0, 0, \"¡GOL!\", {});",
+    "    this.mundoLayer.add(nuevo);",
+    "    if (!this._split) this.mundoLayer.add(this.add.text(0, 0, \"x\", {}));",
+    "    const otro = this.add.text(0, 0, \"y\", {});",
+    "    if (!this._split) this.mundoLayer.add(otro);",
+    "  }"
+  ].join("\n");
+  var cm = censoMundo(DE_MENTIRA);
+  var porId = {}; cm.forEach(function (x) { porId[x.id] = x.guardado; });
+  assert(porId.guia === true, "censo: el texto ADENTRO del bloque `if (!this._split) {` cuenta como guardado");
+  assert(porId.nuevo === false,
+    "SÍNTOMA DEL CENSO CIEGO: un mundoLayer.add(texto) DESPUÉS de que cerró la guarda, en el mismo método, NO está guardado");
+  assert(porId.otro === true, "y la guarda de una sola línea, antes del add, sí cuenta");
+  var cod = sinComentarios(SRC_M), textosMundo = censoMundo(cod);
   if (CENSO) {
     console.log("═══ CENSO [5] · TEXTOS QUE VAN A mundoLayer ═══");
     textosMundo.forEach(function (x) { console.log("  match.js:" + x.linea + " " + x.metodo + "() → " + x.id + (x.guardado ? "  (detrás de !this._split)" : TEXTOS_MUNDO_OK[x.metodo] ? "  (mirado)" : "  ⚠")); });
