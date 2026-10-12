@@ -418,8 +418,8 @@
         aguanteMax: aguanteMax,
         cfg: this.BAL.definicion || {}
       });
-      /* L04b: la SÚPER DEFENSA gasta el envión y el remate no entra; se tira
-         quien juega (logic/definicion.conSuperDefensa) */
+      /* L04b: la SÚPER DEFENSA gasta el envión y el remate no entra; pone el
+         cuerpo quien juega (logic/definicion.conSuperDefensa) */
       if (superDef === true && P.gastarEnvionSuper(st)) {
         lectura = D.conSuperDefensa(lectura, st.mios.find(function (x) { return x.esVos; }) || null);
       }
@@ -490,7 +490,11 @@
           self.uiCam.flash(60, 255, 255, 255);
           self.SFX && self.SFX.gloves && self.SFX.gloves();
           if (figs[0] && figs[0].active) self.tweens.add({ targets: figs[0], scale: figs[0].scale * 1.14, duration: 240 });
-          if (lectura.superDefensa) self.punch("🌟 ¡SÚPER DEFENSA!", "te tiraste con todo el envión · pelota nuestra", 0xffd84d);
+          /* revisión L04b: decía "te tiraste", y la figura de quien juega es
+             la pose "bloqueo" (de pie, brazos cruzados: el cuerpo en la
+             línea; l04b_4_super_defensa_revela.png). El cartel dice lo que
+             se ve, como el bloqueo común de abajo. */
+          if (lectura.superDefensa) self.punch("🌟 ¡SÚPER DEFENSA!", "pusiste el cuerpo con todo el envión · pelota nuestra", 0xffd84d);
           else self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
             "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
           if (self.tribunaSaltando) self.tribunaSaltando();

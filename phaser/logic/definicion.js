@@ -184,8 +184,8 @@
      jugando. Ahora, cuando el rival te va a rematar y tenés el envión lleno,
      la escena te pregunta (escenas_v9.js, preguntarSuperDefensa). Esto es lo
      que pasa si decís que sí: la lectura del remate queda BLOQUEADA, con su
-     motivo propio, y el que se tira es quien juega (si no hay nadie en la
-     línea, igual aparece uno: es el envión el que lo pone ahí). No toca al
+     motivo propio, y el que pone el cuerpo es quien juega (si no hay nadie
+     en la línea, igual aparece uno: es el envión el que lo pone ahí). No toca al
      arquero ni la distancia: lo demás de la lectura se conserva tal cual. */
   function conSuperDefensa(lectura, vos) {
     var l = {}, k;

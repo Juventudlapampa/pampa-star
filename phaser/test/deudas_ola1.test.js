@@ -206,7 +206,7 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
 /* ---------- [4] LA SÚPER DEFENSA SE PUEDE USAR JUGANDO ---------- */
 (function () {
   var fs = require("fs"), path = require("path");
-  /* a) la lógica pura: la lectura queda bloqueada con su motivo y quien se tira */
+  /* a) la lógica pura: la lectura queda bloqueada con su motivo y quien pone el cuerpo */
   var Dmod = require("../logic/definicion.js");
   assert(typeof Dmod.conSuperDefensa === "function", "SÍNTOMA: logic/definicion.js no tiene conSuperDefensa (la súper defensa no tiene lógica viva)");
   if (typeof Dmod.conSuperDefensa !== "function") return;
@@ -214,7 +214,7 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   var vos = { nombre: "VOS", esVos: true };
   var l = Dmod.conSuperDefensa(orig, vos);
   assert(l.bloqueado === true && l.superDefensa === true && l.motivo === "super_defensa", "con súper defensa el remate queda bloqueado, con su motivo");
-  assert(l.defensorMasCerca === vos && l.defensoresEnLinea === 1, "se tira quien juega, aunque no hubiera nadie en la línea");
+  assert(l.defensorMasCerca === vos && l.defensoresEnLinea === 1, "pone el cuerpo quien juega, aunque no hubiera nadie en la línea");
   assert(l.bonusArquero === 7 && l.distanciaRemate === 300, "lo demás de la lectura se conserva");
   assert(orig.bloqueado === false && orig.motivo === "solo_ante_el_arquero", "no toca la lectura original");
   assert(Dmod.conSuperDefensa({ defensoresEnLinea: 3 }, null).defensoresEnLinea === 3, "con tres en la línea siguen siendo tres");
@@ -236,7 +236,8 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     s.uiCam = { setZoom: function () { }, centerOn: function () { }, flash: function () { }, shake: function () { }, ignore: function () { } };
     s.add.sprite = function (x, y) { var o = s.add.rectangle(x, y, 10, 10); o.setFlipX = function () { return o; }; o.setTexture = function () { return o; }; return o; };
     s.fondoDeCancha = function () { return 183; };
-    s.figuraDePlano = function (pose, j, esRival, x, y, alto) { var o = s.add.sprite(x, y); o.pose = pose; o.j = j; o.height = alto; return o; };
+    E.figs = [];
+    s.figuraDePlano = function (pose, j, esRival, x, y, alto) { var o = s.add.sprite(x, y); o.pose = pose; o.j = j; o.height = alto; E.figs.push(o); return o; };
     s.placaDePlano = function (x, y, j) { return s.add.text(x, y, j && j.esVos ? "VOS" : (j && j.nombre) || "", {}); };
     E.punch = [];
     s.punch = function (a, b) { E.punch.push(a + " / " + b); };
@@ -287,6 +288,13 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   assert(s.st.posesion === "mia", "la pelota es tuya después de la súper defensa");
   correrTodo(E);
   assert(E.punch.some(function (p) { return /SÚPER DEFENSA/.test(p); }), "la escena lo dice: " + E.punch.join(" · "));
+  /* revisión L04b: el cartel decía "te tiraste" y la figura de quien juega
+     es la pose "bloqueo", de pie con los brazos cruzados
+     (l04b_4_super_defensa_revela.png). Lo que dice tiene que ser lo que se ve. */
+  var figVos = E.figs.filter(function (f) { return f.j && f.j.esVos; })[0];
+  var cartel = E.punch.filter(function (p) { return /SÚPER DEFENSA/.test(p); })[0] || "";
+  assert(!!figVos && figVos.pose === "bloqueo", "quien juega aparece en el plano con la pose del bloqueo (" + (figVos && figVos.pose) + ")");
+  assert(/pusiste el cuerpo/.test(cartel) && !/tirast/.test(cartel), "SÍNTOMA: el cartel de la súper defensa dice un gesto que la pose no muestra (" + cartel + ")");
   assert(s.st.golesRival === golesAntes, "y no es gol");
   assert(s.estado === "LIBRE", "y el partido sigue (" + s.estado + ")");
 
