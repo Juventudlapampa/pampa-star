@@ -733,7 +733,9 @@
   "pausa": {
     "_nota": "TANDA 1.0 (L04) · LA PAUSA Y LAS SALIDAS DEL PARTIDO (scenes/match.js: abrirPausa, salidasDelFinal). velo_alpha: lo oscuro del velo de la PAUSA (0 = no tapa nada, 1 = negro); 0,82 deja ver la cancha quieta detrás sin competir con la cruz. final_espera_ms: cuánto después del pitazo aparecen los botones del final (VOLVER AL MENÚ / OTRO PARTIDO / SEGUIR LA CARRERA). ESPACIO es la acción durante todo el partido y en el cursor confirma: con 0, quien venía apretando ESPACIO salía del final sin leer el resultado. 700 ms alcanza para ver GANASTE/PERDISTE y la cifra antes de que algo se pueda elegir; una tecla SOSTENIDA no cuenta igual, porque el cursor ya no confirma con la repetición automática del teclado (foco_ui.js).",
     "velo_alpha": 0.82,
-    "final_espera_ms": 700
+    "final_espera_ms": 700,
+    "_atras": "atras_ventana_ms: en el editor y en la intro, el primer ATRÁS del teléfono muestra 'Tocá ATRÁS otra vez para salir' durante este tiempo, y un segundo ATRÁS adentro de la ventana sale del juego (index.html + logic/atras.js). 2000 es lo que dura un aviso corto de Android (Toast.LENGTH_SHORT, el mismo 'tocá otra vez para salir' de las apps); más corto y no se llega a leer, más largo y un atrás suelto un rato después todavía te saca.",
+    "atras_ventana_ms": 2000
   },
   "flags": {
     "a3_bloqueo": true

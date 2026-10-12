@@ -30,6 +30,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* la caja del código de carrera (DOM): si quedó abierta, se va */
     this.cerrarCaja();
     this._cajaGancho = false;
+    /* L04: a dónde lleva el atrás del teléfono desde la vista a la vista
+       (null = al editor, que es de donde se entra al Master) */
+    this._atrasVista = null;
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -53,6 +56,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   vaciarVista() {
     if (this.cerrarFoco) this.cerrarFoco();
     this.soltarAtajos();
+    this._atrasVista = null;   // L04: cada vista dice a dónde vuelve (ver alAtras)
     if (this._relojSem) { this._relojSem.remove(false); this._relojSem = null; }
     this._mapaCapa = null;
     this.children.list.slice().forEach((o) => { if (o && o.destroy) o.destroy(); });
@@ -80,6 +84,31 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const kb = this.input && this.input.keyboard;
     (this._atajos || []).forEach((p) => { if (kb) kb.off(p[0], p[1]); });
     this._atajos = [];
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     L04 · EL ATRÁS DEL TELÉFONO EN EL MASTER: la vista anterior.
+
+     Antes el gesto atrás de Android sacaba de la página desde cualquier
+     vista (0 oyentes de popstate). Ahora cada vista que no es "la de
+     arriba" deja dicho a dónde vuelve en _atrasVista, y vaciarVista() lo
+     borra al cambiar: la semana y el evento vuelven a la tabla, el día
+     suelto a la semana, la entrevista a la pregunta anterior, el código y
+     ¿EMPEZAR OTRA CARRERA? a la tabla. La tabla, elegir club y el save roto
+     vuelven al editor, que es de donde se entra. Con la caja del código
+     abierta, atrás la cierra (como su ✕ CANCELAR).
+     ══════════════════════════════════════════════════════════════════════ */
+  estadoAtras() {
+    return { escena: "master", cajaAbierta: !!(this._caja && this._caja.el) };
+  }
+  alAtras(d) {
+    if (d === "cerrar_menu") { this.cerrarCaja(); return true; }
+    if (d !== "volver") return false;
+    if (this._caja && this._caja.el) { this.cerrarCaja(); return true; }
+    const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
+    if (this._atrasVista) this._atrasVista();
+    else this.irA("editor");
+    return true;
   }
 
   /* A1 · los retratos de los personajes CON NOMBRE (Nito, el DT, el utilero).
@@ -125,6 +154,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
   create() {
     this.entrarDesdeNegro();
+    /* L04 · EL ATRÁS DEL TELÉFONO. index.html decide con logic/atras.js
+       (estadoAtras, abajo) y manda la decisión. Va arriba de todo: create()
+       sale temprano en varias vistas (save roto, falta de datos) y en todas
+       el atrás tiene que andar. El emisor del juego sobrevive a la escena:
+       el oyente se va con el shutdown, como el del partido. */
+    const alAtrasDelTelefono = (ev) => { if (ev && ev.escena === "master") this.alAtras(ev.decision); };
+    this.game.events.on("atras", alAtrasDelTelefono);
+    this.events.once("shutdown", () => this.game.events.off("atras", alAtrasDelTelefono));
     /* D5 · volviste del editor con la pinta puesta: ahora sí, la entrevista.
        Se consume el pendiente antes de nada para que un restart no lo repita. */
     const pend = this.game.registry.get("carreraPendiente");
@@ -433,6 +470,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const r = this.resumenDeLaCarrera();
     if (!r) { this.scene.restart(); return; }
     this.vaciarVista();
+    this._atrasVista = () => this.scene.restart();   // L04: atrás = SEGUIR, a la tabla
     /* ARTE: el radial y la cancha de tu división (cine_arte.js) */
     if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
 
@@ -612,6 +650,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!C || !this.save) { this.scene.restart(); return; }
     const codigo = C.exportar(this.save);
     this.vaciarVista();
+    this._atrasVista = () => this.scene.restart();   // L04: como ◀ VOLVER A LA TABLA
     if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
     this.add.text(W / 2, 46, "💾 CÓDIGO DE CARRERA", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
     /* revisión L03: PEGAR UN CÓDIGO está en elegir club, que no aparece si el
@@ -1050,6 +1089,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!V || !D || !D.origen) { this._crearCarrera(divId, null); return; }
     paso = paso || 0; elegidas = elegidas || [];
     this.vaciarVista();
+    /* L04: atrás = la pregunta anterior (con lo que se había contestado
+       antes de ella); desde la primera, a elegir club */
+    this._atrasVista = paso > 0
+      ? () => this.vistaOrigen(divId, paso - 1, elegidas.slice(0, paso - 1))
+      : () => this.scene.restart();
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     const p = D.origen[paso];
     /* O2 · LA ENTREVISTA. El contenido y las consecuencias son EXACTAMENTE las
@@ -1277,6 +1321,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       return;
     }
     this.vaciarVista();
+    /* L04: atrás = a la tabla. Lo elegido ya está en el save (guardar() en
+       cada ranura): JUGAR LA FECHA vuelve a esta misma semana */
+    this._atrasVista = () => this.scene.restart();
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
 
     /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
@@ -1706,6 +1753,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctx);
     this.vaciarVista();
+    this._atrasVista = () => this.vistaSemana(this._semRival, this._semJugar);   // L04: como su ◀ VOLVER
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     this.add.text(W / 2, 34, ["LUNES", "MIÉRCOLES", "VIERNES"][ranura] + " · ¿qué hacés?", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 60, "te quedan " + sem.energia + " de energía", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
@@ -1825,6 +1873,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const ev = this._semEvento;
     if (!V || !ev || !ev.opciones || !ev.opciones.length) { this._semEventoResuelto = true; alSeguir(); return; }
     this.vaciarVista();
+    /* L04: atrás = a la tabla; el evento quedó anotado con su fecha
+       (eventoDeLaFecha) y vuelve el mismo, sin sortear otro */
+    this._atrasVista = () => this.scene.restart();
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     /* E · acá el PRINCIPAL es lo que pasó: el resto es marco. */
     this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);

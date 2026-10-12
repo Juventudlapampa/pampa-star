@@ -499,17 +499,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         ev.preventDefault && ev.preventDefault();
         this.onBotonAccion();
       });
-      this.input.keyboard.on("keydown-ESC", () => {
-        /* L04: con la PAUSA abierta, ESC es SEGUIR (la cruz de la pausa no
-           registra su propio ESC: si lo hiciera, este mismo keydown la
-           cerraría y la volvería a abrir) */
-        if (this.estado === "PAUSA") this.cerrarPausa();
-        else if (this.estado === "PASE" && this._paseCancelar) this._paseCancelar();
-        else if (this.estado === "MENU" && this._menuVolver) this._menuVolver();
-        /* y en la pantalla final, ESC es su salida principal (la misma que el
-           atrás del teléfono): SEGUIR LA CARRERA o VOLVER AL MENÚ */
-        else if (this.estado === "FINAL" && this._salidaFinal) this._salidaFinal();
-      });
+      /* L04 · ESC ES EL ATRÁS DEL TECLADO: la misma tabla que el gesto del
+         teléfono (logic/atras.js). Con un menú que se puede cerrar, lo
+         cierra (lo de siempre: el pase dirigido, la cruz con ✕, y ahora la
+         PAUSA, que es SEGUIR); en LIBRE abre la PAUSA; en una jugada la pide
+         para cuando termine; en el final es su salida principal; en el menú
+         de tempo, antes de empezar, vuelve sin jugar. La cruz de
+         la pausa no registra su propio ESC: si lo hiciera, este mismo
+         keydown la cerraría y la volvería a abrir. */
+      this.input.keyboard.on("keydown-ESC", () => this.alAtras(this.decidirAtras()));
       /* L04 · P = PAUSA (y otra vez P, seguir). Fuera de LIBRE se pide y
          entra apenas termina la jugada. */
       this.input.keyboard.on("keydown-P", () => this.alternarPausa());
@@ -533,6 +531,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const alOcultar = () => { if (this.estado === "LIBRE") this.abrirPausa(); };
     this.game.events.on("ocultar", alOcultar);
     this.events.once("shutdown", () => this.game.events.off("ocultar", alOcultar));
+    /* L04 · EL ATRÁS DEL TELÉFONO: index.html ya decidió con logic/atras.js
+       (estadoAtras de acá) y manda la decisión; acá solo se cumple. Mismo
+       molde que "ocultar": el oyente se va con el shutdown. */
+    const alAtrasDelTelefono = (ev) => { if (ev && ev.escena === "match") this.alAtras(ev.decision); };
+    this.game.events.on("atras", alAtrasDelTelefono);
+    this.events.once("shutdown", () => this.game.events.off("atras", alAtrasDelTelefono));
 
     /* guía breve pegada al portador (los textos del MUNDO escalan con la vista elevada) */
     this._fsMundo = this._vista4 ? Math.round(this.V2.ZOOM / this._zoomBase * 10) / 10 : 1;
@@ -5345,6 +5349,40 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "LIBRE";
     const S = this.SFX; if (S && S.ui) S.ui("cerrar");
     return true;
+  }
+  /* ══════════════════════════════════════════════════════════════════════
+     L04 · EL ATRÁS (el gesto del teléfono y ESC). La decisión es de
+     logic/atras.js (pura, con su tabla testeada); el partido cuenta en qué
+     está y cumple. Nunca sale del partido por su cuenta: para eso está la
+     salida de la PAUSA, que dice qué pasa con el partido.
+     ══════════════════════════════════════════════════════════════════════ */
+  estadoAtras() {
+    return {
+      escena: "match", estado: this.estado,
+      menuConSalida: (this.estado === "PASE" && !!this._paseCancelar) || (this.estado === "MENU" && !!this._menuVolver)
+    };
+  }
+  decidirAtras() {
+    const A = window.PampaAtras;
+    if (A && A.decidir) return A.decidir(this.estadoAtras(), Infinity);
+    /* sin atras.js (no bajó): lo de antes de este lote, más la pausa */
+    return this.estado === "LIBRE" ? "pausa" : "cerrar_menu";
+  }
+  alAtras(d) {
+    if (d === "cerrar_menu") {
+      if (this.estado === "PAUSA") return this.cerrarPausa();
+      if (this.estado === "PASE" && this._paseCancelar) { this._paseCancelar(); return true; }
+      if (this.estado === "MENU" && this._menuVolver) { this._menuVolver(); return true; }
+      return false;
+    }
+    if (d === "pausa") return this.pedirPausa();
+    if (d === "volver") {
+      if (this.estado === "FINAL" && this._salidaFinal) { this._salidaFinal(); return true; }
+      /* el menú de tempo: el partido no empezó, se vuelve sin jugar (en el
+         Master, la fecha queda para jugarla, como con SALIR) */
+      if (this.estado === "TEMPO_MENU") { this.salirDelPartido(); return true; }
+    }
+    return false;
   }
   /* VOLVER AL MENÚ / SALIR DEL PARTIDO: sin resultado. El amistoso se tira;
      la fecha del Master queda sin jugar y el Master la ofrece para repetir. */

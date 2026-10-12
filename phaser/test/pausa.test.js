@@ -130,12 +130,11 @@ function espiarTick(E) {
   /* create() conecta las teclas: se corre solo ese pedazo (el keydown real) */
   var cre = SRC.slice(SRC.indexOf("  create() {"));
   assert(/keydown-P", \(\) => this\.alternarPausa\(\)\)/.test(cre), "create() conecta la tecla P a alternarPausa()");
-  var esc = cre.slice(cre.indexOf('this.input.keyboard.on("keydown-ESC"'));
-  esc = esc.slice(0, esc.indexOf("});") + 3);
-  assert(/this\.estado === "PAUSA"\) this\.cerrarPausa\(\)/.test(esc), "ESC con la pausa abierta es SEGUIR");
+  /* ESC es el atrás del teclado (L04): la misma tabla que el gesto del teléfono */
+  assert(/keydown-ESC", \(\) => this\.alAtras\(this\.decidirAtras\(\)\)\)/.test(cre), "create() conecta ESC al atrás (alAtras(decidirAtras()))");
   /* la escena de mentira no corre create(): las teclas se conectan a mano, igual que ahí */
   s.input.keyboard.on("keydown-P", function () { s.alternarPausa(); });
-  s.input.keyboard.on("keydown-ESC", function () { if (s.estado === "PAUSA") s.cerrarPausa(); });
+  s.input.keyboard.on("keydown-ESC", function () { s.alAtras(s.decidirAtras()); });
   s.st.modo = "juego";
   E.tecla("P");
   assert(s.estado === "PAUSA", "P abre la pausa");

@@ -21,6 +21,27 @@
   @font-face{font-family:'Bowlby One';src:url('../assets/fonts/BowlbyOne-Regular.ttf') format('truetype');font-display:swap;}
   html,body{margin:0;height:100%;background:#06120b;overflow:hidden;
     font-family:'Pixelify Sans','VT323',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
+  /* EL ATRÁS Y LOS GESTOS (tanda 1.0, L04). Phaser cancela el toque solo
+     cuando el blanco es el lienzo ("e.capture&&t.cancelable&&t.target===s&&
+     t.preventDefault()" en vendor/phaser.min.js): las bandas negras de
+     Scale.FIT, a los costados del lienzo en un teléfono apaisado, quedaban
+     sin protección. Ahí, deslizar hacia abajo recargaba la página (con el
+     partido adentro) y mantener apretado abría el menú de copiar.
+       · overscroll-behavior: sin "deslizar para recargar" ni rebote;
+       · touch-action: el navegador no hace zoom ni scroll con el dedo;
+       · user-select y -webkit-touch-callout: mantener apretado no selecciona
+         ni abre el menú de copiar.
+     Las cajas de texto (el código de carrera, el informe de error) los
+     recuperan: ahí sí se mantiene apretado para PEGAR, y se scrollea. */
+  html,body{overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+  textarea,input{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;touch-action:auto;}
+  #trabado,#trabado .caja,#cajacodigo,#cajacodigo .caja{touch-action:pan-y;}
+  /* "Tocá ATRÁS otra vez para salir": DOM, porque tiene que verse en el
+     editor, en la intro y también arriba del "Girá el celular" (50) */
+  #atras-aviso{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;max-width:90vw;box-sizing:border-box;
+    background:#0A1F13;color:#F6EFDC;border:3px solid #F5C400;border-radius:10px;padding:10px 18px;
+    font-family:'Pixelify Sans','VT323',ui-monospace,monospace;font-size:18px;text-align:center;pointer-events:none;}
+  #atras-aviso[hidden]{display:none;}
   #game{width:100vw;height:100dvh;display:flex;align-items:center;justify-content:center;}
   #game canvas{max-width:100vw;max-height:100dvh;}
   /* aviso de rotar en vertical (mobile-first APAISADO) */
@@ -97,6 +118,7 @@
 <body>
   <div id="game"></div>
   <div id="rotate"><div class="ico">📱↻</div><b>Girá el celular</b><div>PAMPA STAR se juega apaisado (horizontal).</div></div>
+  <div id="atras-aviso" role="status" aria-live="polite" hidden></div>
   <!-- LA RED DE ERRORES: el aviso vive acá, antes que cualquier script, así
        existe aunque no baje nada. Los botones se prenden según el caso. -->
   <div id="trabado" role="alertdialog" aria-modal="true" aria-labelledby="tb-tit" hidden>
@@ -154,7 +176,7 @@
      de sw.js: informe.test.js lo controla. Se sube junto con la de sw.js en
      CADA publicación que toque phaser/, para que el informe diga de qué build
      viene. Subirla ya no barre el caché de assets (eso es CACHE, en sw.js). */
-  window.PAMPA_VERSION = "v17-1.0-l03r";
+  window.PAMPA_VERSION = "v17-1.0-l04";
   (function () {
     "use strict";
     var R = window.PampaRed = {
@@ -673,6 +695,113 @@
     });
   })();
   </script>
+  <script>
+  /* ═══════════════════════════════════════════════════════════════════════
+     EL ATRÁS DEL TELÉFONO (tanda 1.0, L04).
+
+     Lo que estaba mal, medido: popstate, pushState, beforeunload y pagehide
+     daban 0 resultados en phaser/ (grep). En Android el gesto atrás
+     (deslizar desde el borde, que en horizontal queda bajo los pulgares) o
+     la tecla atrás salía de la página: abierto desde WhatsApp en una
+     pestaña sin historial, la cerraba; instalado, cerraba la app. Y el
+     partido en curso se perdía entero.
+
+     Ahora el juego deja UN escalón propio en el historial ({pampa:1}). El
+     gesto lo consume (popstate), se vuelve a poner, y logic/atras.js decide
+     según la pantalla a la vista: en el partido, pausa o cierra el menú; en
+     el Master, la vista anterior; en el editor y en la intro, "Tocá ATRÁS
+     otra vez para salir" y el segundo atrás dentro de la ventana sale de
+     verdad (no se repone el escalón y se hace history.back()).
+
+     EL ESCALÓN SE PONE CON EL PRIMER TOQUE, no al cargar: Chrome marca como
+     salteable la entrada que una página agrega sin que nadie la haya tocado
+     (la intervención contra el secuestro del botón atrás), y el gesto se la
+     saltearía saliendo igual. El primer toque llega siempre: es la compuerta
+     "TOCÁ PARA EMPEZAR". Después de recargar, el escalón ya está (el estado
+     sobrevive en el historial) y no se apila otro.
+
+     Con "Algo se trabó" a la vista, atrás no hace nada: el aviso tiene sus
+     botones y es lo que hay que leer.
+     ═══════════════════════════════════════════════════════════════════════ */
+  (function () {
+    "use strict";
+    var AT = window.PampaAtrasDOM = { armado: false, ultimoConfirmar: -Infinity, timer: null };
+    function juego() { return window.PAMPA_GAME || null; }
+    function ahora() { var p = window.performance; return (p && p.now) ? p.now() : Date.now(); }
+    function escalon() { try { history.pushState({ pampa: 1 }, ""); } catch (e) { } }
+    AT.armar = function () {
+      if (AT.armado) return false;
+      AT.armado = true;
+      var st = null;
+      try { st = history.state; } catch (e) { }
+      if (!(st && st.pampa)) escalon();
+      return true;
+    };
+    /* los eventos que dan "activación de usuario" (con el dedo es al soltar,
+       no al apoyar: touchend/pointerup; con el teclado, keydown) */
+    ["pointerup", "touchend", "click", "keydown"].forEach(function (t) {
+      window.addEventListener(t, AT.armar, { capture: true, passive: true });
+    });
+    function ventana() {
+      try {
+        var b = juego() && juego().registry.get("balance"), v = b && b.pausa && b.pausa.atras_ventana_ms;
+        if (v > 0) return v;
+      } catch (e) { }
+      return (window.PampaAtras && window.PampaAtras.VENTANA_MS) || 2000;
+    }
+    /* la pantalla a la vista se presenta sola (estadoAtras) y si no, por su clave */
+    AT.describir = function () {
+      var g = juego(), info = { escena: null };
+      try {
+        var act = g ? g.scene.getScenes(true) : [];
+        var s = act.length ? act[act.length - 1] : null;
+        if (s) {
+          info = (s.estadoAtras && s.estadoAtras()) || {};
+          info.escena = info.escena || s.sys.settings.key;
+        }
+      } catch (e) { }
+      return info;
+    };
+    AT.mostrar = function (txt, ms) {
+      var el = document.getElementById("atras-aviso");
+      if (!el) return;
+      el.textContent = "◀ " + txt;
+      el.hidden = false;
+      clearTimeout(AT.timer);
+      AT.timer = setTimeout(function () { el.hidden = true; }, ms);
+    };
+    AT.ocultar = function () { var el = document.getElementById("atras-aviso"); if (el) el.hidden = true; clearTimeout(AT.timer); };
+    AT.alAtras = function () {
+      var R = window.PampaRed, A = window.PampaAtras;
+      /* el aviso de error manda: se repone el escalón y nada más */
+      if (R && R.tipo) { escalon(); return "nada"; }
+      var info = AT.describir(), v = ventana();
+      var d = A ? A.decidir(info, ahora() - AT.ultimoConfirmar, { ventana: v }) : "confirmar_salida";
+      if (d === "salir") {
+        /* no se repone: el escalón ya se consumió y estamos en la entrada
+           de la página. back() va a lo que había antes; si no había nada
+           (una pestaña abierta desde WhatsApp), el próximo atrás es el del
+           sistema. Un toque nuevo vuelve a poner el escalón. */
+        AT.armado = false;
+        AT.ultimoConfirmar = -Infinity;
+        AT.ocultar();
+        try { history.back(); } catch (e) { }
+        return d;
+      }
+      escalon();
+      if (d === "confirmar_salida") {
+        AT.ultimoConfirmar = ahora();
+        AT.mostrar((A && A.MENSAJE) || "Tocá ATRÁS otra vez para salir", v);
+        return d;
+      }
+      AT.ultimoConfirmar = -Infinity;
+      var g = juego();
+      if (g && g.events) { try { g.events.emit("atras", { decision: d, escena: info.escena }); } catch (e) { } }
+      return d;
+    };
+    window.addEventListener("popstate", AT.alAtras);
+  })();
+  </script>
 
 
   <script>
@@ -771,6 +900,8 @@
   <script src="logic/pierna.js"></script>
   <!-- el informe de error que arma COPIAR INFORME (la red está arriba de todo) -->
   <script src="logic/informe.js"></script>
+  <!-- L04: qué hace el atrás del teléfono en cada pantalla (lo usa el script del atrás, arriba) -->
+  <script src="logic/atras.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/piel_ui.js"></script>
   <script src="scenes/sprites.js"></script>
@@ -980,6 +1111,9 @@
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
+      /* L04: mantener apretado sobre el lienzo (o el clic derecho) no abre el
+         menú del navegador encima del partido */
+      disableContextMenu: true,
       callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };

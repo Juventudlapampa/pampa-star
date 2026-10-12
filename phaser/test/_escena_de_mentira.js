@@ -92,6 +92,7 @@ function armar(opts) {
   var reg = new Map();
   Object.keys(datos).forEach(function (k) { reg.set(k, datos[k]); });
   var registry = { get: function (k) { return reg.get(k); }, set: function (k, v) { reg.set(k, v); }, remove: function (k) { reg.delete(k); } };
+  var juegoEventos = new Emisor();
 
   function nueva() {
     var s = new Escena();
@@ -105,7 +106,9 @@ function armar(opts) {
     input.keyboard.enabled = true;
     s.children = children; s.input = input;
     s.events = new Emisor();
-    s.game = { registry: registry };
+    /* el emisor del JUEGO (game.events), que sobrevive a las escenas: desde
+       L04 el Master se cuelga ahí del atrás del teléfono ("atras") */
+    s.game = { registry: registry, events: juegoEventos };
     s.scale = { width: 960, height: 540 };
     s.textures = { exists: function () { return false; } };
     s.cameras = { main: { setBackgroundColor: function () { return this; } } };
@@ -260,7 +263,8 @@ function armar(opts) {
   }
 
   return { window: window, ctx: ctx, Escena: Escena, nueva: nueva, registry: registry, reg: reg,
-    localStorage: localStorage, store: store, datos: datos, carreraNueva: carreraNueva, Emisor: Emisor };
+    localStorage: localStorage, store: store, datos: datos, carreraNueva: carreraNueva, Emisor: Emisor,
+    juegoEventos: juegoEventos };
 }
 
 module.exports = { armar: armar, Emisor: Emisor, RAIZ: RAIZ };

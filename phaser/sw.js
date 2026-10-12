@@ -18,7 +18,7 @@
    (paso del deploy, anotado en docs/TANDA_1_0.md). Cuando llegue
    cache-que-no-se-tira (L05, las dos cachés 'pampa-codigo-<VERSION>' y
    'pampa-assets'), CACHE se va. */
-const VERSION = "v17-1.0-l03r";
+const VERSION = "v17-1.0-l04";
 const CACHE = "v16-toma";
 const PRECACHE = [
   "./index.html",
@@ -36,6 +36,8 @@ const PRECACHE = [
   "./logic/informe.js",
   /* tanda 1.0 (L03): el saneo del save del Master y el código de carrera */
   "./logic/save_master.js", "./logic/carrera.js",
+  /* tanda 1.0 (L04): qué hace el atrás del teléfono en cada pantalla */
+  "./logic/atras.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
