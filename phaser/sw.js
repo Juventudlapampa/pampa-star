@@ -34,6 +34,8 @@ const PRECACHE = [
   /* tanda 1.0: el informe de error. OJO, VERSION de acá arriba y
      window.PAMPA_VERSION de index.html se suben JUNTAS (informe.test.js) */
   "./logic/informe.js",
+  /* tanda 1.0 (L03): el saneo del save del Master */
+  "./logic/save_master.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",

@@ -143,8 +143,38 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       return;
     }
 
+    /* ══════════════════════════════════════════════════════════════════════
+       TANDA 1.0 · EL SAVE SE SANEA ANTES DE USARLO.
+
+       Era JSON.parse y adelante: medido en Chrome, un save sin `titulos`
+       tiraba TypeError en la tabla y uno sin `tabla` en la temporada, y la
+       pantalla quedaba sin botones en CADA entrada. Un texto cortado caía en
+       silencio a elegir club y la carrera nueva lo pisaba sin respaldo.
+
+       Ahora logic/save_master.sanear() completa lo que falta, valida la
+       temporada y la prueba con la lógica de verdad. Lo que arregla se guarda
+       arreglado. Lo que no tiene arreglo se RESPALDA tal cual en
+       pampa_master_v1_corrupta y se dice en pantalla (vistaSaveRoto).
+       ══════════════════════════════════════════════════════════════════════ */
     this.save = null;
-    try { const r = localStorage.getItem("pampa_master_v1"); if (r) this.save = JSON.parse(r); } catch (e) { }
+    let crudo = null;
+    try { crudo = localStorage.getItem("pampa_master_v1"); } catch (e) { }
+    const SM = window.PampaSaveMaster;
+    if (SM && SM.sanear) {
+      const r = SM.sanear(crudo, this.idsDeDivisiones(), this.opcionesDeSaneo());
+      if (r.irrecuperable) {
+        this.respaldarCorrupta(crudo);
+        this.vistaSaveRoto(r.motivo);
+        return;
+      }
+      this.save = r.save;
+      if (this.save && r.reparado.length) {
+        console.warn("[master] la carrera guardada se reparó: " + r.reparado.join(" · "));
+        this.guardar();
+      }
+    } else {
+      try { if (crudo) this.save = JSON.parse(crudo); } catch (e) { }
+    }
     /* SECCIÓN 11 · LA PARTIDA GUARDADA SE PONE AL DÍA. Los rivales de las
        divisiones pasaron de clubes reales a ficticios y tu club dejó de
        llamarse "Club " + localidad. Una temporada en curso los tiene escritos:
@@ -439,6 +469,71 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.scene.restart();
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 · LO QUE NECESITA EL SANEO DEL SAVE (logic/save_master.js)
+
+     Las divisiones que valen son las que están en la escalera (logic/master)
+     Y tienen rivales en data/divisiones.json: una sin la otra no se juega.
+     Si la temporada guardada no tiene arreglo, se vuelve a empezar con la
+     misma cuenta de siempre (la de _crearCarrera y NUEVA TEMPORADA).
+     ══════════════════════════════════════════════════════════════════════ */
+  idsDeDivisiones() {
+    const divs = (this.DIV && this.DIV.divisiones) || {};
+    return this.Ma.DIVISIONES.map(d => d.id).filter(id => divs[id] && Array.isArray(divs[id].rivales));
+  }
+  opcionesDeSaneo() {
+    return {
+      rivalesDe: (div) => ((this.DIV.divisiones[div] || {}).rivales || null),
+      crearTemporada: (div, club, n) => this.T.crear({
+        division: div, miClub: club,
+        rivales: this.DIV.divisiones[div].rivales,
+        semilla: this.Ma.hashClub(club) * 31 + (n | 0 || 1)
+      })
+    };
+  }
+  /* el texto tal cual estaba, aparte: si alguien que sabe lo arregla, la
+     carrera se recupera. Se pisa solo con otro texto roto. */
+  respaldarCorrupta(crudo) {
+    try { if (crudo != null) localStorage.setItem("pampa_master_v1_corrupta", String(crudo)); } catch (e) { }
+  }
+  /* la carrera guardada no se pudo leer: se dice, y hay dos salidas */
+  vistaSaveRoto(motivo) {
+    const W = this.scale.width, H = this.scale.height;
+    this.vaciarVista();
+    if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
+    /* ✗ + palabras: el rojo solo no dice nada (Rodri es daltónico) */
+    this.add.text(W / 2, 96, "✗ TU CARRERA GUARDADA NO SE PUDO LEER", {
+      fontFamily: window.PF.display, fontSize: "15px", color: "#e3503e" }).setOrigin(0.5);
+    this.add.text(W / 2, 140, "Tu carrera guardada no se pudo leer. Quedó un respaldo.", {
+      fontFamily: window.PF.texto, fontSize: "17px", color: "#f6efdc" }).setOrigin(0.5);
+    this.add.text(W / 2, 176, (motivo ? "(" + motivo + ") " : "") +
+      "El texto quedó guardado aparte en este navegador: si tenés un código de carrera, podés pegarlo al empezar otra.", {
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5, 0);
+    const piel = (this.game.registry.get("balance") || {}).piel;
+    const yA = Math.round(window.PampaPiel.yDeOpcion(0, 2, 60, piel));
+    const yB = Math.round(window.PampaPiel.yDeOpcion(1, 2, 60, piel));
+    const empezar = this.boton(W / 2, yA, 420, "▶ EMPEZAR OTRA", 0x7ee08a, () => this.empezarDeCero());
+    const volver = this.boton(W / 2, yB, 420, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
+    /* el cursor arranca en VOLVER: empezar otra no se elige con un Enter de reflejo */
+    if (this.grupoFoco) {
+      this.grupoFoco([
+        { obj: empezar, cb: () => this.empezarDeCero() },
+        { obj: volver, cb: () => this.irA("editor") }
+      ], { inicial: 1, volver: () => this.irA("editor") });
+    }
+    this.vestirPendientes && this.vestirPendientes();
+  }
+  /* empezar de cero después de un save roto: el texto ya quedó en
+     pampa_master_v1_corrupta, así que acá se borra sin tocar el respaldo de
+     una carrera borrada a propósito (pampa_master_v1_borrada) */
+  empezarDeCero() {
+    try { localStorage.removeItem("pampa_master_v1"); } catch (e) { }
+    this.save = null;
+    this.game.registry.set("masterPartido", null);
+    this.game.registry.set("masterResultado", null);
+    this.scene.restart();
+  }
+
   vistaElegir() {
     const W = this.scale.width, H = this.scale.height;
     this.add.text(W / 2, 26, "🏆 MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
@@ -510,7 +605,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          localidad (así se nombra a clubes reales). Ver logic/master.js */
       const club = this.Ma.nombreDeTuClub(this.pueblos[this.pSel], this.game.registry.get("roster"));
       this.save = {
-        v: 1, club, pueblo: this.pueblos[this.pSel], division: divId, temporadaN: 1, titulos: [],
+        v: (window.PampaSaveMaster && window.PampaSaveMaster.VERSION) || 1, club, pueblo: this.pueblos[this.pSel], division: divId, temporadaN: 1, titulos: [],
         origen: origen || null, bolsaEventos: [], modFecha: null, racha: 0,
         temporada: this.T.crear({
           division: divId, miClub: club,
