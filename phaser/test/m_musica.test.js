@@ -81,7 +81,7 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   duck = duck.slice(0, duck.indexOf("\n  }") + 4);
   assert(/archivoSonando/.test(duck),
     "regla 'volumen': el duck tiene que bajar los archivos (antes solo bajaba el bus del sintetizador)");
-  assert(/0\.6/.test(duck), "y baja un 40% (queda en 0.6)");
+  assert(/DUCK = 0\.6/.test(SFX) && /DUCK/.test(duck), "y baja un 40% (queda en 0.6: la constante DUCK)");
   console.log("[2] las tres reglas: corte al terminar · fundido 300 ms (con salida seca) · duck al 60%");
 })();
 
@@ -304,7 +304,8 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   });
 
   /* --- (g) M5 · la música no sobrevive al cambio de escena --- */
-  assert(/events\.on\("shutdown"/.test(PIEL) && /armarCorteDeMusica/.test(PIEL),
+  /* once y no on: con on, cada reinicio de la escena sumaba un gancho más (oct 2026) */
+  assert(/events\.once\("shutdown"/.test(PIEL) && /armarCorteDeMusica/.test(PIEL),
     "M5: el corte de música tiene que colgar del shutdown de la escena, no de que cada salida se acuerde");
 
   console.log("[7] enumerados " + nPedidos + " momentos en " + fuentes.length + " archivos: " +

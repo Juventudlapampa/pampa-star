@@ -166,35 +166,89 @@
          donde el silencio previo ES el efecto y ya estaba implementado)
        · la música baja 40% con hitstop o cartel de gol → musicaDuck
      ══════════════════════════════════════════════════════════════════════ */
+  /* ══════════════════════════════════════════════════════════════════════
+     EL REPRODUCTOR (oct 2026): UN TEMA A LA VEZ, SIEMPRE.
+
+     EL BUG ("me descajetaste los audios"): había DOS y hasta TRES temas
+     sonando juntos. Medido en vivo con un oído de prueba que muestrea los
+     <audio> cuadro a cuadro:
+       · volvés del partido al master → "Under the Floodlights" seguía debajo
+         de "The Longest Minute" y después debajo de la semana
+       · vas de la semana al partido → "Low Light Protocol" seguía en loop,
+         a volumen pleno, durante TODO el partido
+
+     La causa era un solo renglón: matarFundidos(). El tema que sale no se
+     pausa de golpe: baja de volumen en 300 ms y RECIÉN AL FINAL se pausa. Y
+     cualquier otro pedido —el tema de la escena que entra, el bajón de
+     música de una jugada— mataba TODOS los fundidos en curso, incluido el de
+     salida. El que salía quedaba congelado a mitad de camino, sin pausa,
+     dando vueltas para siempre. Al cambiar de escena pasaba siempre: el
+     shutdown pide silencio y el create() de la escena nueva pide su tema en
+     el mismo cuadro. (Y además el shutdown se enganchaba de nuevo en cada
+     reinicio de escena: con la segunda vuelta ya había dos ganchos, y el
+     segundo mataba el fundido del primero sin que entrara nadie.)
+
+     LAS TRES REGLAS NUEVAS:
+       1. cada elemento tiene SU rampa. Una rampa nueva pisa solo la de ese
+          mismo elemento, nunca la de otro: el que sale termina de salir.
+       2. cada vez que entra un tema, todo lo demás que esté sonando se va.
+          No hace falta acordarse de quién sonaba: se recorren los elementos.
+       3. los bajones de música (duck) no se pisan entre sí: hay UNA ventana,
+          que se estira hasta el final del último pedido, y UN solo reloj que
+          la suelta.
+     ══════════════════════════════════════════════════════════════════════ */
   var archivos = {};        // id -> { audio, loop }
+  var elementos = [];       // todos los <audio> creados (uno por archivo)
   var archivoSonando = null;
   var volArchivo = 0.5;     // el volumen "de crucero" de los archivos
   var FUNDIDO_MS = 300;
-  var fundidos = [];        // timers vivos, para poder matarlos
+  var DUCK = 0.6;           // "la música baja 40%" (audio.json _reglas)
 
-  function matarFundidos() { fundidos.forEach(clearInterval); fundidos = []; }
+  function detenerRampa(el) { if (el && el.__rampa) { clearInterval(el.__rampa); el.__rampa = null; } }
 
-  /* sube o baja el volumen de un elemento Audio en ms, sin tocar el archivo */
+  /* sube o baja el volumen de UN elemento en ms, sin tocar el archivo.
+     La rampa vive en el elemento: otra rampa del mismo elemento la reemplaza,
+     la de otro elemento no la toca. */
   function rampa(el, desde, hasta, ms, alFinal) {
     if (!el) { if (alFinal) alFinal(); return; }
+    detenerRampa(el);
     var pasos = Math.max(1, Math.round(ms / 25)), i = 0;
     try { el.volume = Math.max(0, Math.min(1, desde)); } catch (e) {}
-    var t = setInterval(function () {
+    el.__rampa = setInterval(function () {
       i++;
       var v = desde + (hasta - desde) * (i / pasos);
       try { el.volume = Math.max(0, Math.min(1, v)); } catch (e) {}
-      if (i >= pasos) { clearInterval(t); fundidos = fundidos.filter(function (x) { return x !== t; }); if (alFinal) alFinal(); }
+      if (i >= pasos) { detenerRampa(el); if (alFinal) alFinal(); }
     }, 25);
-    fundidos.push(t);
+  }
+
+  /* el que sale: baja y SE PAUSA. Marcado como saliendo para que nadie lo
+     cuente como "sonando" ni lo vuelva a agarrar a mitad de camino. */
+  function despedir(el, seco) {
+    if (!el) return;
+    if (seco) { detenerRampa(el); el.__saliendo = false; try { el.pause(); el.currentTime = 0; } catch (e) {} return; }
+    if (el.__saliendo) return;           // ya se está yendo: no se reinicia la bajada
+    el.__saliendo = true;
+    rampa(el, el.volume, 0, FUNDIDO_MS, function () {
+      el.__saliendo = false;
+      try { el.pause(); el.currentTime = 0; } catch (e) {}
+    });
+  }
+  /* regla 2: todo lo que suena y no es `menos`, afuera */
+  function despedirLosDemas(menos, seco) {
+    elementos.forEach(function (el) {
+      if (el === menos) return;
+      var suena = false;
+      try { suena = !el.paused; } catch (e) { }
+      if (suena) despedir(el, seco);
+      else detenerRampa(el);
+    });
   }
 
   function pararArchivo(seco) {
-    var el = archivoSonando; archivoSonando = null;
-    if (!el) return;
-    if (seco) { try { el.pause(); el.currentTime = 0; } catch (e) {} return; }
-    rampa(el, el.volume, 0, FUNDIDO_MS, function () {
-      try { el.pause(); el.currentTime = 0; } catch (e) {}
-    });
+    archivoSonando = null;
+    soltarDuckYa();
+    despedirLosDemas(null, seco);
   }
 
   /* mapa: { id: { archivo, loop } }. Devuelve cuántos quedaron listos. */
@@ -227,59 +281,80 @@
   }
 
   function registrarArchivos(mapa, volumen) {
-    matarFundidos(); pararArchivo(true); archivos = {};
     if (volumen != null) volArchivo = volumen;
-    if (!mapa) return 0;
-    var n = 0;
     /* UN ARCHIVO = UN ELEMENTO. definicion, jugadon y partido_final comparten
        pista (Last Ten Seconds); si cada uno tuviera su propio <audio>, entrar
        al pasillo en el minuto 88 REINICIARÍA el tema desde cero en vez de
        seguirlo. Compartiendo el elemento, el guard de musicaTema ("el mismo ya
        sonando: no se reinicia") hace que el cambio sea inaudible, que es lo que
-       corresponde: es el mismo tema. */
-    var porRuta = {};
-    Object.keys(mapa).forEach(function (id) {
+       corresponde: es el mismo tema.
+       Y SE REUSAN ENTRE REGISTROS: el mapa se vuelve a registrar cuando cambia
+       la fecha (la alternancia es por fecha). Antes eso creaba doce <audio>
+       nuevos y dejaba los viejos sin pausar; ahora el archivo que sigue en el
+       mapa conserva su elemento —y si estaba sonando, sigue sonando— y el que
+       sale del mapa se despide. */
+    var viejos = {};
+    elementos.forEach(function (el) { viejos[el.__ruta] = el; });
+    var porRuta = {}, n = 0;
+    archivos = {};
+    if (mapa) Object.keys(mapa).forEach(function (id) {
       var e = mapa[id];
       if (id.charAt(0) === "_" || !e) return;
       var ruta = typeof e === "string" ? e : e.archivo;
       if (!ruta) return;
       var a = porRuta[ruta];
       if (!a) {
-        a = new Audio(ruta);
+        a = viejos[ruta];
+        if (!a) {
+          a = new Audio(ruta);
+          a.preload = "auto";
+          a.volume = 0;
+          a.__ruta = ruta;
+        }
         a.loop = typeof e === "object" ? !!e.loop : true;
-        a.preload = "auto";
-        a.volume = 0;
+        try { a.muted = muted; } catch (er) { }
         porRuta[ruta] = a;
       }
       archivos[id] = { audio: a, loop: a.loop };
       n++;
     });
+    var siguen = [];
+    elementos.forEach(function (el) {
+      if (porRuta[el.__ruta]) siguen.push(el);
+      else { if (el === archivoSonando) archivoSonando = null; despedir(el, true); }
+    });
+    Object.keys(porRuta).forEach(function (r) { if (siguen.indexOf(porRuta[r]) < 0) siguen.push(porRuta[r]); });
+    elementos = siguen;
     return n;
   }
   function hayArchivo(id) { return !!archivos[id]; }
 
   function musicaTema(nombre, seco) {
     var id = nombre === "propia" ? "propia_propio" : nombre;
-    /* el mismo tema ya sonando: no se reinicia (cortaría el loop al pedo) */
-    if (id && archivos[id] && archivoSonando === archivos[id].audio) return;
-    matarFundidos();
+    /* el mismo tema ya sonando: no se reinicia (cortaría el loop al pedo).
+       Pero los demás se van igual: si algo quedó colgado, éste es el momento
+       de limpiarlo. */
+    if (id && archivos[id] && archivoSonando === archivos[id].audio && !archivoSonando.__saliendo) {
+      despedirLosDemas(archivoSonando, seco);
+      return;
+    }
 
     if (id && archivos[id]) {
       /* apagar el sintetizador si estaba */
       if (mus && mus.timer) { clearInterval(mus.timer); mus.timer = null; mus.base = null; vientoOff(); }
-      var saliente = archivoSonando;
       var entrante = archivos[id].audio;
+      soltarDuckYa();
       archivoSonando = entrante;
-      var destino = muted ? 0 : volArchivo;
-      if (saliente && saliente !== entrante) {
-        if (seco) { try { saliente.pause(); saliente.currentTime = 0; } catch (e) {} }
-        else rampa(saliente, saliente.volume, 0, FUNDIDO_MS, function () {
-          try { saliente.pause(); saliente.currentTime = 0; } catch (e) {}
-        });
-      }
-      try { entrante.play(); } catch (e) {}
-      if (seco) { try { entrante.volume = destino; } catch (e) {} }
-      else rampa(entrante, 0, destino, FUNDIDO_MS);
+      entrante.__saliendo = false;
+      despedirLosDemas(entrante, seco);
+      try { entrante.muted = muted; } catch (e) {}
+      try { var pr = entrante.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) {}
+      /* el volumen de destino es siempre el de crucero: el mute lo hace la
+         propiedad muted del elemento. Antes el destino era 0 si estabas en
+         mute, y al sacar el mute el tema quedaba en volumen 0 hasta el
+         próximo cambio de tema. */
+      if (seco) { detenerRampa(entrante); try { entrante.volume = volArchivo; } catch (e) {} }
+      else rampa(entrante, entrante.paused ? 0 : entrante.volume, volArchivo, FUNDIDO_MS);
       return;
     }
 
@@ -296,7 +371,7 @@
        datos y se arregla en audio.json, no tapándolo con música vieja. La
        puerta (pedirMusica) grita en desarrollo cuando el momento no existe.
        ══════════════════════════════════════════════════════════════════════ */
-    if (archivoSonando) pararArchivo(seco);
+    pararArchivo(seco);
     if (id) {
       var av = "[MUSICA] '" + id + "' no tiene archivo registrado: queda en silencio. " +
         "Declaralo en data/audio.json y mapealo en phaser/logic/musica.js.";
@@ -310,19 +385,43 @@
      que crecer: lo que quedó de ese momento es temaCampo(), que es un golpe
      corto de tres notas — efecto, no música. */
 
-  /* M3 · la música baja 40% con hitstop o cartel de gol, y vuelve. Vale para
-     el sintetizador Y para los archivos: antes solo bajaba el bus del synth. */
+  /* ══════════════════════════════════════════════════════════════════════
+     EL BAJÓN DE MÚSICA (duck): UNA VENTANA, UN RELOJ.
+
+     Antes cada pedido bajaba la música y programaba SU propia subida con un
+     setTimeout que nadie podía cancelar. Dos pedidos cerca —el silencio
+     antes del desenlace y el del gol, que van uno atrás del otro— y la
+     subida del primero entraba EN MEDIO del silencio del segundo: la música
+     volvía justo cuando tenía que callar.
+
+     Ahora el pedido nuevo ESTIRA la ventana (nunca la achica) y hay un solo
+     reloj de salida. Si en el medio entra otro tema, el bajón se suelta: el
+     tema nuevo entra a su volumen. */
+  var duck = { hasta: 0, timer: null, el: null };
+  function ahoraMs() { return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now(); }
+  function soltarDuckYa() {
+    if (duck.timer) { clearTimeout(duck.timer); duck.timer = null; }
+    duck.el = null; duck.hasta = 0;
+  }
   function musicaDuck(ms) {
-    if (archivoSonando) {
-      var el = archivoSonando, tope = muted ? 0 : volArchivo;
-      matarFundidos();
-      rampa(el, el.volume, tope * 0.6, 90, function () {
-        setTimeout(function () { rampa(el, el.volume, tope, 320); }, Math.max(80, (ms || 500) - 200));
-      });
+    var el = archivoSonando;
+    if (!el || el.__saliendo) return;
+    ms = Math.max(160, ms || 500);
+    var fin = ahoraMs() + ms;
+    if (duck.el !== el) {
+      soltarDuckYa();
+      duck.el = el;
+      rampa(el, el.volume, volArchivo * DUCK, 90);
     }
-    /* M3 · acá había una segunda rama que agachaba el bus DEL SINTETIZADOR.
-       Ese bus lo creaba musEnsure(), que se borró con el generador: ya no hay
-       nada que agachar más que el archivo, que es lo de arriba. */
+    if (fin <= duck.hasta) return;         // la ventana ya cubre este pedido
+    duck.hasta = fin;
+    if (duck.timer) clearTimeout(duck.timer);
+    /* sube 200 ms antes del final de la ventana, en 320 ms (como antes) */
+    duck.timer = setTimeout(function () {
+      duck.timer = null;
+      var e = duck.el; duck.el = null; duck.hasta = 0;
+      if (e && e === archivoSonando && !e.__saliendo) rampa(e, e.volume, volArchivo, 320);
+    }, Math.max(80, ms - 200));
   }
 
   var SFX = {
@@ -331,7 +430,9 @@
       muted = !!m;
       /* M3 · el mute de la música lo maneja el reproductor de archivo
          (pararArchivo / rampa); el bus del sintetizador ya no existe. */
-      if (archivoSonando) archivoSonando.muted = muted;
+      /* sobre TODOS los elementos: antes solo el que sonaba, y el resto
+         quedaba con el mute viejo pegado para cuando volviera a entrar */
+      elementos.forEach(function (el) { try { el.muted = muted; } catch (e) { } });
       persistirMute();
     },
     isMuted: function () { return muted; },

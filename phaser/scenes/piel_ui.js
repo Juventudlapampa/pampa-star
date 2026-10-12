@@ -438,7 +438,13 @@
       if (this._corteMusicaArmado || !this.events) return false;
       this._corteMusicaArmado = true;
       var esc = this;
-      this.events.on("shutdown", function () {
+      /* ONCE, no on (oct 2026): el emisor de la escena SOBREVIVE al shutdown
+         —Phaser reusa la instancia— así que con `on` cada reinicio sumaba un
+         gancho más. Con dos ganchos, el segundo pedía silencio encima del
+         fundido del primero; en el reproductor viejo eso dejaba el tema que
+         salía sonando para siempre. `once` se borra solo al disparar, y la
+         bandera de abajo lo rearma en el próximo pedido. */
+      this.events.once("shutdown", function () {
         esc._corteMusicaArmado = false;     // el once/on muere con el shutdown: hay que rearmar
         esc._musicaMomento = null;
         esc._musicaTrabada = false;         // la traba es POR PARTIDO, no por carrera
