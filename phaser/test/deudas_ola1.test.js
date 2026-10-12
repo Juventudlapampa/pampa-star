@@ -306,6 +306,76 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   console.log("[4] súper defensa: con el envión lleno el remate pregunta; SÍ gasta y bloquea (0 goles en 200), GUARDAR no gasta");
 })();
 
+/* ---------- [5] LA COMPUERTA DE LA INTRO NO SE PISA A 800x360 ---------- */
+(function () {
+  var fs = require("fs"), path = require("path"), vm = require("vm");
+  var BAL = JSON.parse(PM.leer("phaser/data/balance.json"));
+  var W = { PF: { texto: "Pixelify Sans", display: "Pixelify Sans" } };
+  var ctx = { window: W, Phaser: { Scene: function () { } }, console: console, Math: Math };
+  vm.createContext(ctx);
+  vm.runInContext(PM.leer(process.env.PAMPA_INTRO_VIEJO || "phaser/scenes/intro.js"), ctx, { filename: "intro.js" });
+  /* EL LOGO, MEDIDO: pampa-star-logo.webp es de 2400x2200 y su dibujo (alfa
+     > 16, leído con getImageData en el navegador) ocupa las filas 22 a 2115 */
+  var LOGO = { w: 2400, h: 2200, fila0: 22, fila1: 2115 };
+  /* el alto de los textos, medido en el navegador: Pixelify 15 px = 19,1 y
+     12 px = 13 (Text.height). Acá va un poco más generoso: 1,3 x tamaño */
+  function correr(tactil) {
+    var s = Object.create(W.PampaIntro.prototype), objs = [], tweens = [];
+    s.I = BAL.intro;
+    s.textures = { exists: function (k) { return k === "d_logo"; } };
+    function obj(tipo, x, y) {
+      var o = { type: tipo, x: x, y: y, originX: 0.5, originY: 0.5, scale: 1 };
+      o.setOrigin = function (a, b) { o.originX = a; o.originY = b == null ? a : b; return o; };
+      o.setScale = function (k) { o.scale = k; return o; };
+      objs.push(o); return o;
+    }
+    s.add = {
+      image: function (x, y, k) { var o = obj("Image", x, y); o.key = k; o.width = LOGO.w; o.height = LOGO.h; return o; },
+      text: function (x, y, t, st) { var o = obj("Text", x, y); o.text = t; o.height = (parseInt(st.fontSize, 10) || 12) * 1.3; return o; }
+    };
+    s.capa = { add: function () { } };
+    s.tweens = { add: function (c) { tweens.push(c); return c; } };
+    s.input = { once: function () { }, keyboard: { once: function () { } } };
+    s.sys = { game: { device: { input: { touch: !!tactil } } } };
+    s.compuerta();
+    return { objs: objs, tweens: tweens };
+  }
+  var R = correr(false);
+  var logo = R.objs.filter(function (o) { return o.type === "Image"; })[0];
+  var toca = R.objs.filter(function (o) { return /TOCÁ PARA EMPEZAR/.test(o.text); })[0];
+  var tecla = R.objs.filter(function (o) { return /cualquier tecla/.test(o.text); })[0];
+  assert(!!logo && !!toca && !!tecla, "la compuerta tiene logo, TOCÁ PARA EMPEZAR y el renglón del teclado");
+  if (!logo || !toca || !tecla) return;
+  var top = logo.y - LOGO.h * logo.scale * logo.originY;
+  var dib0 = top + LOGO.fila0 * logo.scale, dib1 = top + LOGO.fila1 * logo.scale;
+  var pulso = (R.tweens.filter(function (t) { return t.targets === toca; })[0] || {}).scale || 1;
+  var t0 = toca.y - toca.height * pulso / 2, t1 = toca.y + toca.height * pulso / 2;
+  var k0 = tecla.y - tecla.height / 2, k1 = tecla.y + tecla.height / 2;
+  assert(dib0 >= 0, "el dibujo del logo no se sale por arriba (arranca en y=" + Math.round(dib0) + ")");
+  assert(dib1 + 8 <= t0, "SÍNTOMA: el dibujo del logo (hasta y=" + Math.round(dib1) + ") pisa 'TOCÁ PARA EMPEZAR' (desde y=" + Math.round(t0) + ", latiendo al " + pulso + ")");
+  assert(t1 <= k0, "'TOCÁ PARA EMPEZAR' (hasta " + Math.round(t1) + ") no pisa el renglón del teclado (desde " + Math.round(k0) + ")");
+  /* EL AVISO DEL ATRÁS: DOM, abajo de todo. Su borde de abajo sale del CSS;
+     el alto (50) se midió con getBoundingClientRect a 800x360 (18 px de letra
+     fija, más relleno y borde: no escala con el lienzo) */
+  var HTML = fs.readFileSync(path.join(PM.RAIZ, "phaser/index.html"), "utf8");
+  var m = /#atras-aviso\{[^}]*bottom:(\d+)px/.exec(HTML);
+  assert(!!m, "index.html: el aviso del atrás tiene su bottom en px");
+  var abajo = m ? +m[1] : 18, ALTO_AVISO = 50;
+  var techo = Infinity, donde = "";
+  [[800, 360], [640, 360], [568, 320], [844, 390], [960, 540]].forEach(function (v) {
+    var k = Math.min(v[0] / 960, v[1] / 540), off = (v[1] - 540 * k) / 2;
+    var yJuego = (v[1] - abajo - ALTO_AVISO - off) / k;
+    if (yJuego < techo) { techo = yJuego; donde = v.join("x"); }
+  });
+  assert(k1 <= techo, "SÍNTOMA: el renglón del teclado (hasta y=" + Math.round(k1) + ") queda debajo del aviso del atrás, que a " + donde + " arranca en y=" + Math.round(techo));
+  assert(t1 <= techo, "'TOCÁ PARA EMPEZAR' queda arriba del aviso del atrás (" + Math.round(t1) + " ≤ " + Math.round(techo) + ")");
+  /* en el teléfono no hay renglón de teclado, y lo demás queda igual */
+  var RT = correr(true);
+  assert(!RT.objs.some(function (o) { return /cualquier tecla/.test(o.text || ""); }), "en el teléfono no sale el renglón del teclado");
+  console.log("[5] compuerta: dibujo del logo " + Math.round(dib0) + "→" + Math.round(dib1) + " · TOCÁ " + Math.round(t0) + "→" + Math.round(t1) +
+    " · teclado " + Math.round(k0) + "→" + Math.round(k1) + " · el aviso del atrás arranca en " + Math.round(techo) + " (" + donde + ")");
+})();
+
 if (mal) { console.log("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }
 console.log("\n✓ deudas de la ola 1: " + ok + " asserts");
 process.exit(0);

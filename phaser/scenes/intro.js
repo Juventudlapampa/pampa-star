@@ -70,21 +70,37 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
 
   /* --- LA COMPUERTA: negro, el logo, y "TOCÁ PARA EMPEZAR" pulsando --- */
   compuerta() {
+    /* L04b · LA COMPUERTA SIN PISARSE A 800x360. Dos cruces medidos:
+       · el logo (pampa-star-logo.webp, 2400x2200) iba escalado por ANCHO
+         (540/2400 = 0,225, 540x495 centrado en y=210): su dibujo, medido por
+         el alfa (> 16) del archivo, ocupa las filas 22 a 2115, o sea del
+         lienzo y=-32 a 438. Se salía por arriba y "TOCÁ PARA EMPEZAR" (y=400)
+         caía encima de las letras de STAR;
+       · el aviso del atrás del teléfono ("Tocá ATRÁS otra vez para salir",
+         DOM, 18 px fijos, abajo de todo) a 800x360 arranca en y=292 CSS, que
+         con el lienzo a 0,667 es y=438 del juego: tapaba por 2 s el renglón
+         "(o apretá cualquier tecla)" (y=442). A 568x320, el teléfono apaisado
+         más bajo que se usa, arranca en y=425 del juego.
+       Ahora el logo va escalado por ALTO (balance.intro.compuerta_logo_alto,
+       330: el dibujo llega a y≈329) y los dos renglones suben a su franja
+       propia (360 y 392): todo termina en y≈399, arriba de 425. */
+    const Q = this.I;
+    const altoLogo = Q.compuerta_logo_alto || 330;
     if (this.textures.exists("d_logo") || this.textures.exists("i_logo")) {
       /* D2 · la PANTALLA DE INICIO (la compuerta) también lleva el nombre */
-      const l = this.add.image(480, 210, this.textures.exists("d_logo") ? "d_logo" : "i_logo");
-      l.setScale(Math.min(1, 540 / l.width));
+      const l = this.add.image(480, Q.compuerta_logo_y != null ? Q.compuerta_logo_y : 12, this.textures.exists("d_logo") ? "d_logo" : "i_logo").setOrigin(0.5, 0);
+      l.setScale(Math.min(1, 540 / l.width, altoLogo / l.height));
       this.capa.add(l);
     } else {
       const t = this.add.text(480, 200, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.capa.add(t);
     }
-    const toca = this.add.text(480, 400, this.I.t_compuerta || "👆 TOCÁ PARA EMPEZAR",
+    const toca = this.add.text(480, Q.compuerta_toca_y || 360, Q.t_compuerta || "👆 TOCÁ PARA EMPEZAR",
       { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
     this.capa.add(toca);
     this.tweens.add({ targets: toca, alpha: 0.35, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
-      const tk = this.add.text(480, 442, this.I.t_compuerta_teclado || "(o apretá cualquier tecla)",
+      const tk = this.add.text(480, Q.compuerta_tecla_y || 392, Q.t_compuerta_teclado || "(o apretá cualquier tecla)",
         { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc99" }).setOrigin(0.5);
       this.capa.add(tk);
     }
