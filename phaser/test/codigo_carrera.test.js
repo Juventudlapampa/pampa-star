@@ -326,6 +326,27 @@ function domDeMentira() {
   s4.vistaBorrarCarrera();
   assert(s4.textos().indexOf("temporada 3 terminada · 18 de 18 fechas") >= 0 && !s4.textos().some(function (t) { return /fecha 19/.test(t); }),
     "¿EMPEZAR OTRA CARRERA? tampoco dice \"fecha 19 de 18\" (" + s4.textos().filter(function (t) { return /temporada/.test(t); }).join(" | ") + ")");
+  /* REVISIÓN L03 · PEGAR UN CÓDIGO CON UNA CARRERA EN CURSO. El código dice
+     "pegalo en MODO MASTER → PEGAR UN CÓDIGO", pero ese botón está solo en
+     elegir club, que no aparece si el teléfono ya tiene carrera: el camino
+     no existía. Ahora está en ¿EMPEZAR OTRA CARRERA?, y la de ahora queda
+     respaldada en pampa_master_v1_borrada */
+  assert(s4.textos().indexOf("📋 PEGAR UN CÓDIGO EN SU LUGAR") >= 0, "SÍNTOMA: ¿EMPEZAR OTRA CARRERA? ofrece \"📋 PEGAR UN CÓDIGO EN SU LUGAR\"");
+  assert(s4._foco && s4._foco.i === 0, "el cursor sigue arrancando en SEGUIR CON ESTA CARRERA");
+  var bs4 = s4.tocables().filter(function (o) { return o.type === "Rectangle"; }).sort(function (a, b) { return a.y - b.y; });
+  assert(bs4.length === 3, "tres caminos: seguir, pegar, borrar (" + bs4.length + ")");
+  A.localStorage.removeItem("pampa_master_v1_borrada");
+  if (bs4[1]) s4.tocar(bs4[1].x, bs4[1].y);
+  var p4 = doc.buscar(function (n) { return n.tagName === "p" && /respaldada/.test(n.textContent); })[0];
+  assert(!!p4, "la caja avisa que la carrera de ahora queda respaldada");
+  var ta4 = doc.buscar(function (n) { return n.tagName === "textarea"; })[0];
+  var seguir4 = doc.buscar(function (n) { return n.tagName === "button" && /SEGUIR ESA CARRERA/.test(n.textContent); })[0];
+  if (ta4 && seguir4) { ta4.value = cod; seguir4.oyentes.click[0](); }
+  assert(igual(JSON.parse(A.localStorage.getItem("pampa_master_v1")), mia) && A.localStorage.getItem("pampa_master_v1_borrada") === JSON.stringify(fin),
+    "pegar en su lugar trae la carrera del código y la de antes queda en pampa_master_v1_borrada");
+  var MASTER5 = fs.readFileSync(path.join(RAIZ, "phaser/scenes/master.js"), "utf8");
+  assert(/ya tiene otra carrera: ✕ empezar otra carrera → PEGAR UN CÓDIGO EN SU LUGAR/.test(MASTER5),
+    "y la vista del código cuenta ese camino");
   /* a mitad de temporada sigue como antes */
   assert(s3.lineaDeLaTemporada(3, s3.save.temporada) === "temporada 3 · fecha 7 de 18", "a mitad: \"temporada 3 · fecha 7 de 18\"");
   console.log("[5] master real: 💾 en la tabla → copiar · pegar alterado: mensaje y save intacto · pegar bueno: respaldo, persist y misma fecha");

@@ -457,13 +457,22 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         fontStyle: i === 0 ? "bold" : "normal", color: i === 0 ? "#f6efdc" : "#dcd6c2" }).setOrigin(0.5);
     });
 
-    /* los dos caminos, y el que borra DICE que borra */
-    const yA = Math.round(window.PampaPiel.yDeOpcion(0, 2, 60, (this.game.registry.get("balance") || {}).piel));
-    const yB = Math.round(window.PampaPiel.yDeOpcion(1, 2, 60, (this.game.registry.get("balance") || {}).piel));
+    /* los caminos, y el que borra DICE que borra.
+       REVISIÓN L03 · el del medio: el código de carrera dice "pegalo en
+       MODO MASTER → PEGAR UN CÓDIGO", pero ese botón está solo en elegir
+       club, que no aparece si el teléfono ya tiene una carrera. Acá, donde
+       ya se dice qué se pierde, se puede traer otra con un código: la de
+       ahora queda respaldada igual que al borrarla (importarCarrera). */
+    const piel = (this.game.registry.get("balance") || {}).piel;
+    const yA = Math.round(window.PampaPiel.yDeOpcion(0, 3, 60, piel));
+    const yP = Math.round(window.PampaPiel.yDeOpcion(1, 3, 60, piel));
+    const yB = Math.round(window.PampaPiel.yDeOpcion(2, 3, 60, piel));
     const seguir = this.boton(W / 2, yA, 460, "◀ NO, SEGUIR CON ESTA CARRERA", 0x7ee08a, () => {
       const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
       this.scene.restart();
     });
+    const pegarEnSuLugar = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("abrir"); this.pegarCodigo(true); };
+    const pegar = window.PampaCarrera ? this.boton(W / 2, yP, 460, "📋 PEGAR UN CÓDIGO EN SU LUGAR", 0xffd84d, pegarEnSuLugar) : null;
     const borrar = this.boton(W / 2, yB, 460, "✕ SÍ, BORRAR Y ELEGIR OTRO CLUB", 0xe3503e, () => {
       const S = window.PampaSFX; if (S && S.ui) S.ui("confirmar");
       this.borrarCarrera();
@@ -471,7 +480,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* arriba de los botones y no en H-22: ahi abajo cae el boton rojo y el pie
        le quedaba encima (se ve en SALIDA_02). Y aca ademas se lee ANTES de
        elegir, que es cuando sirve. */
-    this.add.text(W / 2, 300, "el respaldo queda guardado en el navegador, pero no se puede volver desde acá", {
+    this.add.text(W / 2, 297, "el respaldo queda guardado en el navegador, pero no se puede volver desde acá", {
       fontFamily: window.PF.texto, fontSize: "12px", color: "#7a8a80" }).setOrigin(0.5);
 
     /* el cursor arranca en SEGUIR, nunca en borrar: si te equivocaste de tecla
@@ -479,8 +488,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this.grupoFoco) {
       this.grupoFoco([
         { obj: seguir, cb: () => { this.scene.restart(); } },
+        pegar ? { obj: pegar, cb: pegarEnSuLugar } : null,
         { obj: borrar, cb: () => { this.borrarCarrera(); } }
-      ], { inicial: 0, volver: () => this.scene.restart() });
+      ].filter(Boolean), { inicial: 0, volver: () => this.scene.restart() });
     }
     this.vestirPendientes && this.vestirPendientes();
   }
@@ -604,7 +614,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.vaciarVista();
     if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
     this.add.text(W / 2, 46, "💾 CÓDIGO DE CARRERA", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 74, "Tu carrera entera, en un texto. Guardalo en un mensaje o en una nota: si el teléfono borra el juego, o si cambiás de teléfono, lo pegás en MODO MASTER → PEGAR UN CÓDIGO y seguís desde esta fecha.", {
+    /* revisión L03: PEGAR UN CÓDIGO está en elegir club, que no aparece si el
+       teléfono ya tiene una carrera; ahí está en ✕ empezar otra carrera */
+    this.add.text(W / 2, 74, "Tu carrera entera, en un texto. Guardalo en un mensaje o en una nota: si el teléfono borra el juego, o si cambiás de teléfono, lo pegás en MODO MASTER → PEGAR UN CÓDIGO y seguís desde esta fecha (si ese teléfono ya tiene otra carrera: ✕ empezar otra carrera → PEGAR UN CÓDIGO EN SU LUGAR).", {
       fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", align: "center", wordWrap: { width: 780 }, lineSpacing: 2 }).setOrigin(0.5, 0);
     /* lo que lleva, con números: así se reconoce un código viejo de uno nuevo */
     const t = this.save.temporada || {};
@@ -654,14 +666,17 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   compartirCodigo(codigo, decir) {
     try {
       navigator.share({ title: "Pampa Star · código de carrera",
-        text: "Mi carrera de Pampa Star. Para seguirla: MODO MASTER → PEGAR UN CÓDIGO.\n\n" + codigo })
+        text: "Mi carrera de Pampa Star. Para seguirla: MODO MASTER → PEGAR UN CÓDIGO (si ya hay otra carrera: ✕ empezar otra carrera → PEGAR UN CÓDIGO EN SU LUGAR).\n\n" + codigo })
         .then(() => decir("✔ Listo."), () => { });
     } catch (e) { decir("✗ No se pudo compartir: probá con COPIAR EL CÓDIGO."); }
   }
-  pegarCodigo() {
+  /* enSuLugar: se llega desde ¿EMPEZAR OTRA CARRERA? con una carrera en
+     curso, y se dice qué pasa con ella */
+  pegarCodigo(enSuLugar) {
     this.cajaDeTexto({
       titulo: "📋 PEGAR UN CÓDIGO DE CARRERA",
-      texto: "Pegá acá el código que guardaste (empieza con PAMPA1.). La carrera sigue en la fecha en que lo copiaste.",
+      texto: "Pegá acá el código que guardaste (empieza con PAMPA1.). La carrera sigue en la fecha en que lo copiaste." +
+        (enSuLugar ? " La carrera de ahora deja de jugarse: queda respaldada en este navegador, como al borrarla." : ""),
       valor: "", soloLectura: false,
       botones: [
         { texto: "▶ SEGUIR ESA CARRERA", principal: true, accion: (valor, decir) => {
