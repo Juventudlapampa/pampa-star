@@ -138,6 +138,7 @@
   <script src="scenes/semana_ui.js"></script>
   <script src="scenes/tribuna_ui.js"></script>
   <script src="scenes/feel_ui.js"></script>
+  <script src="scenes/reloj.js"></script>
   <script src="scenes/master.js"></script>
   <script src="scenes/match.js"></script>
   <script src="scenes/definicion_ui.js"></script>
@@ -291,7 +292,7 @@
       backgroundColor: "#06120b",
       scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);
