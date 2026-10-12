@@ -42,6 +42,15 @@
          con la cara colgada, el pedido que venció y el reintento hacen UN
          pedido a la red (antes, dos: el XHR que vence no corta la descarga
          del worker), y si esa descarga falla, el que esperaba la pide.
+     [f] (revisión L05) un deploy con la señal floja no mezcla versiones:
+         con index.html y duel.js del deploy siguiente y match.js colgado,
+         match.js NO sale de la caché vieja a los 3,1 s (antes sí: código de
+         dos versiones en la misma carga), tampoco con el worker reiniciado;
+         con index.html de la caché, el código sale de la caché aunque la red
+         conteste rápido con el deploy siguiente; y en pampa-codigo-<VERSION>
+         no se escribe nada de otra versión (antes quedaban index.html y
+         duel.js del deploy siguiente). [b] ahora abre la página primero:
+         solo una página atada a VERSION por la red guarda lo que baja.
    REVISIÓN L05, el tope del loader: era 15 s con la cuenta de UN archivo,
    pero Phaser baja varios a la vez (6 en Android, 32 en el resto) y el tope
    es total por archivo. [a] ahora rehace la cuenta con el disco: el archivo
@@ -175,6 +184,11 @@ var SW = M.leerSW();
   var ins = await W.instalar(); await W.activar();
   assert(ins.ok, "se instala (para tener copia en la caché)");
   var red = mundo.red, rl = mundo.reloj;
+  /* la página abre con el index.html de la red, de esta misma versión:
+     queda atada a VERSION por la red (revisión L05, ver [f]), y es la que
+     puede usar la copia de respaldo y guardar lo que baja */
+  var navB = W.pedir("phaser/index.html", { navegar: true });
+  await navB.res; await navB.lista();
   red.colgar["phaser/logic/duel.js"] = "a_mano";
   var t0 = rl.t, cuando = null, res1 = null;
   var ev = W.pedir("phaser/logic/duel.js");
@@ -224,6 +238,7 @@ var SW = M.leerSW();
   var codigo1 = Wc1.leer("typeof CODIGO !== 'undefined' ? CODIGO : 'v16-toma'");
   var antes = mundoC.caches.claves(codigo1).length;
   mundoC.red.fallar["phaser/scenes/match.js"] = 404;
+  M.publicar(mundoC.red, "v-prueba-atomica");
   var Wc2 = M.cargar(M.variante(SW, { version: "v-prueba-atomica" }), mundoC);
   var insC = await Wc2.instalar();
   var nombres = await mundoC.caches.keys();
@@ -293,6 +308,98 @@ var SW = M.leerSW();
   assert(r3 === "error de red" && r4.status === 200 && r4.bytes === fs.statSync(path.join(RAIZ, otra)).size,
     "si la descarga en vuelo falla, el pedido que la esperaba la pide de nuevo y llega (" + r3 + " / " + r4.status + ")");
   console.log("[e] reintento del loader con la cara colgada: 1 pedido a la red, los dos reciben la cara; si la descarga en vuelo falla, el que esperaba la pide");
+
+  /* ---------- [f] un deploy con la señal floja no mezcla dos versiones ---------- */
+  var VER = W.leer("VERSION");
+  var CODIGO_V = W.leer("CODIGO");
+  var indexDisco = leer("phaser/index.html");
+  var indexNuevo = indexDisco.replace(/window\.PAMPA_VERSION = "[^"]+";/, 'window.PAMPA_VERSION = "v-deploy-siguiente";');
+  var duelDisco = leer("phaser/logic/duel.js");
+  assert(indexNuevo !== indexDisco, "se puede armar el index.html del deploy siguiente");
+  /* (1) index.html nuevo de la red, duel.js nuevo y match.js colgado */
+  var mF = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
+  var Wf = M.cargar(SW, mF);
+  await Wf.instalar(); await Wf.activar();
+  mF.red.cambios["phaser/index.html"] = Buffer.from(indexNuevo);
+  mF.red.cambios["phaser/logic/duel.js"] = Buffer.from("// duel del deploy siguiente");
+  mF.red.colgar["phaser/scenes/match.js"] = "a_mano";
+  var nav = Wf.pedir("phaser/index.html", { navegar: true });
+  var navR = await M.leerRes(await nav.res);
+  assert(navR.texto === indexNuevo, "la página trae el index.html del deploy siguiente (la red contestó a tiempo)");
+  var duelF = await M.leerRes(await Wf.pedir("phaser/logic/duel.js").res);
+  assert(duelF.texto === "// duel del deploy siguiente", "y duel.js del deploy siguiente");
+  var matchF = null;
+  var evM = Wf.pedir("phaser/scenes/match.js");
+  evM.res.then(function (r) { matchF = r; });
+  await mF.reloj.avanzar(3100);
+  assert(matchF === null,
+    "SÍNTOMA DEL CÓDIGO MEZCLADO: con index.html y duel.js del deploy siguiente, match.js colgado NO sale de la caché de " + VER + " a los 3,1 s (espera a la red)");
+  mF.red.colgados.forEach(function (c) { c.soltar(); });
+  await nav.lista(); await evM.lista();
+  assert(matchF && matchF.status === 200, "cuando la red contesta, match.js llega de la red");
+  var idxCache = mF.caches.entrada(CODIGO_V, "phaser/index.html"), duelCache = mF.caches.entrada(CODIGO_V, "phaser/logic/duel.js");
+  assert(idxCache && Buffer.from(idxCache.buf).toString() === indexDisco && duelCache && Buffer.from(duelCache.buf).toString() === duelDisco,
+    "SÍNTOMA DE LA CACHÉ CONTAMINADA: " + CODIGO_V + " sigue con el index.html y el duel.js de " + VER + " (no se guardó nada del deploy siguiente)");
+  /* (1b) el worker se reinicia (se lo mata a los 30 s sin eventos) y la página pide su manifest de identidades: sigue atada */
+  var Wf2 = M.cargar(SW, mF);
+  mF.red.colgar["data/identidades_manifest.json"] = "a_mano";
+  var idF = null;
+  var evI = Wf2.pedir("data/identidades_manifest.json");
+  evI.res.then(function (r) { idF = r; });
+  await mF.reloj.avanzar(3100);
+  assert(idF === null, "con el worker reiniciado, la página del deploy siguiente sigue sin respaldo de la caché vieja (lo atado se guarda en pampa-paginas)");
+  mF.red.colgados.forEach(function (c) { c.soltar(); });
+  await evI.lista();
+  /* (2) la navegación colgada: index.html de la caché; la red rápida trae el deploy siguiente */
+  var mG = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
+  var Wg = M.cargar(SW, mG);
+  await Wg.instalar(); await Wg.activar();
+  mG.red.cambios["phaser/index.html"] = Buffer.from(indexNuevo);
+  mG.red.cambios["phaser/logic/duel.js"] = Buffer.from("// duel del deploy siguiente");
+  mG.red.cambios["phaser/logic/tiro.js"] = Buffer.from("// tiro del deploy siguiente");
+  mG.red.colgar["phaser/index.html"] = "a_mano";
+  var navG = Wg.pedir("phaser/index.html", { navegar: true });
+  var navGR = null;
+  navG.res.then(function (r) { navGR = r; });
+  await mG.reloj.avanzar(3100);
+  var navGT = navGR && await M.leerRes(navGR);
+  assert(navGT && navGT.texto === indexDisco, "con la navegación colgada, index.html sale de la caché (" + VER + ") a los 3,1 s");
+  var tiroG = Wg.pedir("phaser/logic/tiro.js"); var tiroGR = await M.leerRes(await tiroG.res); await tiroG.lista();
+  var duelG = Wg.pedir("phaser/logic/duel.js"); var duelGR = await M.leerRes(await duelG.res); await duelG.lista();
+  assert(tiroGR.texto === leer("phaser/logic/tiro.js") && duelGR.texto === duelDisco,
+    "SÍNTOMA DEL CÓDIGO MEZCLADO AL REVÉS: una página de " + VER + " (index.html de la caché) sigue con el código de la caché aunque la red conteste rápido con el deploy siguiente (duel.js: " + duelGR.texto.slice(0, 30) + "…)");
+  var duelGC = mG.caches.entrada(CODIGO_V, "phaser/logic/duel.js"), tiroGC = mG.caches.entrada(CODIGO_V, "phaser/logic/tiro.js");
+  assert(Buffer.from(duelGC.buf).toString() === duelDisco && Buffer.from(tiroGC.buf).toString() === leer("phaser/logic/tiro.js"),
+    "y la red de fondo no escribe el deploy siguiente en " + CODIGO_V);
+  mG.red.colgados.forEach(function (c) { c.soltar(); });
+  await navG.lista();
+  var idxG = mG.caches.entrada(CODIGO_V, "phaser/index.html");
+  assert(Buffer.from(idxG.buf).toString() === indexDisco, "ni el index.html que llegó tarde de la red, que es de otra versión");
+  /* (2b) una página que el worker no ató (se registró con la página ya abierta): como antes, pero sin guardar */
+  var mH = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
+  var Wh = M.cargar(SW, mH);
+  await Wh.instalar(); await Wh.activar();
+  mH.red.cambios["phaser/logic/duel.js"] = Buffer.from("// duel de quién sabe qué versión");
+  var evH = Wh.pedir("phaser/logic/duel.js", { clientId: "sin-atar" });
+  var rH = await M.leerRes(await evH.res); await evH.lista();
+  assert(rH.texto === "// duel de quién sabe qué versión" && Buffer.from(mH.caches.entrada(CODIGO_V, "phaser/logic/duel.js").buf).toString() === duelDisco,
+    "una página sin atar recibe la red, pero lo que baja no se guarda en " + CODIGO_V + " (no se sabe de qué versión es)");
+  /* (2c) al instalar: la CDN propagando un deploy sirve sw.js nuevo con el index.html viejo */
+  var mI = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
+  M.publicar(mI.red, "v-la-de-antes");
+  var Wi = M.cargar(SW, mI);
+  var insI = await Wi.instalar();
+  assert(!insI.ok && !Wi.estado.skipWaiting && (await mI.caches.keys()).indexOf(CODIGO_V) < 0,
+    "SÍNTOMA DEL index.html EQUIVOCADO: si el index.html que baja al instalar no es de " + VER + ", la instalación no termina y no queda " + CODIGO_V);
+  delete mI.red.cambios["phaser/index.html"];
+  var insI2 = await M.cargar(SW, mI).instalar();
+  assert(insI2.ok, "cuando la CDN ya sirve el index.html de " + VER + ", se instala");
+  /* (3) la marca de versión está donde el worker la busca */
+  var bytesMarca = Buffer.byteLength(indexDisco.slice(0, indexDisco.indexOf("window.PAMPA_VERSION =")));
+  var bytesScript = Buffer.byteLength(indexDisco.slice(0, indexDisco.indexOf("<script src")));
+  assert(bytesMarca > 0 && bytesMarca < 65536 - 100 && bytesMarca < bytesScript,
+    "window.PAMPA_VERSION está en los primeros 64 KB de index.html (" + bytesMarca + " B) y antes del primer <script src> (" + bytesScript + " B)");
+  console.log("[f] deploy con señal floja: página del deploy siguiente → su código solo de la red (match.js colgado no sale de la caché vieja, ni con el worker reiniciado) · página de la caché → su código de la caché · " + CODIGO_V + " sin nada de otra versión");
 
   console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
   process.exit(mal === 0 ? 0 : 1);

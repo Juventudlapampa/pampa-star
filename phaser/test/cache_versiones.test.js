@@ -108,6 +108,7 @@ var esAssetRuta = function (r) { return /^assets\//.test(r) || /^phaser\/vendor\
 
   /* ---------- [3] EL CRITERIO: v2 con otra VERSION y los mismos assets ---------- */
   red.limpiar();
+  M.publicar(red, "v-prueba-2");              // el deploy: sw.js e index.html con la versión nueva
   var W2 = M.cargar(M.variante(SW, { version: "v-prueba-2" }), mundo);
   var CODIGO2 = W2.leer("typeof CODIGO !== 'undefined' ? CODIGO : null");
   ins = await W2.instalar();
@@ -131,6 +132,7 @@ var esAssetRuta = function (r) { return /^assets\//.test(r) || /^phaser\/vendor\
   var retocada = Buffer.concat([fs.readFileSync(path.join(RAIZ, POSES[1])), Buffer.from("retoque")]);
   red.cambios[POSES[1]] = retocada;
   var huellaRetocada = {}; huellaRetocada[POSES[1]] = require("./_huella.js").huellaDeBuffer(retocada);
+  M.publicar(red, "v-prueba-3");
   var W3 = M.cargar(M.variante(SW, { version: "v-prueba-3", huellaNueva: huellaRetocada }), mundo);
   var H3 = W3.leer("typeof ASSETS_HUELLA !== 'undefined' ? ASSETS_HUELLA : {}");
   await W3.instalar(); await W3.activar();

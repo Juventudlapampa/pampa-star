@@ -162,7 +162,7 @@ function cargar(texto, mundo) {
   caches._fetch = red.fetch;
   var ctx = {
     console: console, URL: URL, Request: Request, Response: Response, Headers: Headers, Blob: Blob,
-    crypto: globalThis.crypto, TextEncoder: TextEncoder, Uint8Array: Uint8Array,
+    crypto: globalThis.crypto, TextEncoder: TextEncoder, TextDecoder: TextDecoder, Uint8Array: Uint8Array,
     caches: caches, fetch: red.fetch, setTimeout: reloj.setTimeout, clearTimeout: reloj.clearTimeout, Date: FakeDate,
     location: new URL(SW_URL), PerformanceObserver: FakePO, performance: { clearResourceTimings: function () { } },
     addEventListener: function (t, fn) { handlers[t] = fn; },
@@ -265,9 +265,17 @@ function variante(texto, cambios) {
   return t;
 }
 
+/* un deploy en el server de mentira: index.html con otra window.PAMPA_VERSION.
+   Va junto con variante(SW, { version }): desde la revisión L05 el worker no
+   termina de instalarse si el index.html que baja no es de su VERSION */
+function publicar(red, version) {
+  var idx = fs.readFileSync(path.join(RAIZ, "phaser/index.html"), "utf8");
+  red.cambios["phaser/index.html"] = Buffer.from(idx.replace(/window\.PAMPA_VERSION = "[^"]+";/, 'window.PAMPA_VERSION = "' + version + '";'));
+}
+
 module.exports = {
   RAIZ: RAIZ, BASE: BASE, SW_URL: SW_URL,
   crearCaches: crearCaches, crearRed: crearRed, crearReloj: crearReloj, cargar: cargar,
-  leerRes: leerRes, variante: variante, vaciar: vaciar,
+  leerRes: leerRes, variante: variante, vaciar: vaciar, publicar: publicar,
   leerSW: function () { return fs.readFileSync(process.env.PAMPA_SW ? path.resolve(process.env.PAMPA_SW) : path.join(RAIZ, "phaser/sw.js"), "utf8"); }
 };

@@ -17,6 +17,8 @@
    Ahora:
      · "pampa-codigo-<VERSION>": html, js y json. Se barre en cada versión,
        como antes: el código de una versión no se mezcla con el de otra.
+       Desde la revisión L05 eso también vale ADENTRO: solo se escribe con
+       lo que se sabe de VERSION (ver "CADA PÁGINA, ATADA…").
      · "pampa-assets": poses, caras, fondos, música, tipografías, motor e
        íconos. SOBREVIVE a las versiones. Cada entrada se guarda con su
        huella en la clave (ruta?h=<huella>, ver ASSETS_HUELLA): si un asset
@@ -32,6 +34,12 @@
        la red no contestó, contesta la copia (ver "EL CÓDIGO");
      · la instalación es atómica: o baja todo lo crítico o no se activa, y
        la caché anterior queda (ver "LA INSTALACIÓN ATÓMICA");
+     · (revisión L05) cada página queda atada a la versión de su
+       index.html y su código sale de un solo lado: un deploy con la señal
+       floja no arma una página con scripts de dos versiones (ver "CADA
+       PÁGINA, ATADA…");
+     · (revisión L05) un asset que se está bajando no se pide dos veces, y
+       lo que baja se guarda solo si coincide con su huella;
      · abrir el juego sin red con ?ref= o ?embed= en el link cae al
        index.html guardado.
 
@@ -491,10 +499,92 @@ async function calentar(urls) {
        propios topes: index.html a los JSON, el loader de Phaser a cada
        archivo);
      · una NAVEGACIÓN (abrir el juego) cae a index.html sin mirar lo que va
-       después del "?": un link con ?ref= o ?embed= abre igual sin red. */
+       después del "?": un link con ?ref= o ?embed= abre igual sin red.
+
+   ═══ CADA PÁGINA, ATADA A LA VERSIÓN DE SU index.html (revisión L05) ═══
+   Lo que estaba mal, medido en node (red_lenta.test.js [f]): recién hecho
+   un deploy y con la señal floja, la página traía index.html y duel.js
+   nuevos de la red y match.js VIEJO de la caché a los 3,1 s: código de dos
+   versiones en la misma carga. Y al revés: con index.html de la caché, una
+   respuesta rápida de la red apagaba lo "flojo" y lo que seguía venía del
+   deploy nuevo. Además cada respuesta de la red se guardaba en
+   pampa-codigo-<VERSION> aunque fuera de otro deploy: la caché de esta
+   versión terminaba con duel.js de la siguiente. Ahora la navegación decide
+   de qué versión es la página (atar) y su código sale de un solo lado:
+     · index.html de la CACHÉ → la página es VERSION (esta caché solo
+       guarda VERSION): su código sale de la caché, y de la red solo lo que
+       no tenga copia (sin guardarlo: no se sabe de qué versión es);
+     · index.html de la RED → se lee window.PAMPA_VERSION en sus primeros
+       bytes (a 14,7 KB del principio; el primer <script src>, a 49 KB):
+         - igual a VERSION: la red y la caché son la misma versión. La red
+           primero con tope, la copia de respaldo, y lo que baja se guarda;
+         - otra (o no se encuentra): hay un deploy que este worker todavía
+           no tiene. Su código va SOLO a la red, sin tope y sin respaldo (la
+           copia es de otra versión), y no se guarda. Mientras, el navegador
+           instala el worker nuevo;
+     · una página que el worker no ató (la primera visita, que se registró
+       con la página ya abierta) sigue como antes, pero lo que baja no se
+       guarda.
+   Lo atado vive en memoria y en la caché "pampa-paginas": el navegador mata
+   al worker a los 30 s sin eventos, y el partido pide su manifest de
+   identidades mucho después del arranque. */
 const TOPE_RED_MS = 3000;
 const FLOJA_MS = 30000;
 let flojaHasta = 0;
+
+const PAGINAS = "pampa-paginas";
+const PAGINAS_MAX = 20;            // las últimas páginas abiertas; más viejas no piden nada
+const MARCA_MAX = 65536;           // hasta dónde se busca la marca de versión en index.html
+const paginas = new Map();         // clientId → promesa de { v: versión de su index.html, deCache }
+function clavePagina(id) { return RAIZ + "__pagina/" + encodeURIComponent(id); }
+
+/* la página (resultingClientId de la navegación) queda atada a lo que
+   resuelva vinculo; se anota también en pampa-paginas */
+function atar(id, vinculo, e) {
+  if (!id) return;
+  paginas.set(id, vinculo);
+  if (paginas.size > PAGINAS_MAX) paginas.delete(paginas.keys().next().value);
+  e.waitUntil(vinculo.then(async (v) => {
+    if (!v) return;
+    const c = await caches.open(PAGINAS);
+    await c.put(clavePagina(id), new Response(JSON.stringify(v), { headers: { "Content-Type": "application/json" } }));
+    const ks = await c.keys();
+    await Promise.all(ks.slice(0, Math.max(0, ks.length - PAGINAS_MAX)).map((k) => c.delete(k)));
+  }).catch(() => { }));
+}
+async function vinculoDe(id) {
+  if (!id) return null;
+  if (paginas.has(id)) return paginas.get(id);
+  try {
+    const r = await (await caches.open(PAGINAS)).match(clavePagina(id));
+    const v = r ? await r.json() : null;
+    if (v) paginas.set(id, Promise.resolve(v));
+    return v;
+  } catch (err) { return null; }
+}
+
+/* window.PAMPA_VERSION de un index.html que vino de la red, leído de a
+   pedazos sin esperar el archivo entero. El clon se hace YA (antes de que
+   la página empiece a leer la respuesta); devuelve la versión o null */
+function leerVersion(res) {
+  let lector;
+  try { lector = res.clone().body.getReader(); } catch (err) { return Promise.resolve(null); }
+  return (async () => {
+    const dec = new TextDecoder();
+    let txt = "";
+    try {
+      while (txt.length < MARCA_MAX) {
+        const { done, value } = await lector.read();
+        if (done) break;
+        txt += dec.decode(value, { stream: true });
+        const m = /window\.PAMPA_VERSION\s*=\s*"([^"]+)"/.exec(txt);
+        if (m) return m[1];
+      }
+      return null;
+    } catch (err) { return null; }
+    finally { lector.cancel().catch(() => { }); }
+  })();
+}
 
 async function buscarCodigo(clave, navega) {
   try {
@@ -508,7 +598,15 @@ async function buscarCodigo(clave, navega) {
   } catch (err) { return undefined; }
 }
 
-function redPrimero(e) {
+/* la red primero. op (revisión L05: quién puede contestar depende de la
+   versión de la página, ver arriba):
+     respaldo   si la copia de la caché puede contestar;
+     conTope    si se le da TOPE_RED_MS a la red (y cuenta lo "flojo"); sin
+                tope se espera a la red, y la copia solo si la red FALLA;
+     guardar()  → promesa de sí/no: si lo que bajó se guarda en CODIGO;
+     alLlegar(res)            la respuesta de la red, antes que nadie la lea;
+     alContestar(res, deCache) quién contestó. */
+function redPrimero(e, op) {
   const req = e.request;
   const navega = req.mode === "navigate";
   const clave = claveCodigo(req.url);
@@ -522,28 +620,36 @@ function redPrimero(e) {
   let guardar = Promise.resolve();
   const red = fetch(req, { cache: "no-cache" }).then((res) => {
     if (Date.now() - t0 < TOPE_RED_MS) flojaHasta = 0;
-    if (res.ok && res.status === 200 && !res.redirected) {
+    if (op.alLlegar) op.alLlegar(res);
+    if (op.guardar && res.ok && res.status === 200 && !res.redirected) {
       const copia = res.clone();
-      guardar = caches.open(CODIGO).then((c) => c.put(clave, copia)).catch(() => { });
+      guardar = Promise.resolve(op.guardar())
+        .then((si) => (si ? caches.open(CODIGO).then((c) => c.put(clave, copia)) : null))
+        .catch(() => { });
     }
     return res;
   });
-  /* la red sigue viva aunque conteste la caché: cuando llega, actualiza */
+  /* la red sigue viva aunque conteste la caché: cuando llega, actualiza
+     (si op.guardar dice que es de esta versión) */
   e.waitUntil(red.then(() => guardar, () => { }));
-  const enCache = buscarCodigo(clave, navega);
+  const enCache = op.respaldo ? buscarCodigo(clave, navega) : Promise.resolve(undefined);
   return new Promise((resolve) => {
     let listo = false;
     const dar = (r, deCache) => {
       if (listo || !r) return;
       listo = true;
       if (deCache) avisar(e.clientId, { origen: "cache", ruta: ruta });
+      if (op.alContestar) op.alContestar(r, deCache);
       resolve(r);
     };
-    if (Date.now() < flojaHasta) enCache.then((hit) => dar(hit, true));
-    const reloj = setTimeout(() => {
-      flojaHasta = Date.now() + FLOJA_MS;
-      enCache.then((hit) => dar(hit, true));
-    }, TOPE_RED_MS);
+    let reloj = null;
+    if (op.conTope) {
+      if (Date.now() < flojaHasta) enCache.then((hit) => dar(hit, true));
+      reloj = setTimeout(() => {
+        flojaHasta = Date.now() + FLOJA_MS;
+        enCache.then((hit) => dar(hit, true));
+      }, TOPE_RED_MS);
+    }
     red.then((res) => {
       clearTimeout(reloj);
       if (res.ok || res.type === "opaqueredirect") dar(res, false);
@@ -553,6 +659,37 @@ function redPrimero(e) {
       enCache.then((hit) => (hit ? dar(hit, true) : dar(Response.error(), false)));
     });
   });
+}
+
+/* abrir el juego: la red con tope y la copia de respaldo, como siempre; lo
+   nuevo es que la página queda atada a la versión de lo que contestó, y que
+   un index.html de la red se guarda solo si es de VERSION */
+function navegar(e) {
+  let resolverVinculo;
+  const vinculo = new Promise((r) => { resolverVinculo = r; });
+  atar(e.resultingClientId, vinculo, e);
+  let versionRed = Promise.resolve(null);
+  return redPrimero(e, {
+    respaldo: true, conTope: true,
+    alLlegar: (res) => { if (res.ok && res.body) versionRed = leerVersion(res); },
+    guardar: () => versionRed.then((v) => v === VERSION),
+    alContestar: (res, deCache) => {
+      if (deCache) resolverVinculo({ v: VERSION, deCache: true });
+      else versionRed.then((v) => resolverVinculo({ v: v || "?", deCache: false }));
+    }
+  });
+}
+
+/* el código que pide una página, según a qué versión quedó atada */
+async function responderCodigo(e) {
+  const vin = await vinculoDe(e.clientId);
+  if (vin && vin.v !== VERSION) return redPrimero(e, { respaldo: false, conTope: false });
+  if (vin && vin.deCache) {
+    const hit = await buscarCodigo(claveCodigo(e.request.url), false);
+    if (hit) { avisar(e.clientId, { origen: "cache", ruta: rutaDe(e.request.url) }); return hit; }
+    return redPrimero(e, { respaldo: false, conTope: false });
+  }
+  return redPrimero(e, { respaldo: true, conTope: true, guardar: vin ? () => true : null });
 }
 
 /* ═══ INSTALAR Y ACTIVAR ═══════════════════════════════════════════════ */
@@ -587,6 +724,15 @@ async function instalar() {
     }
     return { aAssets: false, clave: claveCodigo(url), res: await conReintento(() => bajarCodigo(url)) };
   }));
+  /* (revisión L05) el index.html que bajó tiene que ser de ESTA versión.
+     Mientras la CDN del hosting propaga un deploy puede servir sw.js nuevo
+     con index.html viejo: se guardaba en pampa-codigo-<VERSION> la página
+     de otra versión, y las páginas que abrieran desde la caché quedaban
+     atadas a VERSION con el index.html equivocado. Si no coincide, la
+     instalación no termina (atómica) y el navegador vuelve a probar */
+  const claveIndex = claveCodigo(new URL("./index.html", self.location.href).href);
+  const idx = bajados.find((b) => b && !b.aAssets && b.clave === claveIndex);
+  if (idx && (await leerVersion(idx.res)) !== VERSION) throw new Error("index.html de otra versión (¿la CDN propagando un deploy?)");
   /* si la caché de código ya existía (sw.js cambió sin subir VERSION) es la
      que está usando el worker activo: si la escritura falla, no se borra */
   const yaEstaba = await caches.has(CODIGO);
@@ -628,7 +774,8 @@ self.addEventListener("fetch", (e) => {
   const ruta = rutaDe(req.url);
   if (ruta === null) return;                 // otro origen u otro sitio de la cuenta
   if (esAsset(ruta)) e.respondWith(responderAsset(e, ruta));
-  else e.respondWith(redPrimero(e));
+  else if (req.mode === "navigate") e.respondWith(navegar(e));
+  else e.respondWith(responderCodigo(e));
 });
 
 self.addEventListener("message", (e) => {
