@@ -267,6 +267,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._hin = null;
     this._hintEspacio = null;
     this._uiTocado = 0;
+    /* TANDA 1.0 (L04) · LA PAUSA. Banderas y referencias del partido: la
+       pausa pedida en la fecha 1 no puede abrirse sola en la fecha 2, y el
+       botón ⏸ muere con la escena (mismo molde que _radarTuArco). */
+    this._pausaPedida = false;   // se pidió en una jugada: se abre al volver a LIBRE
+    this._pausaModo = null;      // el st.modo que se congeló al abrir la pausa
+    this._btnPausa = null;
+    this._salidaFinal = null;    // la salida principal de la pantalla final (atrás, Enter)
   }
 
   create() {
@@ -493,9 +500,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.onBotonAccion();
       });
       this.input.keyboard.on("keydown-ESC", () => {
-        if (this.estado === "PASE" && this._paseCancelar) this._paseCancelar();
+        /* L04: con la PAUSA abierta, ESC es SEGUIR (la cruz de la pausa no
+           registra su propio ESC: si lo hiciera, este mismo keydown la
+           cerraría y la volvería a abrir) */
+        if (this.estado === "PAUSA") this.cerrarPausa();
+        else if (this.estado === "PASE" && this._paseCancelar) this._paseCancelar();
         else if (this.estado === "MENU" && this._menuVolver) this._menuVolver();
+        /* y en la pantalla final, ESC es su salida principal (la misma que el
+           atrás del teléfono): SEGUIR LA CARRERA o VOLVER AL MENÚ */
+        else if (this.estado === "FINAL" && this._salidaFinal) this._salidaFinal();
       });
+      /* L04 · P = PAUSA (y otra vez P, seguir). Fuera de LIBRE se pide y
+         entra apenas termina la jugada. */
+      this.input.keyboard.on("keydown-P", () => this.alternarPausa());
       /* Anime A: ESPACIO es SOLO acción — el ciclado manual (que casi no hace falta
          con el cambio automático) vive en TAB */
       this.input.keyboard.on("keydown-TAB", (ev) => {
@@ -610,7 +627,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          ficha que espera (el lugar de espera es uno solo). */
   tickerSeLee() {
     if (this.hudLayer && !this.hudLayer.visible) return false;
-    return this.estado !== "TEMPO_MENU" && this.estado !== "TUTORIAL";
+    /* L04: detrás del velo de la PAUSA tampoco se lee: espera a SEGUIR */
+    return this.estado !== "TEMPO_MENU" && this.estado !== "TUTORIAL" && this.estado !== "PAUSA";
   }
   anunciarEnTicker(f, icono, op) {
     if (!f || !this.tickerTxt) return;
@@ -4558,6 +4576,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     (this.radarNumsRiv || []).forEach(t => t.setVisible(false));
     if (this._btnEnvion) this._btnEnvion.forEach(o => o.setVisible(false));
     if (this._btnCambiar) this._btnCambiar.forEach(o => o.setVisible(false));
+    if (this._btnPausa) this._btnPausa.forEach(o => o.setVisible(false));   // L04: no hay nada que pausar
     if (this.radarMarco) this.radarMarco.setVisible(false);
     this._finalApagado = true;
     /* TANDA 1.0: los avisos ahora viven en el HUD; con el final, se van */
@@ -4618,36 +4637,83 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          GANASTE perdía la fecha. Ahora queda en el save en el momento en que
          termina el partido; el registry sigue de respaldo. */
       this.anotarResultadoEnLaCarrera(resultado);
-      const b3 = this.add.rectangle(480, 496, 420, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bt3 = this.add.text(480, 496, "▶ SEGUIR LA CARRERA", { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
-      this.menuLayer.add([b3, bt3]);
-      b3.on("pointerdown", () => {
+      const seguirCarrera = () => {
         this.game.registry.set("masterResultado", resultado);
         this.game.registry.remove("masterPartido");
         this.irA("master");
+      };
+      this._salidaFinal = seguirCarrera;
+      this.salidasDelFinal(() => {
+        const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
+        const b3 = this.add.rectangle(480, 496, 420, tap, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+        const bt3 = this.add.text(480, 496, "▶ SEGUIR LA CARRERA", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
+        this.menuLayer.add([b3, bt3]);
+        b3.on("pointerdown", seguirCarrera);
+        return [{ obj: b3, caja: { x: 270, y: 496 - tap / 2, w: 420, h: tap }, cb: seguirCarrera }];
       });
-      this.selloMenu();
       return;
     }
-    const b = this.add.rectangle(480, 496, 320, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const bt = this.add.text(480, 496, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
-    this.menuLayer.add([b, bt]);
-    b.on("pointerdown", () => this.scene.restart());
-    /* FUSIÓN: el resultado vuelve a la carrera clásica (mismo formato pampa_star_v1
-       vía aplicarFecha del clásico — acá solo se deja el resultado y se vuelve) */
-    if (this._pedido) {
-      const b2 = this.add.rectangle(480, 398, 460, 54, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bt2 = this.add.text(480, 398, "▶ APLICAR Y VOLVER A LA CARRERA", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      this.menuLayer.add([b2, bt2]);
-      b2.on("pointerdown", () => {
-        try {
-          localStorage.setItem("pampa_resultado_phaser", JSON.stringify({ fecha: this._pedido.fecha | 0, golesMio: st.golesMio, golesRival: st.golesRival, ts: Date.now() }));
-          localStorage.removeItem("pampa_pedido_phaser");
-        } catch (e) { }
-        window.location.href = "../index.html";
-      });
-    }
-    this.selloMenu();
+    /* ══════════════════════════════════════════════════════════════════════
+       L04 · EL AMISTOSO TENÍA UNA SOLA SALIDA, Y ERA OTRO PARTIDO.
+
+       El único botón era "↺ OTRO PARTIDO" (scene.restart): con la PWA
+       instalada, que no tiene barra ni botón de atrás, no había forma de
+       volver al menú sin cerrar la app. Ahora hay dos, en la misma fila:
+       ◀ VOLVER AL MENÚ (el editor) a la izquierda, donde arranca el cursor, y
+       ↺ OTRO PARTIDO a la derecha. Con el cursor: un toque o un Enter.
+       ══════════════════════════════════════════════════════════════════════ */
+    const volverMenu = () => this.irA("editor");
+    this._salidaFinal = volverMenu;
+    this.salidasDelFinal(() => {
+      const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
+      const items = [];
+      const bv = this.add.rectangle(300, 496, 320, tap, 0xf6efdc, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const btv = this.add.text(300, 496, "◀ VOLVER AL MENÚ", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
+      const b = this.add.rectangle(660, 496, 320, tap, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bt = this.add.text(660, 496, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
+      this.menuLayer.add([bv, btv, b, bt]);
+      const otro = () => this.scene.restart();
+      bv.on("pointerdown", volverMenu);
+      b.on("pointerdown", otro);
+      items.push({ obj: bv, caja: { x: 140, y: 496 - tap / 2, w: 320, h: tap }, cb: volverMenu });
+      items.push({ obj: b, caja: { x: 500, y: 496 - tap / 2, w: 320, h: tap }, cb: otro });
+      /* FUSIÓN: el resultado vuelve a la carrera clásica (mismo formato pampa_star_v1
+         vía aplicarFecha del clásico — acá solo se deja el resultado y se vuelve) */
+      if (this._pedido) {
+        const b2 = this.add.rectangle(480, 398, 460, 54, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+        const bt2 = this.add.text(480, 398, "▶ APLICAR Y VOLVER A LA CARRERA", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+        this.menuLayer.add([b2, bt2]);
+        const aplicar = () => {
+          try {
+            localStorage.setItem("pampa_resultado_phaser", JSON.stringify({ fecha: this._pedido.fecha | 0, golesMio: st.golesMio, golesRival: st.golesRival, ts: Date.now() }));
+            localStorage.removeItem("pampa_pedido_phaser");
+          } catch (e) { }
+          window.location.href = "../index.html";
+        };
+        b2.on("pointerdown", aplicar);
+        items.unshift({ obj: b2, caja: { x: 250, y: 371, w: 460, h: 54 }, cb: aplicar });
+      }
+      return items;
+    });
+  }
+  /* L04 · LAS SALIDAS DEL FINAL ENTRAN UN RATO DESPUÉS DEL PITAZO.
+     ESPACIO es el botón de acción durante todo el partido, y en el cursor
+     ESPACIO y ENTER confirman: con los botones listos en el mismo cuadro del
+     pitazo, alguien que venía apretando ESPACIO salía de la pantalla final sin
+     llegar a leer GANASTE. Primero se ve el resultado; balance.pausa
+     .final_espera_ms después aparecen los botones, con el cursor puesto. El
+     atrás del teléfono no espera: es un gesto, no un reflejo (_salidaFinal). */
+  salidasDelFinal(armar) {
+    const PZ = this.BAL.pausa || {};
+    const espera = PZ.final_espera_ms != null ? PZ.final_espera_ms : 700;
+    const poner = () => {
+      if (this.estado !== "FINAL") return;
+      const items = armar() || [];
+      if (this.grupoFoco && items.length) this.grupoFoco(items, { inicial: 0 });
+      this.selloMenu();
+    };
+    if (espera > 0) this.time.delayedCall(espera, poner);
+    else poner();
   }
 
   /* el resultado de la fecha del Master, escrito en SU save. La lógica (que
@@ -5123,6 +5189,161 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.SFX.setMuted(!this.SFX.isMuted());
       this._muteTxt.setText(this.SFX.isMuted() ? "🔇" : "🔊");
     });
+    this.buildBotonPausa();
+  }
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 (L04) · EL BOTÓN DE PAUSA, AL LADO DEL SONIDO.
+
+     No había pausa: ESC solo cancelaba menús, y un WhatsApp en medio del
+     partido dejaba el reloj corriendo. Va en la barra del marcador, a la
+     derecha del 🔊, con su palabra (no solo el ícono: ⏸ solo no lo lee
+     todo el mundo, y la forma + el texto no dependen del color).
+
+     EL ÁREA ES LA DEL PISO TÁCTIL (legibilidad.tap_min = 61 lógicos, 44 CSS
+     reales en el teléfono), aunque la pastilla se vea de 76x24. Como el botón
+     está pegado al borde de arriba y un dedo no toca fuera del lienzo, el
+     área no se centra: baja desde y=0 hasta y=61, sobre la esquina de la
+     ilustración del panel, que no se toca (en pantalla partida solo navega
+     el mapa). En x arranca en 47: el área del 🔊 termina en 46 y no se pisan.
+     Las fichas y la mano, que arrancaban en x=52, se corren a x=136.
+     ══════════════════════════════════════════════════════════════════════ */
+  buildBotonPausa() {
+    const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
+    const X = 88, Y = 15, W = 76, H = 24;
+    const g = this.add.graphics();
+    g.fillStyle(0x0a1f13, 0.9); g.fillRoundedRect(X - W / 2, Y - H / 2, W, H, 8);
+    g.lineStyle(2, 0xf6efdc, 0.75); g.strokeRoundedRect(X - W / 2, Y - H / 2, W, H, 8);
+    const t = this.add.text(X, Y, "⏸ PAUSA", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
+    /* la zona de toque: transparente (vestirPendientes no la viste) */
+    const zona = this.add.rectangle(X, Y, W, H, 0x0a1f13, 0)
+      .setInteractive(new Phaser.Geom.Rectangle(-3, -(Y - H / 2), W + 6, tap), Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
+    zona.on("pointerdown", (p, x, y, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
+      this.alternarPausa();
+    });
+    this.hudLayer.add([g, t, zona]);
+    this._btnPausa = [g, t, zona];
+  }
+  /* ══════════════════════════════════════════════════════════════════════
+     LA PAUSA (L04).
+
+     Estado propio, PAUSA, con st.modo = "congelado": tick() sale en su
+     primer renglón si el modo no es "juego", y además update() no llama a
+     tick() fuera de LIBRE. Las dos cosas, a propósito: la pausa no depende de
+     que nadie más respete una sola de ellas. Medido en pausa.test.js: 20
+     cuadros de 300 ms en PAUSA dejan st.minuto y st._t donde estaban, y
+     tick() no se llama ni una vez.
+
+     Se abre solo desde LIBRE, que es donde corre el reloj. Pedida en una
+     jugada (una escena, un menú, la Definición) queda anotada y entra en el
+     primer cuadro de LIBRE: abrirla encima de un menú obligaría a desarmarlo
+     y rearmarlo.
+
+     La cruz: ▶ SEGUIR arriba (el cursor arranca ahí: un Enter de reflejo no
+     te saca del partido), 🔊 SONIDO a la izquierda y la salida a la derecha.
+       · amistoso: ◀ VOLVER AL MENÚ, el partido se descarta (no hay nada que
+         guardar: el resultado de un amistoso no va a ningún lado).
+       · fecha del Master: ◀ SALIR DEL PARTIDO. La regla de Rodri para
+         abandonar: la fecha se repite sin rehacer la semana y sin volver a
+         sumar sus mejoras. Eso ya lo garantiza el save desde L03 (la semana
+         queda cerrada con su marca de fecha y enCancha dice que se salió a
+         jugar): el Master ofrece "↺ REPETIR EL PARTIDO" y se entra como se
+         había llegado. Acá solo hay que irse sin anotar resultado.
+     ══════════════════════════════════════════════════════════════════════ */
+  alternarPausa() {
+    if (this.estado === "PAUSA") return this.cerrarPausa();
+    return this.pedirPausa();
+  }
+  pedirPausa() {
+    if (!this.st || this.estado === "FINAL" || this.estado === "PAUSA") return false;
+    if (this.estado === "LIBRE") return this.abrirPausa();
+    if (!this._pausaPedida) {
+      this._pausaPedida = true;
+      this.avisar("⏸ La pausa entra apenas termine la jugada", { clave: "pausa", toque: true });
+    }
+    return false;
+  }
+  abrirPausa() {
+    if (!this.st || this.estado !== "LIBRE") return false;
+    this._pausaPedida = false;
+    this._pausaModo = this.st.modo;
+    this.st.modo = "congelado";
+    this.estado = "PAUSA";
+    this.target = null;            // el dedo que estaba corriendo no sigue solo al volver
+    if (this.cerrarFoco) this.cerrarFoco();
+    this.menuLayer.removeAll(true);
+    /* la pausa que esperaba el final de una jugada se abre en el primer
+       cuadro de LIBRE, antes de que refrescarHUD corra: sin esto el reloj
+       de la pausa decía 0:15 con el partido ya en el minuto 2 (visto en
+       captura). Y el aviso "la pausa entra…" ya cumplió. */
+    try { this.refrescarHUD(); } catch (e) { /* sin HUD: la línea va sin reloj */ }
+    (this._avisos || []).filter(a => a.clave === "pausa").forEach(a => this.quitarAviso(a));
+    if (this._avisosCola) this._avisosCola = this._avisosCola.filter(a => a.clave !== "pausa");
+    const PZ = this.BAL.pausa || {};
+    const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
+    const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, PZ.velo_alpha != null ? PZ.velo_alpha : 0.82).setInteractive();
+    velo.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; });
+    const tit = this.add.text(480, 108, "⏸ PAUSA", { fontFamily: window.PF.display, fontSize: "22px", color: "#ffd84d" }).setOrigin(0.5);
+    const sub = this.add.text(480, 146, "el partido está quieto: el reloj no corre", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc" }).setOrigin(0.5);
+    const marc = this.add.text(480, 174, (this._hudMarc || "") + (this._hudReloj ? "  ·  " + this._hudReloj : ""), { fontFamily: window.PF.texto, fontSize: "15px", color: "#9fb3a5" }).setOrigin(0.5);
+    this.menuLayer.add([velo, tit, sub, marc]);
+    const enFecha = !!this._masterPartido;
+    const sonidoTxt = () => (this.SFX && this.SFX.isMuted()) ? "🔇 SONIDO: NO" : "🔊 SONIDO: SÍ";
+    const OPS = [
+      { k: "seguir", x: 480, y: 252, color: 0x7ee08a, t: "▶ SEGUIR", s: "el reloj vuelve a correr", cb: () => this.cerrarPausa() },
+      { k: "sonido", x: 250, y: 344, color: 0xf6efdc, t: sonidoTxt(), s: "música y efectos", cb: null },
+      { k: "salir", x: 710, y: 344, color: 0xdcd6c2,
+        t: enFecha ? "◀ SALIR DEL PARTIDO" : "◀ VOLVER AL MENÚ",
+        s: enFecha ? "la fecha queda para jugarla de nuevo" : "el partido no cuenta",
+        cb: () => this.salirDelPartido() }
+    ];
+    const items = [];
+    OPS.forEach(op => {
+      const W = 300, H = tap;
+      const r = this.add.rectangle(op.x, op.y, W, H, op.color, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const t = this.add.text(op.x, op.y - 11, op.t, { fontFamily: window.PF.display, fontSize: "15px", color: "#0a1f13" }).setOrigin(0.5);
+      const s = this.add.text(op.x, op.y + 15, op.s, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
+      this.menuLayer.add([r, t, s]);
+      if (op.k === "sonido") {
+        op.cb = () => {
+          if (!this.SFX) return;
+          this.SFX.setMuted(!this.SFX.isMuted());
+          t.setText(sonidoTxt());
+          if (this._muteTxt) this._muteTxt.setText(this.SFX.isMuted() ? "🔇" : "🔊");
+        };
+      }
+      r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; op.cb(); });
+      items.push({ obj: r, caja: { x: op.x - W / 2, y: op.y - H / 2, w: W, h: H }, cb: () => op.cb() });
+    });
+    if (this.input && this.input.keyboard) {
+      const pie = this.add.text(480, 430, "teclado: flechas y ENTER · P o ESC para seguir", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5);
+      this.menuLayer.add(pie);
+    }
+    /* sin `volver`: el ESC lo atiende el keydown-ESC del partido (ver create) */
+    if (this.grupoFoco) this.grupoFoco(items, { inicial: 0 });
+    const S = this.SFX; if (S && S.ui) S.ui("abrir");
+    this.selloMenu();
+    return true;
+  }
+  cerrarPausa() {
+    if (this.estado !== "PAUSA") return false;
+    if (this.cerrarFoco) this.cerrarFoco();
+    this.menuLayer.removeAll(true);
+    this.st.modo = this._pausaModo || "juego";
+    this._pausaModo = null;
+    this.estado = "LIBRE";
+    const S = this.SFX; if (S && S.ui) S.ui("cerrar");
+    return true;
+  }
+  /* VOLVER AL MENÚ / SALIR DEL PARTIDO: sin resultado. El amistoso se tira;
+     la fecha del Master queda sin jugar y el Master la ofrece para repetir. */
+  salirDelPartido() {
+    if (this._masterPartido) {
+      this.game.registry.remove("masterPartido");
+      this.irA("master");
+      return;
+    }
+    this.irA("editor");
   }
   refrescarHUD() {
     const st = this.st;
@@ -5185,7 +5406,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
              46 y el texto arrancaba en 44. Se pisaban por 2 px, y en teléfono
              eso es tocar el mute cuando querías leer las fichas. Medido con el
              barrido de solapes del partido en vivo. */
-          this.txtFichas = this.add.text(52, 15, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0, 0.5);
+          /* L04 · y de 52 a 136: entre el 🔊 y las fichas entró ⏸ PAUSA,
+             cuya área táctil termina en x=129 (buildBotonPausa). */
+          this.txtFichas = this.add.text(136, 15, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0, 0.5);
           this.hudLayer.add(this.txtFichas);
         }
         this.txtFichas.setText(fTxt);
@@ -5208,7 +5431,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this._hudMano !== mTxt) {
         this._hudMano = mTxt;
         if (!this.txtMano) {
-          this.txtMano = this.add.text(52, 31, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#dcd6c2" }).setOrigin(0, 0.5);
+          /* L04: de x=52 a 136, alineada con las fichas (ver buildBotonPausa) */
+          this.txtMano = this.add.text(136, 31, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#dcd6c2" }).setOrigin(0, 0.5);
           this.hudLayer.add(this.txtMano);
         }
         this.txtMano.setText(mTxt);
@@ -5245,8 +5469,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        momento: las opciones están en las cartas, y el botón se queda atrás de la
        ficha del rival asomando el amarillo por los costados con el nombre
        encima. Se veía feo en las dos medidas. Vuelve solo al cerrarse el menú. */
+    /* L04 · y en la PAUSA y el FINAL tampoco. La deuda la anotó L01 (el botón
+       reaparecía en la pantalla final porque esto lo prendía en cada cuadro);
+       con dos salidas en la fila de abajo, el amarillo de ACCIÓN quedaba
+       montado sobre ↺ OTRO PARTIDO (visto en l04_final_amistoso.png). */
     if (this._btnAccionCont) {
-      const conMenu = this.estado === "MENU" || this.estado === "PASE";
+      const conMenu = this.estado === "MENU" || this.estado === "PASE" ||
+        this.estado === "PAUSA" || this.estado === "FINAL" || this._finalApagado;
       this._btnAccionCont.setVisible(!conMenu);
       if (this._hintEspacio) this._hintEspacio.setVisible(!conMenu);
     }
@@ -5409,12 +5638,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          queda clavada como una viñeta mientras decidís) */
       /* P6-B: mientras dura el viaje profundo, el panel lo maneja ÉL. El modo
          lateral ni se actualiza: son excluyentes. */
+      /* L04: en PAUSA tampoco — la viñeta queda clavada, como en el menú */
       if (this._prof && this._prof.activo) this.updatePanelProfundo();
-      else if (this._split && this.estado !== "MENU" && this.estado !== "PASE") this.updatePanelEscena(delta);
+      else if (this._split && this.estado !== "MENU" && this.estado !== "PASE" && this.estado !== "PAUSA") this.updatePanelEscena(delta);
       else if (this._split && this.velarPanel) this.velarPanel(delta);   // A4: el velo sí sigue vivo
       else { this.updateFichas(true); this.dibujarPaseCancha(); }
       return;
     }
+    /* L04 · LA PAUSA PEDIDA en medio de una jugada (el botón ⏸, la P o el
+       atrás del teléfono durante una escena, un menú o la Definición) entra
+       acá: en el primer cuadro de LIBRE, antes de que corra un solo latido. */
+    if (this._pausaPedida) { this.abrirPausa(); return; }
 
     /* input de movimiento: con pelota movés al portador; SIN pelota movés a tu
        MARCADOR (lo leés en el radar por su anillo — perseguir drena aguante, §7) */
@@ -5661,7 +5895,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* detrás del velo del menú de tempo o del tutorial no se lee: se espera,
        y esa espera no cuenta para el vencimiento (el perfil del rival sale
        en create(), con el menú de tempo abierto, y tiene que llegar a leerse) */
-    if (this.estado === "TEMPO_MENU" || this.estado === "TUTORIAL") {
+    if (this.estado === "TEMPO_MENU" || this.estado === "TUTORIAL" || this.estado === "PAUSA") {   // L04: y la PAUSA
       cola.forEach(a => { a.t = this.time.now; });
       return;
     }

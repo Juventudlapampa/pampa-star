@@ -730,6 +730,11 @@
     "_nota": "TANDA 1.0 · EL VIGÍA DE SEGUIR IGUAL (index.html, window.PampaRed). Si el callback que tiró era el que hacía avanzar la jugada (un alFinal que llama a paso(k+1) o a reanudarLibre), SEGUIR IGUAL dejaba el partido en ESCENA, CINE o RESOLUCIÓN para siempre y sin aviso. Después de SEGUIR, si el partido no cambia de estado ni corre su reloj durante vigia_seguir_ms de juego (sin contar la pausa), el aviso vuelve, ahora sin SEGUIR. No mira los estados que esperan a quien juega (MENU, PASE, TEMPO_MENU, TUTORIAL, FINAL, DEFINICION, JUGADON). Medido en un partido entero del Master con jugadas elegidas al azar (1-0, 26 menús, 9 decisiones de Definición): el tramo más largo sin cambio en un estado automático fue el CINE (2,8 s), después la ESCENA (2,3 s), el BEAT (0,75 s) y LIBRE (0,43 s, entre latidos). La cadena más larga posible es la megacorrida: 2 viñetas de 2,6 s seguidas. 12 s es más de cuatro veces lo medido y más del doble de esa cadena.",
     "vigia_seguir_ms": 12000
   },
+  "pausa": {
+    "_nota": "TANDA 1.0 (L04) · LA PAUSA Y LAS SALIDAS DEL PARTIDO (scenes/match.js: abrirPausa, salidasDelFinal). velo_alpha: lo oscuro del velo de la PAUSA (0 = no tapa nada, 1 = negro); 0,82 deja ver la cancha quieta detrás sin competir con la cruz. final_espera_ms: cuánto después del pitazo aparecen los botones del final (VOLVER AL MENÚ / OTRO PARTIDO / SEGUIR LA CARRERA). ESPACIO es la acción durante todo el partido y en el cursor confirma: con 0, quien venía apretando ESPACIO salía del final sin leer el resultado. 700 ms alcanza para ver GANASTE/PERDISTE y la cifra antes de que algo se pueda elegir; una tecla SOSTENIDA no cuenta igual, porque el cursor ya no confirma con la repetición automática del teclado (foco_ui.js).",
+    "velo_alpha": 0.82,
+    "final_espera_ms": 700
+  },
   "flags": {
     "a3_bloqueo": true
   }

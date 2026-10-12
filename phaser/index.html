@@ -427,7 +427,8 @@
        balance.red_de_errores.vigia_seguir_ms de juego, el aviso vuelve sin
        SEGUIR. Los estados que esperan a quien juega no cuentan: ahí lo quieto
        es pensar. */
-    var ESPERAN = { MENU: 1, PASE: 1, TEMPO_MENU: 1, TUTORIAL: 1, FINAL: 1, DEFINICION: 1, JUGADON: 1 };
+    /* L04: la PAUSA también espera a quien juega, el tiempo que haga falta */
+    var ESPERAN = { MENU: 1, PASE: 1, TEMPO_MENU: 1, TUTORIAL: 1, FINAL: 1, DEFINICION: 1, JUGADON: 1, PAUSA: 1 };
     R.vigia = null;
     R.sinSeguir = false;
     R.firmaPartido = function (g) {

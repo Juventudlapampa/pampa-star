@@ -193,7 +193,12 @@
           G._teclas.push([t, h]);
         });
         ["ENTER", "SPACE"].forEach(function (t) {
-          var h = function () { if (G.vivo) G.activar(); };
+          /* L04 · la REPETICIÓN de una tecla sostenida no confirma. ESPACIO es
+             la acción del partido: sostenido, el teclado lo repite cada ~33 ms,
+             y la primera repetición después de que aparece un grupo (la
+             pantalla final, la pausa) elegía su primer botón sin que nadie lo
+             hubiera decidido. Confirmar es apretar, no seguir apretando. */
+          var h = function (ev) { if (G.vivo && !(ev && ev.repeat)) G.activar(); };
           self.input.keyboard.on("keydown-" + t, h);
           G._teclas.push([t, h]);
         });
