@@ -763,7 +763,9 @@ nadie.
   irrecuperable se copia tal cual a `pampa_master_v1_corrupta` y
   `vistaSaveRoto` dice **"Tu carrera guardada no se pudo leer. Quedó un
   respaldo."** con ▶ EMPEZAR OTRA y ✎ VOLVER AL EDITOR. La carrera nueva
-  escribe `v` con la constante del módulo.
+  escribe `v` con la constante del módulo. (En la revisión cambió el título,
+  que repetía la frase, y la regla de tu club: ver "Revisión del lote L03",
+  puntos 1 y 6.)
 - `index.html` lo carga y `sw.js` lo precachea.
 
 **Cómo se verificó.**
@@ -798,7 +800,9 @@ almacenamiento de un sitio que no se visita en 7 días si no está instalado.
   adentro del texto pegado (saltos de línea, espacios, comillas o el renglón
   del mensaje adelante), verifica versión y CRC, descomprime y lo pasa por
   `sanear`. Cada rechazo tiene su mensaje: vacío, ajeno, de una versión más
-  nueva, incompleto o con una letra cambiada, o sin carrera jugable.
+  nueva, incompleto o con una letra cambiada, o sin carrera jugable. (En la
+  revisión: el texto DETRÁS del código también se tolera y el mensaje de roto
+  ya no afirma qué le pasó; ver "Revisión del lote L03", punto 2.)
 - `master.js`: en la tabla, **💾 código de carrera** (espejo de la salida,
   abajo a la derecha) abre la vista del código con club, división, temporada,
   fecha y largo: 📋 COPIAR EL CÓDIGO (si el navegador no deja, una caja con el
@@ -831,7 +835,7 @@ almacenamiento de un sitio que no se visita en 7 días si no está instalado.
   panel niega el portapapeles ("Write permission denied") y aparece la caja
   con el código seleccionado. En 127.0.0.1, vacío, PEGAR UN CÓDIGO: con una
   letra cambiada dice "✗ El código está incompleto o le cambió alguna letra.
-  Copialo de nuevo, entero.", la escena sigue en elegir club y el
+  Copialo de nuevo, entero." (el mensaje de entonces), la escena sigue en elegir club y el
   almacenamiento sigue vacío; el bueno, con el renglón del mensaje adelante,
   trae la carrera: FECHA 6 de 18 y la tabla idéntica a la de localhost
   (`l03_v4_tabla_origen.png` y `l03_v4_destino_tabla.png`). A 800x360 la caja
@@ -868,6 +872,7 @@ almacenamiento de un sitio que no se visita en 7 días si no está instalado.
    de la marca de agua (`nivelMax`) o en la primera, conservando títulos,
    mejoras y origen; la fecha fuera de rango vuelve a la de los resultados (no
    a cero); sin club, JSON roto o algo que no es un objeto son irrecuperables.
+   (La revisión cambió qué pasa si falta tu fila: ver su punto 1.)
    En la pantalla del save roto el cursor arranca en VOLVER AL EDITOR, y
    EMPEZAR OTRA no pisa `pampa_master_v1_borrada` (el roto ya quedó en
    `_corrupta`).
@@ -893,3 +898,144 @@ almacenamiento de un sitio que no se visita en 7 días si no está instalado.
 - El portapapeles automático no se pudo ver funcionando en el panel (lo niega
   el navegador del panel); en el test corre con un portapapeles de mentira y en
   el panel se vio el camino de la caja. Falta mirarlo en un teléfono.
+
+### Revisión del lote L03 (dos revisores, once hallazgos)
+
+Los once se comprobaron contra el código y, los que se ven, en el navegador
+integrado (mudo: `silencio_dev.js` del server más el arnés del oído; nunca el
+botón de mute del juego). Los once eran reales. Tres venían repetidos por los
+dos revisores (el texto detrás del código, "fecha 19 de 18" y la zona de
+toque del 💾), así que quedaron ocho puntos, un commit cada uno. Capturas en
+`.claude/shots/rev03_*.png`.
+
+1. **Si faltaba tu fila en la tabla, sanear te cambiaba el club por un
+   rival** (`logic/save_master.js`, commit 57b937d). Medido en node: una
+   Primera A en la fecha 7 sin la fila de El Bagual de Winifreda salía jugable
+   con club Sportivo General Acha, el próximo partido era "Sportivo General
+   Acha vs Estrella de General Pico" y `create` lo guardaba (adoptaba
+   `tabla[0]`). Ahora la temporada se repara en `repararTemporada`: tu club es
+   el que nombra el save (si no, la temporada), y vale el primero que aparece
+   en la tabla, o si no en el fixture o los resultados. Si falta tu fila (o la
+   de un rival del fixture: `cargarEnTabla` salteaba el partido y TU partido
+   contra ese rival no sumaba), la tabla se rearma desde los resultados en el
+   orden de la división y queda igual a la original. Un fixture donde no jugás
+   se rearma. Si tu club no aparece en ningún lado, la temporada vuelve a
+   empezar con tu club (o, sin forma de rehacer, es irrecuperable). Verificado:
+   `save_corrupto.test.js` (falta tu fila, + fixture roto, tu club en ningún
+   lado con y sin rehacer, un rival menos; contra el código anterior fallan 8
+   asserts; los 400 al azar dan lo mismo que antes); en el navegador, ese save
+   abre la tabla con El Bagual 9º, 10 filas iguales y "FECHA 8 de 18 vs Sal y
+   Cal de Macachín" (`rev03_falta_tu_fila.png`).
+2. **Un código bueno con texto pegado DETRÁS se rechazaba como roto**
+   (`logic/carrera.js`, commit ae7d6c9). `importar` borraba espacios y saltos
+   antes de buscar, y lo de después se pegaba a los datos: codigo +
+   "\nguardalo bien", + " ok" y + "\nhttps://…" daban "El código está
+   incompleto o le cambió alguna letra. Copialo de nuevo, entero.", que
+   además no lo arreglaba. Sin cambiar el formato (los códigos ya copiados
+   siguen valiendo): se anota dónde había un separador en el original y los
+   datos se prueban enteros y después cortados en cada separador, de más largo
+   a más corto; vale el primero que firma el crc32. Tope de 200 cortes (peor
+   caso medido: 75 ms). El mensaje de roto ya no afirma qué pasó: "El código no
+   se pudo leer: puede faltarle un pedazo o tener alguna letra distinta.
+   Copialo de nuevo desde donde lo guardaste, de PAMPA hasta la última letra."
+   Verificado: 7 casos con texto detrás entran con el mismo save, uno
+   alterado con texto detrás se sigue rechazando, los 300 al azar siguen sin
+   entrar (contra el anterior fallan 8); en el navegador, PEGAR UN CÓDIGO con
+   "guardalo bien, la del martes" debajo y un clic de verdad en SEGUIR ESA
+   CARRERA trae la carrera idéntica (`rev03_codigo_texto_detras.png`).
+3. **Con la temporada terminada decía "fecha 19 de 18"** (`master.js`, commit
+   bf86d99). `t.fecha === fixture.length` al terminar, y la vista del código
+   (que se ofrece en FIN DE TEMPORADA) y también ¿EMPEZAR OTRA CARRERA? (misma
+   cuenta, no estaba en el hallazgo) sumaban uno. `lineaDeLaTemporada` arma la
+   línea en un lugar: "temporada 2 · fecha 8 de 18" o "temporada 2 terminada ·
+   18 de 18 fechas". El código dice "1 título" en singular. Verificado: test
+   con master real; en el navegador (`rev03_codigo_fin_temporada.png`,
+   `rev03_borrar_fin_temporada.png`).
+4. **El 💾 (y el ✕ de la salida) tocaban en 151x21 y 178x21 lógicos**
+   (`master.js`, commit 06adc8b), unos 15 px CSS de alto en el teléfono contra
+   el piso de 61 lógicos. **Encontrado al medirlo:** pasar un objeto por
+   `pisoTactil` DESPUÉS de hacerlo tocable no hace nada: en Phaser 3.80.1
+   `InputPlugin.enable` solo habilita un objeto que ya tiene input e ignora el
+   área nueva (quedaba 178x22 con `_tapArea` 61). `accesoDeAbajo` arma los
+   dos con letra 13 y `pisoTactil` ANTES de `setInteractive` (61 de alto,
+   centrado). Y se crean antes que los botones: con 61 el área sube 2,5 px
+   sobre el borde de abajo de JUGAR, y un toque en (180,485), adentro del
+   botón, abría ¿EMPEZAR OTRA CARRERA? (Phaser da el toque al de más arriba
+   en el dibujo). Verificado a 800x360: (180,485) → LA SEMANA, (100,488) y
+   (100,536) → ¿EMPEZAR OTRA CARRERA?, (880,488) → el código, y un clic de
+   verdad 8 px arriba del 💾 abre el código (`rev03_accesos_13px.png`).
+5. **Un assert de `vistas_limpias` pasaba aunque el toque cambiara de
+   pantalla** (commit 0d1f7b0): salía por `o.type !== "Text"`. Ahora pide que
+   la lista de textos no cambie. Contra el master.js de antes de L03 cae justo
+   en el caso que el viejo dejaba pasar: (200,470) tocaba un Rectangle
+   fantasma (el JUGAR de la tabla). Es un test: no hay pantalla.
+6. **La pantalla del save roto decía la misma frase dos veces** (`master.js`,
+   commit 047cfe4). Título nuevo: "✗ HAY UN PROBLEMA CON TU CARRERA"; la
+   frase que pedía el ítem queda una vez. Verificado con el save cortado a 300
+   letras (`rev03_save_roto_titulo.png`).
+7. **"Pegalo en MODO MASTER → PEGAR UN CÓDIGO" no tenía camino si el teléfono
+   ya tenía carrera** (`master.js`, commit c496578): el botón vive en elegir
+   club. ¿EMPEZAR OTRA CARRERA? suma en el medio **📋 PEGAR UN CÓDIGO EN SU
+   LUGAR** (el cursor sigue en SEGUIR); la caja avisa que la carrera de ahora
+   queda respaldada en `pampa_master_v1_borrada`, como al borrarla. La vista
+   del código y el texto de COMPARTIR cuentan el camino. Verificado: con
+   Winifreda en Primera A, pegar el código de El Caldén de Toay con un clic de
+   verdad deja Toay en Primera B fecha 3 y Winifreda respaldada
+   (`rev03_borrar_tres_caminos.png`, `rev03_pegado_en_su_lugar.png`,
+   `rev03_codigo_texto_camino.png`).
+8. **Si fallaba el copiado automático, la caja podía decir "No se pudo copiar
+   solo" y "✔ Ya quedó copiado." a la vez** (`master.js`, commit adbd44e).
+   Reproducido con master real en node. Si `execCommand("copy")` anda, cambia
+   también el párrafo: "Ya quedó copiado. Igual lo tenés acá abajo, por si
+   querés guardarlo de otra forma." Verificado en el test [7] y en el panel con
+   `writeText` rechazado y `execCommand` simulados, para no pisar el
+   portapapeles de la compu.
+
+La versión visible sube a `v17-1.0-l03r` (index.html y sw.js, iguales), por
+el paso del deploy.
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L03)
+
+1. **Tu club es el que nombra el save** (`club`, si no `miClub` de la
+   temporada): antes, si los dos estaban en la tabla y no coincidían, ganaba
+   el de la temporada. Y si no aparece en ningún lado, la temporada vuelve a
+   empezar con ese club en vez de declararla irrecuperable: es lo mismo que ya
+   se hacía con una división inexistente, y conserva títulos y mejoras.
+   *Revertir:* en `repararTemporada`, el orden de `candidatos` y el `return {
+   rehacer }` de `!tuyo` (que pase a `{ roto }`).
+2. **Una fila de rival faltante también rearma la tabla** (no lo pedía el
+   hallazgo). Si los rivales son justo los de la división, va el orden de la
+   división; si no, el faltante queda al final (`renombrarPorPosicion` no toca
+   una tabla con nombres en otro orden). *Revertir:* que `faltanFilas` mire
+   solo `[tuyo]`.
+3. **El código no cambió de formato** (las dos opciones del revisor eran un
+   largo o un terminador en el código): probar cortes con el crc32 no rompe
+   los códigos ya copiados. El costo: texto pegado detrás SIN separador (ej.
+   "…gAok") sigue sin poder separarse, y más de 199 palabras seguidas detrás
+   sin un signo ni una tilde agotan el tope. *Ajustar:* `MAX_CORTES` en
+   `carrera.js`.
+4. **El piso táctil de los dos accesos se arregló en ellos, no en
+   `pisoTactil`.** El mismo orden de Phaser hace que `pisoTactil` no agrande
+   NINGÚN botón vestido por `vestirPendientes` (medido en la tabla: JUGAR
+   300x52 y EDITOR 280x52 de área, con `_tapArea` 61): es de la ola de
+   legibilidad y toca todas las escenas, así que quedó como tarea aparte (ver
+   deudas). *Revertir:* `accesoDeAbajo` puede volver a `setInteractive` antes
+   de `pisoTactil` (vuelve a quedar en 22 de alto).
+5. **PEGAR EN SU LUGAR va en ¿EMPEZAR OTRA CARRERA?** y no en la vista del
+   código: es la pantalla que ya dice qué se pierde, con números, y el cursor
+   no arranca ahí. *Revertir:* sacar el botón del medio de
+   `vistaBorrarCarrera` y el paréntesis de los dos textos.
+6. **La versión `v17-1.0-l03r`** ("r" de revisión). *Revertir:* volver las dos
+   a `v17-1.0-l03`.
+
+### Deudas que vi y no son de este lote
+
+- **`pisoTactil` no agranda los botones ya tocables** (todas las escenas):
+  `vestirPendientes` lo llama sobre Rectangles que ya hicieron
+  `setInteractive`, y Phaser 3.80.1 ignora el área nueva. Arreglarlo es
+  asignar `obj.input.hitArea` cuando ya hay input, y después medir que botones
+  de 52 separados 60 no se pisen. Quedó propuesto como tarea aparte.
+- La tabla dice "★ **1 títulos**" (plural con uno), visible en
+  `rev03_falta_tu_fila.png`.
+- En ¿EMPEZAR OTRA CARRERA? el renglón chico "el respaldo queda guardado…"
+  queda pegado al marco del cursor del primer botón (ya pasaba con dos).
