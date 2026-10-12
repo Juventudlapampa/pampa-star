@@ -122,14 +122,23 @@
                   tocó DESPUÉS para esta versión;
        'esperar'  hay versión nueva pero se está jugando un partido, o está
                   el aviso "Algo se trabó": se vuelve a mirar en un rato;
+       'esconder' (revisión L05) el cartel YA ESTABA a la vista y arrancó un
+                  partido, apareció "Algo se trabó" o la versión dejó de ser
+                  nueva. Antes el cartel solo se mostraba: si aparecía en el
+                  Master y quien juega entraba a la fecha sin tocarlo, quedaba
+                  arriba a la izquierda todo el partido, encima del 🔊, de
+                  ⏸ PAUSA y de la mano de cartas (a 800x360, x lógico 0 a 573,
+                  y 0 a 84), y un toque ahí recargaba y se perdía el partido.
+                  Se esconde SIN darlo por descartado: vuelve al terminar;
        'mostrar'  todo lo demás.
      e: { versionPagina, versionSW, enPartido, trabado, descartado, mostrado } */
   function decidirAvisoVersion(e) {
     var x = e || {};
     var nueva = !!x.versionSW && x.versionSW !== x.versionPagina;
     var decision = "mostrar";
-    if (!nueva || x.descartado || x.mostrado) decision = "nada";
-    else if (x.enPartido || x.trabado) decision = "esperar";
+    if (!nueva || x.descartado) decision = x.mostrado ? "esconder" : "nada";
+    else if (x.enPartido || x.trabado) decision = x.mostrado ? "esconder" : "esperar";
+    else if (x.mostrado) decision = "nada";
     return decision;
   }
 

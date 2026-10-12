@@ -1008,6 +1008,12 @@
        pero nunca en medio de un partido: espera a que termine
        (logic/carga.js, decidirAvisoVersion). DESPUÉS lo esconde hasta la
        versión siguiente.
+       Revisión L05: si ya estaba a la vista y arranca un partido, se
+       ESCONDE (antes quedaba encima de ⏸ PAUSA todo el partido, y un toque
+       recargaba). Lo esconde el aviso "start" de la escena del partido, que
+       Phaser da antes del preload, y por las dudas lo vigila cada
+       version_reintento_ms mientras está a la vista. Vuelve al terminar.
+       ACTUALIZAR desde el editor guarda la pinta antes de recargar.
      ═══════════════════════════════════════════════════════════════════════ */
   (function () {
     "use strict";
@@ -1041,21 +1047,71 @@
       } catch (e) { }
       return 2000;
     }
+    /* "en el partido" = la escena del partido arrancó y no se apagó: desde
+       START (2) hasta SLEEPING (7) en Phaser.Scenes; 8 es SHUTDOWN. Antes
+       era scene.isActive("match"), que solo mira RUNNING (5): mientras el
+       partido baja sus poses (LOADING, 3) contaba como "afuera". OJO con el
+       1 (INIT): medido en el juego, una escena creada que nunca arrancó queda
+       en 1 ("match:1" antes del primer partido), así que el 1 es AFUERA. El
+       init() del partido también lo pone en 1, pero en el mismo paso
+       sincrónico que lo lleva a LOADING: ningún reloj lo ve. La PAUSA del
+       partido es suya (abrirPausa), no scene.pause: sigue en RUNNING. */
+    function enPartidoAhora(g) {
+      try {
+        var m = g && g.scene && g.scene.getScene && g.scene.getScene("match");
+        var st = m && m.sys && m.sys.settings ? m.sys.settings.status : 0;
+        return st >= 2 && st <= 7;
+      } catch (e) { return false; }
+    }
+    /* el aviso "start" de la escena del partido: Systems.start lo emite en
+       cada scene.start, antes del init y del preload, y sys.events sobrevive
+       a los reinicios (Systems.shutdown solo apaga los de transición). Se
+       engancha UNA vez, cuando el juego ya existe */
+    var enganchado = false;
+    function engancharPartido(g) {
+      if (enganchado) return;
+      try {
+        var m = g && g.scene && g.scene.getScene && g.scene.getScene("match");
+        if (m && m.sys && m.sys.events && m.sys.events.on) {
+          m.sys.events.on("start", function () { NV.evaluar(); });
+          enganchado = true;
+        }
+      } catch (e) { }
+    }
     NV.evaluar = function () {
       clearTimeout(NV.timer); NV.timer = null;
-      var g = window.PAMPA_GAME, enPartido = false;
-      try { enPartido = !!(g && g.scene && g.scene.isActive("match")); } catch (e) { }
+      var g = window.PAMPA_GAME;
+      engancharPartido(g);
       var d = (C && C.decidirAvisoVersion) ? C.decidirAvisoVersion({
-        versionPagina: window.PAMPA_VERSION, versionSW: NV.versionSW, enPartido: enPartido,
+        versionPagina: window.PAMPA_VERSION, versionSW: NV.versionSW, enPartido: enPartidoAhora(g),
         trabado: !!(window.PampaRed && window.PampaRed.tipo),
         descartado: !!NV.versionSW && NV.descartada === NV.versionSW, mostrado: NV.mostrado
       }) : "nada";
+      if (d === "mostrar") NV.mostrado = true;
+      else if (d === "esconder" || d === "esperar") NV.mostrado = false;
+      /* el cartel se ve si y solo si NV.mostrado: si el worker avisa otra
+         versión con el cartel a la vista (mostrado vuelve a false) y es en
+         pleno partido, 'esperar' también lo saca de encima */
       var el = document.getElementById("version-nueva");
-      if (d === "mostrar" && el) { el.hidden = false; NV.mostrado = true; }
-      else if (d === "esperar") NV.timer = setTimeout(NV.evaluar, esperaMs());
+      if (el) el.hidden = !NV.mostrado;
+      /* se vuelve a mirar mientras espera, recién escondido, y TAMBIÉN
+         mientras está a la vista: si el aviso "start" no llegó (la escena
+         no existía al engancharse), el cartel no queda sobre la PAUSA más
+         de version_reintento_ms */
+      if (d === "esperar" || d === "esconder" || NV.mostrado) NV.timer = setTimeout(NV.evaluar, esperaMs());
       return d;
     };
-    NV.actualizar = function () { try { location.reload(); } catch (e) { } };
+    /* ACTUALIZAR recarga. Desde el editor, primero guarda la pinta: la
+       escena solo la escribe con GUARDAR PINTA, ¡A LA CANCHA! o CARRERA, y
+       el toque en el cartel la perdía sin aviso. El Master guarda en cada
+       acción; en el partido el cartel no está. */
+    NV.actualizar = function () {
+      try {
+        var g = window.PAMPA_GAME, ed = g && g.scene && g.scene.getScene && g.scene.getScene("editor");
+        if (ed && g.scene.isActive("editor") && typeof ed.guardar === "function") ed.guardar();
+      } catch (e) { }
+      try { location.reload(); } catch (e) { }
+    };
     NV.despues = function () {
       var el = document.getElementById("version-nueva");
       if (el) el.hidden = true;
