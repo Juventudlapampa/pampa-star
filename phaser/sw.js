@@ -339,19 +339,44 @@ async function recortar(res, rango) {
   });
 }
 
+/* LAS DESCARGAS EN VUELO (revisión L05). Con señal floja el loader de
+   Phaser da por vencido un archivo (balance.red_floja.loader_timeout_ms) y
+   lo vuelve a pedir una vez. El pedido que venció NO corta la descarga de
+   acá (pedirAsset arma un Request nuevo, sin la señal del de la página), y
+   el reintento arrancaba OTRA: medido en node con cara_colorado colgada,
+   el pedido, 15 s y el reintento: dos pedidos a la red por la misma cara,
+   hasta el doble de datos prepagos. Ahora un asset que ya se está bajando
+   no se vuelve a pedir: el pedido nuevo espera a que termine esa descarga y
+   lo saca de la caché. Si esa descarga falló (no quedó en la caché), lo
+   pide él. clave → promesa que se cumple cuando la descarga terminó. */
+const enVuelo = new Map();
+
 /* primero la caché (con la huella de ahora), después la red */
 async function responderAsset(e, ruta) {
   const cache = await caches.open(ASSETS);
   const clave = claveAsset(ruta);
-  let res = await cache.match(clave, { ignoreVary: true });
+  let res;
+  for (;;) {
+    res = await cache.match(clave, { ignoreVary: true });
+    const vuelo = res ? null : enVuelo.get(clave);
+    if (!vuelo) break;
+    await vuelo;
+  }
   if (res) {
     avisar(e.clientId, { origen: "cache", ruta: ruta });
   } else {
-    res = await pedirAsset(ruta);
+    /* se anota ANTES de esperar a la red (sin un await entre la mirada de
+       arriba y esto): una descarga colgada antes de los encabezados también
+       cuenta como "en vuelo" */
+    let terminar;
+    const vuelo = new Promise((r) => { terminar = r; });
+    enVuelo.set(clave, vuelo);
+    const soltar = () => { if (enVuelo.get(clave) === vuelo) enVuelo.delete(clave); terminar(); };
+    try { res = await pedirAsset(ruta); } catch (err) { soltar(); throw err; }
     if (res.ok && res.status === 200) {
       const copia = res.clone();
-      e.waitUntil(cache.put(clave, copia).catch(() => { }));
-    }
+      e.waitUntil(cache.put(clave, copia).catch(() => { }).then(soltar));
+    } else soltar();
   }
   const rango = e.request.headers.get("range");
   if (rango && res.status === 200) return recortar(res, rango);

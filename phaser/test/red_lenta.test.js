@@ -37,7 +37,15 @@
          termina, no hay skipWaiting y la caché anterior sigue existiendo
          entera; con una falla que se arregla al reintentar, se instala;
      [d] EL CRITERIO: sin red, una navegación a ./?ref=compartir (y a
-         index.html?embed=1) devuelve el index.html guardado.
+         index.html?embed=1) devuelve el index.html guardado;
+     [e] (revisión L05) el reintento del loader no baja dos veces lo mismo:
+         con la cara colgada, el pedido que venció y el reintento hacen UN
+         pedido a la red (antes, dos: el XHR que vence no corta la descarga
+         del worker), y si esa descarga falla, el que esperaba la pide.
+   REVISIÓN L05, el tope del loader: era 15 s con la cuenta de UN archivo,
+   pero Phaser baja varios a la vez (6 en Android, 32 en el resto) y el tope
+   es total por archivo. [a] ahora rehace la cuenta con el disco: el archivo
+   más pesado × 8 × loader_paralelas ÷ 180 kbps tiene que entrar en el tope.
    Con PAMPA_SW=<ruta> corre contra otro sw.js (el de antes falla [b], [c] y
    [d]).
 
@@ -98,18 +106,40 @@ var SW = M.leerSW();
   assert(abortados.indexOf("a.json") >= 0, "y el pedido colgado se corta (AbortController)");
   assert(ctx.window.__PAMPA_RED.topes.join() === "a.json", "el tope vencido queda en __PAMPA_RED.topes (se ve con ?perf=1)");
   /* la config de Phaser y el balance */
-  assert(/loader:\s*\{\s*timeout:\s*\(balance && balance\.red_floja && balance\.red_floja\.loader_timeout_ms\) \|\| 15000\s*\}/.test(INDEX),
-    "SÍNTOMA DEL PRELOAD ETERNO: la config de Phaser fija loader.timeout (balance.red_floja.loader_timeout_ms, 15000 si falta)");
+  assert(/loader:\s*\{\s*timeout:\s*\(balance && balance\.red_floja && balance\.red_floja\.loader_timeout_ms\) \|\| \d+,\s*maxParallelDownloads:\s*\(balance && balance\.red_floja && balance\.red_floja\.loader_paralelas\) \|\| \d+\s*\}/.test(INDEX),
+    "SÍNTOMA DEL PRELOAD ETERNO: la config de Phaser fija loader.timeout y loader.maxParallelDownloads desde balance.red_floja");
   var B = JSON.parse(leer("phaser/data/balance.json"));
   assert(B.red_floja && B.red_floja.loader_timeout_ms > 0 && typeof B.red_floja._nota === "string" && B.red_floja._nota.length > 100,
     "balance.red_floja.loader_timeout_ms > 0, con su _nota");
+  /* REVISIÓN L05 · LA CUENTA DEL TOPE CON EL PARALELISMO DE VERDAD. El
+     tope del XHR de Phaser es TOTAL desde send() y los archivos que bajan a
+     la vez se reparten la señal (loaderMaxParallelDownloads: 6 en Android,
+     32 en el resto, vendor/phaser.min.js). El tope de antes (15 s) era la
+     cuenta de UN archivo: con 6 en paralelo a 180 kbps vencía todo lo de más
+     de 56 KB, se pedía dos veces y quedaba el respaldo. La cuenta se rehace
+     acá con el disco: si aparece un arte más pesado o suben las paralelas,
+     rojo. */
+  var KBPS_MIN = 180;   // la señal mínima de la _nota de balance.red_floja
+  var pesado = { b: 0, f: "" };
+  require("child_process").execSync("git ls-files assets", { cwd: RAIZ, encoding: "utf8" }).split(/\r?\n/)
+    .filter(function (f) { return /\.(png|webp)$/.test(f) && f.indexOf("_fuente") < 0; })
+    .forEach(function (f) { var b = fs.statSync(path.join(RAIZ, f)).size; if (b > pesado.b) pesado = { b: b, f: f }; });
+  var par = B.red_floja.loader_paralelas;
+  var necesario = pesado.b * 8 * par / KBPS_MIN;     // bits ÷ kbps = ms
+  assert(par >= 1 && par <= 6, "balance.red_floja.loader_paralelas fija cuántos baja a la vez, entre 1 y 6 (" + par + ")");
+  assert(B.red_floja.loader_timeout_ms >= necesario,
+    "SÍNTOMA DE LAS POSES QUE NO LLEGAN: el tope alcanza para " + pesado.f + " (" + pesado.b + " B) con " + par + " a la vez a " + KBPS_MIN + " kbps: " +
+    Math.round(necesario) + " ms necesarios, hay " + B.red_floja.loader_timeout_ms);
+  assert(B.red_floja._nota.indexOf(String(B.red_floja.loader_timeout_ms).replace(/\B(?=(\d{3})+(?!\d))/g, ".")) >= 0 && /paralel/.test(B.red_floja._nota) && /180 kbps/.test(B.red_floja._nota),
+    "la _nota cuenta la cuenta con el paralelismo y el valor que quedó");
   ["intro", "editor", "master", "match"].forEach(function (s) {
     var cod = leer("phaser/scenes/" + s + ".js");
     var pre = cod.slice(cod.indexOf("preload()"), cod.indexOf("preload()") + 900);
     assert(/window\.PampaCarga\.reintentarUnaVez\(this\.load\)/.test(pre), s + ".js: el preload engancha el reintento");
     assert(!/load\.on\("loaderror",\s*\([^)]*\)\s*=>\s*\{\s*(\/\*[^*]*\*\/\s*)?\}\)/.test(cod), s + ".js: no queda un loaderror que se traga el error sin reintentar");
   });
-  console.log("[a] 14 JSON con tope de " + TOPE + " ms (el colgado da su respaldo y se corta) · loader.timeout " + B.red_floja.loader_timeout_ms + " · 4 preload con reintento");
+  console.log("[a] 14 JSON con tope de " + TOPE + " ms (el colgado da su respaldo y se corta) · loader.timeout " + B.red_floja.loader_timeout_ms +
+    " con " + par + " a la vez (necesita " + Math.round(necesario) + " para " + pesado.f.split("/").pop() + " a " + KBPS_MIN + " kbps) · 4 preload con reintento");
 
   /* ---------- [a2] el reintento del loader ---------- */
   var C = require(path.join(RAIZ, "phaser/logic/carga.js"));
@@ -227,6 +257,42 @@ var SW = M.leerSW();
   var rd2 = await evd2.res;
   assert(rd2 && rd2.type === "error", "sin red y sin copia, error de red (el navegador muestra su aviso)");
   console.log("[d] sin red: ./?ref=compartir, index.html?embed=1 y ./ abren el index.html guardado");
+
+  /* ---------- [e] el reintento del loader no baja dos veces lo mismo ---------- */
+  var mundoE = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
+  var We = M.cargar(SW, mundoE);
+  await We.instalar(); await We.activar();
+  var cara = "assets/poses/caras/cara_colorado.png";
+  var crudaCara = fs.readFileSync(path.join(RAIZ, cara));
+  mundoE.red.limpiar();
+  mundoE.red.colgar[cara] = "a_mano";
+  var e1 = We.pedir(cara);
+  await mundoE.reloj.avanzar(B.red_floja.loader_timeout_ms);       // el loader da por vencido el primero…
+  var e2 = We.pedir(cara);                                           // …y lo vuelve a pedir
+  await mundoE.reloj.avanzar(100);
+  assert(mundoE.red.pedidosA(/cara_colorado/).length === 1,
+    "SÍNTOMA DEL DOBLE DE DATOS: con la cara colgada, el reintento del loader se cuelga de la descarga que ya corre (pedidos a la red: " + mundoE.red.pedidosA(/cara_colorado/).length + ")");
+  mundoE.red.colgados.forEach(function (c) { c.soltar(); });
+  var re1 = await M.leerRes(await e1.res), re2 = await M.leerRes(await e2.res);
+  await e1.lista(); await e2.lista();
+  assert(re1.status === 200 && re1.buf.equals(crudaCara) && re2.status === 200 && re2.buf.equals(crudaCara), "cuando llega, los dos pedidos reciben la cara entera");
+  assert(mundoE.caches.claves("pampa-assets").some(function (k) { return k.indexOf(cara + "?h=") === 0; }), "y queda en la caché");
+  /* una descarga en vuelo que FALLA: el que esperaba la pide él */
+  var otra = "assets/poses/caras/cara_melena.png";
+  mundoE.red.limpiar();
+  mundoE.red.colgar[otra] = "a_mano";
+  var e3 = We.pedir(otra);
+  await mundoE.reloj.avanzar(100);
+  var e4 = We.pedir(otra);
+  await mundoE.reloj.avanzar(100);
+  mundoE.red.fallarVeces[otra] = 1;                 // la descarga en vuelo se corta (una vez)
+  mundoE.red.colgados.forEach(function (c) { c.soltar(); });
+  var r3 = "pendiente";
+  try { await e3.res; r3 = "llegó"; } catch (err) { r3 = "error de red"; }
+  var r4 = await M.leerRes(await e4.res); await e4.lista();
+  assert(r3 === "error de red" && r4.status === 200 && r4.bytes === fs.statSync(path.join(RAIZ, otra)).size,
+    "si la descarga en vuelo falla, el pedido que la esperaba la pide de nuevo y llega (" + r3 + " / " + r4.status + ")");
+  console.log("[e] reintento del loader con la cara colgada: 1 pedido a la red, los dos reciben la cara; si la descarga en vuelo falla, el que esperaba la pide");
 
   console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
   process.exit(mal === 0 ? 0 : 1);
