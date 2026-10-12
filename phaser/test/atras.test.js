@@ -25,7 +25,11 @@
          juego de mentira: el escalón se pone con el primer toque (y una vez),
          el editor pide confirmar y el segundo atrás sale, el partido recibe
          su decisión, "Algo se trabó" manda, y volver del Master no cuenta
-         como el primer atrás del editor;
+         como el primer atrás del editor; con el teléfono en vertical no se
+         le manda nada al juego (el editor igual puede salir);
+     [3b] (revisión L04) en vertical, de punta a punta con PampaPausa, el
+         atrás y match.js de verdad: la PAUSA que abrió el giro aguanta
+         los atrás y al volver a horizontal el partido espera SEGUIR;
      [4] el partido (match.js real) cumple cada decisión;
      [5] el Master (master.js real) vuelve a la vista anterior.
 
@@ -200,7 +204,98 @@ function mundo(opts) {
   X.pasar(400);
   X.atras();
   assert(X.hist.backs === 0 && X.aviso.hidden === false, "volver del Master al editor y tocar atrás 0,4 s después pide confirmar, no sale");
-  console.log("[3] escalón con el primer toque · editor: confirmar y salir a los 1,5 s · partido: nunca sale · el error manda");
+
+  /* REVISIÓN L04 · con el teléfono en vertical (PampaPausa.retiene()), lo
+     que es del juego no se manda: el partido, la PAUSA y el Master quedan
+     como están. El editor sí puede salir: el aviso es DOM y se ve arriba
+     del "Girá el celular". */
+  var V = mundo({ escena: "match", estadoAtras: { escena: "match", estado: "PAUSA" } }); V.disparar("pointerup");
+  V.W.PampaPausa = { retiene: function () { return true; } };
+  V.atras(); V.atras(); V.atras();
+  assert(V.emitidos.length === 0, "SÍNTOMA: en vertical, atrás le manda al partido '" + (V.emitidos[0] && V.emitidos[0].d.decision) + "' (cierra la PAUSA sin que se vea)");
+  assert(V.hist.pushes === 4 && V.hist.backs === 0, "en vertical el escalón se repone las tres veces y no sale");
+  var VM = mundo({ escena: "master", estadoAtras: { escena: "master" } }); VM.disparar("pointerup");
+  VM.W.PampaPausa = { retiene: function () { return true; } };
+  VM.atras();
+  assert(VM.emitidos.length === 0, "en vertical el Master tampoco cambia de vista sin que se vea");
+  var VE = mundo(); VE.disparar("pointerup");
+  VE.W.PampaPausa = { retiene: function () { return true; } };
+  VE.atras();
+  assert(VE.aviso.hidden === false && VE.hist.backs === 0, "en vertical, en el editor, el primer atrás muestra el aviso de salir (DOM, arriba del 'Girá')");
+  VE.pasar(800); VE.atras();
+  assert(VE.hist.backs === 1, "y el segundo sale: girar no te encierra en la página");
+  console.log("[3] escalón con el primer toque · editor: confirmar y salir a los 1,5 s · partido: nunca sale · el error manda · en vertical, nada del juego");
+})();
+
+/* ---------- [3b] EN VERTICAL, ATRÁS NO ARRANCA EL PARTIDO (revisión L04) ----------
+   El caso del revisor, de punta a punta y con el código de verdad: la
+   PampaPausa y el atrás de index.html en el mismo contexto, y el partido
+   (match.js real, sobre el partido de mentira) con los oyentes de create()
+   copiados TAL CUAL del archivo. Antes del arreglo: girar a vertical abría
+   la PAUSA, un atrás la cerraba (estado LIBRE, st.modo "juego") y al volver
+   a horizontal el reloj corría sin que nadie tocara SEGUIR. */
+(function () {
+  var bloqueP = null;
+  (INDEX.match(/<script>([\s\S]*?)<\/script>/g) || []).forEach(function (s) { if (/window\.PampaPausa = /.test(s)) bloqueP = s.replace(/^<script>|<\/script>$/g, ""); });
+  assert(!!bloqueP && !!bloque, "index.html tiene los scripts de PampaPausa y del atrás");
+  if (!bloqueP || !bloque) return;
+  var PM = require("./_partido_de_mentira.js");
+  var SRC = PM.leer("phaser/scenes/match.js").replace(/\r\n/g, "\n");
+  var i0 = SRC.indexOf("    const alOcultar = "), fin = 'this.events.once("shutdown", () => this.game.events.off("atras", alAtrasDelTelefono));';
+  var i1 = SRC.indexOf(fin, i0);
+  assert(i0 > 0 && i1 > i0, "create() tiene los oyentes de 'ocultar' y 'atras' juntos");
+  var E = PM.escena(), s = E.s;
+  (new Function(SRC.slice(i0, i1 + fin.length))).call(s);   // los oyentes de verdad, con this = el partido
+  s.st.modo = "juego";
+
+  var T = { t: 1000 }, oy = {}, mqOy = [], docOy = {};
+  var mq = { matches: false, addEventListener: function (ev, f) { mqOy.push(f); } };
+  var hist = { entradas: [null], i: 0, pushes: 0, backs: 0,
+    pushState: function (st) { this.entradas = this.entradas.slice(0, this.i + 1); this.entradas.push(st); this.i++; this.pushes++; },
+    back: function () { this.backs++; } };
+  Object.defineProperty(hist, "state", { get: function () { return hist.entradas[hist.i]; } });
+  var juego = { pausado: false, registry: s.game.registry, events: s.game.events,
+    scene: { getScenes: function () { return [s]; } },
+    pause: function () { this.pausado = true; }, resume: function () { this.pausado = false; } };
+  var W = { PampaAtras: AT, PAMPA_GAME: juego, matchMedia: function () { return mq; },
+    performance: { now: function () { return T.t; } },
+    addEventListener: function (ev, f) { (oy[ev] = oy[ev] || []).push(f); },
+    PampaSFX: { pausarMusica: function () { }, reanudarMusica: function () { } } };
+  var aviso = { hidden: true, textContent: "" };
+  var ctx = { window: W, history: hist, Date: Date,
+    document: { hidden: false, addEventListener: function (ev, f) { (docOy[ev] = docOy[ev] || []).push(f); },
+      getElementById: function (id) { return id === "atras-aviso" ? aviso : null; } },
+    setTimeout: function () { return 0; }, clearTimeout: function () { } };
+  vm.createContext(ctx);
+  vm.runInContext(bloqueP, ctx);
+  vm.runInContext(bloque, ctx);
+  function girar(vertical) { mq.matches = vertical; mqOy.forEach(function (f) { f(); }); }
+  function atras() { if (hist.i > 0) hist.i--; (oy.popstate || []).forEach(function (f) { f({ state: hist.state }); }); }
+  (oy.pointerup || []).forEach(function (f) { f({}); });       // el primer toque pone el escalón
+
+  girar(true);
+  assert(s.estado === "PAUSA" && juego.pausado, "control: girar a vertical abre la PAUSA y pausa el juego (" + s.estado + ")");
+  var uiAntes = E.ui.length;
+  atras();
+  assert(s.estado === "PAUSA" && s.st.modo === "congelado", "SÍNTOMA: un atrás en vertical cerró la PAUSA sin que se viera (" + s.estado + ", " + s.st.modo + ")");
+  atras(); atras();
+  assert(s.estado === "PAUSA", "tres atrás seguidos en vertical tampoco (" + s.estado + ")");
+  assert(E.ui.slice(uiAntes).indexOf("cerrar") < 0, "y no suena el 'cerrar' de una cruz que no se ve (" + E.ui.slice(uiAntes).join(",") + ")");
+  assert(hist.backs === 0, "ni sale de la página");
+
+  girar(false);
+  assert(!juego.pausado, "control: a horizontal el juego se reanuda");
+  assert(s.estado === "PAUSA" && s.st.modo === "congelado", "SÍNTOMA: al volver a horizontal el partido arrancó solo (" + s.estado + ")");
+  /* los cuadros, solo si la PAUSA aguantó: en LIBRE el partido de mentira
+     no tiene con qué dibujar una jugada (el síntoma ya quedó dicho arriba) */
+  if (s.estado === "PAUSA") {
+    var min = s.st.minuto;
+    for (var k = 0; k < 20; k++) s.update(k * 300, 300);
+    assert(s.st.minuto === min, "y 20 cuadros después el minuto sigue quieto: espera SEGUIR (" + min + " → " + s.st.minuto + ")");
+  }
+  atras();
+  assert(s.estado === "LIBRE", "control: en horizontal, atrás con la PAUSA a la vista es SEGUIR (" + s.estado + ")");
+  console.log("[3b] vertical: la PAUSA aguanta 3 atrás · horizontal: el partido espera SEGUIR, y ahí atrás sigue");
 })();
 
 /* ---------- [4] EL PARTIDO CUMPLE ---------- */

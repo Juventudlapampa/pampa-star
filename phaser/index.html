@@ -702,9 +702,9 @@
      Lo que estaba mal, medido: popstate, pushState, beforeunload y pagehide
      daban 0 resultados en phaser/ (grep). En el teléfono el gesto atrás
      (deslizar desde el borde, que en horizontal queda bajo los pulgares) o
-     la tecla atrás salía de la página: abierto desde un link en un mensaje, en una
-     pestaña sin historial, la cerraba; instalado, cerraba la app. Y el
-     partido en curso se perdía entero.
+     la tecla atrás salía de la página: abierto desde un link en un
+     mensaje, en una pestaña sin historial, la cerraba; instalado, cerraba
+     la app. Y el partido en curso se perdía entero.
 
      Ahora el juego deja UN escalón propio en el historial ({pampa:1}). El
      gesto lo consume (popstate), se vuelve a poner, y logic/atras.js decide
@@ -713,8 +713,8 @@
      otra vez para salir" y el segundo atrás dentro de la ventana sale de
      verdad (no se repone el escalón y se hace history.back()).
 
-     EL ESCALÓN SE PONE CON EL PRIMER TOQUE, no al cargar: el navegador marca como
-     salteable la entrada que una página agrega sin que nadie la haya tocado
+     EL ESCALÓN SE PONE CON EL PRIMER TOQUE, no al cargar: el navegador marca
+     como salteable la entrada que una página agrega sin que nadie la haya tocado
      (la intervención contra el secuestro del botón atrás), y el gesto se la
      saltearía saliendo igual. El primer toque llega siempre: es la compuerta
      "TOCÁ PARA EMPEZAR". Después de recargar, el escalón ya está (el estado
@@ -722,6 +722,16 @@
 
      Con "Algo se trabó" a la vista, atrás no hace nada: el aviso tiene sus
      botones y es lo que hay que leer.
+
+     CON EL TELÉFONO EN VERTICAL (PampaPausa.retiene()), lo del juego
+     tampoco: el lienzo está escondido, el juego en game.pause() y el
+     partido con su PAUSA abierta por "ocultar". Medido en la revisión del
+     lote: un atrás ahí decidía "cerrar_menu", el partido cerraba la PAUSA
+     sin que se viera (y sonaba el "cerrar"), y al volver a horizontal el
+     reloj corría solo, sin que nadie tocara SEGUIR; con un número impar de
+     atrás pasaba siempre. Pasa solo lo que no toca el juego: el "Tocá ATRÁS
+     otra vez para salir" y la salida del editor y la intro, porque ese
+     aviso es DOM y se ve arriba del "Girá el celular".
      ═══════════════════════════════════════════════════════════════════════ */
   (function () {
     "use strict";
@@ -777,11 +787,14 @@
       if (R && R.tipo) { escalon(); return "nada"; }
       var info = AT.describir(), v = ventana();
       var d = A ? A.decidir(info, ahora() - AT.ultimoConfirmar, { ventana: v }) : "confirmar_salida";
+      /* en vertical, lo que es del juego no se manda (ver arriba) */
+      var P = window.PampaPausa;
+      if (d !== "salir" && d !== "confirmar_salida" && P && P.retiene && P.retiene()) { escalon(); return "nada"; }
       if (d === "salir") {
         /* no se repone: el escalón ya se consumió y estamos en la entrada
            de la página. back() va a lo que había antes; si no había nada
-           (una pestaña abierta desde un link en un mensaje), el próximo atrás es el del
-           sistema. Un toque nuevo vuelve a poner el escalón. */
+           (una pestaña abierta desde un link en un mensaje), el próximo
+           atrás es el del sistema. Un toque nuevo vuelve a poner el escalón. */
         AT.armado = false;
         AT.ultimoConfirmar = -Infinity;
         AT.ocultar();
