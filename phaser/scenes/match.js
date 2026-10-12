@@ -141,6 +141,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null;
     this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
+    this._respiroHasta = 0;                                  // oct 2026: el respiro de los golpes cortos, por partido
     this._cineSkip = null; this._cineSaltado = false; this._cineTimer = null;   // V7 §1: skip del cine de 5 planos
     this._colorMapaMio = null;                               // V7 fix: el tono del mapa se recalcula por partido
     this._pulsoAcum = 0; this._pulsoMovioHasta = 0;          // V8 §1: el acumulador del latido, limpio por partido
@@ -2813,10 +2814,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       penalizaciones: prep.penalizaciones
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
-    snd && snd.kick();
     const gol = res.outcome === "gol";
     const atajo = res.outcome === "atajada" || res.outcome === "corner";
-    const d = this.desenlaceRemate(res);
+    /* oct 2026: la patada y el desenlace sonaban acá, al DECIDIR — en el
+       cuadro 0, antes de que entrara la escena —, y el desenlace después
+       otra vez al revelar. Ahora se toca el estado y lo que se siente espera. */
+    const d = this.desenlaceRemate(res, { diferir: this.hayEscenas() });
     const NOM = { cabezazo: "CABEZAZO", volea: "VOLEA", chilena: "CHILENA" };
     const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
     if (this.hayEscenas()) {
@@ -2837,15 +2840,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         titulo: gol ? "¡GOOOL DE " + NOM[id] + "!" : d.titulo,
         sub: gol ? (id === "chilena" ? "el momento más épico del potrero · " + fb : fb) : d.sub + " · " + fb,
         color: d.color,
-        sfx: gol ? "goal" : (atajo ? "gloves" : "afuera"),
-        hinchada: gol,
+        /* el contacto en la revelación; lo que pasó, un instante después */
+        sfx: "kick", alRevelar: () => d.sentir(),
         alFinal: () => {
-          if (gol) this.efectoGol(false);
           this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
         }
       });
       return;
     }
+    snd && snd.kick();
     this.mostrarResolucion((gol ? "¡GOOOL DE " + NOM[id] + "!" : d.titulo) + "\n" + fb,
       "#" + d.color.toString(16).padStart(6, "0"), { anim: id === "cabezazo" ? "cabezazo" : "volea", gana: gol });
   }
@@ -2934,6 +2937,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
   }
   salirCine() {
+    this.respirar();
     this.viajeState = null;
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
     this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
@@ -3203,10 +3207,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         ball.setPosition(gx + (this.zona.gy || 0) * 1.2, targetY);
         this.uiCam.shake(EP.shake_ms, EP.shake_intensidad);
         this.uiCam.flash(EP.flash_ms, 255, 255, 210);
-        this.SFX && this.SFX.net(); this.time.delayedCall(EP.fanfarria_delay_ms, () => this.SFX && this.SFX.goal());
         this.burst(ball.x, ball.y);
         this.punch(this._megaGrito || "¡GOOOL!", "¡La clavaste donde el viento no la saca!", 0xffd84d);
-        this.golPropio();   // V9: la fiesta completa (tribuna + efecto + saque relatado)
+        /* V9: la fiesta completa (tribuna + efecto + saque relatado). Acá
+           decidir y ver son el mismo instante: anota y festeja junto. La red
+           y la fanfarria son SUYAS; antes sonaban acá también, y el gol del
+           cine tenía dos redes y dos fanfarrias. */
+        const hastaLaExplosion = this.golPropio() || 0;
+        /* la escena se queda abierta hasta ver la explosión y un respiro:
+           antes se cerraba 600 ms después del impacto, con la fanfarria
+           todavía sonando sobre la cancha */
+        this.time.delayedCall(hastaLaExplosion + this.msV(C.desenlace_hold_ms), () => this.salirCine());
       });
     } else if (res.outcome === "atajada" || res.outcome === "corner") {
       /* G1: los dos son "el arquero llegó", pero terminan distinto — la que
@@ -3241,8 +3252,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.punch(d.titulo, d.sub, d.color);
       });
     }
-    /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */
-    this.time.delayedCall(C.impacto_gol_ms + silencio + this.msV(C.desenlace_hold_ms), () => this.salirCine());
+    /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda).
+       El gol programa su propia salida: espera a la explosión del festejo. */
+    if (res.outcome !== "gol") this.time.delayedCall(C.impacto_gol_ms + silencio + this.msV(C.desenlace_hold_ms), () => this.salirCine());
   }
   /* BLOQUE A · ¿esta acción merece cortar a viñeta?
      Devuelve true si el escalón es 2 o 3. El contexto que sube de escalón sale
@@ -3271,37 +3283,58 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        afuera   → saque del arquero, la perdés
      Devuelve {titulo, sub, color, gana} para que cada escena lo cuente como
      quiera, sin volver a decidir nada.                                     */
-  desenlaceRemate(res) {
+  /* ══════════════════════════════════════════════════════════════════════
+     LA VERDAD AHORA, LO QUE SE SIENTE CUANDO SE VE (oct 2026).
+
+     Esta función hacía las dos cosas juntas: tocaba el estado (córner, saque,
+     gol) y en el mismo instante congelaba la pantalla y hacía sonar los
+     guantes, el afuera o la fiesta del gol. Dos de los caminos —el remate
+     aéreo y el simple— la llaman cuando el juego DECIDE, antes de abrir la
+     escena: los guantes y el hitstop caían en el cuadro 0, con la escena
+     recién entrando, y la escena después los volvía a hacer sonar al revelar.
+
+     Ahora, con { diferir: true }, el estado se toca igual (la doctrina: la
+     verdad una vez y antes de dibujar) pero lo sensorial queda en d.sentir(),
+     que la escena llama en el instante en que se VE el desenlace. Sin
+     diferir —el desenlace del cine, que ya llama en el impacto— siente en el
+     momento, como siempre. */
+  desenlaceRemate(res, opts) {
     const st = this.st, P = window.PampaPartido;
-    /* B1 · HITSTOP. El instante del impacto se congela y después arranca de
-       golpe. La fuerza depende de qué pasó: el gol es el más largo, la atajada
-       y el córner son impactos fuertes, el afuera ni toca a nadie. */
-    const FE = window.PampaFeel;
-    if (FE) {
-      if (res.outcome === "gol") FE.hitstop(this, "gol", 3);
-      else if (res.outcome === "atajada" || res.outcome === "corner") FE.hitstop(this, "fuerte", this._escalonActual || 2);
-    }
+    opts = opts || {};
+    let d;
     if (res.outcome === "gol") {
-      this.golPropio();
-      return { titulo: "¡GOOOL!", sub: "¡La clavaste donde el viento no la saca!", color: 0xffd84d, gana: true };
-    }
-    if (res.outcome === "corner") {
+      this.anotarGolPropio();
+      d = { titulo: "¡GOOOL!", sub: "¡La clavaste donde el viento no la saca!", color: 0xffd84d, gana: true };
+    } else if (res.outcome === "corner") {
       const c = P.cornerMio(st);
-      this.SFX && this.SFX.gloves();
-      return { titulo: "¡LA SACÓ AL CÓRNER!", sub: "No la pudo agarrar: la mandó afuera. Sigue siendo tuya.",
+      d = { titulo: "¡LA SACÓ AL CÓRNER!", sub: "No la pudo agarrar: la mandó afuera. Sigue siendo tuya.",
         color: 0x7ee08a, gana: false, corner: true, arriba: c.arriba };
-    }
-    if (res.outcome === "atajada") {
+    } else if (res.outcome === "atajada") {
       /* A4 · la tiene el arquero rival, en SU área — no un defensor cualquiera
          cerca del medio, que es lo que hacía la vieja tiroFallado */
       P.saqueArquero(st, "atajada");
-      this.SFX && this.SFX.gloves();
-      return { titulo: "¡LA AGARRÓ!", sub: "El arquero la abrazó. Saca él desde el fondo.", color: 0x5bb8e8, gana: false, saque: true };
+      d = { titulo: "¡LA AGARRÓ!", sub: "El arquero la abrazó. Saca él desde el fondo.", color: 0x5bb8e8, gana: false, saque: true };
+    } else {
+      /* A4 · se fue: saque de arco, que es lo que pasa de verdad */
+      P.saqueArquero(st, "afuera");
+      d = { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
     }
-    /* A4 · se fue: saque de arco, que es lo que pasa de verdad */
-    P.saqueArquero(st, "afuera");
-    this.SFX && this.SFX.afuera();
-    return { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
+    let sentido = false;
+    d.sentir = (o) => {
+      if (sentido) return 0; sentido = true;
+      /* B1 · HITSTOP. El instante del impacto se congela y después arranca de
+         golpe. La fuerza depende de qué pasó: el gol es el más largo (lo pone
+         su festejo), la atajada y el córner son impactos fuertes, el afuera ni
+         toca a nadie. */
+      const FE = window.PampaFeel;
+      if (res.outcome === "gol") return this.festejarGolPropio(o);
+      if (FE && (res.outcome === "atajada" || res.outcome === "corner")) FE.hitstop(this, "fuerte", this._escalonActual || 2);
+      if (res.outcome === "afuera") this.SFX && this.SFX.afuera();
+      else this.SFX && this.SFX.gloves();
+      return 0;
+    };
+    if (!opts.diferir) d.sentir(opts.festejo);
+    return d;
   }
   /* ══════════════════════════════════════════════════════════════════════
      PASADA DE COHERENCIA · EL CARTEL NO LE TAPA LA CARA A LA FIGURA.
@@ -3421,7 +3454,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       penalizaciones: prep.penalizaciones
     });
     const snd = this.FLAGS.e6_cine ? this.SFX : null;
-    snd && snd.kick();
     /* ANIME B (P1): el tiro se VE — viñeta pateador vs arquero rival, con las
        siluetas de cuántos tenés en el camino. La verdad ya está decidida. */
     if (this.hayEscenas()) {
@@ -3430,7 +3462,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const enCamino = this.rivalesEnElCamino(tirador);
       const gol = res.outcome === "gol";
       const atajo = res.outcome === "atajada" || res.outcome === "corner";
-      const d = this.desenlaceRemate(res);   // la verdad UNA vez; la escena la cuenta
+      /* la verdad UNA vez; lo que se siente, cuando la escena lo muestra */
+      const d = this.desenlaceRemate(res, { diferir: true });
       const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
       this.escenaCine({
         etiqueta: "· el remate ·", accion: "remate",
@@ -3443,15 +3476,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         titulo: gol && mega ? mega.grito : d.titulo,
         sub: gol ? fb : d.sub + " · " + fb,
         color: d.color,
-        sfx: gol ? "goal" : (atajo ? "gloves" : "afuera"),
-        hinchada: gol,
+        /* el contacto en la revelación, y lo que pasó un instante después:
+           antes la patada sonaba al decidir (cuadro 0, sin escena) y el
+           desenlace se oía dos veces (al decidir y al revelar) */
+        sfx: "kick", alRevelar: () => d.sentir(),
         alFinal: () => {
-          if (gol) this.efectoGol(false);
           this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
         }
       });
       return;
     }
+    snd && snd.kick();
     /* Feel B8: SILENCIO de medio segundo antes de REVELAR el desenlace del tiro */
     this.estado = "RESOLUCION";
     this.limpiarMenu();
@@ -3555,7 +3590,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       titulo: j.esVos ? "¡LE PEGÁS!" : "¡LE PEGA " + (j.nombre || "").toUpperCase() + "!",
       sub: auto.lectura.dist < 220 ? "de frente al arco, sin pensarlo" : (nDefs ? "entre " + nDefs + " y desde lejos" : "desde afuera del área"),
       alFinal: () => {
-        this.SFX && this.SFX.kick();
+        /* oct 2026: acá sonaba una SEGUNDA patada, 700 ms después de la de
+           la revelación y con la pelota ya en viaje */
         this.entrarCine();
         this.planoViaje();   // LA INTRIGA: la pelota viaja y no sabés si entra
       }
@@ -3591,12 +3627,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         prota: { j: j, esRival: false, anim: "tiro" },
         pose: "remate", especial: true,
         siluetas: enCamino > 0 ? enCamino : null,
-        gana: true, sfx: "kick",
+        /* oct 2026: esta viñeta es la CARGA; el contacto es el plano del pie,
+           que es el único que suena a patada. Antes sonaban tres: acá, en el
+           alFinal y en planoPie */
+        gana: true, sfx: null,
         titulo: "¡" + String(mega.n || "SÚPER TIRO").toUpperCase() + "!",
         sub: (mega.sub || "junta todo lo que le queda") + " · " + (ej.lecturaTexto || ""),
         color: 0xffd84d,
         alFinal: () => {
-          this.SFX && this.SFX.kick();
           this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
           this.entrarCine();
           this.planoPie();     // y de acá sale el viaje, el arquero y el desenlace
@@ -3604,10 +3642,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       });
       return;
     }
-    this.SFX && this.SFX.kick();
     this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
     this.entrarCine();
-    this.planoPie();
+    this.planoPie();     // la patada suena en el plano del pie
   }
 
   /* ============ ANIME v4 Bloque B · LA CAPA CINEMÁTICA ============
@@ -3675,7 +3712,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     } else {
       P.perderPelota(st);
     }
-    this.SFX && this.SFX.gloves && this.SFX.gloves();
+    /* oct 2026: los guantes sonaban acá, en el cuadro 0 y encima de la
+       patada, y otra vez en la revelación de la escena. Suenan una vez: en
+       la revelación, o en el cartel si no hay escena. */
     const volver = () => {
       /* cada desenlace tiene su frase: las cinco situaciones nuevas se
          agregaron a data/relatos.json. Pedirle al relator una situación que
@@ -3686,6 +3725,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     if (!this.hayEscenas() || !defensor) {
       /* sin escenas (flags apagados) sigue habiendo cartel: nunca silencio */
+      this.SFX && this.SFX.gloves && this.SFX.gloves();
       this.mostrarResolucion((cfg.titulo || "¡BLOQUEADO!") + "\n" + sub, "#e3503e",
         { anim: "bloqueo", gana: false });
       volver();
@@ -3983,11 +4023,27 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
       if (cfg.hinchada) this.tribunaSaltando();   // V6 P5: la tribuna SALTA en el gol
       this.punch(cfg.titulo, cfg.sub || "", cfg.color != null ? cfg.color : (cfg.gana ? 0xffd84d : 0xe3503e));
-      if (snd) {
-        if (cfg.sfx === "goal") { snd.net(); this.time.delayedCall(90, () => snd.goal()); }
-        else if (cfg.sfx && snd[cfg.sfx]) snd[cfg.sfx]();
-      }
+      /* oct 2026: la red y la fanfarria de un gol NO se tocan acá (era la
+         segunda de las tres fanfarrias del cabezazo). Un remate que termina
+         en gol pasa sfx "kick" —el contacto— y alRevelar, que es el festejo. */
+      if (snd && cfg.sfx && snd[cfg.sfx]) snd[cfg.sfx]();
       this.uiCam.shake(200, cfg.gana ? 0.008 : 0.005);
+      /* LO QUE PASÓ, un instante DESPUÉS del contacto: pum… ¡red! (o guantes,
+         o afuera). Si es un gol, devuelve cuánto falta para la explosión y la
+         viñeta se queda abierta hasta verla. */
+      let extra = 0;
+      if (cfg.alRevelar) {
+        const ms = cfg.alRevelarMs != null ? cfg.alRevelarMs : 140;
+        extra = ms;
+        this.time.delayedCall(ms, () => { const hasta = cfg.alRevelar() || 0; if (hasta) esc.hastaExplosion = hasta; });
+      }
+      /* el cierre se cuenta DESDE la revelación (antes era un reloj fijo desde
+         que abría la escena: con el skip o con un gol, cerraba encima de la
+         fiesta). Un gol se queda 900 ms después de la explosión. */
+      this.time.delayedCall(extra + this.msV(F.hold_ms || 1150), () => {
+        if (esc.hastaExplosion) this.time.delayedCall(Math.max(0, esc.hastaExplosion + 900 - this.msV(F.hold_ms || 1150)), cerrarYa);
+        else cerrarYa();
+      });
     };
     const cerrarYa = () => {
       if (esc.cerrado) return; esc.cerrado = true;
@@ -4004,7 +4060,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.musicaDuck(silencio);   // ANIME D: la música CALLA en el silencio pre-desenlace
     });
     this.time.delayedCall(tPose + silencio, revelar);
-    this.time.delayedCall(tPose + silencio + this.msV(F.hold_ms || 1150), cerrarYa);
   }
   cerrarEscena(alFinal) {
     /* V6 §3.1: CORTE SECO entre viñetas — negro un instante y de vuelta al
@@ -4012,6 +4067,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
     this.limpiarContenido();
     this.cineBlack.setAlpha(1);   // un instante de NEGRO (la canaleta entre viñetas)
+    this.respirar();
     this.time.delayedCall(70, () => {
       this.cineBlack.setAlpha(0);
       this.cineLayer.setVisible(false);
@@ -4219,7 +4275,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     e.explode(26);
     this.time.delayedCall(900, () => e.destroy());
     this.cameras.main.shake(240, 0.011);
-    this.SFX && this.SFX.net();
+    /* oct 2026: la RED ya no suena acá. Esto es la explosión, que llega
+       después del silencio; la red es el impacto y la toca quien muestra la
+       pelota entrando (festejarGolPropio, el gol rival de escenas_v9). Cuando
+       sonaba en los dos lados, cada gol tenía dos redes. */
     /* Feel B8: explosión de HINCHADA en el gol (y rumor apagado en el gol en contra) */
     this.SFX && this.SFX.crowd && this.SFX.crowd(enContra ? 600 : 1600);
     this.time.delayedCall(90, () => this.SFX && (enContra ? (this.SFX.golEnContra && this.SFX.golEnContra()) : this.SFX.goal()));
@@ -4955,6 +5014,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* el corte de plano: la pelota cambió de dueño → pan breve + follow al nuevo portador (doc §2).
      El destino del pan se actualiza cada frame al portador VIVO: si se mueve
      durante los 300ms, la cámara llega a donde está (sin salto seco al enganchar el follow). */
+  /* ══════════════════════════════════════════════════════════════════════
+     EL RESPIRO DE LOS GOLPES CORTOS (oct 2026).
+
+     Las tres notas de posesión y las del cruce de campo sonaban en el cuadro
+     en que el partido volvía de una escena: después de cada gol, encima de
+     la fanfarria que todavía sonaba, entraban las tres notas que bajan ("la
+     tiene el rival", porque después del gol saca él). Medido con el oído de
+     prueba: 80 ms después de cerrar la escena del gol.
+
+     Al volver de una escena hay un respiro: lo que pasó adentro ya se contó
+     y no hace falta que un golpe corto lo repita. */
+  golpeCorto(nombre, arg) {
+    if (this.time.now < (this._respiroHasta || 0)) return false;
+    const S = this.SFX;
+    if (!S || typeof S[nombre] !== "function") return false;
+    S[nombre](arg);
+    return true;
+  }
+  respirar(ms) { this._respiroHasta = Math.max(this._respiroHasta || 0, this.time.now + (ms != null ? ms : 1500)); }
   seguirPortador() {
     const p = this.portadorActual();
     if (p.clave === this._portadorClave) return;
@@ -4966,7 +5044,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const lado7 = p.esRival ? "rival" : "mia";
         if (lado7 !== this._ladoTema) {
           this._ladoTema = lado7;
-          this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado7);
+          this.golpeCorto("temaPosesion", lado7);
           /* M2 · el tema del partido NO cambia por posesión: sería un corte de
              pista cada tres segundos. Lo que cambia con la posesión es el
              GOLPE corto (temaPosesion), que es efecto y no música. */
@@ -4985,7 +5063,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const lado = p.esRival ? "rival" : "mia";
       if (lado !== this._ladoTema) {
         this._ladoTema = lado;
-        this.SFX && this.SFX.temaPosesion && this.SFX.temaPosesion(lado);
+        this.golpeCorto("temaPosesion", lado);
         /* M2 · idem: el loop ya no cambia con la posesión (ver arriba) */
       }
     }
@@ -5197,7 +5275,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const zona = st.mios[st.ctrl].x > st.W / 2 ? "rival" : "propio";
       if (zona !== this._zonaTema) {
         this._zonaTema = zona;
-        this.SFX && this.SFX.temaCampo && this.SFX.temaCampo(zona);
+        this.golpeCorto("temaCampo", zona);
         /* M2 · musicaZona hacía crecer el motivo DEL SINTETIZADOR al cruzar de
          campo. Con archivos no hay motivo que crecer: lo que queda es el golpe
          corto de temaCampo, que es efecto. */

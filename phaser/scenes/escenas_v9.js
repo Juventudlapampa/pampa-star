@@ -236,9 +236,65 @@
     /* `quien` es opcional: por defecto la metio el que controlas, que es lo
        que pasa en las cuatro vias de gol. La COMBINADA la define un compañero y
        ahi el que llame pasa el suyo. */
-    golPropio(quien) {
+    /* ══════════════════════════════════════════════════════════════════
+       LA PARTITURA DEL GOL (oct 2026, "está desincronizado cuándo festeja
+       goles"). golPropio hacía DOS cosas en el mismo instante: anotar el gol
+       (la verdad) y festejarlo (lo que se ve y se oye). Y la mitad de los
+       caminos lo llamaba cuando el juego DECIDE el remate, antes de que la
+       escena lo muestre. Medido con un oído de prueba en un cabezazo:
+         0 ms     se decide → hitstop y destello encima de la escena que entra
+         683 ms   la red y la fanfarria… con el jugador todavía entrando
+         1217 ms  la revelación: la red y la fanfarria OTRA VEZ
+         1917 ms  al cerrar la escena: la red y la fanfarria por TERCERA vez
+       Te enterabas del gol por el sonido, antes de verlo, y tres veces.
+
+       Ahora son dos piezas:
+         anotarGolPropio()    la verdad, UNA vez, cuando se decide
+         festejarGolPropio()  la fiesta, UNA vez, cuando se VE la pelota entrar
+       y golPropio() = las dos juntas, para los caminos donde decidir y ver
+       son el mismo instante (el desenlace del cine).
+       La red suena en el impacto; la fanfarria y la hinchada, al estallar
+       después del silencio. Nadie más toca la red ni la fanfarria de un gol.
+       ══════════════════════════════════════════════════════════════════ */
+    golPropio(quien, opts) {
+      this.anotarGolPropio(quien);
+      return this.festejarGolPropio(opts);
+    },
+    anotarGolPropio(quien) {
+      window.PampaPartido.golMio(this.st, quien);
+    },
+    /* opts.alEstallar: lo que la escena quiera sumar a la explosión (el
+       cartel, el festejo ilustrado). Devuelve los ms hasta la explosión, para
+       que la escena se quede abierta lo suficiente para verla. */
+    festejarGolPropio(opts) {
       var self = this, st = this.st;
-      window.PampaPartido.golMio(st, quien);
+      opts = opts || {};
+      /* el saque del arquero, cuando el partido vuelve a correr: antes iba a
+         un tiempo fijo y, si la escena seguía abierta, el plano profundo se
+         armaba debajo de ella sin que nadie lo viera */
+      var alSaque = function () {
+        var n = 0;
+        var probar = function () {
+          if (self.estado !== "LIBRE" && n++ < 30) { self.time.delayedCall(200, probar); return; }
+          self.relatar("saque_gol");
+          /* B2 · DISPARADOR 4 · EL SAQUE DEL ARQUERO. Despues del gol la pelota
+             vuelve al centro desde el fondo: es el otro momento en que la
+             cancha se mira a lo largo. */
+          self.quizasProfundo && self.quizasProfundo("saque", {}, { rival: false });
+        };
+        self.time.delayedCall(self.msV(1600), probar);
+      };
+      /* EL IMPACTO: la red, en el mismo cuadro en que la pelota la toca */
+      this.SFX && this.SFX.net && this.SFX.net();
+      var FE = window.PampaFeel;
+      if (!FE) {
+        if (this.efectoGol) this.efectoGol(false);
+        if (this.cineLayer && this.cineLayer.visible && this.tribunaSaltando) this.tribunaSaltando();
+        if (this.hinchadaEstalla) this.hinchadaEstalla(1);
+        if (opts.alEstallar) opts.alEstallar();
+        alSaque();
+        return 0;
+      }
       /* ── B5 · EL GOL COMO PICO ────────────────────────────────────────
          Era el momento más importante del juego y compartía tratamiento con
          todo lo demás: efecto, tribuna y relator disparaban los tres a la vez,
@@ -253,39 +309,33 @@
 
          B4 (segunda acción): la tribuna no salta en el mismo cuadro que el
          efecto de cámara, entra unos milisegundos después. */
-      var FE = window.PampaFeel;
-      if (!FE) {
-        if (this.efectoGol) this.efectoGol(false);
-        if (this.cineLayer && this.cineLayer.visible && this.tribunaSaltando) this.tribunaSaltando();
-        if (this.hinchadaEstalla) this.hinchadaEstalla(1);
-        this.time.delayedCall(this.msV(1600), function () { self.relatar("saque_gol");
-          /* B2 · DISPARADOR 4 · EL SAQUE DEL ARQUERO. Despues del gol la pelota
-             vuelve al centro desde el fondo: es el otro momento en que la
-             cancha se mira a lo largo. */
-          self.quizasProfundo && self.quizasProfundo("saque", {}, { rival: false }); });
-        return;
-      }
       var j = st.mios[st.ctrl];
-      FE.golPico(this, {
-        silueta: (this.texturaEscena && j) ? this.texturaEscena(j, false, "festejo", 0) : null,
-        escala: 2.4,
+      var sil = (this.texturaEscena && j) ? this.texturaEscena(j, false, "festejo", 0) : null;
+      /* LA SILUETA DEL CUADRO DE IMPACTO ENTRA ENTERA. La escala 2,4 era del
+         muñequito de 34x50: con la ilustración del festejo (853 px de alto)
+         daba 2.000 px y en pantalla quedaba un pedazo de short y camiseta en
+         negro (visto en la captura del cabezazo, oct 2026). Es la misma familia
+         que el arquero de 2.923 px de A5. Se escala por ALTO de pantalla. */
+      var srcSil = sil && this.textures.exists(sil) ? this.textures.get(sil).getSourceImage() : null;
+      var escSil = srcSil && srcSil.height ? Math.min(2.4, 430 / srcSil.height) : 2.4;
+      return FE.golPico(this, {
+        silueta: sil,
+        escala: escSil,
         alSilencio: function () {
           /* durante el silencio solo se mueve la red: nada de música ni cartel */
           if (self.musicaDuck) self.musicaDuck(((self.BAL.feel && self.BAL.feel.silencio_ms) || 500) + 200);
           if (self.redSprite) FE.redSacudida(self, self.redSprite);
         },
         alEstallar: function () {
+          /* LA EXPLOSIÓN: fanfarria + hinchada (efectoGol ya no toca la red) */
           if (self.efectoGol) self.efectoGol(false);
+          if (opts.alEstallar) opts.alEstallar();
           /* B4: lo blando llega después que el cuerpo */
           FE.segunda(self, function () {
             if (self.cineLayer && self.cineLayer.visible && self.tribunaSaltando) self.tribunaSaltando();
             if (self.hinchadaEstalla) self.hinchadaEstalla(1);
           });
-          self.time.delayedCall(self.msV(1600), function () { self.relatar("saque_gol");
-          /* B2 · DISPARADOR 4 · EL SAQUE DEL ARQUERO. Despues del gol la pelota
-             vuelve al centro desde el fondo: es el otro momento en que la
-             cancha se mira a lo largo. */
-          self.quizasProfundo && self.quizasProfundo("saque", {}, { rival: false }); });
+          alSaque();
         }
       });
     },

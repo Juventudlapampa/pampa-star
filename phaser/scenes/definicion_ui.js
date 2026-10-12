@@ -554,7 +554,9 @@
         tiro: this.BAL.tiro });
       var gol = res.outcome === "gol";
       if (bloqueado) P.tiroFallado(st);
-      else if (gol) this.golPropio();
+      /* la verdad ahora; la fiesta, en la revelación (antes festejaba acá,
+         con la pelota todavía volando, y la revelación lo repetía) */
+      else if (gol) this.anotarGolPropio();
       else if (res.outcome === "corner") P.cornerMio(st);
       else P.tiroFallado(st);
       this.defTeatroFinal({
@@ -735,18 +737,22 @@
       this.uiCam.flash(110, 255, 255, 255);
       this.uiCam.shake(240, 0.01);
       var esFiesta = (o.ofensiva && o.gol) || (!o.ofensiva && !o.gol);
+      /* el gol tuyo: el festejo de siempre (red ya, fanfarria y tribuna al
+         estallar), una sola vez */
+      var hastaExplosion = (o.ofensiva && o.gol) ? (this.festejarGolPropio() || 0) : 0;
       if (snd) {
-        if (o.ofensiva && o.gol) { snd.net(); this.time.delayedCall(90, function () { snd.goal(); }); }
+        if (o.ofensiva && o.gol) { /* lo suena festejarGolPropio */ }
         else if (!o.ofensiva && o.gol) snd.golEnContra && snd.golEnContra();
         else { snd.gloves(); if (!o.ofensiva) { snd.crowd && snd.crowd(1400); this.time.delayedCall(120, function () { snd.goal(); }); } }   // la atajada SE GRITA
       }
-      if (esFiesta) { this.burst(W * 0.5, H * 0.4); this.tribunaSaltando(); }   // V6 P5: la tribuna salta
+      if (esFiesta) { this.burst(W * 0.5, H * 0.4); if (!hastaExplosion) this.tribunaSaltando(); }   // V6 P5: la tribuna salta (la del gol, al estallar)
       this.relatar(o.ofensiva ? (o.gol ? "gol" : (o.bloqueado || o.res.outcome === "atajada" ? "atajada" : "afuera")) : (o.gol ? "gol_rival" : "arquero_mio"));
-      this.time.delayedCall(this.msV(1250), function () { self.salirDefinicion(); });
+      this.time.delayedCall(Math.max(this.msV(1250), hastaExplosion + 900), function () { self.salirDefinicion(); });
     },
 
     salirDefinicion(alFinal, sinRestaurarEstado) {
       this._def = null;
+      if (this.respirar) this.respirar();   // oct 2026: sin golpes cortos encima del festejo
       this.limpiarContenido();
       this.cineLayer.setVisible(false);
       this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);

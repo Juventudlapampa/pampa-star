@@ -62,6 +62,7 @@
     jugadonCerrar(alFinal) {
       var self = this;
       this.jugadonLimpiarBotones();   // a11y: los listeners de teclado mueren acá
+      if (this.respirar) this.respirar();   // oct 2026: sin golpes cortos encima del festejo
       this.limpiarContenido();
       this.cineLayer.setVisible(false);
       this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
@@ -677,26 +678,30 @@
       }
       this.SFX && this.SFX.kick && this.SFX.kick();
       this.time.delayedCall(this.msV(560), function () {
-        var msj, color, snd = self.SFX;
+        var msj, color, snd = self.SFX, hastaExplosion = 0;
         if (res.outcome === "gol") {
           msj = d.llego === false ? "¡GOOOL! ¡NO LLEGÓ!" : "¡GOOOL! ¡SE LE ESCAPÓ!"; color = 0xffd84d;
-          snd && snd.net && snd.net(); snd && snd.goal && snd.goal();
+          /* oct 2026: el gol se anota y se festeja ACÁ, cuando la pelota entra.
+             Antes sonaban la red y la fanfarria acá y otra vez —con hitstop y
+             destello— al cerrar el jugadón, con la cancha ya de vuelta. */
+          self.anotarGolPropio();
+          hastaExplosion = self.festejarGolPropio() || 0;
           /* REINTEGRACIÓN: el gol del jugadón con el pulido cinematográfico —
              festejo ilustrado + explosión + LA HINCHADA SALTANDO + relator */
           var kF = self.poseKey && self.poseKey("festejo");
           if (kF) { var sf = self.add.image(W * 0.78, 280, kF); sf.setScale(190 / sf.height); sf.setAlpha(0); self.cineContent.add(sf); self.tweens.add({ targets: sf, alpha: 1, y: 260, duration: 260, ease: "Back.easeOut" }); }
           self.burst && self.burst(W / 2, 250);
-          self.tribunaSaltando && self.tribunaSaltando();
+          /* la tribuna salta con la explosión del festejo, no acá */
           self.relatar && self.relatar("gol");
         }
         else if (res.outcome === "rebote") { msj = "¡LE REVENTASTE LAS MANOS!"; color = 0xff8c3a; snd && snd.gloves && snd.gloves(); }
         else if (res.outcome === "atajada") { msj = "¡LA AGARRÓ!"; color = 0x5bb8e8; snd && snd.gloves && snd.gloves(); }
         else { msj = "¡AFUERA!"; color = 0xe3503e; snd && snd.afuera && snd.afuera(); }
         self.avisoJugadon(msj, color);
-        self.time.delayedCall(self.msV(1100), function () {
+        self.time.delayedCall(Math.max(self.msV(1100), hastaExplosion + 900), function () {
           self.jugadonCerrar(function () {
             var P = window.PampaPartido;
-            if (res.outcome === "gol") self.golPropio();
+            if (res.outcome === "gol") { /* ya anotado y festejado en el impacto */ }
             else if (res.outcome === "rebote") {
               /* el rebote queda VIVO: la pelota es tuya pegada al área (la segunda chance épica) */
               st.posesion = "mia";
