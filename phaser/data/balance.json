@@ -234,6 +234,12 @@
     "entrada_ms": 11000,
     "_nota_entrada": "Cuanto dura como mucho la entrada a la cancha (Under the Floodlights, tema de una pasada) antes de que entre el tema del partido. Manda el final REAL del archivo si el navegador lo deja sonar; esto es el tope por si el audio esta bloqueado. En 0 se saltea la entrada y el partido arranca con su tema."
   },
+  "audio_mezcla": {
+    "_nota": "LA MEZCLA DE LOS EFECTOS (oct 2026). Multiplicador de ganancia de cada efecto sintetizado sobre su síntesis original; bus = el volumen del bus de efectos, que termina en un limitador a -6 dBFS (sfx.js). Medido (dBFS, RMS de la ventana más fuerte de 50 ms, renderizado offline): la música del partido anda en -22 a volumen 0,42; ANTES la patada sonaba en -25, la red -24, los guantes -26, el silbato -29, el afuera -32, el whoosh -35/-37 y la hinchada en -44, o sea TAPADOS por la música. Con estos números y el limitador (que en Chrome suma ~2 dB de compensación) quedan, medidos en régimen: patada -18, red -17, guantes -17,5, gol -18 (los golpes, 4 a 5 dB ARRIBA de la música), silbato -21, afuera -21, whoosh -23/-25, hinchada -26 (un colchón, no un golpe), risers -23/-27, golpes cortos de posesión y campo -30/-32 y la interfaz -31/-36. OJO al medir: renderizado desde el cuadro 0, el limitador arranca comprimido y da 8 dB menos; hay que disparar el efecto con el contexto ya andando. Para subir o bajar un efecto se toca su número acá: 2 = +6 dB, 0,5 = -6 dB.",
+    "bus": 0.8, "kick": 2.0, "net": 1.6, "gloves": 2.0, "afuera": 2.6, "goal": 1.4, "whistle": 2.0,
+    "crowd": 6.0, "whoosh": 3.0, "riser": 1.6, "riserGrande": 1.3,
+    "temaPosesion": 1, "temaCampo": 1, "temaUrgente": 1, "golEnContra": 1, "ui": 1
+  },
   "secuencias": {
     "_nota": "V6 §3.4: las SECUENCIAS encadenan escenas en una sola acción épica (flag v6_secuencias, firma del crack). MEGACORRIDA: N rivales quedan atrás uno a uno y rematás (si un duelo se pierde, muere ahí). COMBINADA: pared, se suma el compañero, elegís CENTRO o AL PIE y ÉL define. Desbloqueo por nivel de carrera, costo alto a propósito.",
     "megacorrida_nivel": 2,

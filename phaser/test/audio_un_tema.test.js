@@ -164,5 +164,23 @@ var VOL = 0.42;
   console.log("[7] salidas secas: ok");
 })();
 
+/* ---------- [8] LA MEZCLA: cada perilla mueve un efecto que existe ---------- */
+(function () {
+  var BAL = require(path.join(__dirname, "..", "data", "balance.json"));
+  var MZ = BAL.audio_mezcla || {};
+  var claves = Object.keys(MZ).filter(function (k) { return k.charAt(0) !== "_"; });
+  assert(claves.length >= 10, "balance.audio_mezcla tiene que tener las perillas de los efectos (hay " + claves.length + ")");
+  /* una perilla mal escrita no tira error: simplemente no mueve nada. Por eso
+     se cruza contra los efectos que el reproductor exporta de verdad. */
+  var huerfanas = claves.filter(function (k) { return k !== "bus" && typeof S[k] !== "function"; });
+  assert(huerfanas.length === 0, "estas perillas de mezcla no corresponden a ningún efecto: " + huerfanas.join(", "));
+  /* los golpes que se tapaban tienen que quedar arriba de 1 */
+  ["kick", "net", "gloves", "afuera", "whistle", "crowd", "whoosh"].forEach(function (k) {
+    assert(MZ[k] > 1, "'" + k + "' sonaba tapado por la música: su ganancia tiene que ser mayor que 1 (es " + MZ[k] + ")");
+  });
+  assert(typeof S.configurarMezcla === "function", "el reproductor tiene que aceptar la mezcla de balance");
+  console.log("[8] mezcla: " + claves.length + " perillas, todas sobre efectos que existen");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

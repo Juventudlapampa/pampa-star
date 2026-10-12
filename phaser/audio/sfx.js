@@ -21,14 +21,62 @@
     } catch (e) { }
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     LA MEZCLA (oct 2026, "me descajetaste los audios").
+
+     Medido renderizando cada efecto en un OfflineAudioContext y cada OGG
+     decodificado, en dBFS (RMS de la ventana más fuerte de 50 ms en los
+     efectos, mediana de ventanas de 400 ms en la música, ya multiplicada por
+     su volumen 0,42):
+
+       música del partido   -22      la red        -24      el gol      -23
+       la patada            -25      los guantes   -26      el silbato  -29
+       el afuera            -32      el whoosh     -35/-37  la hinchada -44
+
+     La música tapaba casi todo: la patada sonaba por DEBAJO del tema y la
+     "explosión de la hinchada" del gol, a -44, no se escuchaba nunca. Un
+     golpe que el oído no separa de la música no está sincronizado con nada,
+     porque no está.
+
+     Por eso cada efecto tiene su ganancia acá (perillas en
+     balance.json → audio_mezcla, que pisa estos números) y el bus de efectos
+     termina en un LIMITADOR: con los golpes más arriba, dos que coinciden
+     (la red y la fanfarria) pasarían de 0 dBFS y el navegador los recortaría
+     con distorsión. El limitador los aplana sin que se note.
+     ══════════════════════════════════════════════════════════════════════ */
+  var MEZCLA = {
+    bus: 0.8,
+    kick: 2.0, net: 1.6, gloves: 2.0, afuera: 2.6, goal: 1.4, whistle: 2.0,
+    crowd: 6.0, whoosh: 3.0, riser: 1.6, riserGrande: 1.3,
+    temaPosesion: 1, temaCampo: 1, temaUrgente: 1, golEnContra: 1, ui: 1
+  };
+  var ganancia = 1;          // la del efecto que está sonando ahora (ver con())
+  function configurarMezcla(cfg) {
+    if (!cfg || typeof cfg !== "object") return;
+    Object.keys(cfg).forEach(function (k) { if (k.charAt(0) !== "_" && typeof cfg[k] === "number") MEZCLA[k] = cfg[k]; });
+    if (master) master.gain.value = MEZCLA.bus;
+  }
+  /* corre fn con la ganancia del efecto `nombre`: tone() y noise() la leen */
+  function con(nombre, fn) {
+    var antes = ganancia;
+    ganancia = MEZCLA[nombre] != null ? MEZCLA[nombre] : 1;
+    try { return fn(); } finally { ganancia = antes; }
+  }
+
   function ensure() {
     if (ctx) return ctx;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = 0.8;
-    master.connect(ctx.destination);
+    master.gain.value = MEZCLA.bus;
+    /* el limitador: umbral -6 dBFS, relación 20:1, ataque de 3 ms */
+    var lim = ctx.createDynamicsCompressor ? ctx.createDynamicsCompressor() : null;
+    if (lim) {
+      lim.threshold.value = -6; lim.knee.value = 3; lim.ratio.value = 20;
+      lim.attack.value = 0.003; lim.release.value = 0.12;
+      master.connect(lim); lim.connect(ctx.destination);
+    } else master.connect(ctx.destination);
     return ctx;
   }
   function unlock() { var c = ensure(); if (c && c.state === "suspended") c.resume(); }
@@ -37,6 +85,7 @@
   /* osc simple con envolvente ADSR corta */
   function tone(type, f0, f1, t0, dur, gain) {
     if (!ctx || muted) return;
+    gain = gain * ganancia;
     var o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type;
     o.frequency.setValueAtTime(f0, t0);
@@ -50,6 +99,7 @@
   /* ruido blanco filtrado (para impactos / red / multitud) */
   function noise(t0, dur, gain, freq, q, type) {
     if (!ctx || muted) return;
+    gain = gain * ganancia;
     var n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
     for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
     var s = ctx.createBufferSource(); s.buffer = buf;
@@ -437,6 +487,7 @@
     },
     isMuted: function () { return muted; },
     configurarMusica: configurarMusica,
+    configurarMezcla: configurarMezcla,
     musicaTema: musicaTema,
     musicaDuck: musicaDuck,
     registrarArchivos: registrarArchivos, hayArchivo: hayArchivo,   // M2: data/audio.json
@@ -609,5 +660,12 @@
       }
     }
   };
+  /* LA MEZCLA, aplicada en un solo lugar: cada efecto suena con su ganancia
+     de MEZCLA (arriba de todo) sin tocar los números de su síntesis */
+  ["kick", "whoosh", "net", "gloves", "afuera", "goal", "whistle", "crowd", "temaPosesion",
+    "riser", "riserGrande", "temaCampo", "temaUrgente", "golEnContra", "ui"].forEach(function (k) {
+    var f = SFX[k]; if (typeof f !== "function") return;
+    SFX[k] = function () { var a = arguments, self = this; return con(k, function () { return f.apply(self, a); }); };
+  });
   return SFX;
 });
