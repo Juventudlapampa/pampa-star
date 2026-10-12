@@ -118,5 +118,91 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
   console.log("[7] te rematan sin pantalla de gestión: ok");
 })();
 
+/* ---- 8) TANDA 1.0 · los botones EXTRA de la defensa tienen texto y responden ----
+   defBoton recibe (x, texto, sub, color, cb, ancho), con la y clavada en la
+   fila de abajo. SÚPER DEFENSA y la megadefensa lo llamaban como si recibiera
+   la y: defBoton(W/2, H-108, 300, "🌟 SÚPER DEFENSA · ENVIÓN lleno", color, fn, 300).
+   Medido con estos mismos stubs antes del arreglo: los textos eran los
+   NÚMEROS 432 y 300, el rect recibía una función como ancho y un string como
+   color, caía en y=506 encima de los tres botones de la decisión, y al
+   tocarlo saltaba "TypeError: cb is not a function".
+   Se carga el mixin de verdad (scenes/definicion_ui.js) sobre una escena de
+   mentira: lo que se mide es el código que corre en el juego. */
+(function () {
+  var vm = require("vm"), fs = require("fs"), path = require("path");
+  var src = fs.readFileSync(path.join(__dirname, "../scenes/definicion_ui.js"), "utf8");
+  function Escena() {}
+  var win = {
+    PampaMatch: Escena, PF: { display: "display", texto: "texto" },
+    PampaPartido: { envionLleno: function (st) { return st.envion >= 100; } }
+  };
+  vm.runInNewContext(src, { window: win, Math: Math, console: console });
+  ok(typeof Escena.prototype.defBotonEn === "function", "tiene que existir defBotonEn(x, y, texto, sub, color, cb, ancho)");
+
+  function armar(envion, mega) {
+    var e = new Escena(), rects = [], textos = [], avisos = [];
+    function objeto(o) {
+      o.handlers = {}; o.active = true;
+      o.setOrigin = o.setStrokeStyle = o.setInteractive = function () { return o; };
+      o.on = function (ev, fn) { o.handlers[ev] = fn; return o; };
+      o.destroy = function () { o.active = false; };
+      return o;
+    }
+    e.add = {
+      rectangle: function (x, y, w, h, color) { var r = objeto({ x: x, y: y, w: w, h: h, color: color }); rects.push(r); return r; },
+      text: function (x, y, txt, style) { var t = objeto({ x: x, y: y, text: txt, style: style }); textos.push(t); return t; }
+    };
+    e.cineContent = { add: function () {} };
+    e.time = { now: 1000, delayedCall: function () {} };
+    e.msV = function (x) { return x; };
+    e.BAL = { aguante: { costo_quite: 120, max: 1000, recupera_no_moverse: 30 } };
+    e.st = { envion: envion, ctrl: 1, mios: [{ pos: "ARQ", aguante: 900 }, { pos: "ATA", aguante: 800 }] };
+    e._def = { botones: [] };
+    e.megaDefensaDisponible = function () { return mega; };
+    e.avisarDef = function (t) { avisos.push(t); };
+    e.defBotonesDef();
+    return { e: e, rects: rects, textos: textos, avisos: avisos };
+  }
+  function tocar(r) {
+    var ev = { stopPropagation: function () {} };
+    try { r.handlers.pointerdown({}, 0, 0, ev); return null; } catch (err) { return err; }
+  }
+
+  /* con el ENVIÓN lleno: SÚPER DEFENSA */
+  var a = armar(100, null);
+  ok(a.textos.every(function (t) { return typeof t.text === "string"; }),
+    "todos los textos de los botones tienen que ser string (salían los números 432 y 300): " +
+    a.textos.map(function (t) { return JSON.stringify(t.text); }).join(", "));
+  var sd = a.rects.filter(function (r) { return r.y === 432; });
+  ok(sd.length === 1, "el botón extra va en y=432 (H-108), arriba de la fila de la decisión (había " + sd.length + ")");
+  ok(sd[0] && sd[0].w === 300, "y mide 300 de ancho, un número (recibía " + (sd[0] && typeof sd[0].w) + ")");
+  ok(sd[0] && typeof sd[0].color === "number", "y el color es un número (recibía el texto del botón)");
+  var tSD = a.textos.filter(function (t) { return t.y < 432 && t.y > 400; }).map(function (t) { return t.text; });
+  ok(tSD.indexOf("🌟 SÚPER DEFENSA") >= 0, "el título del botón es '🌟 SÚPER DEFENSA' (salió " + JSON.stringify(tSD) + ")");
+  ok(a.textos.some(function (t) { return t.text === "ENVIÓN lleno" && t.y > 432; }), "y abajo, chico, 'ENVIÓN lleno'");
+  var fila = a.rects.filter(function (r) { return r.y === 506; });
+  ok(fila.length === 3, "la fila de la decisión sigue siendo de tres en y=506 (hay " + fila.length + ")");
+  var err = sd[0] ? tocar(sd[0]) : new Error("no hay botón");
+  ok(!err, "tocarlo no puede tirar excepción (tiraba 'cb is not a function'): " + (err && err.message));
+  ok(a.e._def.superDef === true, "y prende la SÚPER DEFENSA de este remate");
+  ok(a.avisos.some(function (t) { return t.indexOf("¡SÚPER DEFENSA lista!") >= 0; }), "y lo avisa: '🌟 ¡SÚPER DEFENSA lista!'");
+  ok(a.e._def.decidido !== true, "y NO consume la decisión: los tres de abajo siguen disponibles");
+
+  /* sin envión pero con megadefensa del arquero */
+  var b = armar(10, { n: "Tranquera", aguante: 250 });
+  var mg = b.rects.filter(function (r) { return r.y === 432; });
+  ok(mg.length === 1 && mg[0].w === 300, "la megadefensa usa el mismo lugar: y=432, 300 de ancho");
+  ok(b.textos.some(function (t) { return t.text === "🔥 TRANQUERA"; }), "con su nombre arriba ('🔥 TRANQUERA')");
+  ok(b.textos.some(function (t) { return t.text === "250 aguante"; }), "y el costo en número abajo ('250 aguante')");
+  var err2 = mg[0] ? tocar(mg[0]) : new Error("no hay botón");
+  ok(!err2, "tocarla no puede tirar excepción: " + (err2 && err2.message));
+  ok(b.e._def.mega && b.e._def.mega.n === "Tranquera", "y deja la megadefensa elegida");
+
+  /* sin envión ni megadefensa: no hay botón extra */
+  var c = armar(10, null);
+  ok(c.rects.filter(function (r) { return r.y === 432; }).length === 0, "sin envión ni megadefensa no aparece ningún botón extra");
+  console.log("[8] botones extra de la defensa: texto string, y=432, ancho 300, el toque responde");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);

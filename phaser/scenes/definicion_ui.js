@@ -263,9 +263,22 @@
 
     /* ============ BOTONES contextuales (48px+, costo en NÚMERO) ============ */
     defBoton(x, texto, sub, color, cb, ancho) {
-      var r = this.add.rectangle(x, H - 34, ancho || 148, 52, color || 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(x, H - 42, texto, { fontFamily: window.PF.display, fontSize: "9px", color: "#0a1f13" }).setOrigin(0.5);
-      var s = this.add.text(x, H - 24, sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
+      return this.defBotonEn(x, H - 34, texto, sub, color, cb, ancho);
+    },
+    /* TANDA 1.0 · EL BOTÓN CON SU ALTURA. defBoton tiene la y clavada en la
+       fila de abajo (H-34), y los dos botones EXTRA de la defensa —SÚPER
+       DEFENSA y la megadefensa— lo llamaban como si recibiera la y:
+       defBoton(W/2, H-108, 300, "🌟 SÚPER DEFENSA · ENVIÓN lleno", color, fn, 300).
+       Corrido un lugar, el texto era 432, el sub 300, el color el texto, y el
+       callback el número 300. Reproducido con stubs: el botón decía "432" y
+       "300", caía en y=506 encima de los tres de la decisión, y al tocarlo
+       saltaba "TypeError: cb is not a function". Ahora la y es un parámetro y
+       defBoton queda como el atajo de la fila de abajo. Los textos y los
+       tamaños son los de siempre: solo se mueven con la y. */
+    defBotonEn(x, y, texto, sub, color, cb, ancho) {
+      var r = this.add.rectangle(x, y, ancho || 148, 52, color || 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      var t = this.add.text(x, y - 8, texto, { fontFamily: window.PF.display, fontSize: "9px", color: "#0a1f13" }).setOrigin(0.5);
+      var s = this.add.text(x, y + 10, sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
       this.cineContent.add(r); this.cineContent.add(t); this.cineContent.add(s);
       var self = this;
       r.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
@@ -332,14 +345,14 @@
       }), w);
       /* los EXTRA no compiten por el mismo lugar: van arriba y no consumen la decisión */
       if (window.PampaPartido.envionLleno(st)) {
-        this.defBoton(W / 2, H - 108, 300, "🌟 SÚPER DEFENSA · ENVIÓN lleno", 0xffd84d, function () {
+        this.defBotonEn(W / 2, H - 108, "🌟 SÚPER DEFENSA", "ENVIÓN lleno", 0xffd84d, function () {
           self._def.superDef = true;
           self.avisarDef("🌟 ¡SÚPER DEFENSA lista! Este remate NO entra");
         }, 300);
       } else {
         var iArq = st.mios.findIndex(function (x) { return x.pos === "ARQ"; });
         var m = this.megaDefensaDisponible(["atajada"], st.mios[iArq]);
-        if (m) this.defBoton(W / 2, H - 108, 300, "🔥 " + m.n.toUpperCase().slice(0, 14) + " · " + m.aguante, 0xffd84d, function () {
+        if (m) this.defBotonEn(W / 2, H - 108, "🔥 " + m.n.toUpperCase().slice(0, 14), m.aguante + " aguante", 0xffd84d, function () {
           self._def.mega = m; self.avisarDef("¡" + m.n.toUpperCase() + " lista!");
         }, 300);
         /* ACÁ IBA LA TRANQUERA, la carta del arquero, y NO VA.
