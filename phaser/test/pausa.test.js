@@ -23,7 +23,9 @@
          Master vuelve al Master sin anotar resultado.
      [5] TODO ESTADO FINAL TIENE SALIDA (amistoso, Master y el puente con el
          clásico), con cursor; las salidas entran después de la espera y una
-         tecla sostenida no las confirma.
+         tecla sostenida no las confirma. Atrás y ESC esperan lo mismo y
+         hacen lo del botón donde arranca el cursor: en el puente con el
+         clásico, APLICAR, que escribe pampa_resultado_phaser (revisión L04).
      [6] el botón ⏸ del HUD: área táctil del piso, sin pisar al 🔊.
 
    Corré:  node phaser/test/pausa.test.js
@@ -191,13 +193,27 @@ function espiarTick(E) {
 
 /* ---------- [5] TODO ESTADO FINAL TIENE SALIDA ---------- */
 (function () {
+  /* principal: lo que tiene que hacer el botón donde arranca el cursor, que
+     es también lo que hacen atrás y ESC (revisión L04). En el partido que
+     pide el clásico es APLICAR: escribe pampa_resultado_phaser y vuelve a
+     ../index.html. Antes atrás y ESC ahí iban al editor y la fecha se perdía. */
+  function aplicado(E) {
+    var r = null;
+    try { r = JSON.parse(E.ls.getItem("pampa_resultado_phaser")); } catch (e) { r = null; }
+    return !!r && r.fecha === 3 && r.golesMio === 2 && r.golesRival === 1 && E.W.location.href === "../index.html" && E.irA.length === 0;
+  }
   var casos = [
-    { n: "amistoso", o: {}, sale: function (E) { return E.irA.indexOf("editor") >= 0; } },
-    { n: "fecha del Master", o: { master: true }, sale: function (E) { return E.irA.indexOf("master") >= 0 && !!E.s.game.registry.get("masterResultado"); } },
-    { n: "partido pedido por el clásico", o: { pedido: true }, sale: function (E) { return E.irA.indexOf("editor") >= 0 || /index\.html/.test(E.W.location.href); } }
+    { n: "amistoso", o: {}, sale: function (E) { return E.irA.indexOf("editor") >= 0; },
+      principal: function (E) { return E.irA.join(",") === "editor"; } },
+    { n: "fecha del Master", o: { master: true }, sale: function (E) { return E.irA.indexOf("master") >= 0 && !!E.s.game.registry.get("masterResultado"); },
+      principal: function (E) { return E.irA.join(",") === "master" && !!E.s.game.registry.get("masterResultado"); } },
+    { n: "partido pedido por el clásico", o: { pedido: true }, sale: function (E) { return E.irA.indexOf("editor") >= 0 || /index\.html/.test(E.W.location.href); },
+      principal: aplicado }
   ];
   var espera = E0().BAL.pausa.final_espera_ms;
   function E0() { return PM.escena(); }
+  /* un final 2-1, como el del primer caso */
+  function terminado(o) { var X = PM.escena(o); X.s.st.golesMio = 2; X.s.st.golesRival = 1; X.s.finDelPartido(); return X; }
   casos.forEach(function (c) {
     var E = PM.escena(c.o), s = E.s;
     s.st.golesMio = 2; s.st.golesRival = 1;
@@ -205,27 +221,34 @@ function espiarTick(E) {
     assert(s.estado === "FINAL", c.n + ": el final es su estado (FINAL)");
     assert(E.botones().length === 0, c.n + ": en el cuadro del pitazo todavía no hay botones (ESPACIO venía apretado)");
     assert(E.timers.some(function (t) { return t.ms === espera; }), c.n + ": las salidas entran a los " + espera + " ms");
-    assert(typeof s._salidaFinal === "function", c.n + ": la salida principal existe ya en el pitazo (atrás, ESC)");
+    /* atrás y ESC también esperan: en el pitazo no hacen nada */
+    assert(!s._salidaFinal, c.n + ": en el pitazo todavía no hay salida para atrás ni ESC");
+    s.alAtras(s.decidirAtras());
+    assert(E.irA.length === 0 && E.restarts === 0 && !E.W.location.href && s.estado === "FINAL",
+      c.n + ": un atrás o un ESC en el pitazo no saltea el resultado (" + E.irA.join(",") + ")");
     E.correrTimers();
     var bs = E.botones();
     assert(bs.length >= 1, c.n + ": hay al menos un botón (" + bs.length + ")");
     assert(s._foco && s._foco.vivo && s._foco.i === 0, c.n + ": con el cursor puesto");
+    assert(s._salidaFinal === s._foco.items[0].cb, c.n + ": la salida de atrás y ESC es el botón donde arranca el cursor");
     /* el botón donde arranca el cursor saca de la pantalla */
-    var E2 = PM.escena(c.o); E2.s.finDelPartido(); E2.correrTimers();
+    var E2 = terminado(c.o); E2.correrTimers();
     E2.tecla("SPACE", { repeat: true });
     assert(E2.irA.length === 0 && E2.restarts === 0 && !E2.W.location.href, c.n + ": ESPACIO sostenido no elige nada");
     E2.tecla("ENTER", {});
-    assert(c.sale(E2) || E2.restarts > 0, c.n + ": ENTER elige lo que tiene el cursor (" + E2.irA.join(",") + ")");
+    assert(c.principal(E2), c.n + ": ENTER elige lo que tiene el cursor, la salida principal (" + E2.irA.join(",") + E2.W.location.href + ")");
     /* y alguno de los botones es una SALIDA (no otro partido) */
     var algunaSale = bs.some(function (b) {
-      var E3 = PM.escena(c.o); E3.s.finDelPartido(); E3.correrTimers();
+      var E3 = terminado(c.o); E3.correrTimers();
       var b3 = E3.botones().filter(function (x) { return x.x === b.x && x.y === b.y; })[0];
       E3.tocar(b3);
       return c.sale(E3);
     });
     assert(algunaSale, c.n + ": al menos un botón SALE de la pantalla final (no solo OTRO PARTIDO)");
-    var E4 = PM.escena(c.o); E4.s.finDelPartido(); E4.s._salidaFinal();
-    assert(c.sale(E4), c.n + ": la salida principal (_salidaFinal) saca de la pantalla");
+    var E4 = terminado(c.o); E4.correrTimers();
+    E4.s.alAtras(E4.s.decidirAtras());
+    assert(c.principal(E4), c.n + ": atrás (y ESC) con los botones a la vista hace lo mismo que la salida principal (" +
+      E4.irA.join(",") + " " + E4.W.location.href + " " + E4.ls.getItem("pampa_resultado_phaser") + ")");
     assert(bs.every(function (b) { return b.height >= 54; }), c.n + ": botones del final de 54 o más de alto");
   });
   /* el amistoso: las dos, y el cursor en VOLVER AL MENÚ */

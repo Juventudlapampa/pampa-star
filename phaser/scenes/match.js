@@ -4661,7 +4661,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.game.registry.remove("masterPartido");
         this.irA("master");
       };
-      this._salidaFinal = seguirCarrera;
       this.salidasDelFinal(() => {
         const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
         const b3 = this.add.rectangle(480, 496, 420, tap, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
@@ -4682,7 +4681,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        ↺ OTRO PARTIDO a la derecha. Con el cursor: un toque o un Enter.
        ══════════════════════════════════════════════════════════════════════ */
     const volverMenu = () => this.irA("editor");
-    this._salidaFinal = volverMenu;
     this.salidasDelFinal(() => {
       const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
       const items = [];
@@ -4720,14 +4718,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      ESPACIO y ENTER confirman: con los botones listos en el mismo cuadro del
      pitazo, alguien que venía apretando ESPACIO salía de la pantalla final sin
      llegar a leer GANASTE. Primero se ve el resultado; balance.pausa
-     .final_espera_ms después aparecen los botones, con el cursor puesto. El
-     atrás del teléfono no espera: es un gesto, no un reflejo (_salidaFinal). */
+     .final_espera_ms después aparecen los botones, con el cursor puesto.
+     ATRÁS Y ESC (_salidaFinal) SON EL BOTÓN DONDE ARRANCA EL CURSOR, y recién
+     cuando aparece (revisión L04). Antes era siempre VOLVER AL MENÚ desde el
+     pitazo: en el partido que pide el clásico la salida principal es ▶
+     APLICAR Y VOLVER A LA CARRERA (la que escribe pampa_resultado_phaser),
+     y un ESC mandaba al editor y perdía la fecha (medido: irA ["editor"],
+     nada escrito). Y ESC en el pitazo, cuando quien venía jugando lo apretaba
+     para pausar, salteaba el GANASTE: la espera vale también para él. */
   salidasDelFinal(armar) {
     const PZ = this.BAL.pausa || {};
     const espera = PZ.final_espera_ms != null ? PZ.final_espera_ms : 700;
     const poner = () => {
       if (this.estado !== "FINAL") return;
       const items = armar() || [];
+      if (items.length && items[0].cb) this._salidaFinal = items[0].cb;
       if (this.grupoFoco && items.length) this.grupoFoco(items, { inicial: 0 });
       this.selloMenu();
     };

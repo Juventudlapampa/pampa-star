@@ -73,6 +73,15 @@ function escena(opts) {
   var s = Object.create(W.PampaMatch.prototype);
   if (W.PampaFocoUI) Object.keys(W.PampaFocoUI).forEach(function (k) { s[k] = W.PampaFocoUI[k]; });
   var E = { s: s, W: W, BAL: BAL, irA: [], restarts: 0, timers: [], tweens: [], ui: [], avisos: [], ignorados: [] };
+  /* revisión L04: un localStorage de mentira (vacío), para ver lo que el
+     partido escribe — el puente con el clásico deja pampa_resultado_phaser */
+  var guardado = {};
+  E.ls = C.ctx.localStorage = W.localStorage = {
+    getItem: function (k) { return Object.prototype.hasOwnProperty.call(guardado, k) ? guardado[k] : null; },
+    setItem: function (k, v) { guardado[k] = String(v); },
+    removeItem: function (k) { delete guardado[k]; },
+    datos: guardado
+  };
 
   function go(tipo, x, y, w, h) {
     var o = new Emisor();

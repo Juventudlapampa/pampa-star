@@ -336,7 +336,10 @@ function mundo(opts) {
   /* el final: la salida principal */
   var Fm = PM.escena(); Fm.s.finDelPartido();
   Fm.s.alAtras(Fm.s.decidirAtras());
-  assert(Fm.irA.indexOf("editor") >= 0, "FINAL del amistoso + atrás: VOLVER AL MENÚ");
+  assert(Fm.irA.length === 0 && Fm.s.estado === "FINAL", "FINAL + atrás en el pitazo: nada todavía, primero se lee el resultado");
+  Fm.correrTimers();
+  Fm.s.alAtras(Fm.s.decidirAtras());
+  assert(Fm.irA.indexOf("editor") >= 0, "FINAL del amistoso + atrás, con los botones a la vista: VOLVER AL MENÚ");
   /* el evento del juego: solo cumple si es para el partido */
   var G = PM.escena(), sg = G.s; sg.st.modo = "juego";
   var h = function (ev) { if (ev && ev.escena === "match") sg.alAtras(ev.decision); };

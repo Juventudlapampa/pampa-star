@@ -56,8 +56,11 @@
     var e = estado || {};
     var ventana = opciones && opciones.ventana > 0 ? opciones.ventana : VENTANA_MS;
     if (e.escena === "match") {
-      /* el partido terminó: atrás es la salida principal de la pantalla final
-         (SEGUIR LA CARRERA o VOLVER AL MENÚ), que ya tiene el resultado anotado */
+      /* el partido terminó: atrás es la salida principal de la pantalla final,
+         el botón donde arranca el cursor (SEGUIR LA CARRERA, VOLVER AL MENÚ o,
+         en el partido que pide el clásico, APLICAR Y VOLVER A LA CARRERA, que
+         es la que anota el resultado). El partido la cumple recién cuando los
+         botones están a la vista (match.js, salidasDelFinal) */
       if (e.estado === "FINAL") return "volver";
       /* antes de que empiece (el menú de tempo, con el reloj en 0:00) no hay
          partido que perder: atrás vuelve a donde se venía */
