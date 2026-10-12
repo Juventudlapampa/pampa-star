@@ -746,7 +746,9 @@
   },
   "red_floja": {
     "_nota": "TANDA 1.0 (L05) · CON SEÑAL QUE SE CUELGA. loader_timeout_ms: el tope de cada archivo que pide Phaser (poses, caras, fondos, el manifest de identidades). El valor por defecto de Phaser es 0, o sea SIN tope (loaderTimeout en vendor/phaser.min.js): un archivo colgado frenaba el preload para siempre. A los 15 s el archivo cuenta como fallado, se vuelve a pedir UNA vez (logic/carga.js, reintentarUnaVez) y si falla otra vez el juego sigue con su respaldo (el sprite de código en vez de la pose). 15 s alcanzan para la imagen más pesada que pide el juego (assets/poses/caras/cara_colorado.png, 336.798 bytes, medido con find) a 180 kbps, una señal muy floja. Los otros dos topes NO están acá porque corren antes de que exista el balance: los JSON del arranque (8 s, TOPE_JSON_MS en index.html) y la red del service worker (3 s, TOPE_RED_MS en sw.js).",
-    "loader_timeout_ms": 15000
+    "loader_timeout_ms": 15000,
+    "_version": "version_reintento_ms: con una versión nueva del juego en el service worker, el cartel 'Hay una versión nueva · TOCÁ PARA ACTUALIZAR' (index.html) no aparece en medio de un partido: cada tanto vuelve a mirar si ya terminó. Cada 2000 ms alcanza: el cartel aparece a lo sumo 2 s después de salir del partido, y mirar más seguido no cambia nada que se vea.",
+    "version_reintento_ms": 2000
   },
   "flags": {
     "a3_bloqueo": true

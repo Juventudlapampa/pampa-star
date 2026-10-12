@@ -119,6 +119,28 @@
     #cajacodigo textarea{height:4.6em;margin-top:4px;}
     #cajacodigo .botones{gap:8px;margin:4px 0 2px;}
   }
+  /* LA VERSIÓN NUEVA (L05): encima del juego y del "Girá el celular" (50),
+     debajo de la caja del código (60), del aviso del atrás (70) y de "Algo
+     se trabó" (100). Dos botones con texto e ícono (no se distinguen solo
+     por el color) y de 48 px de alto para el dedo. Va al final de los
+     estilos: red_de_errores.test.js lee el PRIMER @media (max-height) como
+     el de "Algo se trabó".
+     ARRIBA A LA IZQUIERDA y con width:max-content. Visto en captura: al
+     centro (left:50% + translate) quedaba en 480 px y el texto se partía en
+     dos renglones, y centrado en un renglón tapaba el botón CARRERA del
+     editor (arriba a la derecha), que a 800x360 empieza en x≈580: un toque
+     ahí recargaba la página y se perdía la pinta sin guardar. A la
+     izquierda tapa a lo sumo "VER INTRO" mientras está a la vista. */
+  #version-nueva{position:fixed;left:8px;top:8px;width:max-content;max-width:calc(100vw - 16px);
+    z-index:55;display:flex;gap:8px;align-items:stretch;box-sizing:border-box;}
+  #version-nueva[hidden]{display:none;}
+  #version-nueva button{font:inherit;font-size:16px;min-height:48px;padding:8px 14px;cursor:pointer;
+    border:3px solid #06120b;border-radius:10px;color:#0A1F13;box-shadow:0 4px 0 #06120b;}
+  #vn-actualizar{background:#F5C400;}
+  #vn-despues{background:#9FB3A5;white-space:nowrap;}
+  #version-nueva button:focus-visible{outline:3px solid #FFD84D;outline-offset:3px;}
+  /* a 800x360 y menos, más chico (va después de la regla del botón: si va antes, pierde) */
+  @media (max-height:420px){ #version-nueva button{font-size:14px;padding:6px 10px;} }
 </style>
 </head>
 <body>
@@ -126,6 +148,10 @@
   <div id="rotate"><div class="ico">📱↻</div><b>Girá el celular</b><div>PAMPA STAR se juega apaisado (horizontal).</div></div>
   <div id="atras-aviso" role="status" aria-live="polite" hidden></div>
   <div id="perf" hidden></div>
+  <div id="version-nueva" role="status" aria-live="polite" hidden>
+    <button type="button" id="vn-actualizar">↻ Hay una versión nueva · TOCÁ PARA ACTUALIZAR</button>
+    <button type="button" id="vn-despues">✕ DESPUÉS</button>
+  </div>
   <!-- LA RED DE ERRORES: el aviso vive acá, antes que cualquier script, así
        existe aunque no baje nada. Los botones se prenden según el caso. -->
   <div id="trabado" role="alertdialog" aria-modal="true" aria-labelledby="tb-tit" hidden>
@@ -974,6 +1000,14 @@
      · window.__PAMPA_RED: lo que el worker cuenta (red o caché, por pedido)
        más lo que bajó sin pasar por él (PerformanceObserver). Con ?perf=1
        se ve en un renglón abajo a la izquierda. No se manda a ningún lado.
+     · LA VERSIÓN NUEVA (sw-robusto): no había oyente de controllerchange, y
+       cuando entraba un worker nuevo la página seguía con el código viejo
+       sin que nadie se enterara. Ahora, al cambiar de worker (o cuando el
+       nuevo avisa al activarse), se le pregunta su versión; si no es la de
+       esta página, aparece "Hay una versión nueva · TOCÁ PARA ACTUALIZAR",
+       pero nunca en medio de un partido: espera a que termine
+       (logic/carga.js, decidirAvisoVersion). DESPUÉS lo esconde hasta la
+       versión siguiente.
      ═══════════════════════════════════════════════════════════════════════ */
   (function () {
     "use strict";
@@ -997,8 +1031,49 @@
     pintar();
     if (!("serviceWorker" in navigator) || !(location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) return;
     var sw = navigator.serviceWorker;
+    /* LA VERSIÓN NUEVA */
+    var NV = window.PampaVersionNueva = { versionSW: null, descartada: null, mostrado: false, timer: null };
+    function esperaMs() {
+      try {
+        var b = window.PAMPA_GAME && window.PAMPA_GAME.registry.get("balance");
+        var v = b && b.red_floja && b.red_floja.version_reintento_ms;
+        if (v > 0) return v;
+      } catch (e) { }
+      return 2000;
+    }
+    NV.evaluar = function () {
+      clearTimeout(NV.timer); NV.timer = null;
+      var g = window.PAMPA_GAME, enPartido = false;
+      try { enPartido = !!(g && g.scene && g.scene.isActive("match")); } catch (e) { }
+      var d = (C && C.decidirAvisoVersion) ? C.decidirAvisoVersion({
+        versionPagina: window.PAMPA_VERSION, versionSW: NV.versionSW, enPartido: enPartido,
+        trabado: !!(window.PampaRed && window.PampaRed.tipo),
+        descartado: !!NV.versionSW && NV.descartada === NV.versionSW, mostrado: NV.mostrado
+      }) : "nada";
+      var el = document.getElementById("version-nueva");
+      if (d === "mostrar" && el) { el.hidden = false; NV.mostrado = true; }
+      else if (d === "esperar") NV.timer = setTimeout(NV.evaluar, esperaMs());
+      return d;
+    };
+    NV.actualizar = function () { try { location.reload(); } catch (e) { } };
+    NV.despues = function () {
+      var el = document.getElementById("version-nueva");
+      if (el) el.hidden = true;
+      NV.descartada = NV.versionSW; NV.mostrado = false;
+    };
+    (function () {
+      var a = document.getElementById("vn-actualizar"), b = document.getElementById("vn-despues");
+      if (a) a.addEventListener("click", function () { NV.actualizar(); });
+      if (b) b.addEventListener("click", function () { NV.despues(); });
+    })();
     sw.addEventListener("message", function (ev) {
       var d = ev.data || {};
+      if (d.tipo === "pampa-version" && d.version) {
+        if (d.version !== NV.versionSW) NV.mostrado = false;
+        NV.versionSW = d.version;
+        NV.evaluar();
+        return;
+      }
       if (d.tipo === "pampa-red" && C) {
         C.sumarRed(RED, d);
         /* los últimos pedidos que salieron a la red, para mirar qué fue */
@@ -1021,6 +1096,8 @@
     }
     window.__PAMPA_CALENTAR = calentar;
     sw.addEventListener("controllerchange", function () {
+      /* el worker nuevo: ¿qué versión trae? (él también avisa al activarse) */
+      try { if (sw.controller) sw.controller.postMessage({ tipo: "version?" }); } catch (e) { }
       if (habia) return;
       habia = true;
       calentar();

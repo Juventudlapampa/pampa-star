@@ -564,6 +564,10 @@ async function activar() {
   const claves = await assets.keys();
   await Promise.all(claves.filter((r) => !vigente(r.url)).map((r) => assets.delete(r)));
   await self.clients.claim();
+  /* L05 (sw-robusto): a las páginas abiertas, qué versión entró. index.html
+     compara con la suya y, si es otra, ofrece "Hay una versión nueva · TOCÁ
+     PARA ACTUALIZAR" fuera del partido */
+  await avisarATodos({ tipo: "pampa-version", version: VERSION });
 }
 
 self.addEventListener("install", (e) => {
@@ -586,4 +590,6 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("message", (e) => {
   const d = e.data || {};
   if (d.tipo === "calentar" && Array.isArray(d.urls)) e.waitUntil(calentar(d.urls));
+  /* la página pregunta qué versión es este worker (al cambiar de worker) */
+  else if (d.tipo === "version?" && e.source && e.source.postMessage) e.source.postMessage({ tipo: "pampa-version", version: VERSION });
 });

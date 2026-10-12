@@ -13,9 +13,12 @@
        antes de que el worker controle la página). Así se puede VER que un
        deploy nuevo no le hace bajar las poses de nuevo a quien ya jugó.
      · el reintento del loader de Phaser: un archivo que falla se vuelve a
-       pedir una vez, y si falla otra vez se sigue (reintentarUnaVez).
+       pedir una vez, y si falla otra vez se sigue (reintentarUnaVez);
+     · cuándo mostrar "Hay una versión nueva · TOCÁ PARA ACTUALIZAR"
+       (decidirAvisoVersion).
 
-   Lo prueban phaser/test/cache_versiones.test.js y red_lenta.test.js.
+   Lo prueban phaser/test/cache_versiones.test.js, red_lenta.test.js y
+   aviso_version.test.js.
    ========================================================================== */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -106,8 +109,33 @@
     return reg;
   }
 
+  /* ═══ EL AVISO DE VERSIÓN NUEVA (L05, sw-robusto) ═══
+     Antes no había oyente de controllerchange: cuando entraba un worker
+     nuevo, la página seguía con el código viejo hasta que alguien la
+     cerraba, y nadie se enteraba. index.html pregunta la versión al worker
+     nuevo y esto decide qué hacer con el cartel "Hay una versión nueva ·
+     TOCÁ PARA ACTUALIZAR":
+       'nada'     el worker trae la MISMA versión que la página (la página ya
+                  bajó el código nuevo de la red: recargar no cambia nada; es
+                  lo que pasa en casi toda primera carga después de un
+                  deploy), no se sabe la versión, ya se mostró, o quien juega
+                  tocó DESPUÉS para esta versión;
+       'esperar'  hay versión nueva pero se está jugando un partido, o está
+                  el aviso "Algo se trabó": se vuelve a mirar en un rato;
+       'mostrar'  todo lo demás.
+     e: { versionPagina, versionSW, enPartido, trabado, descartado, mostrado } */
+  function decidirAvisoVersion(e) {
+    var x = e || {};
+    var nueva = !!x.versionSW && x.versionSW !== x.versionPagina;
+    var decision = "mostrar";
+    if (!nueva || x.descartado || x.mostrado) decision = "nada";
+    else if (x.enPartido || x.trabado) decision = "esperar";
+    return decision;
+  }
+
   return {
     nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed,
-    reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); }
+    reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); },
+    decidirAvisoVersion: decidirAvisoVersion
   };
 });
