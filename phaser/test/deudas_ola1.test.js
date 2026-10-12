@@ -376,6 +376,36 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     " · teclado " + Math.round(k0) + "→" + Math.round(k1) + " · el aviso del atrás arranca en " + Math.round(techo) + " (" + donde + ")");
 })();
 
+/* ---------- [6] EL PUENTE CON EL CLÁSICO NO TAPA EL RESULTADO ---------- */
+(function () {
+  function caja(o) { return { x0: o.x - o.width / 2, x1: o.x + o.width / 2, y0: o.y - o.height / 2, y1: o.y + o.height / 2 }; }
+  function cruzan(a, b) { return a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1; }
+  [{ n: "partido pedido por el clásico", o: { pedido: true }, cuantos: 3 }, { n: "amistoso", o: {}, cuantos: 2 }].forEach(function (c) {
+    var E = PM.escena(Object.assign({ match: VIEJO }, c.o)), s = E.s;
+    s.st.golesMio = 2; s.st.golesRival = 1;
+    s.finDelPartido(); E.correrTimers();
+    var franja = s.menuLayer.list.filter(function (o) { return o.type === "Rectangle" && o.width === 960 && o.height === 86; })[0];
+    assert(!!franja, c.n + ": la franja del resultado está (960x86)");
+    if (!franja) return;
+    var cf = caja(franja), bs = E.botones();
+    assert(bs.length === c.cuantos, c.n + ": " + c.cuantos + " salidas (" + bs.length + ")");
+    bs.forEach(function (b) {
+      assert(!cruzan(caja(b), cf), "SÍNTOMA: " + c.n + ": el botón '" + E.textoCerca(b) + "' (y " + caja(b).y0 + "→" + caja(b).y1 + ") tapa la franja del resultado (" + cf.y0 + "→" + cf.y1 + ")");
+      assert(caja(b).x0 >= 0 && caja(b).x1 <= 960 && b.height >= E.BAL.legibilidad.tap_min, c.n + ": '" + E.textoCerca(b) + "' entra en el lienzo y mide el piso táctil de alto");
+    });
+    for (var i = 0; i < bs.length; i++) for (var j = i + 1; j < bs.length; j++) {
+      assert(!cruzan(caja(bs[i]), caja(bs[j])), c.n + ": los botones no se pisan entre ellos");
+    }
+    /* los textos de las salidas, a 13 px o más (criterio 8 de terminado) */
+    var chicos = s.menuLayer.list.filter(function (o) {
+      return o.type === "Text" && /VOLVER|APLICAR|OTRO PARTIDO/.test(o.text) && parseInt(o.style.fontSize, 10) < 13;
+    }).map(function (o) { return o.text + " " + o.style.fontSize; });
+    assert(chicos.length === 0, c.n + ": las salidas a 13 px o más (" + chicos.join(" | ") + ")");
+    if (c.o.pedido) assert(/APLICAR/.test(E.textoCerca(s._foco.items[0].obj)), "el cursor arranca en APLICAR Y VOLVER A LA CARRERA");
+  });
+  console.log("[6] final del puente con el clásico: APLICAR en la fila de abajo, a 13 px, sin tapar la franja del resultado");
+})();
+
 if (mal) { console.log("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }
 console.log("\n✓ deudas de la ola 1: " + ok + " asserts");
 process.exit(0);

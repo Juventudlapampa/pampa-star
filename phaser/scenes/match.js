@@ -4721,21 +4721,31 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.salidasDelFinal(() => {
       const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
       const items = [];
-      const bv = this.add.rectangle(300, 496, 320, tap, 0xf6efdc, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const btv = this.add.text(300, 496, "◀ VOLVER AL MENÚ", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
-      const b = this.add.rectangle(660, 496, 320, tap, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bt = this.add.text(660, 496, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
+      /* L04b · EL PUENTE CON EL CLÁSICO, EN LA FILA DE ABAJO. ▶ APLICAR Y
+         VOLVER A LA CARRERA iba en y=398 (460x54, de 371 a 425), encima de
+         la franja del resultado (337-423): tapaba la cifra "VOS 2 - 1 TOAY"
+         y su texto era de 10 px (l04b_antes_final_puente.png). Ahora las tres
+         salidas van en la fila de las otras (y=496, alto del piso táctil),
+         con APLICAR en el medio, ancha, a 13 px como las otras dos: 220 +
+         420 + 220 con 12 de aire, de x=38 a 922. Sin el puente quedan las
+         dos de L04, de 320. */
+      const puente = !!this._pedido;
+      const F = puente ? { xv: 148, xo: 812, w: 220 } : { xv: 300, xo: 660, w: 320 };
+      const bv = this.add.rectangle(F.xv, 496, F.w, tap, 0xf6efdc, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const btv = this.add.text(F.xv, 496, "◀ VOLVER AL MENÚ", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
+      const b = this.add.rectangle(F.xo, 496, F.w, tap, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bt = this.add.text(F.xo, 496, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([bv, btv, b, bt]);
       const otro = () => this.scene.restart();
       bv.on("pointerdown", volverMenu);
       b.on("pointerdown", otro);
-      items.push({ obj: bv, caja: { x: 140, y: 496 - tap / 2, w: 320, h: tap }, cb: volverMenu });
-      items.push({ obj: b, caja: { x: 500, y: 496 - tap / 2, w: 320, h: tap }, cb: otro });
+      items.push({ obj: bv, caja: { x: F.xv - F.w / 2, y: 496 - tap / 2, w: F.w, h: tap }, cb: volverMenu });
+      items.push({ obj: b, caja: { x: F.xo - F.w / 2, y: 496 - tap / 2, w: F.w, h: tap }, cb: otro });
       /* FUSIÓN: el resultado vuelve a la carrera clásica (mismo formato pampa_star_v1
          vía aplicarFecha del clásico — acá solo se deja el resultado y se vuelve) */
       if (this._pedido) {
-        const b2 = this.add.rectangle(480, 398, 460, 54, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-        const bt2 = this.add.text(480, 398, "▶ APLICAR Y VOLVER A LA CARRERA", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+        const b2 = this.add.rectangle(480, 496, 420, tap, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+        const bt2 = this.add.text(480, 496, "▶ APLICAR Y VOLVER A LA CARRERA", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
         this.menuLayer.add([b2, bt2]);
         const aplicar = () => {
           try {
@@ -4745,7 +4755,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           window.location.href = "../index.html";
         };
         b2.on("pointerdown", aplicar);
-        items.unshift({ obj: b2, caja: { x: 250, y: 371, w: 460, h: 54 }, cb: aplicar });
+        items.unshift({ obj: b2, caja: { x: 270, y: 496 - tap / 2, w: 420, h: tap }, cb: aplicar });
       }
       return items;
     });
