@@ -26,7 +26,7 @@ var VIEJO = process.env.PAMPA_MATCH_VIEJO || null;
 
 /* un jugador de mentira con lo que lee el HUD */
 function jug(i, rival) {
-  return { nombre: (rival ? "R" : "M") + i, numero: i + 1, x: 400, y: 300, aguante: 800, pos: i === 0 ? "ARQ" : "VOL",
+  return { nombre: (rival ? "R" : "M") + i, numero: i + 1, x: 400, y: 300, ax: 400, banda: [100, 500], aguante: 800, pos: i === 0 ? "ARQ" : i < 5 ? "DEF" : i < 8 ? "VOL" : "DEL",
     esVos: !rival && i === 9, esRival: !!rival, stats: {} };
 }
 /* el HUD que arma create(): textos y gráficos que refrescarHUD escribe */
@@ -184,6 +184,126 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   var club0 = textos(s0).filter(function (o) { return o.text === s0.save.club; })[0];
   assert(!!club0 && club0.x === 480 && club0.originX === 0.5, "sin resultado, el club queda centrado como siempre");
   console.log("[3] tabla del Master: ✔/=/✘ en el renglón del club, a la derecha, sin pisar ningún texto");
+})();
+
+/* ---------- [4] LA SÚPER DEFENSA SE PUEDE USAR JUGANDO ---------- */
+(function () {
+  var fs = require("fs"), path = require("path");
+  /* a) la lógica pura: la lectura queda bloqueada con su motivo y quien se tira */
+  var Dmod = require("../logic/definicion.js");
+  assert(typeof Dmod.conSuperDefensa === "function", "SÍNTOMA: logic/definicion.js no tiene conSuperDefensa (la súper defensa no tiene lógica viva)");
+  if (typeof Dmod.conSuperDefensa !== "function") return;
+  var orig = { bloqueado: false, motivo: "solo_ante_el_arquero", defensoresEnLinea: 0, defensorMasCerca: null, bonusArquero: 7, distanciaRemate: 300 };
+  var vos = { nombre: "VOS", esVos: true };
+  var l = Dmod.conSuperDefensa(orig, vos);
+  assert(l.bloqueado === true && l.superDefensa === true && l.motivo === "super_defensa", "con súper defensa el remate queda bloqueado, con su motivo");
+  assert(l.defensorMasCerca === vos && l.defensoresEnLinea === 1, "se tira quien juega, aunque no hubiera nadie en la línea");
+  assert(l.bonusArquero === 7 && l.distanciaRemate === 300, "lo demás de la lectura se conserva");
+  assert(orig.bloqueado === false && orig.motivo === "solo_ante_el_arquero", "no toca la lectura original");
+  assert(Dmod.conSuperDefensa({ defensoresEnLinea: 3 }, null).defensoresEnLinea === 3, "con tres en la línea siguen siendo tres");
+
+  /* b) la escena de verdad (escenas_v9.js sobre el partido de mentira) */
+  var tap = null;
+  function armar(op) {
+    op = op || {};
+    var E = PM.escena({ match: VIEJO, logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"], logica: ["phaser/logic/definicion.js"], mixins: [process.env.PAMPA_V9_VIEJO || "phaser/scenes/escenas_v9.js", "phaser/scenes/tribuna_ui.js"] });
+    var s = conHUD(E);
+    tap = E.BAL.legibilidad.tap_min;
+    if (op.sinPregunta) E.BAL.envion.super_pregunta = false;
+    s.st.posesion = "rival"; s.st.portadorRival = 9; s.estado = "BEAT";
+    s.st.envion = op.envion != null ? op.envion : E.BAL.envion.max;
+    /* el cine: capas y lo que dibuja (no es lo que se mide) */
+    s.cineLayer = s.add.container(); s.cineContent = s.add.container(); s.cineInfo = s.add.container();
+    s.cineFX = s.add.graphics(); s.cineLabel = s.add.text(0, 0, "", {}); s.cineBlack = s.add.rectangle(0, 0, 960, 540);
+    s.cineFondo = null; s.resetDolly = function () { };
+    s.uiCam = { setZoom: function () { }, centerOn: function () { }, flash: function () { }, shake: function () { }, ignore: function () { } };
+    s.add.sprite = function (x, y) { var o = s.add.rectangle(x, y, 10, 10); o.setFlipX = function () { return o; }; o.setTexture = function () { return o; }; return o; };
+    s.fondoDeCancha = function () { return 183; };
+    s.figuraDePlano = function (pose, j, esRival, x, y, alto) { var o = s.add.sprite(x, y); o.pose = pose; o.j = j; o.height = alto; return o; };
+    s.placaDePlano = function (x, y, j) { return s.add.text(x, y, j && j.esVos ? "VOS" : (j && j.nombre) || "", {}); };
+    E.punch = [];
+    s.punch = function (a, b) { E.punch.push(a + " / " + b); };
+    ["dollyCine", "pararDolly", "musicaDuck", "lineasVelocidad", "golpeDeCamara", "tribunaSaltando", "hinchadaEstalla", "efectoGol", "poseDePlano"].forEach(function (k) { s[k] = function () { return null; }; });
+    /* los dos de la tribuna, hablando (comentar() los dejó a la vista) */
+    s._tribuna = { cont: s.add.container(), _irse: { remove: function () { E.tribunaIrse = (E.tribunaIrse | 0) + 1; } } };
+    s.cerrarEscena = function (alFinal) { s.estado = "RESOLUCION"; alFinal && alFinal(); if (s.estado === "RESOLUCION") s.estado = "LIBRE"; };
+    ["kick", "gloves", "crowd", "net"].forEach(function (k) { s.SFX[k] = function () { }; });
+    return E;
+  }
+  function botonesCine(E) {
+    return E.s.cineContent.list.filter(function (o) { return o.type === "Rectangle" && o.input && o.input.enabled && !o.destruido && o.listenerCount("pointerdown") > 0; });
+  }
+  function textosCine(E) { return E.s.cineContent.list.filter(function (o) { return o.type === "Text" && !o.destruido; }); }
+  function correrTodo(E) { for (var k = 0; k < 8 && E.timers.length; k++) E.correrTimers(); }
+
+  /* con el envión lleno, el remate rival PREGUNTA antes de resolverse */
+  var E = armar(), s = E.s, max = E.BAL.envion.max;
+  s.escenaRemateRival(9);
+  assert(s.estado === "SUPERDEF", "SÍNTOMA: con el envión lleno el remate rival no pregunta por la SÚPER DEFENSA (estado " + s.estado + ")");
+  assert(s.st.envion === max && s.st.posesion === "rival" && E.punch.length === 0, "mientras pregunta no se resolvió nada (envión " + s.st.envion + ", " + s.st.posesion + ")");
+  var espera = E.BAL.envion.super_espera_ms;
+  assert(botonesCine(E).length === 0 && E.timers.some(function (t) { return t.ms === espera; }), "los botones responden a los " + espera + " ms (ESPACIO venía apretado)");
+  E.tecla("ENTER", {});
+  assert(s.estado === "SUPERDEF" && s.st.envion === max, "un ENTER antes de la espera no decide nada");
+  E.correrTimers();
+  var bs = botonesCine(E), ts = textosCine(E).map(function (t) { return t.text; });
+  assert(bs.length === 2, "dos botones: SÚPER DEFENSA y GUARDAR (" + bs.length + ")");
+  assert(ts.indexOf("🌟 SÚPER DEFENSA") >= 0 && ts.indexOf("◀ GUARDAR EL ENVIÓN") >= 0, "con ícono y palabra (" + ts.join(" | ") + ")");
+  assert(bs.every(function (b) { return b.height >= tap; }), "los botones miden el piso táctil (" + tap + ") de alto");
+  var chicos = textosCine(E).filter(function (t) { return parseInt(t.style && t.style.fontSize, 10) < 13; }).map(function (t) { return t.text; });
+  assert(chicos.length === 0, "ningún texto de la pregunta baja de 13 px (" + chicos.join(" | ") + ")");
+  assert(s._foco && s._foco.vivo && s._foco.i === 0 && /SÚPER DEFENSA/.test(textosCine(E).filter(function (t) { return Math.abs(t.y - (s._foco.items[0].obj.y - 11)) < 1; }).map(function (t) { return t.text; }).join("")),
+    "el cursor arranca en la SÚPER DEFENSA");
+  /* un toque fuera de los botones no decide (no hay _escSkip ni apuntar en SUPERDEF) */
+  assert(!s._escSkip, "en la pregunta un toque suelto no saltea nada");
+  assert(s._tribuna.cont.alpha === 0 && E.tribunaIrse === 1, "los dos de la tribuna se callan: sus globos caían sobre la pregunta");
+  /* tocar SÚPER DEFENSA: gasta el envión, no es gol, la pelota es tuya */
+  var golesAntes = s.st.golesRival;
+  E.tocar(bs[0]);
+  assert(s.st.envion === 0, "la SÚPER DEFENSA gasta el envión entero (" + s.st.envion + ")");
+  assert(s.st.posesion === "mia", "la pelota es tuya después de la súper defensa");
+  correrTodo(E);
+  assert(E.punch.some(function (p) { return /SÚPER DEFENSA/.test(p); }), "la escena lo dice: " + E.punch.join(" · "));
+  assert(s.st.golesRival === golesAntes, "y no es gol");
+  assert(s.estado === "LIBRE", "y el partido sigue (" + s.estado + ")");
+
+  /* GUARDAR: el remate de siempre y el envión queda lleno */
+  var E2 = armar(), s2 = E2.s;
+  s2.escenaRemateRival(9); E2.correrTimers();
+  E2.tocar(botonesCine(E2)[1]);
+  assert(s2.st.envion === max, "GUARDAR EL ENVIÓN no lo gasta");
+  correrTodo(E2);
+  assert(!E2.punch.some(function (p) { return /SÚPER DEFENSA/.test(p); }) && E2.punch.length === 1, "y el remate se resuelve como siempre (" + E2.punch.join(" · ") + ")");
+
+  /* con el teclado: ENTER confirma lo que tiene el cursor; la repetición no */
+  var E3 = armar(), s3 = E3.s;
+  s3.escenaRemateRival(9); E3.correrTimers();
+  E3.tecla("ENTER", { repeat: true });
+  assert(s3.estado === "SUPERDEF", "ENTER sostenido no decide");
+  E3.tecla("ENTER", {});
+  assert(s3.st.envion === 0 && s3.st.posesion === "mia", "ENTER elige la SÚPER DEFENSA");
+
+  /* 200 remates con súper defensa: ninguno entra */
+  var goles = 0;
+  for (var k = 0; k < 200; k++) {
+    var Ek = armar(), sk = Ek.s;
+    sk.escenaRemateRival(9); Ek.correrTimers(); Ek.tocar(botonesCine(Ek)[0]); correrTodo(Ek);
+    if (sk.st.golesRival > 0) goles++;
+  }
+  assert(goles === 0, "con súper defensa no entra ninguno de 200 remates (" + goles + ")");
+
+  /* sin el envión lleno, o con la pregunta apagada, no pregunta */
+  var E4 = armar({ envion: max - 1 });
+  E4.s.escenaRemateRival(9);
+  assert(E4.s.estado === "ESCENA" && botonesCine(E4).length === 0, "sin el envión lleno no hay pregunta (" + E4.s.estado + ")");
+  var E5 = armar({ sinPregunta: true });
+  E5.s.escenaRemateRival(9);
+  assert(E5.s.estado === "ESCENA" && E5.s.st.envion === max, "con balance.envion.super_pregunta en false no hay pregunta");
+
+  /* la pregunta espera a quien juega: el vigía de SEGUIR IGUAL no la cuenta como trabada */
+  var HTML = fs.readFileSync(path.join(PM.RAIZ, "phaser/index.html"), "utf8");
+  assert(/var ESPERAN = \{[^}]*SUPERDEF: 1/.test(HTML), "index.html: SUPERDEF está entre los estados que esperan a quien juega (ESPERAN)");
+  console.log("[4] súper defensa: con el envión lleno el remate pregunta; SÍ gasta y bloquea (0 goles en 200), GUARDAR no gasta");
 })();
 
 if (mal) { console.log("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

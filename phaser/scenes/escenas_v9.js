@@ -392,9 +392,17 @@
        intriga hasta el final: freeze y medio segundo de silencio antes de
        saber. Cero botones.
        ====================================================================== */
-    escenaRemateRival(tiradorIdx) {
+    /* L04b · superDef: lo que se contestó en preguntarSuperDefensa (true =
+       SÚPER DEFENSA, false = guardar el envión). Sin contestar (undefined) y
+       con el envión lleno, primero se pregunta. */
+    escenaRemateRival(tiradorIdx, superDef) {
       var self = this, st = this.st, P = window.PampaPartido, D = window.PampaDefinicion;
       var feel = this.BAL.feel || {}, EP = this.BAL.escena_pase || {};
+      var EV = this.BAL.envion || {};
+      if (superDef === undefined && EV.super_pregunta !== false && this.preguntarSuperDefensa && P.envionLleno(st)) {
+        this.preguntarSuperDefensa(tiradorIdx);
+        return;
+      }
       var tirador = st.rivales[tiradorIdx != null ? tiradorIdx : st.portadorRival] || st.rivales[0];
       var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
       var aguanteMax = this.BAL.aguante.max;
@@ -410,6 +418,11 @@
         aguanteMax: aguanteMax,
         cfg: this.BAL.definicion || {}
       });
+      /* L04b: la SÚPER DEFENSA gasta el envión y el remate no entra; se tira
+         quien juega (logic/definicion.conSuperDefensa) */
+      if (superDef === true && P.gastarEnvionSuper(st)) {
+        lectura = D.conSuperDefensa(lectura, st.mios.find(function (x) { return x.esVos; }) || null);
+      }
       var res = lectura.bloqueado
         ? { golRival: false, bloqueado: true }
         : P.resolverAtajada(st, "atajar", null, lectura.bonusArquero);
@@ -477,7 +490,8 @@
           self.uiCam.flash(60, 255, 255, 255);
           self.SFX && self.SFX.gloves && self.SFX.gloves();
           if (figs[0] && figs[0].active) self.tweens.add({ targets: figs[0], scale: figs[0].scale * 1.14, duration: 240 });
-          self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
+          if (lectura.superDefensa) self.punch("🌟 ¡SÚPER DEFENSA!", "te tiraste con todo el envión · pelota nuestra", 0xffd84d);
+          else self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
             "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
           if (self.tribunaSaltando) self.tribunaSaltando();
         } else if (!res.golRival) {
@@ -512,6 +526,89 @@
       var tRevela = tEntrada + this.msV(520) + silencio;
       this.time.delayedCall(tRevela, revelar);
       this.time.delayedCall(tRevela + tHold, cerrarYa);
+    },
+    /* ======================================================================
+       L04b · LA SÚPER DEFENSA TIENE PUERTA.
+
+       El GDD (5.4): el envión lleno se gasta en potenciar al equipo o en una
+       Súper Defensa que bloquea un remate de forma segura. La mitad
+       defensiva no se podía usar jugando: su consumo (gastarEnvionSuper) y
+       su botón vivían en defBotonesDef(), la pantalla de gestión defensiva
+       que la V9 C1 sacó y que no tiene llamador. Con el envión lleno y
+       defendiendo, el 🌟 del HUD no aparecía (es POTENCIAR, solo con la
+       pelota): el mérito ganado se quedaba quieto.
+
+       La puerta está donde el GDD la pone: cuando el rival te va a rematar.
+       Un plano quieto con el rematador (la pose no se anima) y una pregunta,
+       sin reloj, porque el envión es mérito y no reflejo:
+         🌟 SÚPER DEFENSA  → gasta el envión, el remate no entra, pelota tuya
+         ◀ GUARDAR EL ENVIÓN → el remate de siempre (defensa y arquero)
+       No es la pantalla de gestión que se sacó: no hay plantarse, achicar
+       ni aguantar, es una sola carta y solo cuando la tenés. Los botones
+       responden balance.envion.super_espera_ms después de abrirse (ESPACIO
+       viene apretado del partido y en el cursor confirma). El estado es
+       SUPERDEF: espera a quien juega, como un menú (el vigía de SEGUIR
+       IGUAL no lo cuenta como trabado, index.html), y un toque fuera de los
+       botones no decide nada.
+       ====================================================================== */
+    preguntarSuperDefensa(tiradorIdx) {
+      var self = this, st = this.st, EV = this.BAL.envion || {};
+      var tirador = st.rivales[tiradorIdx != null ? tiradorIdx : st.portadorRival] || st.rivales[0];
+      var tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
+      this._abrirEscena("· te van a rematar ·");
+      this.estado = "SUPERDEF";
+      this._escSkip = null;
+      /* los dos de la tribuna se callan: sus globos caían sobre la pregunta */
+      if (window.PampaTribunaUI && window.PampaTribunaUI.callar) window.PampaTribunaUI.callar(this);
+      this.fondoDeCancha(true);
+      /* el rematador, donde lo pone el plano del remate: el corte al plano
+         siguiente es seco y la figura no salta */
+      this.figuraDePlano("remate", tirador, true, 300, Math.round(H * 0.66), 300, false);
+      this.placaDePlano(300, H * 0.92, tirador, true);
+      /* la pregunta, a la derecha (el rematador ocupa de x≈150 a 450) */
+      var X = 700, ANCHO = 400;
+      var nom = String((tirador && tirador.nombre) || "el rival").toUpperCase();
+      var t1 = this.add.text(X, 126, "⚠ ¡" + nom + " TE VA A REMATAR!", {
+        fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", align: "center",
+        backgroundColor: "#0a1f13dd", padding: { x: 10, y: 6 }, wordWrap: { width: ANCHO }
+      }).setOrigin(0.5);
+      var t2 = this.add.text(X, 174, "🌟 Tenés el ENVIÓN lleno: ¿lo usás?", {
+        fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc",
+        backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }
+      }).setOrigin(0.5);
+      this.cineContent.add(t1); this.cineContent.add(t2);
+      var decidido = false;
+      var decidir = function (usar) {
+        if (decidido) return;
+        decidido = true;
+        if (self.cerrarFoco) self.cerrarFoco();
+        self.escenaRemateRival(tiradorIdx, !!usar);
+      };
+      var OPS = [
+        { y: 262, color: 0xffd84d, t: "🌟 SÚPER DEFENSA", s: "gastás el envión · este remate no entra", usar: true },
+        { y: 350, color: 0xf6efdc, t: "◀ GUARDAR EL ENVIÓN", s: "atajan tu defensa y tu arquero", usar: false }
+      ];
+      var poner = function () {
+        if (decidido || self.estado !== "SUPERDEF") return;
+        var items = [];
+        OPS.forEach(function (op) {
+          var r = self.add.rectangle(X, op.y, ANCHO, tap, op.color, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+          var tt = self.add.text(X, op.y - 11, op.t, { fontFamily: window.PF.display, fontSize: "15px", color: "#0a1f13" }).setOrigin(0.5);
+          var ts = self.add.text(X, op.y + 15, op.s, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
+          self.cineContent.add(r); self.cineContent.add(tt); self.cineContent.add(ts);
+          r.on("pointerdown", function (p, xx, yy, ev) {
+            ev && ev.stopPropagation && ev.stopPropagation();
+            self._uiTocado = self.time.now;
+            decidir(op.usar);
+          });
+          items.push({ obj: r, caja: { x: X - ANCHO / 2, y: op.y - tap / 2, w: ANCHO, h: tap }, cb: function () { decidir(op.usar); } });
+        });
+        /* el cursor arranca en la SÚPER DEFENSA: es la pregunta */
+        if (self.grupoFoco) self.grupoFoco(items, { inicial: 0 });
+      };
+      var espera = EV.super_espera_ms != null ? EV.super_espera_ms : 450;
+      if (espera > 0) this.time.delayedCall(espera, poner);
+      else poner();
     },
     /* la línea corta de por qué (C1 usa el motivo de la lógica pura) */
     porQueRemateRival(lectura, res) {

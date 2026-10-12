@@ -62,7 +62,9 @@ function lineasCon(re) {
   assert(/SFX\.net\(\)/.test(fest), "festejarGolPropio toca la red en el impacto");
   /* la red: solo el festejo propio y el gol rival (escenaRemateRival) */
   var redes = lineasCon(/\.net\(\)/);
-  var remRival = cuerpo(V9, "escenaRemateRival(tiradorIdx) {");
+  /* L04b: la firma suma superDef (lo que se contestó a la pregunta de la
+     SÚPER DEFENSA); la red del gol rival sigue sonando una vez, acá */
+  var remRival = cuerpo(V9, "escenaRemateRival(tiradorIdx, superDef) {");
   var redesRival = (remRival.match(/\.net\(\)/g) || []).length;
   assert(redes.length === 1 + redesRival && redesRival === 1,
     "la red de un gol suena en DOS lugares: el festejo propio y el gol rival. Hay " + redes.length + ": " + redes.join(", "));

@@ -344,6 +344,9 @@
         self.time.delayedCall(self.msV(520), function () { self.defResolverDefensa(); });
       }), w);
       /* los EXTRA no compiten por el mismo lugar: van arriba y no consumen la decisión */
+      /* L04b: este botón es el de la pantalla sin llamador. La SÚPER DEFENSA
+         que se juega es la pregunta de escenas_v9.js (preguntarSuperDefensa),
+         antes del remate rival, con el mismo gastarEnvionSuper. */
       if (window.PampaPartido.envionLleno(st)) {
         this.defBotonEn(W / 2, H - 108, "🌟 SÚPER DEFENSA", "ENVIÓN lleno", 0xffd84d, function () {
           self._def.superDef = true;

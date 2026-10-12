@@ -96,6 +96,20 @@
       return true;
     },
 
+    /* L04b · se callan de golpe. La franja vive arriba de todo (cámara de
+       UI), también arriba del cine: en la pregunta de la SÚPER DEFENSA los
+       dos globos (x 698-952, y 122-248) caían encima del título y de la
+       pregunta (l04b_4_cursor_en_guardar.png). Mientras se decide algo, no
+       se charla: el próximo comentar() los vuelve a mostrar. */
+    callar: function (sc) {
+      var t = sc && sc._tribuna;
+      if (!t) return false;
+      if (t._irse) { t._irse.remove(); t._irse = null; }
+      if (sc.tweens && sc.tweens.killTweensOf) sc.tweens.killTweensOf(t.cont);
+      t.cont.setAlpha(0);
+      return true;
+    },
+
     ANCHO: ANCHO, X: X, Y0: Y0
   };
 

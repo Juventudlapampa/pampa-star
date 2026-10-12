@@ -174,6 +174,31 @@
      ══════════════════════════════════════════════════════════════════════ */
   var remateAuto = remateRivalAuto;
 
+  /* ══════════════════════════════════════════════════════════════════════
+     L04b · LA SÚPER DEFENSA, CON PUERTA.
+
+     El GDD (5.4) dice que el envión lleno se gasta en potenciar al equipo
+     o en una Súper Defensa que bloquea un remate de forma segura. El
+     consumo (partido.gastarEnvionSuper) y su botón vivían en la pantalla de
+     defensa que la V9 C1 sacó, así que la mitad del envión no se podía usar
+     jugando. Ahora, cuando el rival te va a rematar y tenés el envión lleno,
+     la escena te pregunta (escenas_v9.js, preguntarSuperDefensa). Esto es lo
+     que pasa si decís que sí: la lectura del remate queda BLOQUEADA, con su
+     motivo propio, y el que se tira es quien juega (si no hay nadie en la
+     línea, igual aparece uno: es el envión el que lo pone ahí). No toca al
+     arquero ni la distancia: lo demás de la lectura se conserva tal cual. */
+  function conSuperDefensa(lectura, vos) {
+    var l = {}, k;
+    lectura = lectura || {};
+    for (k in lectura) if (Object.prototype.hasOwnProperty.call(lectura, k)) l[k] = lectura[k];
+    l.bloqueado = true;
+    l.superDefensa = true;
+    l.motivo = "super_defensa";
+    if (vos) l.defensorMasCerca = vos;
+    l.defensoresEnLinea = Math.max(1, l.defensoresEnLinea | 0);
+    return l;
+  }
+
   /* qué pasa DESPUÉS de un bloqueo. Un bloqueo no es una pelota perdida: la
      pelota rebota. Sale al córner, queda picando o el defensor la despeja.
      El reparto es dato (balance.definicion.bloqueo_reparto) porque de eso
@@ -191,6 +216,7 @@
   return {
     ZONAS: ZONAS, zona: zona, distZonas: distZonas, eleccionCPU: eleccionCPU,
     remateAuto: remateAuto, desenlaceBloqueo: desenlaceBloqueo,   // A3: la misma ley para los dos arcos
+    conSuperDefensa: conSuperDefensa,                             // L04b: el envión lleno bloquea un remate
     bonusArqueroPorZona: bonusArqueroPorZona, efectoTiming: efectoTiming,
     desvioDeEjecucion: desvioDeEjecucion,
     chanceBloqueo: chanceBloqueo, efectoAchicar: efectoAchicar,

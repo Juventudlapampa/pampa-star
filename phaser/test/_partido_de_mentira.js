@@ -47,9 +47,10 @@ Emisor.prototype.listenerCount = function (n) { return (this._ev[n] || []).lengt
 
 /* la clase de verdad, cargada una vez por contexto */
 /* opts (L04b): match = otra copia de match.js (para correr un test contra el
-   código de antes y ver que falla con el síntoma); logica y mixins = archivos
-   extra de phaser/logic y phaser/scenes, que se cargan antes y después de
-   match.js como en index.html (escenas_v9.js, logic/definicion.js…). */
+   código de antes y ver que falla con el síntoma); logicaAntes, logica y
+   mixins = archivos extra de phaser/logic y phaser/scenes, que se cargan
+   antes de partido.js, antes de match.js y después de match.js, como en
+   index.html (duel.js, logic/definicion.js, escenas_v9.js…). */
 function cargar(opts) {
   opts = opts || {};
   var W = {
@@ -60,7 +61,8 @@ function cargar(opts) {
   var ctx = { window: W, self: W, Phaser: W.Phaser, console: console, Math: Math, JSON: JSON, Object: Object,
     Array: Array, String: String, Number: Number, Date: Date, Promise: Promise, Error: Error, isFinite: isFinite };
   vm.createContext(ctx);
-  ["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js"].concat(opts.logica || []).forEach(function (f) {
+  /* logicaAntes: lo que partido.js toma al cargarse (duel.js, lectura.js) */
+  (opts.logicaAntes || []).concat(["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js"], opts.logica || []).forEach(function (f) {
     if (!fs.existsSync(path.join(RAIZ, f))) return;
     vm.runInContext(leer(f), ctx, { filename: f });
   });
