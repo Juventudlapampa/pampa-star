@@ -26,6 +26,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
   /* retratos del banco (doc §6): se cargan acá; sin server/archivo, cae a la cara del avatar */
   preload() {
+    /* L05: lo que no baja (una pose, una cara, el manifest de identidades)
+       se vuelve a pedir una vez (logic/carga.js); si vuelve a fallar, el
+       fallback del poseSprite cubre el hueco como antes. Va arriba de todo:
+       antes el oyente se ponía solo si había manifest de poses. */
+    if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
     this._retratos = { companero: [], rival: [] };
     const man = this.game.registry.get("portraits");
     if (man && Array.isArray(man.retratos)) {
@@ -84,7 +89,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           if (c.archivo && !this.textures.exists("cara_" + c.id)) this.load.image("cara_" + c.id, "../" + baseC + c.archivo);
         });
       }
-      this.load.on("loaderror", (file) => { /* el fallback del poseSprite cubre el hueco */ });
     }
     /* V7-1 §3: las IDENTIDADES de corrida — manifest propio, cargado acá mismo
        (el loader acepta encolar imágenes al completarse el json); fallback

@@ -116,6 +116,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      partido usa para dar cara al azar: si estuvieran ahi, Nito podria salir de
      defensor del rival. */
   preload() {
+    /* L05: lo que no baja se vuelve a pedir una vez (logic/carga.js). Antes
+       el Master no escuchaba el error: un logo o una pose que fallaban
+       quedaban afuera sin reintento. */
+    if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
     /* D2 · el logo HORIZONTAL (4280x640) para la franja de arriba del Master,
        y D3 · el escudo del club propio. */
     this.load.image("d_logo_h", "../assets/ui/pampa-star-logo-horizontal.webp");

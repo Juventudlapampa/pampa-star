@@ -102,7 +102,7 @@ async function vaciar() { for (var i = 0; i < 30; i++) await new Promise(functio
 
 /* ---------- la red ---------- */
 function crearRed() {
-  var N = { modo: "normal", log: [], fallar: {}, colgar: {}, cambios: {} };
+  var N = { modo: "normal", log: [], fallar: {}, fallarVeces: {}, colgar: {}, colgados: [], cambios: {} };
   N.fetch = function (input, init) {
     var url = typeof input === "string" ? input : input.url;
     var headers = (input && input.headers) || new Headers();
@@ -114,7 +114,10 @@ function crearRed() {
     if (ruta === "" || ruta.slice(-1) === "/") ruta += "index.html";
     N.log.push({ ruta: ruta, url: url, rango: rango, cache: modoCache, modoRed: N.modo });
     if (N.modo === "caida" || N.fallar[ruta] === "caida") return Promise.reject(new TypeError("Failed to fetch"));
+    /* colgar[ruta] = "a_mano": queda esperando hasta que el test llame soltar() */
+    if (N.colgar[ruta] === "a_mano") return new Promise(function (res) { N.colgados.push({ ruta: ruta, soltar: function () { delete N.colgar[ruta]; res(N.fetch(input, init)); } }); });
     if (N.modo === "colgada" || N.colgar[ruta]) return new Promise(function () { });
+    if (N.fallarVeces[ruta] > 0) { N.fallarVeces[ruta]--; return Promise.reject(new TypeError("Failed to fetch")); }
     if (N.fallar[ruta] === 404) return Promise.resolve(new Response("no", { status: 404, statusText: "Not Found" }));
     var buf;
     if (N.cambios[ruta]) buf = N.cambios[ruta];

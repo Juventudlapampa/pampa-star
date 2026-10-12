@@ -26,6 +26,15 @@
        guarda ese 200 y a cada pedido con Range se le contesta el pedazo que
        pidió (206) sacado de la caché.
 
+   ═══ CON SEÑAL FLOJA (L05, arranque-con-senal-floja) ═══
+
+     · el código va primero a la red, pero con tope de 3 s: si hay copia y
+       la red no contestó, contesta la copia (ver "EL CÓDIGO");
+     · la instalación es atómica: o baja todo lo crítico o no se activa, y
+       la caché anterior queda (ver "LA INSTALACIÓN ATÓMICA");
+     · abrir el juego sin red con ?ref= o ?embed= en el link cae al
+       index.html guardado.
+
    VERSION es la que se VE (editor, "Algo se trabó", informe de error) y es
    IGUAL a window.PAMPA_VERSION de index.html (informe.test.js). Se sube en
    cada publicación que toque phaser/: ahora eso solo barre el código.
@@ -421,47 +430,129 @@ async function calentar(urls) {
   return n;
 }
 
-/* ═══ EL CÓDIGO ════════════════════════════════════════════════════════ */
+/* ═══ EL CÓDIGO: LA RED PRIMERO, PERO CON TOPE ══════════════════════════
+   (L05, arranque-con-senal-floja) La meta es la localidad con mala señal,
+   donde la red casi nunca FALTA: se CUELGA. Antes era
+   fetch(e.request).then(guardar).catch(() => caches.match(...)): la caché
+   contestaba solo si la red FALLABA, no si tardaba, y una raya de señal
+   dejaba esperando cada uno de los 50 scripts y 14 JSON del arranque.
+   Ahora:
+     · la red tiene TOPE_RED_MS (3 s). Si no contestó y hay copia, contesta
+       la copia; la red sigue de fondo y, cuando llega, actualiza la caché;
+     · pasado un tope, la señal queda "floja" FLOJA_MS (30 s): mientras,
+       todo lo que tenga copia sale de la caché al toque, sin esperar otros
+       3 s por archivo (si no, el arranque serían 3 s de la página + 3 de los
+       scripts + 3 de los JSON). Una respuesta de la red a tiempo la apaga;
+     · sin copia, se espera a la red lo que haga falta (la página pone sus
+       propios topes: index.html a los JSON, el loader de Phaser a cada
+       archivo);
+     · una NAVEGACIÓN (abrir el juego) cae a index.html sin mirar lo que va
+       después del "?": un link con ?ref= o ?embed= abre igual sin red. */
+const TOPE_RED_MS = 3000;
+const FLOJA_MS = 30000;
+let flojaHasta = 0;
 
-/* html, js y json: NETWORK-FIRST, así cada deploy llega al toque; sin red,
-   responde la caché de esta versión */
+async function buscarCodigo(clave, navega) {
+  try {
+    const c = await caches.open(CODIGO);
+    let hit = await c.match(clave, { ignoreVary: true });
+    if (!hit && navega) hit = await c.match(new URL("./index.html", self.location.href).href, { ignoreSearch: true, ignoreVary: true });
+    /* a una navegación no se le puede contestar con una respuesta que vino
+       de una redirección: se rearma limpia */
+    if (hit && navega && hit.redirected) hit = new Response(await hit.blob(), { status: hit.status, statusText: hit.statusText, headers: hit.headers });
+    return hit;
+  } catch (err) { return undefined; }
+}
+
 function redPrimero(e) {
   const req = e.request;
+  const navega = req.mode === "navigate";
   const clave = claveCodigo(req.url);
   const ruta = rutaDe(req.url);
-  return fetch(req).then((res) => {
+  const t0 = Date.now();
+  /* "no-cache": que la caché HTTP del navegador no conteste con un archivo
+     de antes del deploy (GitHub Pages lo deja fresco 10 minutos) y se
+     mezclen versiones. Pasó en el navegador de prueba: después de un deploy
+     la página trajo index.html nuevo y logic/carga.js viejo. Si el archivo
+     no cambió, el server contesta 304: unos 300 bytes. */
+  let guardar = Promise.resolve();
+  const red = fetch(req, { cache: "no-cache" }).then((res) => {
+    if (Date.now() - t0 < TOPE_RED_MS) flojaHasta = 0;
     if (res.ok && res.status === 200 && !res.redirected) {
       const copia = res.clone();
-      e.waitUntil(caches.open(CODIGO).then((c) => c.put(clave, copia)).catch(() => { }));
+      guardar = caches.open(CODIGO).then((c) => c.put(clave, copia)).catch(() => { });
     }
     return res;
-  }).catch(() => caches.open(CODIGO)
-    .then((c) => c.match(clave, { ignoreVary: true }))
-    .then((hit) => {
-      if (hit) avisar(e.clientId, { origen: "cache", ruta: ruta });
-      return hit || Response.error();
-    }));
+  });
+  /* la red sigue viva aunque conteste la caché: cuando llega, actualiza */
+  e.waitUntil(red.then(() => guardar, () => { }));
+  const enCache = buscarCodigo(clave, navega);
+  return new Promise((resolve) => {
+    let listo = false;
+    const dar = (r, deCache) => {
+      if (listo || !r) return;
+      listo = true;
+      if (deCache) avisar(e.clientId, { origen: "cache", ruta: ruta });
+      resolve(r);
+    };
+    if (Date.now() < flojaHasta) enCache.then((hit) => dar(hit, true));
+    const reloj = setTimeout(() => {
+      flojaHasta = Date.now() + FLOJA_MS;
+      enCache.then((hit) => dar(hit, true));
+    }, TOPE_RED_MS);
+    red.then((res) => {
+      clearTimeout(reloj);
+      if (res.ok || res.type === "opaqueredirect") dar(res, false);
+      else enCache.then((hit) => (hit ? dar(hit, true) : dar(res, false)));
+    }, () => {
+      clearTimeout(reloj);
+      enCache.then((hit) => (hit ? dar(hit, true) : dar(Response.error(), false)));
+    });
+  });
 }
 
 /* ═══ INSTALAR Y ACTIVAR ═══════════════════════════════════════════════ */
 
+/* LA INSTALACIÓN ATÓMICA (L05). Antes era Promise.allSettled y después
+   skipWaiting: si la señal cortaba a mitad, el worker nuevo se activaba
+   igual, activate borraba la caché anterior, y lo que no había bajado se
+   perdía con ella (sin red, el juego abría a medias). Ahora todo lo crítico
+   (el PRECACHE) se baja PRIMERO a memoria, con un reintento por archivo; si
+   algo no baja, la instalación falla entera: no hay skipWaiting, este
+   worker no se activa y el anterior sigue con su caché intacta (el
+   navegador vuelve a intentar en la próxima visita). Recién con todo en la
+   mano se escribe. La música va aparte y a lo que dé. */
+async function bajarCodigo(url) {
+  const res = await fetch(new Request(url, { cache: "no-cache" }));
+  if (!res.ok || res.status !== 200) throw new Error("código " + res.status + " " + url);
+  return res;
+}
+async function conReintento(f) {
+  try { return await f(); } catch (err) { return f(); }
+}
 async function instalar() {
   const assets = await caches.open(ASSETS);
   try { await rescatar(assets); } catch (err) { }
-  const codigo = await caches.open(CODIGO);
-  await Promise.allSettled(PRECACHE.map(async (u) => {
+  const bajados = await Promise.all(PRECACHE.map(async (u) => {
     const url = new URL(u, self.location.href).href;
     const ruta = rutaDe(url);
     if (esAsset(ruta)) {
       const clave = claveAsset(ruta);
-      if (await assets.match(clave, { ignoreVary: true })) return;   // ya está con esta huella: ni se pide
-      await assets.put(clave, await bajarAsset(ruta));
-      return;
+      if (await assets.match(clave, { ignoreVary: true })) return null;   // ya está con esta huella: ni se pide
+      return { aAssets: true, clave: clave, res: await conReintento(() => bajarAsset(ruta)) };
     }
-    const res = await fetch(new Request(url, { cache: "no-cache" }));
-    if (!res.ok) throw new Error(res.status + " " + url);
-    await codigo.put(claveCodigo(url), res);
+    return { aAssets: false, clave: claveCodigo(url), res: await conReintento(() => bajarCodigo(url)) };
   }));
+  /* si la caché de código ya existía (sw.js cambió sin subir VERSION) es la
+     que está usando el worker activo: si la escritura falla, no se borra */
+  const yaEstaba = await caches.has(CODIGO);
+  const codigo = await caches.open(CODIGO);
+  try {
+    await Promise.all(bajados.filter(Boolean).map((b) => (b.aAssets ? assets : codigo).put(b.clave, b.res)));
+  } catch (err) {
+    if (!yaEstaba) await caches.delete(CODIGO);
+    throw err;
+  }
   await precachearMusica(assets, codigo);
 }
 

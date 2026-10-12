@@ -12,8 +12,10 @@
        página, que suma lo que bajó sin pasar por él (la primera visita,
        antes de que el worker controle la página). Así se puede VER que un
        deploy nuevo no le hace bajar las poses de nuevo a quien ya jugó.
+     · el reintento del loader de Phaser: un archivo que falla se vuelve a
+       pedir una vez, y si falla otra vez se sigue (reintentarUnaVez).
 
-   Lo prueba phaser/test/cache_versiones.test.js.
+   Lo prueban phaser/test/cache_versiones.test.js y red_lenta.test.js.
    ========================================================================== */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -62,5 +64,50 @@
     return t;
   }
 
-  return { nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed };
+  /* ═══ EL REINTENTO DEL LOADER DE PHASER (L05, arranque-con-senal-floja) ═══
+     Antes los cuatro preload (intro, editor, master, partido) se tragaban el
+     "loaderror" sin hacer nada: con una raya de señal, una pose que no bajaba
+     al primer intento quedaba en el sprite de código toda la sesión. Ahora,
+     la primera vez que un archivo falla (o vence el tope de
+     balance.red_floja.loader_timeout_ms) se vuelve a encolar con la misma
+     clave y la misma dirección; la segunda, se deja y el juego sigue con su
+     respaldo. Se encola ADENTRO del aviso de error: Phaser lo emite antes de
+     mirar si la carga terminó (LoaderPlugin.nextFile → fileProcessComplete),
+     así que el archivo nuevo entra en la misma tanda.
+     El registro vive en el cierre de cada preload, no en la escena: Phaser
+     borra todos los oyentes del loader al apagar la escena
+     (LoaderPlugin.shutdown → removeAllListeners), así que cada scene.start
+     arranca de cero sin dejar memoria en la instancia (patrón P1).
+     load: el LoaderPlugin (this.load). Devuelve { reintentados, perdidos }. */
+  var HISTORIAL_MAX = 30;
+  var historial = [];
+  function anotar(que, f) {
+    historial.push({ que: que, clave: f.key || "?", tipo: f.type || "?" });
+    if (historial.length > HISTORIAL_MAX) historial.shift();
+  }
+  function reintentarUnaVez(load) {
+    var vistos = {};
+    var reg = { reintentados: [], perdidos: [] };
+    if (!load || typeof load.on !== "function") return reg;
+    load.on("loaderror", function (file) {
+      var f = file || {};
+      var id = (f.type || "?") + ":" + (f.key || "?");
+      var encolar = f.type === "image" ? load.image : f.type === "json" ? load.json : null;
+      if (!vistos[id] && encolar && f.key && typeof f.url === "string") {
+        vistos[id] = true;
+        reg.reintentados.push(f.key);
+        anotar("reintento", f);
+        encolar.call(load, f.key, f.url);
+      } else {
+        reg.perdidos.push(f.key);
+        anotar("perdido", f);
+      }
+    });
+    return reg;
+  }
+
+  return {
+    nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed,
+    reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); }
+  };
 });

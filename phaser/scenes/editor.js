@@ -14,7 +14,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
   /* EDITOR v2: los 8 bustos ilustrados del manifest (tolerante: sin manifest
      o sin PNG, vuelve el avatar de bloques y nada crashea) */
   preload() {
-    this.load.on("loaderror", () => { });
+    /* L05: una cara que no bajó se vuelve a pedir una vez (logic/carga.js);
+       si vuelve a fallar, queda el avatar de bloques como antes */
+    if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
     const CM = this.game.registry.get("caras");
     if (CM && CM.caras) {
       const base = CM.base || "assets/poses/caras/";

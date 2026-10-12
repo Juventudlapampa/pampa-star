@@ -1072,28 +1072,51 @@
   window.addEventListener("pointerdown", ()=>{ try{ window.PampaSFX && window.PampaSFX.unlock(); }catch(e){} });
   /* V7 §5 PWA: el juego se instala y abre OFFLINE. El service worker y lo
      que vino de la red viven en el script de arriba (LA RED, L05). */
+  /* L05 · TOPE A CADA JSON DEL ARRANQUE (arranque-con-senal-floja). Antes
+     cada fetch tenía su .catch, que atrapa el RECHAZO pero no la ESPERA, y
+     el Promise.all de abajo esperaba a los catorce: con un JSON colgado
+     (señal que no se corta, se cuelga) la pantalla quedaba negra y sin
+     aviso. Solo las fuentes tenían tope. Ahora cada JSON tiene
+     TOPE_JSON_MS: si vence se corta el pedido (AbortController) y se sigue
+     con el respaldo que ya existía (BALANCE_FALLBACK para el balance, null
+     para el resto: cada módulo tiene su guarda). Va acá y no en el balance
+     porque corre antes de que el balance exista. Los topes que vencieron
+     quedan en window.__PAMPA_RED.topes (se ven con ?perf=1). */
+  const TOPE_JSON_MS = 8000;
+  function jsonConTope(url, respaldo){
+    let ctl = null, reloj = null;
+    try { ctl = new AbortController(); } catch (e) { ctl = null; }
+    const tope = new Promise((r)=>{ reloj = setTimeout(()=>{
+      try { if (ctl) ctl.abort(); } catch (e) { }
+      try { window.__PAMPA_RED.topes.push(url); if (window.__PAMPA_RED_PINTAR) window.__PAMPA_RED_PINTAR(); } catch (e) { }
+      r(respaldo);
+    }, TOPE_JSON_MS); });
+    const pedido = fetch(url, ctl ? { signal: ctl.signal } : undefined)
+      .then(r=>r.ok?r.json():respaldo).catch(()=>respaldo);
+    return Promise.race([pedido, tope]).then((v)=>{ clearTimeout(reloj); return v; });
+  }
   /* balance + roster (los dos tolerantes a fallo: el juego abre igual sin server) */
-  const pBal = fetch("data/balance.json").then(r=>r.ok?r.json():Promise.reject()).catch(()=>BALANCE_FALLBACK);
-  const pRoster = fetch("../data/roster_pampeano.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pRetratos = fetch("../data/portraits_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pMega = fetch("../data/megacosas.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pRelatos = fetch("../data/relatos.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pPoses = fetch("../data/poses_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pCaras = fetch("../data/caras_manifest.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pDivisiones = fetch("../data/divisiones.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pVida = fetch("../data/eventos_temporada.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pSemana = fetch("../data/semana.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  const pBal = jsonConTope("data/balance.json", BALANCE_FALLBACK);
+  const pRoster = jsonConTope("../data/roster_pampeano.json", null);
+  const pRetratos = jsonConTope("../data/portraits_manifest.json", null);
+  const pMega = jsonConTope("../data/megacosas.json", null);
+  const pRelatos = jsonConTope("../data/relatos.json", null);
+  const pPoses = jsonConTope("../data/poses_manifest.json", null);
+  const pCaras = jsonConTope("../data/caras_manifest.json", null);
+  const pDivisiones = jsonConTope("../data/divisiones.json", null);
+  const pVida = jsonConTope("../data/eventos_temporada.json", null);
+  const pSemana = jsonConTope("../data/semana.json", null);
   /* O2 (entrevista) y N1 (los dos de la tribuna): puro texto editable. Si
      alguno falta, el juego sigue — la entrevista cae al texto plano y la
      tribuna simplemente no habla. */
-  const pEntrevista = fetch("../data/entrevista.json").then(r=>r.ok?r.json():null).catch(()=>null);
-  const pTribuna = fetch("../data/tribuna.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  const pEntrevista = jsonConTope("../data/entrevista.json", null);
+  const pTribuna = jsonConTope("../data/tribuna.json", null);
   /* M2 · EL MAPA DE MÚSICA. Si no está, el juego sigue con el sintetizador:
      no hay pantalla que dependa de esto. */
-  const pAudio = fetch("../data/audio.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  const pAudio = jsonConTope("../data/audio.json", null);
   /* LA LUZ DE LA ESCALERA: las paletas de los fondos pintados del cine. Si
      falta, cada plano dibuja su fondo de siempre (cine_arte.js devuelve false). */
-  const pAmbientes = fetch("../data/ambientes.json").then(r=>r.ok?r.json():null).catch(()=>null);
+  const pAmbientes = jsonConTope("../data/ambientes.json", null);
   /* V8 §5: esperar las fuentes antes de crear textos — tope 8s (en celu con
      red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
@@ -1205,12 +1228,23 @@
       /* L04: mantener apretado sobre el lienzo (o el clic derecho) no abre el
          menú del navegador encima del partido */
       disableContextMenu: true,
+      /* L05: el tope de cada archivo que pide Phaser. Su valor por defecto es
+         0, SIN tope: una pose colgada frenaba el preload para siempre. Con
+         tope, el archivo cuenta como fallado y logic/carga.js lo vuelve a
+         pedir una vez (ver balance.red_floja) */
+      loader: { timeout: (balance && balance.red_floja && balance.red_floja.loader_timeout_ms) || 15000 },
       callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);
     /* L04: si el teléfono ya estaba en vertical, el juego nace en pausa */
     if (window.PampaPausa) window.PampaPausa.aplicar();
+    /* L05: cuándo arrancó el juego, desde que se empezó a abrir la página
+       (se ve con ?perf=1: "arrancó en N s") */
+    try {
+      if (performance.mark) performance.mark("pampa-arranque");
+      if (window.__PAMPA_RED) { window.__PAMPA_RED.arranqueMs = Math.round(performance.now()); if (window.__PAMPA_RED_PINTAR) window.__PAMPA_RED_PINTAR(); }
+    } catch (e) { }
     /* desde acá, un error se avisa con "Algo se trabó" (antes del juego lo
        decide el chequeo de arriba) */
     if (R) R.arrancado = true;

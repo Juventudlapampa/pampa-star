@@ -12,7 +12,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   constructor() { super("intro"); }
 
   preload() {
-    this.load.on("loaderror", () => { });   // A.4: nada crashea por un archivo faltante
+    /* A.4: nada crashea por un archivo faltante (el plano se saltea solo).
+       L05: con señal floja, lo que falla se vuelve a pedir UNA vez
+       (logic/carga.js); si vuelve a fallar, sigue sin él como antes. */
+    if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
     this.load.image("i_pueblo", "../assets/ui/fondo_pueblo.webp");
     this.load.image("i_logo", "../assets/ui/logo.webp");
     /* D1 · LOS SEIS FONDOS DE CLAUDE DESIGN. Son 1920x1080 planos y de poco
