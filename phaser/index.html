@@ -269,7 +269,7 @@
            se ofrece. VOLVER AL MENÚ sí, porque la frena. */
       var anda = !!g && g.isRunning !== false;
       var puedeMenu = !noBajo && anda && !R.menuRoto;
-      var puedeSeguir = puedeMenu && !R.dormido && !R.escenaRota(g);
+      var puedeSeguir = puedeMenu && !R.dormido && !R.sinSeguir && !R.escenaRota(g);
       $("tb-tit").textContent = noAbre ? "El juego no pudo arrancar"
         : noBajo ? "No terminó de bajar el juego" : "Algo se trabó";
       $("tb-txt").textContent = noAbre
@@ -345,6 +345,8 @@
            bajando lo suyo. Si su create tiró, la excepción ya cae abajo. */
         var m = sm.getScene(R.menu), stM = m && m.sys.settings.status;
         if (stM !== ESC.RUNNING && stM !== ESC.LOADING) throw new Error("el menú no arrancó (estado " + stM + ")");
+        /* pantalla nueva: el vigía y la marca de "no ofrecer SEGUIR" eran del partido de antes */
+        R.vigia = null; R.sinSeguir = false;
       } catch (e) {
         /* ni siquiera el menú arranca: el aviso vuelve, ahora sólo con
            RECARGAR (antes recargaba solo, sin decir nada) */
@@ -370,11 +372,57 @@
         });
       } catch (e) { }
     };
+    /* EL VIGÍA DE SEGUIR IGUAL (revisión del lote). SEGUIR se pensó para el
+       error de un solo cuadro: un delayedCall que tira no vuelve a dispararse.
+       Pero ese mismo hecho es el problema cuando el callback que tiró era el
+       que hacía avanzar la jugada (match.js: `alFinal: () => {
+       this.relatar(...); paso(k + 1); }`, o los alFinal que terminan en
+       reanudarLibre()): la continuación se pierde, el partido queda en
+       ESCENA/CINE/RESOLUCIÓN con el reloj congelado, ningún error nuevo trae
+       el aviso de vuelta y el partido no tiene otra salida. Después de SEGUIR,
+       si el partido no cambia de estado ni corre su reloj durante
+       balance.red_de_errores.vigia_seguir_ms de juego, el aviso vuelve sin
+       SEGUIR. Los estados que esperan a quien juega no cuentan: ahí lo quieto
+       es pensar. */
+    var ESPERAN = { MENU: 1, PASE: 1, TEMPO_MENU: 1, TUTORIAL: 1, FINAL: 1, DEFINICION: 1, JUGADON: 1 };
+    R.vigia = null;
+    R.sinSeguir = false;
+    R.firmaPartido = function (g) {
+      try {
+        var m = g.scene.getScene("match");
+        if (!m || m.sys.settings.status !== ESC.RUNNING || !m.st) return null;
+        return { estado: m.estado, firma: [m.estado, m.st.modo, m.st.tiempo, m.st.minuto].join("|") };
+      } catch (e) { return null; }
+    };
+    R.topeVigia = function (g) {
+      try {
+        var b = g.registry.get("balance"), v = b && b.red_de_errores && b.red_de_errores.vigia_seguir_ms;
+        if (v > 0) return v;
+      } catch (e) { }
+      return 12000;
+    };
+    R.armarVigia = function (g) {
+      var f = R.firmaPartido(g);
+      R.vigia = (f && !ESPERAN[f.estado]) ? { firma: f.firma, estado: f.estado, ms: 0, tope: R.topeVigia(g) } : null;
+    };
+    /* lo llama el paso del juego en cada cuadro sin pausa */
+    R.mirarVigia = function (g, delta) {
+      var v = R.vigia, f = R.firmaPartido(g);
+      if (!v) return;
+      if (!f || f.firma !== v.firma || ESPERAN[f.estado]) { R.vigia = null; return; }   // se movió: anduvo
+      v.ms += delta > 0 ? delta : 0;
+      if (v.ms < v.tope) return;
+      R.vigia = null;
+      R.sinSeguir = true;
+      R.registrar(new Error("el partido quedó quieto " + Math.round(v.ms / 1000) + " s en " + v.estado + " después de SEGUIR IGUAL"), "vigia");
+      R.mostrar("trabado");
+    };
     R.seguir = function () {
       R.ocultar();
       var g = juego(); if (!g) return;
       R.soltarTeclas(g);
       if (g.resume) g.resume();
+      R.armarVigia(g);
     };
     R.copiar = function () {
       var txt = R.informe(), c = R.contacto();
@@ -409,6 +457,7 @@
         try {
           paso.call(this, time, delta);
           if (!this.isPaused && ++R.limpios >= R.limpiosParaOlvidar) R.seguidos = 0;
+          if (R.vigia && !this.isPaused) R.mirarVigia(this, delta);
         } catch (e) {
           R.registrar(e, "cuadro");
           R.contar();

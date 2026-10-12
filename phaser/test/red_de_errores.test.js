@@ -452,4 +452,55 @@ function parte5() {
   R.volverAlMenu();
   assert(env.recargas.n === 1, "y si igual se llama a volverAlMenu, recarga");
   console.log("[5] contra la semántica de Phaser 3.80: cola vieja vaciada · el menú roto se frena y rearranca · si no arranca, sólo RECARGAR · sin loop, sólo RECARGAR");
+  parte6();
+}
+
+/* ---------- [6] EL VIGÍA DE SEGUIR IGUAL ----------
+   Revisión del lote: si el callback que tiró era el que hacía avanzar la
+   jugada (`alFinal: () => { this.relatar(...); paso(k + 1); }`), SEGUIR IGUAL
+   dejaba el partido en ESCENA con el reloj congelado para siempre, sin aviso
+   (no hay un error nuevo que lo traiga) y sin salida. */
+function parte6() {
+  var BAL6 = JSON.parse(fs.readFileSync(path.join(RAIZ, "phaser/data/balance.json"), "utf8"));
+  var RE = BAL6.red_de_errores || {};
+  assert(RE.vigia_seguir_ms > 0 && typeof RE._nota === "string" && /medido/i.test(RE._nota),
+    "balance.red_de_errores.vigia_seguir_ms existe y su _nota dice cómo se midió");
+  var TOPE = RE.vigia_seguir_ms || 12000;
+  function cuadros(g, ms) { for (var t = 0; t < ms; t += 16.667) g.step(t, 16.667); }
+  function escenario(estado) {
+    var env = entorno(), J = juegoDeMentira(env), g = J.g;
+    g.registry.get = function (k) { return k === "balance" ? BAL6 : null; };
+    J.match.estado = estado; J.match.st = { modo: "congelado", tiempo: 1, minuto: 30, golesMio: 0, golesRival: 0 };
+    env.R.envolver(J.Ph);
+    g.romper = true; g.step(0, 16.667); g.romper = false;   // el alFinal que tiró: la continuación se perdió
+    env.el("tb-seguir").click();
+    return { env: env, g: g, m: J.match, R: env.R };
+  }
+  /* la jugada quedó colgada en ESCENA */
+  var E = escenario("ESCENA");
+  assert(E.env.el("trabado").hidden && !E.g.isPaused, "SEGUIR IGUAL saca el aviso y el juego sigue");
+  cuadros(E.g, TOPE - 500);
+  assert(E.env.el("trabado").hidden, "antes del tope, nada (una viñeta dura 2,6 s y un cine 2,8 s)");
+  cuadros(E.g, 1000);
+  assert(!E.env.el("trabado").hidden,
+    "SÍNTOMA DEL PARTIDO COLGADO: " + (TOPE / 1000) + " s quieto en ESCENA después de SEGUIR IGUAL y el aviso tiene que volver");
+  assert(E.env.el("tb-seguir").hidden && !E.env.el("tb-menu").hidden, "ahora sin SEGUIR IGUAL, con VOLVER AL MENÚ");
+  assert(E.R.ultimo && E.R.ultimo.origen === "vigia" && /quieto/.test(E.R.ultimo.mensaje), "y queda registrado (origen 'vigia')");
+  E.env.el("tb-menu").click();
+  assert(!E.R.sinSeguir && !E.R.vigia, "VOLVER AL MENÚ lo deja todo como nuevo");
+  /* la jugada siguió: el estado cambió y el reloj corre */
+  var A = escenario("ESCENA");
+  cuadros(A.g, 1000);
+  A.m.estado = "LIBRE"; A.m.st.modo = "juego";
+  for (var t = 0; t < TOPE + 2000; t += 16.667) { A.m.st.minuto += 0.002; A.g.step(t, 16.667); }
+  assert(A.env.el("trabado").hidden && !A.R.vigia, "si el partido siguió (otro estado, el reloj corriendo), el vigía se va solo");
+  /* los que esperan a quien juega no cuentan */
+  var M = escenario("MENU");
+  cuadros(M.g, TOPE * 2);
+  assert(M.env.el("trabado").hidden, "en un MENÚ lo quieto es pensar: el vigía no se arma");
+  /* la pausa no cuenta */
+  var P = escenario("CINE");
+  P.g.pause(); cuadros(P.g, TOPE * 2); P.g.resume();
+  assert(P.env.el("trabado").hidden, "el tiempo con el juego en pausa no suma");
+  console.log("[6] el vigía de SEGUIR IGUAL: " + (TOPE / 1000) + " s quieto en un estado automático → el aviso vuelve sin SEGUIR · se va solo si el partido anda");
 }

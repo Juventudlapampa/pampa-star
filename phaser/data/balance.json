@@ -726,6 +726,10 @@
     "mail": "",
     "formulario": ""
   },
+  "red_de_errores": {
+    "_nota": "TANDA 1.0 · EL VIGÍA DE SEGUIR IGUAL (index.html, window.PampaRed). Si el callback que tiró era el que hacía avanzar la jugada (un alFinal que llama a paso(k+1) o a reanudarLibre), SEGUIR IGUAL dejaba el partido en ESCENA, CINE o RESOLUCIÓN para siempre y sin aviso. Después de SEGUIR, si el partido no cambia de estado ni corre su reloj durante vigia_seguir_ms de juego (sin contar la pausa), el aviso vuelve, ahora sin SEGUIR. No mira los estados que esperan a quien juega (MENU, PASE, TEMPO_MENU, TUTORIAL, FINAL, DEFINICION, JUGADON). Medido en un partido entero del Master con jugadas elegidas al azar (1-0, 26 menús, 9 decisiones de Definición): el tramo más largo sin cambio en un estado automático fue el CINE (2,8 s), después la ESCENA (2,3 s), el BEAT (0,75 s) y LIBRE (0,43 s, entre latidos). La cadena más larga posible es la megacorrida: 2 viñetas de 2,6 s seguidas. 12 s es más de cuatro veces lo medido y más del doble de esa cadena.",
+    "vigia_seguir_ms": 12000
+  },
   "flags": {
     "a3_bloqueo": true
   }
