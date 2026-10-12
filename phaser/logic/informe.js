@@ -116,8 +116,8 @@
       dos(d.getHours()) + ":" + dos(d.getMinutes()) + ":" + dos(d.getSeconds());
   }
 
-  /* EL INFORME. d = {version, escena, estado:{...}, error, stack, faltan,
-     pantalla:{w,h,dpr,horizontal}, instalada, ua, hora, errores}.
+  /* EL INFORME. d = {version, escena, estado:{...}, error, stack, lugar,
+     faltan, noArranco, pantalla:{w,h,dpr,horizontal}, instalada, ua, hora, errores}.
      op.secretos = lo que hay que tapar (secretosDelSave). Cualquier otro
      campo de d se ignora: no hay forma de que un save entre por la ventana. */
   function armar(d, op) {
@@ -128,9 +128,17 @@
     L.push("escena: " + (d.escena || "ninguna") + (est ? " · " + est : ""));
     if (d.error != null) L.push("error: " + (primeraLinea(d.error) || "?"));
     var donde = lugar(d.stack || (d.error && d.error.stack));
+    /* un SyntaxError no trae renglones "at …" en el stack: el lugar lo da el
+       evento (index.html lo guarda ya corto). Sólo se acepta con esa forma. */
+    if (!donde && /^[\w.\/-]+\.js:\d+:\d+$/.test(String(d.lugar || ""))) donde = String(d.lugar);
     if (donde) L.push("dónde: " + donde);
     if (d.faltan && d.faltan.length) {
       L.push("no bajó: " + d.faltan.slice(0, 4).map(function (f) { return lugar(f + ":0:0").replace(/:0:0$/, "") || String(f); }).join(", "));
+    }
+    /* las clases obligatorias que no aparecieron aunque su script bajó: son
+       nombres del código (PampaMatch…), no hay nada de la persona */
+    if (d.noArranco && d.noArranco.length) {
+      L.push("no arrancó: " + d.noArranco.slice(0, 6).map(function (n) { return String(n).replace(/[^\w.\/-]/g, ""); }).join(", "));
     }
     if (d.errores > 1) L.push("errores en la sesión: " + (d.errores | 0));
     var P = d.pantalla;

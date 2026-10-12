@@ -109,6 +109,14 @@ var BASE = {
   var t = I.armar({ version: "v1", faltan: ["http://h/phaser/scenes/match.js"], errores: 3 });
   assert(/no bajó: scenes\/match\.js/.test(t), "si un script no bajó, el informe lo nombra");
   assert(/errores en la sesión: 3/.test(t), "y cuenta los errores de la sesión");
+  /* revisión del lote: el script que BAJÓ pero el navegador no pudo leer. El
+     SyntaxError no trae renglones "at …"; el lugar viene del evento */
+  var t2 = I.armar({ version: "v1", error: "SyntaxError: Unexpected token '?'", stack: "SyntaxError: Unexpected token '?'",
+    lugar: "scenes/match.js:812:31", noArranco: ["PampaMatch"] });
+  assert(/error: SyntaxError: Unexpected token/.test(t2), "el informe lleva el SyntaxError, no un 'no bajó' que lo pisa");
+  assert(/dónde: scenes\/match\.js:812:31/.test(t2), "con el lugar del evento cuando el stack no lo trae");
+  assert(/no arrancó: PampaMatch/.test(t2) && !/no bajó/.test(t2), "y nombra la clase que no arrancó (sin decir que no bajó)");
+  assert(!/dónde/.test(I.armar({ version: "v1", lugar: "Rocío <b>" })), "un lugar que no tiene forma de archivo.js:línea:col no entra");
   console.log("[3] dónde (Chrome, Firefox/Safari, motor) · estado sólo con números · scripts que no bajaron");
 })();
 

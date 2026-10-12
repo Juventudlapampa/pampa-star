@@ -126,6 +126,8 @@
       errores: 0,              // en esta sesión (va al informe)
       ultimo: null,            // el último registro guardado
       faltan: [],              // scripts que no bajaron
+      noArranco: [],           // clases obligatorias que no aparecieron aunque su script bajó
+      primerArranque: null,    // el PRIMER error del arranque: suele ser la causa de los demás
       arrancado: false,        // hasta que existe el juego, decide arrancarCon
       dormido: false,
       menuRoto: false,         // VOLVER AL MENÚ ya probó y el menú no arrancó: queda RECARGAR
@@ -175,7 +177,10 @@
       });
       return window.PampaInforme ? window.PampaInforme.secretosDelSave(saves) : [];
     };
-    R.registrar = function (err, origen) {
+    /* donde: "archivo.js:línea:col" del evento, para cuando el stack no lo
+       dice (un SyntaxError no trae renglones "at …": el lugar viene en
+       ev.filename/lineno/colno) */
+    R.registrar = function (err, origen, donde) {
       R.errores++;
       var I = window.PampaInforme, sec = R.secretos(), ctx = R.contexto();
       var msg = I ? I.primeraLinea(err) : String((err && err.message) || err);
@@ -183,7 +188,7 @@
       var rec = {
         v: window.PAMPA_VERSION, cuando: new Date().toISOString(), origen: origen,
         mensaje: I ? I.tapar(msg, sec) : msg,
-        lugar: I ? I.lugar(stack) : "",
+        lugar: I ? (I.lugar(stack) || (donde ? I.lugar(donde) : "")) : "",
         stack: (I ? I.tapar(stack, sec) : stack).slice(0, 1500),
         escena: ctx.escena, estado: ctx.estado
       };
@@ -224,8 +229,8 @@
       var d = {
         version: window.PAMPA_VERSION,
         escena: u.escena || ctx.escena, estado: u.estado || ctx.estado,
-        error: u.mensaje != null ? u.mensaje : null, stack: u.stack,
-        faltan: R.faltan, errores: R.errores,
+        error: u.mensaje != null ? u.mensaje : null, stack: u.stack, lugar: u.lugar,
+        faltan: R.faltan, noArranco: R.noArranco, errores: R.errores,
         pantalla: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1,
           horizontal: window.innerWidth >= window.innerHeight },
         instalada: R.instalada(), ua: navigator.userAgent, hora: Date.now()
@@ -235,15 +240,22 @@
          lo único que podría traer un nombre y acá no hay con qué taparlo */
       return ["PAMPA STAR · informe de error", "versión: " + d.version, "escena: " + (d.escena || "ninguna"),
         R.faltan.length ? "no bajó: " + R.faltantes().join(", ") : "",
+        R.noArranco.length ? "no arrancó: " + R.noArranco.join(", ") : "",
         "navegador: " + d.ua, "hora: " + new Date().toISOString()].filter(Boolean).join("\n");
     };
 
     function boton(id, ver) { var b = $(id); if (b) b.hidden = !ver; }
+    /* los tres avisos, del que más manda al que menos: un script que no bajó
+       explica todo lo que viene después (las clases que lo necesitaban tiran
+       al leerse), y un juego que no arrancó explica cualquier "se trabó" */
+    var RANGO = { no_bajo: 3, no_abre: 2, trabado: 1 };
     R.mostrar = function (tipo) {
       var caja = $("trabado"); if (!caja) return;
-      var noBajo = tipo === "no_bajo", g = juego();
-      /* un "no bajó" no se pisa con un "se trabó": el que manda es el primero */
-      if (R.tipo === "no_bajo" && !noBajo) return;
+      if (R.tipo && RANGO[R.tipo] > RANGO[tipo]) return;
+      /* "no_abre": todos los <script> bajaron pero alguno no se pudo LEER (un
+         SyntaxError en un navegador viejo, o un archivo cortado). Se ofrece lo
+         mismo que en "no_bajo", con otro título y otro texto */
+      var noAbre = tipo === "no_abre", noBajo = tipo === "no_bajo" || noAbre, g = juego();
       R.tipo = tipo;
       /* qué salidas son de verdad (revisión del lote: VOLVER AL MENÚ y SEGUIR
          IGUAL dejaban la pantalla muerta en tres casos):
@@ -258,9 +270,11 @@
       var anda = !!g && g.isRunning !== false;
       var puedeMenu = !noBajo && anda && !R.menuRoto;
       var puedeSeguir = puedeMenu && !R.dormido && !R.escenaRota(g);
-      $("tb-tit").textContent = noBajo ? "No terminó de bajar el juego" : "Algo se trabó";
-      $("tb-txt").textContent = noBajo
-        ? "La conexión está floja. Probá de nuevo cuando tengas señal."
+      $("tb-tit").textContent = noAbre ? "El juego no pudo arrancar"
+        : noBajo ? "No terminó de bajar el juego" : "Algo se trabó";
+      $("tb-txt").textContent = noAbre
+        ? "Este navegador no pudo abrir una parte del juego. Probá de nuevo con buena señal y, si vuelve a pasar, actualizá el navegador o abrí el juego en otro."
+        : noBajo ? "La conexión está floja. Probá de nuevo cuando tengas señal."
         : puedeMenu ? "Lo que tenías guardado sigue ahí: volver al menú no lo toca."
           : "Lo que tenías guardado sigue ahí: recargar no lo toca.";
       boton("tb-menu", puedeMenu);
@@ -427,10 +441,12 @@
         return;
       }
       if (ignorable(ev)) return;
-      R.registrar(ev.error || ev.message, "evento");
+      var donde = ev.filename ? ev.filename + ":" + (ev.lineno | 0) + ":" + (ev.colno | 0) : "";
+      var rec = R.registrar(ev.error || ev.message, "evento", donde);
       /* durante el arranque decide arrancarCon: un error de un script que no
-         es obligatorio no tiene por qué frenar el juego */
-      if (!R.arrancado) return;
+         es obligatorio no tiene por qué frenar el juego. El primero se guarda
+         aparte: si después falta una clase, ESE es el que lo explica */
+      if (!R.arrancado) { if (!R.primerArranque) R.primerArranque = rec; return; }
       R.contar();
       R.mostrar("trabado");
     }, true);
@@ -721,6 +737,25 @@
     const R = window.PampaRed;
     if (R) {
       const falta = R.faltantes();
+      if (falta.length && !R.faltan.length) {
+        /* REVISIÓN DEL LOTE: todos los <script> bajaron (ninguno disparó su
+           error de carga) y aun así falta una clase: el script llegó pero el
+           navegador no lo pudo LEER (un SyntaxError en un navegador viejo, o
+           un archivo cortado a la mitad). Antes se registraba "no bajó:
+           PampaMatch", que PISABA el SyntaxError en pampa_ultimo_error, y se
+           decía "la conexión está floja": REINTENTAR fallaba para siempre con
+           un diagnóstico falso. Ahora el informe lleva el primer error del
+           arranque y la lista de lo que no arrancó. */
+        R.noArranco = falta.slice();
+        if (R.primerArranque) {
+          R.ultimo = R.primerArranque;
+          try { localStorage.setItem("pampa_ultimo_error", JSON.stringify(R.ultimo)); } catch (e) { }
+        } else {
+          R.registrar(new Error("no arrancó: " + falta.join(", ")), "arranque");
+        }
+        R.mostrar("no_abre");
+        return;
+      }
       if (falta.length) {
         R.registrar(new Error("no bajó: " + falta.join(", ")), "arranque");
         R.mostrar("no_bajo");

@@ -231,6 +231,40 @@ function juegoDeMentira(env) {
   R.mostrar("trabado");
   assert(R.tipo === "no_bajo", "un 'se trabó' posterior no tapa el 'no bajó'");
 
+  /* el script que BAJÓ pero el navegador no pudo leer (revisión del lote): se
+     corre el arrancarCon real de index.html, con todo presente menos la clase
+     del script que tiró un SyntaxError al leerse */
+  var fuenteArranque = ARRANQUE.slice(ARRANQUE.indexOf("function arrancarCon"));
+  function arranqueCon(envX) {
+    return new Function("window", "Phaser", "localStorage", fuenteArranque + "\nreturn arrancarCon;")(envX.win, undefined, null);
+  }
+  var env4 = entorno(), R4 = env4.R;
+  ["Phaser", "PampaIntro", "PampaEditor", "PampaMasterScene", "PampaPartido", "PampaTemporada", "PampaMaster", "PampaAvatar", "PampaSFX"]
+    .forEach(function (n) { env4.win[n] = {}; });
+  /* un SyntaxError de lectura trae el stack sin renglones "at …" (visto en
+     el navegador): el lugar sólo está en el evento */
+  var se = new SyntaxError("Unexpected token '?'"); se.stack = "SyntaxError: Unexpected token '?'";
+  env4.disparar("error", { target: env4.win, message: "Uncaught SyntaxError: Unexpected token '?'",
+    error: se, filename: "http://localhost:8123/phaser/scenes/match.js", lineno: 812, colno: 31 });
+  arranqueCon(env4)();
+  assert(env4.el("tb-tit").textContent === "El juego no pudo arrancar" && R4.tipo === "no_abre",
+    "SÍNTOMA DEL DIAGNÓSTICO FALSO: con el script bajado y una clase que falta, el aviso NO dice 'No terminó de bajar' (dice '" + env4.el("tb-tit").textContent + "')");
+  assert(!/conexión está floja/.test(env4.el("tb-txt").textContent) && /navegador/.test(env4.el("tb-txt").textContent),
+    "y no culpa a la conexión: habla del navegador");
+  assert(!env4.el("tb-reintentar").hidden && env4.el("tb-menu").hidden && env4.el("tb-seguir").hidden, "con REINTENTAR (no hay juego)");
+  var reg4 = null; try { reg4 = JSON.parse(env4.store.pampa_ultimo_error); } catch (e) { }
+  assert(reg4 && /SyntaxError/.test(reg4.mensaje), "pampa_ultimo_error guarda el SyntaxError, no lo pisa un 'no bajó: PampaMatch' (" + (reg4 && reg4.mensaje) + ")");
+  var inf4 = R4.informe();
+  assert(/error: SyntaxError/.test(inf4) && /no arrancó: PampaMatch/.test(inf4) && /dónde: scenes\/match\.js:812:31/.test(inf4),
+    "el informe cuenta el SyntaxError, dónde, y qué no arrancó");
+  R4.mostrar("trabado");
+  assert(R4.tipo === "no_abre", "un 'se trabó' posterior no tapa el 'no pudo arrancar'");
+  /* y si el script de verdad no bajó, sigue siendo 'no bajó' */
+  var env5 = entorno(), R5 = env5.R;
+  env5.disparar("error", { target: { tagName: "SCRIPT", src: "http://localhost:8123/phaser/scenes/match.js" } });
+  arranqueCon(env5)();
+  assert(R5.tipo === "no_bajo" && env5.el("tb-tit").textContent === "No terminó de bajar el juego", "un script que no bajó sigue diciendo 'No terminó de bajar'");
+
   var env2 = entorno(), R2 = env2.R, J = juegoDeMentira(env2);
   /* lo que se ignora */
   env2.disparar("error", { target: env2.win, message: "Script error.", error: null, filename: "" });
