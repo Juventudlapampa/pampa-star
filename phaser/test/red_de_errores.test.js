@@ -29,6 +29,7 @@
 var fs = require("fs"), path = require("path");
 var RAIZ = path.join(__dirname, "..", "..");
 var HTML = fs.readFileSync(path.join(RAIZ, "phaser/index.html"), "utf8").replace(/\r\n/g, "\n");
+var Informe = require(path.join(RAIZ, "phaser/logic/informe.js"));
 
 var ok = 0, mal = 0;
 function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); } }
@@ -53,7 +54,7 @@ var ARRANQUE = scripts.filter(function (c) { return c.indexOf("function arrancar
     "el paso del juego (Phaser.Game.prototype.step) va envuelto en try/catch y registra el error");
   assert(/loop\.sleep\(\)/.test(RED), "al tope de errores el loop se duerme (loop.sleep)");
   assert(/pampa_ultimo_error/.test(RED), "el error se guarda en localStorage pampa_ultimo_error");
-  ["Algo se trabó", "VOLVER AL MENÚ", "RECARGAR", "REINTENTAR", "No terminó de bajar el juego"].forEach(function (t) {
+  ["Algo se trabó", "VOLVER AL MENÚ", "RECARGAR", "REINTENTAR", "No terminó de bajar el juego", "COPIAR INFORME"].forEach(function (t) {
     assert(HTML.indexOf(t) >= 0, "el aviso tiene que decir '" + t + "'");
   });
   /* la lista de globales con las 4 clases de escena, y que sean LAS MISMAS que
@@ -117,6 +118,7 @@ function entorno() {
   var ls = { getItem: function (k) { return store[k] == null ? null : store[k]; }, setItem: function (k, v) { store[k] = String(v); } };
   var loc = { origin: "http://localhost:8123", protocol: "http:", reload: function () { recargas.n++; } };
   var consola = { error: function () { }, log: function () { } };
+  win.PampaInforme = Informe;
   new Function("window", "document", "localStorage", "navigator", "location", "console", RED)(win, doc, ls, env.nav, loc, consola);
   env.R = win.PampaRed;
   return env;
@@ -150,6 +152,7 @@ function juegoDeMentira(env) {
 (function () {
   var env = entorno(), R = env.R;
   assert(!!R, "el script de la red publica window.PampaRed");
+  assert(env.win.PAMPA_VERSION && /^v\d+/.test(env.win.PAMPA_VERSION), "y window.PAMPA_VERSION");
   var J = juegoDeMentira(env), g = J.g;
   /* el save existe y NO se toca */
   env.store.pampa_master_v1 = JSON.stringify({ miClub: "Halcones de Toay", division: "primera_b" });
@@ -163,13 +166,14 @@ function juegoDeMentira(env) {
   var reg = null; try { reg = JSON.parse(env.store.pampa_ultimo_error); } catch (e) { }
   assert(reg && /Cannot read|null/.test(reg.mensaje), "se guarda pampa_ultimo_error con el mensaje (" + (reg && reg.mensaje) + ")");
   assert(reg && reg.escena === "match" && reg.estado && reg.estado.minuto === 85, "con la escena y el estado del partido");
-  assert(reg && reg.origen === "cuadro", "con el origen");
+  assert(reg && reg.origen === "cuadro" && reg.v === env.win.PAMPA_VERSION, "con el origen y la versión");
   assert(env.el("trabado").hidden === false, "aparece el aviso");
   assert(env.el("tb-tit").textContent === "Algo se trabó", "que dice 'Algo se trabó'");
   assert(!env.el("tb-menu").hidden && !env.el("tb-recargar").hidden && env.el("tb-reintentar").hidden,
     "con VOLVER AL MENÚ y RECARGAR (REINTENTAR es del otro caso)");
   assert(env.foco === "tb-menu", "el foco arranca en VOLVER AL MENÚ (teclado)");
   assert(g.isPaused, "el partido se PAUSA detrás del aviso (no sigue corriendo tapado)");
+  assert(/versión v/.test(env.el("tb-version").textContent), "el aviso muestra la versión");
 
   /* SEGUIR IGUAL y el tope: tres errores sin juego limpio en el medio */
   env.el("tb-seguir").click();
@@ -245,5 +249,33 @@ function juegoDeMentira(env) {
   console.log("[3] afuera del loop: script que no baja → REINTENTAR · toque y promesa → aviso · ruido del navegador ignorado");
 })();
 
-console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
-process.exit(mal === 0 ? 0 : 1);
+/* ---------- [4] COPIAR INFORME ---------- */
+(function () {
+  var env = entorno(), R = env.R, J = juegoDeMentira(env);
+  env.store.pampa_star_v1 = JSON.stringify({ name: "Rocío Benítez", vida: { amigos: [{ nombre: "Pato Quiroga" }] } });
+  env.store.pampa_master_v1 = JSON.stringify({ miClub: "Halcones de Toay" });
+  R.envolver(J.Ph);
+  J.g.romper = true; J.g.step(0, 16);
+  /* sin portapapeles: el texto queda seleccionable */
+  env.el("tb-copiar").click();
+  var txt = env.el("tb-informe").value;
+  assert(!env.el("tb-informe").hidden && txt.length > 0, "sin navigator.clipboard, el informe queda a la vista para copiar a mano");
+  assert(txt.indexOf("versión: " + env.win.PAMPA_VERSION) >= 0 && /escena: match/.test(txt), "el informe trae la versión y la escena");
+  ["Rocío", "Benítez", "Pato", "Halcones"].forEach(function (s) {
+    assert(txt.indexOf(s) < 0, "el informe NO lleva '" + s + "' (dato del save)");
+  });
+  assert(/quien te pasó el juego/.test(env.el("tb-ayuda").textContent), "sin contacto cargado, la ayuda dice a quién mandarlo sin inventar un destino");
+  /* con portapapeles */
+  var copiado = null;
+  env.nav.clipboard = { writeText: function (t) { copiado = t; return Promise.resolve(); } };
+  env.el("tb-copiar").click();
+  return Promise.resolve().then(function () { return null; }).then(function () {
+    assert(copiado && copiado.indexOf("versión:") >= 0, "con navigator.clipboard, se copia el informe");
+    assert(/COPIADO/.test(env.el("tb-copiar").textContent) && /✓/.test(env.el("tb-copiar").textContent),
+      "y el botón lo dice con texto y tilde (no sólo un color)");
+    console.log("[4] COPIAR INFORME: con y sin portapapeles · versión y escena · sin nombre ni club");
+  });
+})().then(function () {
+  console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
+  process.exit(mal === 0 ? 0 : 1);
+});

@@ -203,6 +203,15 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
     vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.irA("intro"); });
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
+    /* TANDA 1.0 · LA VERSIÓN A LA VISTA. Si alguien de una localidad avisa
+       "se me trabó", lo primero que hay que saber es qué versión tenía, y no
+       se veía en ningún lado (vivía adentro de sw.js). Chica, abajo a la
+       derecha: la esquina libre a la derecha de ¡A LA CANCHA! (que termina
+       en x=810). Sale de window.PAMPA_VERSION, la misma que lleva el informe. */
+    if (window.PAMPA_VERSION) {
+      this.add.text(W - 10, H - 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" })
+        .setOrigin(1, 1).setAlpha(0.85);
+    }
 
     /* el cursor, sin teclado: las flechas las maneja el editor (ver arriba).
        Las filas van con caja declarada; los botones con la suya real. */

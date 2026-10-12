@@ -721,6 +721,11 @@
     "fade_ms": 500,
     "vence_ms": 8000
   },
+  "contacto": {
+    "_nota": "TANDA 1.0 · A DÓNDE SE MANDA EL INFORME DE ERROR (botón COPIAR INFORME del aviso 'Algo se trabó'). Vacío = no se muestra destino y la ayuda dice 'mandalo a quien te pasó el juego'. mail: una casilla institucional. formulario: la dirección completa (https://…) de un formulario. Lo define la Subsecretaría antes de la difusión: acá no se inventa ninguno.",
+    "mail": "",
+    "formulario": ""
+  },
   "flags": {
     "a3_bloqueo": true
   }

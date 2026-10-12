@@ -47,6 +47,10 @@
   #trabado button.prim{background:#7EE08A;}
   #trabado button.sec{min-width:0;background:#9FB3A5;}
   #trabado button:focus-visible{outline:3px solid #FFD84D;outline-offset:3px;}
+  #trabado textarea{width:100%;box-sizing:border-box;height:7.5em;margin-top:8px;font:13px/1.35 ui-monospace,monospace;
+    background:#06120b;color:#F6EFDC;border:2px solid #9FB3A5;border-radius:6px;padding:6px;resize:none;}
+  #trabado .ver{font-size:13px;color:#9FB3A5;margin-top:8px;}
+  #trabado a{color:#FFD84D;}
 </style>
 </head>
 <body>
@@ -63,7 +67,14 @@
         <button type="button" id="tb-reintentar" class="prim">↻ REINTENTAR</button>
         <button type="button" id="tb-recargar">↻ RECARGAR</button>
         <button type="button" id="tb-seguir" class="sec">▶ SEGUIR IGUAL</button>
+        <button type="button" id="tb-copiar" class="sec">📋 COPIAR INFORME</button>
       </div>
+      <!-- la ayuda ANTES del texto: a 800x360 el informe llena la caja y lo
+           que va abajo queda fuera de la vista (visto en captura) -->
+      <p id="tb-ayuda"></p>
+      <textarea id="tb-informe" readonly hidden aria-label="Informe del error"></textarea>
+      <p id="tb-contacto" hidden></p>
+      <p class="ver" id="tb-version"></p>
     </div>
   </div>
 
@@ -98,6 +109,9 @@
      Todo en ES5 a propósito: si el navegador no entiende las clases de las
      escenas, esto tiene que poder decirlo igual.
      ═══════════════════════════════════════════════════════════════════════ */
+  /* LA VERSIÓN que se ve (editor, informe). Tiene que ser IGUAL a la VERSION
+     de sw.js: informe.test.js lo controla. Se sube junto con la de sw.js. */
+  window.PAMPA_VERSION = "v16-toma";
   (function () {
     "use strict";
     var R = window.PampaRed = {
@@ -133,13 +147,25 @@
       } catch (e) { /* sin contexto: el informe dice "ninguna" */ }
       return out;
     };
+    /* lo que hay que TAPAR (nombre, apodo, club…): sale de los saves y sólo
+       se usa para borrarlo del texto, nunca para escribirlo */
+    R.secretos = function () {
+      var saves = [];
+      ["pampa_star_v1", "pampa_master_v1", "pampa_star_avatares"].forEach(function (k) {
+        try { var r = localStorage.getItem(k); if (r) saves.push(JSON.parse(r)); } catch (e) { }
+      });
+      return window.PampaInforme ? window.PampaInforme.secretosDelSave(saves) : [];
+    };
     R.registrar = function (err, origen) {
       R.errores++;
-      var ctx = R.contexto();
+      var I = window.PampaInforme, sec = R.secretos(), ctx = R.contexto();
+      var msg = I ? I.primeraLinea(err) : String((err && err.message) || err);
+      var stack = String((err && err.stack) || "");
       var rec = {
-        cuando: new Date().toISOString(), origen: origen,
-        mensaje: String((err && err.message) || err).split("\n")[0].slice(0, 160),
-        stack: String((err && err.stack) || "").slice(0, 1500),
+        v: window.PAMPA_VERSION, cuando: new Date().toISOString(), origen: origen,
+        mensaje: I ? I.tapar(msg, sec) : msg,
+        lugar: I ? I.lugar(stack) : "",
+        stack: (I ? I.tapar(stack, sec) : stack).slice(0, 1500),
         escena: ctx.escena, estado: ctx.estado
       };
       R.ultimo = rec;
@@ -160,6 +186,39 @@
       return R.OBLIGATORIOS.filter(function (n) { return !window[n]; })
         .concat(R.faltan.map(function (s) { return String(s).split("/").slice(-2).join("/"); }));
     };
+    R.instalada = function () {
+      try {
+        return navigator.standalone === true ||
+          !!(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+      } catch (e) { return false; }
+    };
+    /* el destino del informe, si la Subsecretaría lo cargó (balance.contacto) */
+    R.contacto = function () {
+      try {
+        var b = juego() && juego().registry.get("balance"), c = b && b.contacto;
+        if (c && (c.mail || c.formulario)) return c;
+      } catch (e) { }
+      return null;
+    };
+    R.informe = function () {
+      var I = window.PampaInforme, u = R.ultimo || {}, ctx = R.contexto();
+      var d = {
+        version: window.PAMPA_VERSION,
+        escena: u.escena || ctx.escena, estado: u.estado || ctx.estado,
+        error: u.mensaje != null ? u.mensaje : null, stack: u.stack,
+        faltan: R.faltan, errores: R.errores,
+        pantalla: { w: window.innerWidth, h: window.innerHeight, dpr: window.devicePixelRatio || 1,
+          horizontal: window.innerWidth >= window.innerHeight },
+        instalada: R.instalada(), ua: navigator.userAgent, hora: Date.now()
+      };
+      if (I) return I.armar(d, { secretos: R.secretos() });
+      /* sin informe.js (no bajó): lo mínimo, y SIN el texto del error, que es
+         lo único que podría traer un nombre y acá no hay con qué taparlo */
+      return ["PAMPA STAR · informe de error", "versión: " + d.version, "escena: " + (d.escena || "ninguna"),
+        R.faltan.length ? "no bajó: " + R.faltantes().join(", ") : "",
+        "navegador: " + d.ua, "hora: " + new Date().toISOString()].filter(Boolean).join("\n");
+    };
+
     function boton(id, ver) { var b = $(id); if (b) b.hidden = !ver; }
     R.mostrar = function (tipo) {
       var caja = $("trabado"); if (!caja) return;
@@ -175,6 +234,22 @@
       boton("tb-reintentar", noBajo);
       boton("tb-recargar", !noBajo);
       boton("tb-seguir", !noBajo && !!g && !R.dormido);
+      $("tb-copiar").textContent = "📋 COPIAR INFORME";
+      $("tb-informe").hidden = true;
+      $("tb-ayuda").textContent = "";
+      var c = R.contacto(), pc = $("tb-contacto");
+      pc.textContent = "";
+      if (c) {
+        if (c.mail) pc.appendChild(document.createTextNode("Mandalo a " + c.mail + (c.formulario ? " o " : "")));
+        if (c.formulario) {
+          var a = document.createElement("a");
+          a.href = c.formulario; a.target = "_blank"; a.rel = "noopener";
+          a.textContent = c.mail ? "cargalo en el formulario" : "Cargalo en el formulario";
+          pc.appendChild(a);
+        }
+      }
+      pc.hidden = !c;
+      $("tb-version").textContent = "versión " + window.PAMPA_VERSION;
       caja.hidden = false;
       /* el partido no sigue corriendo detrás del aviso */
       if (g && g.pause && !noBajo) { try { g.pause(); } catch (e) { } }
@@ -205,6 +280,28 @@
       }
     };
     R.seguir = function () { R.ocultar(); var g = juego(); if (g && g.resume) g.resume(); };
+    R.copiar = function () {
+      var txt = R.informe(), c = R.contacto();
+      var destino = c && c.mail ? " a " + c.mail : " a quien te pasó el juego";
+      var ta = $("tb-informe");
+      /* el texto queda a la vista siempre: que se vea qué se manda (y que no
+         lleva ningún nombre) */
+      ta.value = txt; ta.hidden = false;
+      /* primero, a mano: seleccionado y con la ayuda. El portapapeles puede no
+         contestar NUNCA (visto en Chrome sin ventana: la promesa queda colgada,
+         ni resuelve ni rechaza) y el botón parecía no hacer nada. Si contesta
+         que sí, la ayuda pasa a "ya está copiado". */
+      try { ta.focus(); ta.select(); } catch (e) { }
+      $("tb-ayuda").textContent = "Copiá este texto y mandalo" + destino + ".";
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(function () {
+            $("tb-copiar").textContent = "✓ INFORME COPIADO";
+            $("tb-ayuda").textContent = "Ya está copiado: pegalo en un mensaje" + destino + ".";
+          }, function () { /* sin permiso: queda el texto a mano */ });
+        }
+      } catch (e) { /* idem */ }
+    };
     /* el envoltorio del paso del juego. Se llama en arrancarCon, antes de
        new Phaser.Game: Game.start() hace loop.start(this.step.bind(this)),
        así que lo que se ata es ESTE step, no el original. */
@@ -278,6 +375,7 @@
     on("tb-recargar", function () { location.reload(); });
     on("tb-reintentar", function () { location.reload(); });
     on("tb-seguir", R.seguir);
+    on("tb-copiar", R.copiar);
   })();
   </script>
 
@@ -374,6 +472,8 @@
   <script src="logic/vestir.js"></script>
   <script src="logic/halo.js"></script>
   <script src="logic/pierna.js"></script>
+  <!-- el informe de error que arma COPIAR INFORME (la red está arriba de todo) -->
+  <script src="logic/informe.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/piel_ui.js"></script>
   <script src="scenes/sprites.js"></script>

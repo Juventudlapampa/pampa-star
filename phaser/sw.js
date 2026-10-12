@@ -19,6 +19,9 @@ const PRECACHE = [
   "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
   "./logic/jugadon.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
   "./logic/escudos.js", "./logic/ambiente.js", "./logic/vestir.js", "./logic/halo.js", "./logic/pierna.js", "./logic/lectura.js", "./logic/drama.js", "./logic/escalera.js",
+  /* tanda 1.0: el informe de error. OJO, VERSION de acá arriba y
+     window.PAMPA_VERSION de index.html se suben JUNTAS (informe.test.js) */
+  "./logic/informe.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
