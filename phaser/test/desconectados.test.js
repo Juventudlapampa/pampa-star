@@ -476,6 +476,154 @@ var MUERTOS_OK = {
 })();
 
 /* ══════════════════════════════════════════════════════════════════════════
+   [5] LO QUE SE ESCRIBE PARA QUE SE LEA TIENE QUE CAER EN UNA CAPA QUE SE VE
+
+   El caso diez, y es el uno otra vez: avisar() hacía mundoLayer.add(t), y con
+   pantalla_partida (el default) esa capa se apaga en create(). Diez avisos no
+   se vieron nunca —"⏰ ¡ÚLTIMOS MINUTOS!", "No hay a quién dársela…" al tocar
+   PASE, el perfil del rival, "Marcás con…", "🌟 ¡EQUIPO ENCENDIDO!", el "✗
+   motivo" de una opción bloqueada— y cuatro auditorías lo marcaron antes de
+   que se arreglara. Nada tiraba error: el texto existía, con su tween, en una
+   capa invisible.
+
+   Dos partes:
+     (a) avisar() DE VERDAD: se carga la clase de match.js con un Phaser de
+         mentira y se llama sobre una escena de mentira con pantalla partida.
+         El texto tiene que quedar en un contenedor VISIBLE que la cámara del
+         HUD no ignore, a la altura de la franja, y con su cola.
+     (b) el censo: todo texto que match.js manda a mundoLayer tiene que estar
+         detrás de la guarda de pantalla partida, o mirado y anotado acá.
+   ══════════════════════════════════════════════════════════════════════════ */
+var TEXTOS_MUNDO_OK = {
+  "avisarEnElMundo": "la llama avisar() SÓLO con pantalla_partida apagada, que es el único caso en que el mundo se ve",
+  "buildPortador": "el ▼ del portador en el mundo; en pantalla partida no se actualiza y lo reemplaza panelNombre, en la franja del panel",
+  "buildFichas": "create() la llama sólo con pantalla_partida apagada (`if (!this.FLAGS.pantalla_partida) this.buildFichas()`)"
+};
+(function () {
+  var SRC_M = leer("phaser/scenes/match.js").replace(/\r\n/g, "\n");
+  var BAL5 = JSON.parse(leer("phaser/data/balance.json"));
+
+  /* ---- (a) avisar(), corriendo ---- */
+  var W5 = { Phaser: { Scene: function () { } }, PF: { texto: "Pixelify Sans" } };
+  try { new Function("window", "Phaser", SRC_M)(W5, W5.Phaser); } catch (e) { assert(false, "match.js no carga con el Phaser de mentira: " + e.message); }
+  var P5 = W5.PampaMatch && W5.PampaMatch.prototype;
+  assert(!!(P5 && P5.avisar), "PampaMatch.prototype.avisar existe");
+  if (!P5 || !P5.avisar) return;
+  function contenedor(nombre, visible) {
+    return { nombre: nombre, visible: visible, list: [],
+      add: function (o) { var self = this; (Array.isArray(o) ? o : [o]).forEach(function (x) { self.list.push(x); x.parentContainer = self; }); return this; } };
+  }
+  function escena(split) {
+    var s = Object.create(P5), ign = [], tw = [];
+    s.BAL = { avisos: BAL5.avisos };
+    s._split = split; s._finalApagado = false; s.estado = "LIBRE";
+    s.mundoLayer = contenedor("mundoLayer", !split); s.hudLayer = contenedor("hudLayer", true);
+    s.uiCam = { ignore: function (o) { ign.push(o); } };
+    s.sprPortador = { x: 400, y: 300 };
+    s.time = { now: 0 };
+    s.tweens = { add: function (c) { tw.push(c); return c; }, killTweensOf: function () { } };
+    s.add = { text: function (x, y, txt, style) {
+      return { x: x, y: y, text: txt, style: style, height: 27, active: true,
+        setOrigin: function () { return this; }, setDepth: function () { return this; },
+        setY: function (v) { this.y = v; return this; }, destroy: function () { this.active = false; } };
+    } };
+    s._avisos = []; s._avisosCola = [];
+    return { s: s, ign: ign, tw: tw };
+  }
+  var E = escena(true), s = E.s;
+  s.avisar("⏰ ¡ÚLTIMOS MINUTOS!");
+  var t = s._avisos.length ? s._avisos[0].obj : null;
+  assert(!!t, "con pantalla partida, avisar() crea el texto");
+  assert(t && t.parentContainer === s.hudLayer && s.hudLayer.visible,
+    "SÍNTOMA DEL CASO DIEZ: el aviso tiene que quedar en un contenedor VISIBLE (hudLayer), no en " + (t && t.parentContainer && t.parentContainer.nombre));
+  assert(s.mundoLayer.list.length === 0, "y nada de avisar() cae en mundoLayer, que con pantalla partida está apagado");
+  assert(E.ign.indexOf(t) < 0 && E.ign.indexOf(s.hudLayer) < 0, "la cámara del HUD (uiCam) no lo ignora");
+  var fsz = t ? parseInt(t.style.fontSize, 10) : 0;
+  assert(fsz >= 13, "el aviso mide 13 px o más (mide " + fsz + "): es texto que hay que leer al vuelo");
+  assert(t && t.y >= 250 && t.y <= 300, "va en la franja entre la ilustración y el relator (y=" + (t && t.y) + ")");
+  assert(t && /^#0a1f13/i.test(t.style.backgroundColor), "con fondo oscuro");
+  /* la cola: dos a la vez, el tercero espera, el más nuevo abajo */
+  s.avisar("Marcás con PEREYRA");
+  s.avisar("No hay a quién dársela…");
+  assert(s._avisos.length === 2 && s._avisosCola.length === 1, "dos a la vez y el tercero en cola (" + s._avisos.length + "+" + s._avisosCola.length + ")");
+  assert(s._avisos[1].obj.y > s._avisos[0].obj.y, "el más nuevo abajo, el anterior sube");
+  s.avisar("No hay a quién dársela…");
+  assert(s._avisosCola.length === 1, "el mismo aviso repetido no se encola dos veces");
+  E.tw[0].onComplete();
+  assert(s._avisos.length === 2 && s._avisosCola.length === 0 && s._avisos[1].txt === "No hay a quién dársela…",
+    "cuando uno se va, sale el que esperaba");
+  /* con el HUD apagado espera, como la frase del relator */
+  var E2 = escena(true), s2 = E2.s;
+  s2.hudLayer.visible = false;
+  s2.avisar("🌟 ¡EQUIPO ENCENDIDO! (+bonus un rato)");
+  assert(s2._avisos.length === 0 && s2._avisosCola.length === 1, "con el HUD apagado (cine, Definición, Jugadón) el aviso espera");
+  s2.hudLayer.visible = true; s2.soltarAvisos();
+  assert(s2._avisos.length === 1, "y sale cuando el HUD vuelve");
+  /* detrás del menú de tempo espera, y esa espera no lo vence */
+  var E3 = escena(true), s3 = E3.s;
+  s3.estado = "TEMPO_MENU";
+  s3.avisar("⚔ ESPEJO DE SAL juega con una ESTRELLA");
+  s3.time.now = 30000; s3.soltarAvisos();
+  assert(s3._avisos.length === 0, "con el menú de tempo abierto (velo encima) el perfil del rival espera");
+  s3.estado = "LIBRE"; s3.time.now = 30016; s3.soltarAvisos();
+  assert(s3._avisos.length === 1, "y se lee al cerrar el menú, aunque haya tardado (no vence detrás del menú)");
+  /* el que esperó demasiado al HUD, vence */
+  var E4 = escena(true), s4 = E4.s;
+  s4.hudLayer.visible = false; s4.avisar("Marcás con GÓMEZ");
+  s4.hudLayer.visible = true; s4.time.now = (BAL5.avisos && BAL5.avisos.vence_ms || 8000) + 1; s4.soltarAvisos();
+  assert(s4._avisos.length === 0 && s4._avisosCola.length === 0, "un aviso viejo que esperó al HUD más que vence_ms ya no sale");
+  /* con el partido terminado no se escribe encima de la ilustración */
+  s._finalApagado = true; s.limpiarAvisos();
+  assert(s._avisos.length === 0, "limpiarAvisos() se lleva lo que estaba a la vista");
+  s.avisar("⏰ ¡ÚLTIMOS MINUTOS!");
+  assert(s._avisos.length === 0 && s._avisosCola.length === 0, "con _finalApagado, avisar() no escribe ni encola");
+  assert(/this\._finalApagado = true;\s*\n[^\n]*\n\s*this\.limpiarAvisos\(\);/.test(SRC_M), "pantallaFinal() limpia los avisos al apagar el partido");
+  /* sin pantalla partida, el aviso viejo pegado al portador (el mundo se ve) */
+  var E5 = escena(false), s5 = E5.s;
+  s5.avisar("Marcás con PEREYRA");
+  assert(s5.mundoLayer.list.length === 1 && s5.mundoLayer.visible, "con pantalla_partida apagada sigue el aviso del mundo, que ahí sí se ve");
+  /* las llamadas de verdad y el update que suelta la cola */
+  var llamadas = (SRC_M.match(/this\.avisar\(/g) || []).length;
+  assert(llamadas >= 9, "match.js sigue llamando a avisar() (" + llamadas + " llamadas)");
+  assert(/if \(this\._avisosCola && this\._avisosCola\.length\) this\.soltarAvisos\(\);/.test(SRC_M), "el update suelta la cola de avisos");
+  assert(!/this\.avisar\("📋/.test(SRC_M) && /anunciarEnTicker\(this\._vidaFicha, "📋"\)/.test(SRC_M),
+    "la ficha de la semana va al ticker del relator (que tiene su espera), no a avisar()");
+
+  /* ---- (b) el censo: textos que van a mundoLayer ---- */
+  var cod = sinComentarios(SRC_M), L5 = cod.split("\n"), metodo = "?", inicio = 0, textosMundo = [];
+  L5.forEach(function (l, i) {
+    var mh = l.match(/^  (?:async\s+)?([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{\s*$/);
+    if (mh) { metodo = mh[1]; inicio = i; }
+    var ma = l.match(/mundoLayer\.add\(([^;]*)\)/);
+    if (!ma) return;
+    var cuerpoHasta = L5.slice(inicio, i + 1).join("\n");
+    (ma[1].match(/(?:this\.)?[A-Za-z_$][\w$]*/g) || []).forEach(function (tok) {
+      var id = tok.replace(/^this\./, ""), esText;
+      if (/^this\./.test(tok)) esText = new RegExp("this\\." + id + "\\s*=\\s*this\\.add\\.text\\(").test(cod);
+      else esText = new RegExp("(?:const|let|var)\\s+" + id + "\\s*=\\s*this\\.add\\.text\\(").test(cuerpoHasta);
+      if (!esText) return;
+      var guardado = /if \(!this\._split\)/.test(cuerpoHasta);
+      textosMundo.push({ metodo: metodo, linea: i + 1, id: id, guardado: guardado });
+    });
+  });
+  if (CENSO) {
+    console.log("═══ CENSO [5] · TEXTOS QUE VAN A mundoLayer ═══");
+    textosMundo.forEach(function (x) { console.log("  match.js:" + x.linea + " " + x.metodo + "() → " + x.id + (x.guardado ? "  (detrás de !this._split)" : TEXTOS_MUNDO_OK[x.metodo] ? "  (mirado)" : "  ⚠")); });
+  }
+  textosMundo.forEach(function (x) {
+    assert(x.guardado || TEXTOS_MUNDO_OK[x.metodo],
+      "TEXTO EN UNA CAPA QUE NO SE VE · match.js:" + x.linea + " " + x.metodo + "() manda '" + x.id + "' a mundoLayer, y con " +
+      "pantalla_partida (el default) esa capa está apagada. Ponelo en hudLayer o detrás de `if (!this._split)`.");
+  });
+  Object.keys(TEXTOS_MUNDO_OK).forEach(function (k) {
+    assert(textosMundo.some(function (x) { return x.metodo === k; }),
+      "TEXTOS_MUNDO_OK nombra a " + k + "() y ya no manda texto al mundo: sacalo de la lista");
+  });
+  console.log("[5] avisar() con pantalla partida: en el HUD, visible, con cola · " + textosMundo.length +
+    " textos al mundo, todos detrás de la guarda o mirados (" + Object.keys(TEXTOS_MUNDO_OK).length + ")");
+})();
+
+/* ══════════════════════════════════════════════════════════════════════════
    EL NÚMERO DE LA DEUDA, EN CADA CORRIDA
 
    Pedido de Rodri: "hoy son 3; si mañana son 5 sin que nadie lo haya decidido,

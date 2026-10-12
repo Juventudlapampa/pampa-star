@@ -708,6 +708,19 @@
     "push_camara_zoom": 0.06,
     "_nota": "BLOQUE B EL OFICIO DE LA ANIMACION. intensidad es la perilla GLOBAL: multiplica todos estos tiempos de una, para subir o bajar la intensidad entera con un numero (0 = todo instantaneo, 1 = como esta calibrado, 1.5 = mas teatral). hitstop_*: cuanto se congela TODO en un impacto (chico/fuerte/gol) — es el recurso que mas peso da con menos codigo. latigazo_*: justo despues del hitstop el mundo reanuda MAS RAPIDO durante latigazo_ms; ese contraste entre la pausa y el latigazo es el golpe. anticipacion/accion/rebote: los tres tiempos de todo movimiento importante (chico hacia atras, rapido con curva, se pasa y vuelve). estela_*: fantasmas de la pelota cuando supera estela_desde_px_s. deformacion_*: cuanto se estira y se achata la pelota. segunda_accion_ms: cuanto TARDA lo blando en seguir al cuerpo (la tribuna se sacude despues de la camara, no en el mismo cuadro). push_camara_*: el empuje lento en los momentos de tension."
   },
+  "avisos": {
+    "_nota": "TANDA 1.0 · LOS AVISOS DEL PARTIDO (avisar() en match.js). Se escribían en mundoLayer, y en pantalla partida esa capa está oculta: 10 avisos no se veían nunca ('⏰ ¡ÚLTIMOS MINUTOS!', 'No hay a quién dársela…' al tocar PASE, el perfil del rival, 'Marcás con…', '🌟 ¡EQUIPO ENCENDIDO!', el '✗ motivo' de una opción bloqueada). Ahora van en el HUD, en la columna izquierda del panel, entre la ilustración y el relator. x: el borde izquierdo (la columna va de 16 a ~270: la figura del portador está anclada en x=400 con los pies y la pelota entre 275 y 525, y los globos de la tribuna arrancan en 698; el centro tapaba la pelota, medido en captura). y_base: dónde apoya el borde de abajo del aviso más nuevo (la franja del panel arranca en 280 y el relator en 288). max: cuántos a la vez, el más nuevo abajo; los que no entran esperan en cola (cola_max, el más viejo se cae). gap: aire entre dos. ancho: corte de línea. font_px: no baja de 13, es texto de decisión. hold_ms/fade_ms: cuánto se ve y cuánto tarda en irse. vence_ms: un aviso que esperó más que esto a que vuelva el HUD (cine, Definición, Jugadón) ya no se muestra; detrás del menú de tempo y del tutorial no vence. Con pantalla_partida apagada se usa el aviso viejo, pegado al portador.",
+    "x": 16,
+    "y_base": 276,
+    "max": 2,
+    "cola_max": 4,
+    "gap": 4,
+    "ancho": 250,
+    "font_px": 14,
+    "hold_ms": 2200,
+    "fade_ms": 500,
+    "vence_ms": 8000
+  },
   "flags": {
     "a3_bloqueo": true
   }

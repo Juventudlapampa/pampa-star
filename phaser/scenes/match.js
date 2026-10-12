@@ -211,6 +211,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._musicaTrabada = false;     // P5: el partido nuevo vuelve a tener música
     this._temaFinalPuesto = false;   // M5: el tema de urgencia entra una vez por partido
     this._temaFinalMin = null;
+    /* TANDA 1.0 · los avisos del HUD (avisar): los que se ven y los que
+       esperan. Arreglos, no banderas, pero la lección es la misma: un aviso
+       encolado al final de la fecha 1 no puede salir en la fecha 2. */
+    this._avisos = [];
+    this._avisosCola = [];
   }
 
   create() {
@@ -452,13 +457,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* guía breve pegada al portador (los textos del MUNDO escalan con la vista elevada) */
     this._fsMundo = this._vista4 ? Math.round(this.V2.ZOOM / this._zoomBase * 10) / 10 : 1;
-    const j = this.portadorActual().j;
-    const wj = this.aRender(j.x, j.y);
-    const hint = this.add.text(wj.x, wj.y + 70, "tocá la cancha (o flechas) para correr",
-      { fontFamily: window.PF.texto, fontSize: Math.round(11 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
-    this.mundoLayer.add(hint);
-    this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
-    this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
+    /* TANDA 1.0: sólo con el mundo a la vista. Con pantalla partida esta guía
+       se escribía en la capa apagada (y decía "la cancha": ahí se toca el
+       mapa, y eso lo enseña el paso 3 del tutorial) */
+    if (!this._split) {
+      const j = this.portadorActual().j;
+      const wj = this.aRender(j.x, j.y);
+      const hint = this.add.text(wj.x, wj.y + 70, "tocá la cancha (o flechas) para correr",
+        { fontFamily: window.PF.texto, fontSize: Math.round(11 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
+      this.mundoLayer.add(hint);
+      this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
+      this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
+    }
 
     /* V6 §2 R4: ANTES del partido se elige el TEMPO (presets) y la VELOCIDAD.
        Al confirmar, sigue el tutorial de 3 pasos si hace falta. */
@@ -529,14 +539,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.tickerTxt) return;
     const f = this.REL.frase(situacion, c);
     if (!f) return;
-    if (this.hudLayer && !this.hudLayer.visible) { this._relPendiente = f; return; }
-    this._pintarRelato(f);
+    this.anunciarEnTicker(f, "🎙");
   }
-  _pintarRelato(f) {
+  /* TANDA 1.0: el carril del ticker, abierto a una frase que no sale del
+     banco del relator. La ficha de la semana ("📋 por qué hoy te cuesta")
+     iba por avisar() y no se veía; ahora entra acá, con la misma espera si el
+     HUD está apagado. La línea pendiente se guarda ENTERA, con su ícono. */
+  anunciarEnTicker(f, icono) {
+    if (!f || !this.tickerTxt) return;
+    const linea = (icono || "🎙") + " " + f;
+    if (this.hudLayer && !this.hudLayer.visible) { this._relPendiente = linea; return; }
+    this._pintarRelato(linea);
+  }
+  _pintarRelato(linea) {
     if (!this.tickerTxt) return;
     const R = this.BAL.relator || {};
     this.tweens.killTweensOf(this.tickerTxt);
-    this.tickerTxt.setText("🎙 " + f).setAlpha(1);
+    this.tickerTxt.setText(linea).setAlpha(1);
     this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: R.hold_ms || 2800, duration: R.fade_ms || 500 });
   }
   /* lo llama el update cuando el HUD vuelve: la frase guardada sale ahí */
@@ -1893,7 +1912,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.st.modo = "juego";
       this.avisar("Tempo " + k.toUpperCase() + " · " + T.minutos_por_momento + "' por momento");
       /* V8 A1: LA FICHA DEL PARTIDO — por qué hoy te cuesta (o te sobra) */
-      if (this._vidaFicha) this.time.delayedCall(1400, () => this.avisar("📋 " + this._vidaFicha));
+      /* TANDA 1.0: por el ticker del relator, que tiene su espera; por
+         avisar() iba a la capa del mundo y no se leía nunca */
+      if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, "📋"));
       this.tutorialSiHaceFalta();
     };
     const _rects = [];
@@ -4455,6 +4476,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._btnCambiar) this._btnCambiar.forEach(o => o.setVisible(false));
     if (this.radarMarco) this.radarMarco.setVisible(false);
     this._finalApagado = true;
+    /* TANDA 1.0: los avisos ahora viven en el HUD; con el final, se van */
+    this.limpiarAvisos();
 
     /* 2) LA ILUSTRACIÓN QUEDA LIMPIA: el velo del panel baja del todo para que
        la figura recorte, y no se le escribe nada encima. */
@@ -5257,6 +5280,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        espera y sale acá, apenas la capa vuelve. Va ANTES de los returns por
        estado justo para que no dependa de en qué estado esté el partido. */
     if (this._relPendiente && this.soltarRelatoPendiente) this.soltarRelatoPendiente();
+    /* TANDA 1.0: lo mismo para los avisos que esperaban al HUD (o a que se
+       cierre el menú de tempo) */
+    if (this._avisosCola && this._avisosCola.length) this.soltarAvisos();
 
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
     if (this.estado === "CINE") { this.updateViaje(delta); return; }
@@ -5443,8 +5469,115 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     else { this.updateFichas(false); this.dibujarPaseCancha(); }
   }
 
-  /* aviso breve anclado al PORTADOR (a donde la cámara va, no de donde viene) */
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 · LOS AVISOS SE ESCRIBÍAN EN UNA CAPA QUE NO SE VE.
+
+     avisar() hacía mundoLayer.add(t), y con pantalla_partida (el default)
+     esa capa está apagada desde create(). Diez avisos no se vieron nunca:
+     "⏰ ¡ÚLTIMOS MINUTOS!", "No hay a quién dársela…" (tocar PASE parecía no
+     hacer nada), "⚔ <rival> juega <perfil>" (la única pista del perfil
+     adentro del partido), "Marcás con…" (tres llamadas), "🌟 ¡EQUIPO
+     ENCENDIDO!", el tempo elegido y el "✗ motivo" de una opción bloqueada
+     (foco_ui.js). Es el caso diez de la enfermedad de lo construido y
+     desconectado: el guardián (desconectados.test.js [5]) ahora lo mira.
+
+     Con pantalla partida el aviso va al HUD, en la columna izquierda del
+     panel, entre la ilustración y el relator (balance.avisos): dos a la vez
+     como mucho, el más nuevo abajo, y el resto espera en cola. Al centro
+     tapaba la pelota y los pies del portador (anclado en x=400, medido en
+     captura); a la derecha están los globos de la tribuna. Con el HUD apagado (cine,
+     Definición, Jugadón) o detrás del menú de tempo y del tutorial también
+     espera, como la frase del relator. Con el partido terminado no se
+     escribe nada encima de la ilustración del final.
+     ══════════════════════════════════════════════════════════════════════ */
+  cfgAvisos() {
+    const A = this.BAL.avisos || {};
+    const n = (v, d) => (typeof v === "number" ? v : d);
+    return {
+      x: n(A.x, 16), yBase: n(A.y_base, 276), max: Math.max(1, n(A.max, 2)), colaMax: Math.max(1, n(A.cola_max, 4)),
+      gap: n(A.gap, 4), ancho: n(A.ancho, 250), font: Math.max(13, n(A.font_px, 14)),
+      hold: n(A.hold_ms, 2200), fade: n(A.fade_ms, 500), vence: n(A.vence_ms, 8000)
+    };
+  }
   avisar(txt) {
+    if (!txt) return;
+    if (this._split) {
+      if (this._finalApagado) return;
+      if (!this._avisos) this._avisos = [];
+      if (!this._avisosCola) this._avisosCola = [];
+      /* el mismo aviso dos veces seguidas no suma (tocar PASE tres veces sin
+         receptores son tres llamadas con el mismo texto) */
+      if (this._avisos.some(a => a.txt === txt) || this._avisosCola.some(a => a.txt === txt)) return;
+      const A = this.cfgAvisos();
+      this._avisosCola.push({ txt, t: this.time.now });
+      while (this._avisosCola.length > A.colaMax) this._avisosCola.shift();
+      this.soltarAvisos();
+      return;
+    }
+    this.avisarEnElMundo(txt);
+  }
+  /* los que esperan salen cuando hay lugar y el HUD se ve (lo llama el update) */
+  soltarAvisos() {
+    const cola = this._avisosCola;
+    if (!cola || !cola.length) return;
+    if (this._finalApagado) { cola.length = 0; return; }
+    if (!this.hudLayer || !this.hudLayer.visible) return;
+    /* detrás del velo del menú de tempo o del tutorial no se lee: se espera,
+       y esa espera no cuenta para el vencimiento (el perfil del rival sale
+       en create(), con el menú de tempo abierto, y tiene que llegar a leerse) */
+    if (this.estado === "TEMPO_MENU" || this.estado === "TUTORIAL") {
+      cola.forEach(a => { a.t = this.time.now; });
+      return;
+    }
+    const A = this.cfgAvisos();
+    while (cola.length && this.time.now - cola[0].t > A.vence) cola.shift();
+    while (cola.length && this._avisos.length < A.max) this.pintarAviso(cola.shift().txt);
+  }
+  pintarAviso(txt) {
+    const A = this.cfgAvisos();
+    const t = this.add.text(A.x, A.yBase, txt, {
+      fontFamily: window.PF.texto, fontSize: A.font + "px", color: "#f6efdc",
+      backgroundColor: "#0a1f13ee", padding: { x: 10, y: 5 }, align: "left",
+      wordWrap: { width: A.ancho }
+    }).setOrigin(0, 1);
+    this.hudLayer.add(t);
+    const reg = { txt, obj: t };
+    this._avisos.push(reg);
+    this.acomodarAvisos();
+    this.tweens.add({
+      targets: t, alpha: 0, delay: A.hold, duration: A.fade,
+      onComplete: () => {
+        const i = this._avisos ? this._avisos.indexOf(reg) : -1;
+        if (i >= 0) this._avisos.splice(i, 1);
+        t.destroy();
+        this.acomodarAvisos();
+        this.soltarAvisos();
+      }
+    });
+  }
+  /* el más nuevo apoya en y_base y los anteriores suben, como un chat: el ojo
+     está en el relator y en el mapa, y lo último que pasó queda más cerca */
+  acomodarAvisos() {
+    if (!this._avisos) return;
+    const A = this.cfgAvisos();
+    let y = A.yBase;
+    for (let i = this._avisos.length - 1; i >= 0; i--) {
+      const o = this._avisos[i].obj;
+      if (!o || !o.active) continue;
+      o.setY(y);
+      y -= o.height + A.gap;
+    }
+  }
+  /* con el partido terminado: lo que estaba a la vista se va y la cola se vacía */
+  limpiarAvisos() {
+    (this._avisos || []).forEach(a => { if (a.obj && a.obj.active) { this.tweens.killTweensOf(a.obj); a.obj.destroy(); } });
+    this._avisos = [];
+    this._avisosCola = [];
+  }
+
+  /* aviso breve anclado al PORTADOR (a donde la cámara va, no de donde viene).
+     Sólo con pantalla_partida APAGADA: es el único caso en que el mundo se ve. */
+  avisarEnElMundo(txt) {
     const fs = this._vista4 ? 24 : 12;   // texto del mundo: legible también en la vista elevada
     const t = this.add.text(this.sprPortador.x, this.sprPortador.y - 96, txt, { fontFamily: window.PF.texto, fontSize: fs + "px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }, align: "center" })
       .setOrigin(0.5).setDepth(5000);
