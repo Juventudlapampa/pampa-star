@@ -1039,3 +1039,272 @@ el paso del deploy.
   `rev03_falta_tu_fila.png`.
 - En ¿EMPEZAR OTRA CARRERA? el renglón chico "el respaldo queda guardado…"
   queda pegado al marco del cursor del primer botón (ya pasaba con dos).
+
+---
+
+## Ola 1 · Que nada se rompa — lote L04-pausa
+
+### salida-y-pausa · el amistoso tiene salida y todo partido se puede pausar
+
+**Qué estaba mal (medido).** Al terminar un amistoso el único botón era
+"↺ OTRO PARTIDO" (`scene.restart`): con la PWA instalada, que no tiene barra
+ni botón atrás, no había forma de volver al menú sin cerrar la app. No había
+pausa: ESC solo cancelaba menús (el pase dirigido y la cruz con ✕) y un
+WhatsApp en medio del partido dejaba el reloj corriendo. La pantalla final no
+tenía cursor: ni Enter ni flechas.
+
+**Qué se hizo** (`scenes/match.js`, `scenes/foco_ui.js`, `data/balance.json`):
+
+- **⏸ PAUSA en la barra del marcador**, al lado del 🔊, con su palabra (el
+  ícono solo no lo lee todo el mundo). La pastilla mide 76x24 pero el área
+  táctil es de 82x61 (`legibilidad.tap_min`): como está pegada al borde de
+  arriba y un dedo no toca fuera del lienzo, el área baja desde y=0 sobre la
+  esquina de la ilustración del panel, que no se toca. Arranca en x=47: el
+  área del 🔊 termina en 46. Las fichas y la mano pasan de x=52 a x=136.
+- **Estado PAUSA con `st.modo = "congelado"`**: `tick()` sale en su primer
+  renglón y además `update()` no lo llama fuera de LIBRE (las dos, para no
+  depender de una sola). La viñeta del panel queda quieta, los avisos y el
+  relator esperan detrás del velo, y el vigía de SEGUIR IGUAL cuenta PAUSA
+  entre los estados que esperan a quien juega.
+- **La cruz**: ▶ SEGUIR arriba, con el cursor (un Enter de reflejo no saca
+  del partido); 🔊/🔇 SONIDO: SÍ/NO a la izquierda (ícono y palabra; también
+  cambia el 🔊 del HUD); la salida a la derecha. Botones de 300x61, textos de
+  13 px para arriba.
+  - amistoso: **◀ VOLVER AL MENÚ** ("el partido no cuenta"), al editor;
+  - fecha del Master: **◀ SALIR DEL PARTIDO** ("la fecha queda para jugarla
+    de nuevo"), al Master sin anotar resultado. La regla de Rodri (repetir la
+    fecha sin rehacer la semana ni volver a sumar mejoras) ya la cumplía el
+    save desde L03: la semana queda cerrada con su marca de fecha y el Master
+    ofrece "↺ REPETIR EL PARTIDO".
+- **Tecla P** (abre y cierra) y ESC (sigue). Pedida fuera de LIBRE (una
+  escena, un menú, la Definición) queda anotada con el aviso "⏸ La pausa
+  entra apenas termine la jugada" y entra en el primer cuadro de LIBRE, antes
+  de que corra un latido. Al abrirse refresca el HUD: la primera versión
+  mostraba "0:15 1T" con el partido en el minuto 2 (visto en captura).
+- **Las salidas del final**: el amistoso tiene ◀ VOLVER AL MENÚ (con el
+  cursor) y ↺ OTRO PARTIDO; el Master, ▶ SEGUIR LA CARRERA con cursor.
+  Aparecen 700 ms después del pitazo (`pausa.final_espera_ms`): ESPACIO es la
+  acción del partido y en el cursor confirma. Y el cursor ya no confirma con
+  la **repetición** de una tecla sostenida (`foco_ui.js`, `ev.repeat`).
+- **⚡ ACCIÓN ya no reaparece en el final ni en la pausa** (deuda que anotó
+  L01): con dos salidas en la fila de abajo quedaba montado sobre ↺ OTRO
+  PARTIDO (`l04_final_amistoso.png`).
+
+**Cómo se verificó.**
+
+- `phaser/test/pausa.test.js` (89 asserts) con `_partido_de_mentira.js`, un
+  ayudante nuevo que corre los métodos reales de `match.js` y `partido.js` en
+  node: 20 cuadros de 300 ms en PAUSA dejan `st.minuto` y `st._t` quietos y
+  `tick()` no se llama (control: los mismos 20 ticks en juego sí mueven el
+  reloj); la cruz, el SONIDO que vuelve a SÍ, ENTER sostenido que no
+  confirma; la pausa pedida; las salidas; los tres finales (amistoso, Master
+  y el puente con el clásico) con al menos un botón que sale, cursor puesto y
+  la espera. Contra el `match.js` de antes falla con el síntoma; con
+  mutaciones (sin congelar, sin espera, sin la pausa pedida, con repeat)
+  falla con el mensaje de cada una.
+- En el navegador integrado, mudo: el ⏸ con un toque sobre el lienzo
+  (`l04_hud_pausa.png`, `l04_pausa_cruz.png`), 5 s en pausa con el reloj en
+  0,075 → 0,075, SONIDO NO y SÍ (`l04_pausa_sonido_no.png`), P y ENTER, la
+  pausa pedida en un duelo y abierta al volver a LIBRE
+  (`l04_pausa_pedida.png`, `l04_pausa_tras_jugada.png`), VOLVER AL MENÚ al
+  editor (`l04_pausa_volver_editor.png`); en una fecha del Master, SALIR DEL
+  PARTIDO (`l04_pausa_master.png`) al Master con "↺ REPETIR EL PARTIDO", la
+  fecha y las mejoras intactas (`l04_salir_master_repetir.png`); los finales
+  (`l04_final_amistoso_v2.png`, `l04_final_master.png`), VOLVER AL MENÚ con un
+  toque y con ENTER, SEGUIR LA CARRERA con ENTER. El save del Master de
+  pruebas se respaldó antes y se restauró después.
+
+### pausa-al-ocultar · girar a vertical o salir a otra app pausa el partido y la música
+
+**Qué estaba mal (medido).** `matchMedia` y `visibilitychange` daban 0
+resultados en `phaser/`. El "Girá el celular" es solo CSS: el lienzo se
+esconde, la página sigue visible y el partido seguía corriendo sin que se
+viera. Con la pestaña oculta Phaser frena su loop (no hay cuadros), pero la
+música es un `new Audio` de `sfx.js` y seguía con `paused=false` arriba de
+WhatsApp.
+
+**Qué se hizo.**
+
+- `audio/sfx.js`: **`pausarMusica(motivo)` / `reanudarMusica(motivo)`**. Los
+  motivos se suman ("oculto", "vertical") y la música vuelve cuando no queda
+  ninguno. Pausa en el lugar (sin tocar `currentTime`) el tema que SONABA; al
+  volver sigue el mismo con fundido de entrada. Un tema que se estaba yendo
+  termina de irse; uno de una pasada que ya terminó no vuelve a empezar; un
+  pedido que llega en pausa (el tope de `alTerminarMusica` es un setTimeout y
+  corre igual) cambia el tema pendiente sin sonar. El mute no se toca. Su
+  propio oyente de `visibilitychange` calla la música y **suspende el
+  contexto de los efectos** (`ctx.suspend()`/`resume()`, solo si lo suspendió
+  él: el que nunca arrancó por falta de toque lo destraba `unlock()`).
+- `index.html`: **`PampaPausa`** con `matchMedia` sobre la MISMA consulta del
+  `@media` de `#rotate` (`(orientation: portrait) and (max-width: 820px)`;
+  si difieren, hay un ancho donde se ve el aviso y el juego corre). En
+  vertical: `PAMPA_GAME.pause()` (no corre ni el update ni los tweens) y la
+  música. Se evalúa al cargar y otra vez al crear el juego (`aplicar`), que
+  nace después del oyente. A los dos motivos les avisa al juego con el evento
+  `"ocultar"`.
+- `match.js`: con `"ocultar"` y el reloj corriendo (LIBRE), el partido abre
+  su PAUSA. Al volver no arranca solo: arranca con SEGUIR.
+- No se pisa con "Algo se trabó": volver a horizontal no reanuda con el aviso
+  a la vista, y SEGUIR IGUAL / VOLVER AL MENÚ del aviso no reanudan en
+  vertical.
+
+**Cómo se verificó.**
+
+- `phaser/test/pausa_ocultar.test.js` (47 asserts): la consulta del JS es la
+  del CSS; el reproductor de verdad en node con la pestaña oculta 3 s deja 0
+  elementos con `paused=false` y al volver suena el mismo tema desde 37,5 s;
+  el contexto se suspende y vuelve; tema nuevo con la pestaña oculta, mute,
+  temas de una pasada y motivos sumados; `PampaPausa` corriendo con un juego
+  de mentira; el partido abre la pausa y 10 s de cuadros no mueven el minuto.
+  Contra el código de antes: 12 asserts en rojo.
+- En el navegador integrado, mudo (con `document.hidden` simulado y el evento
+  disparado, porque el panel está oculto de verdad): el tema de la entrada
+  quedó en 9,2 s con la pestaña oculta 3 s, el contexto de efectos
+  `suspended`, el partido en PAUSA; al volver siguió el mismo tema desde ahí y
+  el contexto `running` (`l04_volver_de_oculto.png`). A 360x800: la consulta
+  da verdadero, `#rotate` visible, el juego en pausa, la música parada y 10 s
+  sin mover el minuto (2,6125); a 800x360 el juego sigue, el mismo tema
+  vuelve y el partido espera SEGUIR (`l04_vuelta_horizontal.png`).
+- **Lo que se midió en el camino**: el `change` de una consulta se despacha
+  en el paso de render del navegador, y el panel oculto no lo hace: la
+  consulta daba verdadero y el oyente no corrió. Por eso además de `change`
+  se escucha `resize` y `orientationchange` (`evaluar()` es idempotente), y en
+  el panel la evaluación se disparó a mano (`PampaPausa.evaluar()`, el mismo
+  oyente).
+
+### boton-atras-y-gestos · el gesto "atrás" de Android no te saca del partido
+
+**Qué estaba mal (medido).** `popstate`, `pushState`, `beforeunload` y
+`pagehide` daban 0 resultados en `phaser/`. En Android el gesto atrás
+(deslizar desde el borde, que en horizontal queda bajo los pulgares) o la
+tecla atrás salía de la página: abierto desde WhatsApp en una pestaña sin
+historial, la cerraba; instalado, cerraba la app; el partido se perdía.
+`index.html` no fijaba `overscroll-behavior` ni `touch-action`, y Phaser
+cancela el toque solo cuando el blanco es el lienzo
+(`e.capture&&t.cancelable&&t.target===s&&t.preventDefault()` en
+`vendor/phaser.min.js`): en las bandas negras de Scale.FIT se podía deslizar
+para recargar o mantener apretado para el menú de copiar.
+
+**Qué se hizo.**
+
+- **`logic/atras.js`** (puro): `decidir(estado, ms)` devuelve `pausa`,
+  `cerrar_menu`, `volver`, `confirmar_salida` o `salir`.
+  - partido: LIBRE pausa; la cruz con ✕ y el pase dirigido se cierran; la
+    PAUSA es SEGUIR; el final sale por su botón principal; el menú de tempo
+    (antes de empezar) vuelve sin jugar; todo lo demás (una escena, la cruz
+    que hay que contestar, la Definición) pide la pausa. **Nunca sale del
+    partido**: para eso está la salida de la PAUSA.
+  - Master: la vista anterior; con la caja del código abierta, la cierra.
+  - editor e intro: "Tocá ATRÁS otra vez para salir" y un segundo atrás
+    dentro de los 2 s (`pausa.atras_ventana_ms`) sale. El "anterior" es el
+    atrás que **pidió confirmar**, no cualquiera: volver del Master al editor
+    y tocar atrás enseguida no saca del juego.
+- **`index.html`**: el escalón `{pampa:1}` con `pushState`, puesto con el
+  primer toque (no al cargar, ver decisiones) y sin apilar otro después de
+  recargar. `popstate` lo repone, decide con la escena a la vista
+  (`estadoAtras()`) y manda `"atras"` al juego; para salir no lo repone y hace
+  `history.back()` (si no había a dónde volver, el próximo atrás es el del
+  sistema, y un toque nuevo vuelve a poner el escalón). Con "Algo se trabó" a
+  la vista no hace nada. El aviso es DOM (`#atras-aviso`, arriba del "Girá el
+  celular"). CSS en `html,body`: `overscroll-behavior:none`,
+  `touch-action:none`, `user-select:none` y `-webkit-touch-callout:none`;
+  `textarea` e `input` los recuperan (el código de carrera se pega
+  manteniendo apretado) y las cajas `#trabado`/`#cajacodigo` scrollean con
+  `pan-y`. `config.disableContextMenu = true`. `logic/atras.js` va en el
+  PRECACHE de `sw.js`.
+- **`match.js`**: `estadoAtras()`, `decidirAtras()`, `alAtras(d)` y el oyente
+  de `"atras"` (se descuelga con el shutdown, como el de `"ocultar"`). ESC es
+  el atrás del teclado: pasa por la misma tabla.
+- **`master.js`**: `estadoAtras()`, `alAtras(d)` y `_atrasVista`, que cada
+  vista deja dicho y `vaciarVista()` borra: la semana y el evento vuelven a la
+  tabla (lo elegido y el evento sorteado ya están en el save, con su fecha),
+  el día suelto a la semana, la entrevista a la pregunta anterior, el código y
+  ¿EMPEZAR OTRA CARRERA? a la tabla; la tabla, elegir club y el save roto al
+  editor.
+- `test/_escena_de_mentira.js` suma el emisor del juego (`game.events`): el
+  Master se cuelga ahí desde este lote.
+
+**Cómo se verificó.**
+
+- `phaser/test/atras.test.js` (109 asserts): la tabla de `decidir()` con 25
+  casos (LIBRE, MENU con y sin ✕, PASE, PAUSA, DEFINICION, ESCENA, FINAL,
+  tempo, Master con y sin caja, editor, intro) dentro y fuera de los 2.000 ms
+  (0, 1.999, 2.000 y 3.500); lo estático de `index.html`; el script del
+  atrás **corriendo** con un historial y un juego de mentira (el escalón con
+  el primer toque y una sola vez, confirmar y salir, el partido que nunca
+  sale, el error que manda, Master→editor que no cuenta como primer atrás); y
+  `match.js` y `master.js` reales cumpliendo cada decisión.
+- En el navegador integrado, mudo, con `history.back()` como gesto: el primer
+  toque puso el escalón (30 → 31 entradas, estado `{pampa:1}`); en la intro
+  apareció "◀ Tocá ATRÁS otra vez para salir" y se fue a los 2,1 s; en LIBRE
+  abrió la PAUSA con el reloj quieto 5 s (`l04_atras_pausa.png`) y el segundo
+  atrás siguió; en un pase dirigido lo canceló y volvió a la cruz
+  (`l04_atras_pase_cancelado.png`); en la cruz sin ✕ pidió la pausa; en el
+  final fue al editor; en el Master la semana volvió a la tabla
+  (`l04_master_semana.png`, `l04_master_atras_tabla.png`) y la tabla al
+  editor; y en el editor, dos atrás seguidos salieron de la página (el panel
+  navegó a la entrada anterior del historial). Los estilos, leídos en vivo:
+  `body` con `touch-action:none` y `overscroll-behavior:none`, un `textarea`
+  con `user-select:text`.
+- El aviso, fotografiado con el Chrome de la máquina sin ventana y mudo a
+  800x360, sobre la compuerta (`l04_atras_toast_800x360.png`, arnés
+  `.claude/l04_atras.html`).
+- **No reproducido en un teléfono**: el gesto de Android, el deslizar para
+  recargar y el swipe de iOS son de plataforma; acá se probó el camino del
+  `popstate` y los estilos aplicados.
+
+La versión visible sube a `v17-1.0-l04` (index.html y sw.js, iguales).
+
+### DECISIONES QUE TOMÉ YO (lote L04)
+
+1. **La fecha del Master SÍ tiene salida en la pausa.** El ítem decía "hasta
+   que Rodri decida la regla de abandono, solo SEGUIR y SONIDO"; Rodri ya la
+   decidió (repetir la fecha sin rehacer la semana ni explotar mejoras) y el
+   save la cumple desde L03. *Revertir:* en `abrirPausa`, no agregar la
+   opción "salir" cuando `this._masterPartido`.
+2. **ESC es el atrás del teclado**: pasa por la misma tabla que el gesto, así
+   que en LIBRE ahora abre la PAUSA, en el menú de tempo vuelve sin jugar y
+   en la cruz sin ✕ pide la pausa (antes no hacía nada en esos tres).
+   *Revertir:* el `keydown-ESC` de `create()` vuelve a mirar solo PASE y MENU.
+3. **El menú de tempo, con atrás, vuelve** (no estaba en la tabla del ítem):
+   el partido no empezó y no hay nada que perder; en el Master la fecha queda
+   para jugarla, como con SALIR. *Revertir:* sacar el renglón de
+   `TEMPO_MENU` en `logic/atras.js` (pasa a pedir la pausa).
+4. **La pausa se abre solo desde LIBRE**; pedida en otro estado se anota y
+   entra al volver a LIBRE. Abrirla encima de un menú obligaría a desarmarlo y
+   rearmarlo. La pausa por ocultar o girar, en cambio, no se anota fuera de
+   LIBRE: lo que corre queda congelado con el juego entero y sigue al volver,
+   con la persona mirando.
+5. **El escalón del historial se pone con el primer toque**, no "al
+   arrancar" como decía el ítem: Chrome marca como salteable la entrada que
+   una página agrega sin activación del usuario, y el gesto se la saltearía.
+   Se arma con `pointerup`, `touchend`, `click` y `keydown` (con el dedo la
+   activación llega al soltar). *Revertir:* llamar `AT.armar()` al final del
+   script.
+6. **La música sigue sonando en la PAUSA del partido** (se calla solo al
+   ocultar o girar); para callarla está SONIDO, que es el mute de siempre.
+7. **Las salidas del final aparecen a los 700 ms** y el cursor del amistoso
+   arranca en VOLVER AL MENÚ (lo pide el "volver al editor con Enter").
+   *Ajustar:* `pausa.final_espera_ms`; el orden en `finDelPartido`.
+8. **El cursor no confirma con la repetición de tecla, en todo el juego**
+   (`foco_ui.js`), no solo en el final: mantener apretado ENTER o ESPACIO no
+   es elegir en ningún menú. *Revertir:* el `!(ev && ev.repeat)` de foco_ui.
+9. **Desde la tabla del Master, atrás va al editor** (de donde se entra), no
+   pide confirmar salida.
+10. **La versión `v17-1.0-l04`.** *Revertir:* volver las dos a
+    `v17-1.0-l03r`.
+
+### Deudas que vi y no son de este lote
+
+- El área táctil del 🔊 del partido es de 44 (el piso es 61): es de
+  `piso-tactil` (L10).
+- "▶ APLICAR Y VOLVER A LA CARRERA" (el puente con el clásico, con
+  `partido_phaser` apagado) cae encima de la franja del resultado y usa 10 px.
+  Entró en el cursor, pero su lugar no se tocó.
+- La semana del Master dice "ASADO CON LOS PIBES" (lenguaje institucional,
+  L12).
+- A 800x360 el aviso "Tocá ATRÁS…" tapa durante 2 s el renglón "(o apretá
+  cualquier tecla)" de la compuerta.
+- Una pausa pedida durante el tutorial entra apenas se cierra el tutorial.
+- El PRECACHE de `sw.js` no tiene `foco_ui.js`, `cartas_ui.js`,
+  `logic/foco.js` y otros que index.html carga: es `sw-precache` (L05).
