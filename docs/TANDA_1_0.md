@@ -1447,3 +1447,256 @@ La versión visible sube a `v17-1.0-l04r` (index.html y sw.js, iguales).
   `create()` cortando el texto del archivo: si esos renglones dejan de estar
   juntos, el test lo dice ("create() tiene los oyentes … juntos"), pero hay
   que mover el corte.
+---
+
+## Ola 2 · Que cargue y se juegue en el celular — lote L04b-deudas
+
+### deudas-ola1 · las deudas que dejó la ola 1
+
+Seis cosas que los lotes L01 a L04 vieron en sus capturas y anotaron como
+deuda porque no eran su ítem. Todas tienen su prueba en
+`phaser/test/deudas_ola1.test.js` (94 asserts, una sección por punto), que
+corre los métodos REALES de las escenas sobre las escenas de mentira. Cada
+sección se probó también contra el archivo de antes (variables
+`PAMPA_MATCH_VIEJO`, `PAMPA_MASTER_VIEJO`, `PAMPA_V9_VIEJO`,
+`PAMPA_INTRO_VIEJO`) y falla con el síntoma.
+
+#### 1) ⚡ACCIÓN en la pantalla final
+
+**Qué estaba mal.** `pantallaFinal()` apagaba el botón ⚡ACCIÓN y "ESPACIO =
+ACCIÓN" y `refrescarHUD()`, que corre en cada cuadro, los volvía a prender
+(`l03_v2_ganaste.png`, `l02_p1_fecha1_final.png`).
+
+**Qué se hizo.** Nada en el código: **ya estaba arreglado** en 69ade45 (L04),
+que suma PAUSA, FINAL y `_finalApagado` al bloque C4 de `refrescarHUD`. Le
+faltaba el test que pide el criterio. `deudas_ola1.test.js` [1] corre
+`refrescarHUD()` de verdad: control en LIBRE con la pelota (el botón se ve),
+el pitazo y 30 cuadros en FINAL (apagado), con las salidas a la vista y con
+`_finalApagado` solo. Contra el `match.js` de antes de 69ade45: prendido en
+30 de 30 cuadros. Para eso `_partido_de_mentira.js` acepta `opts.match`
+(otra copia de match.js) y `opts.logicaAntes` / `opts.logica` /
+`opts.mixins` (lo que index.html carga alrededor de match.js).
+
+**Cómo se verificó.** En el navegador, mudo: fecha del Master 2-1, 4 s
+después del pitazo, sin ⚡ACCIÓN ni su ayuda (`l04b_1_final_master_4s.png`).
+
+#### 2) El título de la cruz tapaba el ticker del relator
+
+**Qué estaba mal (medido en el navegador).** El ticker vive en y=300
+(`balance.relator.y`): de 289,5 a 310,5. El título de la cruz ("⚔ ¡X te
+sale al cruce!…", "¿Qué hacés?") en y=306: de 296 a 316. La ayuda del pase
+dirigido, de 291 a 308. El menú se dibuja encima: la frase que el relator
+acababa de decir quedaba tapada entera y al cerrar el menú ya se había ido
+(`l04b_antes_duelo_ticker.png`, `l04b_antes_pase_ticker.png`).
+
+**Qué se hizo** (`scenes/match.js`). Con un menú abierto la franja es del
+menú:
+
+- `tickerSeLee()` cuenta MENU y PASE, como la PAUSA y el tutorial: lo que
+  el relator dice con el menú abierto espera y sale al cerrarse.
+- `apartarTicker()`, al abrir la cruz y el pase dirigido: la frase a la
+  vista se va, y si no llegó a leerse (menos de la mitad de `hold_ms`) o era
+  la ficha de la semana, vuelve a esperar. Casi siempre la reemplaza la
+  frase de la resolución, que es más nueva (el lugar de espera es uno).
+- `_tickerDesde` (cuándo se pintó la frase) se reinicia en `init()` (P1).
+
+**Cómo se verificó.** `deudas_ola1.test.js` [2]: la frase recién dicha
+vuelve, la que llega con el menú abierto espera, la ya leída no se repite,
+la ficha vuelve con su prioridad, el pase espera. Contra el de antes fallan
+8. En el navegador: la frase en LIBRE (`l04b_2_libre_ticker.png`), la cruz
+del duelo con el título limpio (`l04b_2_duelo_sin_ticker.png`), al cerrar
+vuelve la misma frase (`l04b_2_al_cerrar_vuelve.png`), el pase dirigido sin
+el ticker debajo (`l04b_2_pase_sin_ticker.png`).
+
+#### 3) En la tabla del Master, el resultado pisaba al club
+
+**Qué estaba mal.** "✔ GANASTE 2-1" centrado en y=84 y el club en y=78,
+los dos de 12 px (`l03_v2_volver_tabla_sumada.png`). Abajo no hay lugar: en
+y=94 vive el aviso de ZONA DE DESCENSO y en y=114 los encabezados.
+
+**Qué se hizo** (`scenes/master.js`, `vistaTemporada`). El resultado va en
+el MISMO renglón que el club, a la derecha, con 22 px de aire, y los dos se
+centran juntos con su ancho medido (`Text.width`). La marca ✔ / = / ✘ dice
+el resultado sin el color. Sin partido recién jugado, el club queda
+centrado como siempre.
+
+**Cómo se verificó.** `deudas_ola1.test.js` [3] con `master.js` real sobre
+la escena de mentira: ganaste, empataste con cinco títulos (el renglón más
+largo) y perdiste; el resultado no cruza al club ni a otro texto y el par
+queda centrado. Contra el de antes fallan 12. En el navegador: club de 380 a
+477 y "✔ GANASTE 2-1" de 499 a 581 en el mismo renglón
+(`l04b_3_tabla_ganaste.png`), y por el camino de verdad (el
+`masterResultado` de la fecha en curso y la escena que se rearma) "✘
+PERDISTE 1-3" al lado de "El Caldén de Toay" (`l04b_3_tabla_real_perdiste.png`).
+El save de pruebas se restauró después (ver decisiones).
+
+#### 4) La SÚPER DEFENSA no se podía usar jugando
+
+**Qué estaba mal.** El GDD (5.4): el envión lleno se gasta en potenciar al
+equipo o en una Súper Defensa que bloquea un remate de forma segura. El
+único consumo de la segunda (`partido.gastarEnvionSuper`, en `defVueloDef`)
+y su botón vivían en `defBotonesDef()`, la pantalla de gestión defensiva
+que la V9 C1 sacó y que no tiene llamador. Defendiendo con el envión lleno,
+el 🌟 del HUD no aparece (es POTENCIAR, solo con la pelota): el mérito
+quedaba quieto. `balance.envion._nota` lo decía: "ya NO existe".
+
+**Qué se hizo: una puerta real, donde la pone el GDD** (cuando el rival te
+va a rematar):
+
+- `escenas_v9.js`: `escenaRemateRival(tiradorIdx, superDef)`. Sin contestar
+  y con el envión lleno, primero `preguntarSuperDefensa()`: un plano quieto
+  con el rematador (pose quieta, corte seco al remate) y dos botones del
+  piso táctil, a 15/13 px, **sin reloj** (mérito, no reflejo):
+  **🌟 SÚPER DEFENSA** ("gastás el envión · este remate no entra") y
+  **◀ GUARDAR EL ENVIÓN** ("atajan tu defensa y tu arquero"). El cursor
+  arranca en la SÚPER DEFENSA; los botones responden
+  `balance.envion.super_espera_ms` (450) después de abrirse, porque ESPACIO
+  viene apretado del partido. Un toque fuera de los botones no decide.
+- Estado `SUPERDEF`: espera a quien juega, como un menú. El vigía de SEGUIR
+  IGUAL (`index.html`, `ESPERAN`) no lo cuenta como trabado; el atrás y la P
+  la piden para después, como en cualquier jugada.
+- `logic/definicion.conSuperDefensa(lectura, vos)` (pura): la lectura queda
+  bloqueada con motivo `super_defensa` y se tira quien juega (aunque no
+  hubiera nadie en la línea). La escena dice "🌟 ¡SÚPER DEFENSA!" y la
+  pelota es tuya.
+- `tribuna_ui.callar()`: los globos de Nelda y el Tuli viven arriba del
+  cine (cámara de UI) y caían sobre la pregunta
+  (`l04b_4_cursor_en_guardar.png`): se callan mientras se decide.
+- `balance.envion`: `super_pregunta` (true; en false no se pregunta) y
+  `super_espera_ms`, con la `_nota` reescrita (dos destinos).
+  `definicion_ui.js` aclara que su botón es el de la pantalla sin llamador,
+  que queda como estaba (`MUERTOS_OK` de desconectados.test.js).
+- `partitura.test.js` lee la firma nueva de `escenaRemateRival` (la red del
+  gol rival sigue sonando una vez ahí).
+
+**Cómo se verificó.** `deudas_ola1.test.js` [4]: la lógica pura y
+`escenas_v9.js` real (pregunta, espera, ENTER antes de tiempo que no
+decide, botones y textos, cursor, toque, ENTER y ENTER sostenido, GUARDAR
+que no gasta, sin envión lleno o con `super_pregunta` en false no pregunta,
+la tribuna callada, `SUPERDEF` en `ESPERAN`) y **200 remates con súper
+defensa: 0 goles**. Contra el `escenas_v9.js` de antes: 56 goles en 200 y
+12 asserts en rojo. En el navegador, mudo: defendiendo con el envión en 100
+(`l04b_4_defendiendo_envion_lleno.png`), la pregunta
+(`l04b_4_pregunta.png`), un toque de verdad en SÚPER DEFENSA: "🌟 ¡SÚPER
+DEFENSA!" con VOS tirándote (`l04b_4_super_defensa_revela.png`) y de vuelta
+al partido con el envión en 0 y la pelota nuestra
+(`l04b_4_vuelta_al_partido.png`); con flecha abajo y ENTER, GUARDAR: el
+remate común y el envión sigue en 100 (`l04b_4_guardar_remate_comun.png`);
+la tribuna callada (`l04b_4_pregunta_tribuna_callada.png`).
+
+#### 5) La compuerta de la intro a 800x360
+
+**Qué estaba mal (medido).** El aviso del atrás ("Tocá ATRÁS otra vez para
+salir", DOM, 18 px fijos, 50 de alto con `getBoundingClientRect`) a 800x360
+arranca en y=292 CSS, y=438 del juego: tapaba por 2 s "(o apretá cualquier
+tecla)", en y=442 (`l04_atras_toast_800x360.png`). A 568x320 arranca en
+y=425. Y el logo, escalado por ancho (540x495 centrado en y=210): su dibujo,
+medido por el alfa del archivo en el navegador (filas 22 a 2115 de 2200),
+iba de y=-32 a 438: se salía por arriba y "TOCÁ PARA EMPEZAR" (y=400) caía
+sobre STAR.
+
+**Qué se hizo** (`scenes/intro.js`, `balance.intro`). El logo se escala por
+ALTO (`compuerta_logo_alto` 330, con el tope de ancho de antes) desde
+`compuerta_logo_y` 12: el dibujo va de y≈15 a 329. Los renglones van a su
+franja: `compuerta_toca_y` 360 (late al 106%: de 350 a 370) y
+`compuerta_tecla_y` 392 (de 386 a 399). Todo termina arriba de 425. El
+archivo del logo no se tocó: es composición en runtime. Las medidas están en
+`balance.intro._compuerta`.
+
+**Cómo se verificó.** `deudas_ola1.test.js` [5] corre `compuerta()` de
+verdad contra el dibujo medido del logo y el aviso del atrás en 800x360,
+640x360, 568x320, 844x390 y 960x540 (bottom del CSS, alto medido). Contra el
+de antes fallan 3. En el navegador a 800x360 con el aviso a la vista: logo
+de y=12 a 342, TOCÁ de 350 a 370, teclado de 386 a 399 y el aviso desde
+y=438 (`l04b_5_compuerta_800x360_aviso.jpg`, captura de la página entera, y
+`l04b_5_compuerta_canvas.png`); el toque sigue arrancando el opening
+(`l04b_5_opening_arranca.png`).
+
+#### 6) APLICAR Y VOLVER A LA CARRERA tapaba el resultado
+
+**Qué estaba mal.** En el partido que pide el clásico (puente, flag
+`partido_phaser`), el botón iba en y=398 (460x54, de 371 a 425), encima de
+la franja del resultado (337 a 423): tapaba "VOS 2 - 1 TOAY", y su texto
+era de 10 px (`l04b_antes_final_puente.png`).
+
+**Qué se hizo** (`scenes/match.js`). Las tres salidas van en la fila de
+abajo (y=496, alto del piso táctil): ◀ VOLVER AL MENÚ (220), ▶ APLICAR Y
+VOLVER A LA CARRERA en el medio (420) y ↺ OTRO PARTIDO (220), con 12 px de
+aire (de x=38 a 922), las tres a 13 px. El cursor, atrás y ESC siguen en
+APLICAR. Sin el puente quedan las dos de L04.
+
+**Cómo se verificó.** `deudas_ola1.test.js` [6]: en el puente y en el
+amistoso ningún botón cruza la franja, entran en el lienzo, miden el piso
+táctil, no se pisan entre ellos y sus textos son de 13 px o más. Contra el
+de antes fallan 3. `pausa.test.js` [5] (APLICAR escribe
+`pampa_resultado_phaser`) sigue verde. En el navegador: el final 2-1 con la
+cifra limpia (y 378 a 406) y las tres salidas en y 489-503
+(`l04b_6_final_puente.png`).
+
+La versión visible sube a `v17-1.0-l04b` (index.html y sw.js, iguales).
+
+### DECISIONES QUE TOMÉ YO (lote L04b)
+
+1. **El punto 1 no tocó código.** Ya lo había arreglado L04 (69ade45); el
+   lote suma el test que pide el criterio. *Revertir:* no hay nada que
+   revertir en el juego; el test es `deudas_ola1.test.js` [1].
+2. **El ticker se aparta en vez de moverse.** No hay franja libre: arriba
+   está la ilustración del panel (un ticker en y≈280 tapa la pelota del
+   dibujo) y abajo la cruz. Mientras se decide, el título es el relato. La
+   frase sin leer vuelve a esperar; la leída (más de la mitad de su
+   tiempo) no se repite. *Revertir:* sacar MENU y PASE de `tickerSeLee()` y
+   las dos llamadas a `apartarTicker()`.
+3. **El resultado del Master va en el renglón del club**, no en y≥96 como
+   propone el ítem de la ola 3 (`legibilidad-fuera-y-solapes`): en y=94
+   está el aviso de ZONA DE DESCENSO. *Revertir:* el texto del resultado en
+   (W/2, 84) con origen 0,5 y el club sin mover.
+4. **La súper defensa tiene puerta, no se retiró.** El ítem dejaba elegir;
+   el GDD 5.4 nombra los dos destinos del envión y lo que Rodri pidió sacar
+   en V9 C1 fueron los botones de gestión (plantarse, achicar, aguantar),
+   no la carta especial. La pregunta es una sola, solo cuando tenés el
+   envión lleno y sin reloj, y el cursor arranca en SÚPER DEFENSA (es la
+   pregunta). La pantalla `defBotonesDef()` sigue muerta: recablearla sería
+   volver a la gestión. *Revertir sin tocar código:*
+   `balance.envion.super_pregunta: false` (el envión vuelve a ser solo
+   POTENCIAR). Si se retira del todo, borrar `preguntarSuperDefensa`,
+   `conSuperDefensa`, `callar` y la sección [4].
+5. **Estado nuevo `SUPERDEF`** en vez de seguir en ESCENA: así el vigía de
+   SEGUIR IGUAL lo cuenta entre los que esperan y un toque suelto no
+   saltea nada. *Revertir:* va junto con el punto anterior.
+6. **La compuerta resuelve también el cruce del logo con TOCÁ PARA
+   EMPEZAR**, que es uno de los cinco solapes del ítem de la ola 3
+   (`legibilidad-fuera-y-solapes`): sin eso la compuerta no quedaba "sin
+   pisarse" a 800x360. Usé el número que propone ese ítem (330 de alto).
+   El techo (425) es el aviso del atrás a 568x320, el apaisado más bajo
+   que conozco en uso. *Revertir:* las perillas `compuerta_*` de
+   `balance.intro` (con 540 de ancho y y=210/400/442 vuelve lo de antes,
+   salvo el origen del logo, que pasó a ser arriba).
+7. **En el puente se quedan las tres salidas.** OTRO PARTIDO y VOLVER AL
+   MENÚ ya estaban; sacarlas no era del ítem. *Revertir:* el bloque
+   `puente` de `finDelPartido`.
+8. **La versión `v17-1.0-l04b`.** *Revertir:* volver las dos a
+   `v17-1.0-l04r`.
+9. **El save de pruebas del navegador.** Para ver la tabla por el camino de
+   verdad apliqué un resultado a la fecha en curso. El respaldo que hice
+   salió mal: `.claude/capture-server.js` decodifica el cuerpo como base64,
+   y un JSON mandado tal cual se guarda roto. Restauré con
+   `.claude/shots/rev04_ls_backup.json` (el de la revisión de L04: mismas
+   cuatro claves y el mismo `pampa_master_v1` de 6.247 caracteres que medí
+   al empezar). Para el próximo: mandar el JSON como `data:...;base64,`.
+
+### Deudas que vi y no son de este lote
+
+- En la cruz del duelo, la carta del CENTRO (EL FOGONAZO) se monta sobre
+  PASE y TIRO, y el subtítulo de MEGACORRIDA se sale de su botón
+  (`l04b_2_duelo_sin_ticker.png`). Es del ítem de legibilidad del partido.
+- La mano de cartas ("◆ FOGONAZO ◆ PUÑALADA", `txtMano`) sigue a la vista
+  en la pantalla final: `pantallaFinal()` no la apaga
+  (`l04b_1_final_master_4s.png`, `l04b_6_final_puente.png`).
+- "✘ PERDISTE" en rojo sobre el cielo claro del Master se lee poco
+  (`l04b_3_tabla_real_perdiste.png`): legibilidad, ola 3.
+- Los textos de la compuerta siguen en 15 y 12 px (≈10 y 8 CSS a 800x360):
+  legibilidad, ola 3. Y el opening dice "En algún pueblo de La Pampa…"
+  (`balance.intro.t_pueblo`): lenguaje institucional.
+- El ítem `legibilidad-fuera-y-solapes` (ola 3) lista dos solapes que este
+  lote ya resolvió (el club sobre el resultado y el logo sobre TOCÁ PARA
+  EMPEZAR): quien lo implemente tiene que medir antes de volver a moverlos.

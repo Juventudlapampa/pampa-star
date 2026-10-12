@@ -14,6 +14,23 @@
          pelota (control: el botón SÍ se ve, si no el test no mide nada) y
          después 30 cuadros en FINAL. Contra el match.js de antes de 69ade45
          (PAMPA_MATCH_VIEJO=ruta) falla con el síntoma.
+     [2] EL TÍTULO DE LA CRUZ Y EL TICKER DEL RELATOR. Vivían en la misma
+         franja (ticker y=300, título y=306, ayuda del pase hasta y=308) y el
+         menú tapaba la frase entera. Con la cruz o el pase abiertos el
+         ticker se aparta; la frase sin leer vuelve a esperar.
+     [3] LA TABLA DEL MASTER. "✔ GANASTE 2-1" (y=84) pisaba al club (y=78).
+         Ahora va en su renglón, a la derecha, y el par se centra con su
+         ancho. Con master.js real (PAMPA_MASTER_VIEJO=ruta para el de antes).
+     [4] LA SÚPER DEFENSA. Su único consumo vivía en una pantalla sin
+         llamador. Ahora el remate rival pregunta con el envión lleno; SÍ
+         gasta y bloquea (200 remates, 0 goles), GUARDAR no gasta. Con
+         escenas_v9.js real (PAMPA_V9_VIEJO=ruta para el de antes).
+     [5] LA COMPUERTA A 800x360. El logo tapaba "TOCÁ PARA EMPEZAR" y el
+         aviso del atrás tapaba "(o apretá cualquier tecla)". Se corre
+         compuerta() de verdad contra el dibujo del logo medido y el aviso
+         en cinco tamaños de pantalla (PAMPA_INTRO_VIEJO=ruta).
+     [6] EL PUENTE CON EL CLÁSICO. APLICAR Y VOLVER A LA CARRERA tapaba la
+         franja del resultado y era de 10 px: ahora va en la fila de abajo.
 
    Corré:  node phaser/test/deudas_ola1.test.js
    ========================================================================== */
