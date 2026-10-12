@@ -79,6 +79,59 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   console.log("[1] FINAL: 30 cuadros de refrescarHUD con ⚡ACCIÓN y su ayuda apagados (control en LIBRE: prendidos)");
 })();
 
+/* ---------- [2] EL TÍTULO DEL MENÚ Y EL TICKER NO SE PISAN ---------- */
+(function () {
+  var E = PM.escena({ match: VIEJO }), s = conHUD(E);
+  var hold = E.BAL.relator.hold_ms;
+  /* el ticker como lo arma create(): en la franja de balance.relator.y */
+  s.tickerTxt = s.add.text(480, E.BAL.relator.y, "", {}); s.tickerTxt.setAlpha(0);
+  s.tweens.killTweensOf = function () { };
+  var CRUZ = { titulo: "⚔ ¡ESPEJO te sale al cruce!", opciones: { N: { texto: "⚡ GAMBETA", sub: "~50%", cb: function () { } } } };
+  /* la geometría que obliga: el título va a y=306 y el ticker a balance.relator.y */
+  var SRC = PM.leer(VIEJO || "phaser/scenes/match.js");
+  assert(/this\.add\.text\(480, 306, cfg\.titulo/.test(SRC) && Math.abs(E.BAL.relator.y - 306) < 21,
+    "el título de la cruz (y=306) y el ticker (y=" + E.BAL.relator.y + ") comparten la franja: por eso uno se aparta");
+
+  /* a) la frase recién dicha (200 ms) se aparta y vuelve a esperar */
+  s.estado = "LIBRE"; s.time.now = 1000;
+  s.anunciarEnTicker("Metió el cuerpo y la pelota cambió de dueño.", "🎙");
+  assert(s.tickerTxt.alpha === 1, "control: en LIBRE la frase se pinta en el ticker");
+  s.time.now = 1200;
+  s.abrirMenuCruz(CRUZ);
+  assert(s.estado === "MENU", "la cruz está abierta");
+  assert(s.tickerTxt.alpha === 0, "SÍNTOMA: con la cruz abierta el ticker sigue a la vista debajo del título (alpha " + s.tickerTxt.alpha + ")");
+  assert(s._relPendiente === "🎙 Metió el cuerpo y la pelota cambió de dueño.", "la frase que no llegó a leerse vuelve a esperar (" + s._relPendiente + ")");
+  /* b) lo que dice el relator con el menú abierto también espera (y es lo más nuevo) */
+  s.anunciarEnTicker("Se la llevó puesta.", "🎙");
+  assert(s.tickerTxt.alpha === 0, "con el menú abierto la frase nueva no se pinta debajo del título");
+  assert(s._relPendiente === "🎙 Se la llevó puesta.", "y espera; la más nueva reemplaza a la vieja (" + s._relPendiente + ")");
+  /* c) al cerrar el menú, sale */
+  s.limpiarMenu(); s.estado = "LIBRE"; s.time.now = 3000;
+  s.soltarRelatoPendiente();
+  assert(s.tickerTxt.alpha === 1 && s.tickerTxt.text === "🎙 Se la llevó puesta.", "al cerrar el menú, la frase que esperaba sale (" + s.tickerTxt.text + ")");
+  /* d) una frase que ya se leyó (más de la mitad de su tiempo) no vuelve */
+  s._relPendiente = null; s.time.now = 10000;
+  s.anunciarEnTicker("Toque y a seguir.", "🎙");
+  s.time.now = 10000 + Math.round(hold * 0.6);
+  s.abrirMenuCruz(CRUZ);
+  assert(s.tickerTxt.alpha === 0 && s._relPendiente === null, "la frase ya leída se aparta y no se repite al cerrar (" + s._relPendiente + ")");
+  /* e) la ficha de la semana (prioridad) vuelve siempre, con su prioridad */
+  s.limpiarMenu(); s.estado = "LIBRE"; s.time.now = 20000;
+  s.anunciarEnTicker("por qué hoy te cuesta: dormiste poco", "📋", { prioridad: true });
+  s.time.now = 20000 + Math.round(hold * 0.8);
+  s.abrirMenuCruz(CRUZ);
+  assert(s._relPendiente === "📋 por qué hoy te cuesta: dormiste poco" && s._relPendientePrio === true, "la ficha de la semana vuelve a esperar, con prioridad");
+  /* f) el pase dirigido: su ayuda también va en la franja */
+  s.limpiarMenu(); s.estado = "PASE";
+  assert(s.tickerSeLee() === false, "con el pase dirigido abierto el ticker espera");
+  s.estado = "LIBRE";
+  assert(s.tickerSeLee() === true, "control: en LIBRE el ticker se lee");
+  var paseSrc = SRC.slice(SRC.indexOf("  iniciarPaseDirigido(rivalIdx, libre) {"));
+  paseSrc = paseSrc.slice(0, paseSrc.indexOf("\n  }\n"));
+  assert(/this\.estado = "PASE";\s*\n\s*this\.apartarTicker\(\)/.test(paseSrc.replace(/\r/g, "")), "iniciarPaseDirigido aparta el ticker al abrir");
+  console.log("[2] con la cruz o el pase abiertos el ticker se aparta; la frase sin leer espera y sale al cerrar");
+})();
+
 if (mal) { console.log("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }
 console.log("\n✓ deudas de la ola 1: " + ok + " asserts");
 process.exit(0);

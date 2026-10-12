@@ -223,6 +223,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._relPendiente = null;
     this._relPendientePrio = false;
     this._tickerFijo = 0;
+    this._tickerDesde = null;        // L04b: cuándo se pintó la frase a la vista (apartarTicker)
     /* ══════════════════════════════════════════════════════════════════
        TANDA 1.0 · LA MEMORIA DEL PARTIDO ARRANCA DE CERO.
 
@@ -647,7 +648,41 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   tickerSeLee() {
     if (this.hudLayer && !this.hudLayer.visible) return false;
     /* L04: detrás del velo de la PAUSA tampoco se lee: espera a SEGUIR */
-    return this.estado !== "TEMPO_MENU" && this.estado !== "TUTORIAL" && this.estado !== "PAUSA";
+    /* L04b: con la cruz (MENU) o el pase dirigido (PASE) abiertos, tampoco:
+       su título va en la misma franja (ver apartarTicker) */
+    return this.estado !== "TEMPO_MENU" && this.estado !== "TUTORIAL" && this.estado !== "PAUSA" &&
+      this.estado !== "MENU" && this.estado !== "PASE";
+  }
+  /* ══════════════════════════════════════════════════════════════════════
+     L04b · EL TÍTULO DEL MENÚ Y EL TICKER VIVÍAN EN LA MISMA FRANJA.
+
+     El ticker del relator está en y=300 (balance.relator.y) y el título de
+     la cruz ("⚔ ¡X te sale al cruce!…", "¿Qué hacés?") en y=306; la ayuda
+     del pase dirigido ("➡ PASE: tocá el DESTINO…") termina en y=308. Medido
+     en el navegador: ticker de 289,5 a 310,5, título de 296 a 316, ayuda del
+     pase de 291 a 308. El menú se dibuja encima: la frase que el relator
+     acababa de decir quedaba tapada entera, y al cerrar el menú ya se había
+     ido (l04b_antes_duelo_ticker.png, l04b_antes_pase_ticker.png).
+
+     Con un menú abierto la franja es del menú. La frase que estaba a la
+     vista se aparta, y si no llegó a leerse (menos de la mitad de su tiempo,
+     o era la ficha de la semana) vuelve a esperar: sale al cerrar el menú,
+     salvo que el relator diga algo más nuevo antes, que es lo que pasa casi
+     siempre (la resolución del duelo tiene su frase). La que llega con el
+     menú abierto espera igual (tickerSeLee). */
+  apartarTicker() {
+    const t = this.tickerTxt;
+    if (!t || !t.text || !(t.alpha > 0.05)) return;
+    const hold = (this.BAL.relator || {}).hold_ms || 2800;
+    const prio = !!(this._tickerFijo && this.time.now < this._tickerFijo);
+    const sinLeer = this._tickerDesde != null && this.time.now - this._tickerDesde < hold / 2;
+    this.tweens.killTweensOf(t);
+    t.setAlpha(0);
+    this._tickerFijo = 0;
+    /* el lugar de espera es uno: una frase no desplaza a una ficha que espera */
+    if ((prio || sinLeer) && !(this._relPendiente && this._relPendientePrio && !prio)) {
+      this._relPendiente = t.text; this._relPendientePrio = prio;
+    }
   }
   anunciarEnTicker(f, icono, op) {
     if (!f || !this.tickerTxt) return;
@@ -666,6 +701,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const R = this.BAL.relator || {}, hold = R.hold_ms || 2800;
     this.tweens.killTweensOf(this.tickerTxt);
     this.tickerTxt.setText(linea).setAlpha(1);
+    this._tickerDesde = this.time.now;
     this._tickerFijo = prio ? this.time.now + hold : 0;
     this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: hold, duration: R.fade_ms || 500 });
   }
@@ -2345,6 +2381,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   abrirMenuCruz(cfg) {
     this.estado = "MENU";
     this.limpiarMenu();
+    this.apartarTicker();   // L04b: el título va en la franja del ticker
     /* ── B6 · LA CÁMARA CON INTENCIÓN ──────────────────────────────────
        Un acercamiento lento y continuo MIENTRAS se decide algo. No es un zoom
        de golpe: es el movimiento que le avisa al cuerpo del jugador que algo va
@@ -4764,6 +4801,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!rs.length) { this.avisar("No hay a quién dársela…", { clave: "pase", toque: true }); return; }
     this.limpiarMenu();
     this.estado = "PASE";
+    this.apartarTicker();   // L04b: la ayuda del pase va en la franja del ticker
     this._receptores = rs; this._recSel = 0;
     this._paseOrigen = { rivalIdx, libre };
     /* V7-1: el destino del pase se toca EN EL MAPA; sin split, sobre la cancha */
