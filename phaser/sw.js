@@ -1,25 +1,43 @@
 /* ============================================================================
-   PAMPA STAR · phaser/sw.js — el SERVICE WORKER de la PWA (V7 §5)
-   Estrategia: PRECACHE de lo crítico al instalar (el juego abre offline) +
-   cache-first en runtime para el resto (poses/caras/identidades entran al
-   cache la primera vez que se ven y quedan). Al cambiar CACHE, el cache
-   viejo se barre entero en activate (VERSION ya no lo barre: ver abajo).
-   El scope es phaser/ (el clásico de la raíz no se toca).
+   PAMPA STAR · phaser/sw.js — el SERVICE WORKER de la PWA (V7 §5; rehecho
+   en la tanda 1.0, lote L05). El scope es phaser/ (el clásico no se toca).
+
+   ═══ DOS CACHÉS (L05, cache-que-no-se-tira) ═══
+
+   Lo que estaba mal, medido: todo, imágenes de /assets/ incluidas, iba a UNA
+   caché, y activate borraba toda caché con otro nombre. Cada versión nueva
+   tiraba las poses, caras y fondos ya bajados: unos 12 MB por persona en
+   cada deploy (14.102.712 bytes de assets servidos, du sobre git ls-files),
+   con datos prepagos. Por eso desde L01 el nombre de la caché quedó
+   congelado en "v16-toma" y la versión iba aparte. Y la música no entraba
+   NUNCA: el <audio> pide con Range, el server contesta 206 y Cache.put
+   rechaza los 206 (lo dice la especificación), así que volvía a bajar en
+   cada sesión.
+
+   Ahora:
+     · "pampa-codigo-<VERSION>": html, js y json. Se barre en cada versión,
+       como antes: el código de una versión no se mezcla con el de otra.
+     · "pampa-assets": poses, caras, fondos, música, tipografías, motor e
+       íconos. SOBREVIVE a las versiones. Cada entrada se guarda con su
+       huella en la clave (ruta?h=<huella>, ver ASSETS_HUELLA): si un asset
+       cambia, cambia su clave, se baja SOLO ese y activate borra la entrada
+       vieja. Lo que no cambió no se vuelve a pedir nunca.
+     · la música se pide al server SIN Range (el archivo entero, 200), se
+       guarda ese 200 y a cada pedido con Range se le contesta el pedazo que
+       pidió (206) sacado de la caché.
+
+   VERSION es la que se VE (editor, "Algo se trabó", informe de error) y es
+   IGUAL a window.PAMPA_VERSION de index.html (informe.test.js). Se sube en
+   cada publicación que toque phaser/: ahora eso solo barre el código.
    ========================================================================== */
 "use strict";
-/* LA VERSIÓN Y EL CACHÉ, SEPARADOS (revisión del lote L01 de la tanda 1.0).
-   VERSION es la que se VE (editor, aviso "Algo se trabó", informe de error)
-   y tiene que ser IGUAL a window.PAMPA_VERSION de index.html
-   (informe.test.js). Antes era también el nombre del caché, y como activate
-   barre todo caché que no se llame así, subirla le hacía bajar de nuevo las
-   poses, caras y fondos a quien ya jugó: por eso el lote L01 salió con la
-   misma "v16-toma" de antes y el informe no distinguía builds. Ahora CACHE
-   queda quieto y VERSION se sube en CADA publicación que toque phaser/
-   (paso del deploy, anotado en docs/TANDA_1_0.md). Cuando llegue
-   cache-que-no-se-tira (L05, las dos cachés 'pampa-codigo-<VERSION>' y
-   'pampa-assets'), CACHE se va. */
 const VERSION = "v17-1.0-l04br";
-const CACHE = "v16-toma";
+const CODIGO = "pampa-codigo-" + VERSION;
+const ASSETS = "pampa-assets";
+/* los temas que se bajan al instalar, por su clave de data/audio.json: el
+   del menú y la intro, y los dos del partido (alternan por fecha). El resto
+   entra a la caché la primera vez que suena. */
+const TEMAS_PRECACHE = ["opening", "partido", "partido_alt"];
 const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
@@ -43,6 +61,8 @@ const PRECACHE = [
   "./logic/save_master.js", "./logic/carrera.js",
   /* tanda 1.0 (L04): qué hace el atrás del teléfono en cada pantalla */
   "./logic/atras.js",
+  /* tanda 1.0 (L05): la carga con señal floja */
+  "./logic/carga.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
@@ -179,41 +199,300 @@ const ASSETS_HUELLA = {
   "phaser/vendor/phaser.min.js": "1181917-62081f6a1b51"
 };
 
+/* ═══ RUTAS Y CLAVES ════════════════════════════════════════════════════ */
+
+/* la raíz del sitio, donde viven assets/ y data/ (sw.js está en phaser/) */
+const RAIZ = new URL("../", self.location.href).href;
+const RAIZ_RUTA = new URL(RAIZ).pathname;
+const tiene = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+/* "assets/poses/x.webp", "phaser/logic/x.js"… o null si es de otro origen o
+   de afuera de la raíz: en GitHub Pages todos los repos de una cuenta
+   comparten el origen, y lo de otro sitio no es asunto de este worker */
+function rutaDe(url) {
+  let u;
+  try { u = new URL(url, self.location.href); } catch (err) { return null; }
+  if (u.origin !== self.location.origin || u.pathname.indexOf(RAIZ_RUTA) !== 0) return null;
+  const r = u.pathname.slice(RAIZ_RUTA.length);
+  try { return decodeURIComponent(r); } catch (err) { return r; }
+}
+/* asset = lo que tiene huella, más cualquier cosa nueva debajo de assets/
+   que todavía no la tenga (sale con la clave "?h=sin" y se barre en cada
+   activación; sw_precache.test.js no deja que eso llegue a publicarse) */
+function esAsset(ruta) { return !!ruta && (tiene(ASSETS_HUELLA, ruta) || ruta.indexOf("assets/") === 0); }
+function claveAsset(ruta) { return RAIZ + ruta + "?h=" + (tiene(ASSETS_HUELLA, ruta) ? ASSETS_HUELLA[ruta] : "sin"); }
+/* el código se guarda sin la parte de "?": un ?v= o un ?ref= no apila
+   copias del mismo archivo */
+function claveCodigo(url) { const u = new URL(url, self.location.href); return u.origin + u.pathname; }
+/* ¿esta entrada de "pampa-assets" sigue valiendo? Solo si su huella es la
+   de ahora */
+function vigente(clave) {
+  let u;
+  try { u = new URL(clave); } catch (err) { return false; }
+  const ruta = rutaDe(u.origin + u.pathname);
+  return !!ruta && tiene(ASSETS_HUELLA, ruta) && ASSETS_HUELLA[ruta] === u.searchParams.get("h");
+}
+/* las cachés que son NUESTRAS y viejas: las de código de otra versión y
+   las del esquema de antes ("pampa-star-v7-1" … "v16-toma", sacados de git
+   log de este archivo). Antes activate borraba TODA caché con otro nombre, y
+   en el mismo origen puede haber otros juegos de la cuenta con las suyas. */
+function esNuestraVieja(nombre) {
+  if (nombre === CODIGO || nombre === ASSETS) return false;
+  return nombre.indexOf("pampa-codigo-") === 0 || /^pampa-star-v\d/.test(nombre) || /^v1\d-/.test(nombre);
+}
+
+/* la misma huella que genera phaser/test/_huella.js: tamaño-12 hex del
+   SHA-256. Se usa para no guardar con la huella nueva un archivo viejo */
+async function huellaDe(res) {
+  const buf = await res.clone().arrayBuffer();
+  const dig = new Uint8Array(await crypto.subtle.digest("SHA-256", buf));
+  let hex = "";
+  for (let i = 0; i < 6; i++) hex += (dig[i] < 16 ? "0" : "") + dig[i].toString(16);
+  return buf.byteLength + "-" + hex;
+}
+
+/* ═══ CUÁNTO VINO DE LA RED (window.__PAMPA_RED, se ve con ?perf=1) ═════
+   Es un diagnóstico: no se manda a ningún lado, vive en la memoria de la
+   página. Dos avisos:
+     · lo que este worker bajó DE VERDAD: el transferSize de sus propios
+       tiempos de recurso. Se probó primero con el Content-Length de cada
+       respuesta y en el navegador daba 2,5 MB para una instalación que
+       casi no tocó la red: un pedido "no-cache" que el server contesta 304
+       le llega al worker como el 200 entero de la caché HTTP. transferSize
+       cuenta los pocos bytes del 304, y 0 para lo que no salió a la red.
+       Va a todas las ventanas (una entrada de tiempos no dice de qué
+       página vino el pedido);
+     · cada respuesta que sale de las cachés de acá, a la página que la
+       pidió. */
+if (typeof PerformanceObserver !== "undefined") {
+  try {
+    new PerformanceObserver((lista) => {
+      let bytes = 0, pedidos = 0;
+      const detalle = [];
+      lista.getEntries().forEach((en) => {
+        if (!(en.transferSize > 0)) return;
+        bytes += en.transferSize; pedidos++;
+        if (detalle.length < 20) detalle.push([rutaDe(en.name) || en.name, en.transferSize]);
+      });
+      if (pedidos) avisarATodos({ tipo: "pampa-red", origen: "red", bytes: bytes, pedidos: pedidos, detalle: detalle });
+      try { performance.clearResourceTimings(); } catch (err) { }
+    }).observe({ type: "resource" });
+  } catch (err) { }
+}
+function avisar(clientId, datos) {
+  if (!clientId || !self.clients || !self.clients.get) return Promise.resolve();
+  return self.clients.get(clientId)
+    .then((c) => { if (c) c.postMessage(Object.assign({ tipo: "pampa-red" }, datos)); })
+    .catch(() => { });
+}
+function avisarATodos(datos) {
+  if (!self.clients || !self.clients.matchAll) return Promise.resolve();
+  return self.clients.matchAll({ type: "window", includeUncontrolled: true })
+    .then((cs) => cs.forEach((c) => c.postMessage(datos)))
+    .catch(() => { });
+}
+
+/* ═══ LOS ASSETS ═══════════════════════════════════════════════════════ */
+
+/* un asset de la red: SIN Range (el archivo entero, para poder guardarlo:
+   Cache.put rechaza los 206) y revalidando contra el server ("no-cache"),
+   para que una copia de antes del deploy que quedó en la caché HTTP del
+   navegador no se guarde con la huella nueva */
+function pedirAsset(ruta, modo) {
+  return fetch(new Request(RAIZ + ruta, { cache: modo || "no-cache" }));
+}
+async function bajarAsset(ruta) {
+  const res = await pedirAsset(ruta);
+  if (!res.ok || res.status !== 200) throw new Error("asset " + res.status + " " + ruta);
+  return res;
+}
+
+/* el pedazo que pidió el <audio> (Range: bytes=a-b), sacado del 200 entero */
+async function recortar(res, rango) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec(String(rango).trim());
+  if (!m || (m[1] === "" && m[2] === "")) return res;      // un formato que no sé cortar: el archivo entero
+  const blob = await res.blob();
+  const total = blob.size;
+  let ini, fin;
+  if (m[1] === "") { ini = Math.max(0, total - Number(m[2])); fin = total - 1; }
+  else { ini = Number(m[1]); fin = m[2] === "" ? total - 1 : Math.min(Number(m[2]), total - 1); }
+  if (ini >= total || ini > fin) {
+    return new Response(null, { status: 416, statusText: "Range Not Satisfiable", headers: { "Content-Range": "bytes */" + total } });
+  }
+  return new Response(blob.slice(ini, fin + 1), {
+    status: 206, statusText: "Partial Content",
+    headers: {
+      "Content-Type": res.headers.get("content-type") || "application/octet-stream",
+      "Content-Range": "bytes " + ini + "-" + fin + "/" + total,
+      "Content-Length": String(fin - ini + 1),
+      "Accept-Ranges": "bytes"
+    }
+  });
+}
+
+/* primero la caché (con la huella de ahora), después la red */
+async function responderAsset(e, ruta) {
+  const cache = await caches.open(ASSETS);
+  const clave = claveAsset(ruta);
+  let res = await cache.match(clave, { ignoreVary: true });
+  if (res) {
+    avisar(e.clientId, { origen: "cache", ruta: ruta });
+  } else {
+    res = await pedirAsset(ruta);
+    if (res.ok && res.status === 200) {
+      const copia = res.clone();
+      e.waitUntil(cache.put(clave, copia).catch(() => { }));
+    }
+  }
+  const rango = e.request.headers.get("range");
+  if (rango && res.status === 200) return recortar(res, rango);
+  return res;
+}
+
+/* LA MUDANZA. Quien ya jugó tiene sus poses en una caché del esquema viejo
+   ("v16-toma"). Antes de bajar nada, lo que está ahí y coincide con la
+   huella (tamaño y SHA-256 recalculados acá) pasa a "pampa-assets". Sin
+   esto, el deploy que trae las dos cachés le hacía bajar todo una vez más
+   a cada persona que ya había jugado. */
+async function rescatar(assets) {
+  let n = 0;
+  const nombres = (await caches.keys()).filter(esNuestraVieja);
+  for (const nombre of nombres) {
+    const vieja = await caches.open(nombre);
+    for (const req of await vieja.keys()) {
+      const ruta = rutaDe(req.url);
+      if (!ruta || !tiene(ASSETS_HUELLA, ruta)) continue;
+      const clave = claveAsset(ruta);
+      if (await assets.match(clave, { ignoreVary: true })) continue;
+      const res = await vieja.match(req);
+      if (!res || res.status !== 200) continue;
+      if ((await huellaDe(res)) !== ASSETS_HUELLA[ruta]) continue;
+      await assets.put(clave, res);
+      n++;
+    }
+  }
+  return n;
+}
+
+/* los temas de TEMAS_PRECACHE, a lo que dé: si no bajan, la instalación
+   sigue (sin música el juego igual se juega). La carpeta es la misma que usa
+   logic/musica.js (base "../assets/musica/"). */
+async function precachearMusica(assets, codigo) {
+  try {
+    const r = await codigo.match(claveCodigo(new URL("../data/audio.json", self.location.href).href), { ignoreVary: true });
+    const temas = ((r && await r.json()) || {}).temas || {};
+    for (const id of TEMAS_PRECACHE) {
+      const t = temas[id];
+      if (!t || !t.archivo) continue;
+      const ruta = "assets/musica/" + t.archivo;
+      const clave = claveAsset(ruta);
+      if (await assets.match(clave, { ignoreVary: true })) continue;
+      try { await assets.put(clave, await bajarAsset(ruta)); } catch (err) { }
+    }
+  } catch (err) { }
+}
+
+/* EL CALENTAMIENTO. En la primera visita el worker se registra en "load", y
+   la intro ya pidió sus poses ANTES de que él controlara la página: esas no
+   pasaron por acá y sin red, en la segunda visita, faltaban. Cuando la
+   página queda controlada manda la lista de lo que bajó por su cuenta, y
+   acá se guarda sacándolo de la caché HTTP del navegador ("force-cache": ya
+   está bajado, no cuesta red). Como esa copia puede ser de antes de un
+   deploy, se guarda solo si su huella es la de ahora. La música no: el
+   <audio> la pidió en pedazos y traerla entera sería bajarla otra vez. */
+async function calentar(urls) {
+  const assets = await caches.open(ASSETS);
+  const vistas = {};
+  let n = 0;
+  for (const u of urls.slice(0, 400)) {
+    const ruta = rutaDe(u);
+    if (!ruta || vistas[ruta] || !tiene(ASSETS_HUELLA, ruta) || ruta.indexOf("assets/musica/") === 0) continue;
+    vistas[ruta] = true;
+    const clave = claveAsset(ruta);
+    if (await assets.match(clave, { ignoreVary: true })) continue;
+    try {
+      const res = await pedirAsset(ruta, "force-cache");
+      if (!res.ok || res.status !== 200) continue;
+      if ((await huellaDe(res)) !== ASSETS_HUELLA[ruta]) continue;
+      await assets.put(clave, res);
+      n++;
+    } catch (err) { }
+  }
+  return n;
+}
+
+/* ═══ EL CÓDIGO ════════════════════════════════════════════════════════ */
+
+/* html, js y json: NETWORK-FIRST, así cada deploy llega al toque; sin red,
+   responde la caché de esta versión */
+function redPrimero(e) {
+  const req = e.request;
+  const clave = claveCodigo(req.url);
+  const ruta = rutaDe(req.url);
+  return fetch(req).then((res) => {
+    if (res.ok && res.status === 200 && !res.redirected) {
+      const copia = res.clone();
+      e.waitUntil(caches.open(CODIGO).then((c) => c.put(clave, copia)).catch(() => { }));
+    }
+    return res;
+  }).catch(() => caches.open(CODIGO)
+    .then((c) => c.match(clave, { ignoreVary: true }))
+    .then((hit) => {
+      if (hit) avisar(e.clientId, { origen: "cache", ruta: ruta });
+      return hit || Response.error();
+    }));
+}
+
+/* ═══ INSTALAR Y ACTIVAR ═══════════════════════════════════════════════ */
+
+async function instalar() {
+  const assets = await caches.open(ASSETS);
+  try { await rescatar(assets); } catch (err) { }
+  const codigo = await caches.open(CODIGO);
+  await Promise.allSettled(PRECACHE.map(async (u) => {
+    const url = new URL(u, self.location.href).href;
+    const ruta = rutaDe(url);
+    if (esAsset(ruta)) {
+      const clave = claveAsset(ruta);
+      if (await assets.match(clave, { ignoreVary: true })) return;   // ya está con esta huella: ni se pide
+      await assets.put(clave, await bajarAsset(ruta));
+      return;
+    }
+    const res = await fetch(new Request(url, { cache: "no-cache" }));
+    if (!res.ok) throw new Error(res.status + " " + url);
+    await codigo.put(claveCodigo(url), res);
+  }));
+  await precachearMusica(assets, codigo);
+}
+
+async function activar() {
+  const nombres = await caches.keys();
+  await Promise.all(nombres.filter(esNuestraVieja).map((k) => caches.delete(k)));
+  /* de los assets, solo lo que cambió de huella (o ya no existe) */
+  const assets = await caches.open(ASSETS);
+  const claves = await assets.keys();
+  await Promise.all(claves.filter((r) => !vigente(r.url)).map((r) => assets.delete(r)));
+  await self.clients.claim();
+}
+
 self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE)
-      /* tolerante: si un archivo del precache falta, los demás entran igual */
-      .then(c => Promise.allSettled(PRECACHE.map(u => c.add(u))))
-      .then(() => self.skipWaiting())
-  );
+  e.waitUntil(instalar().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  e.waitUntil(activar());
 });
 
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
-  const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) return;   // nada de terceros
-  /* assets PESADOS e inmutables entre deploys (poses, caras, motor vendored,
-     íconos): cache-first — se bajan una vez y quedan */
-  const pesado = url.pathname.includes("/assets/") || url.pathname.endsWith("phaser.min.js") || /icon-\d+\.png$/.test(url.pathname);
-  const guardar = (res) => {
-    if (res && res.ok) { const copia = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copia)); }
-    return res;
-  };
-  if (pesado) {
-    e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(guardar)));
-  } else {
-    /* código, data y html: NETWORK-FIRST — cada deploy de Rodri llega al toque;
-       sin red, el cache responde y el juego abre offline igual */
-    e.respondWith(
-      fetch(e.request).then(guardar).catch(() => caches.match(e.request))
-    );
-  }
+  const req = e.request;
+  if (req.method !== "GET") return;
+  const ruta = rutaDe(req.url);
+  if (ruta === null) return;                 // otro origen u otro sitio de la cuenta
+  if (esAsset(ruta)) e.respondWith(responderAsset(e, ruta));
+  else e.respondWith(redPrimero(e));
+});
+
+self.addEventListener("message", (e) => {
+  const d = e.data || {};
+  if (d.tipo === "calentar" && Array.isArray(d.urls)) e.waitUntil(calentar(d.urls));
 });

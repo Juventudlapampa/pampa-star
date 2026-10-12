@@ -166,6 +166,16 @@ var HUELLA_DISCO = H.calcularHuella();
   assert(Object.keys(HUELLA_DISCO).length >= 100, "la huella cubre todos los assets servidos (" + Object.keys(HUELLA_DISCO).length + ")");
   var formato = Object.keys(enSw).every(function (k) { return /^\d+-[0-9a-f]{12}$/.test(enSw[k]); });
   assert(formato, "cada huella es tamaño-hash12 (lo que el service worker recalcula con crypto.subtle)");
+  /* la huella se saca de los bytes EN DISCO y el sitio sirve los bytes
+     COMMITEADOS. En esta compu git tiene core.autocrlf=true: un archivo de
+     texto con saltos de línea quedaría con CRLF en disco y LF en el sitio, y
+     la huella no coincidiría en otra máquina. Hoy el único de texto es
+     phaser.min.js, que es una sola línea; si algún día entra otro, que
+     vaya sin CR (o se normaliza acá). */
+  var conCR = Object.keys(HUELLA_DISCO).filter(function (k) {
+    return /\.(js|json|css|svg|txt)$/i.test(k) && fs.readFileSync(path.join(RAIZ, k)).indexOf(13) >= 0;
+  });
+  assert(conCR.length === 0, "archivos de texto con huella y CR en disco (su huella dependería de core.autocrlf): " + conCR.join(", "));
   console.log("[4] ASSETS_HUELLA = disco: " + Object.keys(HUELLA_DISCO).length + " archivos (assets/ sin _fuente, motor, íconos)");
 })();
 

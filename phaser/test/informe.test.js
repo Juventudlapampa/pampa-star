@@ -132,12 +132,19 @@ var BASE = {
   /* REVISIÓN DEL LOTE: VERSION era también el nombre del caché, y activate
      barre todo caché que no se llame así. Subirla le hacía bajar de nuevo los
      assets a quien ya jugó, así que el lote salió sin subirla y el informe no
-     distinguía builds. Ahora la versión que se ve y el nombre del caché van
-     separados: subir VERSION no barre nada. */
-  var mC = sw.match(/const CACHE\s*=\s*"([^"]+)"/);
-  assert(!!mC, "sw.js define CACHE, el nombre del caché, aparte de VERSION");
-  assert(!/caches\.open\(VERSION\)/.test(sw) && !/k !== VERSION/.test(sw) && /caches\.open\(CACHE\)/.test(sw) && /k !== CACHE/.test(sw),
-    "SÍNTOMA DE LA VERSIÓN CONGELADA: caches.open y el barrido de activate usan CACHE; si usaran VERSION, subir la versión que se ve tiraría las poses ya bajadas");
+     distinguía builds. En L01 se separaron con un CACHE congelado.
+     L05 (cache-que-no-se-tira) cambió el esquema y este assert con él: ahora
+     hay DOS cachés. La del código SÍ lleva la versión en el nombre (se barre
+     en cada versión, a propósito: es poco y tiene que llegar al toque) y la
+     de los assets tiene un nombre FIJO que activate no borra nunca; lo que
+     cambió se borra entrada por entrada por la huella (cache_versiones.test.js
+     lo prueba con un CacheStorage de mentira). Lo que este assert sigue
+     cuidando es lo mismo: subir VERSION no tira las poses. */
+  var mA = sw.match(/const ASSETS\s*=\s*"([^"]+)"/);
+  assert(!!mA && !/VERSION/.test(mA[0]), "sw.js define ASSETS, la caché de los assets, con un nombre fijo que no depende de VERSION");
+  assert(/const CODIGO\s*=\s*"pampa-codigo-"\s*\+\s*VERSION/.test(sw), "la caché del código es pampa-codigo-<VERSION>");
+  assert(!/caches\.open\(VERSION\)/.test(sw) && !/const CACHE\s*=/.test(sw),
+    "SÍNTOMA DE LA VERSIÓN CONGELADA: ya no hay una caché única con VERSION en el nombre ni el CACHE congelado de L01");
   assert(mV && mV[1] !== "v16-toma", "la versión que se ve ya no es la de antes de la tanda 1.0 (" + (mV && mV[1]) + ")");
   assert(html.indexOf('<script src="logic/informe.js"></script>') >= 0, "index.html carga logic/informe.js");
   assert(sw.indexOf('"./logic/informe.js"') >= 0, "sw.js lo tiene en el PRECACHE (sin red, el informe también tiene que andar)");
