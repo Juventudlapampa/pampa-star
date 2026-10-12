@@ -390,7 +390,10 @@
        no llega. Todo resuelto por posición, cansancio, nivel del arquero y
        quién está en el camino (logic/definicion.js → remateRivalAuto), con
        intriga hasta el final: freeze y medio segundo de silencio antes de
-       saber. Cero botones.
+       saber. Cero botones de gestión (plantarse, achicar, aguantar). Desde
+       L04b, con el envión lleno, antes del remate va UNA pregunta con dos
+       botones (preguntarSuperDefensa, más abajo: SÚPER DEFENSA o guardar
+       el envión); sin el envión lleno no hay ninguna y lo demás es igual.
        ====================================================================== */
     /* L04b · superDef: lo que se contestó en preguntarSuperDefensa (true =
        SÚPER DEFENSA, false = guardar el envión). Sin contestar (undefined) y
