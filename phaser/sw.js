@@ -2,12 +2,24 @@
    PAMPA STAR · phaser/sw.js — el SERVICE WORKER de la PWA (V7 §5)
    Estrategia: PRECACHE de lo crítico al instalar (el juego abre offline) +
    cache-first en runtime para el resto (poses/caras/identidades entran al
-   cache la primera vez que se ven y quedan). Al cambiar VERSION, el cache
-   viejo se barre entero en activate — subir la versión con cada deploy que
-   toque assets. El scope es phaser/ (el clásico de la raíz no se toca).
+   cache la primera vez que se ven y quedan). Al cambiar CACHE, el cache
+   viejo se barre entero en activate (VERSION ya no lo barre: ver abajo).
+   El scope es phaser/ (el clásico de la raíz no se toca).
    ========================================================================== */
 "use strict";
-const VERSION = "v16-toma";
+/* LA VERSIÓN Y EL CACHÉ, SEPARADOS (revisión del lote L01 de la tanda 1.0).
+   VERSION es la que se VE (editor, aviso "Algo se trabó", informe de error)
+   y tiene que ser IGUAL a window.PAMPA_VERSION de index.html
+   (informe.test.js). Antes era también el nombre del caché, y como activate
+   barre todo caché que no se llame así, subirla le hacía bajar de nuevo las
+   poses, caras y fondos a quien ya jugó: por eso el lote L01 salió con la
+   misma "v16-toma" de antes y el informe no distinguía builds. Ahora CACHE
+   queda quieto y VERSION se sube en CADA publicación que toque phaser/
+   (paso del deploy, anotado en docs/TANDA_1_0.md). Cuando llegue
+   cache-que-no-se-tira (L05, las dos cachés 'pampa-codigo-<VERSION>' y
+   'pampa-assets'), CACHE se va. */
+const VERSION = "v17-1.0-l01";
+const CACHE = "v16-toma";
 const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
@@ -40,7 +52,7 @@ const PRECACHE = [
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(VERSION)
+    caches.open(CACHE)
       /* tolerante: si un archivo del precache falta, los demás entran igual */
       .then(c => Promise.allSettled(PRECACHE.map(u => c.add(u))))
       .then(() => self.skipWaiting())
@@ -50,7 +62,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -63,7 +75,7 @@ self.addEventListener("fetch", (e) => {
      íconos): cache-first — se bajan una vez y quedan */
   const pesado = url.pathname.includes("/assets/") || url.pathname.endsWith("phaser.min.js") || /icon-\d+\.png$/.test(url.pathname);
   const guardar = (res) => {
-    if (res && res.ok) { const copia = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copia)); }
+    if (res && res.ok) { const copia = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copia)); }
     return res;
   };
   if (pesado) {

@@ -129,6 +129,16 @@ var BASE = {
   assert(!!mS, "sw.js define VERSION");
   assert(mV && mS && mV[1] === mS[1], "window.PAMPA_VERSION (" + (mV && mV[1]) + ") tiene que ser IGUAL a la VERSION de sw.js (" + (mS && mS[1]) +
     "). SÍNTOMA: el informe dice una versión y el celular tiene otra. Se suben juntas.");
+  /* REVISIÓN DEL LOTE: VERSION era también el nombre del caché, y activate
+     barre todo caché que no se llame así. Subirla le hacía bajar de nuevo los
+     assets a quien ya jugó, así que el lote salió sin subirla y el informe no
+     distinguía builds. Ahora la versión que se ve y el nombre del caché van
+     separados: subir VERSION no barre nada. */
+  var mC = sw.match(/const CACHE\s*=\s*"([^"]+)"/);
+  assert(!!mC, "sw.js define CACHE, el nombre del caché, aparte de VERSION");
+  assert(!/caches\.open\(VERSION\)/.test(sw) && !/k !== VERSION/.test(sw) && /caches\.open\(CACHE\)/.test(sw) && /k !== CACHE/.test(sw),
+    "SÍNTOMA DE LA VERSIÓN CONGELADA: caches.open y el barrido de activate usan CACHE; si usaran VERSION, subir la versión que se ve tiraría las poses ya bajadas");
+  assert(mV && mV[1] !== "v16-toma", "la versión que se ve ya no es la de antes de la tanda 1.0 (" + (mV && mV[1]) + ")");
   assert(html.indexOf('<script src="logic/informe.js"></script>') >= 0, "index.html carga logic/informe.js");
   assert(sw.indexOf('"./logic/informe.js"') >= 0, "sw.js lo tiene en el PRECACHE (sin red, el informe también tiene que andar)");
   assert(/window\.PAMPA_VERSION/.test(editor) && /"versión " \+ window\.PAMPA_VERSION/.test(editor), "el editor muestra la versión");
