@@ -459,8 +459,11 @@
           self.tweens.add({ targets: f, y: "-=" + (30 + i * 8), angle: -14, duration: 260, yoyo: true });   // saltan
         });
       });
+      /* LA CÁMARA VIVA (match.js): se acerca mientras le pega y viaja */
+      if (this.dollyCine) this.dollyCine(tEntrada + this.msV(520), 1.2);
       /* FREEZE + silencio: no sabés si la frenan */
       this.time.delayedCall(tEntrada + this.msV(520), function () {
+        if (self.pararDolly) self.pararDolly();
         self.musicaDuck(silencio);
         self.cineFX.clear();
         self.tweens.killTweensOf(bola);
@@ -468,6 +471,7 @@
 
       var revelar = function () {
         if (esc.revelado) return; esc.revelado = true;
+        if (self.golpeDeCamara) self.golpeDeCamara(res.golRival ? 1.4 : 1);
         var quien = lectura.defensorMasCerca;
         if (lectura.bloqueado) {
           self.uiCam.flash(60, 255, 255, 255);
@@ -571,6 +575,8 @@
         self.tweens.add({ targets: bola, angle: 720, duration: t1 });
       });
 
+      /* LA CÁMARA VIVA: se acerca durante la pegada y el viaje */
+      if (this.dollyCine) this.dollyCine(tEntrada + tViaje, 1);
       /* --- EL QUE SE TIRA: entra al cruce y todo se CLAVA (freeze + silencio) --- */
       if (hayCorte) {
         this.time.delayedCall(tEntrada + Math.round(tViaje * 0.18), function () {
@@ -580,6 +586,7 @@
           self.SFX && self.SFX.whoosh && self.SFX.whoosh(240);
         });
         this.time.delayedCall(tEntrada + Math.round(tViaje * 0.55), function () {
+          if (self.pararDolly) self.pararDolly();
           self.musicaDuck(silencio);              // el silencio antes de saber
           self.cineFX.clear();
           self.tweens.killTweensOf(bola);
@@ -589,6 +596,8 @@
 
       var revelar = function () {
         if (esc.revelado) return; esc.revelado = true;
+        if (self.pararDolly) self.pararDolly();
+        if (self.golpeDeCamara) self.golpeDeCamara(0.8);
         if (cfg.win) {
           self.uiCam.flash(60, 255, 255, 255);
           self.SFX && self.SFX.whoosh && self.SFX.whoosh(300);

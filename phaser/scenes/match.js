@@ -2920,13 +2920,75 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineBG = this.add.graphics(); this.cineLayer.add(this.cineBG);
     this.cineContent = this.add.container(0, 0); this.cineLayer.add(this.cineContent);
     this.cineFX = this.add.graphics(); this.cineLayer.add(this.cineFX);
+    /* oct 2026: los carteles de información del plano (cuántos hay en el
+       camino) viven fuera de cineContent, que la cámara viva acerca: pegados
+       al borde, con el acercamiento se iban de la pantalla */
+    this.cineInfo = this.add.container(0, 0); this.cineLayer.add(this.cineInfo);
     this.cineBig = this.add.text(W / 2, H / 2 - 20, "", { fontFamily: window.PF.display, fontSize: "48px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 4 }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineBig);
     this.cineSub = this.add.text(W / 2, H / 2 + 34, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineSub);
     this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
     this.cineBlack = this.add.rectangle(W / 2, H / 2, W, H, 0x000000).setAlpha(0); this.cineLayer.add(this.cineBlack);
   }
+  /* ══════════════════════════════════════════════════════════════════════
+     LA CÁMARA VIVA (oct 2026, "mejorale las dinámicas a todo el arte").
+
+     Las viñetas eran fotos: la pose entraba, temblaba 2 px y quedaba. La
+     doctrina del proyecto es que la pose NO se anima ("el anime no anima":
+     pose quieta, corte seco) — lo que se mueve es todo lo demás. Faltaba la
+     cámara.
+
+     Ahora, mientras la pose se sostiene, la cámara se ACERCA despacio, y las
+     dos capas no van juntas: las figuras se acercan más rápido que el fondo
+     pintado, que además se corre al revés. Es el paralaje de dos planos de
+     los dibujos animados (la cámara multiplano): con la misma pose quieta, la
+     escena gana profundidad. En el silencio antes del desenlace la cámara se
+     CLAVA, y en la revelación hay un golpe de zoom (entra y vuelve).
+
+     Las perillas en balance.cine.camara_viva. */
+  dollyCine(ms, fuerza) {
+    this.pararDolly();
+    const CV = (this.BAL.cine && this.BAL.cine.camara_viva) || {};
+    if (CV.activa === false || !this.cineContent) return;
+    const W = 960, H = 540, k = fuerza || 1;
+    const cerca = (CV.acercar_figuras != null ? CV.acercar_figuras : 0.035) * k;
+    const lejos = (CV.acercar_fondo != null ? CV.acercar_fondo : 0.012) * k;
+    const corre = (CV.corrida_fondo_px != null ? CV.corrida_fondo_px : 12) * k;
+    const p = { v: 0 };
+    this._dolly = this.tweens.add({
+      targets: p, v: 1, duration: Math.max(200, ms || 1000), ease: "Sine.easeOut",
+      onUpdate: () => {
+        const sc = 1 + cerca * p.v, dx = corre * p.v;
+        /* el fondo crece SIEMPRE lo suficiente para tapar lo que se corre: si
+           no, en el borde derecho aparecía una franja de 5 px sin pintura
+           (vista en la captura del freeze de la gambeta) */
+        const sf = Math.max(1 + lejos * p.v, 1 + 2 * dx / W + 0.002);
+        this.cineContent.setScale(sc).setPosition(W / 2 * (1 - sc), H / 2 * (1 - sc) - 4 * k * p.v);
+        if (this.cineFondo && this.cineFondo.visible) this.cineFondo.setScale(sf).setPosition(W / 2 - dx, H / 2);
+        this.cineBG.setScale(sf).setPosition(W / 2 * (1 - sf) - dx, H / 2 * (1 - sf));
+      }
+    });
+  }
+  /* el freeze: la cámara se clava donde está */
+  pararDolly() { if (this._dolly) { this._dolly.stop(); this._dolly = null; } }
+  /* la revelación: un golpe de zoom que entra y vuelve */
+  golpeDeCamara(fuerza) {
+    const CV = (this.BAL.cine && this.BAL.cine.camara_viva) || {};
+    if (CV.activa === false || !this.uiCam) return;
+    const z = 1 + (CV.golpe_zoom != null ? CV.golpe_zoom : 0.045) * (fuerza || 1);
+    this.uiCam.zoomTo(z, 70, "Quad.easeOut", true);
+    /* la vuelta va aparte: pedida desde el callback del primer zoom, Phaser
+       la apagaba al cerrar ese efecto y el zoom quedaba clavado en 1,05 */
+    this.time.delayedCall(90, () => { if (this.uiCam) this.uiCam.zoomTo(1, 260, "Sine.easeOut", true); });
+  }
+  resetDolly() {
+    this.pararDolly();
+    if (this.cineContent) this.cineContent.setScale(1).setPosition(0, 0);
+    if (this.cineBG) this.cineBG.setScale(1).setPosition(0, 0);
+  }
   limpiarContenido() {
+    this.resetDolly();
     this.cineContent.removeAll(true); this.cineFX.clear();
+    if (this.cineInfo) this.cineInfo.removeAll(true);
     /* la pintura de fondo se apaga con el contenido: el plano que la quiere la
        vuelve a pedir, y el que no (jugadón, cartas) no hereda la del anterior */
     if (this.cineFondo) this.cineFondo.setVisible(false);
@@ -3922,7 +3984,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         g.fillEllipse(sx, sy - 58 * e, 24 * e, 24 * e); g.fillRoundedRect(sx - 15 * e, sy - 46 * e, 30 * e, 60 * e, 8);
       }
       const tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
-      this.cineContent.add(tS);
+      (this.cineInfo || this.cineContent).add(tS);
     }
     this.cineLabel.setText(cfg.etiqueta || "");
     /* protagonista y antagonista ENTRAN al plano (tween visual; el hilo va por reloj) */
@@ -4047,9 +4109,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        escalón 3 queda intacto; en el 2 se recorta al 40%. */
     const silencio = escalon >= 3 ? (feel.silencio_ms || 500) : Math.round((feel.silencio_ms || 500) * 0.4);
     const esc = { revelado: false, cerrado: false };
+    /* LA CÁMARA VIVA: se acerca durante la pose (más en lo especial) */
+    this.dollyCine(tPose + 120, cfg.especial ? 1.6 : (escalon >= 3 ? 1.25 : 1));
     const revelar = () => {
       if (esc.revelado) return; esc.revelado = true;
       this.uiCam.flash(60, 255, 255, 255);   // V6 §3.1: un frame blanco en el contacto
+      this.pararDolly();
+      this.golpeDeCamara(cfg.especial ? 1.5 : (cfg.gana ? 1.1 : 0.8));
       if (sp.active && sp._esPose) {
         /* la pose final ilustrada (festejo / arquero que atajó), si existe */
         const finId = this.poseParaEscena(cfg.prota, cfg.poseFinalProta || cfg.prota.anim);
@@ -4135,6 +4201,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* V6 §3.1 · EL FREEZE: la imagen SE CLAVA — sacudida y rayas paran, silencio */
       shakeTw.stop();
       rayas.forEach(r => this.tweens.killTweensOf(r));
+      this.pararDolly();   // la cámara también se clava
       if (sp.active && !sp._esPose) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2));
       this.musicaDuck(silencio);   // ANIME D: la música CALLA en el silencio pre-desenlace
     });
@@ -4151,6 +4218,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.cineBlack.setAlpha(0);
       this.cineLayer.setVisible(false);
       this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
+      this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);   // el golpe de cámara no cruza al partido
       this.zoomBase();
       /* el alFinal corre ANTES de liberar: si encadena (otra escena, un menú,
          la definición) fija su estado y NO hay ventana LIBRE donde la sim
@@ -4309,6 +4377,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineContent.add(cargaBg); this.cineContent.add(carga); this.cineContent.add(cargaTxt);
     this.tweens.add({ targets: carga, width: 336, duration: this.msV(820), ease: "Sine.easeIn" });
     this.uiCam.flash(120, 255, 216, 77);
+    this.dollyCine(this.msV(1150), 1.6);   // LA CÁMARA VIVA: el anuncio se viene encima
     this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(this.msV(1050) / 1000);
     this.time.delayedCall(this.msV(1150), () => {
       /* corte seco y el flujo sigue (timing del megatiro / resolución de la megadefensa) */

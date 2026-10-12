@@ -128,7 +128,7 @@
       this.cineContent.bringToTop(plano); this.cineContent.bringToTop(bola);
       if (cfg.siluetas) {
         var tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
-        this.cineContent.add(tS);
+        (this.cineInfo || this.cineContent).add(tS);
       }
       if (especial) {
         this.lineasVelocidad(W * 0.42, H * 0.5, 1.4, 0xffd84d);
