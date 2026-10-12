@@ -533,8 +533,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     this.vaciarVista();
     if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
-    /* ✗ + palabras: el rojo solo no dice nada (Rodri es daltónico) */
-    this.add.text(W / 2, 96, "✗ TU CARRERA GUARDADA NO SE PUDO LEER", {
+    /* ✗ + palabras: el rojo solo no dice nada (Rodri es daltónico). El
+       título no repite la frase de abajo (revisión L03: decía lo mismo dos
+       veces seguidas y se leía como un error de armado) */
+    this.add.text(W / 2, 96, "✗ HAY UN PROBLEMA CON TU CARRERA", {
       fontFamily: window.PF.display, fontSize: "15px", color: "#e3503e" }).setOrigin(0.5);
     this.add.text(W / 2, 140, "Tu carrera guardada no se pudo leer. Quedó un respaldo.", {
       fontFamily: window.PF.texto, fontSize: "17px", color: "#f6efdc" }).setOrigin(0.5);

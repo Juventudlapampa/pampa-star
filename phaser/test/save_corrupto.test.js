@@ -291,6 +291,12 @@ var resumen = [];
   assert(!err, "con un texto cortado create() no tira");
   tx = e3.textos();
   assert(tx.indexOf("Tu carrera guardada no se pudo leer. Quedó un respaldo.") >= 0, "SÍNTOMA: se dice que no se pudo leer (antes caía en silencio a elegir club)");
+  /* revisión L03: el título decía "✗ TU CARRERA GUARDADA NO SE PUDO LEER"
+     y justo abajo la misma frase. Ningún texto puede repetir a otro */
+  var plano = function (t) { return t.toLowerCase().replace(/[^a-záéíóúñü ]/g, "").trim(); };
+  var titulo = tx.find(function (t) { return /^✗ /.test(t); });
+  assert(!!titulo && tx.every(function (t) { return t === titulo || plano(t).indexOf(plano(titulo)) < 0; }),
+    "el título (" + titulo + ") no repite la frase de abajo");
   assert(tx.indexOf("▶ EMPEZAR OTRA") >= 0 && tx.indexOf("✎ VOLVER AL EDITOR") >= 0 && e3.tocables().length === 2, "con EMPEZAR OTRA y VOLVER AL EDITOR");
   assert(A.localStorage.getItem("pampa_master_v1_corrupta") === cortado, "el texto quedó respaldado tal cual en pampa_master_v1_corrupta");
   assert(A.localStorage.getItem("pampa_master_v1") === cortado, "y el save no se tocó todavía");
