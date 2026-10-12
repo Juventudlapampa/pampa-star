@@ -25,6 +25,9 @@
        (la tabla desde los resultados, el fixture desde los equipos) se
        rearma; si la temporada entera no sirve, opts.crearTemporada la vuelve
        a empezar y la carrera (títulos, mejoras, origen) se conserva.
+     · tu club es el que nombra el save: si falta tu fila, la tabla se rearma
+       con vos adentro; si tu club no está en ningún lado de la temporada, la
+       temporada vuelve a empezar. Nunca se adopta otro equipo de la tabla.
 
    Lógica PURA: corre en node (phaser/test/save_corrupto.test.js).
    ========================================================================== */
@@ -101,6 +104,116 @@
       T.veredicto(t, ids || [t.division], {});
       return (save.titulos.length | 0) >= 0;
     } catch (e) { return false; }
+  }
+
+  /* ---------- la temporada en curso, pieza por pieza ----------
+     Arregla en el lugar lo que se puede y anota en `reparado` lo que tocó.
+     Devuelve null si quedó jugable; { rehacer, motivo } si no tiene arreglo
+     y conviene empezarla de nuevo (la carrera se conserva); { roto } si no
+     hay forma. */
+  function repararTemporada(t, club, division, opts, reparado) {
+    if (!esTexto(t.miClub)) { t.miClub = club; reparado.push("tu club en la temporada"); }
+    if (t.division !== division) { t.division = division; reparado.push("división de la temporada"); }
+    if (!esNumero(t.semilla)) { t.semilla = 1; reparado.push("semilla"); }
+    /* los resultados que se pueden leer */
+    if (!Array.isArray(t.resultados)) { t.resultados = []; reparado.push("resultados"); }
+    else {
+      var rs = t.resultados.filter(resultadoValido);
+      if (rs.length !== t.resultados.length) { t.resultados = rs; reparado.push("resultados"); }
+    }
+    var tablaOk = Array.isArray(t.tabla) && t.tabla.length > 1 && t.tabla.every(filaValida);
+    var fixtureOk = fixtureValido(t.fixture);
+    var equiposFx = fixtureOk ? equiposDelFixture(t.fixture) : [];
+    var enLaTabla = function (n) { return tablaOk && t.tabla.some(function (f) { return f.equipo === n; }); };
+    var enLoJugado = function (n) {
+      return equiposFx.indexOf(n) >= 0 || t.resultados.some(function (r) {
+        return r.partidos.some(function (p) { return p.local === n || p.visita === n; });
+      });
+    };
+
+    /* ── CUÁL ES TU CLUB (revisión del lote L03) ──
+       Antes, si tu fila faltaba en la tabla, se adoptaba tabla[0]. Medido en
+       node con una Primera A en la fecha 7 sin la fila de El Bagual de
+       Winifreda: la carrera pasaba a ser de Sportivo General Acha (el club, el
+       escudo, el clásico, el próximo partido) y master.create la guardaba así,
+       en silencio.
+       Ahora tu club es el que nombra el save (si no, la temporada), y vale el
+       primero que aparece en la tabla; si no, el que aparece en el fixture o
+       en los resultados. Si no aparece en NINGÚN lado, la temporada no es de
+       tu club: vuelve a empezar y la carrera se conserva. Nunca se adopta otro
+       equipo. Sin nada legible donde buscar, vale el que nombra el save. */
+    var candidatos = [];
+    [club, t.miClub].forEach(function (n) { if (esTexto(n) && candidatos.indexOf(n) < 0) candidatos.push(n); });
+    var hayDondeBuscar = tablaOk || fixtureOk || t.resultados.length > 0;
+    var tuyo = !hayDondeBuscar ? candidatos[0]
+      : (candidatos.filter(enLaTabla)[0] || candidatos.filter(enLoJugado)[0] || null);
+    if (!tuyo) return { rehacer: "tu club no estaba en la temporada guardada: vuelve a empezar", motivo: "la temporada guardada no es de tu club" };
+    if (t.miClub !== tuyo) { t.miClub = tuyo; reparado.push("tu club en la temporada"); }
+    /* un fixture donde no jugás no es el tuyo: se rearma como uno roto */
+    if (fixtureOk && equiposFx.indexOf(tuyo) < 0) { fixtureOk = false; equiposFx = []; }
+    /* una fila que falta, la tuya o la de un rival del fixture: la tabla se
+       rearma desde los resultados. La de un rival también, porque
+       cargarEnTabla saltea el partido si falta una de las dos filas: TU
+       partido contra ese rival no sumaba. */
+    var faltanFilas = tablaOk && [tuyo].concat(equiposFx).some(function (e) { return !enLaTabla(e); });
+
+    /* el orden de los equipos: la tabla lo guarda (tu club primero y los
+       rivales en el orden de la división), y si no está, la división */
+    var rv = null;
+    if (opts.rivalesDe) { try { rv = opts.rivalesDe(division); } catch (e) { rv = null; } }
+    if (!Array.isArray(rv) || !rv.length) rv = null;
+    var equipos = null;
+    if (tablaOk) {
+      equipos = t.tabla.map(function (f) { return f.equipo; });
+      if (faltanFilas) {
+        /* tu club primero y los que faltan al final (con solo tu fila
+           perdida, eso ya es el orden de la división). Si los rivales son
+           justo los de la división, va su orden, el de crear() */
+        equipos = [tuyo].concat(equipos.filter(function (e) { return e !== tuyo; }));
+        equiposFx.forEach(function (e) { if (equipos.indexOf(e) < 0) equipos.push(e); });
+        var resto = equipos.slice(1);
+        if (rv && rv.length === resto.length && rv.every(function (x) { return resto.indexOf(x) >= 0; })) equipos = [tuyo].concat(rv);
+      }
+    } else if (rv) {
+      equipos = [tuyo].concat(rv.filter(function (x) { return x !== tuyo; }));
+    }
+    if (!equipos && fixtureOk) {
+      equipos = equiposFx.slice();
+      var im = equipos.indexOf(tuyo);
+      if (im > 0) { equipos.splice(im, 1); equipos.unshift(tuyo); }
+    }
+    if (!equipos || equipos.length < 2) {
+      return { rehacer: "la tabla y el fixture no se podían leer: la temporada vuelve a empezar", motivo: "la tabla y el fixture no se pueden leer" };
+    }
+    if (!fixtureOk) {
+      var T = temporadaLogica();
+      if (!T) return { roto: "el fixture no se puede leer" };
+      t.fixture = T.fixture(equipos); reparado.push("fixture");
+    }
+    if (!tablaOk || faltanFilas) {
+      t.tabla = tablaDesdeResultados(equipos, t.resultados);
+      reparado.push(faltanFilas ? "filas que faltaban en la tabla (rearmada desde los resultados)" : "tabla (rearmada desde los resultados)");
+    } else {
+      t.tabla.forEach(function (f) {
+        NUMEROS_FILA.forEach(function (k) {
+          var v = entero(f[k]);
+          if (v == null || v < (k === "pts" ? -999 : 0)) { f[k] = 0; reparado.push("tabla: " + f.equipo + " " + k); }
+          else if (v !== f[k]) { f[k] = v; }
+        });
+      });
+    }
+    /* la red: tu club tiene que haber quedado en la tabla. Si no quedó, no
+       se adivina quién sos */
+    if (!t.tabla.some(function (f) { return f.equipo === t.miClub; })) {
+      return { rehacer: "tu club no quedaba en la tabla: la temporada vuelve a empezar", motivo: "tu club no está en la tabla" };
+    }
+    /* la fecha, entre 0 y el largo del fixture */
+    var f = entero(t.fecha);
+    if (f == null || f < 0 || f > t.fixture.length) {
+      t.fecha = Math.max(0, Math.min(t.fixture.length, t.resultados.length));
+      reparado.push("fecha");
+    } else if (f !== t.fecha) t.fecha = f;
+    return null;
   }
 
   function sanear(crudo, idsDivisiones, opts) {
@@ -193,65 +306,9 @@
     } else if (!t) {
       if (!rehacer(division, "la temporada no estaba: vuelve a empezar")) return resultado(null, true, "falta la temporada");
     } else {
-      /* tu club en la temporada */
-      if (!esTexto(t.miClub)) { t.miClub = club; reparado.push("tu club en la temporada"); }
-      if (t.division !== division) { t.division = division; reparado.push("división de la temporada"); }
-      if (!esNumero(t.semilla)) { t.semilla = 1; reparado.push("semilla"); }
-      /* los resultados que se pueden leer */
-      if (!Array.isArray(t.resultados)) { t.resultados = []; reparado.push("resultados"); }
-      else {
-        var rs = t.resultados.filter(resultadoValido);
-        if (rs.length !== t.resultados.length) { t.resultados = rs; reparado.push("resultados"); }
-      }
-      var tablaOk = Array.isArray(t.tabla) && t.tabla.length > 1 && t.tabla.every(filaValida);
-      var fixtureOk = fixtureValido(t.fixture);
-      /* el orden de los equipos: la tabla lo guarda (tu club primero y los
-         rivales en el orden de la división), y si no está, la división */
-      var equipos = null;
-      if (tablaOk) equipos = t.tabla.map(function (f) { return f.equipo; });
-      else if (opts.rivalesDe) {
-        var rv = null;
-        try { rv = opts.rivalesDe(division); } catch (e) { rv = null; }
-        if (Array.isArray(rv) && rv.length) equipos = [t.miClub].concat(rv.filter(function (x) { return x !== t.miClub; }));
-      }
-      if (!equipos && fixtureOk) {
-        equipos = equiposDelFixture(t.fixture);
-        var im = equipos.indexOf(t.miClub);
-        if (im > 0) { equipos.splice(im, 1); equipos.unshift(t.miClub); }
-      }
-      if (!equipos || equipos.length < 2) {
-        if (!rehacer(division, "la tabla y el fixture no se podían leer: la temporada vuelve a empezar")) return resultado(null, true, "la tabla y el fixture no se pueden leer");
-      } else {
-        if (!fixtureOk) {
-          var T = temporadaLogica();
-          if (!T) return resultado(null, true, "el fixture no se puede leer");
-          t.fixture = T.fixture(equipos); reparado.push("fixture");
-        }
-        if (!tablaOk) {
-          t.tabla = tablaDesdeResultados(equipos, t.resultados); reparado.push("tabla (rearmada desde los resultados)");
-        } else {
-          t.tabla.forEach(function (f) {
-            NUMEROS_FILA.forEach(function (k) {
-              var v = entero(f[k]);
-              if (v == null || v < (k === "pts" ? -999 : 0)) { f[k] = 0; reparado.push("tabla: " + f.equipo + " " + k); }
-              else if (v !== f[k]) { f[k] = v; }
-            });
-          });
-        }
-        /* tu club tiene que estar en la tabla */
-        var enTabla = function (n) { return t.tabla.some(function (f) { return f.equipo === n; }); };
-        if (!enTabla(t.miClub)) {
-          if (enTabla(club)) t.miClub = club;
-          else t.miClub = t.tabla[0].equipo;
-          reparado.push("tu club en la tabla");
-        }
-        /* la fecha, entre 0 y el largo del fixture */
-        var f = entero(t.fecha);
-        if (f == null || f < 0 || f > t.fixture.length) {
-          t.fecha = Math.max(0, Math.min(t.fixture.length, t.resultados.length));
-          reparado.push("fecha");
-        } else if (f !== t.fecha) t.fecha = f;
-      }
+      var rt = repararTemporada(t, club, division, opts, reparado);
+      if (rt && rt.roto) return resultado(null, true, rt.roto);
+      if (rt && !rehacer(division, rt.rehacer)) return resultado(null, true, rt.motivo);
     }
     if (s.club !== t.miClub) { s.club = t.miClub; reparado.push("nombre de tu club"); }
 

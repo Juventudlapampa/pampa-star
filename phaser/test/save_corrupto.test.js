@@ -13,7 +13,11 @@
          fixture roto, números rotos, temporada que no es objeto…): sanear
          NUNCA tira, y devuelve algo JUGABLE o "irrecuperable"
      [2] lo que se rearma, se rearma bien (la tabla desde los resultados es
-         la misma, el fixture rearmado es el mismo)
+         la misma, el fixture rearmado es el mismo). Y TU CLUB NO CAMBIA
+         (revisión L03): si falta tu fila, antes se adoptaba tabla[0] y la
+         carrera pasaba a ser de otro club; ahora la tabla se rearma con vos
+         adentro, y si tu club no está en ningún lado la temporada vuelve a
+         empezar con tu club
      [3] 400 saves mutados al azar: ninguno tira, ninguno sale a medias
      [4] master.js REAL: un save sin títulos muestra la tabla con sus botones;
          uno cortado muestra "Tu carrera guardada no se pudo leer. Quedó un
@@ -173,7 +177,41 @@ var resumen = [];
   r = chequear("sin tabla ni resultados", JSON.stringify(s12), "ok");
   assert(r.save && r.save.temporada.fecha <= r.save.temporada.fixture.length, "la fecha queda dentro del fixture");
   var s13 = copia(base); s13.temporada.tabla.splice(1, 1);   // falta un rival en la tabla
-  chequear("un rival menos en la tabla", JSON.stringify(s13), "ok");
+  r = chequear("un rival menos en la tabla", JSON.stringify(s13), "ok");
+  /* revisión L03: antes quedaba con 9 filas y cargarEnTabla salteaba el
+     partido contra ese rival (TU resultado no sumaba). Ahora se rearma desde
+     los resultados, en el orden de la división: igual a la que había */
+  assert(r.save && JSON.stringify(r.save.temporada.tabla) === JSON.stringify(base.temporada.tabla),
+    "un rival menos: la tabla se rearma con las 10 filas, IGUAL a la que había");
+
+  /* ── REVISIÓN DEL LOTE L03 · FALTA TU FILA ──
+     Medido: sin la fila de El Bagual de Winifreda, sanear adoptaba tabla[0]
+     y la carrera pasaba a ser de Sportivo General Acha (club, escudo, próximo
+     partido), guardada en silencio. jugable() la daba por buena porque
+     miClub estaba en la tabla, aunque fuera OTRO club. */
+  var s15 = copia(base);
+  s15.temporada.tabla = s15.temporada.tabla.filter(function (f) { return f.equipo !== base.club; });
+  r = chequear("falta tu fila en la tabla", JSON.stringify(s15), "ok");
+  assert(r.save && r.save.club === base.club && r.save.temporada.miClub === base.club,
+    "SÍNTOMA: falta tu fila: tu club SIGUE siendo " + base.club + " (salió " + (r.save && r.save.club) + ")");
+  assert(r.save && JSON.stringify(r.save.temporada.tabla) === JSON.stringify(base.temporada.tabla),
+    "falta tu fila: la tabla se rearma desde los resultados, IGUAL a la que había");
+  assert(r.save && r.save.temporada.fecha === 7 && r.reparado.indexOf("nombre de tu club") < 0,
+    "falta tu fila: la fecha sigue (7) y el nombre de tu club no se toca (reparó: " + (r && r.reparado || []).join(", ") + ")");
+  var mp = r.save && T.miPartido(r.save.temporada);
+  assert(mp && (mp.local === base.club || mp.visita === base.club), "falta tu fila: el próximo partido es TUYO");
+  var s16 = copia(s15); s16.temporada.fixture = [[{ local: 1 }]];
+  r = chequear("falta tu fila y el fixture roto", JSON.stringify(s16), "ok");
+  assert(r.save && r.save.club === base.club && JSON.stringify(r.save.temporada.fixture) === JSON.stringify(base.temporada.fixture),
+    "falta tu fila y el fixture roto: tu club sigue y el fixture se rearma igual (con vos adentro)");
+  /* tu club no está en NINGÚN lado de la temporada: no es tuya → vuelve a
+     empezar con TU club y la carrera se conserva; sin forma de rehacer, rota */
+  var s17 = copia(base); s17.club = "Los Teros de Winifreda"; s17.temporada.miClub = "Los Teros de Winifreda";
+  r = chequear("tu club no está en la temporada", JSON.stringify(s17), "ok");
+  assert(r.save && r.save.club === "Los Teros de Winifreda" && r.save.temporada.miClub === "Los Teros de Winifreda" &&
+    r.save.temporada.fecha === 0 && r.save.titulos.length === 1 && r.save.mejoras.tiro === 3,
+    "tu club no está en la temporada: vuelve a empezar con TU club, nunca con uno de la tabla");
+  chequear("tu club no está en la temporada, sin forma de rehacer", JSON.stringify(s17), "roto", {});
   var s14 = copia(base); s14.resultadoPendiente = "x"; s14.eventoFecha = 3;
   r = chequear("marcas por fecha rotas", JSON.stringify(s14), "ok");
   assert(r.save && r.save.resultadoPendiente === undefined && r.save.eventoFecha === undefined, "las marcas sin forma se sacan");
