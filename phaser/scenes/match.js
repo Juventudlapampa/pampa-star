@@ -189,7 +189,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        Reproducido jugando la fecha 1 entera y entrando a la 2.
 
        Las cuatro son BANDERAS, no objetos: los objetos los recrea create(),
-       las banderas no las recrea nadie. El guardián c4_estado_limpio.test.js
+       las banderas no las recrea nadie. El guardián p1_estado_limpio.test.js
        verifica que no aparezca una quinta.
        ══════════════════════════════════════════════════════════════════ */
     this._finalApagado = false;      // el mapa vuelve a dibujarse (ESTE era el bug)
@@ -223,6 +223,50 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._relPendiente = null;
     this._relPendientePrio = false;
     this._tickerFijo = 0;
+    /* ══════════════════════════════════════════════════════════════════
+       TANDA 1.0 · LA MEMORIA DEL PARTIDO ARRANCA DE CERO.
+
+       El guardián P1 estaba ciego (su regex había perdido las barras y solo
+       leía match.js), y por ese agujero cruzaban de partido estos campos.
+       Ninguno es una bandera: son caches y recuerdos que se comparan contra
+       el valor nuevo, así que el valor viejo hace de "ya lo hice".
+         · _hudDiv: txtDivision nace vacío en buildHUD, y el cache decía que
+           'PRIMERA B' ya estaba puesto. Medido en vivo: fecha 1 'PRIMERA B',
+           fecha 2 '' (y lo mismo con ↺ OTRO PARTIDO).
+         · _tribunaCansancio: el partido 2 heredaba la marca 't2' y, cansado
+           en el 2T, la tribuna no comentaba (1 comentario en el partido 1,
+           0 en el 2).
+         · _hudEnvionEst: el mismo cache que _hudDiv, para "🌟 ENVIÓN LLENO".
+         · _escalonActual / _poseArqueroUltima / _megaGrito: se leen con un
+           valor por defecto (|| 2, || "arquero_vuela", || "¡GOOOL!"), y el
+           primer uso del partido nuevo agarraba el del anterior.
+         · _lecturaSemana / _semanaResumen: se escriben solo si la fecha trae
+           semana; un amistoso después de una fecha del Master las heredaba.
+       Y los que encontró el barrido nuevo ([5] del guardián), todos estado
+       del partido que nadie más reinicia: el duelo, el menú, el pase
+       dirigido, el viaje del cine, la cámara, la corrida, la hinchada del
+       panel y la ayuda de ESPACIO (buildBotonAccion solo la crea con
+       teclado, así que sin teclado quedaba la referencia muerta). El valor
+       de cada uno es el que tenía en el PRIMER partido de la sesión, que es
+       el camino probado.
+       ══════════════════════════════════════════════════════════════════ */
+    this._hudDiv = null;
+    this._hudEnvionEst = null;
+    this._tribunaCansancio = null;
+    this._escalonActual = null;
+    this._poseArqueroUltima = null;
+    this._megaGrito = null;
+    this._lecturaSemana = 0;
+    this._semanaResumen = "";
+    this._dueloJ = null;
+    this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; this._menuBtns = {};
+    this._receptores = null; this._recSel = 0;
+    this.viajeState = null;
+    this._dolly = null;
+    this._animIdle = null; this._corriendoDesde = 0; this._botePelota = 0;
+    this._hin = null;
+    this._hintEspacio = null;
+    this._uiTocado = 0;
   }
 
   create() {
