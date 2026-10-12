@@ -266,6 +266,12 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   var bs = botonesCine(E), ts = textosCine(E).map(function (t) { return t.text; });
   assert(bs.length === 2, "dos botones: SÚPER DEFENSA y GUARDAR (" + bs.length + ")");
   assert(ts.indexOf("🌟 SÚPER DEFENSA") >= 0 && ts.indexOf("◀ GUARDAR EL ENVIÓN") >= 0, "con ícono y palabra (" + ts.join(" | ") + ")");
+  /* revisión L04b: el renglón de GUARDAR decía "atajan tu defensa y tu
+     arquero", y el remate común entra (abajo se mide). Es texto de decisión:
+     dice que el envión queda y que el remate puede entrar, sin prometer. */
+  var subGuardar = textosCine(E).filter(function (t) { return Math.abs(t.y - (bs[1].y + 15)) < 1; }).map(function (t) { return t.text; })[0] || "";
+  assert(/puede entrar/.test(subGuardar) && /envión sigue lleno/.test(subGuardar) && !/ataj/i.test(subGuardar),
+    "SÍNTOMA: el renglón de GUARDAR promete una atajada que el remate común no cumple (" + subGuardar + ")");
   assert(bs.every(function (b) { return b.height >= tap; }), "los botones miden el piso táctil (" + tap + ") de alto");
   var chicos = textosCine(E).filter(function (t) { return parseInt(t.style && t.style.fontSize, 10) < 13; }).map(function (t) { return t.text; });
   assert(chicos.length === 0, "ningún texto de la pregunta baja de 13 px (" + chicos.join(" | ") + ")");
@@ -308,6 +314,15 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     if (sk.st.golesRival > 0) goles++;
   }
   assert(goles === 0, "con súper defensa no entra ninguno de 200 remates (" + goles + ")");
+  /* y con GUARDAR el remate común PUEDE entrar, que es lo que dice su
+     renglón: si nunca entrara, el texto volvería a mentir para el otro lado */
+  var golesG = 0;
+  for (var g = 0; g < 200; g++) {
+    var Eg = armar(), sg = Eg.s;
+    sg.escenaRemateRival(9); Eg.correrTimers(); Eg.tocar(botonesCine(Eg)[1]); correrTodo(Eg);
+    if (sg.st.golesRival > 0) golesG++;
+  }
+  assert(golesG > 0 && golesG < 200, "con GUARDAR el remate común a veces entra y a veces no (" + golesG + " goles en 200)");
 
   /* sin el envión lleno, o con la pregunta apagada, no pregunta */
   var E4 = armar({ envion: max - 1 });
@@ -320,7 +335,7 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   /* la pregunta espera a quien juega: el vigía de SEGUIR IGUAL no la cuenta como trabada */
   var HTML = fs.readFileSync(path.join(PM.RAIZ, "phaser/index.html"), "utf8");
   assert(/var ESPERAN = \{[^}]*SUPERDEF: 1/.test(HTML), "index.html: SUPERDEF está entre los estados que esperan a quien juega (ESPERAN)");
-  console.log("[4] súper defensa: con el envión lleno el remate pregunta; SÍ gasta y bloquea (0 goles en 200), GUARDAR no gasta");
+  console.log("[4] súper defensa: con el envión lleno el remate pregunta; SÍ gasta y bloquea (0 goles en 200), GUARDAR no gasta y dice que puede entrar (" + golesG + " en 200)");
 })();
 
 /* ---------- [5] LA COMPUERTA DE LA INTRO NO SE PISA A 800x360 ---------- */

@@ -542,7 +542,7 @@
        Un plano quieto con el rematador (la pose no se anima) y una pregunta,
        sin reloj, porque el envión es mérito y no reflejo:
          🌟 SÚPER DEFENSA  → gasta el envión, el remate no entra, pelota tuya
-         ◀ GUARDAR EL ENVIÓN → el remate de siempre (defensa y arquero)
+         ◀ GUARDAR EL ENVIÓN → el remate de siempre, que puede entrar
        No es la pantalla de gestión que se sacó: no hay plantarse, achicar
        ni aguantar, es una sola carta y solo cuando la tenés. Los botones
        responden balance.envion.super_espera_ms después de abrirse (ESPACIO
@@ -586,7 +586,10 @@
       };
       var OPS = [
         { y: 262, color: 0xffd84d, t: "🌟 SÚPER DEFENSA", s: "gastás el envión · este remate no entra", usar: true },
-        { y: 350, color: 0xf6efdc, t: "◀ GUARDAR EL ENVIÓN", s: "atajan tu defensa y tu arquero", usar: false }
+        /* revisión L04b: decía "atajan tu defensa y tu arquero", una promesa
+           que el remate común no cumple (56 goles en 200, y a veces no hay
+           nadie tuyo en la línea). Es texto de decisión: dice lo que pasa. */
+        { y: 350, color: 0xf6efdc, t: "◀ GUARDAR EL ENVIÓN", s: "el envión sigue lleno · el remate puede entrar", usar: false }
       ];
       var poner = function () {
         if (decidido || self.estado !== "SUPERDEF") return;
