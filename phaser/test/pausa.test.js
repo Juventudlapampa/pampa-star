@@ -27,6 +27,8 @@
          hacen lo del botón donde arranca el cursor: en el puente con el
          clásico, APLICAR, que escribe pampa_resultado_phaser (revisión L04).
      [6] el botón ⏸ del HUD: área táctil del piso, sin pisar al 🔊.
+     [7] (revisión L04) la repetición de tecla: en el partido la filtra
+         Phaser; el filtro de foco_ui es el que cuenta en el Master.
 
    Corré:  node phaser/test/pausa.test.js
    ========================================================================== */
@@ -110,7 +112,12 @@ function espiarTick(E) {
   E.tocar(son);
   assert(s.SFX.isMuted() === false && E.textos().indexOf("🔊 SONIDO: SÍ") >= 0, "otro toque lo vuelve a prender (el juego no queda muteado)");
   assert(s.estado === "PAUSA", "tocar SONIDO no cierra la pausa");
-  /* ENTER confirma lo que tiene el cursor: lo devolvemos a SEGUIR */
+  /* ENTER confirma lo que tiene el cursor: lo devolvemos a SEGUIR.
+     OJO (revisión L04): en el partido de VERDAD esta repetición ni llega,
+     porque ENTER tiene objeto Key y Phaser no emite keydown-ENTER para una
+     Key que ya estaba apretada. Acá el teclado de mentira la emite igual y
+     se prueba el filtro de foco_ui; el caso donde ese filtro es lo único
+     que hay, el Master, está en [7]. */
   s._foco.mover(0, true);
   E.tecla("ENTER", { repeat: true });
   assert(s.estado === "PAUSA", "un ENTER SOSTENIDO (repeat) no confirma: confirmar es apretar");
@@ -291,6 +298,33 @@ function espiarTick(E) {
   E.tocar(zona);
   assert(s.estado === "PAUSA", "tocarlo en LIBRE abre la pausa");
   console.log("[6] ⏸ PAUSA: área " + h.width + "x" + h.height + " desde y=0, x " + x0 + "→" + x1 + " (el 🔊 termina en 46)");
+})();
+
+/* ---------- [7] LA REPETICIÓN DE TECLA: DÓNDE PASABA DE VERDAD (revisión L04) ----------
+   El porqué que dejó el lote (ESPACIO sostenido elegía el primer botón del
+   final o de la pausa) no podía pasar en el partido: ahí ESPACIO y ENTER
+   tienen objeto Key y Phaser filtra la repetición antes. Medido en el
+   motor y en match.js. Donde el filtro de foco_ui es lo único que hay es
+   en las escenas sin objetos Key: el Master. Con el foco_ui de antes de
+   L04, un ENTER sostenido en ¿EMPEZAR OTRA CARRERA? confirmaba SEGUIR con
+   la primera repetición (medido con este mismo armado). */
+(function () {
+  var PH = PM.leer("phaser/vendor/phaser.min.js");
+  assert(PH.indexOf("a&&(h=a.isDown,a.onDown(n)),n.cancelled||a&&h||") >= 0,
+    "el motor no emite keydown-X para una Key que ya estaba apretada (KeyboardPlugin.update de Phaser 3.80)");
+  assert(/this\.cursors = this\.input\.keyboard\.createCursorKeys\(\);/.test(SRC) && /this\.keyEnter = this\.input\.keyboard\.addKey\("ENTER"\);/.test(SRC),
+    "y el partido crea las Key de ESPACIO (createCursorKeys) y de ENTER: ahí la repetición no llega al cursor");
+  var MA = require("./_escena_de_mentira.js"), A = MA.armar();
+  assert(!/createCursorKeys|addKey\(/.test(PM.leer("phaser/scenes/master.js")), "el Master no crea objetos Key: el filtro es el de foco_ui");
+  A.localStorage.setItem("pampa_master_v1", JSON.stringify(A.carreraNueva()));
+  var m = A.nueva(); m.create(); m.vistaBorrarCarrera();
+  assert(m._foco && m._foco.vivo && m._foco.i === 0, "control: ¿EMPEZAR OTRA CARRERA? abre con el cursor en SEGUIR");
+  var r0 = m._restarts;
+  m.input.keyboard.emit("keydown-ENTER", { keyCode: 13, repeat: true });
+  assert(m._restarts === r0, "SÍNTOMA: en el Master un ENTER sostenido (repeat) confirmó el botón del cursor");
+  m.input.keyboard.emit("keydown-ENTER", { keyCode: 13 });
+  assert(m._restarts === r0 + 1, "control: un ENTER apretado sí confirma");
+  console.log("[7] repetición: en el partido la filtra Phaser (Key de ESPACIO y ENTER) · en el Master, foco_ui");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

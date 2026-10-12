@@ -193,11 +193,17 @@
           G._teclas.push([t, h]);
         });
         ["ENTER", "SPACE"].forEach(function (t) {
-          /* L04 · la REPETICIÓN de una tecla sostenida no confirma. ESPACIO es
-             la acción del partido: sostenido, el teclado lo repite cada ~33 ms,
-             y la primera repetición después de que aparece un grupo (la
-             pantalla final, la pausa) elegía su primer botón sin que nadie lo
-             hubiera decidido. Confirmar es apretar, no seguir apretando. */
+          /* L04 · la REPETICIÓN de una tecla sostenida no confirma: confirmar
+             es apretar, no seguir apretando. Corregido en la revisión del
+             lote: esto NO pasaba en el partido. Ahí ESPACIO y ENTER tienen
+             objeto Key (createCursorKeys y addKey("ENTER") en match.js) y en
+             Phaser 3.80 KeyboardPlugin.update no emite "keydown-X" para una
+             Key que ya estaba apretada (vendor/phaser.min.js:
+             "a&&(h=a.isDown,a.onDown(n)),n.cancelled||a&&h||"): la
+             repetición nunca llegaba al cursor del final ni de la pausa. Sí
+             pasa en las escenas sin objetos Key, como el Master: ENTER
+             sostenido sobre ¿EMPEZAR OTRA CARRERA? confirmaba SEGUIR con la
+             primera repetición (pausa.test.js [7]). */
           var h = function (ev) { if (G.vivo && !(ev && ev.repeat)) G.activar(); };
           self.input.keyboard.on("keydown-" + t, h);
           G._teclas.push([t, h]);
