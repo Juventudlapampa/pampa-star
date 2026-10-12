@@ -1013,7 +1013,22 @@
     st.pelota.x = j.x - 12;
     st.pelota.y = j.y;
     st.corners = (st.corners || 0) + 1;
+    /* TANDA 1.0 · EL CÓRNER CONGELABA EL PARTIDO. Todo córner llega con
+       st.modo = "congelado" (lo pone tick() en el encuentro o la escena al
+       abrir el remate), y esta era la ÚNICA salida de un remate que no lo
+       devolvía a "juego": kickoff y saqueArquero sí. Como tick() sale en su
+       primer renglón si el modo no es "juego", después de "¡LA SACÓ AL
+       CÓRNER!" el reloj quedaba parado, las flechas muertas y el partido no
+       podía terminar, hasta que alguien tocara ACCIÓN. Medido en node: 50
+       ticks con input daban minuto +0 y x +0; en 400 partidos simulados hubo
+       0,94 congelamientos por partido, en el 58-63% de los partidos.
+       La escena no corre la sim fuera de LIBRE, así que dejarlo en "juego"
+       acá no adelanta nada mientras se ve la escena: arranca cuando vuelve. */
+    st.modo = "juego";
     st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+    /* el saque es tuyo: si la pelota venía de un rival que la pisaba, esa
+       espera no tiene por qué cruzar al córner */
+    st.esperaRival = 0;
     return { corner: true, arriba: arriba };
   }
 

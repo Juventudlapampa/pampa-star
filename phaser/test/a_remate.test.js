@@ -169,6 +169,23 @@ function rematando() {
     "remate (quedó a " + Math.round(dPel) + " px)");
   assert(jc.x > st.W * 0.9, "y el vértice es el del arco rival");
 
+  /* TANDA 1.0 · y después del córner el partido SIGUE. cornerMio era la única
+     salida de un remate que no devolvía st.modo a "juego": el córner llega
+     congelado (lo congela el encuentro o la escena del remate) y tick() sale
+     en su primer renglón si el modo no es "juego". Medido antes del arreglo:
+     50 ticks con input daban minuto +0 y x +0 — reloj parado y flechas
+     muertas hasta tocar ACCIÓN, 0,94 veces por partido. */
+  st = rematando(); st.modo = "congelado"; st.esperaRival = 900;
+  Pt.cornerMio(st, function () { return 0.2; });
+  assert(st.modo === "juego", "A4 córner: la sim tiene que quedar en 'juego' (quedó '" + st.modo + "')");
+  assert(st.esperaRival === 0, "y el saque es tuyo: la espera del rival no cruza al córner");
+  assert(st.cooldown === BAL.ritmo.cooldown_encuentro_ms,
+    "y con el respiro de siempre antes del próximo cruce (cooldown_encuentro_ms)");
+  var iC = st.ctrl, m0 = st.minuto, x0 = st.mios[iC].x;
+  for (var t = 0; t < 20; t++) Pt.tick(st, 300, { dx: -1 });
+  assert(st.minuto > m0, "después del córner el reloj tiene que correr solo (minuto " + m0 + " → " + st.minuto + ")");
+  assert(st.mios[iC].x < x0 - 1, "y las flechas tienen que mover al que saca (x " + Math.round(x0) + " → " + Math.round(st.mios[iC].x) + ")");
+
   /* ATAJADA → la tiene el ARQUERO rival, en su área */
   st = rematando(); Pt.saqueArquero(st, "atajada");
   assert(st.posesion === "rival", "A4 atajada: la pelota es del rival");
