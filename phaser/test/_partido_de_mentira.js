@@ -46,7 +46,12 @@ Emisor.prototype.emit = function (n) {
 Emisor.prototype.listenerCount = function (n) { return (this._ev[n] || []).length; };
 
 /* la clase de verdad, cargada una vez por contexto */
-function cargar() {
+/* opts (L04b): match = otra copia de match.js (para correr un test contra el
+   código de antes y ver que falla con el síntoma); logica y mixins = archivos
+   extra de phaser/logic y phaser/scenes, que se cargan antes y después de
+   match.js como en index.html (escenas_v9.js, logic/definicion.js…). */
+function cargar(opts) {
+  opts = opts || {};
   var W = {
     Phaser: { Scene: function () { }, Geom: { Rectangle: function (x, y, w, h) { this.x = x; this.y = y; this.width = w; this.height = h; } } },
     PF: { texto: "Pixelify Sans", display: "Press Start 2P" }
@@ -55,20 +60,21 @@ function cargar() {
   var ctx = { window: W, self: W, Phaser: W.Phaser, console: console, Math: Math, JSON: JSON, Object: Object,
     Array: Array, String: String, Number: Number, Date: Date, Promise: Promise, Error: Error, isFinite: isFinite };
   vm.createContext(ctx);
-  ["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js"].forEach(function (f) {
+  ["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js"].concat(opts.logica || []).forEach(function (f) {
     if (!fs.existsSync(path.join(RAIZ, f))) return;
     vm.runInContext(leer(f), ctx, { filename: f });
   });
   Object.keys(ctx).forEach(function (k) { if (/^Pampa/.test(k)) W[k] = ctx[k]; });
   Object.keys(W).forEach(function (k) { if (/^Pampa/.test(k)) ctx[k] = W[k]; });
   vm.runInContext(leer("phaser/scenes/foco_ui.js"), ctx, { filename: "foco_ui.js" });
-  vm.runInContext(leer("phaser/scenes/match.js"), ctx, { filename: "match.js" });
+  vm.runInContext(leer(opts.match || "phaser/scenes/match.js"), ctx, { filename: "match.js" });
+  (opts.mixins || []).forEach(function (f) { vm.runInContext(leer(f), ctx, { filename: path.basename(f) }); });
   return { W: W, ctx: ctx };
 }
 
 function escena(opts) {
   opts = opts || {};
-  var C = cargar(), W = C.W;
+  var C = cargar(opts), W = C.W;
   var BAL = JSON.parse(leer("phaser/data/balance.json"));
   var s = Object.create(W.PampaMatch.prototype);
   if (W.PampaFocoUI) Object.keys(W.PampaFocoUI).forEach(function (k) { s[k] = W.PampaFocoUI[k]; });
