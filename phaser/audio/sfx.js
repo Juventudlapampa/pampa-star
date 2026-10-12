@@ -321,9 +321,21 @@
      alTerminarMusica, que es un setTimeout y corre igual) cambia el tema
      pendiente pero no suena hasta volver. El mute no se toca: es otra cosa,
      y lo que estaba muteado vuelve muteado.
+
+     REVISIÓN L04 · EL QUE SE PAUSÓ EN EL LUGAR Y NO VUELVE, A 0. Si en la
+     pausa cambia el tema (el tope de alTerminarMusica pide el del partido
+     con la pestaña oculta) o se pide silencio, el que se pausó a mitad de
+     camino ya no vuelve, y despedirLosDemas solo rebobina lo que suena:
+     quedaba donde se cortó. Medido con el reproductor de verdad en node:
+     la entrada pausada a los 5 s quedaba con el cabezal en 5 y el partido
+     siguiente la arrancaba desde el medio (antes de L04, despedir() siempre
+     la dejaba en 0). Se rebobina AL VOLVER, no al cambiar: si en la misma
+     pausa se vuelve a pedir el de antes, sigue desde donde estaba.
      ══════════════════════════════════════════════════════════════════════ */
   var motivosPausa = {};
   var pendiente = null;      // el elemento que vuelve a sonar al reanudar
+  var enElLugar = null;      // el que se pausó a mitad de camino (revisión L04)
+  function rebobinar(el) { try { el.pause(); el.currentTime = 0; } catch (e) { } }
   function musicaEnPausa() {
     for (var k in motivosPausa) if (motivosPausa[k]) return true;
     return false;
@@ -337,18 +349,22 @@
     elementos.forEach(function (el) {
       detenerRampa(el);
       if (el.__saliendo) { el.__saliendo = false; try { el.pause(); el.currentTime = 0; } catch (e) { } return; }
-      try { if (!el.paused) el.pause(); } catch (e) { }
+      /* en el lugar, solo el que vuelve; otro que sonara (colgado) no vuelve: a 0 */
+      try { if (!el.paused) { el.pause(); if (el !== pendiente) el.currentTime = 0; } } catch (e) { }
     });
     if (pendiente) { try { pendiente.volume = volArchivo; } catch (e) { } }
+    enElLugar = pendiente;
     return true;
   }
   function reanudarMusica(motivo) {
     if (!motivosPausa[motivo || "pausa"]) return false;
     delete motivosPausa[motivo || "pausa"];
     if (musicaEnPausa()) return false;
-    var el = pendiente;
-    pendiente = null;
-    if (!el || el !== archivoSonando) return true;
+    var el = pendiente, quieto = enElLugar;
+    pendiente = null; enElLugar = null;
+    if (el && el !== archivoSonando) { rebobinar(el); el = null; }   // ya no es el tema
+    if (quieto && quieto !== el) rebobinar(quieto);                  // se cambió o se calló en la pausa
+    if (!el) return true;
     try { el.muted = muted; } catch (e) { }
     try { el.volume = 0; var pr = el.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) { }
     rampa(el, 0, volArchivo, FUNDIDO_MS);

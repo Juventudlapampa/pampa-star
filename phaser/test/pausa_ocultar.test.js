@@ -197,6 +197,42 @@ function oido() { return creados.filter(function (e) { return !e.paused && !e.mu
   console.log("[2] tema nuevo oculto · mute respetado · una pasada no se repite · oculto+vertical se suman");
 })();
 
+/* ---------- [2b] EL TEMA REEMPLAZADO EN LA PAUSA NO QUEDA A MITAD DE CAMINO (revisión L04) ----------
+   El caso del revisor: suena la entrada (una pasada), a los 5 s la pestaña
+   se oculta, corre el tope de 11 s de alTerminarMusica (un setTimeout) y
+   pide el tema del partido. pausarMusica había pausado la entrada EN EL
+   LUGAR, y despedirLosDemas solo rebobina lo que suena: la entrada quedaba
+   en currentTime=5 y el partido siguiente la arrancaba desde el medio.
+   Antes de L04, despedir() siempre la dejaba en 0. */
+(function () {
+  if (typeof S.pausarMusica !== "function") return;
+  ctxCreado.state = "running";
+  S.musicaTema("entrada"); avanzar(600);
+  var ent = sinPausa()[0];
+  assert(!!ent && nombre(ent) === "Under_the_Floodlights", "control: suena la entrada (" + oido() + ")");
+  ent.currentTime = 5;
+  ocultar(true); avanzar(100);
+  S.musicaTema("partido"); avanzar(200);              // el tope de alTerminarMusica, con la pestaña oculta
+  ocultar(false); avanzar(600);
+  assert(oido() === "The_Winning_Strike_loop", "al volver suena el tema del partido (" + oido() + ")");
+  assert(ent.paused && ent.currentTime === 0, "SÍNTOMA: la entrada reemplazada en la pausa quedó en currentTime=" + ent.currentTime + " (tiene que volver a 0)");
+  /* el partido siguiente: la ceremonia, entera */
+  S.musicaTema("entrada"); avanzar(100);
+  assert(!ent.paused && ent.currentTime === 0, "la entrada del partido siguiente arranca desde 0 (" + ent.currentTime + ")");
+  /* lo mismo si en la pausa se pide silencio (pararArchivo) */
+  ent.currentTime = 4;
+  ocultar(true); avanzar(100);
+  S.musicaTema(null); avanzar(100);
+  ocultar(false); avanzar(600);
+  assert(sinPausa().length === 0 && ent.currentTime === 0, "un silencio pedido en la pausa también la rebobina (" + ent.currentTime + ")");
+  /* y el que vuelve sigue donde estaba: el arreglo no rebobina al pendiente */
+  S.musicaTema("partido"); avanzar(600);
+  var ws = sinPausa()[0]; ws.currentTime = 21;
+  ocultar(true); avanzar(300); ocultar(false); avanzar(600);
+  assert(sinPausa()[0] === ws && ws.currentTime === 21, "el tema que vuelve después de la pausa sigue desde donde estaba (" + ws.currentTime + ")");
+  console.log("[2b] reemplazado en la pausa: rebobinado a 0 · la entrada siguiente desde 0 · el que vuelve, en su lugar");
+})();
+
 /* ---------- [3] LA PAUSA DE AFUERA (index.html) CON UN JUEGO DE MENTIRA ---------- */
 (function () {
   var bloque = null;
