@@ -18,7 +18,7 @@
    (paso del deploy, anotado en docs/TANDA_1_0.md). Cuando llegue
    cache-que-no-se-tira (L05, las dos cachés 'pampa-codigo-<VERSION>' y
    'pampa-assets'), CACHE se va. */
-const VERSION = "v17-1.0-l01";
+const VERSION = "v17-1.0-l02";
 const CACHE = "v16-toma";
 const PRECACHE = [
   "./index.html",

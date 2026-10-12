@@ -418,3 +418,214 @@ L05 (`cache-que-no-se-tira`), donde se reemplaza por las dos cachés.
   (`l01_cola_y_ficha.png`).
 - `relatar()` todavía completa `c.jugador` con "el pibe" cuando no hay
   jugador (lenguaje institucional, ola 3).
+
+---
+
+## Ola 1 · Que nada se rompa — lote L02-partido-roto
+
+### corner-no-congela · después de "¡LA SACÓ AL CÓRNER!" el partido sigue
+
+**Qué estaba mal (medido).** `cornerMio()` (logic/partido.js) era la única
+salida de un remate que no devolvía `st.modo` a `"juego"`: `kickoff` y
+`saqueArquero` sí. El córner llega siempre congelado (lo congela el encuentro
+en `tick()` o `onBotonAccion` al abrir el menú de jugadas), y `tick()` sale en
+su primer renglón si el modo no es `"juego"`. Medido en node: después de
+`cornerMio`, 20 ticks de 300 ms con `dx=-1` dejan el minuto en 0 → 0 y al
+jugador en x 1020 → 1020. La auditoría midió 0,94 congelamientos por partido,
+en el 58-63% de los partidos; mientras dura, el partido tampoco puede
+terminar. Solo se destrababa tocando ACCIÓN.
+
+**Qué se hizo.** `cornerMio` deja `st.modo = "juego"`, el cooldown de siempre
+(`ritmo.cooldown_encuentro_ms`, el respiro antes del próximo cruce) y
+`st.esperaRival = 0` (el saque es tuyo: la espera de un rival que la pisaba no
+cruza al córner). La escena no corre la simulación fuera de LIBRE (`update`
+sale antes), así que dejarlo en juego al decidir no adelanta nada mientras se
+ve la escena del remate: el reloj arranca cuando vuelve el control. Es la
+misma forma en que ya terminaban la atajada y el afuera. El córner como
+situación propia (CENTRO o CORTO) sigue siendo del ítem `cpu-y-pelota-parada`.
+
+**Cómo se verificó.**
+
+- `a_remate.test.js` [4] suma cinco asserts: el modo queda en juego, la espera
+  del rival en 0, el cooldown es el de balance, y con 20 ticks de 300 ms con
+  `dx=-1` el minuto avanza y el jugador se mueve. Contra la `cornerMio` vieja
+  fallan cuatro ("quedó 'congelado'", "minuto 0 → 0", "x 1020 → 1020").
+- **En el navegador integrado**, por el camino real: partido del Master en
+  LIBRE, ⚡ACCIÓN (que congela) → 🎯 TIRO, con el desenlace forzado a córner
+  (`PampaDuel.resolveShot` devuelve `corner` una vez). Con la `cornerMio` vieja
+  emulada en la página: sale "¡LA SACÓ AL CÓRNER!", vuelve el control y,
+  después de 6 s con un destino marcado, el reloj sigue en **2:00 1T**, el 10
+  clavado en el banderín de arriba y `st.modo = "congelado"`
+  (`l02_corner_antes_b.png`). Con la nueva: **4:30 1T** al volver
+  (`l02_corner_despues_a.png`, el 10 en el banderín de abajo), el 10 sale del
+  vértice (x 1020 → 970) y a los pocos segundos **4:45 1T** con un rival que le
+  sale al cruce (`l02_corner_despues_c.png`).
+
+### boton-super-defensa · SÚPER DEFENSA y la megadefensa con su texto y un toque que responde
+
+**Qué estaba mal (medido).** `defBoton` recibe `(x, texto, sub, color, cb,
+ancho)` con la y clavada en la fila de abajo (H-34), y los dos botones extra
+de la defensa lo llamaban como si recibiera la y:
+`defBoton(W/2, H-108, 300, "🌟 SÚPER DEFENSA · ENVIÓN lleno", color, fn, 300)`.
+Corrido un lugar: el botón decía **432** y **300**, el rect recibía una función
+como ancho y el texto como color, caía en y=506 encima de los tres botones de
+la decisión, y al tocarlo saltaba `TypeError: cb is not a function`.
+
+**Qué se hizo** (scenes/definicion_ui.js). `defBotonEn(x, y, texto, sub,
+color, cb, ancho)` es el botón con la y como parámetro, y `defBoton` queda
+como su atajo de la fila de abajo, con los mismos textos y tamaños. Los dos
+extras pasan por `defBotonEn` en y=432 con texto y sub separados:
+"🌟 SÚPER DEFENSA" / "ENVIÓN lleno" y "🔥 <MEGA>" / "<aguante> aguante" (el
+costo en número, como en el resto de los botones de la Definición).
+
+**Ojo, y es lo más importante de este ítem:** `defBotonesDef()` **no tiene
+llamador**. La V9 C1 sacó la pantalla de defensa a pedido de Rodri ("botones
+de gestión no son fútbol"), `entrarDefinicionDef()` sale siempre por
+`escenaRemateRival()`, que no tiene botones, y `desconectados.test.js` la
+tiene en `MUERTOS_OK` con ese motivo. O sea que el bug era real pero no se
+podía ver jugando. El arreglo es para que, si alguien vuelve a abrir esa
+pantalla, no explote; **no la recableé**, porque es una decisión de diseño
+(ver deudas).
+
+**Cómo se verificó.**
+
+- `definicion.test.js` [8] carga el mixin de verdad sobre una escena de
+  mentira (stubs de `add.rectangle`, `add.text`, `cineContent`): 21 asserts.
+  Los textos de los botones son string; con el envión lleno hay UN rect en
+  y=432, de 300 de ancho y con color numérico; la fila de la decisión sigue
+  siendo de tres en y=506; el `pointerdown` corre sin excepción, prende
+  `superDef` y avisa "¡SÚPER DEFENSA lista!" sin consumir la decisión. Sin
+  envión y con megadefensa, "🔥 TRANQUERA" / "250 aguante" y el toque la deja
+  elegida. Sin ninguna de las dos, no hay botón extra. Contra el código viejo
+  fallan 16 (los textos salían `432, 300`).
+- **En el navegador integrado**, con la pantalla defensiva armada a mano
+  dentro del partido (el fondo de tu arco, `_def` en modo def y
+  `defBotonesDef()`), porque jugando no se llega: el botón dorado
+  "SÚPER DEFENSA / ENVIÓN lleno" arriba de ME TIRO / SALGO A ACHICAR /
+  AGUANTO (`l02_superdef_1_boton.png`); el toque emitido sobre ese rect no
+  tira y aparece "★ ¡SÚPER DEFENSA lista! Este remate NO entra"
+  (`l02_superdef_2_tocado.png`). Con el envión en 0 y el arquero con nivel y
+  aguante, "LA TRANQUERA / 300 aguante" y "¡LA TRANQUERA lista!"
+  (`l02_superdef_3_mega.png`).
+
+### estado-limpio-partido · el guardián P1 ve de verdad y la memoria del partido arranca de cero
+
+**Qué estaba mal (medido).**
+
+- **El guardián estaba ciego.** La regex del paso [4] de
+  `p1_estado_limpio.test.js` había perdido las barras invertidas
+  (`/ifs*(s*!s*this.(_?[A-Za-z][w]*)s*)/`): 0 líneas contra 19 reales, o sea
+  verde sin mirar nada. El barrido leía solo match.js, y los mixins
+  (definicion_ui, escenas_v9, piel_ui…) escriben en la misma instancia. [1]
+  solo mira booleanos, así que no ve caches de texto. Y había un agujero más
+  que encontré al arreglarlo: el barrido leía el código con comentarios, y el
+  propio init() tiene un comentario que dice
+  `this._radarTuArco = this.add.text(...)`, que contaba como reinicio.
+- **Lo que cruzaba de partido.** `_hudDiv`: `txtDivision` nace vacío en
+  buildHUD y el cache decía que "PRIMERA B" ya estaba puesto, así que desde la
+  fecha 2 (y en ↺ OTRO PARTIDO) el marcador mostraba la división vacía.
+  `_tribunaCansancio`: el partido 2 heredaba la marca "t2" y, cansado en el
+  2T, la tribuna no comentaba. Y `_hudEnvionEst`, `_escalonActual`,
+  `_poseArqueroUltima`, `_megaGrito` (se leen con un valor por defecto, `|| 2`,
+  `|| "arquero_vuela"`, `|| "¡GOOOL!"`, y el primer uso agarraba el del partido
+  anterior), `_lecturaSemana` y `_semanaResumen` (se escriben solo si la fecha
+  trae semana).
+- El comentario de init nombraba un `c4_estado_limpio.test.js` que no existe.
+
+**Qué se hizo.**
+
+- `p1_estado_limpio.test.js`:
+  - [0] arma la lista de archivos solo: los `Object.assign(window.PampaMatch.prototype, …)`,
+    los mixins que index.html mete en las cuatro escenas (piel y foco) y los
+    ayudantes que reciben la escena como `sc` (feel_ui, tribuna_ui): 11
+    archivos. Los comentarios se sacan antes de barrer.
+  - [2] suma por nombre los reinicios nuevos (con el síntoma de cada uno).
+  - [4] con la regex arreglada, sobre todos los archivos, y cuenta las guardas
+    `if (!this.X)` que ve (23): si la cuenta cae, el regex se rompió otra vez.
+  - [5] **nuevo**: todo campo que se escribe en el partido y se lee como
+    memoria (se compara con `===`/`!==`, se niega, hace de guarda o tiene un
+    valor por defecto con `||`) y que no se reinicia en init(), en create()
+    ni en el cuerpo de los `build*` que create() llama (más `armarPlanteles`)
+    → falla con nombre y línea. Lo de un callback en la misma línea
+    (`r.on("pointerdown", () => { this._uiTocado = … })`) no cuenta como
+    reinicio. Lista blanca `CRUZA_A_PROPOSITO`, cada entrada con su motivo y,
+    si alega que se restaura sola, la prueba de que la restauración sigue ahí:
+    `_piel`, `_pielTick`, `_yendo`, `_corteMusicaArmado`, `_focoShutdown`,
+    `_enHitstop`, `_faltanPoses`. Una entrada que ya no hace falta también
+    falla.
+  - [6] **el guardián se prueba a sí mismo**: en una copia de match.js le saca
+    a init `this._radarTuArco = null`, el de `_hudDiv` y el de
+    `_tribunaCansancio`, y exige que los cace.
+- `match.js` init(): reinicia los del ítem (`_hudDiv`, `_hudEnvionEst`,
+  `_tribunaCansancio`, `_escalonActual`, `_poseArqueroUltima`, `_lecturaSemana = 0`,
+  `_semanaResumen = ""`; `_relPendiente` ya lo había puesto L01) y los diez
+  que encontró [5]: `_megaGrito`, `_dueloJ`, el menú (`_menuOps`, `_menuSel`,
+  `_menuVolver`, `_paseCancelar`, `_menuBtns`), el pase dirigido
+  (`_receptores`, `_recSel`), `viajeState`, `_dolly`, la corrida
+  (`_animIdle`, `_corriendoDesde`, `_botePelota`), `_hin` (la hinchada del
+  panel), `_hintEspacio` (buildBotonAccion solo la crea con teclado) y
+  `_uiTocado`. Cada uno con el valor que tenía en el primer partido de la
+  sesión, que es el camino probado. Comentario de init corregido.
+
+**Cómo se verificó.**
+
+- Con el init viejo, el guardián nuevo falla: [2] nombra `_hudDiv`,
+  `_hudEnvionEst`, `_tribunaCansancio`, `_escalonActual`, `_poseArqueroUltima`,
+  `_lecturaSemana` y `_semanaResumen`, y [5] lista 18 campos con línea de
+  escritura y de lectura. Con el arreglo, 55 asserts verdes. Sacando a mano
+  `this._radarTuArco = null;` del match.js real (y restaurándolo), rojo en [2],
+  [4] y [5].
+- **En el navegador integrado**, jugando por los botones (con el save del
+  pane respaldado antes y restaurado después): fecha 1 del Master (semana →
+  ▶ JUGAR LA FECHA → partido → ▶ SEGUIR LA CARRERA), fecha 2 igual, y dos
+  amistosos seguidos con ↺ OTRO PARTIDO. Los cuatro dicen **PRIMERA B** bajo el
+  marcador (`l02_p1_fecha1_hud.png`, `l02_p1_fecha2_final_div.png`,
+  `l02_p1_amistoso2_div.png`), y en el 2T de cada uno, con el aguante bajo,
+  Nelda y el Tuli comentan el cansancio (`comentar("cansancio")` una vez por
+  partido; `l02_p1_fecha1_cansado.png`, `l02_p1_fecha2_cansado.png`,
+  `l02_p1_amistoso2_cansado.png`). El reloj se adelantó al 44' y al 89' para
+  no jugar los noventa: los entretiempos y finales son los de verdad. Para ver
+  que la prueba discrimina, en un tercer amistoso emulé el init viejo (que no
+  tocaba `_hudDiv` ni `_tribunaCansancio`): salió sin división y, cansado en el
+  2T, sin ningún comentario (`l02_p1_antes_amistoso3.png`).
+
+### DECISIONES QUE TOMÉ YO (L02-partido-roto)
+
+1. **El córner también pone `esperaRival = 0`**, además de lo que pedía el
+   ítem para el modo y el cooldown: si la jugada venía de un rival que la
+   pisaba, esa espera no tiene nada que ver con tu saque. *Revertir:* sacar la
+   línea en `cornerMio`.
+2. **No recableé la pantalla de defensa de la Definición.** El arreglo de los
+   botones queda latente porque `defBotonesDef()` no tiene llamador por pedido
+   de Rodri (V9 C1). Volver a abrirla cambia el diseño del remate rival, y no
+   es de este lote. Para verlo en pantalla la armé a mano en la página.
+3. **[5] cuenta como "se rehace en cada partido" lo que asignan los `build*`
+   que create() llama y `armarPlanteles`**, solo en el cuerpo del método y
+   antes de un callback en la misma línea. Sin eso, la lista blanca hubiera
+   tenido cuarenta entradas de objetos que create() ya reconstruye. *Ajustar:*
+   la expresión de constructores en `analizar()`.
+4. **Ante la duda, a init y no a la lista blanca.** De los 18 que salieron,
+   reinicié todos los que son estado del partido, aunque algunos no rompieran
+   nada visible hoy (`_uiTocado` es un tiempo del reloj global, siempre en el
+   pasado; `_dueloJ` solo se mira con `sprDuelo`, que init ya limpia). La
+   lista blanca quedó para lo que cruza A PROPÓSITO (paletas, contadores,
+   banderas que se restauran solas al apagarse la escena).
+5. **La versión sube a `v17-1.0-l02`** (index.html y sw.js, iguales), como
+   dice el paso del deploy de L01: este lote toca phaser/. No barre el caché
+   de assets. *Revertir:* volver las dos a `v17-1.0-l01`.
+
+### Deudas que vi y no son de este lote
+
+- **La SÚPER DEFENSA del envión no se puede usar jugando.** Su único consumo
+  (`gastarEnvionSuper`, en `defVueloDef`) y su botón viven en la pantalla de
+  defensa sin llamador. El envión lleno en defensa no hace nada: el botón
+  🌟 del HUD solo aparece con la pelota (potenciar). Hace falta que Rodri
+  decida si la escena "te rematan" ofrece algo con el envión lleno o si el
+  envión pasa a ser solo de ataque (y entonces se borra la súper defensa y se
+  corrige el texto del GDD).
+- **El botón ⚡ACCIÓN reaparece en la pantalla final** (ya anotada en L01):
+  visto otra vez en `l02_p1_fecha1_final.png`, con "ESPACIO = ACCIÓN".
+- La semana muestra **"🔥 ASADO CON LOS PIBES"** (data/semana.json); ya está en
+  el ítem de lenguaje institucional de la ola 3.
+- En el Master, el menú "¿QUÉ PARTIDO JUGAMOS?" sale en cada fecha; elegir el
+  tempo una vez al crear la carrera ya es un ítem del backlog.
