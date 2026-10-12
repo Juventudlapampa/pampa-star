@@ -1958,7 +1958,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       lg.setAlpha(0.9);
     }
     this.add.text(W / 2, 56, div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
-    const clubTxt = this.add.text(W / 2, 78, this.save.club + (this.save.titulos.length ? " · ★".repeat(Math.min(5, this.save.titulos.length)) + " " + this.save.titulos.length + " títulos" : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    /* revisión L04b: con un título decía "★ 1 títulos"; el singular como en
+       el código de la carrera (vistaCodigo) */
+    const nTitClub = this.save.titulos.length;
+    const clubTxt = this.add.text(W / 2, 78, this.save.club + (nTitClub ? " · ★".repeat(Math.min(5, nTitClub)) + " " + (nTitClub === 1 ? "1 título" : nTitClub + " títulos") : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* resultado de la última fecha jugada (si venimos del partido) */
     /* L04b · EL RESULTADO PISABA AL CLUB. Iba centrado en y=84 y el club en

@@ -184,6 +184,12 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     var club = ts.filter(function (o) { return o.text.indexOf(s.save.club) === 0; })[0];
     assert(!!res && !!club, c.n + ": están el resultado y el club (" + (res && res.text) + " / " + (club && club.text) + ")");
     if (!res || !club) return;
+    /* revisión L04b: con un título decía "★ 1 títulos" (el caso de abajo,
+       perdiste 1-3, tiene uno y no se leía el texto). Singular y plural
+       como en vistaCodigo. */
+    var cola = c.titulos === 0 ? "" : " " + (c.titulos === 1 ? "1 título" : c.titulos + " títulos");
+    assert(club.text === s.save.club + (c.titulos ? " · ★".repeat(Math.min(5, c.titulos)) + cola : ""),
+      "SÍNTOMA: " + c.n + ": el renglón del club dice \"" + club.text + "\"");
     var cr = caja(res), cc = caja(club);
     assert(!cruzan(cr, cc), "SÍNTOMA: " + c.n + ": el resultado [" + Math.round(cr.x0) + "," + Math.round(cr.y0) + "→" + Math.round(cr.x1) + "," + Math.round(cr.y1) +
       "] pisa al club [" + Math.round(cc.x0) + "," + Math.round(cc.y0) + "→" + Math.round(cc.x1) + "," + Math.round(cc.y1) + "]");
