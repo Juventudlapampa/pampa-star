@@ -168,7 +168,7 @@
           if (S && S.ui) S.ui("bloqueado");
           var c = G.cajas[G.i];
           self.tweens.add({ targets: cap, x: { from: -4, to: 0 }, duration: 70, yoyo: true, repeat: 1 });
-          if (it.motivo && self.avisar) self.avisar("✗ " + it.motivo);
+          if (it.motivo && self.avisar) self.avisar("✗ " + it.motivo, { clave: "motivo", toque: true });
           return false;
         }
         if (S && S.ui) S.ui("confirmar");

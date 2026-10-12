@@ -451,7 +451,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         ev.preventDefault && ev.preventDefault();
         if (this.estado !== "LIBRE" || this.st.posesion !== "rival") return;
         window.PampaPartido.cambiarAlMasCercano(this.st);
-        this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase());
+        this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase(), { clave: "marcacion", toque: true });
       });
     }
 
@@ -1730,7 +1730,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* en defensa: tap en el radar elige a quién controlás */
       let mejor = -1, md = 1e9;
       st.mios.forEach((j, i) => { if (j.pos === "ARQ") return; const d = Math.hypot(j.x - w.x, j.y - w.y); if (d < md) { md = d; mejor = i; } });
-      if (mejor >= 0 && P.cambiarA(st, mejor)) this.avisar("Marcás con " + st.mios[mejor].nombre.toUpperCase());
+      if (mejor >= 0 && P.cambiarA(st, mejor)) this.avisar("Marcás con " + st.mios[mejor].nombre.toUpperCase(), { clave: "marcacion", toque: true });
     }
   }
 
@@ -1856,7 +1856,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
         if (this.estado !== "LIBRE" || this.st.posesion !== "rival") return;
         window.PampaPartido.cambiarAlMasCercano(this.st);
-        this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase());
+        this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase(), { clave: "marcacion", toque: true });
       });
     }
   }
@@ -4563,7 +4563,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   iniciarPaseDirigido(rivalIdx, libre) {
     const st = this.st, P = window.PampaPartido;
     const rs = P.receptoresPase(st);
-    if (!rs.length) { this.avisar("No hay a quién dársela…"); return; }
+    if (!rs.length) { this.avisar("No hay a quién dársela…", { clave: "pase", toque: true }); return; }
     this.limpiarMenu();
     this.estado = "PASE";
     this._receptores = rs; this._recSel = 0;
@@ -5499,18 +5499,46 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       hold: n(A.hold_ms, 2200), fade: n(A.fade_ms, 500), vence: n(A.vence_ms, 8000)
     };
   }
-  avisar(txt) {
+  /* op.clave: los avisos que dicen lo MISMO con otro dato ("Marcás con X")
+     llevan una clave, y el nuevo reemplaza al viejo EN SU LUGAR, a la vista o
+     en cola. op.toque: el aviso contesta a un toque y no hace fila: entra
+     adelante y, si los dos lugares están ocupados, saca al más viejo.
+
+     REVISIÓN DEL LOTE: con la cola sola, cuatro toques al mapa en defensa
+     (A, B, C, D) dejaban "Marcás con A" y "Marcás con B" a la vista a la vez
+     y C salía ~2,7 s después, cuando ya marcabas con D: dos textos que se
+     contradecían y uno que mentía. Y "No hay a quién dársela…" o el "✗
+     motivo", con dos avisos ya a la vista (el perfil y el tempo al arrancar),
+     salían hasta 2,7 s tarde: parecía que el toque no había andado, que es
+     justo el síntoma que este arreglo vino a curar. */
+  avisar(txt, op) {
     if (!txt) return;
+    op = op || {};
     if (this._split) {
       if (this._finalApagado) return;
       if (!this._avisos) this._avisos = [];
       if (!this._avisosCola) this._avisosCola = [];
-      /* el mismo aviso dos veces seguidas no suma (tocar PASE tres veces sin
-         receptores son tres llamadas con el mismo texto) */
-      if (this._avisos.some(a => a.txt === txt) || this._avisosCola.some(a => a.txt === txt)) return;
-      const A = this.cfgAvisos();
-      this._avisosCola.push({ txt, t: this.time.now });
-      while (this._avisosCola.length > A.colaMax) this._avisosCola.shift();
+      const A = this.cfgAvisos(), clave = op.clave || null;
+      if (clave) {
+        const vis = this._avisos.find(a => a.clave === clave && a.obj && a.obj.active);
+        if (vis) {
+          this._avisosCola = this._avisosCola.filter(a => a.clave !== clave);
+          this.renovarAviso(vis, txt);
+          return;
+        }
+        this._avisosCola = this._avisosCola.filter(a => a.clave !== clave);
+      } else if (this._avisos.some(a => a.txt === txt) || this._avisosCola.some(a => a.txt === txt)) {
+        /* el mismo aviso dos veces seguidas no suma (tocar PASE tres veces
+           sin receptores son tres llamadas con el mismo texto) */
+        return;
+      }
+      const reg = { txt, clave, toque: !!op.toque, t: this.time.now };
+      if (reg.toque) this._avisosCola.unshift(reg); else this._avisosCola.push(reg);
+      /* tope de la cola: se cae el más viejo que NO contesta a un toque */
+      while (this._avisosCola.length > A.colaMax) {
+        const i = this._avisosCola.findIndex(a => !a.toque);
+        this._avisosCola.splice(i >= 0 ? i : this._avisosCola.length - 1, 1);
+      }
       this.soltarAvisos();
       return;
     }
@@ -5530,20 +5558,32 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       return;
     }
     const A = this.cfgAvisos();
-    while (cola.length && this.time.now - cola[0].t > A.vence) cola.shift();
-    while (cola.length && this._avisos.length < A.max) this.pintarAviso(cola.shift().txt);
+    for (let i = cola.length - 1; i >= 0; i--) if (this.time.now - cola[i].t > A.vence) cola.splice(i, 1);
+    /* el que contesta a un toque no espera turno: si no hay lugar, sale el
+       más viejo de los que están a la vista */
+    while (cola.length && cola[0].toque) {
+      if (this._avisos.length >= A.max) this.quitarAviso(this._avisos[0]);
+      this.pintarAviso(cola.shift());
+    }
+    while (cola.length && this._avisos.length < A.max) this.pintarAviso(cola.shift());
   }
-  pintarAviso(txt) {
+  /* item: el registro de la cola ({txt, clave}) o un texto suelto */
+  pintarAviso(item) {
     const A = this.cfgAvisos();
+    const txt = typeof item === "string" ? item : item.txt;
     const t = this.add.text(A.x, A.yBase, txt, {
       fontFamily: window.PF.texto, fontSize: A.font + "px", color: "#f6efdc",
       backgroundColor: "#0a1f13ee", padding: { x: 10, y: 5 }, align: "left",
       wordWrap: { width: A.ancho }
     }).setOrigin(0, 1);
     this.hudLayer.add(t);
-    const reg = { txt, obj: t };
+    const reg = { txt, clave: (item && item.clave) || null, obj: t };
     this._avisos.push(reg);
     this.acomodarAvisos();
+    this.programarFadeAviso(reg);
+  }
+  programarFadeAviso(reg) {
+    const A = this.cfgAvisos(), t = reg.obj;
     this.tweens.add({
       targets: t, alpha: 0, delay: A.hold, duration: A.fade,
       onComplete: () => {
@@ -5554,6 +5594,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.soltarAvisos();
       }
     });
+  }
+  /* el de la misma clave, con el dato nuevo, en el mismo lugar y con su
+     tiempo de lectura entero otra vez */
+  renovarAviso(reg, txt) {
+    this.tweens.killTweensOf(reg.obj);
+    reg.txt = txt;
+    reg.obj.setText(txt).setAlpha(1);
+    this.acomodarAvisos();
+    this.programarFadeAviso(reg);
+  }
+  quitarAviso(reg) {
+    if (!reg) return;
+    const i = this._avisos.indexOf(reg);
+    if (i >= 0) this._avisos.splice(i, 1);
+    if (reg.obj && reg.obj.active) { this.tweens.killTweensOf(reg.obj); reg.obj.destroy(); }
+    this.acomodarAvisos();
   }
   /* el más nuevo apoya en y_base y los anteriores suben, como un chat: el ojo
      está en el relator y en el mapa, y lo último que pasó queda más cerca */

@@ -521,11 +521,14 @@ var TEXTOS_MUNDO_OK = {
     s.uiCam = { ignore: function (o) { ign.push(o); } };
     s.sprPortador = { x: 400, y: 300 };
     s.time = { now: 0 };
-    s.tweens = { add: function (c) { tw.push(c); return c; }, killTweensOf: function () { } };
+    /* killTweensOf mata de verdad (como Phaser): un tween muerto no completa */
+    s.tweens = { add: function (c) { tw.push(c); return c; },
+      killTweensOf: function (o) { tw.forEach(function (c) { if (c.targets === o) c.muerto = true; }); } };
     s.add = { text: function (x, y, txt, style) {
       return { x: x, y: y, text: txt, style: style, height: 27, active: true,
         setOrigin: function () { return this; }, setDepth: function () { return this; },
-        setY: function (v) { this.y = v; return this; }, destroy: function () { this.active = false; } };
+        setY: function (v) { this.y = v; return this; }, destroy: function () { this.active = false; },
+        setText: function (v) { this.text = v; return this; }, setAlpha: function (v) { this.alpha = v; return this; } };
     } };
     s._avisos = []; s._avisosCola = [];
     return { s: s, ign: ign, tw: tw };
@@ -582,6 +585,43 @@ var TEXTOS_MUNDO_OK = {
   var E5 = escena(false), s5 = E5.s;
   s5.avisar("Marcás con PEREYRA");
   assert(s5.mundoLayer.list.length === 1 && s5.mundoLayer.visible, "con pantalla_partida apagada sigue el aviso del mundo, que ahí sí se ve");
+  /* REVISIÓN DEL LOTE · la clave y el toque. Cuatro toques al mapa en defensa
+     dejaban "Marcás con A" y "Marcás con B" a la vez y C salía 2,7 s después,
+     cuando ya marcabas con D; y la respuesta a un toque esperaba detrás de
+     dos avisos viejos. */
+  var E6 = escena(true), s6 = E6.s;
+  ["ACOSTA", "BRIZUELA", "CÁCERES", "DOMÍNGUEZ"].forEach(function (n) {
+    s6.avisar("Marcás con " + n, { clave: "marcacion", toque: true });
+  });
+  var marc = s6._avisos.filter(function (a) { return /^Marcás con/.test(a.txt); });
+  assert(marc.length === 1 && marc[0].obj.text === "Marcás con DOMÍNGUEZ" && s6._avisosCola.length === 0,
+    "SÍNTOMA DE LOS DOS 'MARCÁS CON': cuatro toques seguidos dejan UN aviso, el último (" +
+    s6._avisos.map(function (a) { return a.obj.text; }).join(" / ") + " · cola " + s6._avisosCola.length + ")");
+  var vivos6 = E6.tw.filter(function (c) { return !c.muerto && c.targets === marc[0].obj; });
+  assert(vivos6.length === 1, "y con su tiempo de lectura entero otra vez (un solo fade vivo, el viejo se mató)");
+  var E7 = escena(true), s7 = E7.s;
+  s7.avisar("⚔ ESPEJO DE SAL juega con una ESTRELLA"); s7.avisar("Tempo INTERMEDIO · 2.2' por momento");
+  assert(s7._avisos.length === 2, "(dos avisos a la vista, como al arrancar)");
+  s7.avisar("No hay a quién dársela…", { clave: "pase", toque: true });
+  assert(s7._avisos.some(function (a) { return a.txt === "No hay a quién dársela…"; }) && s7._avisos.length === 2,
+    "SÍNTOMA DEL TOQUE QUE NO ANDA: la respuesta a un toque sale YA, sacando al más viejo, no 2,7 s después");
+  assert(!s7._avisos.some(function (a) { return /ESPEJO DE SAL/.test(a.txt); }), "el que se fue es el más viejo (el perfil del rival)");
+  var E8 = escena(true), s8 = E8.s;
+  s8.hudLayer.visible = false;
+  s8.avisar("Marcás con ACOSTA", { clave: "marcacion", toque: true });
+  s8.avisar("Marcás con BRIZUELA", { clave: "marcacion", toque: true });
+  ["uno", "dos", "tres", "cuatro", "cinco"].forEach(function (x) { s8.avisar("aviso " + x); });
+  assert(s8._avisosCola.filter(function (a) { return a.clave === "marcacion"; }).length === 1 &&
+    s8._avisosCola[0].txt === "Marcás con BRIZUELA",
+    "con el HUD apagado, el de la misma clave se reemplaza en la cola y el de un toque espera ADELANTE");
+  assert(s8._avisosCola.length === (BAL5.avisos.cola_max || 4), "el tope de la cola se cobra en los viejos, no en la respuesta al toque");
+  var claveMarc = (SRC_M.match(/this\.avisar\("Marcás con [^;]*\{ clave: "marcacion", toque: true \}\);/g) || []).length;
+  assert(claveMarc === (SRC_M.match(/this\.avisar\("Marcás con /g) || []).length && claveMarc >= 3,
+    "las " + claveMarc + " llamadas de 'Marcás con' llevan la clave 'marcacion' y son respuesta a un toque");
+  assert(/this\.avisar\("No hay a quién dársela…", \{ clave: "pase", toque: true \}\)/.test(SRC_M) &&
+    /self\.avisar\("✗ " \+ it\.motivo, \{ clave: "motivo", toque: true \}\)/.test(leer("phaser/scenes/foco_ui.js")),
+    "'No hay a quién dársela…' y el '✗ motivo' contestan a un toque");
+
   /* las llamadas de verdad y el update que suelta la cola */
   var llamadas = (SRC_M.match(/this\.avisar\(/g) || []).length;
   assert(llamadas >= 9, "match.js sigue llamando a avisar() (" + llamadas + " llamadas)");
