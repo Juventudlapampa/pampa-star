@@ -4604,18 +4604,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.pantallaFinal(st);
     /* V7 §2: la fecha del MODO MASTER devuelve el resultado a la carrera */
     if (this._masterPartido) {
+      /* LA VIDA v2: el lunes se calcula con cómo TERMINASTE, no solo con el resultado */
+      const vosF = st.mios.find(j => j.esVos);
+      const resultado = {
+        temporadaN: this._masterPartido.temporadaN, fecha: this._masterPartido.fecha,
+        golesMio: st.golesMio, golesRival: st.golesRival,
+        hiceGol: !!(this.st && this.st.hiceGol),
+        aguanteFinalFrac: vosF ? Math.max(0, Math.min(1, vosF.aguante / this.BAL.aguante.max)) : 0.6,
+        golpeFuerte: !!(this.st && this.st.golpeFuerte)
+      };
+      /* TANDA 1.0 · AL PITAZO, NO AL TOCAR SEGUIR. El resultado vivía solo en
+         el registry y se escribía al tocar el botón: cerrar la pestaña en
+         GANASTE perdía la fecha. Ahora queda en el save en el momento en que
+         termina el partido; el registry sigue de respaldo. */
+      this.anotarResultadoEnLaCarrera(resultado);
       const b3 = this.add.rectangle(480, 496, 420, 54, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       const bt3 = this.add.text(480, 496, "▶ SEGUIR LA CARRERA", { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([b3, bt3]);
       b3.on("pointerdown", () => {
-        /* LA VIDA v2: el lunes se calcula con cómo TERMINASTE, no solo con el resultado */
-        const vosF = st.mios.find(j => j.esVos);
-        this.game.registry.set("masterResultado", {
-          golesMio: st.golesMio, golesRival: st.golesRival,
-          hiceGol: !!(this.st && this.st.hiceGol),
-          aguanteFinalFrac: vosF ? Math.max(0, Math.min(1, vosF.aguante / this.BAL.aguante.max)) : 0.6,
-          golpeFuerte: !!(this.st && this.st.golpeFuerte)
-        });
+        this.game.registry.set("masterResultado", resultado);
         this.game.registry.remove("masterPartido");
         this.irA("master");
       });
@@ -4641,6 +4648,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       });
     }
     this.selloMenu();
+  }
+
+  /* el resultado de la fecha del Master, escrito en SU save. La lógica (que
+     sea de la fecha que se está jugando, qué campos van) es de
+     logic/semana.anotarResultado; acá solo se lee y se escribe. Si el save no
+     está, es de otra carrera o la fecha no coincide, no se toca nada. */
+  anotarResultadoEnLaCarrera(res) {
+    const S = window.PampaSemana;
+    if (!S || !S.anotarResultado) return false;
+    try {
+      const crudo = localStorage.getItem("pampa_master_v1");
+      if (!crudo) return false;
+      const sv = JSON.parse(crudo);
+      if (!S.anotarResultado(sv, res)) return false;
+      localStorage.setItem("pampa_master_v1", JSON.stringify(sv));
+      return true;
+    } catch (e) { return false; }
   }
 
   /* --- PASE dirigido tocando el radar (doc §7/§8) --- */

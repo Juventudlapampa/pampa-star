@@ -161,5 +161,26 @@ function saveViejo() {
   console.log("[7] los 4 módulos nuevos tienen defaults: el juego no depende de que balance.json esté al día");
 })();
 
+/* ---------- [8] UNA SEMANA QUE CERRÓ EL CÓDIGO VIEJO (tanda 1.0) ----------
+   Las marcas por fecha (semanaCerradaEnFecha, eventoFecha, enCancha,
+   resultadoPendiente) son nuevas. Un save que el código de antes dejó con la
+   semana cerrada y el partido sin terminar (recargaste en el medio) no tiene
+   ninguna: tiene semanaResumen + semana armada, que solo deja cerrarSemana y
+   que el lunes vuelve a null. Así se reconoce, y no vuelve a sumar. */
+(function () {
+  var s = saveViejo();
+  s.mejoras = { tiro: 1 };                          // lo que ya había sumado el cierre viejo
+  s.semanaResumen = { aguanteInicial: 800, envionInicial: 30, lectura: 0, resumen: "Llegás normal" };
+  assert(S.semanaCerrada(s) === true, "sin marcas, semanaResumen + semana armada = la cerró el código viejo");
+  var r = S.cerrarSemana(s, BAL.semana);
+  assert(r.yaEstaba === true && s.mejoras.tiro === 1,
+    "cerrarla de nuevo no vuelve a sumar el +1 de tiro (dio +" + s.mejoras.tiro + ")");
+  assert(S.esLaFecha(s, s.semanaCerradaEnFecha), "y queda marcada con su fecha desde ahora");
+  var limpio = saveViejo(); limpio.semana = null; limpio.semanaResumen = null;
+  assert(S.semanaCerrada(limpio) === false, "un save viejo con la fecha ya aplicada no tiene semana cerrada");
+  assert(S.resultadoQueCorresponde(s, undefined, undefined) === null, "sin resultados, no hay nada que aplicar");
+  console.log("[8] semana cerrada por el código viejo: se reconoce y no suma otra vez");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

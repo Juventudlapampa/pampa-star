@@ -170,9 +170,30 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        (§4 inline: scene.restart() reusa la instancia — _ultimo se limpia acá
        para que el cartel del resultado viejo no reaparezca tras un restart) */
     this._ultimo = null;
-    const res = this.game.registry.get("masterResultado");
-    if (res && this.save && this.save.temporada) {
-      this.game.registry.remove("masterResultado");
+    /* TANDA 1.0 · EL RESULTADO LLEGA POR DOS LADOS Y SE APLICA UNA VEZ.
+       Antes venía SOLO por el registry, que es memoria de la página: cerrar la
+       pestaña en GANASTE perdía la fecha. Ahora el partido lo anota en el save
+       al pitazo (resultadoPendiente) y el registry queda de respaldo por si el
+       save no se pudo escribir. Vale el que es de ESTA fecha (temporada +
+       fecha): aplicado, la fecha avanza y ningún resultado vuelve a coincidir,
+       así que crear la escena dos veces no juega la fecha dos veces. */
+    const S0 = window.PampaSemana;
+    const resReg = this.game.registry.get("masterResultado");
+    this.game.registry.remove("masterResultado");
+    let res = null;
+    if (this.save && this.save.temporada) {
+      res = S0 && S0.resultadoQueCorresponde
+        ? S0.resultadoQueCorresponde(this.save, this.save.resultadoPendiente, resReg)
+        : resReg;
+      /* un pendiente que no es de esta fecha ya se aplicó o es de otra carrera */
+      if (this.save.resultadoPendiente && res !== this.save.resultadoPendiente) {
+        this.save.resultadoPendiente = null;
+        this.guardar();
+      }
+    }
+    if (res) {
+      this.save.resultadoPendiente = null;
+      this.save.enCancha = null;
       this.T.jugarFecha(this.save.temporada, res.golesMio | 0, res.golesRival | 0);
       this._ultimo = res;
       /* ============ LA VIDA v2 · EL LUNES DESPUÉS ============
@@ -885,13 +906,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const S = window.PampaSemana, D = this.game.registry.get("semana");
     if (!S || !D) { this.vistaEvento(rival, alJugar); return; }
     const cfg = (this.game.registry.get("balance") || {}).semana || {};
+    /* TANDA 1.0 · una semana ya cerrada (saliste a la cancha y volviste sin
+       resultado) no se rearma: se vuelve a la cancha como se llegó */
+    if (S.semanaCerrada && S.semanaCerrada(this.save)) { alJugar(); return; }
     if (!this.save.semana) this.save.semana = S.nuevaSemana(this.save, cfg);
     const sem = this.save.semana;
     this._semRival = rival; this._semJugar = alJugar;
     /* EL EVENTO SE DECIDE ANTES DE ARMAR LA SEMANA. Antes esta llamada vivía
        detrás de `if (!S || !D)`, una guarda que no se cumple nunca, y las dos
        opciones de los 28 eventos no se ofrecieron jamás. Ver vistaEvento(). */
-    if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
+    this.prepararEvento(rival);
     if (!this._semEventoResuelto && this._semEvento && this._semEvento.opciones && this._semEvento.opciones.length) {
       this.vistaEvento(rival, () => this.vistaSemana(rival, alJugar));
       return;
@@ -1354,9 +1378,34 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.boton(W / 2 - 110, H - 60, 220, "◀ VOLVER", 0xdcd6c2, () => this.vistaSemana(this._semRival, this._semJugar));
   }
   /* el evento pampeano de la semana: sabor arriba + posible modificador */
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 · EL EVENTO SE SORTEA UNA VEZ POR FECHA, Y QUEDA EN EL SAVE.
+
+     Vivía solo en la escena (_semEvento): al recargar se volvía a sortear con
+     la bolsa ya gastada, así que salía OTRO evento y se podía elegir de nuevo.
+     Ahora logic/semana.eventoDeLaFecha() lo anota en save.eventoFecha con la
+     fecha, y si ya se decidió (resuelto) no se vuelve a preguntar.
+     ══════════════════════════════════════════════════════════════════════ */
+  prepararEvento(rival) {
+    if (this._semEvento !== undefined) return this._semEvento;
+    this._semEvento = this.eventoDeLaSemana(rival);
+    const S = window.PampaSemana, ef = this.save.eventoFecha;
+    this._semEventoResuelto = !!(S && S.esLaFecha && ef && S.esLaFecha(this.save, ef) && ef.resuelto);
+    return this._semEvento;
+  }
   eventoDeLaSemana(rival) {
-    const V = window.PampaVida, D = this.game.registry.get("vida"), t = this.save.temporada;
+    const V = window.PampaVida, D = this.game.registry.get("vida");
     if (!V || !D || !D.eventos) return null;
+    const S = window.PampaSemana;
+    const sortear = () => this.sortearEvento(rival);
+    if (!S || !S.eventoDeLaFecha) return sortear();
+    const anotado = S.eventoDeLaFecha(this.save, sortear);
+    this.guardar();
+    return anotado.id != null ? (D.eventos.find(e => e.id === anotado.id) || null) : null;
+  }
+  /* el sorteo de siempre, con la bolsa (no repite hasta agotarla) */
+  sortearEvento(rival) {
+    const V = window.PampaVida, D = this.game.registry.get("vida"), t = this.save.temporada;
     const pos = this.T.posiciones(t);
     const idxMio = pos.findIndex(f => f.equipo === t.miClub), idxRival = pos.findIndex(f => f.equipo === rival);
     const ctx = {
@@ -1375,25 +1424,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._musicaSemanaPuesta = false;   // la proxima semana vuelve a pedir su tema
     const S = window.PampaSemana;
     const cfg = (this.game.registry.get("balance") || {}).semana || {};
-    const sem = this.save.semana || S.nuevaSemana(this.save, cfg);
-    /* el domingo se llega hasta TU techo, no hasta el global: si entrenaste
-       aguante toda la carrera y comoLlegas te topea en 1000, la mejora se
-       pierde entre la semana y la cancha. */
-    const cfgLlega = Object.assign({}, cfg, { aguante_max: S.techoDeAguante(this.save.mejoras, cfg) });
-    const llega = S.comoLlegas(sem, cfgLlega);
-    /* los permanentes se guardan en la carrera (chiquitos, para siempre) */
-    this.save.mejoras = this.save.mejoras || {};
-    Object.keys(sem.permanentes || {}).forEach(k => {
-      this.save.mejoras[k] = (this.save.mejoras[k] || 0) + sem.permanentes[k];
-    });
-    this.save.semanaResumen = llega;
-    /* LA MOLESTIA DE LA SEMANA SE COMMITEA ACÁ, y antes no se commiteaba en
-       ningún lado. Las acciones con `riesgo_golpe` escribían
-       `save.semana.molestia`, pero al cerrar la semana ese objeto se anula y el
-       lunes hacía `save.molestia = lunes.molestia`, que salía sólo del partido.
-       O sea: te lastimabas entrenando y el lunes no había pasado nada. Y al
-       revés, CURAR tampoco se guardaba. */
-    this.save.molestia = !!sem.molestia;
+    /* TANDA 1.0 · LA CUENTA SE MUDÓ A logic/semana.js (cerrarSemana), donde
+       se testea en node. Hace lo mismo que hacía acá —el domingo hasta TU
+       techo de aguante, los permanentes a la carrera, la molestia de la
+       semana commiteada— pero UNA vez por fecha: antes cada llamada sumaba,
+       y recargar en medio del partido llevó tiro de +3 a +15. */
+    S.cerrarSemana(this.save, cfg);
     this._semEvento = undefined;
     this._semEventoResuelto = false;   // la próxima fecha vuelve a decidir el suyo
     this.guardar();
@@ -1429,7 +1465,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   vistaEvento(rival, alSeguir) {
     const W = this.scale.width, H = this.scale.height;
     const V = window.PampaVida;
-    if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
+    this.prepararEvento(rival);
     const ev = this._semEvento;
     if (!V || !ev || !ev.opciones || !ev.opciones.length) { this._semEventoResuelto = true; alSeguir(); return; }
     this.vaciarVista();
@@ -1447,6 +1483,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const elegir = () => {
         this.save.modFecha = V.aplicarEleccion(ev, i);
         this._semEventoResuelto = true;
+        /* decidido queda decidido: recargar no lo vuelve a preguntar */
+        if (this.save.eventoFecha) this.save.eventoFecha.resuelto = true;
         this.guardar();
         alSeguir();
       };
@@ -1457,6 +1495,41 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        no se saltea), así que no lleva `volver` */
     if (this.grupoFoco) this.grupoFoco(items, { inicial: 0 });
     /* V1 (cantidad): decía cómo se toca, que el jugador ya sabe a esta altura */
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     A LA CANCHA. Lo que viaja al partido sale del save, así que entrar por
+     primera vez y REPETIR después de una recarga mandan lo mismo.
+
+     temporadaN y fecha viajan para que el partido anote su resultado en el
+     save AL PITAZO (match.js, anotarResultadoEnLaCarrera) marcado con la
+     fecha; enCancha deja dicho que se salió a jugar esa fecha.
+     ══════════════════════════════════════════════════════════════════════ */
+  irALaCancha(rival) {
+    const c = window.PampaSemana && window.PampaSemana.claveDeFecha
+      ? window.PampaSemana.claveDeFecha(this.save)
+      : { temporadaN: this.save.temporadaN | 0, fecha: this.save.temporada.fecha | 0 };
+    this.game.registry.set("masterPartido", {
+      rival, division: this.save.division,
+      temporadaN: c.temporadaN, fecha: c.fecha,
+      /* el nivel VIAJA: sin esto la cancha caia al del clasico (que no
+         existe) y se quedaba en 1 para siempre. nivelMax es marca de
+         agua alta a proposito — un descenso no te saca un especial que
+         ya te habias ganado. */
+      nivel: this.nivelDeLaCarrera(),
+      mod: this.save.modFecha || null,
+      origen: this.save.origen || null,
+      semana: this.save.semanaResumen || null,
+      mejoras: this.save.mejoras || null
+    });
+    this.save.enCancha = { temporadaN: c.temporadaN, fecha: c.fecha, rival };
+    this.guardar();
+    /* M5 · el tema de la semana no cruza a la cancha. No hace falta
+       pedir nada acá: el corte cuelga del shutdown de la escena (una
+       vez, en el mixin) y funde 300 ms mientras el partido pide su
+       entrada. Probé poner "entrada" acá primero y se cortaba a los dos
+       cuadros — vive en match.js, que es donde tiene lugar para sonar. */
+    this.irA("match");
   }
 
   /* ============ VISTA 2: LA TEMPORADA ============ */
@@ -1602,28 +1675,21 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           window.PampaEscudosUI.dibujar(this, tFecha.x - tFecha.width / 2 - 24, H - 150, 30, escR);
         }
         this.add.text(W / 2, H - 128, "un equipo " + perfil.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#7ee08a" }).setOrigin(0.5);
-        this.boton(W / 2 - 170, H - 80, 300, "▶ JUGAR LA FECHA", 0x7ee08a, () => {
+        /* TANDA 1.0 · SALISTE A LA CANCHA Y VOLVISTE SIN RESULTADO (recargaste,
+           se cerró la pestaña en medio del partido): la semana ya está jugada
+           y no se rehace —ni se vuelven a sumar sus mejoras—. Se repite el
+           partido, entrando como habías llegado. Es la regla de Rodri para
+           abandonar una fecha. */
+        const SemT = window.PampaSemana;
+        const repetir = !!(SemT && SemT.semanaCerrada && SemT.semanaCerrada(this.save));
+        if (repetir) {
+          this.add.text(W / 2, H - 172, "↺ volviste sin terminar el partido: la semana ya está jugada y entrás como llegaste",
+            { fontFamily: window.PF.texto, fontSize: "12px", color: "#ffd84d" }).setOrigin(0.5);
+        }
+        this.boton(W / 2 - 170, H - 80, 300, repetir ? "↺ REPETIR EL PARTIDO" : "▶ JUGAR LA FECHA", 0x7ee08a, () => {
+          if (repetir) { this.irALaCancha(rival); return; }
           /* V8 A1: primero LA SEMANA (dos toques), después la cancha */
-          this.vistaSemana(rival, () => {
-            this.game.registry.set("masterPartido", {
-              rival, division: this.save.division,
-              /* el nivel VIAJA: sin esto la cancha caia al del clasico (que no
-                 existe) y se quedaba en 1 para siempre. nivelMax es marca de
-                 agua alta a proposito — un descenso no te saca un especial que
-                 ya te habias ganado. */
-              nivel: this.nivelDeLaCarrera(),
-              mod: this.save.modFecha || null,
-              origen: this.save.origen || null,
-              semana: this.save.semanaResumen || null,
-              mejoras: this.save.mejoras || null
-            });
-            /* M5 · el tema de la semana no cruza a la cancha. No hace falta
-               pedir nada acá: el corte cuelga del shutdown de la escena (una
-               vez, en el mixin) y funde 300 ms mientras el partido pide su
-               entrada. Probé poner "entrada" acá primero y se cortaba a los dos
-               cuadros — vive en match.js, que es donde tiene lugar para sonar. */
-            this.irA("match");
-          });
+          this.vistaSemana(rival, () => this.irALaCancha(rival));
         });
       } else {
         this.add.text(W / 2, H - 140, fechaTxt + " · FECHA LIBRE (descansás)", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);

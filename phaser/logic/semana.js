@@ -346,8 +346,124 @@
     };
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 · RECARGAR NO PUEDE DUPLICAR NADA.
+
+     Medido con master.js real: entrenar tiro tres veces (+3), entrar al
+     partido y recargar la página 4 veces en medio del partido dejaba tiro en
+     +15. cerrarSemana sumaba los permanentes en CADA llamada, y la semana solo
+     se daba por terminada al volver con el resultado, que vivía en el registry
+     (memoria de la página) y se escribía recién al tocar SEGUIR: cerrar la
+     pestaña en GANASTE perdía la fecha. Y el evento de la semana se volvía a
+     sortear (con la bolsa ya gastada, otro evento).
+
+     Ahora todo lo que pasa en una fecha se marca con LA FECHA: temporada +
+     número de fecha. Lo marcado ya no se repite:
+       · semanaCerradaEnFecha  → cerrar otra vez no suma ni recalcula
+       · eventoFecha           → el evento sorteado (y si ya se decidió)
+       · enCancha              → saliste a jugar esa fecha
+       · resultadoPendiente    → el pitazo, escrito en el save al terminar
+     ══════════════════════════════════════════════════════════════════════ */
+  function claveDeFecha(save) {
+    var t = save && save.temporada;
+    return { temporadaN: (save && save.temporadaN) | 0, fecha: t ? (t.fecha | 0) : 0 };
+  }
+  /* ¿esta marca es de la fecha que se está jugando ahora? */
+  function esLaFecha(save, marca) {
+    if (!save || !marca || typeof marca !== "object") return false;
+    var c = claveDeFecha(save);
+    return (marca.temporadaN | 0) === c.temporadaN && (marca.fecha | 0) === c.fecha &&
+      marca.temporadaN != null && marca.fecha != null;
+  }
+  /* ¿la semana de esta fecha ya se cerró? Un save escrito ANTES de esta tanda
+     no tiene la marca, pero se reconoce igual: semanaResumen solo lo escribe
+     cerrarSemana y el lunes lo vuelve a null, así que resumen + semana armada
+     sin marca = la cerró el código viejo y el resultado nunca llegó. */
+  function semanaCerrada(save) {
+    if (!save) return false;
+    if (save.semanaCerradaEnFecha) return esLaFecha(save, save.semanaCerradaEnFecha);
+    return !!(save.semanaResumen && save.semana);
+  }
+
+  /* cerrar la semana: lo que elegiste se convierte en cómo llegás al domingo.
+     Los permanentes se suman UNA vez por fecha; la segunda llamada devuelve lo
+     que dejó la primera (sin recalcular: el techo de aguante ya incluye la
+     resistencia de esta semana y la cuenta daría otra cosa). */
+  function cerrarSemana(save, cfg) {
+    cfg = cfg || {};
+    var sem = save.semana || nuevaSemana(save, cfg);
+    /* el domingo se llega hasta TU techo, no hasta el global */
+    var cfgLlega = Object.assign({}, cfg, { aguante_max: techoDeAguante(save.mejoras, cfg) });
+    if (semanaCerrada(save)) {
+      /* ya cerrada: nada se suma. Si el resumen se perdió, se rearma sin tocar
+         las mejoras (que ya tienen lo de esta semana). */
+      if (!save.semanaResumen) save.semanaResumen = comoLlegas(sem, cfgLlega);
+      save.semanaCerradaEnFecha = claveDeFecha(save);
+      save.semana = sem;
+      sem.cerrada = true;
+      return { llega: save.semanaResumen, yaEstaba: true };
+    }
+    var llega = comoLlegas(sem, cfgLlega);
+    /* los permanentes se guardan en la carrera (chiquitos, para siempre) */
+    save.mejoras = save.mejoras || {};
+    Object.keys(sem.permanentes || {}).forEach(function (k) {
+      save.mejoras[k] = (save.mejoras[k] || 0) + sem.permanentes[k];
+    });
+    save.semanaResumen = llega;
+    /* la molestia de la semana se commitea acá: el lunes anula save.semana,
+       y sin esto te lastimabas entrenando y el lunes no había pasado nada */
+    save.molestia = !!sem.molestia;
+    save.semana = sem;
+    sem.cerrada = true;
+    save.semanaCerradaEnFecha = claveDeFecha(save);
+    return { llega: llega, yaEstaba: false };
+  }
+
+  /* el evento de la fecha se sortea UNA vez y queda en el save. sortear() es
+     del llamador (usa la bolsa y la data de eventos) y devuelve el evento o
+     null; acá solo se decide si hace falta llamarlo. */
+  function eventoDeLaFecha(save, sortear) {
+    if (esLaFecha(save, save.eventoFecha)) return save.eventoFecha;
+    var ev = sortear ? sortear() : null;
+    var c = claveDeFecha(save);
+    save.eventoFecha = {
+      temporadaN: c.temporadaN, fecha: c.fecha, id: ev && ev.id != null ? ev.id : null,
+      /* sin opciones no hay nada que decidir: nace resuelto */
+      resuelto: !(ev && ev.opciones && ev.opciones.length)
+    };
+    return save.eventoFecha;
+  }
+
+  /* el resultado AL PITAZO: se anota en el save si es de la fecha que se está
+     jugando. Si no coincide (otra carrera, una fecha que ya se aplicó) no se
+     escribe nada. Devuelve true si lo anotó. */
+  function anotarResultado(save, res) {
+    if (!save || !res || !esLaFecha(save, res)) return false;
+    save.resultadoPendiente = {
+      temporadaN: res.temporadaN | 0, fecha: res.fecha | 0,
+      golesMio: res.golesMio | 0, golesRival: res.golesRival | 0,
+      hiceGol: !!res.hiceGol,
+      aguanteFinalFrac: typeof res.aguanteFinalFrac === "number" && isFinite(res.aguanteFinalFrac) ? res.aguanteFinalFrac : 0.6,
+      golpeFuerte: !!res.golpeFuerte
+    };
+    return true;
+  }
+  /* de los resultados que llegan (el anotado en el save y el del registry, si
+     se tocó SEGUIR), el que corresponde a esta fecha. Uno SIN marca de fecha
+     no vale: es de un partido que el Master no mandó (el arnés de pruebas arma
+     masterPartido a mano) y aplicarlo le sumaría a la carrera una fecha que
+     no se jugó. */
+  function resultadoQueCorresponde(save, pendiente, delRegistry) {
+    var lista = [pendiente, delRegistry];
+    for (var i = 0; i < lista.length; i++) if (esLaFecha(save, lista[i])) return lista[i];
+    return null;
+  }
+
   return {
     RANURAS: RANURAS, clamp: clamp,
+    claveDeFecha: claveDeFecha, esLaFecha: esLaFecha, semanaCerrada: semanaCerrada,
+    cerrarSemana: cerrarSemana, eventoDeLaFecha: eventoDeLaFecha,
+    anotarResultado: anotarResultado, resultadoQueCorresponde: resultadoQueCorresponde,
     nuevaSemana: nuevaSemana, opcionesPara: opcionesPara, elegir: elegir,
     comoLlegas: comoLlegas, resumen: resumen, lunesDespues: lunesDespues,
     techoDeAguante: techoDeAguante,

@@ -129,9 +129,15 @@ function estado(semilla) {
   assert(curada.molestia === false, "y si la curaste, no vuelve sola");
   var delPartido = S.lunesDespues({ animo: 60, molestia: false }, { golesMio: 1, golesRival: 0, aguanteFinalFrac: 0.6, golpeFuerte: true });
   assert(delPartido.molestia === true, "y la del partido también entra");
-  /* y la escena tiene que COMMITEAR lo que dejó la semana */
-  assert(/this\.save\.molestia = !!sem\.molestia/.test(MASTER),
+  /* y cerrar la semana tiene que COMMITEAR lo que dejó. Tanda 1.0: la cuenta
+     se mudó de master.js a logic/semana.cerrarSemana (para que cerrar dos
+     veces no sume dos veces), así que se prueba corriéndola, no leyéndola */
+  var svL = { animo: 60, molestia: false, temporadaN: 1, temporada: { fecha: 3 },
+    semana: { energia: 60, animo: 60, elegidas: ["picadito", null, null], molestia: true, permanentes: {} } };
+  S.cerrarSemana(svL, bal.semana);
+  assert(svL.molestia === true,
     "cerrarSemana tiene que guardar la molestia de la semana, o se pierde al anular save.semana");
+  assert(/S\.cerrarSemana\(this\.save, cfg\)/.test(MASTER), "y la escena la usa al cerrar la semana");
   console.log("[4] la molestia arrastra desde la semana Y desde el partido · curarla la saca");
 })();
 
