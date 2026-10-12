@@ -384,6 +384,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     return t;
   }
 
+  /* "temporada 2 · fecha 8 de 18", o "temporada 2 terminada · 18 de 18
+     fechas" si ya se jugó todo. Revisión L03: con la temporada terminada
+     t.fecha === fixture.length (temporada.terminada) y las dos pantallas que
+     muestran esto (el código de carrera y ¿EMPEZAR OTRA CARRERA?, las dos
+     alcanzables desde FIN DE TEMPORADA) decían "fecha 19 de 18". */
+  lineaDeLaTemporada(n, t) {
+    const total = ((t && t.fixture) || []).length, f = (t && t.fecha) | 0;
+    if (total && f >= total) return "temporada " + n + " terminada · " + total + " de " + total + " fechas";
+    return "temporada " + n + " · fecha " + (f + 1) + " de " + (total || "?");
+  }
   /* el resumen de lo que estas por perder, con numeros */
   resumenDeLaCarrera() {
     const sv = this.save;
@@ -395,7 +405,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       temporada: sv.temporadaN | 0,
       titulos: (sv.titulos || []).length,
       fechas: t.fecha | 0,
-      total: (t.fixture || []).length
+      total: (t.fixture || []).length,
+      linea: this.lineaDeLaTemporada(sv.temporadaN | 0, t)
     };
   }
 
@@ -419,7 +430,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       fontFamily: window.PF.texto, fontSize: "12px", color: "#e3503e" }).setOrigin(0.5);
     const lineas = [
       r.club + " · " + r.division,
-      "temporada " + r.temporada + " · fecha " + (r.fechas + 1) + " de " + (r.total || "?"),
+      r.linea,
       r.titulos === 1 ? "1 título ganado" : r.titulos + " títulos ganados"
     ];
     lineas.forEach((l, i) => {
@@ -589,8 +600,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const div = (this.Ma.DIVISIONES.find(d => d.id === this.save.division) || {}).n || this.save.division;
     this.add.rectangle(W / 2, 196, 640, 92, 0x0a1f13, 0.82).setStrokeStyle(3, 0xffd84d, 0.9);
     this.add.text(W / 2, 166, this.save.club + " · " + div, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
-    this.add.text(W / 2, 192, "temporada " + (this.save.temporadaN | 0) + " · fecha " + ((t.fecha | 0) + 1) + " de " + ((t.fixture || []).length || "?") +
-      " · " + (this.save.titulos || []).length + " títulos", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
+    const nTit = (this.save.titulos || []).length;
+    this.add.text(W / 2, 192, this.lineaDeLaTemporada(this.save.temporadaN | 0, t) +
+      " · " + (nTit === 1 ? "1 título" : nTit + " títulos"), { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
     this.add.text(W / 2, 220, codigo.length.toLocaleString("es-AR") + " letras · empieza con " + codigo.slice(0, 20) + "…", {
       fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0.5);
     /* el resultado de copiar o compartir, con su signo (no solo color) */

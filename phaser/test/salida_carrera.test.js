@@ -56,9 +56,16 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   var vis = MASTER.slice(MASTER.indexOf("vistaBorrarCarrera() {"));
   vis = vis.slice(0, vis.indexOf("\n  borrarCarrera()"));
   assert(/LO QUE SE PIERDE/.test(vis), "y decirlo con todas las letras");
-  ["r.club", "r.division", "r.temporada", "r.titulos", "r.fechas"].forEach(function (campo) {
+  /* la temporada y las fechas van juntas en r.linea (revisión L03: armadas
+     a mano decían "fecha 19 de 18" con la temporada terminada; ahora las
+     arma lineaDeLaTemporada, la misma que usa el código de carrera) */
+  ["r.club", "r.division", "r.linea", "r.titulos"].forEach(function (campo) {
     assert(vis.indexOf(campo) >= 0, "la confirmación tiene que mostrar " + campo);
   });
+  var res = MASTER.slice(MASTER.indexOf("resumenDeLaCarrera() {"));
+  res = res.slice(0, res.indexOf("\n  }") + 4);
+  assert(/linea: this\.lineaDeLaTemporada\(sv\.temporadaN \| 0, t\)/.test(res),
+    "r.linea sale de lineaDeLaTemporada con el número de temporada y la temporada (fecha y total)");
   /* y el botón que borra DICE que borra */
   assert(/BORRAR Y ELEGIR OTRO CLUB/.test(vis), "el botón que borra tiene que decir lo que hace, no 'OK'");
   assert(/SEGUIR CON ESTA CARRERA/.test(vis), "y la otra salida tiene que ser explícita también");

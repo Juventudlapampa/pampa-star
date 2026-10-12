@@ -279,6 +279,26 @@ function domDeMentira() {
   var fila = s3.save.temporada.tabla.find(function (f) { return f.equipo === s3.save.temporada.miClub; });
   assert(s3.save.temporada.fecha === 6 && fila.pj === 6 && s3.textos().indexOf("PRIMERA A · TEMPORADA 3") >= 0,
     "en el otro navegador sigue la MISMA fecha (7 de 18) con la MISMA tabla");
+
+  /* REVISIÓN L03 · "fecha 19 de 18". Con la temporada terminada t.fecha es
+     el largo del fixture, y la vista del código (que también se ofrece en
+     FIN DE TEMPORADA) decía "temporada 3 · fecha 19 de 18". Lo mismo
+     ¿EMPEZAR OTRA CARRERA?, alcanzable desde la misma pantalla. */
+  var fin = carrera("primera_a", 18);
+  A.localStorage.setItem("pampa_master_v1", JSON.stringify(fin));
+  var s4 = A.nueva(); s4.create();
+  var acc4 = s4.tocables().find(function (o) { return o.text === "💾 código de carrera"; });
+  assert(!!acc4 && s4.textos().indexOf("▶ NUEVA TEMPORADA") >= 0, "en FIN DE TEMPORADA también está el 💾 (control del test)");
+  if (acc4) s4.tocar(acc4.x - 40, acc4.y);
+  var lineas4 = s4.textos().filter(function (t) { return /^temporada /.test(t); });
+  assert(lineas4.length === 1 && lineas4[0] === "temporada 3 terminada · 18 de 18 fechas · 2 títulos",
+    "SÍNTOMA: con la temporada terminada el código dice \"temporada 3 terminada · 18 de 18 fechas · 2 títulos\" (dijo: " + lineas4.join(" | ") + ")");
+  assert(!s4.textos().some(function (t) { return /fecha 19 de 18/.test(t); }), "y nunca \"fecha 19 de 18\"");
+  s4.vistaBorrarCarrera();
+  assert(s4.textos().indexOf("temporada 3 terminada · 18 de 18 fechas") >= 0 && !s4.textos().some(function (t) { return /fecha 19/.test(t); }),
+    "¿EMPEZAR OTRA CARRERA? tampoco dice \"fecha 19 de 18\" (" + s4.textos().filter(function (t) { return /temporada/.test(t); }).join(" | ") + ")");
+  /* a mitad de temporada sigue como antes */
+  assert(s3.lineaDeLaTemporada(3, s3.save.temporada) === "temporada 3 · fecha 7 de 18", "a mitad: \"temporada 3 · fecha 7 de 18\"");
   console.log("[5] master real: 💾 en la tabla → copiar · pegar alterado: mensaje y save intacto · pegar bueno: respaldo, persist y misma fecha");
 })();
 
