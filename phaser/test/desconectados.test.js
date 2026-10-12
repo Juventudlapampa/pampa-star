@@ -622,11 +622,47 @@ var TEXTOS_MUNDO_OK = {
     /self\.avisar\("✗ " \+ it\.motivo, \{ clave: "motivo", toque: true \}\)/.test(leer("phaser/scenes/foco_ui.js")),
     "'No hay a quién dársela…' y el '✗ motivo' contestan a un toque");
 
+  /* REVISIÓN DEL LOTE · LA FICHA DE LA SEMANA EN EL TICKER. Salía 1,4 s
+     después de elegir el tempo; con el tutorial pendiente (primera fecha de
+     una carrera nueva) se pintaba detrás de su velo y se iba a los 2,8 s, y
+     cualquier frase del relator en ese rato la borraba. */
+  var HOLD = (BAL5.relator && BAL5.relator.hold_ms) || 2800;
+  var E9 = escena(true), s9 = E9.s;
+  s9.BAL.relator = BAL5.relator;
+  s9.tickerTxt = { text: "", alpha: 0, setText: function (v) { this.text = v; return this; }, setAlpha: function (v) { this.alpha = v; return this; } };
+  s9._relPendiente = null; s9._relPendientePrio = false; s9._tickerFijo = 0;
+  s9.time.now = 500;
+  s9.estado = "TUTORIAL";
+  s9.anunciarEnTicker("Llegás con poca energía", "📋", { prioridad: true });
+  assert(s9.tickerTxt.text === "", "SÍNTOMA DE LA FICHA PERDIDA: detrás del velo del tutorial la ficha no se pinta (" + s9.tickerTxt.text + ")");
+  s9.anunciarEnTicker("¡Arranca el partido!", "🎙");
+  assert(s9._relPendiente === "📋 Llegás con poca energía", "una frase del relator no desplaza a la ficha que espera");
+  s9.estado = "LIBRE"; s9.soltarRelatoPendiente();
+  assert(s9.tickerTxt.text === "📋 Llegás con poca energía", "al cerrar el tutorial la ficha sale");
+  s9.time.now = 1500; s9.anunciarEnTicker("¡Qué gambeta!", "🎙");
+  assert(s9.tickerTxt.text === "📋 Llegás con poca energía", "SÍNTOMA DE LA FICHA PISADA: durante su tiempo, la frase del relator no la borra");
+  s9.soltarRelatoPendiente();
+  assert(s9.tickerTxt.text === "📋 Llegás con poca energía" && s9._relPendiente === "🎙 ¡Qué gambeta!", "la frase espera detrás");
+  s9.time.now = 500 + HOLD + 1; s9.soltarRelatoPendiente();
+  assert(s9.tickerTxt.text === "🎙 ¡Qué gambeta!", "y sale cuando la ficha cumplió su tiempo");
+  s9.estado = "TEMPO_MENU"; s9.anunciarEnTicker("Se juega.", "🎙");
+  assert(s9.tickerTxt.text === "🎙 ¡Qué gambeta!", "detrás del menú de tempo tampoco se escribe");
+  /* y lo que se encontró verificando esto en pantalla: el tempo y el perfil
+     del rival se soltaban en el instante de elegir el tempo, con el estado
+     todavía en LIBRE, y el tutorial se abría encima un renglón después */
+  var iElegir = SRC_M.indexOf("const elegir = (k) => {"), finElegir = SRC_M.indexOf("};", iElegir);
+  var cuerpoElegir = SRC_M.slice(iElegir, finElegir);
+  assert(iElegir > 0 && cuerpoElegir.indexOf("this.tutorialSiHaceFalta();") >= 0 &&
+    cuerpoElegir.indexOf("this.tutorialSiHaceFalta();") < cuerpoElegir.indexOf('this.avisar("Tempo "'),
+    "SÍNTOMA DE LOS AVISOS DETRÁS DEL TUTORIAL: al elegir el tempo, el tutorial se abre ANTES de avisar (si no, el aviso se pinta y queda tapado)");
+  assert(/this\._relPendiente = null;/.test(SRC_M.slice(SRC_M.indexOf("  init() {"), SRC_M.indexOf("  create() {"))),
+    "init() vacía la frase que esperaba (patrón P1: si no, salía al arrancar la fecha siguiente)");
+
   /* las llamadas de verdad y el update que suelta la cola */
   var llamadas = (SRC_M.match(/this\.avisar\(/g) || []).length;
   assert(llamadas >= 9, "match.js sigue llamando a avisar() (" + llamadas + " llamadas)");
   assert(/if \(this\._avisosCola && this\._avisosCola\.length\) this\.soltarAvisos\(\);/.test(SRC_M), "el update suelta la cola de avisos");
-  assert(!/this\.avisar\("📋/.test(SRC_M) && /anunciarEnTicker\(this\._vidaFicha, "📋"\)/.test(SRC_M),
+  assert(!/this\.avisar\("📋/.test(SRC_M) && /anunciarEnTicker\(this\._vidaFicha, "📋", \{ prioridad: true \}\)/.test(SRC_M),
     "la ficha de la semana va al ticker del relator (que tiene su espera), no a avisar()");
 
   /* ---- (b) el censo: textos que van a mundoLayer ---- */

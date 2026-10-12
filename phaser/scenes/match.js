@@ -216,6 +216,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        encolado al final de la fecha 1 no puede salir en la fecha 2. */
     this._avisos = [];
     this._avisosCola = [];
+    /* y el ticker: la línea que espera, si es una ficha (prioridad) y hasta
+       cuándo la ficha a la vista no se deja pisar. _relPendiente no se
+       reiniciaba: una frase que quedó esperando al final de la fecha 1 salía
+       al arrancar la fecha 2 */
+    this._relPendiente = null;
+    this._relPendientePrio = false;
+    this._tickerFijo = 0;
   }
 
   create() {
@@ -545,24 +552,50 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      banco del relator. La ficha de la semana ("📋 por qué hoy te cuesta")
      iba por avisar() y no se veía; ahora entra acá, con la misma espera si el
      HUD está apagado. La línea pendiente se guarda ENTERA, con su ícono. */
-  anunciarEnTicker(f, icono) {
-    if (!f || !this.tickerTxt) return;
-    const linea = (icono || "🎙") + " " + f;
-    if (this.hudLayer && !this.hudLayer.visible) { this._relPendiente = linea; return; }
-    this._pintarRelato(linea);
+  /* REVISIÓN DEL LOTE · LA FICHA SE LEE. La ficha sale 1,4 s después de
+     elegir el tempo, y en la primera fecha de una carrera nueva justo ahí
+     arranca el tutorial: anunciarEnTicker sólo esperaba al HUD apagado, así
+     que la ficha se pintaba detrás del velo del tutorial y se iba a los 2,8
+     s, mientras quien juega leía el tutorial. Los avisos ya esperaban al menú
+     de tempo y al tutorial (soltarAvisos): el mismo caso estaba resuelto de
+     dos maneras. Y cualquier relatar() en esos 2,8 s la borraba
+     (killTweensOf + setText). Ahora:
+       · la franja espera también detrás del menú de tempo y del tutorial;
+       · op.prioridad (la ficha): mientras está a la vista, la frase del
+         relator espera detrás; y una frase que espera no desplaza a una
+         ficha que espera (el lugar de espera es uno solo). */
+  tickerSeLee() {
+    if (this.hudLayer && !this.hudLayer.visible) return false;
+    return this.estado !== "TEMPO_MENU" && this.estado !== "TUTORIAL";
   }
-  _pintarRelato(linea) {
+  anunciarEnTicker(f, icono, op) {
+    if (!f || !this.tickerTxt) return;
+    const linea = (icono || "🎙") + " " + f, prio = !!(op && op.prioridad);
+    const fichaALaVista = this._tickerFijo && this.time.now < this._tickerFijo;
+    if (!this.tickerSeLee() || (fichaALaVista && !prio)) {
+      if (!(this._relPendiente && this._relPendientePrio && !prio)) {
+        this._relPendiente = linea; this._relPendientePrio = prio;
+      }
+      return;
+    }
+    this._pintarRelato(linea, prio);
+  }
+  _pintarRelato(linea, prio) {
     if (!this.tickerTxt) return;
-    const R = this.BAL.relator || {};
+    const R = this.BAL.relator || {}, hold = R.hold_ms || 2800;
     this.tweens.killTweensOf(this.tickerTxt);
     this.tickerTxt.setText(linea).setAlpha(1);
-    this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: R.hold_ms || 2800, duration: R.fade_ms || 500 });
+    this._tickerFijo = prio ? this.time.now + hold : 0;
+    this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: hold, duration: R.fade_ms || 500 });
   }
-  /* lo llama el update cuando el HUD vuelve: la frase guardada sale ahí */
+  /* lo llama el update: la frase guardada sale cuando la franja se lee y la
+     ficha a la vista (si hay) terminó su tiempo */
   soltarRelatoPendiente() {
-    if (!this._relPendiente || !this.hudLayer || !this.hudLayer.visible) return;
-    const f = this._relPendiente; this._relPendiente = null;
-    this._pintarRelato(f);
+    if (!this._relPendiente || !this.tickerSeLee()) return;
+    if (!this._relPendientePrio && this._tickerFijo && this.time.now < this._tickerFijo) return;
+    const f = this._relPendiente, prio = this._relPendientePrio;
+    this._relPendiente = null; this._relPendientePrio = false;
+    this._pintarRelato(f, prio);
   }
   /* helpers de música (flag v4_musica; el mute vive en SFX, compartido con el clásico) */
   /* ══════════════════════════════════════════════════════════════════════
@@ -1910,12 +1943,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.limpiarMenu();
       this.estado = "LIBRE";
       this.st.modo = "juego";
+      /* REVISIÓN DEL LOTE: el tutorial se abre ANTES de los avisos. Iba al
+         final, y avisar() suelta la cola en el acto: con el estado todavía en
+         LIBRE, el tempo y el perfil del rival (que esperaba desde create) se
+         pintaban en ese instante y se iban detrás del velo del tutorial, sin
+         que nadie los leyera (visto en el navegador, primera fecha con el
+         tutorial pendiente). Con TUTORIAL ya puesto, esperan y salen al
+         cerrarlo. */
+      this.tutorialSiHaceFalta();
       this.avisar("Tempo " + k.toUpperCase() + " · " + T.minutos_por_momento + "' por momento");
       /* V8 A1: LA FICHA DEL PARTIDO — por qué hoy te cuesta (o te sobra) */
       /* TANDA 1.0: por el ticker del relator, que tiene su espera; por
          avisar() iba a la capa del mundo y no se leía nunca */
-      if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, "📋"));
-      this.tutorialSiHaceFalta();
+      if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, "📋", { prioridad: true }));
     };
     const _rects = [];
     PRESETS.forEach((p, i) => {
