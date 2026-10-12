@@ -367,5 +367,36 @@ function domDeMentira() {
   console.log("[6] index.html, la caja, sw.js y storage.persist al crear la carrera");
 })();
 
-console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
-process.exit(mal === 0 ? 0 : 1);
+/* ---------- [7] SI EL COPIADO AUTOMÁTICO FALLA (revisión L03) ----------
+   clipboard.writeText rechazado (permiso negado, se vio en el panel) abre la
+   caja con "No se pudo copiar solo…". Después se prueba execCommand("copy")
+   y, si andaba, se agregaba "✔ Ya quedó copiado." SIN cambiar el párrafo:
+   dos frases que se contradicen en la misma caja. */
+(async function () {
+  var casos = [];
+  for (var anda of [true, false]) {
+    var A = M.armar(), doc = domDeMentira();
+    A.ctx.document = doc;
+    doc.execCommand = function () { return anda; };
+    A.ctx.navigator.clipboard = { writeText: function () { return Promise.reject(new Error("permiso negado")); } };
+    var s = A.nueva(), dicho = [];
+    s.save = carrera("primera_a", 4);
+    s.copiarCodigo(C.exportar(s.save), function (t) { dicho.push(t); });
+    await new Promise(function (r) { setImmediate(r); });
+    var parrafo = doc.buscar(function (n) { return n.tagName === "p" && n.className !== "msg"; })[0];
+    var msg = doc.buscar(function (n) { return n.className && /msg/.test(n.className); })[0];
+    var txt = (parrafo ? parrafo.textContent : "") + " | " + (msg ? msg.textContent : "");
+    casos.push((anda ? "execCommand anda: " : "execCommand no anda: ") + txt);
+    if (anda) {
+      assert(msg && msg.textContent === "✔ Ya quedó copiado." && parrafo && !/No se pudo copiar/.test(parrafo.textContent),
+        "SÍNTOMA: con execCommand andando, la caja no dice a la vez \"No se pudo copiar solo\" y \"✔ Ya quedó copiado.\" (" + txt + ")");
+    } else {
+      assert(parrafo && /No se pudo copiar solo/.test(parrafo.textContent) && msg && msg.textContent === "",
+        "sin ningún copiado, la caja dice que hay que copiarlo a mano y nada más (" + txt + ")");
+    }
+  }
+  console.log("[7] copiado que falla · " + casos.join(" · "));
+})().then(function () {
+  console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
+  process.exit(mal === 0 ? 0 : 1);
+}, function (e) { console.error("  ✗ [7] tiró: " + (e && e.stack)); process.exit(1); });

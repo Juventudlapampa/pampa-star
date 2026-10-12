@@ -652,8 +652,15 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         valor: codigo, soloLectura: true,
         botones: [{ texto: "✔ LISTO", principal: true, accion: () => this.cerrarCaja() }]
       });
-      /* el camino viejo de copiar, por si el navegador lo deja */
-      try { if (caja && document.execCommand && document.execCommand("copy")) caja.decir("✔ Ya quedó copiado."); } catch (e) { }
+      /* el camino viejo de copiar, por si el navegador lo deja. Si anda,
+         cambia TAMBIÉN el párrafo (revisión L03): si no, la caja decía a la
+         vez "No se pudo copiar solo…" y "✔ Ya quedó copiado." */
+      try {
+        if (caja && document.execCommand && document.execCommand("copy")) {
+          if (caja.p) caja.p.textContent = "Ya quedó copiado. Igual lo tenés acá abajo, por si querés guardarlo de otra forma.";
+          caja.decir("✔ Ya quedó copiado.");
+        }
+      } catch (e) { }
     };
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
@@ -760,7 +767,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this.input) this.input.enabled = false;
     document.body.appendChild(fondo);
     try { ta.focus(); if (o.soloLectura) ta.select(); } catch (e) { }
-    this._caja = { el: fondo, ta, decir };
+    this._caja = { el: fondo, ta, decir, p };
     /* si la escena se apaga con la caja abierta (VOLVER AL MENÚ del aviso de
        error, por ejemplo), la caja se va con ella. Un gancho por vida de la
        escena, como el del cursor. */
