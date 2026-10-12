@@ -7,7 +7,7 @@
    toque assets. El scope es phaser/ (el clásico de la raíz no se toca).
    ========================================================================== */
 "use strict";
-const VERSION = "v15-audio";
+const VERSION = "v16-toma";
 const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
@@ -18,11 +18,11 @@ const PRECACHE = [
   "./logic/relator.js", "./logic/definicion.js", "./logic/master.js",
   "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
   "./logic/jugadon.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
-  "./logic/escudos.js", "./logic/ambiente.js", "./logic/vestir.js", "./logic/halo.js", "./logic/lectura.js", "./logic/drama.js", "./logic/escalera.js",
+  "./logic/escudos.js", "./logic/ambiente.js", "./logic/vestir.js", "./logic/halo.js", "./logic/pierna.js", "./logic/lectura.js", "./logic/drama.js", "./logic/escalera.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
-  "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/escenas_v9.js", "./scenes/cine_arte.js", "./scenes/piel_ui.js",
+  "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/escenas_v9.js", "./scenes/cine_arte.js", "./scenes/toma_remate.js", "./scenes/piel_ui.js",
   "./scenes/escudos_ui.js", "./scenes/semana_ui.js", "./scenes/tribuna_ui.js", "./scenes/feel_ui.js", "./scenes/reloj.js",
   "./data/balance.json",
   "../data/semana.json", "../data/roster_pampeano.json", "../data/portraits_manifest.json",

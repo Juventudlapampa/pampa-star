@@ -3631,6 +3631,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        después el viaje: primero se ve pegarle, después la intriga */
     const rival = rivalIdx != null ? st.rivales[rivalIdx] : null;
     const nDefs = auto.lectura.defensores;
+    /* oct 2026 · LA TOMA DEL REMATE (scenes/toma_remate.js): el jugador
+       suspendido, la cámara girando en 3D mientras la pierna sube y baja, la
+       patada en el contacto. Reemplaza a la viñeta "EL REMATE" cuando hay
+       WebGL y la pose tiene sus huesos; si no, la viñeta de siempre. */
+    if (this.puedeTomaDelRemate && this.puedeTomaDelRemate()) {
+      this.tomaDelRemate({
+        j, siluetas: nDefs > 0 ? nDefs : null,
+        titulo: j.esVos ? "¡LE PEGÁS!" : "¡LE PEGA " + (j.nombre || "").toUpperCase() + "!",
+        sub: auto.lectura.dist < 220 ? "de frente al arco, sin pensarlo" : (nDefs ? "entre " + nDefs + " y desde lejos" : "desde afuera del área"),
+        alFinal: () => { this.entrarCine(); this.planoViaje(); }
+      });
+      return;
+    }
     this.escenaCine({
       etiqueta: "· EL REMATE ·",
       prota: { j, esRival: false, anim: "tiro" },
@@ -3674,6 +3687,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          → FREEZE + medio segundo de silencio + desenlace (planoDesenlace). */
     const j = st.mios[st.ctrl];
     const enCamino = this.rivalesEnElCamino(j);
+    /* oct 2026 · LA TOMA ESPECIAL: la carga (que era esta viñeta) y el plano
+       del pie (el contacto) son UNA toma más larga, dorada y con más giro de
+       cámara. Después, el viaje, el arquero y el desenlace de siempre. */
+    if (this.hayEscenas() && this.puedeTomaDelRemate && this.puedeTomaDelRemate()) {
+      this.tomaDelRemate({
+        j, especial: true, siluetas: enCamino > 0 ? enCamino : null,
+        etiqueta: "· " + String(mega.n || "EL SÚPER TIRO").toUpperCase() + " ·",
+        titulo: "¡" + String(mega.n || "SÚPER TIRO").toUpperCase() + "!",
+        sub: (mega.sub || "junta todo lo que le queda") + " · " + (ej.lecturaTexto || ""),
+        alFinal: () => { this.entrarCine(); this.planoViaje(); }
+      });
+      return;
+    }
     if (this.hayEscenas()) {
       this.escenaCine({
         etiqueta: "· " + String(mega.n || "EL SÚPER TIRO").toUpperCase() + " ·",

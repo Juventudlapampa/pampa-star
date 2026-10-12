@@ -21,6 +21,17 @@
    "tolerancias": {
     "piel": 80,
     "camiseta": 95
+   },
+   "pierna": {
+    "cadera": [0.372, 0.585],
+    "rodilla": [0.609, 0.642],
+    "tobillo": [0.794, 0.861],
+    "punta": [0.936, 0.916],
+    "r0": 0.069,
+    "r1": 0.117,
+    "r0_pie": 0.12,
+    "r1_pie": 0.161,
+    "_medido": "oct 2026, para la toma del remate (logic/pierna.js): los huesos de la pierna que patea, medidos sobre una grilla de 50 px de pose_remate.webp (900x854). En píxeles: cadera 335,500 (donde el muslo entra al short), rodilla 548,548 (la rodillera sombreada), tobillo 715,735 (arriba del botín), punta 842,782 (la punta del botín, donde estaba la pelota recortada). r0/r1: a menos de r0 (62 px) de la línea de la pierna el vértice es 100% pierna; más allá de r1 (105 px), nada: así la otra pierna, el short y los brazos no se mueven. r0_pie/r1_pie (108/145 px): el botín llega hasta 100 px de la línea del pie (medido contando sus píxeles oscuros), así que el pie lleva su propio radio; con el de la pierna, medio botín se quedaba atrás y se estiraba."
    }
   },
   "chilena": {
