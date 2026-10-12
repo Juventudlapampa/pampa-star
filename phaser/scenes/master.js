@@ -12,6 +12,73 @@
 window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   constructor() { super("master"); }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     P1 · ESTA ESCENA NO TENÍA init().
+
+     Phaser reusa la instancia en cada scene.start("master") y en cada
+     restart(), así que lo que una vista deja anotado (los atajos de teclado
+     vivos, el reloj de la semana, el evento sorteado) llegaba prendido a la
+     entrada siguiente. Lo que es memoria de UNA entrada arranca acá de cero.
+     ══════════════════════════════════════════════════════════════════════ */
+  init() {
+    this._atajos = [];
+    this._relojSem = null;
+    this._mapaCapa = null;
+    this._semEvento = undefined;
+    this._semEventoResuelto = false;
+    this._musicaSemanaPuesta = false;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     VACIAR LA VISTA, DE VERDAD.
+
+     Las cinco vistas que se repintan sin cambiar de escena (la entrevista, la
+     semana, el evento, el día suelto y la confirmación de borrar) limpiaban
+     con el removeAll del DisplayList. En Phaser 3.80.1 eso es
+     Structs.List.removeAll(skipCallback): SACA de la lista de dibujo pero NO
+     DESTRUYE, y con removeAll(true) tampoco (el true solo saltea los
+     callbacks). Los objetos quedaban vivos, invisibles y TOCABLES. Medido en la
+     auditoría: tocar un rincón vacío de la semana abría "¿EMPEZAR OTRA
+     CARRERA?" (el ✕ de la tabla seguía ahí abajo), y la semana pasaba de 14
+     zonas táctiles a 47 después de tres elecciones.
+
+     Ahora se destruye todo lo que hay, y con ello sus zonas táctiles. Antes se
+     cierran el cursor (su contenedor también es un hijo), los atajos de
+     teclado de la vista y el reloj de la semana, que si no seguían corriendo
+     detrás de la vista nueva.
+     ══════════════════════════════════════════════════════════════════════ */
+  vaciarVista() {
+    if (this.cerrarFoco) this.cerrarFoco();
+    this.soltarAtajos();
+    if (this._relojSem) { this._relojSem.remove(false); this._relojSem = null; }
+    this._mapaCapa = null;
+    this.children.list.slice().forEach((o) => { if (o && o.destroy) o.destroy(); });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LOS ATAJOS DE UNA VISTA SE VAN CON LA VISTA.
+
+     Eran keyboard.once en cada repintado: cada once que no se disparaba
+     quedaba vivo, y al repintar se sumaban diez más. Medido: después de un
+     toque con el mouse, UNA tecla llenaba DOS días de la semana (y en la
+     entrevista, la tecla de la pregunta 2 contestaba también la 1). Ahora
+     cada atajo se anota, y vaciarVista() los suelta todos antes de pintar la
+     vista siguiente: una tecla, una ranura, siempre.
+     ══════════════════════════════════════════════════════════════════════ */
+  atajo(tecla, fn) {
+    const kb = this.input && this.input.keyboard;
+    if (!kb) return null;
+    const ev = "keydown-" + tecla;
+    kb.on(ev, fn);
+    this._atajos.push([ev, fn]);
+    return fn;
+  }
+  soltarAtajos() {
+    const kb = this.input && this.input.keyboard;
+    (this._atajos || []).forEach((p) => { if (kb) kb.off(p[0], p[1]); });
+    this._atajos = [];
+  }
+
   /* A1 · los retratos de los personajes CON NOMBRE (Nito, el DT, el utilero).
      Viven en portraits_manifest.personajes y no en el pool `retratos`, que el
      partido usa para dar cara al azar: si estuvieran ahi, Nito podria salir de
@@ -282,7 +349,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     const r = this.resumenDeLaCarrera();
     if (!r) { this.scene.restart(); return; }
-    this.children.removeAll();
+    this.vaciarVista();
     /* ARTE: el radial y la cancha de tu división (cine_arte.js) */
     if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
 
@@ -605,8 +672,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const V = window.PampaVida, D = this.game.registry.get("vida");
     if (!V || !D || !D.origen) { this._crearCarrera(divId, null); return; }
     paso = paso || 0; elegidas = elegidas || [];
-    this.children.removeAll();
-    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
+    this.vaciarVista();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     const p = D.origen[paso];
     /* O2 · LA ENTREVISTA. El contenido y las consecuencias son EXACTAMENTE las
        mismas —los stats salen de D.origen y esta pantalla no los mira—; lo que
@@ -639,7 +706,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         else this._crearCarrera(divId, V.aplicarOrigen(D, nuevas));
       };
       r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
-      if (this.input.keyboard) this.input.keyboard.once("keydown-" + ["ONE", "TWO", "THREE", "FOUR"][i], elegir);
+      /* atajo de ESTA pregunta: se suelta al pintar la siguiente (antes era un
+         once que sobrevivía y la tecla contestaba dos preguntas) */
+      this.atajo(["ONE", "TWO", "THREE", "FOUR"][i], elegir);
       _focoEnt.push({ obj: r, cb: elegir });
     });
     /* EL CURSOR EN LA ENTREVISTA. Cuatro respuestas en columna y ningun atajo
@@ -827,8 +896,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.vistaEvento(rival, () => this.vistaSemana(rival, alJugar));
       return;
     }
-    this.children.removeAll();
-    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
+    this.vaciarVista();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
 
     /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
        te estás preparando. El título de la pantalla pasa a apoyo. */
@@ -991,10 +1060,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         if (window.PampaFeel) window.PampaFeel.pulsar(this, r);
         this.ponerEnLaSemana(o);
       });
-      if (this.input.keyboard && i < 10) {
-        const tecla = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "ZERO"][i];
-        this.input.keyboard.once("keydown-" + tecla, () => { if (alcanza) this.ponerEnLaSemana(o); });
-      }
+      /* el atajo vive lo que vive esta vista (ver atajo()): antes era un once
+         por repintado y una tecla llenaba dos días */
+      if (i < 10) this.atajo(["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "ZERO"][i], () => this.ponerEnLaSemana(o));
     });
 
     /* --- CÓMO LLEGÁS + JUGAR --- */
@@ -1154,6 +1222,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        en una banda opaca a la izquierda que no comparte lugar con el dibujo.
        El marco es la unidad: nada se sale de ahi.
        ══════════════════════════════════════════════════════════════════════ */
+    /* mientras el momento está a la vista, la semana de abajo NO se toca: sus
+       atajos y su cursor quedaban vivos y una segunda tecla (o un Enter sobre
+       la tarjeta enfocada) llenaba otra ranura con el momento todavía abierto.
+       La vista se vuelve a armar entera al cerrar. */
+    this.soltarAtajos();
+    if (this.cerrarFoco) this.cerrarFoco();
     const W = this.scale.width, H = this.scale.height;
     const MX = W / 2, MY = H / 2 - 10, MW = 620, MH = 300;
     const x0 = MX - MW / 2, y0 = MY - MH / 2;
@@ -1218,6 +1292,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const ms = ((this.game.registry.get("balance") || {}).semana || {}).momento_ms;
     this.time.delayedCall(ms != null ? ms : 950, cerrar);
     velo.setInteractive().on("pointerdown", cerrar);
+    /* y con teclado también se saltea (el dedo ya podía) */
+    this.atajo("ENTER", cerrar);
+    this.atajo("SPACE", cerrar);
   }
   /* el texto del efecto, en números claros (nunca solo color) */
   textoEfecto(o) {
@@ -1248,8 +1325,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   const ctx = { stats: this.statsDeHoy(), stat_techo: ((this.game.registry.get("balance") || {}).semana || {}).stat_techo, marcas: (this.save.origen && this.save.origen.marcas) || [],
     origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctx);
-    this.children.removeAll();
-    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
+    this.vaciarVista();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     this.add.text(W / 2, 34, ["LUNES", "MIÉRCOLES", "VIERNES"][ranura] + " · ¿qué hacés?", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 60, "te quedan " + sem.energia + " de energía", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
     const porFila = 2, ancho = 380, alto = 74;
@@ -1355,8 +1432,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this._semEvento === undefined) this._semEvento = this.eventoDeLaSemana(rival);
     const ev = this._semEvento;
     if (!V || !ev || !ev.opciones || !ev.opciones.length) { this._semEventoResuelto = true; alSeguir(); return; }
-    this.children.removeAll();
-    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: removeAll se llevaba el fondo
+    this.vaciarVista();
+    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     /* E · acá el PRINCIPAL es lo que pasó: el resto es marco. */
     this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
     this.add.text(W / 2, 140, ev.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);

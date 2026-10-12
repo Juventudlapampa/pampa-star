@@ -235,10 +235,15 @@
       G.mover(F.primero(cajas, opts.inicial), true);
       this._foco = G;
 
-      /* se limpia solo al cambiar de vista o de escena */
+      /* se limpia solo al cambiar de vista o de escena.
+         ONCE, no on (tanda 1.0): el emisor de la escena sobrevive al shutdown
+         —Phaser reusa la instancia— y la bandera se bajaba en cada apagado,
+         así que con `on` cada arranque colgaba un gancho más (medido: 14 → 17
+         listeners de shutdown). `once` se borra solo al dispararse y la
+         bandera lo vuelve a armar en el próximo grupo: queda siempre uno. */
       if (!this._focoShutdown) {
         this._focoShutdown = true;
-        this.events.on("shutdown", function () { self._focoShutdown = false; self.cerrarFoco(); });
+        this.events.once("shutdown", function () { self._focoShutdown = false; self.cerrarFoco(); });
       }
       return G;
     },

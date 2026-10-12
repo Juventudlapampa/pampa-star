@@ -923,8 +923,9 @@
       return this.add.image(0, 0, key).setOrigin(0, 0).setDepth(-9999);
     },
     /* el marco completo de una vista del Master: el radial de la piel y la
-       cancha de la división encima. Las vistas hacen children.removeAll() y se
-       llevaban el fondo con todo lo demás (la semana quedaba en negro liso). */
+       cancha de la división encima. Las vistas se vacían enteras al cambiar
+       (vaciarVista, master.js) y se llevaban el fondo con todo lo demás (la
+       semana quedaba en negro liso). */
     fondoDelMaster() {
       if (this.fondoDePiel) this.fondoDePiel();
       try { return this.fondoDeLaDivision(); } catch (e) { return null; }
