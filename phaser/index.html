@@ -1376,7 +1376,18 @@
     function juego() { return window.PAMPA_GAME || null; }
     function ahora() { var p = window.performance; return (p && p.now) ? p.now() : Date.now(); }
     function escalon() { try { history.pushState({ pampa: 1 }, ""); } catch (e) { } }
+    /* REVISIÓN L07 · EMBEBIDO, EL ATRÁS ES DE LA PÁGINA QUE LO CONTIENE.
+       Adentro del iframe de una nota (o con ?embed=1, que es como
+       embed.html abre el juego adentro), el escalón entraba en el historial
+       de la PESTAÑA del medio: el pushState de un iframe que ya recibió un
+       toque no se saltea. De vuelta en la nota, el primer atrás no hacía
+       nada visible (el aviso "Tocá ATRÁS otra vez" salía abajo, adentro del
+       iframe) y, con el partido a la vista, cada atrás pausaba o cerraba
+       la pausa y volvía a poner el escalón: no se salía nunca del artículo.
+       Embebido no se pone escalón ni se atiende el atrás: el juego es un
+       invitado en esa página. */
     AT.armar = function () {
+      if (window.PAMPA_EMBEBIDO) return false;
       if (AT.armado) return false;
       AT.armado = true;
       var st = null;
@@ -1419,6 +1430,9 @@
     };
     AT.ocultar = function () { var el = document.getElementById("atras-aviso"); if (el) el.hidden = true; clearTimeout(AT.timer); };
     AT.alAtras = function () {
+      /* embebido no hay escalón propio: el atrás es de la página del medio
+         (ver AT.armar), y acá no se repone nada */
+      if (window.PAMPA_EMBEBIDO) return "nada";
       var R = window.PampaRed, A = window.PampaAtras;
       /* el aviso de error manda: se repone el escalón y nada más */
       if (R && R.tipo) { escalon(); return "nada"; }

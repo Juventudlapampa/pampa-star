@@ -27,6 +27,8 @@
          su decisión, "Algo se trabó" manda, y volver del Master no cuenta
          como el primer atrás del editor; con el teléfono en vertical no se
          le manda nada al juego (el editor igual puede salir);
+     [3c] (revisión L07) embebido en la nota de un medio (PAMPA_EMBEBIDO):
+         ni escalón ni atrás propio, el atrás es de la página del medio;
      [3b] (revisión L04) en vertical, de punta a punta con PampaPausa, el
          atrás y match.js de verdad: la PAUSA que abrió el giro aguanta
          los atrás y al volver a horizontal el partido espera SEGUIR;
@@ -130,7 +132,7 @@ function mundo(opts) {
     events: { emit: function (n, d) { emitidos.push({ n: n, d: d }); } }
   };
   var W = {
-    PampaAtras: AT, PAMPA_GAME: juego,
+    PampaAtras: AT, PAMPA_GAME: juego, PAMPA_EMBEBIDO: !!opts.embebido,
     performance: { now: function () { return T0.t; } },
     addEventListener: function (ev, f) { (oy[ev] = oy[ev] || []).push(f); }
   };
@@ -225,6 +227,28 @@ function mundo(opts) {
   VE.pasar(800); VE.atras();
   assert(VE.hist.backs === 1, "y el segundo sale: girar no te encierra en la página");
   console.log("[3] escalón con el primer toque · editor: confirmar y salir a los 1,5 s · partido: nunca sale · el error manda · en vertical, nada del juego");
+})();
+
+/* ---------- [3c] REVISIÓN L07 · EMBEBIDO, EL ATRÁS ES DE LA PÁGINA DEL MEDIO ----------
+   LO QUE ESTABA MAL: AT.armar no miraba window.PAMPA_EMBEBIDO. Adentro del
+   iframe de una nota (o con ?embed=1, como embed.html abre el juego), el
+   primer toque ponía el escalón, que entra en el historial de la PESTAÑA
+   del medio; con el partido a la vista, cada atrás pausaba o cerraba la
+   pausa y volvía a ponerlo: no se salía nunca del artículo. */
+(function () {
+  if (!bloque) return;
+  var P = mundo({ embebido: true, escena: "match", estadoAtras: { escena: "match", estado: "LIBRE" } });
+  P.disparar("pointerup"); P.disparar("touchend"); P.disparar("click"); P.disparar("keydown");
+  assert(P.hist.pushes === 0, "SÍNTOMA: embebido, un toque pone el escalón en el historial de la página del medio (" + P.hist.pushes + " pushState)");
+  assert(P.W.PampaAtrasDOM.armar() === false, "armar() embebido no hace nada");
+  P.atras(); P.atras();
+  assert(P.hist.pushes === 0 && P.emitidos.length === 0 && P.aviso.hidden === true,
+    "y un popstate embebido no repone nada ni le manda nada al partido (el atrás es de la página que lo contiene)");
+  /* sin embeber, igual que siempre */
+  var N = mundo({ escena: "match", estadoAtras: { escena: "match", estado: "LIBRE" } }); N.disparar("pointerup");
+  assert(N.hist.pushes === 1, "control: en su propia pestaña el primer toque sí pone el escalón");
+  assert(/AT\.armar = function \(\) \{\s*if \(window\.PAMPA_EMBEBIDO\) return false;/.test(bloque), "el corte está al principio de AT.armar");
+  console.log("[3c] embebido: ni escalón ni atrás propio; en su pestaña, como siempre");
 })();
 
 /* ---------- [3b] EN VERTICAL, ATRÁS NO ARRANCA EL PARTIDO (revisión L04) ----------
