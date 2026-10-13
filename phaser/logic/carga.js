@@ -308,7 +308,98 @@
     };
   }
 
+  /* ═══ EL PRECALENTAMIENTO POR TAJADAS (L06, trabas-cine) ═══════════════
+     Lo que estaba mal, medido en el navegador con una pinta que no es la
+     Original: lo pesado se hacía la PRIMERA vez que hacía falta, adentro del
+     momento: teñir el festejo con tu pinta, 70,8 ms en pleno cine del gol (un
+     cuadro de 73 ms); teñir el remate, 25,8 ms en el toque de TIRO; los
+     retratos del duelo, 67 ms al abrir la cruz; las pinturas del arco y de
+     la cancha en fuga, 14 ms cada una en el viaje de la pelota.
+     Esta cola hace eso ANTES, en los ratos tranquilos (LIBRE y los menús),
+     de a tajadas: cada tajada corre trabajos hasta gastar presupuestoMs
+     (12, como la cola del halo) y le devuelve el cuadro al juego. Un trabajo
+     es { clave, paso(fin, ahora) }: paso devuelve true cuando terminó;
+     los que se pueden partir (el teñido, por bandas de filas) miran `fin`
+     y cortan solos. Fuera de los ratos tranquilos (permitido() da false) la
+     cola espera a que alguien la empuje.
+     o: { ahora(), programar(fn), presupuestoMs, permitido() } */
+  function crearColaPorTajadas(o) {
+    var op = o || {};
+    var presupuesto = op.presupuestoMs > 0 ? op.presupuestoMs : 12;
+    var cola = [], claves = {}, programado = false;
+    var stats = { hechos: 0, fallas: 0, tajadas: 0, tajadaMax: 0, ms: 0 };
+    function ahora() { return typeof op.ahora === "function" ? op.ahora() : Date.now(); }
+    function puede() { return typeof op.permitido !== "function" || !!op.permitido(); }
+    function empujar() {
+      if (programado || !cola.length || !puede() || typeof op.programar !== "function") return false;
+      programado = true;
+      op.programar(tajada);
+      return true;
+    }
+    function tajada() {
+      programado = false;
+      if (!cola.length || !puede()) return 0;
+      var t0 = ahora(), fin = t0 + presupuesto, n = 0;
+      while (cola.length && ahora() < fin) {
+        var t = cola[0], listo = true;
+        try { listo = t.paso(fin, ahora) !== false; } catch (e) { listo = true; stats.fallas++; }
+        if (listo) { cola.shift(); stats.hechos++; n++; }
+      }
+      var d = ahora() - t0;
+      stats.tajadas++; stats.ms += d;
+      if (d > stats.tajadaMax) stats.tajadaMax = d;
+      empujar();
+      return n;
+    }
+    return {
+      agregar: function (t) {
+        if (!t || !t.clave || typeof t.paso !== "function" || claves[t.clave]) return false;
+        claves[t.clave] = 1;
+        cola.push(t);
+        empujar();
+        return true;
+      },
+      empujar: empujar,
+      tajada: tajada,
+      pendientes: function () { return cola.length; },
+      /* se va la escena: lo que quedaba se tira (y se puede volver a pedir) */
+      vaciar: function () { var n = cola.length; cola.length = 0; claves = {}; return n; },
+      stats: function () { return stats; }
+    };
+  }
+
+  /* ═══ EL CUADRO MÁS LARGO (L06, trabas-cine) · para ?perf=1 ═══
+     Cada cuadro del juego: cuánto trabajó (del principio del paso al final
+     del dibujo) y cuánto pasó desde el anterior (con el navegador marcando
+     el paso, ese intervalo es lo que se ve: incluye lo que corrió entre
+     cuadros, como las tajadas de las colas). Se guardan los últimos 10 s. */
+  var VENTANA_PERF_MS = 10000;
+  function anotarCuadro(p, t, trabajo, intervalo) {
+    if (!p) return p;
+    p.cuadros = p.cuadros || [];
+    p.cuadros.push({ t: t, trabajo: trabajo, intervalo: intervalo || 0 });
+    while (p.cuadros.length && p.cuadros[0].t < t - VENTANA_PERF_MS) p.cuadros.shift();
+    var mt = 0, mi = 0;
+    for (var i = 0; i < p.cuadros.length; i++) {
+      if (p.cuadros[i].trabajo > mt) mt = p.cuadros[i].trabajo;
+      if (p.cuadros[i].intervalo > mi) mi = p.cuadros[i].intervalo;
+    }
+    p.trabajoMax = mt; p.intervaloMax = mi;
+    if (trabajo > (p.trabajoMaxSesion || 0)) p.trabajoMaxSesion = trabajo;
+    return p;
+  }
+  function ms(v) { return Math.round(Number(v) || 0) + " ms"; }
+  /* el renglón del cuadro, la cola y el halo */
+  function textoCuadros(p, cola, halo) {
+    if (!p || !p.cuadros || !p.cuadros.length) return "";
+    var t = "CUADRO máx 10 s " + ms(p.intervaloMax) + " (trabajo " + ms(p.trabajoMax) + ")";
+    if (cola) t += " · COLA " + cola.pendientes + (cola.tajadaMax ? " (tajada máx " + ms(cola.tajadaMax) + ")" : "");
+    if (halo && halo.ms != null) t += " · HALO " + ms(halo.ms);
+    return t;
+  }
+
   return {
+    crearColaPorTajadas: crearColaPorTajadas, anotarCuadro: anotarCuadro, textoCuadros: textoCuadros,
     nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed, textoTex: textoTex,
     reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); },
     decidirAvisoVersion: decidirAvisoVersion,

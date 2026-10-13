@@ -33,7 +33,66 @@
   if (!window.PampaMatch) return;
   var W = 960, H = 540;
 
+  /* L06 (trabas-cine) · LOS PESOS DE LA PIERNA, UNA VEZ. Medido en el
+     navegador: abrir la toma costaba ~50 ms en la compu en CADA remate, y 31
+     de esos eran PampaPierna.pesos sobre los 13.824 vértices de la malla de
+     48x48. Esos pesos dependen solo de la medida de la textura, de la malla y
+     de los huesos del manifest: son siempre los mismos, así que se guardan
+     acá (no en la escena: no son estado del partido, son una cuenta) y el
+     precalentamiento del partido los hace antes (prepararTomaDelRemate). Se
+     leen y nunca se escriben (PampaPierna.posar). */
+  var PESOS = {};
+  function pesosDeLaToma(plano, tw, th, B, GX, pierna) {
+    var vs = plano.vertices, n = vs.length;
+    var ck = [tw, th, GX, n, JSON.stringify(pierna)].join("|");
+    if (PESOS[ck]) return PESOS[ck];
+    var rx = new Float32Array(n), ry = new Float32Array(n);
+    for (var i = 0; i < n; i++) { rx[i] = vs[i].u * tw; ry[i] = vs[i].v * th; }
+    PESOS[ck] = window.PampaPierna.pesos(rx, ry, B);
+    return PESOS[ck];
+  }
+
   Object.assign(window.PampaMatch.prototype, {
+    /* L06 (trabas-cine): los pesos de la toma, antes (los usa la cola de
+       precalentamiento del partido). Una malla igual a la de la toma, sin
+       agregarla a la escena, para tener los vértices en el mismo orden.
+       Y LA PRIMERA MALLA: medido en el navegador, el primer cuadro de la
+       PRIMERA toma de la sesión tardaba 51-56 ms aunque ya no hubiera nada
+       que teñir ni que pesar (la segunda y la tercera, 13-14 ms): era la
+       primera vez que corría el código de las mallas de Phaser con esa
+       textura y esa pierna. Una malla IGUAL a la de la toma (la misma
+       textura, con tu pinta si la tenés, y los mismos 48x48), con la pierna
+       posada tres veces como en la toma y un poco de polvo, casi
+       transparente y fuera de cuadro durante unos cuadros tranquilos, lo
+       pone en marcha antes. Medido: con una malla chica de la pose sin
+       teñir no alcanzaba (dos de tres primeros remates seguían en 53-56 ms);
+       con esta, ver docs/TANDA_1_0.md. */
+    prepararTomaDelRemate: function () {
+      if (!this.puedeTomaDelRemate()) return false;
+      var def = this.game.registry.get("poses").poses.remate;
+      var key = this.poseKey("remate"), img = this.textures.get(key).getSourceImage();
+      var GX = ((this.BAL && this.BAL.toma) || {}).malla || 48;
+      var PI = window.PampaPierna, tw = img.width, th = img.height;
+      var B = PI.huesos(def.pierna, tw, th);
+      var vos = this.st && this.st.mios ? this.st.mios.find(function (j) { return j.esVos; }) : null;
+      var keyT = (vos && this.poseHeroeTenida && this.poseHeroeTenida(vos, "remate")) || key;
+      /* la malla de ensayo: la de la toma, casi transparente y fuera de
+         cuadro, en la lista de dibujo de la escena (se dibuja de verdad), y
+         con la pierna posada como en el primer cuadro de la toma */
+      var tibia = this.add.plane(-600, -600, keyT, null, GX, GX).setAlpha(0.01).setDepth(-99999);
+      var W8 = pesosDeLaToma(tibia, tw, th, B, GX, def.pierna);
+      var vs = tibia.vertices, n = vs.length;
+      var rx = new Float32Array(n), ry = new Float32Array(n), px = new Float32Array(n), py = new Float32Array(n);
+      for (var i = 0; i < n; i++) { rx[i] = vs[i].u * tw; ry[i] = vs[i].v * th; }
+      [0, 0.3, 0.6].forEach(function (t) {
+        PI.posar(rx, ry, W8, B, PI.coreografia(t), px, py);
+        for (var k = 0; k < n; k++) { vs[k].x = px[k] / tw - 0.5; vs[k].y = 0.5 - py[k] / th; }
+      });
+      var polvo = this.add.particles(-600, -600, "spark", { lifespan: 100, frequency: 50 }).setAlpha(0.01);
+      this.time.delayedCall(80, function () { tibia.destroy(); polvo.destroy(); });
+      return true;
+    },
+
     puedeTomaDelRemate: function () {
       if (!window.PampaPierna || !window.Phaser) return false;
       if (this.FLAGS && this.FLAGS.toma_remate === false) return false;
@@ -92,7 +151,7 @@
       var vs = plano.vertices, n = vs.length;
       var rx = new Float32Array(n), ry = new Float32Array(n), px = new Float32Array(n), py = new Float32Array(n);
       for (var i = 0; i < n; i++) { rx[i] = vs[i].u * tw; ry[i] = vs[i].v * th; }
-      var W8 = PI.pesos(rx, ry, B);
+      var W8 = pesosDeLaToma(plano, tw, th, B, GX, def.pierna);   // L06: calculados una vez
       this.cineContent.add(plano);
 
       /* --- la pelota: otra malla, misma cámara, pegada al botín --- */

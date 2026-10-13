@@ -479,6 +479,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.time.delayedCall(900, () => { try { this.poseDelEquipo("bloqueo"); } catch (e) { /* se viste al usarla */ } });
       this.time.delayedCall(1700, () => { try { this.poseDelEquipo("barrida"); } catch (e) { /* se viste al usarla */ } });
     }
+    /* L06 (trabas-cine): lo de la primera gambeta, el primer remate y el
+       primer gol, antes, en los ratos tranquilos */
+    this.armarPrecalentamiento();
     /* P5: si balance.musica.archivos declara rutas, esos temas pasan a sonar
        de archivo y el chiptune se calla para ellos. Vacio = todo sintetizado. */
     /* M3 · el registro es global y una sola vez, no por escena (ver abajo) */
@@ -1557,6 +1560,77 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const def = man && man.poses && man.poses[poseId];
     const rel = (def && def.alto_rel) || 1;
     return (alturaPedida * rel) / h;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     L06 (trabas-cine) · LO QUE VA A HACER FALTA, ANTES.
+
+     Lo que estaba mal, medido en el navegador con una pinta que no es la
+     Original (piel 3, pelo 2, camiseta 3), en la compu:
+       · la primera gambeta: abrir la cruz del duelo, 107 ms (los retratos
+         "concentrado" de VOS y del rival, 48 y 19 ms); elegir GAMBETA,
+         64,5 ms (teñir gambeta_gana 30, la barrida del rival en naranja 12,6,
+         los pies de las dos poses 8 y 5,6);
+       · el primer remate: el toque de TIRO, 43,6 ms (teñir el remate 25,8;
+         y en cada remate, 31 de los pesos de la pierna de la toma);
+         en el cine, las pinturas de la cancha en fuga (14,3) y del arco
+         (14,2) y el golpe de color (6);
+       · el primer gol: teñir el festejo, 70,8 ms en pleno cine: un cuadro de
+         73 ms.
+     Todo eso se encola acá y lo hace la cola de cine_arte.js
+     (PampaPrecalentar) en los ratos tranquilos, de a tajadas. Las listas
+     están en balance.rendimiento (precalentar_*), con lo medido en la _nota:
+     son las de esos tres momentos y nada más, porque cada pose teñida es una
+     textura del tamaño de la pose (2-9 MB) y teñirlas todas eran 139 MB.
+     Si la escena se va, la cola se vacía. */
+  armarPrecalentamiento() {
+    const Q = window.PampaPrecalentar, AA = window.PampaAvatarArte;
+    if (!Q || !this.st) return 0;
+    const R = this.BAL.rendimiento || {}, st = this.st;
+    const vos = st.mios.find((j) => j.esVos);
+    let n = 0;
+    const vivo = () => this.sys && this.sys.settings.status === 5;
+    const atomico = (clave, fn) => {
+      if (Q.agregar({ clave: clave, paso: () => { if (vivo()) fn(); return true; } })) n++;
+    };
+    /* 1) los retratos de la cruz del duelo: el tuyo y el de CADA rival de
+       campo (el busto del rival sale de su nombre: medido, la primera
+       versión precalentaba uno solo y el primer duelo fue contra otro, 34,6
+       ms al abrir la cruz). Los que comparten busto salen de la caché. */
+    if (vos) atomico("retrato:vos", () => this.retratoKey(vos, false, "concentrado"));
+    st.rivales.forEach((j, i) => { if (j && j.pos !== "ARQ") atomico("retrato:rival:" + i, () => this.retratoKey(j, true, "concentrado")); });
+    /* 2) las poses de VOS con tu pinta (por tajadas) y dónde apoyan los pies */
+    const conPinta = vos && vos.look && AA && AA.trabajoDeTinte && this.FLAGS.v7_caras !== false;
+    (R.precalentar_poses || []).forEach((id) => {
+      if (!conPinta) return;
+      const t = AA.trabajoDeTinte(this, id, vos.look);
+      if (t && Q.agregar(t)) n++;
+      atomico("pie:" + id, () => {
+        const k = this.poseHeroeTenida(vos, id);
+        if (k && this.pieDePose) this.pieDePose(k);
+      });
+    });
+    /* 3) las del rival, en naranja, y sus pies */
+    (R.precalentar_rival || []).forEach((id) => atomico("naranja:" + id, () => {
+      const k = this.poseRivalNaranja ? this.poseRivalNaranja(id) : null;
+      if (k && this.pieDePose) this.pieDePose(k);
+    }));
+    /* 4) los pesos de la pierna de la toma del remate (31 ms en cada remate,
+       medido; se calculan una vez y quedan) */
+    if (this.prepararTomaDelRemate) atomico("toma:remate", () => this.prepararTomaDelRemate());
+    /* 5) las pinturas del cine, con las mismas opciones que el plano que las usa */
+    const opciones = (p) => {
+      if (p.tipo === "profunda") { const F = this.fugaDelViaje(); return { vp: F.vp, nearY: F.nearY, k: this.BAL.cine.persp.k }; }
+      if (p.tipo === "arco") return { arco: this.arcoCine() };
+      if (p.tipo === "golpe") return { bando: p.bando, cx: p.cx, cy: p.cy };
+      return {};
+    };
+    (R.precalentar_pinturas || []).forEach((p) => {
+      if (!p || !p.tipo || !this.texturaDeFondo) return;
+      atomico("pintura:" + p.tipo + ":" + (p.bando || "") + (p.cx != null ? p.cx + "," + p.cy : ""), () => this.texturaDeFondo(p.tipo, opciones(p)));
+    });
+    this.events.once("shutdown", () => Q.vaciar());
+    return n;
   }
 
   /* B3-D · EL TINTE DE CAMISETA EN LAS ESCENAS.
@@ -3270,7 +3344,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const W = 960, H = 540, C = this.BAL.cine;
     this.limpiarContenido();
     this.cineLabel.setText("· el viaje ·");
-    const vp = { x: W / 2, y: H * 0.24 }, nearY = H * 0.96;
+    const { vp, nearY } = this.fugaDelViaje();
     this.dibujarCanchaProfunda(vp, nearY);
     const ball = this.add.sprite(W / 2, nearY, "ball").setScale(4.2); this.cineContent.add(ball);
     const trail = this.add.particles(0, 0, "spark_sol", { lifespan: 300, speed: 0, scale: { start: 1.2, end: 0 }, alpha: { start: 0.6, end: 0 }, frequency: 18, follow: ball }); this.cineContent.add(trail);
@@ -3336,6 +3410,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.SFX && this.SFX.crowd(500);
     }
     if (raw >= 1) vs.activo = false;
+  }
+  /* L06 (trabas-cine): el punto de fuga del viaje de la pelota, en un solo
+     lugar: lo usa el plano y el precalentamiento pinta la cancha en fuga con
+     el MISMO (la clave de la pintura no lo lleva: la primera que se pinta
+     queda para todas) */
+  fugaDelViaje() {
+    const W = 960, H = 540;
+    return { vp: { x: W / 2, y: H * 0.24 }, nearY: H * 0.96 };
   }
   dibujarCanchaProfunda(vp, nearY) {
     const W = 960, H = 540, g = this.cineBG;
@@ -5716,6 +5798,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* ============================== UPDATE ============================== */
   update(time, delta) {
     const st = this.st, P = window.PampaPartido;
+    /* L06 (trabas-cine): la cola de precalentamiento corre en los ratos
+       tranquilos; si estaba esperando uno, acá se la despierta (es barato:
+       sin trabajos o fuera de un rato tranquilo no hace nada) */
+    if (window.PampaPrecalentar) window.PampaPrecalentar.empujar();
     /* PIEL P2: los menús del partido nacen en runtime (duelo, remate, tempo,
        jugadón), así que sus botones se visten acá, apenas aparecen. Cada 6
        frames y con guard: el trabajo real es solo sobre los recién creados. */

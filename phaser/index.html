@@ -1141,12 +1141,34 @@
     var perf = /[?&]perf=1(&|$)/.test(location.search);
     var el = document.getElementById("perf");
     if (perf && el) el.hidden = false;
-    /* L06: y debajo, lo que ocupan las texturas (window.__PAMPA_TEX) */
+    /* L06: y debajo, lo que ocupan las texturas (window.__PAMPA_TEX) y el
+       cuadro más largo de los últimos 10 s, con la cola de precalentamiento
+       y lo que lleva el halo (window.__PAMPA_PERF) */
     function pintar() {
       if (!(perf && el && C)) return;
       var t = C.textoTex ? C.textoTex(window.__PAMPA_TEX) : "";
-      el.textContent = C.textoRed(RED) + (t ? "\n" + t : "");
+      var Q = window.PampaPrecalentar;
+      var cola = Q ? { pendientes: Q.pendientes(), tajadaMax: Q.stats().tajadaMax } : null;
+      var c = C.textoCuadros ? C.textoCuadros(window.__PAMPA_PERF, cola, window.__PAMPA_HALO) : "";
+      el.textContent = C.textoRed(RED) + (t ? "\n" + t : "") + (c ? "\n" + c : "");
     }
+    /* L06 (trabas-cine) · EL CUADRO MÁS LARGO, para medir en un teléfono de
+       verdad: con ?perf=1, cada paso del juego anota cuánto trabajó (de
+       "prestep" a "postrender") y cuánto pasó desde el anterior, y el
+       renglón se repinta dos veces por segundo. Sin ?perf=1 no se engancha
+       nada (no cuesta). Lo engancha el postBoot del juego. */
+    var PERF = window.__PAMPA_PERF = { cuadros: [] };
+    window.PampaPerf = {
+      enganchar: function (g) {
+        if (!perf || !C || !C.anotarCuadro || !g || !g.events || PERF.enganchado) return false;
+        PERF.enganchado = true;
+        var t0 = 0, previo = 0;
+        g.events.on("prestep", function () { var t = performance.now(); PERF.ultimoIntervalo = previo ? t - previo : 0; previo = t; t0 = t; });
+        g.events.on("postrender", function () { var t = performance.now(); C.anotarCuadro(PERF, t, t - t0, PERF.ultimoIntervalo); });
+        setInterval(pintar, 500);
+        return true;
+      }
+    };
     window.__PAMPA_RED_PINTAR = pintar;
     /* el juego carga más de 150 recursos y el búfer de tiempos trae 250 por
        defecto: sin agrandarlo, calentar no vería los últimos */
@@ -1516,11 +1538,15 @@
          bajan a la vez se reparten la señal, así que también se fija cuántos
          van a la vez (Phaser: 6 o 32 según el sistema del teléfono); la cuenta, en
          la _nota de balance.red_floja */
+      /* L06 (trabas-cine): sin tope, en una pantalla de 120 Hz el juego corría
+         el doble de cuadros. 61 y no 60: la cuenta, en la _nota de
+         balance.rendimiento (con 60 justo, una pantalla de 60 Hz daba 46). */
+      fps: { target: 60, limit: (balance && balance.rendimiento && balance.rendimiento.fps_limite != null) ? balance.rendimiento.fps_limite : 61 },
       loader: {
         timeout: (balance && balance.red_floja && balance.red_floja.loader_timeout_ms) || 75000,
         maxParallelDownloads: (balance && balance.red_floja && balance.red_floja.loader_paralelas) || 4
       },
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* L06: "Se quedó sin memoria" si se pierde el contexto WebGL */ if (window.PampaRed && window.PampaRed.vigilarMemoria) window.PampaRed.vigilarMemoria(game); /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* L06: la cola de precalentamiento y, con ?perf=1, el cuadro más largo */ if (window.PampaPrecalentarEnganchar) window.PampaPrecalentarEnganchar(game); if (window.PampaPerf) window.PampaPerf.enganchar(game); /* L06: "Se quedó sin memoria" si se pierde el contexto WebGL */ if (window.PampaRed && window.PampaRed.vigilarMemoria) window.PampaRed.vigilarMemoria(game); /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);

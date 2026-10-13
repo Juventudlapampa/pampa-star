@@ -432,18 +432,11 @@ window.PampaAvatarArte = (function () {
      Reemplaza los tonos base declarados (manifest) por los del editor,
      PRESERVANDO la luminancia relativa: las sombras duras sobreviven al tinte.
      mapa: [{de: 0xRRGGBB, a: 0xRRGGBB, tol: px}] — cacheado por dstKey. */
-  function tenirImagen(scene, srcKey, dstKey, mapa) {
-    if (scene.textures.exists(dstKey)) return dstKey;
-    if (!scene.textures.exists(srcKey)) return null;
-    /* V10: la fuente, sin el anillo violeta del recorte (logic/halo.js) */
-    if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(srcKey);
-    var src = scene.textures.get(srcKey).getSourceImage();
-    var cv = scene.textures.createCanvas(dstKey, src.width, src.height);
-    var c2 = cv.getContext();
-    c2.drawImage(src, 0, 0);
-    var img = c2.getImageData(0, 0, src.width, src.height);
-    var d = img.data;
-    var reglas = (mapa || []).map(function (m) {
+  /* L06 (trabas-cine): las reglas y el bucle del teñido, aparte, para que el
+     teñido entero (abajo) y el teñido por tajadas (trabajoDeTinte) hagan
+     EXACTAMENTE la misma cuenta, píxel por píxel. */
+  function reglasDeTinte(mapa, alto) {
+    return (mapa || []).map(function (m) {
       var r = (m.de >> 16) & 255, g = (m.de >> 8) & 255, b = m.de & 255;
       return {
         r: r, g: g, b: b,
@@ -452,11 +445,14 @@ window.PampaAvatarArte = (function () {
         luma: Math.max(10, 0.299 * r + 0.587 * g + 0.114 * b),
         /* V7-1: banda vertical opcional (0-1) — p.ej. el pelo negro solo ARRIBA,
            así los botines negros de abajo no se tiñen con el color de pelo */
-        y0: Math.round((m.y0 || 0) * src.height),
-        y1: Math.round((m.y1 == null ? 1 : m.y1) * src.height)
+        y0: Math.round((m.y0 || 0) * alto),
+        y1: Math.round((m.y1 == null ? 1 : m.y1) * alto)
       };
     });
-    var fila = src.width * 4;
+  }
+  /* tiñe los bytes RGBA de una banda de filas: d empieza en la fila yBase */
+  function tenirFilas(d, ancho, reglas, yBase) {
+    var fila = ancho * 4;
     for (var i = 0; i < d.length; i += 4) {
       /* A4 (playtest): el borde recortado se veía sucio porque los píxeles
          semitransparentes del contorno también se teñían — ahora solo se tiñe
@@ -467,7 +463,7 @@ window.PampaAvatarArte = (function () {
          quedan intactos; si no, el tinte de pelo "sangraba" por las líneas de
          la cara y terminaba pintando media ilustración. */
       if (0.299 * r + 0.587 * g + 0.114 * b < 30) continue;
-      var py = (i / fila) | 0;
+      var py = yBase + ((i / fila) | 0);
       for (var k = 0; k < reglas.length; k++) {
         var R = reglas[k];
         if (py < R.y0 || py >= R.y1) continue;
@@ -480,9 +476,77 @@ window.PampaAvatarArte = (function () {
         break;
       }
     }
+  }
+  function tenirImagen(scene, srcKey, dstKey, mapa) {
+    if (scene.textures.exists(dstKey)) return dstKey;
+    if (!scene.textures.exists(srcKey)) return null;
+    /* V10: la fuente, sin el anillo violeta del recorte (logic/halo.js) */
+    if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(srcKey);
+    var src = scene.textures.get(srcKey).getSourceImage();
+    var cv = scene.textures.createCanvas(dstKey, src.width, src.height);
+    var c2 = cv.getContext();
+    c2.drawImage(src, 0, 0);
+    var img = c2.getImageData(0, 0, src.width, src.height);
+    tenirFilas(img.data, src.width, reglasDeTinte(mapa, src.height), 0);
     c2.putImageData(img, 0, 0);
     cv.refresh();
     return dstKey;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     L06 (trabas-cine) · EL TEÑIDO POR TAJADAS.
+     Teñir una pose entera de una vez cuesta 26-71 ms en la compu (medido en
+     el navegador: el remate 25,8 ms, el festejo 70,8) y se hacía en el
+     momento en que la pose entraba a escena. Esto lo hace antes, partido:
+       1) la fuente (sin el halo) se dibuja en un lienzo aparte;
+       2) por bandas de BANDA filas: se lee la banda, se tiñe, se escribe;
+          cada banda mira el reloj y la tajada corta cuando se le acaba;
+       3) al final, si nadie la tiñó entera mientras tanto, se crea la
+          textura con la clave de siempre ("poseT_…") y se sube.
+     Mientras no termina la textura NO existe: si la escena la pide antes,
+     poseTenida la tiñe entera como siempre y esto se descarta al final.
+     Devuelve { clave, paso(fin, ahora) } para la cola de logic/carga.js,
+     o null si no hay nada que teñir. */
+  var BANDA = 48;
+  function trabajoDeTinte(scene, id, lookCrudo) {
+    var P = pedidoDeTinte(scene, id, lookCrudo);
+    if (!P || scene.textures.exists(P.clave)) return null;
+    var fase = 0, cv = null, c = null, w = 0, h = 0, y = 0, reglas = null;
+    function vivo() { return scene.sys && scene.sys.settings && scene.sys.settings.status <= 5 && scene.sys.settings.status >= 2; }
+    return {
+      clave: "tinte:" + P.clave,
+      paso: function (fin, ahora) {
+        if (!vivo() || scene.textures.exists(P.clave) || !scene.textures.exists(P.base)) return true;
+        var reloj = typeof ahora === "function" ? ahora : function () { return 0; };
+        if (fase === 0) {
+          if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(P.base);
+          var src = scene.textures.get(P.base).getSourceImage();
+          w = src.width; h = src.height;
+          cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          c = cv.getContext("2d", { willReadFrequently: true });
+          c.drawImage(src, 0, 0);
+          reglas = reglasDeTinte(P.mapa, h);
+          fase = 1;
+          if (reloj() >= fin) return false;
+        }
+        if (fase === 1) {
+          while (y < h) {
+            var alto = Math.min(BANDA, h - y);
+            var img = c.getImageData(0, y, w, alto);
+            tenirFilas(img.data, w, reglas, y);
+            c.putImageData(img, 0, y);
+            y += alto;
+            if (y < h && reloj() >= fin) return false;
+          }
+          fase = 2;
+          if (reloj() >= fin) return false;
+        }
+        var ct = scene.textures.createCanvas(P.clave, w, h);
+        if (ct) { ct.getContext().drawImage(cv, 0, 0); ct.refresh(); }
+        cv = null; c = null;
+        return true;
+      }
+    };
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -531,5 +595,6 @@ window.PampaAvatarArte = (function () {
   }
 
   return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, KITS: KITS, bake: bake,
-    claveTenida: claveTenida, mapaDeTinte: mapaDeTinte, pedidoDeTinte: pedidoDeTinte, poseTenida: poseTenida };
+    claveTenida: claveTenida, mapaDeTinte: mapaDeTinte, pedidoDeTinte: pedidoDeTinte, poseTenida: poseTenida,
+    reglasDeTinte: reglasDeTinte, tenirFilas: tenirFilas, trabajoDeTinte: trabajoDeTinte };
 })();

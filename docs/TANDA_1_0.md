@@ -2682,3 +2682,132 @@ lado" (index.html, que ese barrido no mira).
    *Revertir:* `R.vigilarMemoria` y el tipo `sin_memoria`.
 5. **`logic/memoria.js` es un archivo nuevo** (y entra al precache del
    worker y al conteo del cartel: 52 scripts). *Revertir:* junto con el 1.
+
+### trabas-cine · sin trabas la primera vez: precalentamiento por tajadas, tope de cuadros y ?perf=1
+
+**Qué estaba mal (medido en el navegador).** Con una pinta que no es la
+Original (piel 3, pelo 2, camiseta 3), cronometrando cada método del
+partido: lo pesado se hacía la primera vez que hacía falta, adentro del
+momento.
+- **Primera gambeta**: abrir la cruz del duelo, 107 ms (los retratos
+  "concentrado" de VOS y del rival, 48,2 y 19 ms); elegir GAMBETA, 64,5 ms
+  (teñir gambeta_gana 29,9, la barrida del rival en naranja 12,6, medir los
+  pies de las dos poses 8,1 y 5,6).
+- **Primer remate**: el toque de TIRO, 43,6 ms (teñir el remate 25,8). Y en
+  **cada** remate, 31 ms de `PampaPierna.pesos` sobre los 13.824 vértices de
+  la malla de la toma. En el cine, la cancha en fuga 14,3 ms, el arco 14,2,
+  el golpe de color 6.
+- **Primer gol**: teñir el festejo, 70,8 ms en pleno cine (un cuadro de
+  73,4).
+- Sin `fps.limit`: en una pantalla de 120 Hz el juego corría el doble de
+  cuadros.
+
+Con el commit base, el mismo recorrido: la gambeta 142 y 152 ms entre
+abrir la cruz y elegir, el remate 88 ms, el cine del gol 47-73 ms.
+
+**Qué se hizo** (commit de este ítem):
+
+1. **La cola por tajadas** (`logic/carga.js`, `crearColaPorTajadas`; la
+   arma `PampaPrecalentarEnganchar` en `scenes/cine_arte.js`, desde el
+   postBoot). Tajadas de `balance.rendimiento.tajada_ms` (12, como la cola
+   del halo) entre cuadro y cuadro, con MessageChannel. Solo en los ratos
+   tranquilos: en el partido, LIBRE, la cruz, el menú de tempo, la pausa, el
+   tutorial y el pase (nunca en la escena, el cine ni la Definición); fuera
+   del partido, siempre. El `update` del partido la empuja.
+2. **El teñido por tajadas** (`scenes/avatar_arte.js`, `trabajoDeTinte`):
+   la cuenta del teñido salió a `reglasDeTinte` y `tenirFilas`, que usan el
+   teñido entero y el partido por bandas de 48 filas; los bytes son los
+   mismos (el test lo compara). La textura `poseT_…` recién existe al final;
+   si la escena la tiñó antes, el trabajo se descarta.
+3. **Lo que encola el partido** (`armarPrecalentamiento`, en su create):
+   tu retrato y el de cada rival de campo (el busto del rival sale de su
+   nombre: con uno solo, el primer duelo fue contra otro y costó 34,6 ms);
+   las poses de VOS de `balance.rendimiento.precalentar_poses`
+   (gambeta_gana, gambeta_pierde, remate, festejo) con sus pies; la barrida
+   del rival en naranja; la toma del remate; y las pinturas de
+   `precalentar_pinturas` (cancha en fuga, arco, golpe de color) con las
+   mismas opciones que el plano que las usa (`fugaDelViaje`, nuevo, lo usan
+   el plano del viaje y el precalentamiento). Si la escena se va, la cola se
+   vacía.
+4. **La toma del remate** (`scenes/toma_remate.js`): los pesos de la pierna
+   se calculan una vez y quedan (dependen solo de la medida de la textura,
+   la malla y los huesos), y `prepararTomaDelRemate` ensaya antes una malla
+   igual a la de la toma (la textura con tu pinta, 48x48, la pierna posada
+   tres veces, casi transparente y fuera de cuadro): el primer cuadro de la
+   primera toma tardaba 51-56 ms aunque ya no hubiera nada que teñir ni que
+   pesar (la segunda y la tercera, 13-14 ms).
+5. **El tope de cuadros**: `fps: { target: 60, limit: 61 }`
+   (`balance.rendimiento.fps_limite`).
+6. **`?perf=1`** suma un renglón: "CUADRO máx 10 s N ms (trabajo N ms) ·
+   COLA N (tajada máx N ms) · HALO N ms" (`anotarCuadro` y `textoCuadros` en
+   `logic/carga.js`; el gancho de `prestep` a `postrender`, solo con
+   `?perf=1`).
+
+**Tests.** `trabas_cine.test.js`: [1] la cola gasta sus 12 ms, sigue el
+trabajo partido donde quedó, espera fuera de los ratos tranquilos, se vacía
+y un trabajo que tira no la traba. [2] El teñido por bandas da los mismos
+bytes que el entero (0 distintos sobre una imagen con los tonos del remate)
+y crea `poseT_` recién al final. [3] El partido, corrido de verdad, encola
+17 trabajos con las opciones de cada plano, no toca nada con la escena
+apagada y vacía la cola al apagarse; los estados tranquilos no incluyen la
+escena, el cine ni la Definición. [4] **El tope, con el algoritmo de Phaser
+sacado del vendor** (`stepLimitFPS` y `smoothDelta`): 60 justo da 46,1
+cuadros por segundo en una pantalla de 60 Hz; 61 da 60 en 60 Hz y 60 en
+120 Hz (sin tope, 120). [5] El renglón de `?perf=1`.
+
+**Cómo se verificó en pantalla.** El partido corrido con el arnés del oído
+(el panel del navegador queda detrás de la ventana: el navegador da 2
+cuadros por segundo y el juego avanza con el reloj virtual), con la pinta
+de arriba, cronometrando cada paso del juego (de `prestep` a `postrender`)
+y lo que corre en el toque (abrir la cruz y elegir son eventos del dedo,
+entre cuadro y cuadro):
+
+| | antes (commit base) | después |
+|---|---|---|
+| cola en el menú de tempo | — | 24 trabajos en 15 tajadas, la más larga 24-61 ms |
+| primera gambeta (abrir la cruz + elegir) | 142 y 152 ms | 31,7 / 49,6 / 55,7 / 43,8 / 66,3 / 41,6 ms (abrir ~25-40, elegir 4-8) |
+| primer remate (el toque) | 88 ms | 10,6 / 9,8 / 29,4 / 20,1 / 24,8 / 10,8 ms |
+| cuadro más largo del remate y el gol | 47,4 y 48,7 (73,4 con el teñido del festejo adentro) | 13,9 / 11,6 / 47,9 / 10,4 en las corridas limpias |
+
+Cada columna es una corrida desde cero (la primera con una versión
+anterior del ensayo de la malla). De las cinco con el código final, tres
+quedaron sin ningún cuadro por encima de 50 ms en los tres momentos; en
+las otras dos aparecieron cuadros de 51-91 ms (y uno de 210) en el cine
+del remate, en corridas donde también el menú y LIBRE andaban más lentos
+(LIBRE 17 ms contra 7-9 en las limpias): el navegador con la ventana atrás
+trabaja a otra prioridad. En una corrida con TODOS los métodos del partido
+envueltos para cronometrarlos, el cuadro lento de la toma no tenía ningún
+método del juego de más de 4 ms adentro. No lo puedo atribuir al juego ni
+sacarlo de acá. La
+medición que manda es la del ítem, en un teléfono de verdad con `?perf=1`
+(ver pendiente). El renglón de `?perf=1` en el partido:
+`l06_3_perf_overlay.jpg`.
+
+### DECISIONES QUE TOMÉ YO (trabas-cine)
+
+1. **Solo lo de los tres momentos, no todas las poses.** Cada pose teñida es
+   una textura del tamaño de la pose (2-9 MB): teñir las 24 con tonos eran
+   139 MB, todo lo que se ganó en el ítem anterior. *Revertir o ampliar:*
+   `balance.rendimiento.precalentar_poses`.
+2. **61 y no 60** en el tope (medido con el algoritmo del vendor). El
+   precio: en 90 Hz quedan 45 cuadros parejos y en 144 Hz, 48. *Revertir:*
+   `fps_limite: 0` (sin tope) o 91 (90 Hz sin bajar, 120 Hz a 60).
+3. **El ensayo de la malla de la toma** no estaba en el ítem: salió de
+   medir. Es una malla invisible fuera de cuadro durante 80 ms en un rato
+   tranquilo. *Revertir:* las líneas de `tibia` en `prepararTomaDelRemate`.
+4. **Los pesos de la pierna quedan en memoria** (una cuenta, ~110 KB), fuera
+   de la escena (no es estado del partido: P1 no aplica). *Revertir:*
+   `pesosDeLaToma` sin el `PESOS[ck]`.
+5. **La cruz del duelo es un rato tranquilo** (la cola puede trabajar
+   mientras se elige): ahí no hay animación que se trabe y es cuando más
+   tiempo hay. *Revertir:* sacar `MENU` de `CALMOS` en `cine_arte.js`.
+6. **Las vestidas de bloqueo y barrida (`poseDelEquipo`) no entraron a la
+   cola**: ver deudas.
+
+### Pendiente (trabas-cine)
+
+- **El cuadro más largo en un Android de gama baja, antes y después**: no
+  tengo un teléfono. Con el juego publicado, abrir `…/phaser/?perf=1`,
+  jugar el primer partido con una pinta que no sea la Original y anotar el
+  "CUADRO máx 10 s" justo después de la primera gambeta, el primer remate y
+  el primer gol; lo mismo con la versión anterior.

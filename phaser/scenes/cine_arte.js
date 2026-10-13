@@ -951,6 +951,42 @@
     window.__PAMPA_HALO = stats;
   };
 
+  /* ======================================================================
+     L06 (trabas-cine) · LA COLA DE PRECALENTAMIENTO.
+     Lo que el partido va a necesitar en su primera gambeta, su primer remate
+     y su primer gol (los teñidos con tu pinta, los retratos del duelo, las
+     pinturas del cine) se hace ANTES, en los ratos tranquilos, de a tajadas
+     de balance.rendimiento.tajada_ms (12, como el halo de arriba) entre
+     cuadro y cuadro. La cola es logic/carga.js (crearColaPorTajadas); acá
+     se le dan el reloj, el MessageChannel y qué es un rato tranquilo: en el
+     partido, los estados que esperan a quien juega o donde se corre suelto
+     (CALMOS); fuera del partido, siempre (son menús). La llena el partido
+     en su create (armarPrecalentamiento) y la empuja su update. Lo llama
+     index.html en postBoot, como el halo.
+     ====================================================================== */
+  var CALMOS = { LIBRE: 1, MENU: 1, TEMPO_MENU: 1, PAUSA: 1, TUTORIAL: 1, PASE: 1 };
+  window.PampaPrecalentarEnganchar = function (game) {
+    var K = window.PampaCarga;
+    if (!K || !K.crearColaPorTajadas || !game || window.PampaPrecalentar) return window.PampaPrecalentar || null;
+    var R = ((game.registry && game.registry.get("balance")) || {}).rendimiento || {};
+    var canal = typeof MessageChannel !== "undefined" ? new MessageChannel() : null, pendiente = null;
+    if (canal) canal.port1.onmessage = function () { var f = pendiente; pendiente = null; if (f) f(); };
+    function calmo() {
+      try {
+        var m = game.scene.getScene("match");
+        if (m && m.sys.settings.status === 5) return CALMOS[m.estado] === 1;
+      } catch (e) { }
+      return true;
+    }
+    window.PampaPrecalentar = K.crearColaPorTajadas({
+      ahora: function () { return performance.now(); },
+      programar: function (f) { pendiente = f; if (canal) canal.port2.postMessage(0); else setTimeout(f, 0); },
+      presupuestoMs: R.tajada_ms || 12,
+      permitido: calmo
+    });
+    return window.PampaPrecalentar;
+  };
+
   /* las pinturas vivas: clave de textura → ambiente (las texturas son del
      juego entero, no de la escena, así que el registro también) */
   var PINTADAS = {};
