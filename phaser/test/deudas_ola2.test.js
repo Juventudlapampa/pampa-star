@@ -215,6 +215,20 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   var PT2 = portada("prompt", "menu"), s2 = tabla(PT2);
   soltarDedo(acceso(s2));
   assert(s2.cajas.length === 1 && /menú/.test(s2.cajas[0].texto) && s2.cajas[0].sinCaja === true, "si el diálogo no abre, una caja con los pasos del menú (" + (s2.cajas[0] && s2.cajas[0].texto) + ")");
+  /* revisión L08c: la caja usa "Pixelify Sans" (index.html, #cajacodigo) y
+     los pasos decían "(⋮)", que no está en esa tipografía (salía "(:)").
+     El texto de la portada se prueba en portada.test.js [4c]; acá, el de
+     respaldo de master.js (una portada sin textoMenu) */
+  var CMAP = require("./_cmap.js"), PIX = CMAP.letras("assets/fonts/PixelifySans-Regular.ttf");
+  var PT2b = portada("prompt", "menu"); delete PT2b.textoMenu;
+  var s2b = tabla(PT2b);
+  soltarDedo(acceso(s2b));
+  var faltaB = s2b.cajas[0] ? CMAP.faltan(s2b.cajas[0].texto, PIX) : ["(sin caja)"];
+  assert(s2b.cajas.length === 1 && /menú/.test(s2b.cajas[0].texto) && faltaB.length === 0,
+    "sin el texto de la portada, el de respaldo dice los pasos con letras que tiene Pixelify Sans" + (faltaB.length ? " (faltan: " + faltaB.join(", ") + ")" : ""));
+  var IDXp = leer("phaser/index.html"), mTM = IDXp.match(/PT\.textoMenu = "([^"]*)"/);
+  var faltaP = mTM ? CMAP.faltan(mTM[1], PIX) : ["(no está PT.textoMenu)"];
+  assert(faltaP.length === 0, "SÍNTOMA DEL '(:)': PT.textoMenu de index.html, el que muestra esta caja, sin glifos fuera de Pixelify Sans" + (faltaP.length ? " (faltan: " + faltaP.join(", ") + ")" : ""));
   /* la temporada terminada también lo tiene */
   var PT3 = portada("prompt");
   W.PampaPortada = PT3;

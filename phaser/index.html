@@ -1259,7 +1259,13 @@
        de un toque al soltar o de un clic (el navegador lo pide con gesto).
        Devuelve "dialogo" (se abrió), "pasos" (iPhone: no hay diálogo),
        "menu" (el diálogo no abrió: PT.textoMenu dice qué hacer) o "nada" */
-    PT.textoMenu = "Para instalarlo: abrí el menú del navegador (⋮) y elegí «Instalar app» o «Agregar a la pantalla principal».";
+    /* el botón del menú, dicho con palabras como el de iPhone ("el cuadrado
+       con la flecha para arriba"). Decía "(⋮)": U+22EE no está en Pixelify
+       Sans ni en VT323 (medido en su cmap, test/_cmap.js), así que salía
+       "(:)" y mandaba a buscar un ícono que no existe. Los navegadores que
+       ofrecen el diálogo dibujan ese menú con tres puntitos y alguno con
+       tres rayitas: se nombran los dos */
+    PT.textoMenu = "Para instalarlo: abrí el menú del navegador (el botón de los tres puntitos o de las tres rayitas) y elegí «Instalar app» o «Agregar a la pantalla principal».";
     PT.instalar = function () {
       if (PT.ofrece === "prompt" && PT.prompt) {
         var ev = PT.prompt;

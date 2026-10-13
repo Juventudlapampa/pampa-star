@@ -327,6 +327,16 @@ pasos.push(async function () {
   var Dm = dom({ ua: UA_A }), PTm = correr(Dm);
   Dm.disparar("beforeinstallprompt", { prompt: function () { throw new Error("no"); } });
   assert(PTm.instalar() === "menu" && /menú/.test(PTm.textoMenu), "si el diálogo no abre, instalar() da 'menu' con el texto de los pasos");
+  /* revisión L08c: el texto de los pasos decía "(⋮)", que no está en las
+     tipografías del juego (cmap medido): salía "(:)". La portada lo muestra
+     en Pixelify Sans con VT323 de reserva, y la tabla del Master en su caja
+     (Pixelify Sans): cada letra tiene que estar en las dos */
+  var CMAP = require("./_cmap.js");
+  ["PixelifySans-Regular.ttf", "VT323-Regular.ttf"].forEach(function (f) {
+    var falta = CMAP.faltan(PTm.textoMenu, CMAP.letras("assets/fonts/" + f));
+    assert(falta.length === 0, "SÍNTOMA DEL '(:)': los pasos del menú usan solo letras que tiene " + f + (falta.length ? " (faltan: " + falta.join(", ") + ")" : ""));
+  });
+  assert(/tres puntitos/.test(PTm.textoMenu), "el botón del menú se dice con palabras (como el de iPhone): " + PTm.textoMenu);
   var Dio = dom({ ua: UA_I }), PTio = correr(Dio);
   assert(PTio.instalar() === "pasos", "en iPhone instalar() da 'pasos' (no hay diálogo)");
   console.log("[4c] INSTALAR: Android con el evento (sin preventDefault), iPhone con los pasos, nunca instalada ni embebida");
