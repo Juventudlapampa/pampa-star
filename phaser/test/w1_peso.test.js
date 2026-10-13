@@ -89,6 +89,14 @@ function loQueCargaAparte() {
   (C.caras || []).forEach(function (c) { if (c && c.archivo && c.en_rotacion !== false) out.push({ f: (C.base || "assets/poses/caras/") + c.archivo, de: "caras" }); });
   var I = leerJson("data/identidades_manifest.json");
   (I.identidades || []).forEach(function (d) { if (d && d.archivo) out.push({ f: (I.base || "assets/poses/identidades/") + d.archivo, de: "identidades" }); });
+  /* OJOS (tanda 1.0): las poses de la semana se bajan POR DATO (master.js
+     lee data/semana.json) sin mirar cargar:false; el caldén de DESCANSAR es
+     la primera apagada que usa la semana, y sin esto su peso no se contaba */
+  var P = leerJson("data/poses_manifest.json"), S = leerJson("data/semana.json");
+  (S.opciones || []).forEach(function (o) {
+    var p = o && o.pose && P.poses[o.pose];
+    if (p && p.archivo && p.cargar === false) out.push({ f: (P.base || "assets/poses/") + p.archivo, de: "semana" });
+  });
   /* las rutas literales: "../assets/…" escritas en el código de las escenas
      que las piden por nombre (como pide docs/COMO_PESAN_LOS_ASSETS.md) */
   ["phaser/scenes/intro.js", "phaser/scenes/master.js"].forEach(function (f) {
@@ -146,7 +154,7 @@ function loQueCarga() {
     ". Convertí la tanda nueva a webp (ver docs/COMO_PESAN_LOS_ASSETS.md).");
   /* L06: el total REAL, por partes, y la meta de la conversión: con los 14
      PNG en webp, 5 MB o menos */
-  var porGrupo = { manifiestos: 0, caras: 0, identidades: 0, literales: 0 };
+  var porGrupo = { manifiestos: 0, caras: 0, identidades: 0, literales: 0, semana: 0 };
   loQueCargaPorManifiesto().forEach(function (f) { var p = path.join(RAIZ, f); if (fs.existsSync(p)) porGrupo.manifiestos += fs.statSync(p).size; });
   var vistos = {};
   loQueCargaAparte().forEach(function (x) {
@@ -156,7 +164,7 @@ function loQueCarga() {
   var pngsAhora = lista.filter(function (f) { return /\.png$/i.test(f); }).length;
   if (pngsAhora === 0) assert(mb(total) <= 5, "convertidos los PNG, lo que carga el juego tiene que quedar en 5 MB o menos (pesa " + mb(total) + ")");
   console.log("[2] lo que carga el juego, DE VERDAD: " + mb(total) + " MB (tope " + TOPE + "): manifiestos " + mb(porGrupo.manifiestos) +
-    " + caras " + mb(porGrupo.caras) + " + identidades " + mb(porGrupo.identidades) + " + rutas literales " + mb(porGrupo.literales));
+    " + caras " + mb(porGrupo.caras) + " + identidades " + mb(porGrupo.identidades) + " + rutas literales " + mb(porGrupo.literales) + " + semana (apagadas) " + mb(porGrupo.semana));
 })();
 
 /* ---------- [3] LA FUENTE NO SE PERDIÓ ---------- */

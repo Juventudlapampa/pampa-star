@@ -95,12 +95,13 @@
    }
   },
   "festejo": {
-   "archivo": "pose_festejo.webp",
+   "archivo": "pose_celebracion.webp",
    "quien": "heroe",
-   "n": "Festejo de gol",
+   "n": "Festejo de gol: el grito con los brazos arriba",
+   "_cruce": "OJOS (tanda 1.0): CRUZADA con 'celebracion'. Esta entrada es la que piden el gol (remate, tiro aéreo, Definición, jugadón), el opening y el precalentado; apuntaba a pose_festejo.webp, que tiene los ojos cerrados en arquito (la risa del anime) y en el teléfono, a 360-430 px, se lee como ojos cerrados: es la cara con los ojos cerrados que más veces se ve en el juego, una por gol. Ahora apunta a pose_celebracion.webp (ojos abiertos, el grito, los brazos arriba) con SUS tonos. Los archivos no se tocan; para volver, intercambiar 'archivo' y 'tonos' con 'celebracion'.",
    "tonos": {
-    "piel": "#fcceb4",
-    "camiseta": "#4bbff8"
+    "piel": "#fac194",
+    "camiseta": "#8cc5e9"
    },
    "tolerancias": {
     "piel": 80,
@@ -277,12 +278,13 @@
    }
   },
   "celebracion": {
-   "archivo": "pose_celebracion.webp",
+   "archivo": "pose_festejo.webp",
    "quien": "heroe",
-   "n": "El festejo, versión nueva",
+   "n": "La risa del festejo, saltando",
+   "_cruce": "OJOS (tanda 1.0): CRUZADA con 'festejo'. La pide solo el ASADO CON LOS PIBES de la semana (data/semana.json), y ahí la risa con los ojos en arquito tiene todo el sentido. Apunta a pose_festejo.webp con SUS tonos.",
    "tonos": {
-    "piel": "#fac194",
-    "camiseta": "#8cc5e9"
+    "piel": "#fcceb4",
+    "camiseta": "#4bbff8"
    },
    "tolerancias": {
     "piel": 80,
@@ -422,7 +424,7 @@
    "quien": "objeto",
    "n": "El caldén solo en el campo",
    "cargar": false,
-   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el caldén solo en el campo es la imagen de la escalera baja. Para prenderla: cargar:true y engancharla ahi."
+   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el caldén solo en el campo es la imagen de la escalera baja. Para prenderla: cargar:true y engancharla ahi. OJOS (tanda 1.0): ya la usa la semana del Master (DESCANSAR, la siesta): master.js baja las poses de data/semana.json por dato, sin mirar cargar. Sigue en false para que el PARTIDO no la baje."
   },
   "arco": {
    "archivo": "arco.webp",

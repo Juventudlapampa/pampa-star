@@ -41,6 +41,17 @@
          el teatro de verdad: remate, chilena y cabezazo arrancan con la
          pelota en su hueco y de su tamaño; la del cabezazo no se despega
          (va detrás y sigue la sacudida); el opening la pone en su lugar.
+     [6] el festejo: el gol (remate, aéreo, Definición, jugadón, opening)
+         mostraba pose_festejo, con los ojos en arquito; en el teléfono se
+         lee como ojos cerrados y es la que más se ve (una por gol). Se
+         cruzaron las entradas del manifest: 'festejo' apunta al grito con
+         los ojos abiertos (pose_celebracion.webp) y 'celebracion', que pide
+         solo el asado de la semana, a la risa. Cada archivo con SUS tonos.
+     [7] la semana: la de cansado (ojos apretados, sudando) estaba en
+         DESCANSAR (agotada después de no hacer nada) y en ESTUDIAR (se leía
+         dormida sobre los apuntes). Pasa a ENTRENAR AGUANTE; DESCANSAR va
+         con el caldén y ESTUDIAR con la de espaldas; ninguna figura se
+         repite en la tira, con ningún origen.
 
    Corré:  node phaser/test/ojos.test.js
    ========================================================================== */
@@ -334,6 +345,67 @@ function teatro(poseTiro) {
   assert(/def && def\.pelota && this\.textures\.exists\("pose_pelota_vieja"\)/.test(I) && /this\.add\.container\(x, y, \[b, s\]\)/.test(I),
     "intro.js: poseImg pone la pelota de potrero DETRÁS de la pose que declara 'pelota', en un contenedor con ella");
   console.log("[5] el cabezazo con la pelota en la cara (detrás, pegada a la sacudida); remate y chilena salen del hueco y viajan; el opening la pone en su lugar");
+})();
+
+/* ---------- [6] EL FESTEJO DEL GOL CON LOS OJOS ABIERTOS ---------- */
+(function () {
+  var fe = POSES.poses.festejo, ce = POSES.poses.celebracion;
+  /* cada archivo viaja con SUS tonos (los sampleados de ese webp): si no, el
+     tinte con tu pinta reemplaza colores que no están en la ilustración */
+  assert(fe.archivo === "pose_celebracion.webp" && fe.tonos.piel === "#fac194" && fe.tonos.camiseta === "#8cc5e9",
+    "'festejo' (el gol, el opening, el precalentado) apunta a pose_celebracion.webp, con los tonos de ese archivo");
+  assert(ce.archivo === "pose_festejo.webp" && ce.tonos.piel === "#fcceb4" && ce.tonos.camiseta === "#4bbff8",
+    "'celebracion' (el asado de la semana) apunta a pose_festejo.webp, con los suyos");
+  assert(typeof fe._cruce === "string" && /celebracion/.test(fe._cruce) && typeof ce._cruce === "string", "las dos dicen que están cruzadas y cómo volver");
+  /* quién pide cada una: el gol pide 'festejo' (sigue igual), solo el asado pide 'celebracion' */
+  var D = leer("phaser/scenes/definicion_ui.js"), J = leer("phaser/scenes/jugadon_ui.js"), I = leer("phaser/scenes/intro.js");
+  assert(/poseId = o\.gol \? "festejo"/.test(D), "el gol de la Definición pide 'festejo'");
+  assert(/"festejo"/.test(J), "el gol del jugadón pide 'festejo'");
+  assert(/this\.poseImg\("festejo"/.test(I) && BAL.intro.poses_intro.indexOf("festejo") >= 0, "el plano del gol del opening pide 'festejo'");
+  var SEM = json("data/semana.json");
+  var piden = SEM.opciones.filter(function (o) { return o.pose === "celebracion"; }).map(function (o) { return o.id; });
+  assert(piden.join(",") === "asado", "'celebracion' la pide solo el asado (" + piden.join(",") + ")");
+  var ESC = ["match.js", "definicion_ui.js", "escenas_v9.js", "jugadon_ui.js", "intro.js"].map(function (f) {
+    return leer("phaser/scenes/" + f).replace(/\/\*[\s\S]*?\*\//g, "");
+  }).join("\n");
+  assert(!/"celebracion"/.test(ESC), "ninguna escena del partido ni el opening pide 'celebracion' (la risa de ojos cerrados queda para el asado)");
+  var HASH = {
+    "assets/poses/pose_festejo.webp": "f5ea764d04cfb5034cbb142a32778dc176f54147ca02b02958031641176abcd0",
+    "assets/poses/pose_celebracion.webp": "48c49c0c7c8d216b1206d5d8d32b09a053787b80b9a61df6e0b9762fbb6c53d4"
+  };
+  Object.keys(HASH).forEach(function (f) {
+    assert(crypto.createHash("sha256").update(fs.readFileSync(path.join(RAIZ, f))).digest("hex") === HASH[f], f + " intacto (se cruzó la entrada, no el archivo)");
+  });
+  console.log("[6] el gol muestra el grito con los ojos abiertos; la risa de ojos en arquito queda para el asado; los dos archivos intactos");
+})();
+
+/* ---------- [7] LA SEMANA: CANSADO DONDE ES ESFUERZO ---------- */
+(function () {
+  var SEM = json("data/semana.json");
+  var op = function (id) { return SEM.opciones.filter(function (o) { return o.id === id; })[0]; };
+  assert(op("entrenar_aguante").pose === "cansado", "ENTRENAR AGUANTE va con la de cansado (los ojos apretados son del esfuerzo: 'te dolió todo')");
+  assert(op("descansar").pose === "calden" && op("descansar").pose_falta && op("descansar").pose_falta.length > 25,
+    "DESCANSAR va con el caldén (la siesta), marcada de prestado con su porqué");
+  assert(op("estudiar").pose === "de_espaldas_sin_pelota" && op("estudiar").pose_falta.length > 25,
+    "ESTUDIAR va con la de espaldas (antes la de cansado se leía dormida sobre los apuntes)");
+  var conCansado = SEM.opciones.filter(function (o) { return o.pose === "cansado"; }).map(function (o) { return o.id; });
+  assert(conCansado.join(",") === "entrenar_aguante", "la de cansado sale solo en ENTRENAR AGUANTE (" + conCansado.join(",") + ")");
+  /* en la tira de la semana dos acciones nunca tienen la misma figura: las
+     marcas de origen salen de UNA sola pregunta (campo o escuela, no las dos) */
+  var EV = json("data/eventos_temporada.json");
+  var conMarca = (EV.origen || []).map(function (p, i) { return (p.opciones || []).some(function (o) { return o.marca; }) ? i : -1; }).filter(function (i) { return i >= 0; });
+  assert(conMarca.length === 1, "las marcas de origen salen de una sola pantalla (" + conMarca.join(",") + "): campo y escuela no se juntan");
+  var origenes = [null].concat(SEM.opciones.map(function (o) { return o.requiere_origen; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; }));
+  origenes.forEach(function (og) {
+    var poses = SEM.opciones.filter(function (o) { return !o.requiere_origen || o.requiere_origen === og; }).map(function (o) { return o.pose; });
+    var rep = poses.filter(function (p, i) { return poses.indexOf(p) !== i; });
+    assert(rep.length === 0, "con origen " + (og || "ninguno") + " ninguna figura se repite en la semana (" + rep.join(",") + ")");
+  });
+  /* el caldén está apagado para el partido pero la semana lo baja por dato */
+  assert(POSES.poses.calden.cargar === false && /semana/i.test(POSES.poses.calden._W2), "el caldén sigue apagado para el partido y su _W2 dice que lo usa la semana");
+  assert(/dSem\.opciones\.forEach\(\(o\) => \{ if \(o && o\.pose && necesarias\.indexOf\(o\.pose\) < 0\) necesarias\.push\(o\.pose\); \}\)/.test(leer("phaser/scenes/master.js")),
+    "master.js baja las poses de la semana por dato (sin mirar cargar)");
+  console.log("[7] la semana: cansado en ENTRENAR AGUANTE, el caldén en DESCANSAR, la de espaldas en ESTUDIAR; ninguna figura repetida por origen");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

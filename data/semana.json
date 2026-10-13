@@ -37,7 +37,8 @@
    "frase": "Diez vueltas al alambrado. Te dolió todo.",
    "lugar": "club",
    "repaso": "corriste el campo entero, ida y vuelta",
-   "pose": "corriendo"
+   "pose": "cansado",
+   "_pose": "OJOS (tanda 1.0): era 'corriendo'. La de cansado (sin aire, las manos en las rodillas, los ojos apretados del esfuerzo y las gotas de sudor) es justo lo que dice la frase: diez vueltas y te dolió todo. Acá los ojos cerrados son de esfuerzo, no de dormido."
   },
   {
    "id": "picadito",
@@ -62,7 +63,8 @@
    "frase": "Dormiste la siesta como Dios manda.",
    "lugar": "casa",
    "repaso": "no hiciste nada, y estuvo bien",
-   "pose": "cansado"
+   "pose": "calden",
+   "pose_falta": "nadie durmiendo la siesta: va el caldén solo en el campo, la sombra de la siesta pampeana, sin persona. Antes iba la de cansado: sudando y sin aire después de no hacer nada, y repetida con ENTRENAR AGUANTE"
   },
   {
    "id": "asado",
@@ -115,8 +117,8 @@
    "frase": "Te sentaste con los apuntes y zafaste.",
    "lugar": "escuela",
    "repaso": "te sentaste a estudiar de una vez",
-   "pose": "cansado",
-   "pose_falta": "nadie estudiando: la de cansado lee como cabeza gacha, que es lo mas cerca que hay"
+   "pose": "de_espaldas_sin_pelota",
+   "pose_falta": "nadie estudiando: la de espaldas lee como ocupado en otra cosa (como AYUDAR EN CASA, que pide origen campo: nunca salen juntas). Antes iba la de cansado, que con los ojos cerrados y la cabeza gacha se leía dormida sobre los apuntes"
   },
   {
    "id": "curar",
@@ -164,5 +166,5 @@
  ],
  "_lugares": "N4 LA SEMANA COMO ESCENARIO. lugar es SOLO puesta en escena: no toca ningun numero ni ninguna consecuencia (eso vive en logic/semana.js y no se toca). Sirve para dibujar donde pasó cada cosa. Valores: club, potrero, casa, patio, ruta, escuela.",
  "_repaso": "N4: repaso es como se cuenta esa decision en el resumen de la semana. Texto, no numero: no toca ninguna consecuencia.",
- "_poses": "D3 · cada accion de la semana tiene su pose para la animacion. Todas salen del manifest que YA existe (no se invento arte). pose_falta dice cuales estan de prestado y por que: son el pedido de arte de esta tanda."
+ "_poses": "D3 · cada accion de la semana tiene su pose para la animacion. Todas salen del manifest que YA existe (no se invento arte). OJOS (tanda 1.0): la de cansado (ojos apretados) pasó a ENTRENAR AGUANTE, donde es justo lo que pasa; DESCANSAR va con el caldén (sin persona) y ESTUDIAR con la de espaldas. El caldén está con cargar:false para el partido; master.js baja las poses de esta lista por dato, así que en la semana se baja igual. pose_falta dice cuales estan de prestado y por que: son el pedido de arte de esta tanda."
 }

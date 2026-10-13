@@ -67,6 +67,7 @@ vm.runInContext(leer("phaser/scenes/intro.js"), vm.createContext({ window: WI, P
    [1] · EL CENSO DEL PRELOAD
    ========================================================================= */
 /* OJOS (tanda 1.0): lo que se dejó de bajar después de la auditoría */
+var AGREGADAS_DESPUES = ["assets/poses/calden.webp"];
 var SACADAS_DESPUES = ["assets/poses/caras/cara_tranqui.png", "assets/poses/pose_cabezazo_v2.webp", "assets/poses/pose_arquero_ataja_celeste.webp"];
 (function () {
   var tex = {};                       // clave → archivo
@@ -122,6 +123,8 @@ var SACADAS_DESPUES = ["assets/poses/caras/cara_tranqui.png", "assets/poses/pose
      "antes", para que el número siga replicando la medición de la auditoría
      y no se mueva cada vez que se apaga una pieza; la base ya no las cuenta. */
   SACADAS_DESPUES.forEach(function (f) { var d = medidas(f); antes += MEM.mb(d.w, d.h); });
+  /* y lo que entró después (OJOS: el caldén de la semana, DESCANSAR) se resta */
+  AGREGADAS_DESPUES.forEach(function (f) { var d = medidas(f); antes -= MEM.mb(d.w, d.h); });
   assert(Math.abs(antes - 384.6) < 0.5, "el censo replica la medición de la auditoría (384,6 MB sin tope y con la tribuna doble): " + antes.toFixed(1));
   assert(base <= 270, "SÍNTOMA: la base de texturas es " + base.toFixed(1) + " MB y el tope es 270 (antes 384,6)");
   /* lo que no se toca */
