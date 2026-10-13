@@ -2845,3 +2845,63 @@ phaser/test/sw_precache.test.js --escribir` (cambian las huellas del worker).
 real y la deuda con los 14 nombres; la suite la muestra en "DEUDAS A LA
 VISTA". En pantalla no hay nada que ver: no cambió ningún archivo que cargue
 el juego (el editor sigue con sus mismas caras).
+
+### Cierre del lote L06-carga
+
+**La versión** visible sube a `v17-1.0-l06` (index.html y sw.js, iguales).
+Desde L05 subirla solo barre el código. Visto en el editor:
+"versión v17-1.0-l06", sin aviso (`l06_fin_editor_version.png`); y con el
+server arrancado por `preview_start`, el worker nuevo se instaló entero
+(`pampa-assets` y `pampa-codigo-v17-1.0-l06`).
+
+**Paso del deploy (se suma al de L05).**
+1. Un script nuevo que carga index.html: además del PRECACHE de sw.js, el
+   cartel de carga lo cuenta (`PampaCartel.SCRIPTS`, en index.html):
+   `carga_liviana.test.js` falla si no coinciden.
+2. Si cambia lo que usa el opening, `balance.intro.poses_intro` /
+   `fondos_intro` o `PampaIntro.UI_OPENING`: el mismo test corre los ocho
+   planos y falla si falta o sobra una ilustración.
+3. Una ilustración nueva que se ve chica (un logo, un retrato): su prefijo
+   en `balance.arte` decide su tope en memoria.
+
+### DECISIONES QUE TOMÉ YO (todo el lote)
+
+1. **El server de prueba** `.claude/server_carga.js` (fuera del repo): el
+   "Slow 4G" de Chrome simulado con los números del preset, porque el
+   navegador integrado no expone las herramientas de red. Para comparar,
+   el commit base se sacó con `git archive` a una carpeta temporal (y para
+   un test, con un `git worktree` temporal que se borró al terminar).
+2. **La entrada `pampa-star-carga`** del `.claude/launch.json` de la carpeta
+   de trabajo, para registrar el worker: la agregué para la prueba y la
+   saqué al terminar (la configuración quedó como estaba).
+3. **Los orígenes de prueba** (`localhost:8127`, `8128`, `8129`) quedaron
+   limpios: sin worker, sin cachés y sin localStorage. El de Rodri
+   (`localhost:8123`) no lo usé.
+
+### Deudas que vi y no son de este lote
+
+- **Las vestidas de bloqueo y barrida** (`poseDelEquipo`, dos `delayedCall`
+  del create del partido) cuestan 230-340 ms cada una en la compu y caen en
+  el menú de tempo: dos cuadros de 200-460 ms en cada partido. No entraron a
+  la cola de precalentamiento porque son de una sola pieza
+  (`PampaVestir.vestir` recorre la imagen entera por regiones) y en la cola
+  serían el mismo cuadro largo en LIBRE. Partir `vestir.js` en tajadas es
+  otro trabajo.
+- **Abrir la cruz del duelo** sigue costando 25-40 ms en la compu: lo más
+  grande es `materializarDuelo` (15-24 ms), que hornea el muñeco del rival
+  de turno. En un teléfono puede pasar los 50.
+- **`red_lenta.test.js` [f] falla de vez en cuando con la máquina
+  cargada**: "SÍNTOMA DE LA CACHÉ CONTAMINADA" salió dos veces en la suite y
+  una vez en doce corridas sueltas, siempre mientras el navegador corría el
+  juego. En corridas tranquilas: 50 de 50 bien con este código y 41 de 41
+  con el del commit base. No toqué nada de lo que mide; parece sensible al
+  tiempo real.
+- **Memoria que queda**: los bustos teñidos del duelo (`caraT_…`, 700x700,
+  1,9 MB cada uno) se muestran a 132 de alto; el espejo de la tribuna del
+  panel (2560x720, 7 MB); y las cinco siluetas de la hinchada (23 MB),
+  que son `pose_` y por eso quedan fuera del tope (el halo mide en
+  píxeles). Un tope DESPUÉS del halo las bajaría.
+- **El cartel de carga y `?perf=1` en el arnés del oído**: con el panel del
+  navegador detrás de la ventana, el navegador da 2 cuadros por segundo; el
+  "intervalo" de `?perf=1` mide las pausas del arnés, no cuadros. En un
+  teléfono de verdad sí mide.
