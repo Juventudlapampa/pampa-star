@@ -56,7 +56,11 @@
          DESCANSAR (agotada después de no hacer nada) y en ESTUDIAR (se leía
          dormida sobre los apuntes). Pasa a ENTRENAR AGUANTE; DESCANSAR va
          con el caldén y ESTUDIAR con la de espaldas; ninguna figura se
-         repite en la tira, con ningún origen.
+         repite en la tira, con ningún origen. REVISIÓN DEL LOTE: el caldén
+         es una pieza de fondo (la copa toca los bordes del archivo) y,
+         puesto chico en el medio, se le veían los cortes: va a sangre, en
+         el momento y en la tira (la semana de verdad, con la escena de
+         mentira).
 
    Corré:  node phaser/test/ojos.test.js
    ========================================================================== */
@@ -513,7 +517,57 @@ function teatro(poseTiro) {
   assert(POSES.poses.calden.cargar === false && /semana/i.test(POSES.poses.calden._W2), "el caldén sigue apagado para el partido y su _W2 dice que lo usa la semana");
   assert(/dSem\.opciones\.forEach\(\(o\) => \{ if \(o && o\.pose && necesarias\.indexOf\(o\.pose\) < 0\) necesarias\.push\(o\.pose\); \}\)/.test(leer("phaser/scenes/master.js")),
     "master.js baja las poses de la semana por dato (sin mirar cargar)");
-  console.log("[7] la semana: cansado en ENTRENAR AGUANTE, el caldén en DESCANSAR, la de espaldas en ESTUDIAR; ninguna figura repetida por origen");
+  /* REVISIÓN DEL LOTE: el caldén es una pieza de fondo y la copa toca los
+     bordes del archivo (primera columna 463 píxeles opacos, última 559).
+     Puesto como figura, chico y en el medio, la copa terminaba en dos rectas
+     en el aire: en el momento, en x 490 y 742 de un marco de 170 a 790
+     (ojos_22). Se corre la semana de verdad (scenes/master.js con la escena
+     de mentira): elegir DESCANSAR, el momento y la tira. */
+  var cal = POSES.poses.calden, dCal = medidas("assets/poses/" + cal.archivo);
+  assert(cal.a_sangre === true && typeof cal._a_sangre === "string" && cal._a_sangre.length > 100,
+    "el caldén está marcado a_sangre y dice lo medido (" + dCal.w + "x" + dCal.h + ")");
+  var ME = require("./_escena_de_mentira.js"), AM = ME.armar();
+  AM.registry.set("poses", POSES);
+  AM.localStorage.setItem("pampa_master_v1", JSON.stringify(AM.carreraNueva()));
+  var sm = AM.nueva(); sm.create();
+  sm.textures.exists = function (k) { return k === "pose_calden"; };
+  var calImgs = [], mascaras = [];
+  var imagen0 = sm.add.image;
+  sm.add.image = function (x, y, k) {
+    var o = imagen0(x, y, k);
+    if (k === "pose_calden") { o.width = dCal.w; o.height = dCal.h; o.setMask = function (m) { this.mascara = m; return this; }; calImgs.push(o); }
+    return o;
+  };
+  sm.make.graphics = function () {
+    var g = { rects: [], fillStyle: function () { return g; }, fillRect: function (x, y, w, h) { g.rects.push([x, y, w, h]); return g; },
+      createGeometryMask: function () { return { g: g }; } };
+    mascaras.push(g); return g;
+  };
+  var rivalM = (function () { var mp = AM.window.PampaTemporada.miPartido(sm.save.temporada); return mp.local === sm.save.temporada.miClub ? mp.visita : mp.local; })();
+  sm.vistaSemana(rivalM, function () { });
+  if (sm._semEvento && !sm._semEventoResuelto) { sm._semEventoResuelto = true; sm.vistaSemana(rivalM, function () { }); }
+  function cortesAfuera(im, v, que) {
+    if (!im) { assert(false, que + ": no se dibujó el caldén"); return; }
+    var izq = im.x - im.displayWidth * (im.originX == null ? 0.5 : im.originX), der = izq + im.displayWidth;
+    assert(izq < v[0] && der > v[0] + v[2],
+      que + ": los dos cortes del archivo caen afuera de la ventana (caldén de " + izq.toFixed(0) + " a " + der.toFixed(0) + ", ventana de " + v[0] + " a " + (v[0] + v[2]) + ")");
+    var r = im.mascara && im.mascara.g && im.mascara.g.rects[0];
+    assert(r && r.join(",") === v.join(","), que + ": y se recorta con la ventana (" + (r && r.join(",")) + ")");
+    assert(Math.abs(im.y - (v[1] + v[3])) < 0.5 && im.originY === 1, que + ": apoyado en el piso de la ventana");
+  }
+  var hizo = sm.ponerEnLaSemana(op("descansar"));
+  /* el momento: la parte del dibujo, de la banda del texto (bw = 285) al borde del marco */
+  var MW = 620, MH = 300, mx0 = 960 / 2 - MW / 2, my0 = 540 / 2 - 10 - MH / 2, bwM = Math.round(MW * 0.46);
+  assert(hizo, "DESCANSAR entra a la semana");
+  cortesAfuera(calImgs[0], [mx0 + bwM, my0, MW - bwM, MH], "el momento");
+  assert(!sm._tweens.some(function (t) { return t.cfg && t.cfg.targets === calImgs[0]; }), "el momento: el caldén no entra con rebote (es el lugar)");
+  /* la tira: al cerrar el momento se rearma la semana con DESCANSAR en el lunes */
+  sm.correrTimers();
+  var enTira = calImgs.filter(function (o) { return o.scene && sm.children.list.indexOf(o) >= 0; })[0];
+  cortesAfuera(enTira, [960 / 2 - 236 - 12 - 118 + 2, 176 - 40, 232, 80], "la tira");
+  var iEtiq = sm.children.list.findIndex(function (o) { return o.type === "Text" && o.text === "EL LUNES"; });
+  assert(enTira && iEtiq >= 0 && sm.children.list.indexOf(enTira) < iEtiq, "la tira: la etiqueta del día va encima del caldén (se dibuja después)");
+  console.log("[7] la semana: cansado en ENTRENAR AGUANTE, el caldén en DESCANSAR (a sangre: en el momento y en la tira los cortes caen afuera), la de espaldas en ESTUDIAR; ninguna figura repetida por origen");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

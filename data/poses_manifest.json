@@ -432,7 +432,9 @@
    "quien": "objeto",
    "n": "El caldén solo en el campo",
    "cargar": false,
-   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el caldén solo en el campo es la imagen de la escalera baja. Para prenderla: cargar:true y engancharla ahi. OJOS (tanda 1.0): ya la usa la semana del Master (DESCANSAR, la siesta): master.js baja las poses de data/semana.json por dato, sin mirar cargar. Sigue en false para que el PARTIDO no la baje."
+   "_W2": "W2 (20/ago/2026): NO SE CARGA todavia. Esta pieza no se ve en ningun lado, asi que hoy pesaba sin aportar. Con cargar:false el preload la saltea y el archivo queda en su carpeta, listo. Lugar propuesto → los fondos: el caldén solo en el campo es la imagen de la escalera baja. Para prenderla: cargar:true y engancharla ahi. OJOS (tanda 1.0): ya la usa la semana del Master (DESCANSAR, la siesta): master.js baja las poses de data/semana.json por dato, sin mirar cargar. Sigue en false para que el PARTIDO no la baje.",
+   "a_sangre": true,
+   "_a_sangre": "Revisión de OJOS (tanda 1.0): es una pieza de FONDO, no una figura recortada: la copa toca los bordes del archivo. Medido con Pillow en calden.webp (1600x1569), contando píxeles con alfa de 128 o más: la primera columna tiene 463 (filas 711-1173) y la última 559 (filas 309-972); arriba, 5 (columnas 901-905) y abajo, 6 (731-736). Puesta como figura, chica y en el medio, la copa terminaba en dos líneas verticales rectas en el aire (ojos_22: x 490 y 742 en un marco de 170 a 790). Con a_sangre, la semana del Master (scenes/master.js, encuadreASangre) la pone de lado a lado de su ventana, apoyada en el piso y recortada con la ventana: en el momento, de la banda del texto al borde del marco; en la tira, la ranura entera. Los cortes del archivo caen afuera. Sin rebote al entrar: es el lugar, no alguien que entra."
   },
   "arco": {
    "archivo": "arco.webp",

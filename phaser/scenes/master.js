@@ -1537,14 +1537,18 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       if (window.PampaSemanaUI) window.PampaSemanaUI.escenario(this, x, y, anchoR, 84, op ? op.lugar : "vacio");
       this.add.rectangle(x, y, anchoR, 84, op ? 0x2e7d32 : 0x0a1f13, op ? 0.24 : 0.44)
         .setStrokeStyle(3, op ? 0x7ee08a : 0x555f57, 0.9);
+      /* D3 · la pose de esa acción, adentro del escenario */
+      /* 54 y no 66: con 66 la cabeza se salía por arriba del marco de 84 —
+         se ve en la captura de la primera vuelta. Anclada por los pies a
+         y+34, la figura entera entra adentro.
+         Revisión de OJOS: va ANTES de la etiqueta del día. Una pieza a sangre
+         (el caldén de DESCANSAR) llena la ranura entera y tapaba "EL
+         MIÉRCOLES"; la figura chica no la toca, así que para ella no cambia
+         nada. La ranura, adentro del trazo de 3 px del marco. */
+      if (op) this.figuraDeAccion(op, x + anchoR * 0.32, y + 34, 54, { x: x - anchoR / 2 + 2, y: y - 40, w: anchoR - 4, h: 80 });
       this.add.text(x, y - 30, n.toUpperCase(), { fontFamily: window.PF.display, fontSize: "12px",
         color: op ? "#ffd84d" : "#9fb3a5", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
       if (op) {
-        /* D3 · la pose de esa acción, adentro del escenario */
-        /* 54 y no 66: con 66 la cabeza se salía por arriba del marco de 84 —
-           se ve en la captura de la primera vuelta. Anclada por los pies a
-           y+34, la figura entera entra adentro. */
-        this.figuraDeAccion(op, x + anchoR * 0.32, y + 34, 54);
         this.add.rectangle(x - 22, y + 22, anchoR - 66, 32, 0x0a1f13, 0.86);
         this.add.text(x - 22, y + 22, op.n, { fontFamily: window.PF.texto, fontSize: "13px",
           color: "#f6efdc", align: "center", wordWrap: { width: anchoR - 70 } }).setOrigin(0.5);
@@ -1678,13 +1682,50 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      arriba: la pose es de cuerpo entero y en 66 px de alto lo que se lee es el
      gesto, no el detalle. Si la pose no cargó no se dibuja nada y la ranura
      sigue funcionando — nunca un hueco con signo de pregunta. */
-  figuraDeAccion(op, x, y, alto) {
+  figuraDeAccion(op, x, y, alto, ranura) {
     if (!op || !op.pose) return null;
     const key = this.poseConTuPinta(op.pose);
     if (!key) return null;
+    /* revisión de OJOS: una pieza de fondo no se dibuja chica en el medio
+       (se le verían los cortes del archivo): llena la ranura, a sangre */
+    if (this.poseASangre(op.pose)) return ranura ? this.encuadreASangre(this.add.image(0, 0, key), ranura) : null;
     const im = this.add.image(x, y, key);
     im.setScale(alto / im.height);
     im.setOrigin(0.5, 1);
+    return im;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     Revisión de OJOS · LA PIEZA A SANGRE.
+
+     DESCANSAR pasó a usar el caldén, y el caldén no es una figura recortada:
+     es una pieza de fondo, y la copa toca los bordes del archivo (medido
+     con Pillow en calden.webp, 1600x1569: la primera columna tiene 463
+     píxeles opacos, filas 711-1173, y la última 559, filas 309-972). Puesto
+     como figura, chico y en el medio del cuadro, la copa terminaba en dos
+     líneas verticales rectas en el aire: en el momento, en x 490 y 742 de un
+     marco que va de 170 a 790 (ojos_22), y lo mismo en la tira. Se lee como
+     un error de recorte.
+
+     El manifest lo marca (a_sangre) y acá se encuadra como lo que es, un
+     fondo: llena la ventana de lado a lado con 4 px de aire, apoyado en su
+     piso, y se recorta con la ventana. Los dos cortes del archivo caen
+     afuera, y lo que se ve terminar son bordes que ya están (el de la banda
+     del texto, el del marco). El archivo no se toca.
+     ══════════════════════════════════════════════════════════════════════ */
+  poseASangre(id) {
+    const pm = this.game.registry.get("poses");
+    return !!(pm && pm.poses && pm.poses[id] && pm.poses[id].a_sangre);
+  }
+  /* ventana: {x, y, w, h} en coordenadas de pantalla. Devuelve la imagen */
+  encuadreASangre(im, ventana) {
+    const aire = 4;
+    im.setOrigin(0.5, 1);
+    im.setScale((ventana.w + 2 * aire) / im.width);
+    im.setPosition(ventana.x + ventana.w / 2, ventana.y + ventana.h);
+    const mk = this.make.graphics({ x: 0, y: 0, add: false });
+    mk.fillStyle(0xffffff); mk.fillRect(ventana.x, ventana.y, ventana.w, ventana.h);
+    im.setMask(mk.createGeometryMask());
     return im;
   }
 
@@ -1806,8 +1847,15 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* la figura, recortada contra el marco: el rebote de PampaFeel se pasa del
        destino a proposito, asi que sin mascara asoma por afuera. */
+    const bw = Math.round(MW * 0.46);
     const key = op.pose ? this.poseConTuPinta(op.pose) : null;
-    if (key) {
+    if (key && this.poseASangre(op.pose)) {
+      /* revisión de OJOS: la pieza de fondo (el caldén) llena la parte del
+         dibujo, de la banda del texto al borde del marco, sin entrada con
+         rebote: es el lugar, no alguien que entra (y con el rebote y la
+         escala de 0,86 se le verían los cortes mientras entra) */
+      capa.add(this.encuadreASangre(this.add.image(0, 0, key), { x: x0 + bw, y: y0, w: MW - bw, h: MH }));
+    } else if (key) {
       const im = this.add.image(x0 + MW * 0.72, y0 + MH - 8, key);
       im.setOrigin(0.5, 1);
       im.setScale((MH * 0.82) / im.height);
@@ -1823,8 +1871,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* LA BANDA DEL TEXTO: opaca y a la izquierda. El escenario dibuja lineas
        (la cancha del club, la ruta, el patio) y el texto encima quedaba
-       tachado — se ve en la captura de la primera version. */
-    const bw = Math.round(MW * 0.46);
+       tachado — se ve en la captura de la primera version. (bw, el ancho
+       de la banda, se calcula arriba: la pieza a sangre termina ahí) */
     const banda = this.add.rectangle(x0, y0, bw, MH, 0x0a1f13, 0.88).setOrigin(0, 0);
     capa.add(banda);
 
