@@ -4821,9 +4821,10 @@ arranque.
   (`drawImage` + `getImageData`) y se pone el resultado como textura del
   juego, que sobrevive al cambio de escena. De a una. Si no hay Worker, o
   falla, o no contesta en `balance.vestidas.obrero_tope_ms`, la tabla las
-  viste en este hilo con `hilo_espera_ms` de aire entre una y otra; el
-  partido no viste nada en su arranque. El error del Worker se ataja: no
-  llega a la red de errores como "Algo se trabó".
+  viste en este hilo con `hilo_espera_ms` de aire entre una y otra,
+  mientras siga a la vista (eso lo agregó la revisión: antes lo pendiente
+  cruzaba al partido); el partido no viste nada en su arranque. El error
+  del Worker se ataja: no llega a la red de errores como "Algo se trabó".
 - `scenes/master.js`: la tabla, `espera_tabla_ms` (700) después de
   dibujarse, baja las dos poses si faltan (el partido las iba a bajar
   igual) y las pide con los colores del partido (`prepararVestidas`,
@@ -4961,7 +4962,8 @@ lo veía; le quedaba el aviso propio del navegador.
   como con los otros dos). Aparece solo cuando el navegador lo ofrece,
   aunque el evento llegue con la tabla abierta, y se va al usarse. Abre al
   **soltar** el dedo, que es cuando el navegador da el gesto. Si el
-  diálogo no abre, una caja con los pasos del menú del navegador. La
+  diálogo no abre, una caja con los pasos del menú del navegador (en la
+  revisión dejaron de decir "(⋮)", que salía "(:)": ver abajo). La
   anotación se suelta al destruirse el texto y en `init()` (P1).
 
 **Cómo se verificó.** `deudas_ola2.test.js` [5] corre `vistaTemporada()`
@@ -4986,7 +4988,9 @@ la portada sigue abriendo el diálogo.
    segundo cada uno en la tabla, justo cuando se toca JUGAR LA FECHA.
    Con el Worker no se traba nada en ningún lado y la función es la misma,
    sin cambiarle una línea. *Revertir:* `balance.vestidas.obrero: false`
-   (la tabla las viste en su hilo, de a una, que es lo que pedía el ítem).
+   (la tabla las viste en su hilo, de a una, que es lo que pedía el ítem;
+   desde la revisión, solo mientras la tabla siga a la vista: lo que no
+   llegó a vestir se viste al usarlo, decisión 2).
 2. **Si al usarla falta, se viste en el acto.** El ítem dice que el
    partido "solo las use si ya están". Si no están, la alternativa era
    mostrar a un defensor tuyo con las rayas naranjas del rival, que es la
@@ -5043,11 +5047,174 @@ la portada sigue abriendo el diálogo.
   los "menús quietos" (tempo, pausa, tutorial). Con TEMPO-1 el menú de
   tempo se va: o esperan a una pausa o llegan tarde a su primer uso. Va
   con TEMPO-1 (la tabla del Master puede ser su lugar, como acá).
-- **"(⋮)" en los pasos del menú** (`PampaPortada.textoMenu`, de L07) se ve
-  como "(:)" en la tipografía de la caja: la decisión del estudio de que
-  ninguna información viaje en glifos que no están en las tipografías del
-  juego. Acá la información va en las palabras, pero el glifo sale mal.
 - **Para probar el service worker en el arnés**: `register()` sobre una
   registración dada de baja mientras la página seguía controlada la
   revive con el worker VIEJO (salió uno de L07 con su caché vacía). No es
   del juego; hay que pedir `reg.update()` o recargar sin control antes.
+
+---
+
+## Revisión del lote L08c-deudas
+
+Dos revisores leyeron los commits 9668ffa..0305b74 y encontraron tres
+cosas, dos de ellas iguales: el "(⋮)" de los pasos de INSTALAR (uno lo
+puso en severidad baja y el otro en media). Las comprobé contra el código
+actual antes de tocar nada y las dos se sostienen; las dos están
+arregladas, cada una en su commit.
+
+En el navegador usé `127.0.0.1:8123` (otro origen, vacío al empezar) con
+una carrera de prueba nueva (Winifreda, Primera B), el audio desviado al
+arnés del oído, el reloj virtual, sin worker ni cachés y un `?v=` distinto
+por carga. El save de Rodri, en `localhost:8123`, no lo toqué. Al terminar
+dejé `127.0.0.1:8123` vacío otra vez, sin worker y sin cachés. Capturas en
+`.claude/shots/revl08c_*`.
+
+### 1. Sin Worker, lo que dejó la tabla se vestía en el arranque del partido
+
+(baja; `7c37aff`)
+
+**Qué estaba mal (medido).** Sin Worker (`balance.vestidas.obrero:
+false`, que es como se revierte la decisión 1, o con el Worker caído), la
+tabla viste de a una con un `setTimeout` de la VENTANA entre una vestida
+y la siguiente. Ese reloj sigue corriendo después del cambio de escena.
+Además, cuando el partido volvía a pedir con `hilo: false` una clave que
+la tabla ya había encolado con `hilo: true`, no le sacaba el permiso, y
+lo mismo pasaba con lo que volvía a la cola por `morir()` o por
+`ok:false`. Lo reproduje con el `vestidas_ui.js` del lote, inyectado en
+la página: con camiseta propia son 4 vestidas. La tabla vistió una, toqué
+JUGAR LA FECHA rápido y las otras tres se vistieron en este hilo después
+del toque: tres cuadros de 177, 169 y 182 ms, el último 187 ms después de
+que el partido terminó su create. Es justo la traba que el lote había
+sacado del arranque.
+
+**Qué se hizo.** El permiso para vestir en el hilo del juego ahora es de
+la pantalla que lo da. `prepararVestidas` (master.js) pasa `escena:
+this`. La cola (`vestidas_ui.js`, `puedeAca`) pregunta si esa escena
+sigue a la vista: si está activa (`sys.isActive()`) y si no está en el
+fundido de salida de `irA` (`_yendo`). Lo pregunta al darle el turno y
+otra vez justo antes de vestir, porque en el medio pasan los
+`hilo_espera_ms`. Si la tabla ya no está, la vestida se suelta y
+`poseDelEquipo` la viste al usarla, igual que lo que pide el partido
+(decisión 2 del lote). Un pedido sin escena no tiene permiso. Así
+quedan cubiertos también los reencolados de `morir()` y de `ok:false`.
+`__PAMPA_VESTIDAS.soltadas` cuenta las veces que se soltó una vestida.
+
+**Cómo se verificó.**
+- `deudas_ola2.test.js` [1](c5): la tabla encola, se para antes de que
+  venza la espera, el partido las vuelve a pedir y `vestir()` no se llama
+  ni una vez; en el fundido (`_yendo`) tampoco; con un Worker que no
+  contesta y la tabla que se fue antes del tope, tampoco; sin escena no
+  hay permiso; de vuelta en la tabla, se visten. (c2), (c3) y (c4) pasan
+  ahora la escena. (d3) mira que la tabla se pase a sí misma como escena.
+  Contra el `vestidas_ui.js` de antes fallan 6, con el síntoma (2
+  `vestir()`).
+- **En pantalla, medido** (la compu, mudo, sin Worker, 4 vestidas): la
+  tabla viste una y se toca JUGAR LA FECHA. Cada cuadro se midió con el
+  reloj de verdad, contando los timers de la ventana (no solo
+  `game.loop.step`), desde el toque hasta 3,5 s después del create del
+  partido (`.claude/revl08c_ayuda.js`).
+
+  | caso | vestidas en este hilo después del toque | cuadro más largo |
+  |---|---|---|
+  | antes (`vestidas_ui.js` de 0305b74) | **3** (177, 169 y 182 ms) | **182 ms** |
+  | después | **0** (6 soltadas) | 89 ms |
+  | después, con Worker | 0 (4 en el hilo aparte) | 94 ms |
+
+  Los 74-94 ms que quedan no son las vestidas, porque
+  `__PAMPA_VESTIDAS.hilo` no se movió. Son los cuadros de una pieza que
+  el lote ya había medido en el arranque (60-71 ms con la otra forma de
+  medir): la cola de L06 y el create. Después, en el partido, pedí la
+  pose del bloqueo: `poseDelEquipo` la vistió en el acto (252 ms,
+  decisión 2). Con `obrero:false`, ese es ahora el camino de lo que la
+  tabla no llegó a vestir. Captura del partido recién arrancado:
+  `revl08c_1_partido_arranque_sin_vestir.png`.
+
+### 2. "(⋮)" en los pasos de INSTALAR
+
+(baja y media, los dos revisores; `a3747cd`)
+
+**Qué estaba mal (medido).** `PampaPortada.textoMenu` decía "abrí el menú
+del navegador (⋮)". Leí la tabla de caracteres (cmap) de los .ttf de
+`assets/fonts`: U+22EE no está en Pixelify Sans, ni en VT323, ni en Press
+Start 2P. Salía "(:)" y mandaba a buscar un ícono que no existe. El lote
+llevó ese texto a la caja nueva de la tabla (la pantalla apaisada, la que
+más se ve) y lo anotó como deuda ajena. Choca con la decisión del
+estudio: ninguna información viaja en glifos que no están en las
+tipografías del juego.
+
+**Qué se hizo.** Ahora lo dice con palabras, como el texto de iPhone ("el
+cuadrado con la flecha para arriba"): "abrí el menú del navegador (el
+botón de los tres puntitos o de las tres rayitas) y elegí «Instalar app»
+o «Agregar a la pantalla principal»". Es una sola cadena, así que queda
+arreglada en la portada vertical y en la caja de la tabla. El texto de
+respaldo de master.js ya estaba sin el glifo. `phaser/test/_cmap.js`
+(nuevo, ayudante de los tests) lee el cmap de un .ttf sin dependencias
+(formatos 4 y 12).
+
+**Cómo se verificó.** `portada.test.js` [4c] exige que cada letra de
+`textoMenu` esté en Pixelify Sans y en VT323 (la portada usa las dos) y
+que el texto nombre los tres puntitos. `deudas_ola2.test.js` [5] exige
+que el `PT.textoMenu` de index.html y el respaldo de master.js usen solo
+letras de Pixelify Sans, que es la tipografía de la caja. Contra el
+index.html de antes fallan 4, con "faltan: ⋮ U+22EE". En pantalla probé
+apaisado a 800x360, con un `beforeinstallprompt` sintético cuyo
+`prompt()` tira: un clic de verdad en "instalar el juego" abrió la caja
+con el texto nuevo, en Pixelify Sans, y VOLVER A LA TABLA la cerró
+(`revl08c_2_caja_instalar_tabla.jpg`). En vertical (390x844), 📲 INSTALAR
+mostró los mismos pasos (`revl08c_2_portada_vertical_pasos.jpg`).
+
+### Cierre de la revisión
+
+Commits: `7c37aff` (las vestidas que no cruzan al partido), `a3747cd`
+(los pasos sin glifo) y el de esta documentación con la versión. Suite
+verde (93 archivos; `deudas_ola2.test.js` pasa de 84 a 95 asserts,
+`portada.test.js` de 109 a 112). La versión visible sube a
+`v17-1.0-l08cr` (index.html y sw.js, iguales): en la página,
+`PAMPA_VERSION` dijo `v17-1.0-l08cr` y el worker nuevo instaló
+`pampa-codigo-v17-1.0-l08cr`. Después lo saqué, con sus cachés.
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L08c)
+
+1. **El permiso es de la escena que lo da, no "si no corre el partido".**
+   La cola no conoce las escenas por nombre. Cualquier salida de la tabla
+   (al partido, al editor, a otra vista que reinicia la escena) corta el
+   permiso, y la tabla siguiente vuelve a pedir lo que falte (`init()`
+   reinicia `_vestidasPedidas`). *Revertir:* que `puedeAca` devuelva
+   `!!t.hilo` (vuelve lo del lote).
+2. **Tampoco en el fundido de salida.** Son 200 ms en los que una vestida
+   de una pieza (300 ms en la compu) trabaría el fundido a negro.
+   *Revertir:* sacar `&& !e._yendo` de `puedeAca`.
+3. **Lo que se suelta se viste al usarlo**, como dice la decisión 2 del
+   lote. Con `obrero:false`, la traba se muda del arranque al primer
+   bloqueo o barrida de tu equipo, que cae en un corte del cine. La
+   alternativa, mostrar la pose sin vestir, deja a alguien de tu equipo
+   con las rayas del rival. *Revertir:* lo mismo que la decisión 2 del
+   lote.
+4. **"Tres puntitos o tres rayitas".** Los navegadores que ofrecen el
+   diálogo dibujan ese menú con tres puntitos, y alguno con tres rayitas.
+   Nombro las dos formas en vez de una sola, y sin nombrar navegadores.
+   *Revertir:* la cadena de antes en `PT.textoMenu` (y [4c] vuelve a
+   fallar).
+5. **El guardián mira solo los pasos de instalar**: `textoMenu` y el
+   respaldo. No mira el "📲" del título ni el "▶" del botón, que van al
+   lado de palabras que ya lo dicen todo, como en el resto de los botones
+   del juego (ver deudas). *Revertir:* sacar los asserts de cmap de [4c]
+   y [5].
+6. **La versión sube a `v17-1.0-l08cr`.** *Revertir:* `v17-1.0-l08c` en
+   index.html y sw.js.
+
+### Lo que no se pudo ver en pantalla
+
+- El Worker que no contesta con la tabla ya ida, y el pedido sin escena,
+  se probaron solo en node, en (c5).
+- La medición en un teléfono de gama baja sigue pendiente del lote.
+
+### Deudas que vi y no son de esta revisión
+
+- **Los adornos de los botones tampoco están en Pixelify Sans.** Medido
+  con `_cmap.js`: ▶ ◀ ✎ ★ ⚡ ✗ ✓ ● ○ ◆ no están ni en Pixelify Sans ni en
+  VT323, y Press Start 2P tiene solo ▶ ◀ ★. Salen con la tipografía del
+  sistema, distinta en cada teléfono. En los botones la información va en
+  las palabras ("▶ JUGAR LA FECHA"), pero los ítems de legibilidad (L09 y
+  L10) traen la misma regla del estudio, y `_cmap.js` sirve para hacer
+  ahí un guardián de todos los textos.
