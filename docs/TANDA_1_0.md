@@ -1973,7 +1973,9 @@ abría sin red.
    "arrancó en N s".
 2. `config.loader.timeout` desde **`balance.red_floja.loader_timeout_ms`**
    (15.000, con su `_nota`: alcanza para la imagen más pesada,
-   `cara_colorado.png`, 336.798 bytes, a 180 kbps). En los cuatro preload,
+   `cara_colorado.png`, 336.798 bytes, a 180 kbps). *(Revisión: esa era la
+   cuenta de un archivo solo; Phaser baja varios a la vez. Quedó en 75.000
+   con 4 a la vez, ver "Revisión del lote L05-sw".)* En los cuatro preload,
    **`PampaCarga.reintentarUnaVez(this.load)`**: lo que falla se vuelve a
    encolar una vez con la misma clave; la segunda vez se deja y el juego
    sigue con su respaldo. El registro vive en el cierre de cada preload
@@ -2089,6 +2091,8 @@ La versión visible sube a `v17-1.0-l05` (index.html y sw.js, iguales).
    "3 más usados" medidos (no hay métrica de uso, por decisión de Rodri). El
    del menú es el que pide el criterio; los del partido, donde más tiempo se
    pasa. Los de la semana entran a la caché la primera vez que suenan.
+   *(Revisión: no era así; entran enteros cuando el `<audio>` los precarga,
+   al registrarse la música. Ver "Revisión del lote L05-sw", punto 7.)*
    *Revertir:* `TEMAS_PRECACHE` en sw.js.
 5. **La mudanza desde "v16-toma"** y **calentar** no estaban pedidos. Sin
    la mudanza, el deploy de este mismo lote le hacía bajar todo de nuevo a
@@ -2114,7 +2118,10 @@ La versión visible sube a `v17-1.0-l05` (index.html y sw.js, iguales).
     nada que actualizar), y "fuera del partido" = la escena del partido no
     está activa (la pantalla del final cuenta como partido). *Revertir:*
     `#version-nueva` en el CSS, el botón `vn-despues` y
-    `decidirAvisoVersion`.
+    `decidirAvisoVersion`. *(Revisión: el cartel solo se mostraba; si ya
+    estaba a la vista y arrancaba un partido, quedaba encima de ⏸ PAUSA.
+    Ahora se esconde, y "en el partido" es el status de la escena entre
+    START y SLEEPING. Ver "Revisión del lote L05-sw", punto 1.)*
 11. **`?perf=1` muestra solo la red** (el lote de precalentamiento le suma
     el cuadro más largo y los MB de texturas). *Revertir:* el `#perf` de
     index.html.
@@ -2146,3 +2153,226 @@ La versión visible sube a `v17-1.0-l05` (index.html y sw.js, iguales).
 - Los temas que no están en el precache entran a la caché la primera vez
   que suenan con el worker ya controlando la página: en una primera visita
   muy corta pueden quedar afuera (calentar no trae música, a propósito).
+  *(Revisión: entran cuando el `<audio>` los precarga, todos juntos al
+  registrarse la música, no "la primera vez que suenan". Ver "Revisión del
+  lote L05-sw", punto 7.)*
+
+---
+
+## Revisión del lote L05-sw
+
+Dos revisores leyeron los commits 52f25a6..5d22318 y encontraron siete
+cosas (dos eran la misma). Las comprobé todas contra el código, las
+reproduje antes de tocar nada y las arreglé: ninguna se descartó. Para
+probar en el navegador usé orígenes que no son el de Rodri: `127.0.0.1:8123`
+para el cartel y el editor (el localStorage de `localhost:8123` no se tocó;
+el de `127.0.0.1` quedó vacío, como estaba) y el server de prueba de L05 en
+el 8126, con la entrada `pampa-star-red` del launch.json agregada durante
+la prueba y sacada al final, y el origen limpio al terminar (sin worker,
+sin cachés, sin localStorage). Al server de prueba (`.claude/server_red.js`,
+fuera del repo) le sumé tres controles: `lenta=<ruta>&ms=N` (demora una
+sola ruta), `sin_sw=1` (un deploy que no toca sw.js: la ventana entre el
+deploy y el worker nuevo) y `solo_sw=1` (sw.js nuevo con index.html viejo:
+la CDN propagando).
+
+1. **El cartel de versión quedaba encima de ⏸ PAUSA** (alta; los dos
+   revisores lo encontraron; commit e8bc089). *Qué estaba mal, medido con
+   el script de LA RED cortado de index.html:* el cartel solo se MOSTRABA.
+   Si aparecía en el Master o en el editor y quien juega entraba al partido
+   sin tocarlo, seguía ahí: con el partido corriendo 60 s, visible. A
+   800x360 cubre del x lógico 0 al 573 y del y 0 al 84: el 🔊, ⏸ PAUSA (x=88,
+   toque hasta y=61) y la mano de cartas. Un toque para pausar recargaba la
+   página y se perdía el partido. Además "en el partido" era
+   `scene.isActive("match")`, que solo mira RUNNING: mientras el partido
+   bajaba sus poses contaba como afuera. *Qué se hizo:*
+   `decidirAvisoVersion` devuelve `'esconder'` si el cartel está a la vista
+   y arranca un partido, aparece "Algo se trabó" o la versión deja de ser
+   nueva. Se esconde sin darlo por descartado y vuelve al terminar. "En el
+   partido" pasa a ser el status de la escena entre START (2) y SLEEPING
+   (7). Lo esconde el evento `start` de la escena, que Phaser da antes del
+   preload, y una vigía cada `version_reintento_ms` mientras está a la
+   vista. *Algo que casi rompo:* medido en el juego, una escena creada que
+   nunca arrancó queda en INIT (1), no en 0 ("match:1" antes del primer
+   partido). Mi primera versión contaba el 1 como "en el partido" y el
+   cartel no habría aparecido nunca. El test ahora tiene ese caso, y contra
+   el 1..7 falla. *Cómo se verificó:* `aviso_version.test.js` [1] y [3]
+   (contra el código de antes fallan 9). En pantalla a 800x360: el cartel a
+   la vista en el editor (`rev05_1_cartel_en_editor_800x360.jpg`); arranca
+   el partido y en el primer cuadro observado (LOADING) ya estaba
+   escondido; con el partido en LIBRE, ⏸ PAUSA y 🔊 sin nada encima
+   (`rev05_1_partido_sin_cartel_800x360.jpg`) y 20 s después igual; al
+   volver al editor reapareció en 1 s (`rev05_1_cartel_vuelve_al_salir.jpg`).
+   Con un deploy completo de verdad en el 8126, el worker nuevo tomó la
+   página y el cartel apareció en la intro
+   (`rev05_3_deploy_completo_cartel_real.jpg`).
+
+2. **El tope del loader no contaba las descargas en paralelo** (media;
+   commit 235139b). *Qué estaba mal:* la `_nota` decía que 15 s alcanzaban
+   para `cara_colorado.png` (336.798 B) a 180 kbps, pero esa es la cuenta
+   de UN archivo. El tope de Phaser es el timeout del XHR, total desde
+   `send()`, y Phaser baja varios a la vez (`loaderMaxParallelDownloads`: 6
+   en Android, 32 en el resto) que se reparten la señal. A 180 kbps con 6
+   cada uno recibía unos 3,75 KB/s y todo lo de más de 56 KB vencía, se
+   pedía otra vez, volvía a vencer y quedaba el respaldo. Y el XHR que
+   vence no corta la descarga del worker, así que el reintento arrancaba
+   OTRA: medido en node, dos pedidos a la red por la misma cara. *Qué se
+   hizo:* `balance.red_floja.loader_paralelas` = 4 (nuevo) y
+   `loader_timeout_ms` = 75.000 (336.798 × 8 × 4 ÷ 180.000 = 59,9 s, más un
+   25% de aire), con la cuenta en la `_nota`; la config de Phaser fija los
+   dos. En sw.js las descargas de assets en vuelo se juntan (`enVuelo`): el
+   pedido nuevo espera a que termine la que corre y la saca de la caché; si
+   esa falló, la pide él. *Cómo se verificó:* `red_lenta.test.js` [a]
+   rehace la cuenta con el disco (con 15.000 da rojo) y [e] (contra el
+   worker de antes: 2 pedidos). En el navegador contra el 8126: el juego de
+   verdad con `loaderTimeout` 75000 y 4 a la vez; con `cara_colorado`
+   demorada 5 s, dos pedidos de la página con 1,5 s de diferencia hicieron
+   UN pedido al server y los dos recibieron 336.798 B; con `cara_melena`
+   demorada 20 s (más que el tope viejo), el editor abrió a los 20,2 s con
+   la textura, sin reintento ni "perdido"
+   (`rev05_2_cara_lenta_20s_llega.png`).
+
+3. **El tope de 3 s mezclaba código de dos versiones** (media; commit
+   f3974ae). *Qué estaba mal, medido en node:* recién hecho un deploy y con
+   la señal floja, la página traía index.html y duel.js nuevos de la red y
+   match.js viejo de la caché a los 3,1 s. Al revés también: con index.html
+   de la caché, una respuesta rápida de la red apagaba lo "flojo" y lo que
+   seguía venía del deploy nuevo. Y todo lo que bajaba se guardaba en
+   `pampa-codigo-<VERSION>` aunque fuera de otro deploy. *Qué se hizo:*
+   cada página queda ATADA a la versión de su index.html. Si salió de la
+   caché, es VERSION y su código sale de la caché. Si salió de la red, se
+   lee `window.PAMPA_VERSION` en los primeros bytes (está a 14,7 KB; el
+   primer `<script src>`, a 49 KB). Con VERSION: la red con tope, la copia
+   de respaldo, y se guarda. Con otra: solo la red, sin tope, sin respaldo
+   y sin guardar. Una página sin atar sigue como antes, pero no guarda. Lo
+   atado se anota en la caché `pampa-paginas` (las últimas 20), porque el
+   navegador mata al worker a los 30 s sin eventos y el partido pide su
+   manifest de identidades mucho después. *Una puerta más, que no estaba
+   en los hallazgos:* la instalación guardaba el index.html que bajara sin
+   mirar su versión. Con la CDN propagando (sw.js nuevo, index.html viejo),
+   el worker nuevo se quedaba con la página vieja. Ahora esa instalación no
+   termina. *Cómo se verificó:* `red_lenta.test.js` [f] (contra el worker
+   de antes fallan 8). En el navegador contra el 8126: una página abierta
+   por la red quedó atada en `pampa-paginas`. Con un deploy (el worker
+   viejo activo) y `data/divisiones.json` demorado 6 s, la página del
+   deploy lo recibió de la red a los 6,08 s, no de la copia vieja a los
+   3 s, y el index.html guardado siguió siendo el suyo. Con index.html
+   demorado 8 s, la página abrió desde la caché a los 3,0 s, los JSON
+   salieron de `cache-storage` a los 3,1 s, al server no le llegó ningún
+   script ni JSON de fondo, y el index del deploy que llegó a los 8 s no se
+   guardó. El juego arrancó (`rev05_3_cache_atada_arranca.png`). Con sw.js
+   nuevo e index.html viejo, el worker nuevo no tomó la página. La demora
+   se probó con un JSON porque los `<script>` del server de prueba salían
+   de la caché en memoria de Chrome sin pasar por el worker (ver Deudas);
+   los JSON pasan por la misma función.
+
+4. **Lo que bajaba de la red se guardaba sin verificar su huella** (baja;
+   commit eed6fbc). *Qué estaba mal:* `responderAsset` e `instalar`
+   guardaban sin calcular la huella (calentar y la mudanza sí la
+   calculaban). El "no-cache" no cubre la copia vieja de la CDN mientras se
+   propaga un deploy: quedaba con la clave de la huella nueva. *Qué se
+   hizo:* `esLaDeAhora`. En el uso, la copia se sirve pero no se guarda. Al
+   instalar cuenta como no bajada: con el reintento, si sigue vieja, la
+   instalación atómica no termina. Un tema viejo del precache queda afuera
+   y la instalación sigue. *Cómo se verificó:* `cache_versiones.test.js`
+   [10] (contra el worker de antes fallan 4). [4] ahora retoca la pose de
+   verdad (bytes nuevos y su huella), porque cambiar solo la huella ya no
+   alcanza para simularlo. En el navegador, con la huella de
+   `pose_volea.webp` cambiada en el sw.js servido: dos pedidos de la pose,
+   servidos los dos, los dos llegaron al server, y no se guardó nada. Con
+   la de VT323 cambiada, el worker nuevo quedó `redundant` y siguió el
+   anterior.
+
+5. **El mismo cartel, del segundo revisor** (alta). Es el punto 1: el
+   arreglo y la verificación son los mismos.
+
+6. **ACTUALIZAR en el editor perdía la pinta sin guardar** (baja; commit
+   e8bc089). *Qué estaba mal:* `NV.actualizar` recargaba sin más, y el
+   editor solo escribe la pinta con GUARDAR PINTA, ¡A LA CANCHA! o CARRERA.
+   *Qué se hizo:* con el editor activo, primero llama a su `guardar()`.
+   *Cómo se verificó:* `aviso_version.test.js` [3b] (guardar y después
+   recargar; fuera del editor no toca la pinta). En pantalla: la cara
+   cambiada a Rulos sin guardar (`rev05_6_pinta_rulos_sin_guardar.jpg`), un
+   toque real en el cartel, la página recargó y el editor abrió con Rulos
+   (`rev05_6_pinta_sigue_despues_de_actualizar.jpg`).
+
+7. **La música no entraba a la caché "la primera vez que suena"** (baja;
+   commit de docs). *Qué estaba mal:* el comentario de sw.js y este
+   documento decían eso, pero `audio/sfx.js` crea un `<audio
+   preload="auto">` por tema apenas se registra la música, y el worker baja
+   entero cualquier tema que le pidan. *Cómo se midió:* en el navegador
+   contra el 8126, al registrar el mapa de música (10 claves),
+   `pampa-assets` pasó de 3 a 9 temas en 6 s sin que sonara ninguno (unos
+   1,8 MB). *Qué se hizo:* se corrigieron el comentario de
+   `TEMAS_PRECACHE` y este documento. El comportamiento se deja (ver
+   decisión 7).
+
+La versión visible sube a `v17-1.0-l05r` (index.html y sw.js, iguales).
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L05-sw)
+
+1. **El cartel se esconde y vuelve; no se da por descartado.** Quien no lo
+   tocó en el Master no eligió DESPUÉS. *Revertir:* el `'esconder'` de
+   `decidirAvisoVersion` y su rama en `NV.evaluar`.
+2. **El evento `start` de la escena más una vigía de 2 s**, en vez de uno
+   solo. El evento lo esconde antes de que cargue el partido; la vigía
+   cubre el caso en que la escena no existía al engancharse. *Revertir:*
+   `engancharPartido`, o la condición `|| NV.mostrado` del reloj.
+3. **ACTUALIZAR guarda la pinta** (como GUARDAR PINTA) en vez de tratar al
+   editor como "esperar". Quien toca ACTUALIZAR quiere seguir donde estaba.
+   *Revertir:* las líneas del editor en `NV.actualizar`.
+4. **4 descargas a la vez y 75 s de tope.** Con 6 (lo que Phaser usa en
+   Android) harían falta 90 s. Con menos, una red rápida con mucha latencia
+   tarda un poco más en la primera visita; después todo sale de la caché.
+   El precio: un archivo de verdad colgado espera 75 s, más otros 75 del
+   reintento, antes del respaldo. *Revertir:* `loader_paralelas` y
+   `loader_timeout_ms` en el balance (la cuenta está en el test).
+5. **El reintento se cuelga de la descarga en vuelo aunque esté colgada.**
+   Con una conexión trabada de verdad (casi siempre traba todo), un pedido
+   nuevo no tiene por qué andar mejor, y con una lenta el pedido nuevo era
+   el doble de datos. *Revertir:* `enVuelo` en `responderAsset`.
+6. **Copia vieja al instalar = no bajada** (la instalación no termina) en
+   vez de guardarla como `?h=sin`. Así el motor y las tipografías de una
+   versión no quedan con los de otra. *Revertir:* la línea de
+   `esLaDeAhora` en `bajarAsset`.
+7. **La música se queda como está**: entra entera a la caché cuando se
+   registra, una vez por dispositivo. Con `preload="none"`, el primer toque
+   de un tema esperaría a que baje entero (el worker corta el 206 del
+   archivo completo) y con señal floja entraría tarde. *Revertir:* en
+   `audio/sfx.js`, `preload = "none"` para los temas que no son del
+   momento.
+8. **Una página de otra versión no usa la copia ni si la red FALLA.** Se ve
+   "Algo se trabó · no bajó" con RECARGAR, y la recarga sin red abre desde
+   la caché, entera. Código mezclado podía andar a medias y hasta escribir
+   un save raro. *Revertir:* `respaldo: true` en la primera rama de
+   `responderCodigo`.
+9. **Una página atada a la caché no revalida de fondo**: la caché de una
+   versión es la foto de la instalación, y lo que cambie en el server sin
+   subir VERSION no tiene por qué mezclarse. *Revertir:* en
+   `responderCodigo`, usar `redPrimero` también para `deCache`.
+10. **Lo atado persiste en `pampa-paginas`**, no solo en memoria: el
+    partido pide su manifest después de que el navegador ya mató al worker.
+    *Revertir:* `atar` y `vinculoDe` sin la caché.
+11. **La instalación revisa la versión del index.html** (no estaba en los
+    hallazgos; es la misma contaminación por otra puerta). *Revertir:* el
+    chequeo después de las descargas de `instalar`.
+12. **Los deploys de mentira publican su index.html** (`publicar` en
+    `_sw_de_mentira.js`). Con el chequeo del punto 11, un deploy que solo
+    cambia sw.js ya no se instala, igual que en el hosting. *Revertir:*
+    junto con el 11.
+13. **La versión `v17-1.0-l05r`.** *Revertir:* volver las dos a
+    `v17-1.0-l05`.
+
+### Deudas que vi y no son de esta revisión
+
+- **La caché en memoria de Chrome no pasa por el worker.** Medido en el
+  8126: en una navegación NUEVA (otra URL, mismo proceso) dentro de los
+  10 min de frescura que da el hosting (`max-age=600`), los `<script>`
+  salieron con `deliveryType: "cache"`, sin pasar por el worker y sin
+  pedido al server. Una recarga (lo que hace ACTUALIZAR) no: los 50 scripts
+  pasaron por el worker y se revalidaron. Si un deploy cae justo en esa
+  ventana y quien juega abre otra URL del juego en la misma pestaña, podría
+  juntar un index.html nuevo con scripts viejos. Se arreglaría con
+  direcciones de script con versión (`?v=`), que es otro cambio.
+- En un panel angosto (537 px de ancho, la captura del deploy real) el
+  cartel de versión parte el texto en dos renglones. A 800x360 entra en
+  uno.

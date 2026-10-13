@@ -209,7 +209,7 @@
      de sw.js: informe.test.js lo controla. Se sube junto con la de sw.js en
      CADA publicación que toque phaser/, para que el informe diga de qué build
      viene. Subirla ya no barre el caché de assets (eso es CACHE, en sw.js). */
-  window.PAMPA_VERSION = "v17-1.0-l05";
+  window.PAMPA_VERSION = "v17-1.0-l05r";
   (function () {
     "use strict";
     var R = window.PampaRed = {
@@ -1366,7 +1366,7 @@
          tope, el archivo cuenta como fallado y logic/carga.js lo vuelve a
          pedir una vez. Revisión L05: el tope es TOTAL por archivo y los que
          bajan a la vez se reparten la señal, así que también se fija cuántos
-         van a la vez (Phaser: 6 en Android, 32 en el resto); la cuenta, en
+         van a la vez (Phaser: 6 o 32 según el sistema del teléfono); la cuenta, en
          la _nota de balance.red_floja */
       loader: {
         timeout: (balance && balance.red_floja && balance.red_floja.loader_timeout_ms) || 75000,

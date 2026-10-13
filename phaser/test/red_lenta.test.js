@@ -52,7 +52,7 @@
          duel.js del deploy siguiente). [b] ahora abre la página primero:
          solo una página atada a VERSION por la red guarda lo que baja.
    REVISIÓN L05, el tope del loader: era 15 s con la cuenta de UN archivo,
-   pero Phaser baja varios a la vez (6 en Android, 32 en el resto) y el tope
+   pero Phaser baja varios a la vez (6 o 32 según el sistema) y el tope
    es total por archivo. [a] ahora rehace la cuenta con el disco: el archivo
    más pesado × 8 × loader_paralelas ÷ 180 kbps tiene que entrar en el tope.
    Con PAMPA_SW=<ruta> corre contra otro sw.js (el de antes falla [b], [c] y
@@ -122,8 +122,8 @@ var SW = M.leerSW();
     "balance.red_floja.loader_timeout_ms > 0, con su _nota");
   /* REVISIÓN L05 · LA CUENTA DEL TOPE CON EL PARALELISMO DE VERDAD. El
      tope del XHR de Phaser es TOTAL desde send() y los archivos que bajan a
-     la vez se reparten la señal (loaderMaxParallelDownloads: 6 en Android,
-     32 en el resto, vendor/phaser.min.js). El tope de antes (15 s) era la
+     la vez se reparten la señal (loaderMaxParallelDownloads: 6 o 32 según
+     el sistema del teléfono, vendor/phaser.min.js). El tope de antes (15 s) era la
      cuenta de UN archivo: con 6 en paralelo a 180 kbps vencía todo lo de más
      de 56 KB, se pedía dos veces y quedaba el respaldo. La cuenta se rehace
      acá con el disco: si aparece un arte más pesado o suben las paralelas,
