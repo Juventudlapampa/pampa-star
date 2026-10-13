@@ -128,5 +128,98 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   console.log("[4] /favicon.ico: ICO de " + b.length + " B con " + medidas.join(", ") + " (PNG adentro), los íconos de origen intactos");
 })();
 
+/* ---------- [5] 📲 INSTALAR APAISADO: EL ACCESO DE LA TABLA ----------
+   El botón vivía solo en la portada vertical de index.html: quien abría el
+   juego apaisado no lo veía. Ahora es el tercer acceso de abajo de la tabla
+   del Master, y aparece solo cuando el navegador lo ofrece. Se corre
+   vistaTemporada() de verdad sobre la escena de mentira, con una portada de
+   mentira que tiene la misma interfaz que la de index.html (ofrece,
+   instalar(), alCambiarInstalar(fn), textoMenu): portada.test.js [4c] prueba
+   esa interfaz con la portada de verdad. */
+(function () {
+  var M = require("./_escena_de_mentira.js");
+  var A = M.armar(), W = A.window;
+  function portada(ofrece, resultado) {
+    var PT = { ofrece: ofrece, textoMenu: "abrí el menú", instalados: 0, oyentes: [] };
+    PT.alCambiarInstalar = function (fn) { PT.oyentes.push(fn); return function () { var i = PT.oyentes.indexOf(fn); if (i >= 0) PT.oyentes.splice(i, 1); }; };
+    PT.cambiar = function (q) { PT.ofrece = q; PT.oyentes.slice().forEach(function (fn) { fn(q); }); };
+    PT.instalar = function () { PT.instalados++; return resultado || "dialogo"; };
+    return PT;
+  }
+  function tabla(PT) {
+    W.PampaPortada = PT;
+    var s = A.nueva();
+    s.save = A.carreraNueva();
+    s.T = W.PampaTemporada; s.Ma = W.PampaMaster; s.DIV = A.datos.divisiones;
+    s.cajas = []; s.cajaDeTexto = function (o) { s.cajas.push(o); return null; };
+    s.vistaTemporada();
+    return s;
+  }
+  function caja(o) {
+    var w = o.displayWidth, h = o.displayHeight, x0 = o.x - w * (o.originX || 0), y0 = o.y - h * (o.originY || 0);
+    return { x0: x0, y0: y0, x1: x0 + w, y1: y0 + h };
+  }
+  /* el acceso, buscado por su texto en la lista de dibujo (como lo ve quien juega) */
+  function acceso(s) { return s.children.list.filter(function (o) { return o.type === "Text" && /instalar el juego/.test(o.text) && o.scene; })[0] || null; }
+  function soltarDedo(o) { var ev = { stopPropagation: function () { } }; o.emit("pointerup", { x: o.x, y: o.y }, 0, 0, ev); }
+
+  /* sin el evento del navegador: el acceso está, pero ni se ve ni se toca */
+  var PT = portada(null), s = tabla(PT), t = acceso(s);
+  assert(!!t && /instalar el juego/.test(t.text), "la tabla arma el acceso '📲 instalar el juego' (" + (t && t.text) + ")");
+  if (!t) return;
+  assert(t.visible === false && !(t.input && t.input.enabled), "sin beforeinstallprompt no se ve ni se toca (el navegador no lo ofrece)");
+  assert(PT.oyentes.length === 1, "la tabla se anota para enterarse si el navegador lo ofrece después");
+  /* llega el evento con la tabla abierta */
+  PT.cambiar("prompt");
+  assert(t.visible === true && t.input && t.input.enabled, "SÍNTOMA DEL APAISADO SIN INSTALAR: llega el evento y el acceso aparece en la tabla");
+  /* al apoyar no pasa nada; al soltar se abre el diálogo (el gesto del navegador) */
+  t.emit("pointerdown", {}, 0, 0, { stopPropagation: function () { } });
+  assert(PT.instalados === 0, "al apoyar el dedo no se abre (con el dedo el navegador da el gesto al soltar)");
+  soltarDedo(t);
+  assert(PT.instalados === 1, "al soltar abre el diálogo del navegador (PampaPortada.instalar)");
+  PT.cambiar(null);
+  assert(t.visible === false && !t.input.enabled, "usado el evento, el acceso se va");
+  soltarDedo(t);
+  assert(PT.instalados === 1, "escondido no abre nada");
+  /* EN SU LUGAR: abajo, en el medio, sin pisar a los otros dos accesos ni a los botones */
+  PT.cambiar("prompt");
+  var otros = s.children.list.filter(function (o) { return o.type === "Text" && /empezar otra carrera|código de carrera/.test(o.text); });
+  assert(otros.length === 2, "están los otros dos accesos de abajo (" + otros.length + ")");
+  var ci = caja(t);
+  otros.forEach(function (o) {
+    var co = caja(o);
+    assert(ci.x1 < co.x0 || co.x1 < ci.x0, "no pisa a '" + o.text + "' (x " + Math.round(ci.x0) + "-" + Math.round(ci.x1) + " contra " + Math.round(co.x0) + "-" + Math.round(co.x1) + ")");
+    assert(Math.abs(o.y - t.y) < 1, "va en el renglón de los otros accesos (y=" + t.y + ")");
+  });
+  var jugar = s.children.list.filter(function (o) { return o.type === "Rectangle" && o.input && o.y > 400; });
+  var iAcc = s.children.list.indexOf(t);
+  assert(jugar.length >= 2 && jugar.every(function (r) { return s.children.list.indexOf(r) > iAcc; }),
+    "se crea ANTES que JUGAR y EDITOR: en el borde que comparten con el piso táctil, gana el botón (como los otros accesos)");
+  /* P1: la escena se reusa; init() suelta la anotación de la entrada anterior */
+  s.init();
+  assert(PT.oyentes.length === 0, "al volver a entrar (init) la anotación anterior se suelta");
+  /* el diálogo que no abre: se dice qué hacer con el menú del navegador */
+  var PT2 = portada("prompt", "menu"), s2 = tabla(PT2);
+  soltarDedo(acceso(s2));
+  assert(s2.cajas.length === 1 && /menú/.test(s2.cajas[0].texto) && s2.cajas[0].sinCaja === true, "si el diálogo no abre, una caja con los pasos del menú (" + (s2.cajas[0] && s2.cajas[0].texto) + ")");
+  /* la temporada terminada también lo tiene */
+  var PT3 = portada("prompt");
+  W.PampaPortada = PT3;
+  var s3 = A.nueva();
+  s3.save = A.carreraNueva();
+  s3.T = W.PampaTemporada; s3.Ma = W.PampaMaster; s3.DIV = A.datos.divisiones;
+  var tp = s3.save.temporada;
+  while (!s3.T.terminada(tp)) s3.T.jugarFecha(tp, 1, 0);
+  s3.vistaTemporada();
+  assert(acceso(s3) && acceso(s3).visible === true, "con la temporada terminada (NUEVA TEMPORADA) también está");
+  /* sin portada (el juego embebido de una versión vieja, un test): nada, sin romper */
+  W.PampaPortada = undefined;
+  var s4 = A.nueva(); s4.save = A.carreraNueva(); s4.T = W.PampaTemporada; s4.Ma = W.PampaMaster; s4.DIV = A.datos.divisiones;
+  var tiro = null;
+  try { s4.vistaTemporada(); } catch (e) { tiro = e; }
+  assert(!tiro && !acceso(s4), "sin PampaPortada la tabla se arma igual, sin el acceso");
+  console.log("[5] 📲 en la tabla: escondido sin el evento, aparece cuando llega, abre al soltar, se va al usarse; abajo al medio sin pisar a nadie");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

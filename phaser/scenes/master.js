@@ -37,6 +37,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._atrasVista = null;
     /* L07: la marca "⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA" es de cada vista */
     this._marcaSG = null;
+    /* L08c: el acceso 📲 de la tabla se anota en la portada; la anotación de
+       la entrada anterior se suelta acá (P1: la instancia se reusa) */
+    if (this._soltarInstalar) { try { this._soltarInstalar(); } catch (e) { } }
+    this._soltarInstalar = null;
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -784,6 +788,58 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* espejo de la salida (abajo a la izquierda): el mismo tamaño, la misma
        forma y el mismo piso táctil, abajo a la derecha. No compite con JUGAR. */
     return this.accesoDeAbajo(W - 20, H, "💾 código de carrera", 1, () => this.vistaCodigo());
+  }
+  /* ══════════════════════════════════════════════════════════════════════
+     L08c · 📲 INSTALAR, TAMBIÉN APAISADO.
+     El botón vivía solo en la portada de index.html, que se ve en vertical:
+     quien abría el juego apaisado (casi todos: se juega así) no lo veía.
+     Ahora es el tercer acceso de abajo de la tabla, en el medio, entre la
+     salida y el código: la tabla es la pantalla a la que se vuelve cada
+     fecha y es quieta. Aparece SOLO cuando el navegador lo ofrece (el evento
+     beforeinstallprompt guardado por la portada: PampaPortada.ofrece ===
+     "prompt"); si llega con la tabla abierta, aparece en ese momento, y se va
+     cuando ya no se ofrece (se usó, se instaló). En iPhone no hay diálogo:
+     los pasos siguen en la portada vertical.
+     AL SOLTAR, no al apoyar: el navegador abre el diálogo solo con un gesto,
+     y con el dedo el gesto cuenta al soltar (como PANTALLA, pantalla_ui.js).
+     Si el diálogo no abre, se dice qué hacer con el menú del navegador.
+     ══════════════════════════════════════════════════════════════════════ */
+  accesoAInstalar(W, H) {
+    const PT = window.PampaPortada;
+    if (!PT || typeof PT.instalar !== "function" || typeof PT.alCambiarInstalar !== "function") return null;
+    if (this._soltarInstalar) { this._soltarInstalar(); this._soltarInstalar = null; }
+    const t = this.add.text(W / 2, H - 26, "📲 instalar el juego", {
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5",
+      backgroundColor: "#0a1f13aa", padding: { x: 8, y: 4 }
+    }).setOrigin(0.5, 0.5);
+    if (this.pisoTactil) this.pisoTactil(t);
+    if (!t.input) t.setInteractive({ useHandCursor: true });
+    t.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); });
+    t.on("pointerup", (p, xx, yy, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation();
+      if (!t.visible) return;
+      const S = window.PampaSFX; if (S && S.ui) S.ui("abrir");
+      const r = PT.instalar();
+      if (r === "menu") {
+        this.cajaDeTexto({
+          titulo: "📲 Instalar el juego",
+          texto: PT.textoMenu || "Para instalarlo: abrí el menú del navegador y elegí «Instalar app».",
+          sinCaja: true,
+          botones: [{ texto: "▶ VOLVER A LA TABLA", principal: true, accion: () => this.cerrarCaja() }]
+        });
+      }
+    });
+    const pintar = (ofrece) => {
+      if (!t.scene) return;
+      const si = ofrece === "prompt";
+      t.setVisible(si);
+      if (t.input) t.input.enabled = si;
+    };
+    pintar(PT.ofrece);
+    const soltar = PT.alCambiarInstalar(pintar);
+    this._soltarInstalar = soltar;
+    t.once("destroy", () => { soltar(); if (this._soltarInstalar === soltar) this._soltarInstalar = null; });
+    return t;
   }
   vistaCodigo() {
     const W = this.scale.width, H = this.scale.height, C = window.PampaCarrera;
@@ -2275,6 +2331,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          dibujado más arriba. Creados antes, en ese borde gana el botón. */
       this.salidaDeLaCarrera(W, H);
       this.accesoAlCodigo(W, H);
+      this.accesoAInstalar(W, H);   // L08c: solo si el navegador lo ofrece
       /* la PRÓXIMA fecha: rival + su perfil de IA con nombre (sabés a qué venís) */
       const mp = T.miPartido(t);
       const fechaTxt = "FECHA " + (t.fecha + 1) + " de " + t.fixture.length;
@@ -2320,6 +2377,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* (los accesos antes que los botones: ver la otra rama) */
       this.salidaDeLaCarrera(W, H);
       this.accesoAlCodigo(W, H);
+      this.accesoAInstalar(W, H);
       const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
       let msj, color;
       /* M4 · idem "hype" (Ascenso, título, gloria): declarado, con archivo y sin

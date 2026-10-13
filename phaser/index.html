@@ -1217,25 +1217,50 @@
          Agregar a inicio);
        · instalada, embebida o en el navegador de una red social: nada
          (logic/entorno.js, ofrecerInstalar). Si el diálogo no abre, quedan
-         los pasos del menú del navegador. */
+         los pasos del menú del navegador.
+       L08c · Y APAISADO, EN LA TABLA DEL MASTER. Esta portada solo se ve en
+       vertical: quien abría el juego apaisado no veía nuestro botón. Ahora
+       el diálogo se abre con PT.instalar() (lo usan el botón de acá y el
+       acceso "📲 instalar el juego" de la tabla, scenes/master.js), y quien
+       quiera enterarse de si se ofrece se anota con PT.alCambiarInstalar(fn)
+       (se avisa con PT.ofrece cada vez que cambia). En la tabla aparece solo
+       con "prompt": que el navegador lo ofrece. */
     var bi = $("pt-instalar"), pasosIos = $("pt-ios");
     var ua = "";
     try { ua = String(navigator.userAgent || ""); } catch (e) { }
     PT.sistema = E && E.sistema ? E.sistema(ua) : "otro";
     PT.prompt = null;
     PT.ofrece = null;
+    var oyentesInstalar = [];
+    PT.alCambiarInstalar = function (fn) {
+      oyentesInstalar.push(fn);
+      return function () { var i = oyentesInstalar.indexOf(fn); if (i >= 0) oyentesInstalar.splice(i, 1); };
+    };
+    function avisarInstalar() {
+      oyentesInstalar.slice().forEach(function (fn) { try { fn(PT.ofrece); } catch (e) { } });
+    }
     PT.pintarInstalar = function () {
       var integrado = !!(E && E.navegadorIntegrado && E.navegadorIntegrado(ua));
-      var q = E && E.ofrecerInstalar ? E.ofrecerInstalar({ instalada: instalada(), embebido: PT.embebido, integrado: integrado,
+      var q = E && E.ofrecerInstalar ? E.ofrecerInstalar({ instalada: instalada() || !!PT.instalada, embebido: PT.embebido, integrado: integrado,
         hayPrompt: !!PT.prompt, sistema: PT.sistema }) : null;
       PT.ofrece = q;
       if (bi) bi.hidden = !q;
       if (pasosIos && !q) pasosIos.hidden = true;
+      avisarInstalar();
       return q;
     };
     window.addEventListener("beforeinstallprompt", function (ev) { PT.prompt = ev; PT.pintarInstalar(); });
-    window.addEventListener("appinstalled", function () { PT.prompt = null; PT.instalada = true; if (bi) bi.hidden = true; if (pasosIos) pasosIos.hidden = true; });
-    if (bi) bi.addEventListener("click", function () {
+    window.addEventListener("appinstalled", function () {
+      PT.prompt = null; PT.instalada = true; PT.ofrece = null;
+      if (bi) bi.hidden = true; if (pasosIos) pasosIos.hidden = true;
+      avisarInstalar();
+    });
+    /* abre el diálogo del navegador. Tiene que llamarse ADENTRO del manejador
+       de un toque al soltar o de un clic (el navegador lo pide con gesto).
+       Devuelve "dialogo" (se abrió), "pasos" (iPhone: no hay diálogo),
+       "menu" (el diálogo no abrió: PT.textoMenu dice qué hacer) o "nada" */
+    PT.textoMenu = "Para instalarlo: abrí el menú del navegador (⋮) y elegí «Instalar app» o «Agregar a la pantalla principal».";
+    PT.instalar = function () {
       if (PT.ofrece === "prompt" && PT.prompt) {
         var ev = PT.prompt;
         PT.prompt = null;   // un evento sirve para un solo diálogo
@@ -1244,14 +1269,21 @@
           if (p && typeof p.then === "function") p.then(null, function () { });
           if (ev.userChoice && typeof ev.userChoice.then === "function") ev.userChoice.then(function () { PT.pintarInstalar(); }, function () { PT.pintarInstalar(); });
           else PT.pintarInstalar();
+          return "dialogo";
         } catch (e) {
           PT.pintarInstalar();
-          if (bi) bi.hidden = true;
-          if (pasosIos) { pasosIos.textContent = "Para instalarlo: abrí el menú del navegador (⋮) y elegí «Instalar app» o «Agregar a la pantalla principal»."; pasosIos.hidden = false; }
+          return "menu";
         }
-        return;
       }
-      if (PT.ofrece === "ios" && pasosIos) pasosIos.hidden = !pasosIos.hidden;
+      if (PT.ofrece === "ios") return "pasos";
+      return "nada";
+    };
+    if (bi) bi.addEventListener("click", function () {
+      var r = PT.instalar();
+      if (r === "menu") {
+        if (bi) bi.hidden = true;
+        if (pasosIos) { pasosIos.textContent = PT.textoMenu; pasosIos.hidden = false; }
+      } else if (r === "pasos" && pasosIos) pasosIos.hidden = !pasosIos.hidden;
     });
     PT.pintarInstalar();
   })();

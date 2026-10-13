@@ -304,6 +304,31 @@ pasos.push(async function () {
   Dt.disparar("beforeinstallprompt", { prompt: function () { throw new Error("no"); } });
   Dt.els["pt-instalar"].click();
   assert(Dt.els["pt-ios"].hidden === false && /menú/.test(Dt.els["pt-ios"].textContent), "si el diálogo no abre, se muestran los pasos del menú del navegador (" + Dt.els["pt-ios"].textContent + ")");
+  /* L08c · LA INTERFAZ PARA EL JUEGO APAISADO (el acceso de la tabla del
+     Master, deudas_ola2 [5]): quien se anota se entera de cada cambio, y
+     PT.instalar() es lo mismo que tocar el botón de acá */
+  var Dk = dom({ ua: UA_A }), PTk = correr(Dk), oidos = [];
+  var soltarK = PTk.alCambiarInstalar(function (q) { oidos.push(q); });
+  assert(typeof PTk.instalar === "function" && typeof soltarK === "function" && PTk.ofrece === null, "PampaPortada.instalar y alCambiarInstalar existen; sin el evento no se ofrece");
+  assert(PTk.instalar() === "nada" && Dk.registro.prompts === 0, "sin el evento, instalar() no hace nada");
+  var evK = { prompt: function () { Dk.registro.prompts++; return Promise.resolve(); }, userChoice: Promise.resolve({ outcome: "dismissed" }) };
+  Dk.disparar("beforeinstallprompt", evK);
+  assert(oidos[oidos.length - 1] === "prompt", "llega el evento: el anotado se entera ('prompt')");
+  assert(PTk.instalar() === "dialogo" && Dk.registro.prompts === 1, "instalar() abre el diálogo una vez");
+  await esperar(); await esperar();
+  assert(oidos[oidos.length - 1] === null && PTk.ofrece === null, "contestado el diálogo, deja de ofrecerse y el anotado se entera");
+  Dk.disparar("beforeinstallprompt", evK);
+  Dk.disparar("appinstalled", {});
+  assert(oidos[oidos.length - 1] === null && Dk.els["pt-instalar"].hidden === true, "appinstalled: también se avisa");
+  Dk.disparar("beforeinstallprompt", evK);
+  assert(PTk.ofrece === null, "instalada, un evento que llegue después ya no lo ofrece");
+  var n0 = oidos.length; soltarK(); Dk.disparar("beforeinstallprompt", evK);
+  assert(oidos.length === n0, "quien se suelta no se entera más");
+  var Dm = dom({ ua: UA_A }), PTm = correr(Dm);
+  Dm.disparar("beforeinstallprompt", { prompt: function () { throw new Error("no"); } });
+  assert(PTm.instalar() === "menu" && /menú/.test(PTm.textoMenu), "si el diálogo no abre, instalar() da 'menu' con el texto de los pasos");
+  var Dio = dom({ ua: UA_I }), PTio = correr(Dio);
+  assert(PTio.instalar() === "pasos", "en iPhone instalar() da 'pasos' (no hay diálogo)");
   console.log("[4c] INSTALAR: Android con el evento (sin preventDefault), iPhone con los pasos, nunca instalada ni embebida");
 });
 
