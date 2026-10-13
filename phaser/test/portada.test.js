@@ -118,6 +118,13 @@ process.on("unhandledRejection", function (r) { sueltos.push(String(r)); });
   assert(E.modoEmbebido({ ancho: 676, alto: 380, tactil: true }) === "poster" && E.modoEmbebido({ ancho: 900, alto: 506, tactil: true }) === "adentro",
     "con el dedo, desde 820 (una tableta apaisada sí; la columna de un teléfono no)");
   assert(E.modoEmbebido({ ancho: 334, alto: 188, tactil: true }) === "poster", "el 16:9 en la columna de un teléfono (334x188): póster");
+  /* revisión L07: el alto también cuenta. Sin aspect-ratio (navegadores de
+     antes de 2021) el iframe de PARA_MEDIOS queda en 150 de alto */
+  assert(E.modoEmbebido({ ancho: 700, alto: 150, tactil: false }) === "poster", "SÍNTOMA: un recuadro de 700x150 (el iframe sin aspect-ratio) contaba como 'adentro' (" + E.modoEmbebido({ ancho: 700, alto: 150, tactil: false }) + ")");
+  assert(E.modoEmbebido({ ancho: 1200, alto: 0, tactil: false }) === "poster" && E.modoEmbebido({ ancho: 900, alto: 300, tactil: true }) === "poster",
+    "de alto 0, o de 300 con el dedo: póster");
+  assert(E.EMBED_MIN.alto === 360 && E.modoEmbebido({ ancho: 800, alto: 360, tactil: false }) === "adentro" && E.modoEmbebido({ ancho: 800, alto: 359, tactil: false }) === "poster",
+    "el corte de alto es 360 (un teléfono de 800x360 apaisado)");
   assert(E.urlParaJugar("https://x.io/pampa-star/phaser/index.html?embed=1") === "https://x.io/pampa-star/phaser/index.html?ref=embed",
     "el link del póster: sin embed y con ref=embed (" + E.urlParaJugar("https://x.io/pampa-star/phaser/index.html?embed=1") + ")");
   assert(E.urlParaJugar("https://x.io/p/?v=3&embed=1#a") === "https://x.io/p/?v=3&ref=embed" && E.urlParaJugar("https://x.io/p/") === "https://x.io/p/?ref=embed",

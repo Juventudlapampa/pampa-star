@@ -12,11 +12,13 @@
        quedaba guardado.
 
    LO QUE SE PRUEBA:
-     [1] navegadorIntegrado con 16 user agents de verdad (el criterio pide 8
+     [1] navegadorIntegrado con 18 user agents de verdad (el criterio pide 8
          o más): Instagram en Android y en iPhone, Facebook en los dos,
          Messenger, TikTok en los dos, un WebView suelto, y los navegadores
          de verdad (Chrome en Android, en iPhone y en la compu, Samsung
-         Internet, Safari, Firefox en Android y en iPhone, Edge);
+         Internet, Safari, Firefox en Android y en iPhone, Edge); y (revisión
+         L07) la app de mensajería con "MicroMessenger", que caía en
+         "facebook" y es "otro";
      [2] el texto del cartel por sistema, el link intent:// de ABRIR EN
          CHROME y el link limpio;
      [3] guardadoAndando: con un almacenamiento que anda, que tira en setItem,
@@ -65,14 +67,18 @@ var UA = {
   chrome_ios: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/129.0.6668.69 Mobile/15E148 Safari/604.1",
   firefox_ios: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/130.0 Mobile/15E148 Safari/605.1.15",
   chrome_compu: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
-  edge_compu: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0"
+  edge_compu: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0",
+  /* revisión L07: la app de mensajería que lleva "MicroMessenger" caía en "facebook" */
+  wechat_ios: "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.40(0x1800282a) NetType/WIFI Language/es",
+  wechat_android: "Mozilla/5.0 (Linux; Android 12; SM-A125M Build/SP1A.210812.016; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/107.0.5304.141 Mobile Safari/537.36 XWEB/5023 MMWEBSDK/20230701 MicroMessenger/8.0.40.2420(0x28002837) WeChat/arm64 Weixin NetType/WIFI Language/es ABI/arm64"
 };
 var ESPERADO = {
   instagram_android: ["instagram", "android"], instagram_ios: ["instagram", "ios"],
   facebook_android: ["facebook", "android"], facebook_ios: ["facebook", "ios"], messenger_android: ["facebook", "android"],
   tiktok_android: ["tiktok", "android"], tiktok_ios: ["tiktok", "ios"], webview_android: ["otro", "android"],
   chrome_android: [null, "android"], samsung: [null, "android"], safari_ios: [null, "ios"], firefox_android: [null, "android"],
-  chrome_ios: [null, "ios"], firefox_ios: [null, "ios"], chrome_compu: [null, "otro"], edge_compu: [null, "otro"]
+  chrome_ios: [null, "ios"], firefox_ios: [null, "ios"], chrome_compu: [null, "otro"], edge_compu: [null, "otro"],
+  wechat_ios: ["otro", "ios"], wechat_android: ["otro", "android"]
 };
 (function () {
   var n = 0;

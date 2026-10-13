@@ -97,9 +97,15 @@
          escala (0,667) que un teléfono de 800x360, donde ya se juega. Una
          columna de noticias en la compu mide de 640 a 760: el iframe 16:9
          de docs/PARA_MEDIOS.md se juega adentro.
+       · y en los dos, 360 px de ALTO (revisión L07): solo se miraba el
+         ancho, y un recuadro de 700x150 contaba como "adentro". Pasa con
+         el iframe de PARA_MEDIOS en un navegador que no entiende
+         aspect-ratio (los de antes de 2021): queda en su alto por defecto,
+         150, y el juego arrancaba a escala 0,28, ilegible. 360 es el alto
+         de un teléfono de 800x360 apaisado, donde ya se juega (0,667).
      Van acá y no en balance.json porque se usan antes de que el balance baje
      (como TOPE_JSON_MS en index.html). */
-  E.EMBED_MIN = { tactil: 820, mouse: 640 };
+  E.EMBED_MIN = { tactil: 820, mouse: 640, alto: 360 };
   E.embebido = function (e) {
     e = e || {};
     return !!(e.enIframe || /[?&]embed=1(?:[&#]|$)/.test(String(e.busqueda || "")));
@@ -108,6 +114,7 @@
     e = e || {};
     var w = +e.ancho || 0, h = +e.alto || 0;
     if (!(w > h)) return "poster";
+    if (h < E.EMBED_MIN.alto) return "poster";
     return w >= (e.tactil ? E.EMBED_MIN.tactil : E.EMBED_MIN.mouse) ? "adentro" : "poster";
   };
   /* el link del póster: la misma página, sin el embed y con ?ref=embed (de
@@ -175,7 +182,11 @@
     var s = String(ua || "");
     if (!s) return null;
     if (/\bInstagram\b/i.test(s)) return "instagram";
-    if (/FBAN\/|FBAV\/|FB_IAB|FB4A|Messenger/i.test(s)) return "facebook";
+    /* revisión L07: con \b adelante. Suelto, el token también agarraba el
+       de otra app de mensajería, que lo lleva pegado a otra palabra, y la
+       mandaba acá: su regla de "otro", dos renglones abajo, nunca se
+       alcanzaba (entorno.test.js [1]) */
+    if (/FBAN\/|FBAV\/|FB_IAB|FB4A|\bMessenger/i.test(s)) return "facebook";
     if (/musical_ly|trill_|BytedanceWebview|\bTikTok\b/i.test(s)) return "tiktok";
     if (/;\s*wv\)/.test(s)) return "otro";
     if (/\b(Twitter|Snapchat|LinkedInApp|Line\/|MicroMessenger|Pinterest|GSA\/)/i.test(s)) return "otro";
