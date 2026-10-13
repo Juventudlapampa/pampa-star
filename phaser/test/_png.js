@@ -2,12 +2,15 @@
    PAMPA STAR · phaser/test/_png.js — LEER Y ESCRIBIR PNG EN NODE (ayudante)
 
    No es un test (no termina en .test.js). Lo usa metadatos.test.js para
-   medir los íconos de la PWA y para generar icon-512-maskable.png.
+   medir los íconos de la PWA y la tarjeta del link, y para generar
+   icon-512-maskable.png.
 
    Por qué a mano y no con una librería: el repo no tiene dependencias (los
    tests corren con node pelado) y para un ícono alcanza con lo justo: PNG
    de 8 bits por canal, sin entrelazado, en RGBA (tipo 6) o RGB (tipo 2), que
-   es lo que son icon-192.png e icon-512.png (medido en su cabecera IHDR).
+   es lo que son icon-192.png e icon-512.png (medido en su cabecera IHDR), y
+   con paleta (tipo 3), que es la tarjeta del link (og-card.png). Escribe
+   solo RGBA.
    zlib viene con node.
    ========================================================================== */
 "use strict";
@@ -35,19 +38,23 @@ function crc32(buf) {
 /* → { ancho, alto, datos: Uint8Array RGBA (4 bytes por píxel) } */
 function leer(buf) {
   if (!Buffer.isBuffer(buf) || buf.length < 33 || !buf.slice(0, 8).equals(FIRMA)) throw new Error("no es un PNG");
-  var p = 8, ihdr = null, idat = [];
+  var p = 8, ihdr = null, idat = [], paleta = null, trns = null;
   while (p < buf.length) {
     var largo = buf.readUInt32BE(p), tipo = buf.toString("latin1", p + 4, p + 8), d = buf.slice(p + 8, p + 8 + largo);
     if (tipo === "IHDR") ihdr = { ancho: d.readUInt32BE(0), alto: d.readUInt32BE(4), bits: d[8], color: d[9], entrelazado: d[12] };
+    else if (tipo === "PLTE") paleta = d;
+    else if (tipo === "tRNS") trns = d;
     else if (tipo === "IDAT") idat.push(d);
     else if (tipo === "IEND") break;
     p += 12 + largo;
   }
   if (!ihdr) throw new Error("PNG sin IHDR");
-  if (ihdr.bits !== 8 || (ihdr.color !== 6 && ihdr.color !== 2) || ihdr.entrelazado) {
+  /* L08: también con PALETA (tipo 3, 8 bits): así sale phaser/og-card.png,
+     la tarjeta del link, bajada a 256 colores para que pese menos de 300 KB */
+  if (ihdr.bits !== 8 || (ihdr.color !== 6 && ihdr.color !== 2 && ihdr.color !== 3) || ihdr.entrelazado || (ihdr.color === 3 && !paleta)) {
     throw new Error("PNG no soportado: bits " + ihdr.bits + ", color " + ihdr.color + ", entrelazado " + ihdr.entrelazado);
   }
-  var cpp = ihdr.color === 6 ? 4 : 3, W = ihdr.ancho, H = ihdr.alto, fila = W * cpp;
+  var cpp = ihdr.color === 6 ? 4 : ihdr.color === 2 ? 3 : 1, W = ihdr.ancho, H = ihdr.alto, fila = W * cpp;
   var crudo = zlib.inflateSync(Buffer.concat(idat));
   var px = new Uint8Array(fila * H), prev = new Uint8Array(fila);
   for (var y = 0; y < H; y++) {
@@ -63,6 +70,14 @@ function leer(buf) {
     prev = cur;
   }
   var rgba = new Uint8Array(W * H * 4);
+  if (cpp === 1) {
+    for (var k = 0; k < W * H; k++) {
+      var e = px[k];
+      rgba[k * 4] = paleta[e * 3]; rgba[k * 4 + 1] = paleta[e * 3 + 1]; rgba[k * 4 + 2] = paleta[e * 3 + 2];
+      rgba[k * 4 + 3] = trns && e < trns.length ? trns[e] : 255;
+    }
+    return { ancho: W, alto: H, datos: rgba };
+  }
   for (var i = 0, j = 0; i < W * H; i++, j += cpp) {
     rgba[i * 4] = px[j]; rgba[i * 4 + 1] = px[j + 1]; rgba[i * 4 + 2] = px[j + 2]; rgba[i * 4 + 3] = cpp === 4 ? px[j + 3] : 255;
   }

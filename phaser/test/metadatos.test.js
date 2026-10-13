@@ -242,5 +242,55 @@ var MAN = JSON.parse(leer("phaser/manifest.webmanifest"));
   console.log("[5] el maskable, en el PRECACHE y con huella");
 })();
 
+/* ---------- [6] LA TARJETA DEL LINK (og-card) ----------
+   No había ninguna imagen de 1200x630: la portada mide 1024x576 y es WebP,
+   y las vistas previas de los mensajes son más confiables con PNG o JPG. La
+   tarjeta se compone (docs/og-card.html, Chrome sin ventana) con la portada
+   y el logo horizontal TAL CUAL: los dos originales tienen que seguir byte a
+   byte como estaban cuando se compuso (si cambian, hay que recomponerla y
+   que Rodri la apruebe de nuevo). */
+var ORIGINALES_DE_LA_TARJETA = {
+  "assets/ui/portada.webp": "55732-cbb1e9a4ea31",
+  "assets/ui/pampa-star-logo-horizontal.webp": "63116-8cc0ef1ded46"
+};
+(function () {
+  var H = require("./_huella.js");
+  var f = "phaser/og-card.png";
+  assert(fs.existsSync(path.join(RAIZ, f)), "SÍNTOMA: falta la tarjeta del link (" + f + ")");
+  if (!fs.existsSync(path.join(RAIZ, f))) return;
+  var md = medidas(f), kb = fs.statSync(path.join(RAIZ, f)).size / 1024;
+  assert(md.tipo === "image/png" && md.w === 1200 && md.h === 630, "la tarjeta es un PNG de 1200x630 (" + md.tipo + " " + md.w + "x" + md.h + ")");
+  assert(kb < 300, "la tarjeta pesa menos de 300 KB (" + kb.toFixed(1) + ")");
+  PAGINAS.forEach(function (P) {
+    var html = leer(P.archivo);
+    assert(meta(html, "property", "og:image") === SITIO + f && meta(html, "name", "twitter:image") === SITIO + f,
+      P.archivo + ": og:image y la imagen de la tarjeta grande apuntan a " + SITIO + f);
+  });
+  var cambiados = Object.keys(ORIGINALES_DE_LA_TARJETA).filter(function (r) {
+    return H.huellaArchivo(path.join(RAIZ, r)) !== ORIGINALES_DE_LA_TARJETA[r];
+  });
+  assert(cambiados.length === 0, "los originales de la tarjeta siguen byte a byte como al componerla (cambiaron: " + cambiados.join(", ") +
+    ") → recomponer con docs/og-card.html y que Rodri la apruebe");
+  /* lo que se lee, adentro del cuadrado del centro (x de 285 a 915): con la
+     imagen chica, algunas vistas previas muestran solo ese cuadrado. Se mide
+     por las letras amarillas (R>230, G>180, B<120) del logo (filas 40-127) y
+     de la bajada (150-191); la primera composición, con el logo de 860 y la
+     bajada abajo, daba "MPA STA" en el cuadrado */
+  var card = PNG.leer(fs.readFileSync(path.join(RAIZ, f)));
+  function franja(y0, y1) {
+    var xs = [];
+    for (var x = 0; x < card.ancho; x++) for (var y = y0; y < y1; y++) { var p = PNG.pixel(card, x, y); if (p[0] > 230 && p[1] > 180 && p[2] < 120) { xs.push(x); break; } }
+    return xs.length ? [xs[0], xs[xs.length - 1]] : null;
+  }
+  var cuad = [(card.ancho - card.alto) / 2, (card.ancho + card.alto) / 2];
+  [["el logo", franja(40, 128)], ["la bajada", franja(150, 192)]].forEach(function (z) {
+    assert(!!z[1] && z[1][0] >= cuad[0] && z[1][1] <= cuad[1], z[0] + " de la tarjeta cae adentro del cuadrado del centro (" + (z[1] ? z[1].join("-") : "no se encontró") + "; cuadrado " + cuad.join("-") + ")");
+  });
+  var receta = leer("docs/og-card.html");
+  assert(Object.keys(ORIGINALES_DE_LA_TARJETA).every(function (r) { return receta.indexOf("../" + r) >= 0; }) && /DEL POTRERO AL MUNDIAL/.test(receta),
+    "la receta (docs/og-card.html) usa esos dos originales y la bajada");
+  console.log("[6] la tarjeta: PNG 1200x630, " + kb.toFixed(1) + " KB, en og:image de " + PAGINAS.length + " página(s), con los dos originales intactos");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

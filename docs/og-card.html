@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!-- ============================================================================
+     PAMPA STAR · docs/og-card.html — LA COMPOSICIÓN DE LA TARJETA DEL LINK
+
+     De acá sale phaser/og-card.png (1200x630), la imagen que muestran las
+     vistas previas cuando se pega el link en un mensaje (og:image). No va
+     al juego ni se publica como página: es la "receta" de la tarjeta.
+
+     Es una composición NUEVA sobre la ilustración y el logo de Rodri: los
+     dos archivos de assets/ui se usan tal cual, sin tocarlos (metadatos
+     .test.js guarda la huella que tenían al componerla y avisa si cambian). Encima de la portada va un
+     velo oscuro arriba, donde van el logo y la bajada, sobre el cielo; de la
+     mitad para abajo la ilustración queda limpia: el caldén y quien corre con
+     la pelota al pie.
+
+     TODO LO QUE SE LEE VA ADENTRO DEL CUADRADO DEL CENTRO (de x=285 a 915):
+     algunas vistas previas, con la imagen chica, muestran solo un cuadrado
+     recortado al medio. Con el logo de 860 de ancho y la bajada abajo de
+     punta a punta (la primera prueba), ese cuadrado decía "MPA STA" y
+     "L POTRERO AL MUND", y la bajada tapaba la pelota.
+
+     Para regenerarla (con el server de desarrollo andando, node server.js,
+     porque Chrome no carga tipografías desde file://):
+       chrome --headless=new --hide-scrollbars --window-size=1200,630
+              --screenshot=<carpeta temporal>/og-card-crudo.png
+              http://localhost:8123/docs/og-card.html
+     y después bajarla a menos de 300 KB con una paleta (el paso está en
+     docs/TANDA_1_0.md, og-card). Rodri aprueba la composición.
+     ========================================================================== -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>PAMPA STAR · tarjeta del link</title>
+<style>
+  @font-face{font-family:'Archivo Black';src:url('../assets/fonts/ArchivoBlack-Regular.ttf') format('truetype');}
+  html,body{margin:0;padding:0;width:1200px;height:630px;overflow:hidden;background:#06120b;}
+  .tarjeta{position:relative;width:1200px;height:630px;overflow:hidden;
+    /* la portada mide 1024x576 (1,78:1) y la tarjeta 1200x630 (1,90:1): a lo
+       ancho queda de 1200x675 y sobran 45 px de alto; se recorta pareja
+       arriba y abajo (center) */
+    background:#06120b url('../assets/ui/portada.webp') center center / 1200px 675px no-repeat;}
+  .velo{position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(6,18,11,.84) 0%,rgba(6,18,11,.62) 26%,rgba(6,18,11,0) 46%,rgba(6,18,11,0) 82%,rgba(6,18,11,.4) 100%);}
+  .logo{position:absolute;left:50%;top:38px;width:600px;transform:translateX(-50%);
+    filter:drop-shadow(0 4px 0 rgba(6,18,11,.9)) drop-shadow(0 8px 18px rgba(0,0,0,.55));}
+  .bajada{position:absolute;left:0;right:0;top:150px;text-align:center;
+    font-family:'Archivo Black',sans-serif;font-size:36px;line-height:1;letter-spacing:.05em;color:#FFD84D;
+    text-shadow:0 4px 0 #0a1f13,0 0 22px rgba(0,0,0,.6);}
+</style>
+</head>
+<body>
+<div class="tarjeta">
+  <div class="velo"></div>
+  <img class="logo" src="../assets/ui/pampa-star-logo-horizontal.webp" alt="">
+  <div class="bajada">DEL POTRERO AL MUNDIAL</div>
+</div>
+</body>
+</html>
