@@ -471,7 +471,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
          entrada a TU pueblo, que es de lo que habla el plano. Sin save todavia
          (primera partida) no se escribe nada y queda el cartel limpio. */
       var pueblo = null;
-      try { var sv = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
+      try { var sv = JSON.parse((this.crudoDelMaster ? this.crudoDelMaster() : localStorage.getItem("pampa_master_v1")) || "null");
         pueblo = sv && sv.pueblo; } catch (e) {}
       if (!pueblo) { try { var cl = JSON.parse(localStorage.getItem("pampa_star_v1") || "null");
         pueblo = cl && cl.origen && cl.origen.localidad; } catch (e) {} }

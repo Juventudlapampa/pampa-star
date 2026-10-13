@@ -27,7 +27,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._semEvento = undefined;
     this._semEventoResuelto = false;
     this._musicaSemanaPuesta = false;
-    /* la caja del código de carrera (DOM): si quedó abierta, se va */
+    /* la caja del código de carrera (DOM): si quedó abierta, se va (y si
+       era el aviso de que no se guarda, queda pendiente: revisión L07) */
+    if (this.game) this.soltarAvisoPorApagado();
     this.cerrarCaja();
     this._cajaGancho = false;
     /* L04: a dónde lleva el atrás del teléfono desde la vista a la vista
@@ -207,8 +209,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        pampa_master_v1_corrupta y se dice en pantalla (vistaSaveRoto).
        ══════════════════════════════════════════════════════════════════════ */
     this.save = null;
-    let crudo = null;
-    try { crudo = localStorage.getItem("pampa_master_v1"); } catch (e) { }
+    /* revisión L07: la copia de la sesión primero, si un guardar() falló
+       (crudoDeLaCarrera, abajo de guardar) */
+    const crudo = this.crudoDeLaCarrera();
     const SM = window.PampaSaveMaster;
     if (SM && SM.sanear) {
       const r = SM.sanear(crudo, this.idsDeDivisiones(), this.opcionesDeSaneo());
@@ -299,8 +302,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
 
     /* L07 · ¿este navegador guarda? (ver sinGuardar). Con la partida ya
-       leída, para que el aviso sepa si ofrecer el código de carrera */
-    if (!this.guardadoAnda()) this.sinGuardar();
+       leída, para que el aviso sepa si ofrecer el código de carrera.
+       Revisión L07: también si ya se sabe que no (un guardar() que falló en
+       la sesión, aunque la prueba de ahora dé bien: el almacenamiento
+       lleno), así la marca sigue y un aviso que se cerró con el apagado de
+       la escena vuelve a abrirse (soltarAvisoPorApagado) */
+    if (!this.guardadoAnda() || this.game.registry.get("sinGuardar")) this.sinGuardar();
 
     /* D5 · volviste del editor: la entrevista, sin pasar de nuevo por elegir
        club (el club ya lo elegiste antes de ir a armar la pinta). */
@@ -344,9 +351,33 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      primera vez que da false se avisa (sinGuardar, abajo). */
   guardar() {
     let ok = false;
-    try { localStorage.setItem("pampa_master_v1", JSON.stringify(this.save)); ok = true; } catch (e) { ok = false; }
+    const texto = JSON.stringify(this.save);
+    try { localStorage.setItem("pampa_master_v1", texto); ok = true; } catch (e) { ok = false; }
+    /* revisión L07 · LA COPIA DE LA SESIÓN. Antes, con el guardado
+       bloqueado, cada scene.restart() (crear la carrera, PEGAR UN CÓDIGO,
+       volver a la tabla, cada fecha) releía un almacenamiento vacío y se
+       volvía a elegir club, en un bucle; con el almacenamiento lleno se
+       releía la carrera VIEJA. Ahora lo que no se pudo escribir queda en el
+       registry, que dura lo que dura la página, y create() lo lee primero
+       (logic/save_master.js, crudoDeLaSesion). Un guardar() que anda la
+       borra: el almacenamiento ya tiene lo último. */
+    if (ok) this.game.registry.remove("masterSaveMemoria");
+    else this.game.registry.set("masterSaveMemoria", texto);
     if (!ok) this.sinGuardar();
     return ok;
+  }
+  /* el texto de la carrera: la copia de la sesión si un guardar() falló, si
+     no el almacenamiento (sin almacenamiento, null: elegir club) */
+  crudoDeLaCarrera() {
+    const SM = window.PampaSaveMaster;
+    const leer = () => localStorage.getItem("pampa_master_v1");
+    if (SM && SM.crudoDeLaSesion) return SM.crudoDeLaSesion(this.game.registry.get("masterSaveMemoria"), leer);
+    try { return leer(); } catch (e) { return null; }
+  }
+  /* borrar la carrera borra también su copia de la sesión: si no, el
+     create() siguiente la traía de vuelta */
+  soltarCopiaDeLaSesion() {
+    this.game.registry.remove("masterSaveMemoria");
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -377,21 +408,38 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     return E.guardadoAndando(almacen);
   }
   sinGuardar() {
-    const reg = this.game.registry;
-    reg.set("sinGuardar", true);
+    this.game.registry.set("sinGuardar", true);
     if (this.add) this.marcaSinGuardar();
-    if (!reg.get("sinGuardarAvisado")) {
-      reg.set("sinGuardarAvisado", true);
-      this.avisoSinGuardar();
+    if (!this.game.registry.get("sinGuardarAvisado")) {
+      this.game.registry.set("sinGuardarAvisado", true);
+      const c = this.avisoSinGuardar();
+      if (c) c.avisoSG = true;
     }
   }
+  /* revisión L07 · EL AVISO QUE SE CERRABA EN EL ACTO. El primer guardar()
+     que falla puede ser uno que sigue con scene.restart() o irA (crear la
+     carrera, PEGAR UN CÓDIGO, ir a la cancha, PASAR LA FECHA, la temporada
+     nueva): la caja se abría, el apagado de la escena la cerraba en el mismo
+     paso y, como ya estaba marcado "avisado", no volvía en la sesión. Le
+     pasa justo a quien tiene el almacenamiento LLENO, donde la prueba de
+     entrada da bien y el que falla es el guardar de después. Ahora, si la
+     escena se apaga con el aviso abierto, queda pendiente, y el create()
+     siguiente lo vuelve a abrir (ver la llamada en create). */
+  soltarAvisoPorApagado() {
+    if (this._caja && this._caja.avisoSG) this.game.registry.set("sinGuardarAvisado", false);
+  }
+  /* revisión L07: el texto dice lo que pasa sin suponer la causa. Antes
+     mandaba a "abrí el juego en el navegador del teléfono (…) o instalalo",
+     y en el caso típico (un navegador con los datos del sitio bloqueados)
+     ya se está ahí, e instalar no cambia el bloqueo. Y "Podés jugar igual"
+     no era cierto: ver crudoDeLaCarrera. */
   avisoSinGuardar() {
     const hay = !!this.save;
     return this.cajaDeTexto({
       titulo: "⚠ En este navegador tu carrera NO se guarda",
       texto: hay
-        ? "Si cerrás esta página, la carrera se pierde. Guardá tu código de carrera en un mensaje o en una nota: con él la seguís en otro navegador. Para que se guarde sola, abrí el juego en el navegador del teléfono (Chrome o Safari) o instalalo."
-        : "Podés jugar igual, pero al cerrar esta página la carrera se pierde. Para que se guarde, abrí el juego en el navegador del teléfono (Chrome o Safari) o instalalo.",
+        ? "Este navegador no deja guardar datos de este sitio: puede estar bloqueado o lleno. Podés seguir jugando mientras esta página siga abierta, pero si la cerrás, la carrera se pierde. Guardá tu código de carrera en un mensaje o en una nota: con él la seguís en otro navegador."
+        : "Este navegador no deja guardar datos de este sitio: puede estar bloqueado o lleno. Podés jugar igual mientras esta página siga abierta, pero si la cerrás, la carrera se pierde. Para que quede guardada, abrí el juego en otro navegador, o fuera de la página donde lo encontraste.",
       sinCaja: true,
       botones: (hay && window.PampaCarrera ? [{ texto: "💾 CÓDIGO DE CARRERA", principal: true, accion: () => { this.cerrarCaja(); this.vistaCodigo(); } }] : [])
         .concat([{ texto: "▶ SEGUIR IGUAL", principal: !hay, accion: () => this.cerrarCaja() }])
@@ -624,11 +672,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
   borrarCarrera() {
     try {
-      const viejo = localStorage.getItem("pampa_master_v1");
-      /* la red: se guarda antes de borrar. Cuesta una linea. */
+      /* la red: se guarda antes de borrar. Cuesta una linea. (Revisión
+         L07: lo último es la copia de la sesión, si la hay) */
+      const viejo = this.crudoDeLaCarrera();
       if (viejo) localStorage.setItem("pampa_master_v1_borrada", viejo);
       localStorage.removeItem("pampa_master_v1");
     } catch (e) { }
+    this.soltarCopiaDeLaSesion();
     this.save = null;
     /* la semana y el partido pendiente mueren con la carrera: si quedaran,
        la carrera nueva arrancaria con la semana de la vieja */
@@ -699,6 +749,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      una carrera borrada a propósito (pampa_master_v1_borrada) */
   empezarDeCero() {
     try { localStorage.removeItem("pampa_master_v1"); } catch (e) { }
+    this.soltarCopiaDeLaSesion();
     this.save = null;
     this.game.registry.set("masterPartido", null);
     this.game.registry.set("masterResultado", null);
@@ -828,10 +879,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   importarCarrera(save) {
     try {
       /* la red, como en borrarCarrera: lo que hubiera se guarda antes */
-      const viejo = localStorage.getItem("pampa_master_v1");
+      const viejo = this.crudoDeLaCarrera();
       if (viejo) localStorage.setItem("pampa_master_v1_borrada", viejo);
     } catch (e) { }
     this.save = save;
+    /* revisión L07: con el guardado bloqueado, la carrera del código queda
+       en la copia de la sesión (guardar) y el restart la encuentra */
     this.guardar();
     this.pedirQueNoSeBorre();
     this.game.registry.set("masterPartido", null);
@@ -906,7 +959,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        escena, como el del cursor. */
     if (!this._cajaGancho) {
       this._cajaGancho = true;
-      this.events.once("shutdown", () => { this._cajaGancho = false; this.cerrarCaja(); });
+      this.events.once("shutdown", () => { this._cajaGancho = false; this.soltarAvisoPorApagado(); this.cerrarCaja(); });
     }
     return this._caja;
   }

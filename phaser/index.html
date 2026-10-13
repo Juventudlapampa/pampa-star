@@ -540,6 +540,9 @@
       ["pampa_star_v1", "pampa_master_v1", "pampa_star_avatares"].forEach(function (k) {
         try { var r = localStorage.getItem(k); if (r) saves.push(JSON.parse(r)); } catch (e) { }
       });
+      /* revisión L07: con el guardado bloqueado, la carrera del Master vive
+         en la copia de la sesión (master.js, guardar): también se tapa */
+      try { var g = juego(), mem = g && g.registry && g.registry.get("masterSaveMemoria"); if (mem) saves.push(JSON.parse(mem)); } catch (e) { }
       return window.PampaInforme ? window.PampaInforme.secretosDelSave(saves) : [];
     };
     /* donde: "archivo.js:línea:col" del evento, para cuando el stack no lo

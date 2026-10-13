@@ -364,12 +364,26 @@
        suyo y pisaba el mapa de las demas: la intro no registraba NADA y el
        master registraba UNA entrada, asi que al volver al partido el mapa
        quedaba con un solo tema. */
+    /* REVISIÓN L07 · LA CARRERA DEL MASTER, DESDE CUALQUIER ESCENA. Si el
+       Master no pudo guardar (almacenamiento bloqueado o lleno), su carrera
+       vive en la copia de la sesión del registry (master.js, guardar), y lo
+       que la lee de afuera (el escudo de tu club, el cartel de la intro, la
+       alternancia de la música) tiene que ver la misma. Primero la copia; si
+       no hay, el almacenamiento (logic/save_master.js, crudoDeLaSesion). */
+    crudoDelMaster: function () {
+      var SM = window.PampaSaveMaster, mem = null;
+      try { mem = this.game.registry.get("masterSaveMemoria"); } catch (e) { mem = null; }
+      var leer = function () { return localStorage.getItem("pampa_master_v1"); };
+      if (SM && SM.crudoDeLaSesion) return SM.crudoDeLaSesion(mem, leer);
+      try { return leer(); } catch (e) { return null; }
+    },
+
     registrarMusicaGlobal: function (forzar) {
       var M = window.PampaMusica, S = window.PampaSFX;
       if (!M || !S || !S.registrarArchivos) return 0;
       var fecha = 0;
       try {
-        var sv = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
+        var sv = JSON.parse(this.crudoDelMaster() || "null");
         fecha = (sv && sv.temporada && sv.temporada.fecha) | 0;
       } catch (e) { }
       /* si cambio la fecha hay que re-registrar: la alternancia depende de ella */

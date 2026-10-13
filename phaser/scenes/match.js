@@ -4919,17 +4919,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      sea de la fecha que se está jugando, qué campos van) es de
      logic/semana.anotarResultado; acá solo se lee y se escribe. Si el save no
      está, es de otra carrera o la fecha no coincide, no se toca nada. */
+  /* Revisión L07: si el Master no pudo guardar (almacenamiento bloqueado o
+     lleno), su carrera de verdad es la copia de la sesión del registry
+     ("masterSaveMemoria", ver master.js guardar): se lee y se anota ahí.
+     Antes se leía solo el almacenamiento, que con el bloqueo no tenía nada
+     y con el lleno tenía la carrera vieja (quedaba el registry de respaldo). */
   anotarResultadoEnLaCarrera(res) {
-    const S = window.PampaSemana;
+    const S = window.PampaSemana, SM = window.PampaSaveMaster;
     if (!S || !S.anotarResultado) return false;
-    try {
-      const crudo = localStorage.getItem("pampa_master_v1");
-      if (!crudo) return false;
-      const sv = JSON.parse(crudo);
-      if (!S.anotarResultado(sv, res)) return false;
-      localStorage.setItem("pampa_master_v1", JSON.stringify(sv));
-      return true;
-    } catch (e) { return false; }
+    const mem = this.game.registry.get("masterSaveMemoria");
+    const leer = () => localStorage.getItem("pampa_master_v1");
+    let crudo = null;
+    if (SM && SM.crudoDeLaSesion) crudo = SM.crudoDeLaSesion(mem, leer);
+    else { try { crudo = leer(); } catch (e) { crudo = null; } }
+    if (!crudo) return false;
+    let sv = null;
+    try { sv = JSON.parse(crudo); } catch (e) { return false; }
+    if (!sv || !S.anotarResultado(sv, res)) return false;
+    const texto = JSON.stringify(sv);
+    let ok = false;
+    try { localStorage.setItem("pampa_master_v1", texto); ok = true; } catch (e) { ok = false; }
+    if (typeof mem === "string" && mem) { this.game.registry.set("masterSaveMemoria", texto); ok = true; }
+    return ok;
   }
 
   /* --- PASE dirigido tocando el radar (doc §7/§8) --- */

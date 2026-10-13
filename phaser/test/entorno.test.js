@@ -29,12 +29,19 @@
          el Master arma el aviso (la caja con 💾 CÓDIGO DE CARRERA, una vez
          por sesión) y la marca fija en la tabla; con uno que anda, nada;
      [6] el cableado: el precache y INSTALAR, que no se ofrece en una red social.
+     [7] revisión L07: con setItem y getItem que tiran, la carrera se crea,
+         se juega una fecha (el partido anota en la copia de la sesión) y
+         sigue en cada restart; PEGAR UN CÓDIGO igual; con el almacenamiento
+         lleno, el restart no rebobina a la carrera vieja;
+     [8] revisión L07: el aviso que el apagado de la escena cerraba en el
+         acto vuelve en el create() siguiente.
 
    Corré:  node phaser/test/entorno.test.js
    ========================================================================== */
 "use strict";
 var fs = require("fs"), path = require("path"), vm = require("vm");
 var M = require("./_escena_de_mentira.js");
+var PM = require("./_partido_de_mentira.js");
 var RAIZ = M.RAIZ;
 function leer(f) { return fs.readFileSync(path.join(RAIZ, f), "utf8").replace(/\r\n/g, "\n"); }
 var E = require(path.join(RAIZ, "phaser/logic/entorno.js"));
@@ -297,6 +304,132 @@ pasos.push(async function () {
   var PORT = INDEX.slice(INDEX.indexOf("window.PampaPortada = {}"), INDEX.indexOf("window.PampaIntegrado = "));
   assert(/E\.navegadorIntegrado\(ua\)/.test(PORT) && /integrado: integrado/.test(PORT), "INSTALAR mira si es el navegador de una red social (ahí no se instala)");
   assert(E.ofrecerInstalar({ integrado: true, hayPrompt: true }) === null, "y en ese caso no se ofrece");
+});
+
+
+/* ---------- [7] revisión L07: con el guardado bloqueado, la carrera se juega ----------
+   LO QUE ESTABA MAL (medido con este mismo master.js real): setItem y
+   getItem tiran → el aviso decía "Podés jugar igual…" → elegir club → la
+   entrevista → _crearCarrera: guardar() da false → scene.restart() (Phaser
+   reusa la instancia: init() + create()) → create() relee el
+   almacenamiento, no hay nada → "🏆 MODO MASTER" otra vez, en un bucle. Lo
+   mismo con PEGAR UN CÓDIGO. Y con el almacenamiento LLENO, getItem
+   devolvía la carrera vieja: la fecha jugada se rebobinaba.
+   Ahora la copia de la sesión (registry "masterSaveMemoria") se lee antes. */
+/* scene.restart() como en Phaser 3.80: el apagado destruye lo dibujado y
+   emite "shutdown"; después init() y create() sobre la MISMA instancia */
+function reiniciar(s) {
+  s.children.list.slice().forEach(function (o) { if (o && o.destroy) o.destroy(); });
+  s.events.emit("shutdown"); s.init(); s.create();
+}
+function bloqueado(A) {
+  A.localStorage.setItem = function () { throw new Error("SecurityError: el almacenamiento está bloqueado"); };
+  A.localStorage.getItem = function () { throw new Error("SecurityError: el almacenamiento está bloqueado"); };
+}
+pasos.push(async function () {
+  var A = M.armar({ logicaExtra: ["phaser/logic/entorno.js"] });
+  var doc = domDeMentira(); A.ctx.document = doc;
+  bloqueado(A);
+  var s = A.nueva(); s.create();
+  var p = doc.buscar(function (n) { return n.tagName === "p"; })[0];
+  assert(s.textos().indexOf("🏆 MODO MASTER") >= 0 && p && /Podés jugar igual mientras esta página siga abierta/.test(p.textContent),
+    "bloqueado y sin carrera: elegir club y el aviso dice que se juega mientras la página siga abierta (" + (p && p.textContent) + ")");
+  assert(!/Chrome|Safari|instalalo/.test(p.textContent) && /bloqueado o lleno/.test(p.textContent),
+    "el aviso no supone la causa ni manda a otra app: 'puede estar bloqueado o lleno', sin nombres de navegadores");
+  s.cerrarCaja();
+  /* elegir club → el editor → vuelve con la pinta: la entrevista */
+  s.game.registry.set("carreraPendiente", { division: "primera_b" });
+  reiniciar(s);
+  assert(/TU HISTORIA/.test(s.textos()[0] || ""), "de vuelta del editor: la entrevista (" + s.textos()[0] + ")");
+  var club = A.window.PampaMaster.nombreDeTuClub(s.pueblos[s.pSel], A.datos.roster);
+  s._crearCarrera("primera_b", null);
+  assert(s._restarts === 1 && typeof A.reg.get("masterSaveMemoria") === "string", "_crearCarrera: guardar() da false y la carrera queda en la copia de la sesión");
+  reiniciar(s);
+  assert(s.save && s.save.club === club && s.textos().indexOf("🏆 MODO MASTER") < 0 && s.textos().some(function (t) { return /^FECHA 1 de 18/.test(t); }),
+    "SÍNTOMA: después del restart, la tabla de TU carrera (" + club + ") y no elegir club otra vez (" + s.textos().slice(0, 3).join(" · ") + ")");
+  assert(s.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "con la marca fija en la tabla");
+  /* ◀ VOLVER A LA TABLA (o cualquier otra vista que reinicia) */
+  reiniciar(s);
+  assert(s.save && s.save.club === club && s.save.temporada.fecha === 0, "un restart más: la misma carrera");
+  /* una fecha: el partido anota el resultado (en la copia de la sesión) y el Master lo aplica */
+  var C = PM.cargar({ logica: ["phaser/logic/semana.js", "phaser/logic/save_master.js"] });
+  C.ctx.localStorage = A.localStorage;
+  var partido = { game: { registry: A.registry } };
+  var res = { temporadaN: s.save.temporadaN, fecha: s.save.temporada.fecha, golesMio: 2, golesRival: 1, hiceGol: true };
+  assert(C.W.PampaMatch.prototype.anotarResultadoEnLaCarrera.call(partido, res) === true,
+    "el partido (match.js real) anota el resultado en la copia de la sesión aunque el almacenamiento tire");
+  assert(JSON.parse(A.reg.get("masterSaveMemoria")).resultadoPendiente.golesMio === 2, "y queda ahí, como resultadoPendiente");
+  reiniciar(s);
+  assert(s.save.temporada.fecha === 1 && s._ultimo && s._ultimo.golesMio === 2, "de vuelta en el Master: la fecha se jugó (fecha " + s.save.temporada.fecha + ")");
+  reiniciar(s);
+  assert(s.save.temporada.fecha === 1, "y no se juega dos veces");
+  /* borrar la carrera borra también la copia */
+  s.borrarCarrera();
+  reiniciar(s);
+  assert(!s.save && s.textos().indexOf("🏆 MODO MASTER") >= 0 && !A.reg.get("masterSaveMemoria"), "✕ BORRAR: se va también la copia de la sesión, y se vuelve a elegir club");
+  /* PEGAR UN CÓDIGO con el guardado bloqueado */
+  var CR = A.window.PampaCarrera;
+  var codigo = CR.exportar(A.carreraNueva("Toay"));
+  var imp = CR.importar(codigo, { ids: s.idsDeDivisiones(), saneo: s.opcionesDeSaneo() });
+  assert(imp.ok, "el código se importa (" + imp.error + ")");
+  s.importarCarrera(imp.save);
+  reiniciar(s);
+  assert(s.save && s.save.pueblo === "Toay" && s.textos().indexOf("🏆 MODO MASTER") < 0, "PEGAR UN CÓDIGO bloqueado: después del restart, la carrera del código");
+
+  /* LLENO: getItem devuelve la carrera VIEJA y setItem tira */
+  var B = M.armar({ logicaExtra: ["phaser/logic/entorno.js"] });
+  B.ctx.document = domDeMentira();
+  B.localStorage.setItem("pampa_master_v1", JSON.stringify(B.carreraNueva()));
+  var b = B.nueva(); b.create();
+  assert(b.save && b.save.temporada.fecha === 0, "lleno: la carrera vieja se lee (fecha 0)");
+  B.localStorage.setItem = function () { throw new Error("QuotaExceededError"); };
+  B.registry.set("masterResultado", { temporadaN: b.save.temporadaN, fecha: 0, golesMio: 1, golesRival: 0 });
+  reiniciar(b);
+  assert(b.save.temporada.fecha === 1, "se juega la fecha 1 (guardar falla: queda en la copia)");
+  reiniciar(b);
+  assert(b.save.temporada.fecha === 1, "SÍNTOMA: el restart siguiente NO rebobina a la carrera vieja del almacenamiento (fecha " + b.save.temporada.fecha + ")");
+  /* y si el almacenamiento vuelve a andar, el guardar() siguiente lo pone al día y suelta la copia */
+  delete B.localStorage.setItem;
+  B.localStorage.setItem = function (k, v) { B.store[k] = String(v); };
+  assert(b.guardar() === true && !B.reg.get("masterSaveMemoria") && JSON.parse(B.store.pampa_master_v1).temporada.fecha === 1,
+    "un guardar() que anda escribe lo último y suelta la copia de la sesión");
+  /* las otras escenas leen la misma carrera (piel_ui: crudoDelMaster) */
+  var PIEL = leer("phaser/scenes/piel_ui.js"), ESC = leer("phaser/scenes/escudos_ui.js"), INTRO = leer("phaser/scenes/intro.js");
+  assert(/crudoDelMaster: function \(\)/.test(PIEL) && /masterSaveMemoria/.test(PIEL.slice(PIEL.indexOf("crudoDelMaster: function"), PIEL.indexOf("registrarMusicaGlobal: function"))),
+    "piel_ui tiene crudoDelMaster, que mira la copia de la sesión");
+  assert(/this\.crudoDelMaster\(\)/.test(PIEL) && /sc\.crudoDelMaster/.test(ESC) && /this\.crudoDelMaster/.test(INTRO),
+    "la música, el escudo de tu club y el cartel de la intro leen por ahí");
+  console.log("[7] revisión: bloqueado, la carrera se crea, se juega una fecha y sigue en cada restart; PEGAR UN CÓDIGO igual; lleno, no rebobina");
+});
+
+/* ---------- [8] revisión L07: el aviso que se cerraba en el acto ----------
+   LO QUE ESTABA MAL: si el primer guardar() que falla es uno seguido de
+   scene.restart() o irA (crear la carrera, PEGAR UN CÓDIGO, ir a la
+   cancha, PASAR LA FECHA), el apagado de la escena cerraba la caja en el
+   mismo paso y, con "avisado" ya marcado, no volvía en la sesión. */
+pasos.push(async function () {
+  var A = M.armar({ logicaExtra: ["phaser/logic/entorno.js"] });
+  var doc = domDeMentira(); A.ctx.document = doc;
+  A.localStorage.setItem("pampa_master_v1", JSON.stringify(A.carreraNueva()));
+  var s = A.nueva(); s.create();
+  function cajas() { return doc.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length; }
+  assert(cajas() === 0, "con un almacenamiento que anda: sin aviso");
+  /* se llena: la prueba de entrada sigue dando bien (una clave chica entra) pero la carrera no */
+  var setOrig = A.localStorage.setItem;
+  A.localStorage.setItem = function (k, v) { if (k === "pampa_master_v1") throw new Error("QuotaExceededError"); return setOrig.call(this, k, v); };
+  assert(s.guardar() === false && cajas() === 1, "el primer guardar() que falla abre el aviso");
+  /* … y la escena se reinicia en el mismo paso (como _crearCarrera o PASAR LA FECHA) */
+  reiniciar(s);
+  assert(cajas() === 1, "SÍNTOMA: el aviso que el apagado cerró vuelve a abrirse en el create() siguiente (" + cajas() + " cajas)");
+  var seguir = doc.buscar(function (n) { return n.tagName === "button" && n.textContent === "▶ SEGUIR IGUAL"; })[0];
+  seguir.oyentes.click[0]("", function () { });
+  assert(cajas() === 0, "SEGUIR IGUAL lo cierra");
+  reiniciar(s);
+  assert(cajas() === 0 && s.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "leído y cerrado con un botón, no vuelve; la marca sigue fija");
+  var MS = leer("phaser/scenes/master.js");
+  assert(/this\.events\.once\("shutdown", \(\) => \{ this\._cajaGancho = false; this\.soltarAvisoPorApagado\(\); this\.cerrarCaja\(\); \}\)/.test(MS),
+    "el gancho de apagado deja el aviso pendiente antes de cerrar la caja");
+  console.log("[8] revisión: el aviso que se cierra con el apagado de la escena vuelve en el create() siguiente; con SEGUIR IGUAL, no");
 });
 
 (async function () {

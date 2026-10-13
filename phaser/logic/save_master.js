@@ -316,5 +316,32 @@
     return resultado(s, false);
   }
 
-  return { VERSION: VERSION, sanear: sanear, sePuedeJugar: sePuedeJugar, tablaDesdeResultados: tablaDesdeResultados };
+  /* ══════════════════════════════════════════════════════════════════════
+     REVISIÓN L07 · ¿DE DÓNDE SE LEE LA CARRERA?
+
+     Con el guardado bloqueado (los datos del sitio bloqueados, el iframe de
+     un medio con el almacenamiento cortado) el Master no se podía jugar,
+     aunque el aviso decía "Podés jugar igual". Medido en node con master.js
+     real: setItem y getItem tiran → elegir club → la entrevista →
+     _crearCarrera: guardar() da false → scene.restart() → create() relee el
+     almacenamiento, no hay nada y vuelve a "🏆 MODO MASTER", en un bucle.
+     Lo mismo con PEGAR UN CÓDIGO. Y con el almacenamiento LLENO, getItem
+     devuelve la carrera VIEJA: la fecha recién jugada se rebobinaba sola.
+
+     Ahora un guardar() que falla deja el texto de la carrera en el registry
+     ("masterSaveMemoria"), que dura lo que dura la página, y se lee ANTES
+     que el almacenamiento: la copia de la sesión es la última. Un guardar()
+     que anda la borra (el almacenamiento vuelve a tener lo último). Así
+     "si cerrás esta página, la carrera se pierde" pasa a ser cierto, y
+     mientras siga abierta, se juega.
+
+     leer: una función que lee el almacenamiento (puede tirar: en un iframe
+     con el almacenamiento bloqueado, LEER window.localStorage ya tira). */
+  var CLAVE = "pampa_master_v1";
+  function crudoDeLaSesion(memoria, leer) {
+    if (typeof memoria === "string" && memoria) return memoria;
+    try { return typeof leer === "function" ? leer() : null; } catch (e) { return null; }
+  }
+
+  return { VERSION: VERSION, CLAVE: CLAVE, sanear: sanear, sePuedeJugar: sePuedeJugar, tablaDesdeResultados: tablaDesdeResultados, crudoDeLaSesion: crudoDeLaSesion };
 });

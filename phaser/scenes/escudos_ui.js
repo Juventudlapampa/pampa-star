@@ -195,7 +195,8 @@
       if (Esc && division) esc = Object.assign({}, esc, { detalle: Esc.de(division).escudo_detalle });
       var _e = esc;
       /* D3: marcar si es el club del jugador, para que dibujar() use el escudo ilustrado */
-      try { var _s = JSON.parse(localStorage.getItem("pampa_master_v1") || "null");
+      /* revisión L07: con el guardado bloqueado, tu carrera está en la copia de la sesión (piel_ui, crudoDelMaster) */
+      try { var _s = JSON.parse((sc.crudoDelMaster ? sc.crudoDelMaster() : localStorage.getItem("pampa_master_v1")) || "null");
         if (_e && _s && _s.club && String(club) === String(_s.club)) _e.propio = true; } catch (e) {}
       return _e;
     }
