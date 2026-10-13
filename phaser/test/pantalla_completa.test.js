@@ -30,6 +30,8 @@
          termina en FULLSCREEN_FAILED, sin rechazos sueltos;
      [5] el botón PANTALLA: no existe sin API ni instalada, pide AL SOLTAR,
          cambia de texto y de ícono, y en el partido se esconde adentro;
+     [5b] (revisión L07) en el partido, pegado al reloj MÁS ANCHO medido
+         ("⏰ 90:00+ 2T" lo pisaba 6 px), no a un x fijo;
      [6] el cableado: index.html (mixin, script, fullscreenTarget = la página
          entera), el partido y el editor lo dibujan, balance.pantalla.
 
@@ -270,6 +272,35 @@ pasos.push(async function () {
   console.log("[5] el botón: sin API no existe; pide al soltar; texto e ícono según el estado; se esconde en el partido a pantalla completa");
 });
 
+/* ---------- [5b] revisión L07: el reloj de los últimos minutos pisaba la pastilla ----------
+   LO QUE ESTABA MAL (medido en el navegador): la pastilla iba centrada en
+   806 (de 758 a 854) porque el reloj se había medido como "90:00 2T"; pero
+   desde el 85 del 2T va "⏰ 90:00+ 2T", que mide 100 y arranca en 848, 6 px
+   debajo de la pastilla. Ahora el partido ubica el borde DERECHO de la
+   pastilla con el reloj más ancho, medido con el mismo objeto. */
+pasos.push(async function () {
+  var s = escena(navegador({ tactil: false }));
+  var bordes = [840, 840];
+  var b = s.botonPantalla(806, 15, { desdeDerecha: true, xDe: function () { return bordes.shift() || 820; } });
+  var W = b.zona.w;
+  assert(Math.round(b.zona.x + W / 2) === 840, "desdeDerecha: el borde derecho queda donde dice xDe (" + (b.zona.x + W / 2) + ")");
+  s.scale.emit(EV.ENTER_FULLSCREEN); s.scale.emit(EV.LEAVE_FULLSCREEN);
+  assert(Math.round(b.zona.x + W / 2) === 820, "xDe se vuelve a preguntar en cada pintada (la tipografía puede bajar después)");
+  /* bordeIzqDelReloj de match.js de verdad, con un reloj de mentira que mide 7 px por letra (el ⏰ cuenta 14) */
+  var PM = require("./_partido_de_mentira.js");
+  var C = PM.cargar();
+  var textos = [];
+  function medir(t) { return Array.from(t).reduce(function (a, c) { return a + (c === "⏰" ? 14 : 7); }, 0); }
+  var reloj = { scene: {}, x: 948, originX: 1, text: "12:15 1T", width: 0,
+    setText: function (t) { this.text = t; textos.push(t); this.width = medir(t); return this; } };
+  var borde = C.W.PampaMatch.prototype.bordeIzqDelReloj.call({ txtReloj: reloj, BAL: { tempo: { tramo_seg: 15 } } });
+  assert(borde === 948 - medir("⏰ 90:00+ 2T"), "mide los relojes de los últimos minutos y del descuento y se queda con el más ancho (" + borde + ")");
+  assert(textos.indexOf("⏰ 90:45+ 2T") >= 0 && textos.indexOf("45:30+ 1T") >= 0, "con los segundos del tramo (15) y el descuento del 1T");
+  assert(reloj.text === "12:15 1T", "y el reloj queda con el texto que tenía");
+  assert(C.W.PampaMatch.prototype.bordeIzqDelReloj.call({ txtReloj: null, BAL: {} }) === 856, "sin reloj, el borde de antes (856)");
+  console.log("[5b] revisión: la pastilla del partido va pegada al reloj más ancho, medido, sin pisarlo");
+});
+
 /* ---------- [6] el cableado ---------- */
 pasos.push(async function () {
   var INDEX = leer("phaser/index.html");
@@ -282,8 +313,10 @@ pasos.push(async function () {
   var hud = M.slice(M.indexOf("  buildHUD() {"), M.indexOf("  buildBotonPausa() {"));
   assert(/this\.buildBotonPantalla\(\);/.test(hud), "el HUD del partido arma el botón PANTALLA");
   var bp = M.slice(M.indexOf("  buildBotonPantalla() {"), M.indexOf("  buildBotonPausa() {"));
-  assert(/this\.botonPantalla\(806, 15, \{/.test(bp) && /soloEntrar: true/.test(bp) && /this\._uiTocado = this\.time\.now/.test(bp),
-    "en la barra del marcador (x=806), solo para entrar, y el toque no llega al mapa");
+  assert(/this\.botonPantalla\(840, 15, \{/.test(bp) && /soloEntrar: true/.test(bp) && /this\._uiTocado = this\.time\.now/.test(bp),
+    "en la barra del marcador, solo para entrar, y el toque no llega al mapa");
+  /* revisión L07: pegado al reloj MÁS ANCHO, medido, y no a un x fijo */
+  assert(/desdeDerecha: true, xDe: \(\) => this\.bordeIzqDelReloj\(\) - 8/.test(bp), "el borde derecho sale del reloj medido, con 8 px de aire");
   var ED = leer("phaser/scenes/editor.js");
   assert(/this\.botonPantalla\(100, 22, \{ largo: true/.test(ED), "el editor lo dibuja al lado de VER INTRO");
   var B = JSON.parse(leer("phaser/data/balance.json"));

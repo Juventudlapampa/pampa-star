@@ -132,6 +132,10 @@
                     no toca fuera del lienzo: igual que ⏸ PAUSA);
          desdeIzquierda x es el borde izquierdo y no el centro (el texto
                     cambia de largo y el botón crece hacia la derecha);
+         desdeDerecha x es el borde DERECHO (crece hacia la izquierda: en
+                    el partido, pegado al reloj sin pisarlo);
+         xDe        función que da x en cada pintada, en vez del x fijo (el
+                    partido la calcula con el ancho medido del reloj);
          alApoyar   (ev) al apoyar: el partido corta ahí el toque, para que
                     no llegue al mapa }
        Devuelve null si no sirve (sin API, o instalada): no hay botón muerto. */
@@ -155,7 +159,9 @@
         if (zona.input) zona.input.enabled = ver;
         if (!ver) return;
         t.setText(dentro ? "SALIR DE PANTALLA COMPLETA" : (o.largo ? "PANTALLA COMPLETA" : "PANTALLA"));
-        var W = AIRE + ICO + ENTRE + Math.ceil(t.width) + AIRE, x0 = o.desdeIzquierda ? x : Math.round(x - W / 2);
+        var xx = o.xDe ? o.xDe() : x;
+        var W = AIRE + ICO + ENTRE + Math.ceil(t.width) + AIRE;
+        var x0 = o.desdeIzquierda ? xx : o.desdeDerecha ? Math.round(xx - W) : Math.round(xx - W / 2);
         t.setX(x0 + AIRE + ICO + ENTRE);
         g.clear();
         g.fillStyle(0x0a1f13, 0.9); g.fillRoundedRect(x0, y - H / 2, W, H, 8);

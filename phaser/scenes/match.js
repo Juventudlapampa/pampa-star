@@ -5415,14 +5415,53 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      de la ilustración del panel, que no se toca.
      A pantalla completa se esconde: de ahí se sale con el atrás del
      teléfono o con ESC (un "SALIR" al lado de PAUSA se confunde con irse
-     del partido). Sin API (iPhone) o con la app instalada, no aparece. */
+     del partido). Sin API (iPhone) o con la app instalada, no aparece.
+
+     REVISIÓN L07 · EL RELOJ DE LOS ÚLTIMOS MINUTOS PISABA LA PASTILLA. Se
+     había medido el reloj como "0:00 1T" y "90:00 2T", que no es el peor:
+     con e6_cine, desde el 85 del 2T va "⏰ " adelante, y en el descuento un
+     "+". Medido en el navegador con el reloj de verdad (Archivo Black 14 px,
+     borde derecho en 948): "⏰ 90:00 2T" mide 91 y arranca en 857;
+     "⏰ 90:00+ 2T" mide 100 y arranca en 848, 6 px ADENTRO de la pastilla
+     (758 a 854), que se dibuja encima. Ahora el borde derecho de la
+     pastilla sale del ancho MEDIDO del reloj más ancho que puede salir
+     (bordeIzqDelReloj), con 8 px de aire: queda de 744 a 840. El marcador
+     más largo, medido igual con el nombre corto de cada rival de
+     data/divisiones.json (nombreCorto) y goles de dos cifras ("VOS 10 - 10
+     PUERTO CENTRAL"), termina en 623: entra con 121 px de aire. Si la
+     tipografía todavía no bajó al armar el HUD, se vuelve a ubicar cuando
+     baja. */
   buildBotonPantalla() {
     if (!this.botonPantalla) return null;
-    const b = this.botonPantalla(806, 15, {
+    /* 840 es el borde derecho medido (ver arriba); xDe lo vuelve a medir */
+    const b = this.botonPantalla(840, 15, {
       capa: this.hudLayer, soloEntrar: true, desdeArriba: true,
+      desdeDerecha: true, xDe: () => this.bordeIzqDelReloj() - 8,
       alApoyar: () => { this._uiTocado = this.time.now; }
     });
+    try {
+      if (b && typeof document !== "undefined" && document.fonts && document.fonts.status !== "loaded" && document.fonts.ready) {
+        document.fonts.ready.then(() => { if (b.t && b.t.scene) b.pintar(); });
+      }
+    } catch (e) { }
     return b;
+  }
+  /* el borde izquierdo del reloj con su texto MÁS ANCHO, medido con el
+     mismo objeto (misma tipografía, tamaño, contorno e interletrado): los
+     relojes que pueden salir en los últimos minutos y en los descuentos,
+     con los segundos de balance.tempo.tramo_seg (refrescarHUD) */
+  bordeIzqDelReloj() {
+    const r = this.txtReloj;
+    if (!r || !r.scene) return 856;
+    const tramo = (this.BAL.tempo && this.BAL.tempo.tramo_seg) || 15;
+    const antes = r.text;
+    let w = 0;
+    for (let s = 0; s < 60; s += tramo) {
+      const ss = ("0" + s).slice(-2);
+      ["⏰ 90:" + ss + "+ 2T", "⏰ 89:" + ss + " 2T", "45:" + ss + "+ 1T"].forEach((t) => { r.setText(t); w = Math.max(w, r.width); });
+    }
+    r.setText(antes);
+    return Math.round(r.x - w * (r.originX == null ? 1 : r.originX));
   }
   /* ══════════════════════════════════════════════════════════════════════
      TANDA 1.0 (L04) · EL BOTÓN DE PAUSA, AL LADO DEL SONIDO.
