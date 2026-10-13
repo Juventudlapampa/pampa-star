@@ -210,6 +210,16 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* Addendum v6 A.2: repetir el opening a gusto */
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
     vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.irA("intro"); });
+    /* L07 · PANTALLA COMPLETA (scenes/pantalla_ui.js), al lado de VER INTRO:
+       los dos son de la pantalla, no de la pinta. Medido en captura a
+       800x360: VER INTRO termina en x≈85 y lo de arriba al centro ("PASO 1
+       DE 2", "la cara que elijas…") arranca en x≈278; la cara, en y≈85.
+       Arranca en x=100 y crece a la derecha: la pastilla más larga ("SALIR
+       DE PANTALLA COMPLETA", 13 px) llega a ≈310. Con la cara en y≥85 y el
+       renglón de y=56 arrancando en 278, el área (de y=0 a tap_min) solo
+       roza el principio de ese renglón, que no se toca. Sin API (iPhone) o
+       con la app instalada, no aparece. */
+    if (this.botonPantalla) this.botonPantalla(100, 22, { largo: true, desdeArriba: true, desdeIzquierda: true });
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
     /* TANDA 1.0 · LA VERSIÓN A LA VISTA. Si alguien de una localidad avisa
        "se me trabó", lo primero que hay que saber es qué versión tenía, y no

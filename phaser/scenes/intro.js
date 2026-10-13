@@ -259,9 +259,23 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       if (this._arranco || this._fin) return;
       this._arranco = true;
       this.SFX && this.SFX.unlock && this.SFX.unlock();   // EL GESTO: el audio queda habilitado
+      /* L07 · PANTALLA COMPLETA Y HORIZONTAL (scenes/pantalla_ui.js). En el
+         teléfono, sin la barra del navegador el lienzo pasa de 0,659 a 0,763
+         (un 16% más grande), y trabado en horizontal no se da vuelta aunque
+         la rotación automática esté apagada. La guarda la pone
+         logic/entorno.js (decidirPantallaCompleta): solo si el navegador
+         tiene la API y no está instalada (la app instalada ya abre así),
+         y la compuerta la pide sola solo con el dedo (balance.pantalla.auto).
+         En iPhone no hay API para la página: no pide nada. */
+      if (this.pantallaCompleta) this.pantallaCompleta("compuerta");
       this.seguirAlOpening();   // L06: arranca ya, o cuando termine de bajar lo suyo
     };
-    this.input.once("pointerdown", go);
+    /* L07 · AL SOLTAR, no al apoyar: con el dedo, pointerdown llega con el
+       touchstart, que NO da permiso para pedir pantalla completa (la
+       activación de un toque es al soltar: touchend o pointerup). Con el
+       mouse, el permiso del mousedown dura hasta el pointerup. El salteo de
+       después (armarSalteo) sigue con pointerdown: ese toque ya es otro. */
+    this.input.once("pointerup", go);
     if (this.input.keyboard) this.input.keyboard.once("keydown", go);
   }
 

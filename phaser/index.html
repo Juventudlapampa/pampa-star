@@ -189,7 +189,7 @@
   (function () {
     "use strict";
     var C = window.PampaCartel = {
-      SCRIPTS: 52, DATOS: 15,
+      SCRIPTS: 54, DATOS: 15,
       PESOS: { scripts: 0.73, datos: 0.18, escena: 0.09 },
       scripts: 0, datos: 0, escena: 0, pct: 0, fuera: false
     };
@@ -1109,8 +1109,12 @@
   <script src="logic/carga.js"></script>
   <!-- L06: el tope de lado en memoria de las texturas y cuánto ocupan (?perf=1) -->
   <script src="logic/memoria.js"></script>
+  <!-- L07: dónde corre el juego (pantalla completa) -->
+  <script src="logic/entorno.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/piel_ui.js"></script>
+  <!-- L07: pantalla completa y horizontal (el mixin entra en las cuatro escenas, abajo) -->
+  <script src="scenes/pantalla_ui.js"></script>
   <script src="scenes/sprites.js"></script>
   <script src="scenes/avatar_arte.js"></script>
   <script src="scenes/intro.js"></script>
@@ -1140,6 +1144,9 @@
          el foco levanta los botones y para eso necesita que la piel ya les haya
          puesto su escala base. */
       if (window.PampaFocoUI) Object.assign(S.prototype, window.PampaFocoUI);
+      /* L07: pantalla completa (la compuerta de la intro, PANTALLA en el
+         partido y en el editor) */
+      if (window.PampaPantallaUI) Object.assign(S.prototype, window.PampaPantallaUI);
     });
   </script>
   <script>
@@ -1583,7 +1590,12 @@
       type: Phaser.AUTO,
       parent: "game",
       backgroundColor: "#06120b",
-      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
+      /* L07: a pantalla completa va TODA LA PÁGINA, no el lienzo. Sin
+         fullscreenTarget Phaser mete el lienzo en un div propio y pone ESE a
+         pantalla completa, y ahí solo se ve lo que está adentro: "Algo se
+         trabó", la caja del código de carrera, el aviso del atrás y el de la
+         versión nueva quedaban fuera de la vista (scenes/pantalla_ui.js) */
+      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540, fullscreenTarget: document.documentElement },
       render: { roundPixels: true, pixelArt: true },   // config base del doc v2 §2: pixel nítido, scroll sin temblor
       /* L04: mantener apretado sobre el lienzo (o el clic derecho) no abre el
          menú del navegador encima del partido */

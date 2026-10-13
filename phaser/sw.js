@@ -90,6 +90,8 @@ const PRECACHE = [
   "./logic/carga.js",
   /* tanda 1.0 (L06): el tope de las texturas en memoria */
   "./logic/memoria.js",
+  /* tanda 1.0 (L07): dónde corre el juego y la pantalla completa */
+  "./logic/entorno.js", "./scenes/pantalla_ui.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",

@@ -5390,6 +5390,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this._muteTxt.setText(this.SFX.isMuted() ? "🔇" : "🔊");
     });
     this.buildBotonPausa();
+    this.buildBotonPantalla();
+  }
+  /* ══════════════════════════════════════════════════════════════════════
+     TANDA 1.0 (L07) · EL BOTÓN PANTALLA, EN LA BARRA DEL MARCADOR.
+
+     Al lado del 🔊 no entra: el 🔊 toca hasta x=46, ⏸ PAUSA hasta 129 y las
+     fichas arrancan en 136 (y llegan a 313, medido). Va del otro lado de la
+     misma barra, en el hueco medido entre el marcador ("VOS 0 - 0 ESPEJO DE
+     SAL": de x=361 a 600) y el reloj ("0:00 1T" arranca en 891; "90:00 2T"
+     en ≈878): la pastilla de 98 px centrada en 806 va de 757 a 855. El área
+     táctil baja desde y=0 hasta tap_min, como la de PAUSA, sobre la esquina
+     de la ilustración del panel, que no se toca.
+     A pantalla completa se esconde: de ahí se sale con el atrás del
+     teléfono o con ESC (un "SALIR" al lado de PAUSA se confunde con irse
+     del partido). Sin API (iPhone) o con la app instalada, no aparece. */
+  buildBotonPantalla() {
+    if (!this.botonPantalla) return null;
+    const b = this.botonPantalla(806, 15, {
+      capa: this.hudLayer, soloEntrar: true, desdeArriba: true,
+      alApoyar: () => { this._uiTocado = this.time.now; }
+    });
+    return b;
   }
   /* ══════════════════════════════════════════════════════════════════════
      TANDA 1.0 (L04) · EL BOTÓN DE PAUSA, AL LADO DEL SONIDO.
