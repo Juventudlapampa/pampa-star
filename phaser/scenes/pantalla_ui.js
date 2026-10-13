@@ -4,7 +4,7 @@
 
    Lo que estaba mal, medido: requestFullscreen, startFullscreen y
    orientation.lock daban 0 resultados en phaser/ (grep). En un Android
-   apaisado de 915x412 con la barra de Chrome, el lienzo se ve a 0,659; a
+   apaisado de 915x412 con la barra del navegador, el lienzo se ve a 0,659; a
    pantalla completa sería 0,763: todo un 16% más grande. Y la compuerta
    escuchaba pointerdown, que con el dedo NO cuenta como gesto para pedir
    pantalla completa (la especificación da "activación" al soltar: pointerup
@@ -23,7 +23,7 @@
      2) EL MIXIN (las cuatro escenas, como la piel y el cursor):
         pantallaCompleta(origen) decide con logic/entorno.js
         (decidirPantallaCompleta) y pide; al entrar, traba la orientación en
-        horizontal (screen.orientation.lock: en Chrome de Android solo anda
+        horizontal (screen.orientation.lock: en Android solo anda
         a pantalla completa, y es lo que deja el juego apaisado aunque la
         rotación automática esté apagada). botonPantalla() dibuja el botón
         "PANTALLA" con su ícono de cuatro esquinas dibujado (no un carácter:
@@ -51,7 +51,8 @@
          detección del vendor elige "requestFullscreen" primero y pone
          keyboard = true si existe Element.ALLOW_KEYBOARD_INPUT (la
          constante vieja de WebKit). Con requestFullscreen SIN prefijo
-         (Safari desde la 16.4, en Mac y en iPad), pasar ese número donde va
+         (el navegador de fábrica del iPad, y el de las compus de la misma
+         marca, desde su versión 16.4), pasar ese número donde va
          un FullscreenOptions es un TypeError por WebIDL: la promesa se
          rechaza, termina en FULLSCREEN_FAILED y el botón PANTALLA queda
          muerto. El número es del pedido viejo (webkitRequestFullScreen);
@@ -114,7 +115,7 @@
       return true;
     },
     /* horizontal aunque el teléfono gire; si el navegador no lo deja (la
-       compu, iPhone, Firefox), no pasa nada */
+       compu, iPhone, algunos navegadores de Android), no pasa nada */
     trabarHorizontal: function () {
       try {
         var o = window.screen && window.screen.orientation;

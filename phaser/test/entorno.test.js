@@ -96,10 +96,10 @@ var ESPERADO = {
 /* ---------- [2] textos y links ---------- */
 (function () {
   var a = E.textoIntegrado("instagram", "android");
-  assert(a.titulo === "Estás en el navegador de Instagram" && /quede guardada y se juegue a pantalla completa, abrilo en Chrome/.test(a.texto) && a.chrome === true && !a.pasos,
-    "Instagram en Android: el texto del ítem y ABRIR EN CHROME");
+  assert(a.titulo === "Estás en el navegador de Instagram" && /quede guardada y se juegue a pantalla completa, abrilo en Chrome/.test(a.texto) && a.abrir === true && a.boton === "🌐 ABRIR EN CHROME" && !a.pasos,
+    "Instagram en Android: el texto del ítem y el botón ABRIR EN CHROME");
   var i = E.textoIntegrado("tiktok", "ios");
-  assert(i.titulo === "Estás en el navegador de TikTok" && /Safari/.test(i.texto) && /···/.test(i.pasos) && i.chrome === false, "TikTok en iPhone: Safari y los pasos del menú ···");
+  assert(i.titulo === "Estás en el navegador de TikTok" && /Safari/.test(i.texto) && /···/.test(i.pasos) && i.abrir === false && i.navegador === "Safari", "TikTok en iPhone: Safari y los pasos del menú ···");
   var o = E.textoIntegrado("otro", "android");
   assert(o.titulo === "Estás en el navegador de una app", "otra app: sin nombre");
   assert(E.textoIntegrado(null, "android") === null, "sin app no hay cartel");
@@ -108,10 +108,13 @@ var ESPERADO = {
   assert(/Se puede jugar igual/.test(a.nota), "y dice que se puede seguir igual");
   var href = "https://juventudlapampa.github.io/pampa-star/phaser/index.html?ref=embed&v=2#x";
   assert(E.linkLimpio(href) === "https://juventudlapampa.github.io/pampa-star/phaser/index.html?v=2", "el link limpio saca ref, embed y # (" + E.linkLimpio(href) + ")");
-  var it = E.linkAbrirEnChrome(href);
+  var it = E.linkIntentAndroid(href);
   assert(it === "intent://juventudlapampa.github.io/pampa-star/phaser/index.html?v=2#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
     encodeURIComponent("https://juventudlapampa.github.io/pampa-star/phaser/index.html?v=2") + ";end", "ABRIR EN CHROME: intent:// a la misma dirección, con Chrome y la dirección de respaldo (" + it + ")");
-  assert(E.linkAbrirEnChrome("file:///c/x.html") === null, "sin http(s) no hay intent");
+  assert(E.linkIntentAndroid("file:///c/x.html") === null, "sin http(s) no hay intent");
+  /* revisión L07 · Sección 11: la función se llama por lo que hace, no por la marca */
+  assert(typeof E.linkAbrirEnChrome === "undefined", "el link de Android se llama linkIntentAndroid (sin la marca en el nombre)");
+  assert(E.textoIntegrado("facebook", "otro").navegador === "el navegador", "en la compu, el link se pega en 'el navegador'");
   console.log("[2] textos por sistema, intent:// con Chrome y respaldo, link limpio");
 })();
 
@@ -149,7 +152,7 @@ function domCartel(op) {
       emitir: function (t, ev) { (this.oyentes[t] || []).forEach(function (f) { f(ev || { stopPropagation: function () { } }); }); },
       focus: function () { this.enfocado = true; } };
   }
-  el("integrado", "div"); el("ig-tit"); el("ig-txt"); el("ig-pasos"); el("ig-chrome", "a"); el("ig-copiar", "button"); el("ig-seguir", "button"); el("ig-link"); el("ig-nota");
+  el("integrado", "div"); el("ig-tit"); el("ig-txt"); el("ig-pasos"); el("ig-abrir", "a"); el("ig-copiar", "button"); el("ig-seguir", "button"); el("ig-link"); el("ig-nota");
   els["ig-copiar"].hidden = false; els["ig-seguir"].hidden = false; els["ig-tit"].hidden = false; els["ig-txt"].hidden = false; els["ig-nota"].hidden = false;
   var sesion = op.sesion || {};
   var win = { PampaEntorno: E, PAMPA_EMBEBIDO: !!op.embebido,
@@ -172,9 +175,11 @@ pasos.push(async function () {
   var D = domCartel({ ua: UA.instagram_android });
   assert(D.els.integrado.hidden === false && D.IG.visible === true, "SÍNTOMA: abierto desde Instagram en Android, aparece el cartel");
   assert(D.els["ig-tit"].textContent === "Estás en el navegador de Instagram" && /abrilo en Chrome/.test(D.els["ig-txt"].textContent), "con el título y el texto del ítem");
-  assert(D.els["ig-chrome"].hidden === false && /^intent:\/\/juventudlapampa\.github\.io\/pampa-star\/phaser\/index\.html#Intent;scheme=https;package=com\.android\.chrome;/.test(D.els["ig-chrome"].href),
-    "🌐 ABRIR EN CHROME con el intent:// a esta dirección, sin el ?ref (" + D.els["ig-chrome"].href + ")");
-  assert(D.els["ig-chrome"].enfocado, "y el foco arranca en ABRIR EN CHROME");
+  assert(D.els["ig-abrir"].hidden === false && /^intent:\/\/juventudlapampa\.github\.io\/pampa-star\/phaser\/index\.html#Intent;scheme=https;package=com\.android\.chrome;/.test(D.els["ig-abrir"].href),
+    "🌐 ABRIR EN CHROME con el intent:// a esta dirección, sin el ?ref (" + D.els["ig-abrir"].href + ")");
+  assert(D.els["ig-abrir"].textContent === "🌐 ABRIR EN CHROME", "el botón dice ABRIR EN CHROME (el texto sale de la tabla de entorno.js, no del HTML)");
+  assert(/<a id="ig-abrir"[^>]*>🌐 ABRIR EN EL NAVEGADOR<\/a>/.test(INDEX), "en el HTML el botón va neutro");
+  assert(D.els["ig-abrir"].enfocado, "y el foco arranca en ABRIR EN CHROME");
   assert(D.els["ig-pasos"].hidden === true, "en Android no hay pasos del menú");
   /* los toques y las teclas del cartel no llegan al juego */
   var cortes = ["mousedown", "touchstart", "touchend", "pointerdown", "pointerup", "keydown", "keyup"];
@@ -192,7 +197,7 @@ pasos.push(async function () {
   assert(D2.els.integrado.hidden === true, "recargando en la misma sesión, no vuelve a aparecer");
   /* iPhone */
   var Di = domCartel({ ua: UA.facebook_ios });
-  assert(Di.els.integrado.hidden === false && Di.els["ig-chrome"].hidden === true && Di.els["ig-pasos"].hidden === false && /···/.test(Di.els["ig-pasos"].textContent),
+  assert(Di.els.integrado.hidden === false && Di.els["ig-abrir"].hidden === true && Di.els["ig-pasos"].hidden === false && /···/.test(Di.els["ig-pasos"].textContent),
     "Facebook en iPhone: sin ABRIR EN CHROME, con los pasos del menú ···");
   var Dp = domCartel({ ua: UA.tiktok_ios, sinPortapapeles: true });
   Dp.els["ig-copiar"].emitir("click");

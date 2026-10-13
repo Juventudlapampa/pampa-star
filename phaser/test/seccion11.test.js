@@ -78,6 +78,51 @@ FILES.forEach(f => {
   MARCAS_TEXTO.forEach(re => { const h = s.match(re); assert(!h, "§11 marca en un texto de " + rel + ": «" + (h ? h[0] : "") + "»"); });
 });
 
+/* ---------- 1c) APPS Y NAVEGADORES: LA EXCEPCIÓN ACOTADA (revisión L07) ----------
+   El cartel "Estás en el navegador de… abrilo en…" (ítem
+   navegadores-de-redes-y-guardado) tiene que nombrar la app y el navegador:
+   quien juega tiene que reconocer la app en la que está y el botón que
+   busca. Pero el lote L07 los dejó además en nombres de funciones, en
+   comentarios y en el aviso del Master (medido con git grep sobre phaser/:
+   un navegador pasó de 2 a 41 apariciones y una app de 0 a 20), y sin una
+   excepción escrita este guardián no podía distinguir la próxima
+   filtración. Ahora la excepción tiene límites: SOLO en
+   phaser/logic/entorno.js, entre sus dos marcas, y solo en el código (las
+   firmas que se buscan en el user agent, el paquete del link de Android y
+   la tabla de los textos del cartel), ni en sus comentarios. En el resto
+   del producto, ni una. Si hace falta un nombre para el cartel, va en esa
+   tabla (entorno.js, NOMBRE_APP y NAVEGADOR). */
+const APPS = /\b(instagram|facebook|tiktok|messenger|whatsapp|wechat|twitter|snapchat|linkedin|pinterest|chrome|safari|firefox|samsung)/gi;
+const EXC_DESDE = "/* §11 EXCEPCIÓN ACOTADA · desde acá */", EXC_HASTA = "/* §11 EXCEPCIÓN ACOTADA · hasta acá */";
+const ENTORNO = path.join(RAIZ, "phaser", "logic", "entorno.js");
+let nombresEnLaExcepcion = -1;
+FILES.forEach(f => {
+  let s = fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
+  const rel = path.relative(RAIZ, f).replace(/\\/g, "/");
+  if (path.resolve(f) === path.resolve(ENTORNO)) {
+    const i = s.indexOf(EXC_DESDE), j = s.indexOf(EXC_HASTA);
+    assert(i > 0 && j > i && s.indexOf(EXC_DESDE, i + 1) < 0 && s.indexOf(EXC_HASTA, j + 1) < 0,
+      "§11 entorno.js tiene UNA excepción acotada, con sus dos marcas");
+    if (i > 0 && j > i) {
+      const bloque = s.slice(i + EXC_DESDE.length, j);
+      (bloque.match(/\/\*[\s\S]*?\*\//g) || []).forEach(c => {
+        const h = c.match(APPS);
+        assert(!h, "§11 nombre de app o navegador en un COMENTARIO de la excepción de entorno.js: «" + (h && h[0]) + "»");
+      });
+      nombresEnLaExcepcion = (bloque.replace(/\/\*[\s\S]*?\*\//g, "").match(APPS) || []).length;
+      /* el bloque sale del barrido, pero sus renglones quedan (los números de línea siguen valiendo) */
+      s = s.slice(0, i) + bloque.replace(/[^\n]/g, "") + s.slice(j + EXC_HASTA.length);
+    }
+  }
+  s.split("\n").forEach((l, n) => {
+    const h = l.match(APPS);
+    if (h) assert(false, "§11 nombre de app o navegador fuera de la excepción acotada, en " + rel + ":" + (n + 1) + ": «" + h[0] +
+      "» → si es para el cartel de la red social, va en la tabla de logic/entorno.js; si es un comentario, sin el nombre");
+  });
+});
+assert(nombresEnLaExcepcion > 0 && nombresEnLaExcepcion <= 25,
+  "§11 la excepción de entorno.js tiene sus nombres y no crece sin que se note (" + nombresEnLaExcepcion + "; tope 25)");
+
 /* ---------- 2) "GUTS" COMO TEXTO VISIBLE ----------
    Los identificadores internos y keys de save (gutsProximo, PS.guts, GUTS_*,
    clases CSS .guts) son retrocompatibilidad y NO se tocan: solo se caza el

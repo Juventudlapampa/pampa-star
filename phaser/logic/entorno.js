@@ -7,13 +7,13 @@
    veces en vertical y a veces adentro de la nota de un medio. Lo que estaba
    mal, medido con grep sobre phaser/ antes de este lote:
      · requestFullscreen, startFullscreen y orientation.lock: 0. Con la barra
-       de Chrome el lienzo se ve a 0,659; a pantalla completa, a 0,763 (16%
+       del navegador el lienzo se ve a 0,659; a pantalla completa, a 0,763 (16%
        más grande). Y quien tiene la rotación bloqueada quedaba trabado en
        "Girá el celular";
      · self !== top, embed y beforeinstallprompt: 0. Embebido como lo embebe
        un medio (iframe de 100% de ancho y 1100 px de alto) el juego quedaba
        en "Girá el celular" a 358, 700 y 780 px;
-     · userAgent, Instagram, FBAN y TikTok: 0. Abierta desde una red social,
+     · userAgent y las firmas de las redes sociales: 0. Abierta desde una red social,
        la carrera quedaba en el navegador de la app; y si guardar fallaba,
        master.js lo tragaba en silencio.
 
@@ -67,7 +67,7 @@
   };
   /* JUGAR EN HORIZONTAL (la portada en vertical, portada-vertical-y-embebido):
      pantalla completa + trabar la orientación. Hacen falta las dos: en
-     Chrome de Android lock() solo anda con la página a pantalla completa, y
+     Android, lock() solo anda con la página a pantalla completa, y
      es lo que gira el teléfono aunque la rotación automática esté apagada.
      e = { disponible, lock (screen.orientation.lock existe), instalada, embebido } */
   E.horizontalPosible = function (e) {
@@ -157,27 +157,33 @@
   /* ══════════════════════════════════════════════════════════════════════
      EL NAVEGADOR DE UNA RED SOCIAL (navegadores-de-redes-y-guardado)
 
-     La difusión es por redes, y en Instagram, Facebook o TikTok el link se
-     abre adentro del navegador de la app. La carrera vive en el
-     almacenamiento del navegador donde se juega: empezada ahí, no aparece
-     después en Chrome ni en la app instalada (y esos navegadores no
+     La difusión es por redes, y en las redes sociales el link se abre
+     adentro del navegador de la app. La carrera vive en el almacenamiento
+     del navegador donde se juega: empezada ahí, no aparece después en el
+     navegador del teléfono ni en la app instalada (y esos navegadores no
      ofrecen instalar; la pantalla completa varía según la app: datos de
      plataforma, no reproducidos acá).
 
-     Devuelve "instagram", "facebook", "tiktok", "otro" (el navegador de
-     otra app) o null (un navegador de verdad: Chrome, Samsung Internet,
-     Safari, Firefox…). Lo que cada app pone en su user agent:
-       · Instagram: "Instagram 307.0…" (Android y iPhone);
-       · Facebook:  "FBAN/", "FBAV/" o "FB_IAB" (y Messenger, de la misma
-                    familia: "FB_IAB/Orca-Android" o "FBAN/Messenger");
-       · TikTok:    "musical_ly", "trill_", "BytedanceWebview" o "TikTok";
-       · otra app en Android: el ";wv)" del WebView del sistema (Chrome y
-         Samsung Internet no lo llevan); en iPhone, las apps que se
-         presentan con su nombre (Twitter, Snapchat, LinkedIn, Line…).
-     El orden importa: Instagram y Facebook en Android también llevan ";wv)".
-     Los nombres de las apps y de los navegadores aparecen SOLO en este
-     cartel: quien juega tiene que reconocer la app en la que está y el
-     botón que busca. No son parte del mundo del juego. */
+     navegadorIntegrado(ua) devuelve la clave de la app (las de NOMBRE_APP,
+     con la app de mensajes de la misma familia adentro de la segunda),
+     "otro" (el navegador de otra app) o null (un navegador de verdad). Cada
+     app firma su user agent; las firmas que se buscan son las de las
+     expresiones de abajo, probadas con 18 user agents de verdad en
+     entorno.test.js [1]. Otra app en Android: el ";wv)" del WebView del
+     sistema, que los navegadores de verdad no llevan; en iPhone, las que se
+     presentan con su nombre. El orden importa: las dos primeras, en
+     Android, también llevan ";wv)".
+
+     SECCIÓN 11 · LA EXCEPCIÓN ACOTADA (revisión L07). Los nombres de las
+     apps y de los navegadores son marcas reales. Entran SOLO entre las dos
+     marcas de abajo, y solo en el código (las firmas que se buscan, el
+     paquete del link de Android y los textos del cartel, donde quien juega
+     tiene que reconocer la app en la que está y el botón que busca); ni en
+     los comentarios ni en el resto del juego. seccion11.test.js [1c] lo
+     controla. Lo pidió el ítem (el cartel "Estás en el navegador de…
+     abrilo en…"); está anotado en docs/TANDA_1_0.md para que lo confirme
+     Rodri. */
+  /* §11 EXCEPCIÓN ACOTADA · desde acá */
   E.navegadorIntegrado = function (ua) {
     var s = String(ua || "");
     if (!s) return null;
@@ -192,11 +198,49 @@
     if (/\b(Twitter|Snapchat|LinkedInApp|Line\/|MicroMessenger|Pinterest|GSA\/)/i.test(s)) return "otro";
     return null;
   };
+  /* el nombre que se lee en el cartel, por app; y el navegador al que se
+     manda, por sistema (en los dos textos de COPIAR EL LINK también) */
   E.NOMBRE_APP = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
-  /* ABRIR EN CHROME (Android): un link intent:// que le pide al sistema abrir
-     esta misma dirección con Chrome. Si Chrome no está, el sistema va a
-     browser_fallback_url, que es la misma dirección (abre con el navegador
-     que haya). La dirección va limpia: sin ?ref, sin ?embed y sin #. */
+  E.NAVEGADOR = { android: "Chrome", ios: "Safari" };
+  /* EL LINK PARA ABRIRLO AFUERA (Android): un intent:// que le pide al
+     sistema abrir esta misma dirección con el navegador del teléfono (el
+     paquete). Si no está, el sistema va a browser_fallback_url, que es la
+     misma dirección (abre con el navegador que haya). La dirección va
+     limpia: sin ?ref, sin ?embed y sin #. */
+  E.linkIntentAndroid = function (href) {
+    var limpio = E.linkLimpio(href);
+    var m = limpio.match(/^https?:\/\/(.+)$/i);
+    if (!m) return null;
+    return "intent://" + m[1] + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
+      encodeURIComponent(limpio) + ";end";
+  };
+  /* el texto del cartel, por app y por sistema: se habla de "tu carrera" y
+     de lo que hay que tocar (sin masculino genérico). abrir: si va el botón
+     del link de Android; boton: lo que dice; navegador: a dónde se pega el
+     link si se copia */
+  E.textoIntegrado = function (app, sistema) {
+    if (!app) return null;
+    var nombre = E.NOMBRE_APP[app];
+    var nav = E.NAVEGADOR[sistema] || null;
+    var t = {
+      titulo: nombre ? "Estás en el navegador de " + nombre : "Estás en el navegador de una app",
+      texto: "", pasos: null, abrir: false, boton: null,
+      navegador: nav || "el navegador",
+      nota: "Se puede jugar igual, pero lo que juegues acá queda solo adentro de esta app."
+    };
+    if (sistema === "android") {
+      t.texto = "Para que tu carrera quede guardada y se juegue a pantalla completa, abrilo en " + nav + ".";
+      t.abrir = true;
+      t.boton = "🌐 ABRIR EN " + nav.toUpperCase();
+    } else if (sistema === "ios") {
+      t.texto = "Para que tu carrera quede guardada, abrilo en " + nav + ".";
+      t.pasos = "Tocá el menú ··· (arriba a la derecha) y elegí «Abrir en el navegador».";
+    } else {
+      t.texto = "Para que tu carrera quede guardada, abrilo en el navegador del teléfono.";
+    }
+    return t;
+  };
+  /* §11 EXCEPCIÓN ACOTADA · hasta acá */
   /* la dirección para llevarse a otro navegador: sin ?ref, ?embed ni # */
   E.linkLimpio = function (href) {
     var s = String(href || "");
@@ -205,34 +249,6 @@
     var q = s.indexOf("?"), base = q >= 0 ? s.slice(0, q) : s, busq = q >= 0 ? s.slice(q + 1) : "";
     var partes = busq.split("&").filter(function (p) { return p && !/^(embed|ref)=/.test(p); });
     return base + (partes.length ? "?" + partes.join("&") : "");
-  };
-  E.linkAbrirEnChrome = function (href) {
-    var limpio = E.linkLimpio(href);
-    var m = limpio.match(/^https?:\/\/(.+)$/i);
-    if (!m) return null;
-    return "intent://" + m[1] + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
-      encodeURIComponent(limpio) + ";end";
-  };
-  /* el texto del cartel, por app y por sistema: se habla de "tu carrera" y
-     de lo que hay que tocar (sin masculino genérico) */
-  E.textoIntegrado = function (app, sistema) {
-    if (!app) return null;
-    var nombre = E.NOMBRE_APP[app];
-    var t = {
-      titulo: nombre ? "Estás en el navegador de " + nombre : "Estás en el navegador de una app",
-      texto: "", pasos: null, chrome: false,
-      nota: "Se puede jugar igual, pero lo que juegues acá queda solo adentro de esta app."
-    };
-    if (sistema === "android") {
-      t.texto = "Para que tu carrera quede guardada y se juegue a pantalla completa, abrilo en Chrome.";
-      t.chrome = true;
-    } else if (sistema === "ios") {
-      t.texto = "Para que tu carrera quede guardada, abrilo en Safari.";
-      t.pasos = "Tocá el menú ··· (arriba a la derecha) y elegí «Abrir en el navegador».";
-    } else {
-      t.texto = "Para que tu carrera quede guardada, abrilo en el navegador del teléfono.";
-    }
-    return t;
   };
 
   /* ══════════════════════════════════════════════════════════════════════

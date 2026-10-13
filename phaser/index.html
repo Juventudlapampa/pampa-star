@@ -66,7 +66,7 @@
   #cargando .nota{font-size:15px;color:#9FB3A5;margin:14px auto 0;max-width:80vw;}
   #cargando .nota[hidden]{display:none;}
   /* L07: 100vh ANTES de cada 100dvh. Un navegador que no entiende dvh
-     (Chrome de antes de 2022, el de muchos teléfonos que no se actualizan)
+     (los de antes de 2022, los de muchos teléfonos que no se actualizan)
      descarta la regla entera y el juego quedaba sin alto; con el respaldo
      adelante, el que entiende dvh se queda con la segunda */
   #game{width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;}
@@ -184,8 +184,8 @@
     #cajacodigo textarea{height:4.6em;margin-top:4px;}
     #cajacodigo .botones{gap:8px;margin:4px 0 2px;}
   }
-  /* EL NAVEGADOR DE UNA RED SOCIAL (L07): "Estás en el navegador de
-     Instagram…". Arriba de la portada (50), del póster y de la versión nueva
+  /* EL NAVEGADOR DE UNA RED SOCIAL (L07): "Estás en el navegador de…".
+     Arriba de la portada (50), del póster y de la versión nueva
      (55), debajo de la caja del código (60), del atrás (70) y de "Algo se
      trabó" (100). Con la misma piel que los otros avisos; los botones con
      ícono y texto, de 48 de alto. El link se puede seleccionar (para
@@ -398,14 +398,17 @@
     </div>
   </div>
   <!-- L07 · EL NAVEGADOR DE UNA RED SOCIAL: los textos los arma
-       logic/entorno.js (textoIntegrado) según la app y el sistema -->
+       logic/entorno.js (textoIntegrado) según la app y el sistema. Revisión
+       L07: también el del botón del link de Android, que acá va neutro; los
+       nombres de las apps y de los navegadores viven solo en esa tabla
+       (Sección 11, la excepción acotada) -->
   <div id="integrado" role="dialog" aria-modal="true" aria-labelledby="ig-tit" hidden>
     <div class="caja">
       <h1><span class="ico" aria-hidden="true">⚠</span><span id="ig-tit"></span></h1>
       <p id="ig-txt"></p>
       <p id="ig-pasos" class="pasos" hidden></p>
       <div class="botones">
-        <a id="ig-chrome" class="btn prim" href="#" hidden>🌐 ABRIR EN CHROME</a>
+        <a id="ig-abrir" class="btn prim" href="#" hidden>🌐 ABRIR EN EL NAVEGADOR</a>
         <button type="button" id="ig-copiar">📋 COPIAR EL LINK</button>
         <button type="button" id="ig-seguir" class="sec">▶ SEGUIR ACÁ IGUAL</button>
       </div>
@@ -1229,12 +1232,13 @@
      EL NAVEGADOR DE UNA RED SOCIAL Y EL GUARDADO (tanda 1.0, L07 ·
      navegadores-de-redes-y-guardado). ES5, antes que el motor.
 
-     Lo que estaba mal, medido: userAgent, Instagram, FBAN y TikTok daban 0
-     en phaser/ (grep). La difusión es por redes, y ahí el link se abre en el
-     navegador de la app: la carrera queda en ESE almacenamiento y después
-     no aparece en Chrome ni en la app instalada. Ahora, si
-     logic/entorno.js (navegadorIntegrado) reconoce la app, aparece el
-     cartel arriba de la portada y de la compuerta: qué pasa, ABRIR EN CHROME
+     Lo que estaba mal, medido: userAgent y las firmas de las redes
+     sociales daban 0 en phaser/ (grep). La difusión es por redes, y ahí el
+     link se abre en el navegador de la app: la carrera queda en ESE
+     almacenamiento y después no aparece en el navegador del teléfono ni en
+     la app instalada. Ahora, si logic/entorno.js (navegadorIntegrado)
+     reconoce la app, aparece el cartel arriba de la portada y de la
+     compuerta: qué pasa, el botón para abrirlo en el navegador del teléfono
      en Android (un link intent:// a esta misma dirección), los pasos del
      menú ··· en iPhone, COPIAR EL LINK y SEGUIR ACÁ IGUAL (se puede jugar
      igual; en la sesión no vuelve a aparecer).
@@ -1271,6 +1275,11 @@
       try { return window.sessionStorage.getItem(CLAVE) === "1"; } catch (e) { return false; }
     }
     function link() { return E && E.linkLimpio ? E.linkLimpio(location.href) : String(location.href); }
+    /* a dónde se pega el link copiado: lo dice la tabla de entorno.js */
+    function navegador() {
+      var t = E && E.textoIntegrado ? E.textoIntegrado(IG.app || "otro", IG.sistema) : null;
+      return (t && t.navegador) || "el navegador";
+    }
     IG.ocultar = function () {
       var el = $("integrado"); if (el) el.hidden = true;
       IG.visible = false;
@@ -1289,13 +1298,13 @@
           var r = document.createRange(); r.selectNodeContents(caja);
           var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
         } catch (e) { }
-        if (txt) txt.textContent = "Copiá este link (mantené apretado) y pegalo en " + (IG.sistema === "ios" ? "Safari" : IG.sistema === "android" ? "Chrome" : "el navegador") + ".";
+        if (txt) txt.textContent = "Copiá este link (mantené apretado) y pegalo en " + navegador() + ".";
       };
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(u).then(function () {
             var b = $("ig-copiar"); if (b) b.textContent = "✓ LINK COPIADO";
-            if (txt) txt.textContent = "Ya está copiado: abrí " + (IG.sistema === "ios" ? "Safari" : IG.sistema === "android" ? "Chrome" : "el navegador") + " y pegalo arriba, donde va la dirección.";
+            if (txt) txt.textContent = "Ya está copiado: abrí " + navegador() + " y pegalo arriba, donde va la dirección.";
           }, aMano);
           return true;
         }
@@ -1311,8 +1320,8 @@
       $("ig-txt").textContent = t.texto;
       var pasos = $("ig-pasos"); pasos.textContent = t.pasos || ""; pasos.hidden = !t.pasos;
       $("ig-nota").textContent = t.nota;
-      var ch = $("ig-chrome"), href = t.chrome && E.linkAbrirEnChrome ? E.linkAbrirEnChrome(location.href) : null;
-      if (ch) { if (href) ch.href = href; ch.hidden = !href; }
+      var ch = $("ig-abrir"), href = t.abrir && E.linkIntentAndroid ? E.linkIntentAndroid(location.href) : null;
+      if (ch) { if (href) ch.href = href; if (t.boton) ch.textContent = t.boton; ch.hidden = !href; }
       el.hidden = false;
       IG.visible = true;
       var primero = href ? ch : $("ig-copiar");
