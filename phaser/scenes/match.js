@@ -5399,7 +5399,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      fichas arrancan en 136 (y llegan a 313, medido). Va del otro lado de la
      misma barra, en el hueco medido entre el marcador ("VOS 0 - 0 ESPEJO DE
      SAL": de x=361 a 600) y el reloj ("0:00 1T" arranca en 891; "90:00 2T"
-     en ≈878): la pastilla de 98 px centrada en 806 va de 757 a 855. El área
+     en ≈878): la pastilla de 96 px centrada en 806 va de 758 a 854. El área
      táctil baja desde y=0 hasta tap_min, como la de PAUSA, sobre la esquina
      de la ilustración del panel, que no se toca.
      A pantalla completa se esconde: de ahí se sale con el atrás del

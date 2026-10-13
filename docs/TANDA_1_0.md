@@ -3155,3 +3155,344 @@ Visto en el editor: "versión v17-1.0-l06r", y el worker nuevo instaló
 - **`tomaDelRemate` arma su malla en cada remate** (27-31 ms en el toque
   de TIRO, medido): los pesos ya no están adentro, pero la malla de
   13.824 vértices se arma cada vez. Con `uvDeLaMalla` se podría reusar.
+
+---
+
+## Ola 2 · Que cargue y se juegue en el celular — lote L07-celular
+
+Tres ítems sobre dónde y cómo se abre el juego en el teléfono:
+`pantalla-completa`, `portada-vertical-y-embebido` y
+`navegadores-de-redes-y-guardado`, en ese orden (el segundo depende del
+primero; el tercero, del segundo y de `codigo-de-carrera`, hecho en L03).
+Las decisiones de los tres, puras y probadas en node, viven en un archivo
+nuevo: `phaser/logic/entorno.js` ("el lugar donde corre el juego").
+
+**Cómo se probó en pantalla, y por qué así.** En el navegador integrado, con
+el audio desviado al arnés del oído:
+- **El teléfono**: `resize_window` por debajo de 768 de ancho emula un
+  Android (user agent de Android y `pointer: coarse`): 740x360 y 800x360
+  apaisados, 390x844 y 360x640 en vertical. Los clics llegan como clics de
+  mouse.
+- **La pantalla completa, espiada**: el navegador del panel vive adentro de
+  la app de Rodri, y una pantalla completa de verdad se llevaría la ventana
+  entera. `requestFullscreen` y `screen.orientation.lock` se reemplazaron
+  por espías que anotan el pedido (con `navigator.userActivation`, para ver
+  que sale con el permiso del toque) y el "entrar" se simuló con el evento
+  de Phaser. El parche, en cambio, se probó con el `requestFullscreen` de
+  verdad: sin gesto, el navegador lo rechaza.
+- **La nota de un medio**: `.claude/l07_medio.html` (fuera del repo) arma
+  una columna de 358, 700 o 780 px con el iframe exacto del medio local
+  (`width:100%;height:1100px;border:0;border-radius:12px`, sin `allow`) o
+  con el 16:9 de `docs/PARA_MEDIOS.md`.
+- **La red social**: el user agent del panel no se puede cambiar. La
+  detección se probó en node con 16 user agents de verdad; en pantalla, el
+  cartel con la app forzada (`PampaIntegrado.app = "instagram"`).
+- **El guardado bloqueado**: `Storage.prototype.setItem` reemplazado por
+  uno que tira (lo que hace un navegador con los datos del sitio
+  bloqueados), devuelto al terminar.
+
+Capturas en `.claude/shots/l07_*`.
+
+### pantalla-completa · pantalla completa y horizontal al tocar la compuerta (Android)
+
+**Qué estaba mal (medido).** `requestFullscreen`, `startFullscreen` y
+`orientation.lock` daban 0 en `phaser/` (grep). En un Android apaisado de
+915x412 con la barra de Chrome el lienzo se ve a 0,659; a pantalla completa
+sería 0,763, todo un 16% más grande. La compuerta escuchaba `pointerdown`,
+que con el dedo llega con el `touchstart` y no da permiso para pedir
+pantalla completa (la activación de un toque es al soltar). Y una más,
+encontrada al probar: el `startFullscreen` de Phaser 3.80.1 llama a
+`requestFullscreen` y tira la promesa que devuelve. Sin gesto, en el
+navegador del panel, terminó en **"Algo se trabó"** con "TypeError:
+Permissions check failed" (`unhandledrejection`).
+
+**Qué se hizo.**
+- `logic/entorno.js` (nuevo): `decidirPantallaCompleta`. La compuerta la
+  pide solo si hay API (Phaser `fullscreen.available` y
+  `document.fullscreenEnabled` no es false: en un iframe sin permiso lo
+  es), sin instalar (display-mode standalone: ya abre sin barra y
+  apaisada), si no está ya, fuera de la página de otro sitio y, con
+  `balance.pantalla.auto` en `"tactil"` (por defecto), con el dedo. El
+  botón la pide siempre que haya API.
+- `scenes/pantalla_ui.js` (nuevo, mixin de las cuatro escenas, como la piel
+  y el cursor):
+  - **el parche**: el mismo `startFullscreen`, pero atrapando la promesa; un
+    "no" del navegador termina en `FULLSCREEN_FAILED`, como Phaser ya
+    preveía, y no en un error del juego;
+  - `pantallaCompleta(origen)`: decide, pide y, al entrar, traba la
+    orientación (`screen.orientation.lock("landscape")`, con su rechazo
+    atrapado). Es lo que deja el juego apaisado aunque la rotación
+    automática esté apagada;
+  - `botonPantalla()`: la pastilla con un ícono de cuatro esquinas
+    DIBUJADO (hacia afuera = agrandar, hacia adentro = achicar) y la
+    palabra; pide al SOLTAR el dedo. Sin API o instalada, no existe.
+- `index.html`: `fullscreenTarget: document.documentElement`. Sin eso,
+  Phaser mete el lienzo en un div propio y pone ESE a pantalla completa, y
+  ahí "Algo se trabó", la caja del código de carrera, el aviso del atrás y
+  el de la versión nueva quedarían fuera de la vista.
+- `intro.js`: la compuerta escucha `pointerup` y pide pantalla completa
+  antes de seguir al opening, en el mismo manejador.
+- `match.js`: **PANTALLA** en la barra del marcador, del lado del reloj (al
+  lado del sonido no entra: el sonido toca hasta x=46, PAUSA hasta 129 y las
+  fichas arrancan en 136 y llegan a 313). Medido: el marcador termina en
+  x=600 y el reloj arranca en 891; la pastilla va de 758 a 854 y su área
+  táctil, de y=0 a 61 (tap_min), como la de PAUSA. A pantalla completa se
+  esconde.
+- `editor.js`: **PANTALLA COMPLETA / SALIR DE PANTALLA COMPLETA** al lado de
+  VER INTRO (arranca en x=100; la más larga llega a x≈321).
+
+**Cómo se verificó.**
+- `pantalla_completa.test.js` (60 asserts): la tabla de la decisión; la
+  compuerta con `pointerup` llamando a `pantallaCompleta`, que llama a
+  `startFullscreen` detrás de la guarda (el criterio de aceptación); el
+  mixin corriendo con un navegador de mentira (pide en Android con el dedo
+  y traba en horizontal; nada en iPhone, instalada, la compu ni un iframe
+  sin permiso); el parche contra el `startFullscreen` original (el original
+  deja el rechazo suelto, el parchado no); el botón (pide al soltar, no al
+  apoyar; texto e ícono según el estado; suelta los oyentes al apagarse la
+  escena); el cableado.
+- **En pantalla**, a 740x360 emulando Android: un clic de verdad en "TOCÁ
+  PARA EMPEZAR" pidió `requestFullscreen` sobre `<html>` con
+  `navigationUI: "hide"` y con la activación del usuario, y al entrar,
+  `lock("landscape")`, sin "Algo se trabó". Un clic en PANTALLA del partido
+  pidió lo mismo y el toque no llegó al mapa (`target` siguió en null)
+  (`l07_match_pantalla.png`, `l07_match_barra.png`); simulando la pantalla
+  completa, el botón se escondió (`l07_match_barra_dentro.png`). En el
+  editor, las dos pastillas (`l07_editor_icono.png`,
+  `l07_editor_icono_dentro.png`). En la compu (sin emular), el clic en la
+  compuerta arrancó el opening sin pedir nada. Con el `requestFullscreen`
+  de verdad y sin gesto: `FULLSCREEN_FAILED` con "Permissions check
+  failed" y 0 errores en la red.
+
+### portada-vertical-y-embebido · portada en vertical, póster para medios e INSTALAR
+
+**Qué estaba mal (medido).** Quien abre el link de un mensaje en vertical
+veía solo "📱↻ Girá el celular": sin el nombre, sin qué es y, con la
+rotación automática apagada, sin salida. Con el iframe exacto de un medio
+local el juego quedaba en ese cartel a 358, 700 y 780 px: el `@media` se
+evalúa contra el iframe, que con 1100 de alto es siempre vertical. `self
+!== top`, `embed` y `beforeinstallprompt` daban 0 (grep), y `100dvh` iba
+sin respaldo.
+
+**Qué se hizo** (las tres partes del crítico):
+- **(a) La portada en vertical** (`#rotate`, mismo `@media`): la
+  ilustración `assets/ui/portada.webp` de fondo por CSS (el archivo tal
+  cual; solo se pide cuando la portada se ve), el logo (`loading="lazy"`:
+  en horizontal no se pide por ahí), "Fútbol pampeano, jugada por jugada:
+  armás tu pinta, elegís tu localidad y jugás tu carrera del potrero al
+  Mundial.", "Girá el celular para jugar" con la ayuda de la **Rotación
+  automática** (y el **Bloqueo de rotación** en iPhone), **JUGAR EN
+  HORIZONTAL** donde anda (Android: pantalla completa de la página +
+  `lock("landscape")`; en iPhone no hay API y queda el texto) y "La primera
+  vez baja unos 13 MB: mejor con Wi-Fi." La animación del ícono respeta
+  `prefers-reduced-motion`. `height:100vh` antes de cada `100dvh`.
+- **(b) Embebido**: el `<head>` decide antes de pintar (iframe o
+  `?embed=1`, la misma cuenta que `entorno.embebido`) y pone la clase
+  `embebido`: la portada no se muestra nunca. Si el recuadro no alcanza
+  (`entorno.modoEmbebido`: apaisado y de 820 px con el dedo, 640 con el
+  mouse) va el **PÓSTER** con **▶ JUGAR EN PANTALLA COMPLETA** (`target=
+  _blank`, a esta misma página con `?ref=embed`) y el juego **no se
+  crea** hasta que alcance (`PampaPortada.cuandoAdentro`); si ya arrancó y
+  el recuadro se achica, se pausa como en vertical. Embebido, el worker no
+  se instala. Además, **`phaser/embed.html`**: la página liviana que va en
+  el iframe de los medios (unos 160 KB: la ilustración, el logo y
+  `entorno.js`), con el póster o, si alcanza para jugar, el salto a
+  `index.html?embed=1`. **`docs/PARA_MEDIOS.md`** con el iframe 16:9 y
+  `allow="autoplay; fullscreen"`, qué hace cada parte y un texto corto.
+- **(c) 📲 INSTALAR** en la portada: en Android se guarda
+  `beforeinstallprompt` y el botón abre el diálogo (`prompt()`); en iPhone
+  muestra los pasos (Compartir → Agregar a inicio); si el diálogo no abre,
+  los pasos del menú del navegador. No aparece instalada (la clase
+  `instalada` la pone el `<head>`), embebida ni en una red social.
+
+**Cómo se verificó.**
+- `portada.test.js` (93 asserts): lo que pide el criterio en `index.html`
+  (la rotación automática, 100vh de respaldo, la detección de embed y
+  `beforeinstallprompt`); **el peso medido**: imágenes 7,77 MB
+  (`w1_peso`) + música 3,77 + tipografías 0,48 + código y datos en gzip
+  0,82 = 12,84 MB, contra los 13 de la portada; `entorno` con los tres
+  anchos del medio (póster) y el 16:9 de PARA_MEDIOS (adentro en la
+  compu); el `<head>` corriendo dice lo mismo que `entorno.embebido`; la
+  portada corriendo con un DOM de mentira (el arranque que espera, la
+  pausa, JUGAR EN HORIZONTAL con los rechazos atrapados, INSTALAR en
+  Android, iPhone, instalada y embebida); `embed.html` (un solo script, el
+  peso, el póster y el salto); PARA_MEDIOS; el lenguaje.
+- **En pantalla**: la portada a 390x844 (la ilustración se ve: el
+  protagonista y la pelota debajo de la caja) y a 360x640 (entra sin
+  scroll). JUGAR EN HORIZONTAL con un clic de verdad pidió la pantalla
+  completa de `<html>` y después `lock("landscape")`, sin arrancar la
+  compuerta escondida. Con el iframe del medio a 358, 700 y 780: póster,
+  portada en `none`, el juego sin crear y sin worker; JUGAR navegó a
+  `index.html?ref=embed` (el panel abre los `target=_blank` en la misma
+  pestaña) y ahí, sin embeber, apareció la portada. Con el 16:9 de
+  PARA_MEDIOS en una columna de 700 en la compu, `embed.html` saltó a
+  `index.html?embed=1` y el juego arrancó adentro (la compuerta a la vista),
+  sin worker. En la columna de un teléfono el 16:9 mide 334x188 y el
+  póster quedaba cortado: se agregó un `@media (max-height:300px)` y ahora
+  entra (logo de y=7 a 52, la caja de 58 a 181). Lo que baja quien lee la
+  nota con `embed.html`: 162 KB. INSTALAR apareció con el evento y abrió el
+  diálogo (`prompt()` una vez) y se escondió. Apaisado a 800x360 todo sigue
+  como antes, y la portada no se pide.
+
+### navegadores-de-redes-y-guardado · abierto desde una red social, y con el guardado bloqueado: se avisa
+
+**Qué estaba mal (medido).** `userAgent`, `Instagram`, `FBAN` y `TikTok`
+daban 0 en `phaser/` (grep). La difusión es por redes y ahí el link se abre
+en el navegador de la app: la carrera queda en ESE almacenamiento y
+después no aparece en Chrome ni en la app instalada. Y `master.js` guardaba
+con `try { localStorage.setItem(...) } catch (e) { }`: con el almacenamiento
+bloqueado o lleno, se jugaban horas creyendo que quedaba guardado.
+
+**Qué se hizo.**
+- `logic/entorno.js`: `navegadorIntegrado(ua)` → `"instagram"`,
+  `"facebook"` (Messenger incluido), `"tiktok"`, `"otro"` (el `;wv)` de un
+  WebView de Android, o apps conocidas en iPhone) o `null`;
+  `textoIntegrado(app, sistema)`; `linkAbrirEnChrome` (un `intent://` a la
+  misma dirección con `package=com.android.chrome` y la dirección de
+  respaldo si Chrome no está); `linkLimpio`; `guardadoAndando(storage)`
+  (escribir, leer y borrar una clave; false si no hay almacenamiento o si
+  algo tira).
+- `index.html`: el cartel **"⚠ Estás en el navegador de Instagram"**
+  ("Para que tu carrera quede guardada y se juegue a pantalla completa,
+  abrilo en Chrome."), arriba de la portada y de la compuerta, con 🌐
+  ABRIR EN CHROME en Android, los pasos del menú ··· en iPhone ("abrilo en
+  Safari"), 📋 COPIAR EL LINK (si el portapapeles no deja, el link a la
+  vista y seleccionado) y ▶ SEGUIR ACÁ IGUAL, que no vuelve a aparecer en
+  la sesión. No va embebido. Corta toques y teclas. La prueba de guardado
+  al abrir queda en `window.PAMPA_GUARDADO`. INSTALAR no se ofrece en una
+  red social.
+- `master.js`: `guardar()` devuelve true o false. La primera vez en la
+  sesión que no guarda (la prueba al entrar, la del arranque o un
+  `guardar()` que falla), la caja **"⚠ En este navegador tu carrera NO se
+  guarda"** con 💾 CÓDIGO DE CARRERA (si ya hay carrera) y ▶ SEGUIR IGUAL;
+  y **fija**, en la tabla y en elegir club, arriba a la izquierda, la marca
+  "⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA", que la vuelve a abrir. La caja
+  es la del código de carrera sin el texto para pegar (`sinCaja`).
+- `intro.js` no cambió para este ítem: el cartel es DOM y queda encima de
+  la compuerta.
+
+**Cómo se verificó.**
+- `entorno.test.js` (95 asserts): 16 user agents de verdad (el criterio pide
+  8 o más): Instagram, Facebook y TikTok en Android y en iPhone, Messenger,
+  un WebView suelto, y Chrome en Android, en iPhone y en la compu, Samsung
+  Internet, Safari, Firefox en Android y en iPhone y Edge, con su sistema;
+  los textos (sin masculino genérico); el `intent://`;
+  `guardadoAndando` con cinco almacenamientos (el que anda, el que tira en
+  `setItem`, el que no devuelve, el que tira al borrar y ninguno); el
+  cartel corriendo con un DOM de mentira; y **master.js real con un
+  almacenamiento que tira en setItem**: `guardar()` da false y el Master
+  arma el aviso (el criterio de aceptación), una vez por sesión, con la
+  marca fija; sin carrera, solo SEGUIR IGUAL; con uno que anda, nada, y el
+  primer `guardar()` que falla abre el aviso.
+- **En pantalla**: el cartel sobre la compuerta a 800x360 y sobre la
+  portada a 390x844 (la variante de iPhone, con los pasos). Con el foco en
+  el cartel, una tecla de verdad no arrancó la compuerta; cerrado con un
+  clic en SEGUIR ACÁ IGUAL (que tampoco la arrancó), la misma tecla sí: las
+  teclas le llegan a Phaser por window, y el corte las para. COPIAR EL
+  LINK copió la dirección limpia, sin `ref` ni `embed` ("✓ LINK COPIADO" y
+  "abrí Safari y pegalo arriba"). Con
+  `Storage.setItem` tirando, el Master mostró la caja y la marca arriba a
+  la izquierda de la tabla, sin pisar el logo (`l07_master_singuardar.png`),
+  y 💾 CÓDIGO DE CARRERA abrió la vista del código
+  (`l07_master_codigo_desde_aviso.png`).
+
+### Cierre del lote L07-celular
+
+**La versión** visible sube a `v17-1.0-l07` (index.html y sw.js, iguales).
+Visto en el editor: "versión v17-1.0-l07" al lado de ¡A LA CANCHA!
+(`l07_fin_editor_version.png`), y el worker nuevo se instaló entero
+(`pampa-assets` y `pampa-codigo-v17-1.0-l07`: la instalación es atómica,
+así que `entorno.js` y `pantalla_ui.js` están en el precache).
+
+**Paso del deploy.** `phaser/embed.html` se publica sola (está en
+`phaser/`). Para los medios, el código es el de `docs/PARA_MEDIOS.md`.
+
+### DECISIONES QUE TOMÉ YO (L07-celular)
+
+1. **La compuerta pide pantalla completa sola solo con el dedo**
+   (`balance.pantalla.auto = "tactil"`). En la compu, agrandarse con el
+   clic de "TOCÁ PARA EMPEZAR" sorprende; ahí queda el botón. *Revertir:*
+   `"siempre"`.
+2. **A pantalla completa va la página entera**, no el lienzo
+   (`fullscreenTarget`), para que los avisos DOM sigan a la vista.
+   *Revertir:* sacar `fullscreenTarget` del config (vuelven a quedar
+   tapados).
+3. **El parche de `startFullscreen`** en `pantalla_ui.js` (como el del
+   paso del juego y la fábrica de textos en index.html). *Revertir:*
+   sacar el bloque 1 (vuelve "Algo se trabó" ante un no del navegador).
+4. **PANTALLA en el partido va del lado del reloj y no "junto al mute"**:
+   ahí no entra (medido arriba). A pantalla completa se esconde y no hay
+   "SALIR" en el partido: se sale con el atrás del teléfono o con ESC, y un
+   SALIR al lado de PAUSA se confunde con irse del partido. *Revertir:*
+   `soloEntrar: false` en `buildBotonPantalla`.
+5. **El ícono ⛶ va dibujado**, no como letra: no está en la tipografía del
+   juego y en muchos teléfonos sale un cuadrado vacío.
+6. **JUGAR EN HORIZONTAL en la portada**: no estaba en el "qué hacer" de
+   los ítems, sí en la propuesta de la auditoría. Es lo que saca de la
+   portada a quien tiene la rotación bloqueada en Android. *Revertir:*
+   sacar el botón `#pt-horizontal`.
+7. **"Unos 13 MB" y no 12**: medido hoy, 12,84 (el test lo rehace con el
+   disco y falla si la diferencia pasa de 1 MB).
+8. **Embebido, adentro desde 640 px con el mouse** (820 con el dedo). El
+   ítem decía 820 a secas, pero con eso el 16:9 de PARA_MEDIOS en una
+   columna de 700 de la compu no se jugaba nunca adentro; 640x360 es la
+   misma escala que un teléfono de 800x360. *Revertir:*
+   `E.EMBED_MIN.mouse = 820`.
+9. **Embebido con el póster, el juego no se crea y el worker nunca se
+   instala**: quien lee la nota no baja la intro, la música ni el precache
+   (~1 MB). *Revertir:* el `cuandoAdentro` del arranque y la línea de
+   `PAMPA_EMBEBIDO` en `registrar()`.
+10. **`embed.html`, una página aparte para los medios**: no lo pedía el
+    ítem. `index.html` adentro de un iframe igual baja sus scripts y sus
+    JSON (0,75 + 0,19 MB en gzip) aunque muestre el póster; `embed.html`
+    baja 162 KB. PARA_MEDIOS apunta a ella. *Revertir:* el `src` del
+    iframe a `index.html?embed=1` (el póster de index.html sigue andando).
+11. **INSTALAR sin `preventDefault`**: llamarlo le saca al navegador su
+    propio aviso de instalar, y la portada solo se ve en vertical. Y está
+    solo en la portada. *Revertir:* `ev.preventDefault()` en el oyente.
+12. **Los nombres de las apps y de los navegadores** (Instagram, Facebook,
+    TikTok, Chrome, Safari) aparecen en el cartel de la red social y en el
+    aviso de que no se guarda: quien juega tiene que reconocer la app en la
+    que está y el botón que busca. Son instrucciones sobre el teléfono, no
+    parte del mundo del juego (la Sección 11 cuida la ficción: clubes,
+    marcas, medios). *Revertir:* vaciar `NOMBRE_APP` en `entorno.js` (dice
+    "una app") y cambiar "Chrome"/"Safari" por "el navegador del teléfono".
+13. **El cartel de la red social, una vez por sesión** (`sessionStorage`) y
+    nunca embebido.
+14. **El aviso de que no se guarda: la caja una vez por sesión y la marca
+    fija solo en la tabla y en elegir club**, no en todas las vistas (en la
+    semana, la entrevista o el código se tapaba lo de la vista). La marca
+    se toca para volver a leer la caja.
+15. **La versión sube a `v17-1.0-l07`**. *Revertir:* `v17-1.0-l06r` en
+    index.html y sw.js.
+
+### Lo que no se pudo ver en pantalla
+
+- **La pantalla completa y la rotación de verdad en un Android**: los
+  pedidos salen bien (espiados, con la activación del toque), pero que
+  desaparezca la barra y el teléfono quede apaisado con la rotación
+  bloqueada hay que verlo en un teléfono. Lo mismo en un iPhone (sin API:
+  no se pide nada; en node).
+- **Instalada**: el panel no emula `display-mode: standalone`. La clase
+  `instalada` del `<head>` y lo que esconde, en node.
+- **Abierto desde Instagram, Facebook o TikTok de verdad**, y que ABRIR EN
+  CHROME (el `intent://`) abra Chrome: la detección, en node con 16 user
+  agents; el cartel, en pantalla con la app forzada.
+- **"Chrome con los datos del sitio bloqueados"**: simulado con
+  `setItem` que tira.
+- **La pestaña nueva del póster**: el panel abrió el `target=_blank` en la
+  misma pestaña (fue a `index.html?ref=embed`).
+
+### Deudas que vi y no son de este lote
+
+- **`manifest.webmanifest` dice "la carrera de un pibe pampeano"**
+  (masculino genérico, y es lo que muestra el teléfono al instalar): va con
+  `metadatos-y-link` / `lenguaje-institucional`.
+- **En el editor, "PASO 1 DE 2 · ARMÁ TU PINTA" pisa el título "TU
+  PINTA"** (`l07_pre_editor_paso1.png`): va con
+  `legibilidad-fuera-y-solapes`.
+- **VER INTRO toca en un área chica** (un texto de 11 px): va con
+  `piso-tactil`.
+- **INSTALAR apaisado**: la portada solo se ve en vertical, así que quien
+  abre apaisado no ve nuestro botón (le queda el aviso propio del
+  navegador). Se podría sumar al editor.
