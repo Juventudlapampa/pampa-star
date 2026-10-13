@@ -83,6 +83,12 @@ function resolver(dir, ref) {
   var jugar = (PORTADA.match(/<a class="jugar" id="jugar" href="([^"]+)"/) || [])[1];
   assert(jugar === "phaser/" && existe(resolver("", jugar)), "SÍNTOMA: hay un ▶ JUGAR que lleva a phaser/ (" + jugar + ")");
   assert(/>▶ JUGAR</.test(PORTADA), "el botón dice ▶ JUGAR");
+  /* la línea de qué es, la MISMA que la portada del juego (revisión del
+     lote: decía "llevás a tu club del potrero al Mundial", y al Mundial va
+     la Selección, no el club) */
+  var pitch = (PORTADA.match(/<p class="pitch">([^<]*)<\/p>/) || [])[1];
+  var queJuego = (leer("phaser/index.html").match(/<p class="pt-que">([^<]*)<\/p>/) || [])[1];
+  assert(!!pitch && pitch === queJuego && !/club del potrero/.test(pitch), "SÍNTOMA: la línea de qué es dice lo mismo que el juego (\"" + pitch + "\" · \"" + queJuego + "\")");
   /* SOLO MODO CARRERA (13/oct): antes este assert pedía el link a clasico/;
      ahora no puede haber ninguno (ni en el pie ni en el aviso) */
   var aClasico = PORTADA.match(/href="[^"]*clasico[^"]*"/g) || [];

@@ -149,6 +149,13 @@ PAGINAS.forEach(function (P) {
     P.archivo + ": og:type website, og:locale es_AR, og:site_name PAMPA STAR");
   assert(meta(html, "property", "og:title") === TITULO, P.archivo + ": og:title igual al título");
   assert(meta(html, "property", "og:description") === desc, P.archivo + ": og:description igual a la description");
+  /* REVISIÓN DEL LOTE: decía "llevá a tu club del potrero al Mundial". Con
+     el Mundial decidido (convocatoria a la Selección al ganar el Nacional),
+     un club no juega el Mundial: la bajada que más circula prometía algo
+     que no pasa. Ahora dice lo mismo que el juego ("jugás tu carrera del
+     potrero al Mundial", la portada de phaser/index.html) */
+  assert(!!desc && !/club del potrero/.test(desc) && /jugá tu carrera del potrero al Mundial/.test(desc),
+    P.archivo + ": SÍNTOMA: la bajada promete la carrera al Mundial, no el club (\"" + desc + "\")");
   assert(meta(html, "name", "twitter:card") === "summary_large_image", P.archivo + ": la etiqueta de tarjeta grande, summary_large_image");
   /* REVISIÓN DEL LOTE: el lote puso además title, description, image e
      image:alt con ese prefijo, que repetían las og: (las vistas previas las
