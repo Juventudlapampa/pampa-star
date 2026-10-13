@@ -6,7 +6,8 @@
    encadenados como hilo), CUALQUIER toque o tecla saltea al título y corta el
    audio limpio, si falta un asset el plano se saltea solo y nada crashea.
    Tiempos, textos y colores en balance.json → intro. Flag intro_opening.
-   Se ve UNA vez por sesión; en el editor queda el botón "▶ VER INTRO".
+   Se ve UNA vez por APARATO (tanda 1.0, L08: la marca va a localStorage,
+   pampa_intro_vista); en el editor queda el botón "▶ VER INTRO".
    ========================================================================== */
 window.PampaIntro = class PampaIntro extends Phaser.Scene {
   constructor() { super("intro"); }
@@ -27,6 +28,36 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this._tocaTxt = null;
     this._teclaTxt = null;
     this._salteoArmado = false;
+    this._directo = false;   // L08: la compuerta va directo al editor (el opening ya se vio en este aparato)
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     L08 (opening-una-vez) · EL OPENING, UNA VEZ POR APARATO.
+
+     Lo que estaba mal: la marca de "ya se vio" vivía solo en el registry de
+     Phaser (introVista), que muere con la página. Cada vez que se abría el
+     link o se recargaba, otra vez los 19,5 s de planos (la suma de
+     balance.intro.planos_ms) y otra vez a bajar lo del opening (1,45 MB,
+     medido en carga_liviana.test.js) antes de llegar al editor.
+
+     Ahora la marca queda además en localStorage (pampa_intro_vista = "1"),
+     y se escribe cuando el opening ARRANCA de verdad (arrancarOpening): si
+     alguien cierra la página en la compuerta, o la saltea mientras todavía
+     bajaba, no lo vio y la próxima vez le toca. Con la marca, la compuerta
+     sigue estando, porque su toque es el gesto que desbloquea el audio y el
+     que en Android pide la pantalla completa, pero lleva directo al editor
+     (salir()): no se baja ni se arma nada del opening. VER INTRO del editor
+     (introPedida) lo sigue mostrando, y balance.intro.una_vez_por_aparato
+     en false vuelve a lo de antes (una vez por sesión). Las dos lecturas van
+     dentro de try: con el almacenamiento bloqueado, el opening se ve como
+     la primera vez y nada se traba. */
+  openingVistoEnElAparato() {
+    if (this.I && this.I.una_vez_por_aparato === false) return false;
+    try { return localStorage.getItem(window.PampaIntro.CLAVE_VISTA) === "1"; } catch (e) { return false; }
+  }
+  marcarOpeningVisto() {
+    if (this.I && this.I.una_vez_por_aparato === false) return;
+    try { localStorage.setItem(window.PampaIntro.CLAVE_VISTA, "1"); } catch (e) { }
   }
 
   preload() {
@@ -191,13 +222,16 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const BAL = this.game.registry.get("balance") || {};
     this.I = BAL.intro || {};
     const flagOff = BAL.flags && BAL.flags.intro_opening === false;
-    if (flagOff || (this.game.registry.get("introVista") && !this.game.registry.get("introPedida"))) {
+    const pedida = this.game.registry.get("introPedida");
+    /* L08: ¿ya se vio en este aparato? (VER INTRO lo pide igual) */
+    const yaVisto = !pedida && this.openingVistoEnElAparato();
+    /* sin compuerta no hay gesto que cuidar: con la marca, directo al editor */
+    if (flagOff || (this.game.registry.get("introVista") && !pedida) || (yaVisto && this.I.compuerta === false)) {
       if (window.PampaRegistrarSW) window.PampaRegistrarSW();
       this.irA("editor");
       return;
     }
     if (window.PampaRegistrarSW) window.PampaRegistrarSW("espera");
-    const pedida = this.game.registry.get("introPedida");
     this.game.registry.set("introVista", true);
     this.game.registry.set("introPedida", false);
     this._fin = false;
@@ -213,7 +247,12 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        primer plano. Si la intro se pidió desde el editor, el gesto ya ocurrió. */
     /* L06: con la compuerta a la vista se baja lo del opening; sin compuerta
        (o pedida desde el editor) se espera a que esté, mostrando cuánto falta */
+    /* L08: con el opening ya visto en este aparato, la compuerta queda (el
+       gesto) pero su toque va al editor; mientras espera, en vez de lo del
+       opening se bajan las caras del editor, que es adonde va */
+    this._directo = yaVisto;
     if (this.I.compuerta === false || pedida) this.seguirAlOpening();
+    else if (this._directo) { this.compuerta(); this.calentarElEditor(); }
     else { this.compuerta(); this.cargarOpening(); }
   }
 
@@ -268,6 +307,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
          y la compuerta la pide sola solo con el dedo (balance.pantalla.auto).
          En iPhone no hay API para la página: no pide nada. */
       if (this.pantallaCompleta) this.pantallaCompleta("compuerta");
+      /* L08: el opening ya se vio en este aparato: el toque hizo lo suyo
+         (audio y pantalla completa) y se va al editor, sin planos */
+      if (this._directo) { this.salir(); return; }
       this.seguirAlOpening();   // L06: arranca ya, o cuando termine de bajar lo suyo
     };
     /* L07 · AL SOLTAR, no al apoyar: con el dedo, pointerdown llega con el
@@ -290,6 +332,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.corteSeco();
     this._espera = null;
     this.armarSalteo();
+    /* L08: recién acá el opening se VE: la marca del aparato va ahora (ver
+       openingVistoEnElAparato) */
+    this.marcarOpeningVisto();
     /* la secuencia corre por RELOJ propio: cada plano agenda el siguiente */
     const D = this.I.planos_ms || [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000];
     /* I1 · p4 (EL GRITO, con vos) va ANTES que p3 (la ráfaga, que abría con un
@@ -654,6 +699,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
    contraste, hechos para ir DETRÁS (resuelven que siete de los ocho planos
    fueran figuras flotando en negro puro). D2 · las dos versiones del logo.
    D4 · el cartel del pueblo. */
+/* L08 (opening-una-vez) · la marca del aparato: "1" cuando el opening ya
+   arrancó una vez acá (ver openingVistoEnElAparato) */
+window.PampaIntro.CLAVE_VISTA = "pampa_intro_vista";
+
 window.PampaIntro.UI_COMPUERTA = [
   { clave: "d_logo", ruta: "../assets/ui/pampa-star-logo.webp" }
 ];

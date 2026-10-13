@@ -106,7 +106,7 @@
     "_v7": "V7 §0.3: entrada/pose/hold alargados ~15-20% para que las viñetas respiren."
   },
   "intro": {
-    "_nota": "ADDENDUM v6 Parte A: EL OPENING (flag flags.intro_opening; se ve una vez por sesión, salteable con cualquier toque). Duraciones de los 8 planos en ms y los textos. El arte sale de assets/poses/ y assets/ui/: si falta un archivo, el plano se saltea solo.",
+    "_nota": "ADDENDUM v6 Parte A: EL OPENING (flag flags.intro_opening; se ve una vez por aparato desde la tanda 1.0 —ver _una_vez—, salteable con cualquier toque). Duraciones de los 8 planos en ms y los textos. El arte sale de assets/poses/ y assets/ui/: si falta un archivo, el plano se saltea solo.",
     "planos_ms": [
       3000,
       2000,
@@ -134,6 +134,8 @@
     "_espera": "REVISIÓN DEL LOTE L06. t_cargando_intro: lo que dice la compuerta si se toca antes de que baje lo de la intro ('CARGANDO LA INTRO… 43%'); decía 'CARGANDO EL OPENING', y el botón del editor que lleva a esta misma pantalla dice '▶ VER INTRO'. tema_tope_ms: la espera también espera a que el tema del opening pueda sonar entero (se baja con la compuerta a la vista: antes se registraba recién en p2 y con poca señal el opening arrancaba mudo, 4,2 s medidos), pero como mucho tema_tope_ms después de que llegan las imágenes: con la red colgada, el opening arranca igual (p1 es mudo y dura 3 s: el tema todavía puede llegar para p2). Si no se toca la compuerta, el tope corre igual y no se nota.",
     "t_cargando_intro": "CARGANDO LA INTRO…",
     "tema_tope_ms": 4000,
+    "_una_vez": "TANDA 1.0 (L08, opening-una-vez). una_vez_por_aparato: el opening se ve una vez por APARATO y no por sesión. Antes la marca vivía solo en el registry (introVista) y moría con la página: cada vez que se abría el link o se recargaba, otra vez los 19,5 s de planos (la suma de planos_ms) y los 1,45 MB del opening. Ahora va también a localStorage (pampa_intro_vista = '1'), escrita cuando el opening arranca de verdad. Con la marca, la compuerta queda (su toque desbloquea el audio y en Android pide la pantalla completa) pero lleva directo al editor, sin bajar ni armar nada del opening. VER INTRO del editor lo sigue mostrando. En false: una vez por sesión, como antes.",
+    "una_vez_por_aparato": true,
     "_compuerta": "La pantalla previa cuyo TOQUE desbloquea el audio del navegador y dispara el opening CON sonido desde el primer plano (sin ella, el opening automático sería siempre mudo). compuerta:false la saca."
   },
   "musica": {
