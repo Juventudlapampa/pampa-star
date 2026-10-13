@@ -117,16 +117,19 @@
     if (h < E.EMBED_MIN.alto) return "poster";
     return w >= (e.tactil ? E.EMBED_MIN.tactil : E.EMBED_MIN.mouse) ? "adentro" : "poster";
   };
-  /* el link del póster: la misma página, sin el embed y con ?ref=embed (de
-     dónde vino; no lleva ningún dato de quien juega) */
+  /* el link del póster: la misma página, sin el embed. Revisión L07: y SIN
+     ?ref=embed. Lo llevaba "para saber que la visita vino de una nota"
+     (docs/PARA_MEDIOS.md), pero no lo leía nada (ni el juego ni el sitio,
+     que no registra visitas) y la decisión de Rodri es que no se mide
+     nada: un dato que sugiere una medición que no existe, afuera. El ref
+     de un link viejo se sigue sacando (linkLimpio, abajo). */
   E.urlParaJugar = function (href) {
     var s = String(href || "");
     var hash = s.indexOf("#");
     if (hash >= 0) s = s.slice(0, hash);
     var q = s.indexOf("?"), base = q >= 0 ? s.slice(0, q) : s, busq = q >= 0 ? s.slice(q + 1) : "";
     var partes = busq.split("&").filter(function (p) { return p && !/^(embed|ref)=/.test(p); });
-    partes.push("ref=embed");
-    return base + "?" + partes.join("&");
+    return base + (partes.length ? "?" + partes.join("&") : "");
   };
   /* ══════════════════════════════════════════════════════════════════════
      INSTALAR (📲 en la portada): qué se ofrece.

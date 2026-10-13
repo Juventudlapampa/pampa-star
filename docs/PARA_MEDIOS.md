@@ -11,8 +11,15 @@ carrera del potrero al Mundial, jugada por jugada.
 https://juventudlapampa.github.io/pampa-star/phaser/
 ```
 
-Si lo comparten en una nota o en redes, conviene este link: se abre directo en
-el juego y la carrera queda guardada en el navegador de cada persona.
+Se abre directo en el juego y la carrera queda guardada en el navegador de
+cada persona.
+
+> **Provisorio.** El link oficial va a ser la raíz del sitio,
+> `https://juventudlapampa.github.io/pampa-star/`, cuando pase a ser la
+> portada del juego (con su botón JUGAR). Hoy la raíz todavía abre la
+> versión anterior. El link de arriba va a seguir andando igual, pero
+> conviene esperar al link oficial antes de difundirlo en una nota o en
+> redes; este documento se actualiza ese día.
 
 ## Para ponerlo adentro de una nota (iframe)
 
@@ -32,8 +39,8 @@ Qué hace, y por qué así:
   COMPLETA**, que abre el juego en una pestaña nueva. Ahí se juega apaisado, a
   pantalla completa y con la carrera guardada. Adentro de la columna de una
   nota, en un teléfono, el recuadro es demasiado chico para jugar.
-- **En la compu**, si la columna mide 640 px de ancho o más, el juego arranca
-  adentro de la nota. Con el botón **PANTALLA COMPLETA** (arriba a la
+- **En la compu**, si el recuadro mide 640 px de ancho y 360 de alto o más,
+  el juego arranca adentro de la nota. Con el botón **PANTALLA COMPLETA** (arriba a la
   izquierda, en el editor) se agranda.
 - **`aspect-ratio:16/9`**: el juego es apaisado. Con un alto fijo (por ejemplo
   `height:1100px`) el recuadro queda vertical y solo se ve el póster.
@@ -41,8 +48,7 @@ Qué hace, y por qué así:
   agrandarlo; sin `autoplay` la música puede no arrancar.
 - **`loading="lazy"`**: el recuadro carga recién cuando la nota llega hasta ahí.
 
-El link del póster lleva `?ref=embed` para saber que la visita vino de una
-nota. No lleva ningún dato de quien lee.
+El link del póster no lleva ningún dato: el juego no mide visitas.
 
 ## Lo que conviene saber
 
@@ -61,6 +67,8 @@ nota. No lleva ningún dato de quien lee.
   todo de nuevo.
 
 ## Texto corto para acompañar (280 caracteres)
+
+(Con el link provisorio: cuando esté el oficial, va ese.)
 
 > Llegó PAMPA STAR, el juego de fútbol pampeano: armás tu pinta, elegís tu
 > localidad y hacés tu carrera del potrero al Mundial, jugada por jugada.

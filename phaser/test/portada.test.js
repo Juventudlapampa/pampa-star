@@ -125,10 +125,13 @@ process.on("unhandledRejection", function (r) { sueltos.push(String(r)); });
     "de alto 0, o de 300 con el dedo: póster");
   assert(E.EMBED_MIN.alto === 360 && E.modoEmbebido({ ancho: 800, alto: 360, tactil: false }) === "adentro" && E.modoEmbebido({ ancho: 800, alto: 359, tactil: false }) === "poster",
     "el corte de alto es 360 (un teléfono de 800x360 apaisado)");
-  assert(E.urlParaJugar("https://x.io/pampa-star/phaser/index.html?embed=1") === "https://x.io/pampa-star/phaser/index.html?ref=embed",
-    "el link del póster: sin embed y con ref=embed (" + E.urlParaJugar("https://x.io/pampa-star/phaser/index.html?embed=1") + ")");
-  assert(E.urlParaJugar("https://x.io/p/?v=3&embed=1#a") === "https://x.io/p/?v=3&ref=embed" && E.urlParaJugar("https://x.io/p/") === "https://x.io/p/?ref=embed",
-    "conserva lo demás del link, saca el #, y no duplica ref");
+  /* revisión L07: sin ?ref=embed. PARA_MEDIOS decía que servía "para saber
+     que la visita vino de una nota", pero no lo leía nada y la decisión de
+     Rodri es que no se mide nada */
+  assert(E.urlParaJugar("https://x.io/pampa-star/phaser/index.html?embed=1") === "https://x.io/pampa-star/phaser/index.html",
+    "el link del póster: sin embed y sin ref (" + E.urlParaJugar("https://x.io/pampa-star/phaser/index.html?embed=1") + ")");
+  assert(E.urlParaJugar("https://x.io/p/?v=3&embed=1#a") === "https://x.io/p/?v=3" && E.urlParaJugar("https://x.io/p/?ref=embed") === "https://x.io/p/",
+    "conserva lo demás del link, saca el # y el ref de un link viejo");
   var cap = { disponible: true, lock: true, instalada: false, embebido: false };
   assert(E.horizontalPosible(cap) && !E.horizontalPosible(Object.assign({}, cap, { lock: false })) &&
     !E.horizontalPosible(Object.assign({}, cap, { disponible: false })) && !E.horizontalPosible(Object.assign({}, cap, { instalada: true })) &&
@@ -217,7 +220,7 @@ pasos.push(async function () {
   assert(PT.modo === "poster" && /\bposter\b/.test(D.html.className) && /embebido/.test(D.html.className), "SÍNTOMA: embebido a 358 px (iframe 334x1100): clase 'poster' (" + D.html.className + ")");
   var arranco = 0;
   assert(PT.cuandoAdentro(function () { arranco++; }) === false && arranco === 0, "con el póster, el juego NO se crea (el arranque espera)");
-  assert(D.els["ps-jugar"].href === "https://x.io/pampa-star/phaser/index.html?ref=embed", "el link del póster es esta página con ?ref=embed (" + D.els["ps-jugar"].href + ")");
+  assert(D.els["ps-jugar"].href === "https://x.io/pampa-star/phaser/index.html", "el link del póster es esta página, sin datos (" + D.els["ps-jugar"].href + ")");
   assert(D.win.PampaPausa.motivos.vertical === true, "y la pausa de afuera queda puesta (si el juego existiera, estaría parado)");
   /* el recuadro crece: una tableta que gira */
   D.win.innerWidth = 1000; D.win.innerHeight = 560;
@@ -322,7 +325,9 @@ pasos.push(async function () {
   var peso = Buffer.byteLength(EMB) + ["assets/ui/portada.webp", "assets/ui/pampa-star-logo.webp", "phaser/logic/entorno.js"]
     .reduce(function (t, f) { return t + fs.statSync(path.join(RAIZ, f)).size; }, 0);
   assert(peso < 200 * 1024, "lo que baja quien lee la nota: " + Math.round(peso / 1024) + " KB (menos de 200)");
-  assert(/<a id="ps-jugar"[^>]+href="\.\/index\.html\?ref=embed"[^>]+target="_blank"[^>]+rel="noopener"/.test(EMB), "el póster: ▶ JUGAR con target=_blank a index.html?ref=embed");
+  assert(/<a id="ps-jugar"[^>]+href="\.\/index\.html"[^>]+target="_blank"[^>]+rel="noopener"/.test(EMB), "el póster: ▶ JUGAR con target=_blank a index.html");
+  assert(!/ref=embed/.test(EMB.replace(/<!--[\s\S]*?-->/g, "")) && !/ref=embed/.test(INDEX.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\*[\s\S]*?\*\//g, "")),
+    "ningún link lleva ?ref=embed (no se mide nada)");
   assert(/JUGAR EN PANTALLA COMPLETA/.test(EMB), "con el texto");
   var js = EMB.slice(EMB.lastIndexOf("<script>") + 8, EMB.lastIndexOf("</script>"));
   function correrEmbed(op) {
@@ -342,7 +347,7 @@ pasos.push(async function () {
   c.win.innerWidth = 1000; c.win.innerHeight = 560; c.resize(); c.resize();
   assert(c.rep.length === 1, "si el recuadro crece, salta una vez");
   var d = correrEmbed({ iframe: false, w: 390, h: 844 });
-  assert(d.rep.length === 1 && d.rep[0] === "./index.html?ref=embed", "abierta sola, va directo al juego");
+  assert(d.rep.length === 1 && d.rep[0] === "./index.html", "abierta sola, va directo al juego");
 });
 
 /* ---------- [7] PARA_MEDIOS ---------- */
@@ -350,6 +355,10 @@ pasos.push(async function () {
   var PM = leer("docs/PARA_MEDIOS.md");
   assert(/<iframe src="https:\/\/juventudlapampa\.github\.io\/pampa-star\/phaser\/embed\.html"/.test(PM), "PARA_MEDIOS: el iframe apunta a embed.html");
   assert(/aspect-ratio:16\/9/.test(PM) && /allow="autoplay; fullscreen"/.test(PM), "16:9 y allow=\"autoplay; fullscreen\"");
+  /* revisión L07: lo que se reparte a los medios dice la verdad */
+  assert(!/ref=embed/.test(PM) && /no lleva ningún dato: el juego no mide visitas/.test(PM), "PARA_MEDIOS no promete una medición que no existe");
+  assert(/\*\*Provisorio\.\*\*/.test(PM) && /https:\/\/juventudlapampa\.github\.io\/pampa-star\/`/.test(PM),
+    "el link /phaser/ va marcado como provisorio hasta el link oficial (la raíz)");
 });
 
 /* ---------- [8] lenguaje ---------- */

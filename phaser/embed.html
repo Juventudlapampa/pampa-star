@@ -16,11 +16,12 @@
      encima, con datos prepagos. Esta página baja la ilustración de fondo,
      el logo y logic/entorno.js (unos 160 KB en total) y nada más:
        · si el recuadro alcanza para jugar (logic/entorno.js, modoEmbebido:
-         apaisado y de 640 px con el mouse u 820 con el dedo), se cambia
+         apaisado, de 360 de alto y de 640 de ancho con el mouse u 820 con
+         el dedo), se cambia
          sola por index.html?embed=1 y se juega adentro;
        · si no, queda el PÓSTER con ▶ JUGAR EN PANTALLA COMPLETA, que abre el
-         juego en una pestaña nueva (?ref=embed: de dónde vino, sin ningún
-         dato de quien juega);
+         juego en una pestaña nueva (revisión L07: sin ?ref=embed, que no
+         leía nada; el juego no mide visitas);
        · abierta fuera de un iframe, va directo al juego.
      Sin tipografías del juego a propósito (la de texto pesa 79 KB): el
      nombre lo lleva el logo.
@@ -53,7 +54,7 @@
     <img class="ps-logo" src="../assets/ui/pampa-star-logo.webp" alt="PAMPA STAR" width="2400" height="2200">
     <div class="ps-caja">
       <p>Fútbol pampeano, jugada por jugada: armás tu pinta, elegís tu localidad y jugás tu carrera del potrero al Mundial.</p>
-      <a id="ps-jugar" class="ps-jugar" href="./index.html?ref=embed" target="_blank" rel="noopener">▶ JUGAR EN PANTALLA COMPLETA</a>
+      <a id="ps-jugar" class="ps-jugar" href="./index.html" target="_blank" rel="noopener">▶ JUGAR EN PANTALLA COMPLETA</a>
       <p class="ps-nota">Se abre en una pestaña nueva: ahí tu carrera queda guardada.</p>
     </div>
   </div>
@@ -65,7 +66,7 @@
     var enIframe = true;
     try { enIframe = window.self !== window.top; } catch (e) { enIframe = true; }
     /* abierta sola (no en un iframe): directo al juego */
-    if (!enIframe) { location.replace("./index.html?ref=embed"); return; }
+    if (!enIframe) { location.replace("./index.html"); return; }
     function tactil() { try { return !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches); } catch (e) { return false; } }
     var hecho = false;
     function mirar() {
