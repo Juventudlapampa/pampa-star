@@ -2905,3 +2905,253 @@ server arrancado por `preview_start`, el worker nuevo se instaló entero
   navegador detrás de la ventana, el navegador da 2 cuadros por segundo; el
   "intervalo" de `?perf=1` mide las pausas del arnés, no cuadros. En un
   teléfono de verdad sí mide.
+
+---
+
+## Revisión del lote L06-carga
+
+Dos revisores leyeron los commits 6cb4310..42999f8 y encontraron doce
+cosas. Tres eran repetidas (el tope de cuadros en 75 y 90 Hz, el contexto
+WebGL que vuelve, los trabajos de una pieza de la cola), así que son
+nueve. Las comprobé contra el código actual y las reproduje antes de
+tocar nada: ninguna se descartó. Para el navegador usé `127.0.0.1:8123`
+(su localStorage estaba vacío al empezar) y el server de prueba de L06
+(`.claude/server_carga.js`, "Slow 4G") en el 8129. Los dos quedaron
+limpios al terminar: sin worker, sin cachés, sin localStorage. En
+`localhost:8123` probé el tope de cuadros y el contexto WebGL (sin pinta
+ni carrera). Antes de empezar, como pide el arnés, borré el worker y la
+caché vieja que tenía (`v16-toma`). La prueba del contexto escribió
+`pampa_ultimo_error` (el registro que usa COPIAR INFORME) con
+"volvió el contexto WebGL…". Lo borré al terminar; si había uno anterior,
+la prueba lo pisó. El resto de su localStorage no se tocó (el sonido
+sigue sin mute).
+Todo mudo: `server.js` y el server de prueba inyectan
+`.claude/silencio_dev.js`, y encima el arnés del oído. Capturas en
+`.claude/shots/rev06_*`.
+
+1. **El tope de 61 cuadros bajaba a la mitad las pantallas de 75, 90 y
+   100 Hz** (media, y la baja de 90 Hz del otro revisor; commit d6428d4).
+   *Qué estaba mal:* `TimeStep.stepLimitFPS` de Phaser 3.80.1 suma el
+   delta y, al pasar el tope, lo pone en cero sin guardar el resto.
+   Simulado con el algoritmo sacado del vendor: 75 Hz → 37,5 cuadros por
+   segundo, 90 → 45, 100 → 50, 144 → 48 (antes del lote: 75, 90, 100).
+   *Qué se hizo:* la config arranca sin tope y `PampaTopeDeCuadros`
+   (`scenes/cine_arte.js`) anota en cada paso el intervalo crudo de la
+   pantalla (`loop.rawDelta`). Cada 60 (`fps_muestras`) decide con la
+   mediana (`logic/carga.js`, `topeDeCuadros`). Hasta 100 Hz
+   (`fps_libre_hasta_hz`, con 5% de aire) corre libre. Arriba toma 1 de
+   cada n cuadros, con el n más chico que lo deja en 100 o menos, y el tope
+   a medio cuadro de aire. Prende o apaga `fpsLimit`, `hasFpsLimit` y
+   `_limitRate` del TimeStep, porque `tick` mira `hasFpsLimit` en cada
+   cuadro. Si la pantalla cambia (120 → 60 para ahorrar batería), vuelve a
+   decidir. `?perf=1` lo muestra ("PANTALLA 120 Hz · 1 de cada 2").
+   *Cómo se verificó:* `trabas_cine.test.js` [4], con smoothDelta,
+   stepLimitFPS y step del vendor y temblor de 0, 0,4 y 1,2 ms: 60→60,
+   75→75, 90→90, 100→100, 120→60, 144→72, 165→82,5, 240→80. En el
+   navegador, con el juego de verdad y `tick()` del vendor alimentado a
+   120, 75, 90, 144 y 60 Hz: 60, 75, 90, 72 y 60 pasos del juego por
+   segundo (`rev06_1_perf_pantalla_60.png`, `_120.png`).
+
+2. **"Se quedó sin memoria" obligaba a recargar aunque Phaser recupera el
+   contexto** (media, los dos revisores; commit b457f30). *Qué estaba
+   mal:* sin oyente de `webglcontextrestored`, el aviso salía en el acto
+   con RECARGAR solo. En el vendor, `contextLostHandler` hace
+   `preventDefault` y `contextRestoredHandler` recrea texturas, buffers y
+   pipelines: una pérdida pasajera (el teléfono que vuelve de otra app) se
+   llevaba el partido. Y el texto afirmaba una causa ("el teléfono se
+   quedó sin memoria") que no siempre es la verdadera. *Qué se hizo:* al
+   perderlo, el juego se pausa con `PampaPausa` (motivo `sin_dibujo`: la
+   música también, y el partido en LIBRE abre su PAUSA) y se espera
+   `balance.rendimiento.contexto_tope_ms` (5000). Si vuelve antes, sigue
+   sin aviso. Si no, "Se cortó el dibujo · El navegador dejó de dibujar el
+   juego y no volvió a arrancar. Tocá para recargar: lo que tenías guardado
+   sigue ahí." Si vuelve con el aviso a la vista, el aviso se va y el juego
+   sigue. *Cómo se verificó:* `presupuesto_texturas.test.js` [4], cuatro
+   casos con el script de LA RED corriendo y el reloj en la mano. En el
+   navegador, partido en LIBRE con `WEBGL_lose_context`: al perder, pausa,
+   la PAUSA del partido y ningún aviso. `restoreContext` a los 2 s: el
+   partido dibujado entero, con las texturas recreadas
+   (`rev06_2_ctx_1_volvio_pausa.png`). Con SEGUIR, el reloj corrió de
+   0:00 a 0:15 (`rev06_2_ctx_2_sigue.png`; SEGUIR con la misma función
+   del botón: ver deudas). Sin restaurar, a los 4,5 s
+   nada y a los 5,3 s el aviso (`rev06_2_ctx_3_aviso_a_los_5s.jpg`).
+   Restaurado ahí, el aviso se fue y siguió la cruz del duelo
+   (`rev06_2_ctx_4_volvio_con_aviso.png`).
+
+3. **Los trabajos de una pieza de la cola corrían enteros en LIBRE y en
+   la cruz** (media, los dos revisores; commit 0a2c457). *Qué estaba
+   mal:* la tajada se miraba ENTRE trabajos. Medido en la compu, tajadas
+   de 24 a 61 ms (el retrato de VOS 48, los pesos de la toma 31, cada
+   pintura 14). `CALMOS` ponía juntos el menú de tempo, LIBRE y la cruz:
+   con el tempo elegido rápido, eso caía en pleno juego. La `_nota` decía
+   "tajadas de 12 ms". *Qué se hizo:*
+   - **Cuánta calma** (`CALMA` en `cine_arte.js`): 2 en el tempo, la pausa
+     y el tutorial; 1 en LIBRE, la cruz y el pase; 0 en la escena, el cine
+     y la Definición. En calma corta corre SOLO lo que se parte, una tajada
+     por cuadro. En calma larga también lo de una pieza: lo grande, de a
+     uno por tajada y primero. Lo chico entra si su costo entra en lo que
+     queda.
+   - **El costo**: `balance.rendimiento.costo_ms` (lo medido en la compu,
+     con su `_costo`). La cola lo multiplica por el factor del aparato, que
+     aprende cronometrando cada trabajo de una pieza (techo 8).
+   - **Lo que se podía partir, se parte**: los bustos del duelo
+     (`_pedidoDeBusto`, el mismo pedido que usa `_bustoIlustrado`) y la
+     barrida naranja (`pedidoRivalNaranja`) se tiñen por bandas
+     (`trabajoDeTinteImagen`). La banda va por píxeles (16.384) y dibuja
+     su pedazo de la fuente. Si la fuente espera la limpieza del halo, la
+     espera (`PampaHaloPendiente`). Los pesos de la toma van por tramos
+     (`PampaPierna.pesosTramo`), con los vértices calculados como los arma
+     Phaser (`uvDeLaMalla`) en vez de armar una malla (10-20 ms medidos).
+   - Los pies y el ensayo de la toma **esperan** a su teñido y a los
+     pesos (`tiene(clave)`): con la cola salteando, si se adelantaban,
+     teñían la pose entera ahí mismo.
+
+   *Cómo se verificó:* `trabas_cine.test.js`: [1b] (calma corta y larga,
+   el factor, lo que espera, los pesos por tramos iguales número por
+   número); [2] (bandas por píxeles); [3] con la cola de verdad (bustos y
+   barrida por bandas, dependencias respetadas, en calma corta no corre ni
+   una pintura ni el ensayo); el busto con el mismo pedido; `uvDeLaMalla`
+   contra la cuenta del vendor. En el navegador (127.0.0.1, pinta piel 3,
+   pelo 2, camiseta 3):
+
+   | | el lote | ahora |
+   |---|---|---|
+   | tempo elegido en el acto: lo que corre en LIBRE | todo; tajadas de 24-61 ms | solo teñidos y pesos: el paso más largo 13 ms, la tajada más larga 21 |
+   | lo de una pieza, con el tempo elegido en el acto | en LIBRE | los 9 esperan al próximo menú quieto |
+   | corrida normal, primera gambeta: el toque (abrir la cruz + elegir) | 31,7-66,3 ms | 44,8 (abrir la cruz 38,7: ver deudas) |
+   | corrida normal, primera gambeta: el cuadro más largo | — | 6,3 ms |
+   | corrida normal, remate y gol: el cuadro más largo | 10,4-47,9 (y 51-91 en dos corridas) | 29,1 ms |
+   | tempo en el acto y SIN menú después (lo de una pieza se hace en el momento) | — | cuadro más largo: gambeta 7 ms, remate y gol 36 (las pinturas, 17 ms en el cine) |
+
+   Una corrida por fila, en la compu, con el panel del navegador oculto
+   (ver la advertencia de trabas-cine sobre las corridas lentas).
+
+   `uvDeLaMalla` dio 0 vértices distintos de 13.824 contra una malla de
+   verdad. **Sigue pendiente** la medición en un Android de gama baja que
+   pide el ítem (ver "Pendiente (trabas-cine)"): no tengo un teléfono.
+
+4. **El tema del opening no se bajaba con la compuerta a la vista**
+   (media; commit 6899909). *Qué estaba mal:* los `<audio>` nacen con
+   `preload="none"` y la música se registraba recién en p2. Medido por
+   el lote: el tema recién pudo sonar 4,2 s después de pedirse. *Qué se
+   hizo:* `cargarOpening` registra la música por la misma puerta
+   (`registrarMusicaGlobal`) y precarga el tema junto con las imágenes. La
+   espera espera también a que el tema pueda sonar entero
+   (`SFX.cuandoTemaListo`, nuevo), con tope: `balance.intro.tema_tope_ms`
+   (4000) después de las imágenes. La barra suma el tema por lo que pesa
+   en el disco (23%). *Cómo se verificó:* `carga_liviana.test.js` [1b] y
+   [5]. En el navegador, a "Slow 4G" y con la caché vacía: la compuerta a
+   los 20,2 s con el tema bajando y los otros 7 sin pedir. Tocada en el
+   acto: el tema pudo sonar a los 32 s, las imágenes llegaron a los 40,2 y
+   el opening arrancó en ese instante con el tema entero para p2.
+   (Con la pestaña oculta, la música queda en pausa hasta volver, por
+   L04: el tema quedó pedido con su volumen, listo.)
+
+5. **El tema del título ("hype") no lo precargaba nadie** (baja; commit
+   0983b95). *Qué estaba mal:* ninguna entrada de `SIGUIENTES` llevaba a
+   "hype", y el Master lo pide en la misma pasada que "espera". *Qué se
+   hizo:* `PampaTemporada.ultimaFecha(t)` y `siguientes(momento, ctx)`: en
+   la última fecha, la tabla y la semana también precargan "hype"
+   (`SIGUIENTES_CIERRE`). *Cómo se verificó:* `carga_liviana.test.js` [5]
+   ahora exige que CADA momento con archivo tenga un camino de precarga.
+   En el navegador, con la fecha 1 la tabla bajó espera, semana y
+   entrada, y no "hype"; con la fecha 18 de 18, `Beyond_the_Mushroom_
+   Bridge.ogg` se pidió en esa misma vista (`rev06_5_ultima_fecha.png`).
+
+6. **El respaldo del balance no traía `poses_intro` ni `fondos_intro`**
+   (baja; commit 64ec2e8). *Qué estaba mal:* con balance.json pasado de
+   su tope de 8 s, el opening bajaba sin poses ni tribuna. *Qué se hizo:*
+   `OPENING_DEF` en `logic/carga.js`, igual a balance.intro. *Cómo se
+   verificó (lógica, en node):* `carga_liviana.test.js` [2] saca
+   `BALANCE_FALLBACK` de index.html: baja las mismas 17 ilustraciones.
+
+7. **La instalación del worker caía durante la carga del opening** (baja;
+   commit 6ba557d). *Qué estaba mal:* el lote registraba el worker al
+   ABRIR la intro, con lo del opening bajando, y a los 20 s de "load"
+   igual. La medición del lote con "Slow 4G" fue sin worker. *Qué se
+   hizo:* la intro avisa al abrir que espera (`PampaRegistrarSW("espera")`)
+   y avisa que terminó al salir, al saltear o al ir directo al editor. Ahí
+   se registra. Topes: 20 s si la intro no abre, 2 minutos si abrió y
+   nadie tocó la compuerta. Se corrigió el comentario de `sw.js`. *Cómo se
+   verificó:* `carga_liviana.test.js` [6]. En el navegador: con la
+   compuerta a la vista y 22 s después, sin worker; salteado el opening,
+   se registró. En la navegación siguiente controló la página, con
+   `pampa-codigo` (69) y `pampa-assets` (37).
+
+8. **El número de memoria era de antes del precalentamiento** (baja;
+   commit de docs). Medido con el código final, intro → Master → partido
+   (127.0.0.1, la pinta de arriba): **271,5 MB en 170 texturas** al crear
+   el partido; **308,8 MB en 198** con la cola terminada en el menú de
+   tempo; **309,4 MB en 222** después de la primera gambeta, el primer
+   remate y el gol. Los 37 MB de la cola (4 bustos `caraT_`, 6 poses
+   teñidas, 4 pinturas, más lo que arma el panel) se crean igual en esos
+   tres momentos: después de jugarlos, la diferencia es de 0,6 MB. El
+   pico de un partido no sube, se adelanta. Por eso no achiqué los bustos
+   a "el rival más probable" (ver decisión 6).
+
+9. **"CARGANDO EL OPENING" contra "▶ VER INTRO"** (baja; commit 6899909,
+   con el punto 4). Ahora es `balance.intro.t_cargando_intro`, "CARGANDO
+   LA INTRO…" (`rev06_4_espera_intro.png`: "CARGANDO LA INTRO… 59%").
+
+La versión visible sube a `v17-1.0-l06r` (index.html y sw.js, iguales).
+Visto en el editor: "versión v17-1.0-l06r", y el worker nuevo instaló
+`pampa-codigo-v17-1.0-l06r` (`rev06_fin_editor_version.png`).
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L06)
+
+1. **El tope se decide midiendo, no con un número** (91 era la otra
+   opción del doc del lote). Un número fijo siempre deja alguna pantalla
+   a la mitad. *Revertir:* `fps: { target: 60, limit: 61 }` en index.html
+   y sacar `PampaTopeDeCuadros` del postBoot.
+2. **Libre hasta 100 Hz**, y no hasta 60: 75 y 90 Hz vuelven a lo de
+   antes del lote. *Revertir:* `fps_libre_hasta_hz`.
+3. **5 s de espera al perder el contexto.** Con la pestaña a la vista, un
+   navegador lo devuelve en uno o dos segundos. Más es una pantalla negra
+   que se lee como juego colgado. *Revertir:* `contexto_tope_ms: 0` (el
+   aviso en el acto, como el lote).
+4. **El título del aviso es "Se cortó el dibujo"**: no afirma la causa
+   ni el aparato. *Revertir:* los textos de `sinMem` en `R.mostrar`.
+5. **En calma corta, nada de una pieza, aunque "quepa".** Su costo se
+   midió en la compu, y en el teléfono no se sabe hasta correr el primero
+   (medido: unos pies declarados en 8 ms tardaron 22 la primera vez). El
+   precio: si quien juega elige el tempo en el acto y no vuelve a haber
+   menú, las pinturas y el ensayo de la toma se hacen en el momento (17 ms
+   y el primer dibujo de la malla). *Revertir:* en `logic/carga.js`, la
+   condición `nv < 2 ||` del bucle de la tajada.
+6. **Los bustos de todos los rivales de campo**, no solo el probable: el
+   pico no sube (punto 8) y el primer duelo puede ser contra cualquiera.
+   *Revertir:* en `armarPrecalentamiento`, el `forEach` de los rivales.
+7. **La espera del opening espera al tema, con 4 s de tope**: p1 dura
+   3 s y es mudo, así que el tema todavía puede llegar para p2.
+   *Revertir:* `tema_tope_ms: 0`.
+8. **"hype" se precarga solo en la última fecha**, no siempre: en las
+   otras 17 no se escucha y son 363 KB. *Revertir:* `SIGUIENTES_CIERRE`
+   dentro de `SIGUIENTES`.
+9. **El worker se registra al TERMINAR la intro**, no al abrir (la otra
+   opción del revisor). Al abrir baja lo del opening; al arrancar, su
+   música y las caras del editor. *Revertir:* en `intro.js`,
+   `PampaRegistrarSW()` en lugar de `PampaRegistrarSW("espera")`.
+10. **Lo que se deja como está**: el ítem `trabas-cine` sigue abierto
+    hasta medir en un teléfono; `TEMAS_PRECACHE` sigue con el tema del
+    opening (sin él, VER INTRO sin red sale mudo).
+
+### Deudas que vi y no son de esta revisión
+
+- **Los toques en el partido no llegan a Phaser en el arnés.** Con el
+  panel oculto, un clic real en SEGUIR de la PAUSA llega al lienzo
+  (mousedown, el puntero en 479,252) pero ninguna escena recibe el
+  `pointerdown`, y el ESC tampoco cierra la pausa. Pasa igual en un
+  partido sin perder el contexto: no lo causa esta revisión. Por eso
+  SEGUIR se probó con la misma función del botón (`cerrarPausa`). El
+  arnés mezcla dos relojes (el `requestAnimationFrame` real y el virtual
+  del oído: `time.now` salta para atrás), y eso también traba la guarda
+  de 180 ms del salteo de la intro.
+- **Con el tempo elegido en el acto**, en LIBRE aparecieron dos cuadros
+  de 355 y 364 ms. Por su tamaño y porque son dos, son las vestidas de
+  bloqueo y barrida (`poseDelEquipo`, la deuda de L06, que con el tempo
+  normal caen en el menú); esta vez no las cronometré por separado.
+- **Abrir la cruz del duelo** sigue en 38-41 ms en la compu
+  (`materializarDuelo` 18-22 y `abrirMenuCruz` 17), la deuda de L06.
+- **`tomaDelRemate` arma su malla en cada remate** (27-31 ms en el toque
+  de TIRO, medido): los pesos ya no están adentro, pero la malla de
+  13.824 vértices se arma cada vez. Con `uvDeLaMalla` se podría reusar.
