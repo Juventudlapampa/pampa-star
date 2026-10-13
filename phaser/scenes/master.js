@@ -367,6 +367,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          palabras, no solo el color.
      ══════════════════════════════════════════════════════════════════════ */
   guardadoAnda() {
+    /* la prueba que hizo index.html al abrir (window.PAMPA_GUARDADO); si dio
+       que no, no hace falta volver a probar */
+    if (window.PAMPA_GUARDADO === false) return false;
     const E = window.PampaEntorno;
     if (!E || !E.guardadoAndando) return true;
     let almacen = null;

@@ -275,6 +275,13 @@ pasos.push(async function () {
   c.cerrarCaja();
   assert(c.guardar() === false && doc3.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 0, "los siguientes no lo vuelven a abrir");
   A.localStorage.setItem = setOrig;
+  /* la prueba de index.html al abrir (PAMPA_GUARDADO) también cuenta */
+  var Dd = M.armar({ logicaExtra: ["phaser/logic/entorno.js"] });
+  var doc4 = domDeMentira(); Dd.ctx.document = doc4;
+  Dd.window.PAMPA_GUARDADO = false;
+  var dd = Dd.nueva(); dd.create();
+  assert(doc4.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 1 && dd.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0,
+    "si la prueba de index.html al abrir dio que no (PAMPA_GUARDADO false), el Master avisa igual");
   var MS = leer("phaser/scenes/master.js");
   var g = MS.slice(MS.indexOf("  guardar() {"), MS.indexOf("  guardadoAnda() {"));
   assert(/return ok;/.test(g) && !/catch \(e\) \{ \}/.test(g), "guardar() ya no traga el error: devuelve si guardó");
