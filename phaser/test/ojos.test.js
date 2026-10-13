@@ -22,8 +22,13 @@
      [2] un look guardado con cara 7 da una cara que existe (Rulos, el
          reemplazo) y no tira; el editor cicla 7 caras y vuelve a la primera;
      [3] la carga: ni cara_tranqui.png ni pose_cabezazo_v2.webp están en lo
-         que bajan el editor y el partido, ni en el PRECACHE de sw.js; los
-         dos archivos siguen en disco con el mismo hash.
+         que bajan el editor, el partido y el opening; los dos archivos
+         siguen en disco con el mismo hash. [3b] (revisión del lote: el
+         assert sobre el PRECACHE no podía fallar, ese arreglo nunca tuvo
+         arte) el sw.js de verdad, instalado y activado sobre la red de
+         mentira, no las pide ni las guarda; con la cara sumada al PRECACHE,
+         sí (el test muerde). En sw.js aparecen solo en ASSETS_HUELLA, que
+         es la huella y no la precarga.
      [4] el arquero: el cine del remate común le pedía a figuraArquero
          "planoArquero" y "planoDesenlace" a secas, y todo pedido sin la
          palabra "rival" era TU arquero: el rival te retenía el remate con tu
@@ -160,14 +165,18 @@ escena.textures = { exists: function (k) { return /^cara_/.test(k); } };
   var partido = C.listaDelPartido({ poses: POSES, caras: CARAS, portraits: json("data/portraits_manifest.json"), tribuna: json("data/tribuna.json") })
     .map(function (x) { return x.ruta.replace(/^\.\.\//, ""); });
   var opening = C.listaDelOpening(BAL.intro, POSES, []).map(function (x) { return x.ruta.replace(/^\.\.\//, ""); });
-  var SW = leer("phaser/sw.js");
-  var precache = SW.slice(SW.indexOf("const PRECACHE = ["), SW.indexOf("];", SW.indexOf("const PRECACHE = [")));
+  /* REVISIÓN DEL LOTE: acá había un assert sobre el arreglo PRECACHE de
+     sw.js, que no podía fallar: ese arreglo nunca tuvo poses ni caras (es
+     el código, los datos y las fuentes; git show 726856e:phaser/sw.js). Los
+     dos nombres que sí aparecen en sw.js son los de ASSETS_HUELLA (la
+     huella, no la precarga), y ahí tienen que estar: los archivos siguen en
+     disco y sw_precache.test.js exige la huella de todo assets/. Lo que el
+     worker baja por su cuenta se mira en [3b], instalándolo de verdad. */
   NO_SE_BAJAN.forEach(function (f) {
     var nombre = f.split("/").pop();
     assert(editor.indexOf(f) < 0, nombre + " no está en lo que baja el editor");
     assert(partido.indexOf(f) < 0, nombre + " no está en lo que baja el partido");
     assert(opening.indexOf(f) < 0, nombre + " no está en lo del opening");
-    assert(precache.indexOf(nombre) < 0, nombre + " no está en el PRECACHE de sw.js");
   });
   assert(editor.length === 7, "el editor baja 7 caras (" + editor.length + ")");
   assert(POSES.poses.cabezazo_v2.cargar === false && typeof POSES.poses.cabezazo_v2._W2 === "string" && POSES.poses.cabezazo_v2._W2.length > 40,
@@ -570,5 +579,36 @@ function teatro(poseTiro) {
   console.log("[7] la semana: cansado en ENTRENAR AGUANTE, el caldén en DESCANSAR (a sangre: en el momento y en la tira los cortes caen afuera), la de espaldas en ESTUDIAR; ninguna figura repetida por origen");
 })();
 
-console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
-process.exit(mal === 0 ? 0 : 1);
+/* ---------- [3b] EL WORKER NO LAS BAJA POR SU CUENTA ---------- */
+/* REVISIÓN DEL LOTE: el assert de [3] sobre el PRECACHE no podía fallar
+   (ese arreglo nunca tuvo arte). Lo que importa es si el worker las baja o
+   las guarda solo, sin que la página las pida. Se instala y se activa el
+   sw.js de verdad sobre la red y las cachés de mentira de los tests del
+   worker (_sw_de_mentira.js), y se mira cada pedido y cada cosa guardada.
+   Para saber que mira bien, lo mismo con una variante que suma la cara al
+   PRECACHE: ahí tiene que verla. */
+(async function () {
+  var MW = require("./_sw_de_mentira.js");
+  var SWT = MW.leerSW();
+  var NO = ["assets/poses/caras/cara_tranqui.png", "assets/poses/pose_cabezazo_v2.webp"];
+  async function instalar(texto) {
+    var Wk = MW.cargar(texto, {});
+    var ins = await Wk.instalar();
+    await Wk.activar();
+    var guardado = [];
+    for (var nombre of await Wk.caches.keys()) guardado = guardado.concat(Wk.caches.claves(nombre));
+    return { ok: ins.ok, error: ins.error, pedidos: Wk.red.log.map(function (x) { return x.ruta; }), guardado: guardado };
+  }
+  function toca(r, f) { return r.pedidos.some(function (p) { return p === f; }) || r.guardado.some(function (g) { return g.split("?")[0].replace(/^(\.\.\/)+/, "") === f || g.indexOf(f) >= 0; }); }
+  var r = await instalar(SWT);
+  assert(r.ok, "el worker se instala (" + (r.error && r.error.message) + ")");
+  NO.forEach(function (f) {
+    assert(!toca(r, f), f.split("/").pop() + ": el worker no la pide ni la guarda al instalarse (" + r.pedidos.length + " pedidos, " + r.guardado.length + " guardados)");
+  });
+  var rCon = await instalar(MW.variante(SWT, { precacheExtra: ["../assets/poses/caras/cara_tranqui.png"] }));
+  assert(rCon.ok && toca(rCon, NO[0]), "control: con la cara sumada al PRECACHE, el worker la baja y este test la ve (el test muerde)");
+  console.log("[3b] el worker instalado de verdad: " + r.pedidos.length + " pedidos y " + r.guardado.length + " guardados, ninguno es la cara de ojos cerrados ni cabezazo_v2 (con la cara en el PRECACHE, la ve)");
+})().catch(function (e) { assert(false, "[3b] tiró: " + (e && e.stack || e)); }).then(function () {
+  console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
+  process.exit(mal === 0 ? 0 : 1);
+});
