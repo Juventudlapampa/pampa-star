@@ -475,12 +475,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ARTE: la pintura de la viñeta (la más usada) se pinta ya, en un cuadro
        aparte, y no en la primera gambeta del partido. Tarda 12-35 ms. */
     if (this.texturaDeFondo) this.time.delayedCall(120, () => { try { this.texturaDeFondo("escena"); } catch (e) { /* sin pintura: el plano dibuja el fondo viejo */ } });
-    /* V10: las dos poses de defensor vestidas con nuestra camiseta, cada una en
-       su cuadro (130-190 ms cada una), antes del primer bloqueo */
-    if (this.poseDelEquipo) {
-      this.time.delayedCall(900, () => { try { this.poseDelEquipo("bloqueo"); } catch (e) { /* se viste al usarla */ } });
-      this.time.delayedCall(1700, () => { try { this.poseDelEquipo("barrida"); } catch (e) { /* se viste al usarla */ } });
-    }
+    /* V10: las dos poses de defensor vestidas con nuestra camiseta, antes del
+       primer bloqueo. L08c: YA NO SE VISTEN ACÁ. Eran dos delayedCall (900 y
+       1700 ms) de una sola pieza: medido en el navegador de la compu, los dos
+       cuadros más largos de los primeros 3 s del partido (382 y 313 ms), que
+       con el tempo elegido al crear la carrera quedaban a la vista en pleno
+       arranque. Ahora las prepara la tabla del Master en un hilo aparte
+       (scenes/vestidas_ui.js) y acá se usan si ya están; se vuelven a pedir
+       solo al hilo aparte, por si se entró sin pasar por la tabla. */
+    if (this.pedirVestidas) { try { this.pedirVestidas(); } catch (e) { /* se visten al usarlas */ } }
     /* L06 (trabas-cine): lo de la primera gambeta, el primer remate y el
        primer gol, antes, en los ratos tranquilos */
     this.armarPrecalentamiento();

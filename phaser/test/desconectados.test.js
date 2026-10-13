@@ -295,6 +295,8 @@ var ESCRITOS_OK = {
   /* revisión L06: el tope de cuadros según la pantalla (cine_arte.js, PampaTopeDeCuadros) */
   "_limitRate": "campo del TimeStep de Phaser (vendor): lo lee su stepLimitFPS en cada cuadro, que este barrido no mira",
   "__PAMPA_FPS": "lo que decidió el tope según la pantalla ({hz, divisor, limite}): lo lee ?perf=1 en index.html y la verificación",
+  /* L08c: las poses vestidas (scenes/vestidas_ui.js) */
+  "__PAMPA_VESTIDAS": "cuántas vistió el hilo aparte y cuántas el de la página, con la más larga: lo lee ?perf=1 en index.html (pintar) y la verificación",
   "_entrarDefinicionDefVieja": "el camino viejo de la definición, que se conserva a propósito para poder volver",
   "_panelReveal": "bandera de una sola pasada: se escribe para NO repetir el reveal, no para leerse",
   "_tramiteMudoUltimo": "marca anti-repetición del trámite mudo",

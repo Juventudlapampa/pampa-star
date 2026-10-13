@@ -780,6 +780,13 @@
       { "tipo": "golpe", "bando": "mio", "cx": 0.5, "cy": 0.52 }
     ]
   },
+  "vestidas": {
+    "_nota": "TANDA 1.0 (L08c, deudas de la ola 2) · LAS POSES VESTIDAS, ANTES Y EN UN HILO APARTE. Vestir pose_bloqueo y pose_barrida con tu camiseta (logic/vestir.js) es de una sola pieza: 120-240 ms por pose en node, y en el navegador de la compu eran los dos cuadros más largos de los primeros 3 s del partido (382 y 313 ms), porque se hacían en su create. Ahora las pide la tabla del Master espera_tabla_ms después de dibujarse (está quieta y se pasa por ahí antes de cada fecha) y las viste un Worker (logic/vestir_obrero.js); el partido solo las usa si ya están (scenes/vestidas_ui.js). obrero: false apaga el Worker (todo vuelve al hilo de la página: la tabla las viste de a una con hilo_espera_ms de aire entre una y otra; el partido, al usarlas). obrero_tope_ms: si el Worker no contesta en ese tiempo, se lo da por muerto y sigue el hilo de la página. Los valores son de la compu; en un teléfono el Worker tarda más pero no traba nada.",
+    "espera_tabla_ms": 700,
+    "hilo_espera_ms": 400,
+    "obrero_tope_ms": 15000,
+    "obrero": true
+  },
   "arte": {
     "_nota": "TANDA 1.0 (L06, texturas-presupuesto) · EL TOPE DE LADO EN MEMORIA. Los archivos de assets/ NO se tocan: cuando una textura entra al juego, si su lado mayor pasa el tope se redibuja achicada (suavizado alto) y esa es la que queda en la placa de video. Medido: los cuatro preload sumaban 69 texturas = 384,6 MB (RGBA) y nada se liberaba; con el tope y una sola clave por archivo, la base queda en 257 MB (presupuesto_texturas.test.js, tope 270). Las escenas escalan por el alto de la textura, así que nada se mueve. max_lado_px (1024) es para lo que llena la pantalla: los seis fondos de la intro (1920x1080, se ven a 960x540: el lienzo mide 960x540) y fondo_pueblo. max_lado_chicas_px (512) es para lo que se ve chico, medido en el código: el logo de la compuerta a 360x330 (el más grande de todos), el cartel del pueblo a 196 de alto, el logo horizontal a 230x34, el escudo a 15-30 de alto, Nito a 84 y los de la tribuna a 43. FUERA DEL TOPE: las poses, las caras y las identidades (logic/vestir.js y logic/halo.js miden en píxeles), y fondo_tribuna (tope_excepto): el cine la muestra a 960 de ancho y la cámara del cine la acerca hasta 1,25 (balance.cine.zoom_viaje): necesita sus 1280. Si subís un número la textura vuelve a ocupar más; si lo bajás de lo que se ve, se agranda en pantalla (con pixelArt, en escalones).",
     "max_lado_px": 1024,

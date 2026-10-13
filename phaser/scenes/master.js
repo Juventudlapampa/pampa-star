@@ -41,6 +41,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        la entrada anterior se suelta acá (P1: la instancia se reusa) */
     if (this._soltarInstalar) { try { this._soltarInstalar(); } catch (e) { } }
     this._soltarInstalar = null;
+    /* L08c: las poses vestidas del partido se piden una vez por entrada a la
+       tabla (prepararVestidas); la cola que las viste es del juego */
+    this._vestidasPedidas = false;
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -2409,6 +2412,53 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
     /* L07: fijo en la tabla mientras este navegador no guarde */
     this.marcaSinGuardar();
+    /* L08c: con la tabla dibujada y quieta, las poses vestidas del partido */
+    const VS = (this.game.registry.get("balance") || {}).vestidas || {};
+    this.time.delayedCall(VS.espera_tabla_ms != null ? VS.espera_tabla_ms : 700, () => this.prepararVestidas());
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     L08c · LAS POSES VESTIDAS DEL PARTIDO, PREPARADAS EN LA TABLA.
+     Vestir pose_bloqueo y pose_barrida con tu camiseta (logic/vestir.js) es
+     de una sola pieza; en el create del partido eran los dos cuadros más
+     largos de sus primeros 3 s (382 y 313 ms, en la compu). La tabla está
+     quieta y se pasa por ella antes de cada fecha: acá se bajan esas dos
+     poses (si todavía no están; el partido las iba a bajar igual) y se
+     piden a la cola de scenes/vestidas_ui.js, que las viste en un hilo
+     aparte. Las texturas quedan en el juego y el partido las usa al entrar.
+     Los colores son los que va a usar el partido: el celeste del equipo y,
+     si elegiste otra camiseta en el editor, la tuya. */
+  prepararVestidas() {
+    if (this._vestidasPedidas) return 0;
+    const V = window.PampaVestir, PV = window.PampaVestidas;
+    if (!V || !V.paresAVestir || !PV) return 0;
+    this._vestidasPedidas = true;
+    const man = this.game.registry.get("poses");
+    const pares = V.paresAVestir(man, [V.DEF.destino, this.colorDeTuCamiseta()])
+      .filter((p) => !this.textures.exists(p.clave));
+    if (!pares.length) return 0;
+    const faltan = [];
+    pares.forEach((p) => { if (!this.textures.exists("pose_" + p.id) && faltan.indexOf(p.id) < 0) faltan.push(p.id); });
+    const pedir = () => PV.preparar(this.game, pares, { hilo: true });
+    if (!faltan.length) return pedir();
+    const base = (man && man.base) || "assets/poses/";
+    faltan.forEach((id) => this.load.image("pose_" + id, "../" + base + man.poses[id].archivo));
+    this.load.once("complete", pedir);
+    this.load.start();
+    return 0;
+  }
+  /* el color de tu camiseta en el partido: el mismo look que arma
+     match.armarPlanteles para VOS (el del editor). Sin uno elegido, el
+     partido usa uno armado por nombre, que no trae camiseta propia: celeste */
+  colorDeTuCamiseta() {
+    const V = window.PampaVestir, A = window.PampaAvatar;
+    let career = null, sueltos = null;
+    try { career = JSON.parse(localStorage.getItem("pampa_star_v1") || "null"); } catch (e) { }
+    try { sueltos = JSON.parse(localStorage.getItem("pampa_star_avatares") || "null"); } catch (e) { }
+    const avs = (career && career.avatares) || sueltos || {};
+    const look = avs.vos && A ? A.validarLook(avs.vos) : null;
+    const CM = this.game.registry.get("caras");
+    return V.destinoDelLook(look, CM && CM.camisetas);
   }
 };
 

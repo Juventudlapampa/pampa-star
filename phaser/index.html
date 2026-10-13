@@ -349,7 +349,7 @@
   (function () {
     "use strict";
     var C = window.PampaCartel = {
-      SCRIPTS: 54, DATOS: 15,
+      SCRIPTS: 55, DATOS: 15,
       PESOS: { scripts: 0.73, datos: 0.18, escena: 0.09 },
       scripts: 0, datos: 0, escena: 0, pct: 0, fuera: false
     };
@@ -1644,6 +1644,8 @@
   <script src="scenes/piel_ui.js"></script>
   <!-- L07: pantalla completa y horizontal (el mixin entra en las cuatro escenas, abajo) -->
   <script src="scenes/pantalla_ui.js"></script>
+  <!-- L08c: las poses vestidas, preparadas en la tabla del Master y en un hilo aparte -->
+  <script src="scenes/vestidas_ui.js"></script>
   <script src="scenes/sprites.js"></script>
   <script src="scenes/avatar_arte.js"></script>
   <script src="scenes/intro.js"></script>
@@ -1727,6 +1729,11 @@
       var Q = window.PampaPrecalentar;
       var cola = Q ? { pendientes: Q.pendientes(), tajadaMax: Q.stats().tajadaMax } : null;
       var c = C.textoCuadros ? C.textoCuadros(window.__PAMPA_PERF, cola, window.__PAMPA_HALO, window.__PAMPA_FPS) : "";
+      /* L08c: las poses vestidas (scenes/vestidas_ui.js): cuántas hizo el
+         hilo aparte y cuántas este hilo, con la más larga de este */
+      var VE = window.__PAMPA_VESTIDAS;
+      if (VE && (VE.obrero || VE.hilo || VE.fallas.length)) c += (c ? "\n" : "") + "vestidas: " + VE.obrero + " en el hilo aparte · " + VE.hilo +
+        " en este (máx " + Math.round(VE.msHiloMax) + " ms)" + (VE.fallas.length ? " · " + VE.fallas.length + " fallas" : "");
       el.textContent = C.textoRed(RED) + (t ? "\n" + t : "") + (c ? "\n" + c : "");
     }
     /* L06 (trabas-cine) · EL CUADRO MÁS LARGO, para medir en un teléfono de

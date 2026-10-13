@@ -1139,36 +1139,42 @@
        kit:"rival" (barrida, bloqueo) están dibujadas con la del rival; cuando
        las usa un jugador tuyo, logic/vestir.js separa la tela de la piel por
        regiones de tinta y la viste de celeste LISA (sin rayas: son la marca
-       del rival). Si es VOS con una camiseta elegida, va con esa. Se hace una
-       vez por pose y color (130-190 ms) y queda como textura. Si algo falla,
-       vuelve la pose original: nunca queda vacío. */
+       del rival). Si es VOS con una camiseta elegida, va con esa. Queda como
+       textura, una por pose y color. Si algo falla, vuelve la pose original:
+       nunca queda vacío.
+       L08c: ACÁ YA NO SE VISTE, SE USA. La clave y el color salen de
+       logic/vestir.js (claveVestida, destinoDelLook), los mismos con que las
+       prepara antes la tabla del Master en un hilo aparte
+       (scenes/vestidas_ui.js). Si al usarla todavía no está, se viste en el
+       acto como antes (último recurso: un defensor tuyo con las rayas del
+       rival confundiría a quien distingue por forma), y queda anotado en
+       __PAMPA_VESTIDAS.hilo. */
     poseDelEquipo(id, j) {
       var src = this.poseKey ? this.poseKey(id) : null;
       if (!src) return null;
       if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(src);
       var man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
       if (!def || def.kit !== "rival" || !window.PampaVestir) return src;
-      var destino = "#4fc3f7";
-      if (j && j.esVos && j.look && window.PampaAvatar) {
-        var look = window.PampaAvatar.validarLook(j.look), CM = this.game.registry.get("caras");
-        if (look.tCam > 0 && CM && CM.camisetas && CM.camisetas.length) destino = CM.camisetas[(look.tCam - 1) % CM.camisetas.length].hex;
-      }
-      var key = "poseE_" + id + "_" + String(destino).replace("#", "");
+      var V = window.PampaVestir, look = null;
+      if (j && j.esVos && j.look && window.PampaAvatar) look = window.PampaAvatar.validarLook(j.look);
+      var CM = this.game.registry.get("caras");
+      var destino = V.destinoDelLook(look, CM && CM.camisetas);
+      var key = V.claveVestida(id, destino);
       if (this.textures.exists(key)) return key;
-      try {
-        var img = this.textures.get(src).getSourceImage(), w = img.width, h = img.height;
-        var ct = this.textures.createCanvas(key, w, h), c = ct.getContext();
-        c.drawImage(img, 0, 0);
-        var datos = c.getImageData(0, 0, w, h);
-        window.PampaVestir.vestir(datos.data, w, h, { destino: destino });
-        c.putImageData(datos, 0, 0);
-        ct.refresh();
-        return key;
-      } catch (e) {
-        console.error("[vestir] " + id + ": " + (e && e.message));
-        if (this.textures.exists(key)) this.textures.remove(key);
-        return src;
-      }
+      return (window.PampaVestidas && window.PampaVestidas.vestirYa(this.game, id, destino)) || src;
+    },
+    /* L08c · el partido las vuelve a pedir por si se entró sin pasar por la
+       tabla del Master, pero SOLO al hilo aparte (hilo: false): en el
+       arranque del partido no se viste nada en el hilo del juego. Los
+       colores: el celeste del equipo y el de VOS (si elegiste camiseta). */
+    pedirVestidas() {
+      var V = window.PampaVestir, PV = window.PampaVestidas;
+      if (!V || !V.paresAVestir || !PV) return 0;
+      var vos = this.st && this.st.mios && this.st.mios.filter(function (x) { return x.esVos; })[0];
+      var look = vos && vos.look && window.PampaAvatar ? window.PampaAvatar.validarLook(vos.look) : null;
+      var CM = this.game.registry.get("caras");
+      var pares = V.paresAVestir(this.game.registry.get("poses"), [V.DEF.destino, V.destinoDelLook(look, CM && CM.camisetas)]);
+      return PV.preparar(this.game, pares, { hilo: false });
     },
     /* una textura del panel, pintada una vez y anotada en el registro para
        soltarse junto con las del cine al cambiar de ambiente */

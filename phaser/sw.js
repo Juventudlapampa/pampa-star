@@ -94,6 +94,11 @@ const PRECACHE = [
   "./logic/memoria.js",
   /* tanda 1.0 (L07): dónde corre el juego y la pantalla completa */
   "./logic/entorno.js", "./scenes/pantalla_ui.js",
+  /* tanda 1.0 (L08c): las poses vestidas antes, y el hilo aparte que las
+     viste (no lo carga index.html: lo pide la página con new Worker y él
+     pide logic/vestir.js, que ya está arriba). Si igual no llega, la tabla
+     las viste en el hilo de la página (scenes/vestidas_ui.js) */
+  "./scenes/vestidas_ui.js", "./logic/vestir_obrero.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",

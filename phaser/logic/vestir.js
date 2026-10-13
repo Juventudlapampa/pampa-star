@@ -282,5 +282,50 @@
     return { tela: lumas.length, rayas: nr, th: M.th, m: m };
   }
 
-  return { DEF: DEF, hsv: hsv, otsu: otsu, regiones: regiones, mascaraTela: mascaraTela, rayas: rayas, vestir: vestir };
+  /* ══════════════════════════════════════════════════════════════════════
+     L08c · QUÉ SE VISTE, CON QUÉ CLAVE Y DE QUÉ COLOR (para prepararlo antes)
+     vestir() cuesta 120-240 ms por pose en node (medido con pose_bloqueo
+     799x900 y pose_barrida 900x683) y más en el navegador de la compu, y es
+     de una sola pieza. Se hacía en el create del partido: medido en el
+     navegador, los dos cuadros más largos de los primeros 3 s eran esos, de
+     382 y 313 ms. Ahora se prepara antes (la tabla del
+     Master, y en un hilo aparte: logic/vestir_obrero.js) y el partido usa lo
+     que ya está. Para eso la escena que prepara y la que usa tienen que
+     coincidir en la CLAVE de la textura y en el COLOR, y eso vive acá. */
+  /* la textura vestida: "poseE_<pose>_<hex sin #>" (la de siempre), con el
+     hex en minúscula: la camiseta "Celeste titular" del manifiesto de caras
+     es #4FC3F7, el mismo color que el celeste del equipo (#4fc3f7), y con la
+     clave tal cual eran dos texturas iguales vestidas dos veces */
+  function claveVestida(id, destino) {
+    return "poseE_" + id + "_" + String(destino || DEF.destino).replace("#", "").toLowerCase();
+  }
+  /* el color: el celeste del equipo propio, o la camiseta que elegiste en el
+     editor (tCam > 0 en tu look ya validado: 0 es "Original") */
+  function destinoDelLook(look, camisetas) {
+    if (look && look.tCam > 0 && camisetas && camisetas.length) {
+      var c = camisetas[(look.tCam - 1) % camisetas.length];
+      if (c && c.hex) return c.hex;
+    }
+    return DEF.destino;
+  }
+  /* las poses del manifiesto que hay que vestir (kit "rival" y que se
+     cargan) por cada color distinto: [{ id, destino, clave }] */
+  function paresAVestir(manifiesto, destinos) {
+    var poses = (manifiesto && manifiesto.poses) || {}, out = [], vistos = {};
+    var ds = (destinos && destinos.length ? destinos : [DEF.destino]);
+    Object.keys(poses).forEach(function (id) {
+      var p = poses[id];
+      if (!p || p.kit !== "rival" || p.cargar === false || !p.archivo) return;
+      ds.forEach(function (d) {
+        var clave = claveVestida(id, d);
+        if (vistos[clave]) return;
+        vistos[clave] = true;
+        out.push({ id: id, destino: d || DEF.destino, clave: clave });
+      });
+    });
+    return out;
+  }
+
+  return { DEF: DEF, hsv: hsv, otsu: otsu, regiones: regiones, mascaraTela: mascaraTela, rayas: rayas, vestir: vestir,
+    claveVestida: claveVestida, destinoDelLook: destinoDelLook, paresAVestir: paresAVestir };
 });

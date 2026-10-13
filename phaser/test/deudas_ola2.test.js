@@ -4,6 +4,15 @@
    Los lotes L04b a L08 las vieron (con su medición o su captura) y las
    anotaron porque no eran su ítem. Acá cada una tiene su prueba:
 
+     [1] LA TRABA AL EMPEZAR EL PARTIDO. Las vestidas de bloqueo y barrida
+         (poseDelEquipo, dos delayedCall del create del partido) eran los dos
+         cuadros más largos de sus primeros 3 s: 382 y 313 ms en la compu.
+         Ahora las prepara la tabla del Master y las viste un Worker; el
+         partido solo las usa. Se corren el obrero, la cola
+         (scenes/vestidas_ui.js) con un Worker de mentira, poseDelEquipo,
+         pedirVestidas y prepararVestidas de verdad (abajo, al final: es la
+         única parte asíncrona). Con PAMPA_MATCH_VIEJO=ruta, el create de
+         antes falla con el síntoma.
      [2] LA MANO DE CARTAS EN LA PANTALLA FINAL. "◆ FOGONAZO ◆ PUÑALADA"
          (txtMano) seguía arriba a la izquierda en GANASTE
          (l04b_1_final_master_4s.png): pantallaFinal() apagaba las fichas
@@ -13,8 +22,12 @@
          pitazo, tampoco nace después. Con PAMPA_MATCH_VIEJO=ruta corre
          contra otro match.js (el de antes falla con el síntoma).
 
-   (La [3], red_lenta que fallaba al azar, se prueba en red_lenta.test.js y
-   en _sw_de_mentira.js; la [1], la [4] y la [5] se suman abajo.)
+     [4] /favicon.ico daba 404: un ICO nuevo en la raíz, derivado del ícono.
+     [5] INSTALAR solo en la portada vertical: ahora también en la tabla del
+         Master, apaisado, cuando el navegador lo ofrece.
+
+   (La [3], red_lenta que fallaba al azar, se prueba en red_lenta.test.js [g]
+   y en _sw_de_mentira.js.)
 
    Corré:  node phaser/test/deudas_ola2.test.js
    ========================================================================== */
@@ -221,5 +234,289 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   console.log("[5] 📲 en la tabla: escondido sin el evento, aparece cuando llega, abre al soltar, se va al usarse; abajo al medio sin pisar a nadie");
 })();
 
-console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
-process.exit(mal === 0 ? 0 : 1);
+/* ---------- [1] LAS VESTIDAS NO TRABAN EL ARRANQUE DEL PARTIDO ----------
+   Vestir pose_bloqueo y pose_barrida (logic/vestir.js) es de una sola pieza
+   y se hacía en el create del partido: en el navegador de la compu, los dos
+   cuadros más largos de sus primeros 3 s (382 y 313 ms). Ahora las prepara
+   la tabla del Master, las viste un Worker (logic/vestir_obrero.js) y el
+   partido solo las usa. Se prueba, en node:
+     (a) la clave y el color, que el que prepara y el que usa calculan igual;
+     (b) el obrero corriendo de verdad (con un importScripts de mentira): da
+         lo mismo que vestir() y devuelve los píxeles transferidos;
+     (c) la cola de scenes/vestidas_ui.js con un Worker de mentira que corre
+         ese obrero: el hilo de la página NO llama a vestir(); sin Worker, la
+         tabla viste de a una con aire y el partido no viste nada; un Worker
+         que falla o no contesta no rompe nada (y el error no llega a la red
+         de errores);
+     (d) poseDelEquipo y pedirVestidas (cine_arte.js) y prepararVestidas
+         (master.js) de verdad, y el create del partido sin las dos vestidas. */
+var vm = require("vm");
+var V = require(path.join(RAIZ, "phaser/logic/vestir.js"));
+/* una pose sintética: camiseta naranja a rayas encerrada en tinta y piel al
+   lado (la trampa de vestir.test.js), chica para que corra rápido */
+function poseSintetica(W, H) {
+  var d = new Uint8ClampedArray(W * H * 4);
+  function px(x, y, c) { var i = (y * W + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255; }
+  for (var y = 10; y < H - 10; y++) for (var x = 10; x < 90; x++) {
+    var borde = x < 12 || x > 87 || y < 12 || y > H - 13;
+    px(x, y, borde ? [20, 16, 14] : (((x - 12) % 24) >= 14 ? [26, 24, 22] : [252, 132, 76]));
+  }
+  for (y = 10; y < H - 10; y++) for (x = 100; x < 150; x++) px(x, y, (x < 102 || x > 147 || y < 12 || y > H - 13) ? [20, 16, 14] : [252, 180, 130]);
+  return { width: W, height: H, datos: d };
+}
+function iguales(a, b) { if (!a || !b || a.length !== b.length) return false; for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
+function turnos(n) { var p = Promise.resolve(); for (var i = 0; i < (n || 6); i++) p = p.then(function () { return new Promise(function (r) { setImmediate(r); }); }); return p; }
+
+/* el obrero, cargado en su propio contexto como lo carga el navegador */
+function contextoObrero() {
+  var w = { console: console, Uint8ClampedArray: Uint8ClampedArray, Date: Date, enviados: [] };
+  w.self = w;
+  w.importScripts = function (f) { vm.runInContext(leer("phaser/logic/" + f), w, { filename: f }); };
+  w.postMessage = function (m, tr) { w.enviados.push({ m: m, tr: tr }); };
+  vm.createContext(w);
+  vm.runInContext(leer("phaser/logic/vestir_obrero.js"), w, { filename: "vestir_obrero.js" });
+  return w;
+}
+
+/* el juego de mentira: texturas del administrador, lienzos y un Worker */
+function mundoDeVestidas(op) {
+  op = op || {};
+  var timers = [], asegurados = [], llamadasVestir = 0, workers = [];
+  var T = { m: {} };
+  T.exists = function (k) { return Object.prototype.hasOwnProperty.call(T.m, k); };
+  T.get = function (k) { return { getSourceImage: function () { return T.m[k].img; } }; };
+  T.createCanvas = function (k, w, h) {
+    var c = { w: w, h: h, pix: null, refrescos: 0 };
+    c.getContext = function () { return { putImageData: function (d) { c.pix = new Uint8ClampedArray(d.data); } }; };
+    c.refresh = function () { c.refrescos++; };
+    T.m[k] = { canvas: c };
+    return c;
+  };
+  T.remove = function (k) { delete T.m[k]; };
+  var BAL = { vestidas: { espera_tabla_ms: 700, hilo_espera_ms: 400, obrero_tope_ms: 15000, obrero: true } };
+  var game = { textures: T, registry: { get: function (k) { return k === "balance" ? BAL : null; } } };
+  function lienzo() {
+    var cv = { width: 0, height: 0, img: null };
+    cv.getContext = function () {
+      return {
+        drawImage: function (img) { cv.img = img; },
+        getImageData: function (x, y, w, h) { return { data: new Uint8ClampedArray(cv.img.datos), width: w, height: h }; }
+      };
+    };
+    return cv;
+  }
+  function Obrero(url) {
+    var self = this;
+    this.url = url; this.terminado = false; this.mensajes = 0;
+    workers.push(this);
+    var w = contextoObrero();
+    w.postMessage = function (m) { setImmediate(function () { if (!self.terminado && self.onmessage) self.onmessage({ data: m }); }); };
+    this.postMessage = function (m, tr) {
+      self.mensajes++;
+      self.transferido = !!(tr && tr[0] === m.buf);
+      if (op.obrero === "error") {
+        var ev = { message: "no cargó", prevenido: false, preventDefault: function () { this.prevenido = true; } };
+        self.errorEv = ev;
+        setImmediate(function () { if (self.onerror) self.onerror(ev); });
+        return;
+      }
+      if (op.obrero === "mudo") return;
+      var copia = { n: m.n, w: m.w, h: m.h, buf: m.buf, destino: m.destino };
+      setImmediate(function () { w.onmessage({ data: copia }); });
+    };
+    this.terminate = function () { self.terminado = true; };
+  }
+  var win = {
+    PampaVestir: Object.assign({}, V, { vestir: function () { llamadasVestir++; return V.vestir.apply(null, arguments); } }),
+    PampaHaloAsegurar: function (k) { asegurados.push(k); }
+  };
+  var ctx = {
+    window: win, console: { error: function () { }, log: console.log, warn: function () { } },
+    document: { createElement: function () { return lienzo(); } },
+    ImageData: function (data, w, h) { this.data = data; this.width = w; this.height = h; },
+    Uint8ClampedArray: Uint8ClampedArray, Date: Date, Object: Object, Math: Math, String: String,
+    performance: { now: function () { return Date.now(); } },
+    setTimeout: function (fn, ms) { var t = { fn: fn, ms: ms, vivo: true }; timers.push(t); return t; },
+    clearTimeout: function (t) { if (t) t.vivo = false; }
+  };
+  if (op.obrero !== "ninguno") ctx.Worker = Obrero;
+  vm.createContext(ctx);
+  vm.runInContext(leer("phaser/scenes/vestidas_ui.js"), ctx, { filename: "vestidas_ui.js" });
+  return {
+    game: game, T: T, PV: win.PampaVestidas, ESTADO: win.__PAMPA_VESTIDAS, workers: workers, timers: timers, asegurados: asegurados,
+    llamadasVestir: function () { return llamadasVestir; },
+    /* dispara los timers vivos (el reloj no corre solo) */
+    correrTimers: function () { var t = timers.splice(0); t.forEach(function (x) { if (x.vivo) x.fn(); }); return t.length; },
+    pose: function (id, W, H) { T.m["pose_" + id] = { img: poseSintetica(W || 160, H || 100) }; }
+  };
+}
+/* lo que tiene que quedar: vestir() de verdad sobre la misma pose */
+function esperado(W, H, destino) { var p = poseSintetica(W, H); V.vestir(p.datos, W, H, { destino: destino }); return p.datos; }
+
+async function prueba1() {
+  var MAN = JSON.parse(leer("data/poses_manifest.json")), CM = JSON.parse(leer("data/caras_manifest.json"));
+  var CEL = V.DEF.destino;
+  /* (a) la clave y el color */
+  assert(V.claveVestida("bloqueo", "#4fc3f7") === "poseE_bloqueo_4fc3f7", "la clave de siempre: poseE_<pose>_<hex>");
+  assert(V.claveVestida("bloqueo", "#4FC3F7") === V.claveVestida("bloqueo", "#4fc3f7"), "la camiseta 'Celeste titular' (#4FC3F7) y el celeste del equipo son la misma textura");
+  assert(V.destinoDelLook(null, CM.camisetas) === CEL && V.destinoDelLook({ tCam: 0 }, CM.camisetas) === CEL, "sin camiseta elegida (o Original): el celeste del equipo");
+  assert(V.destinoDelLook({ tCam: 5 }, CM.camisetas) === CM.camisetas[4].hex, "con camiseta elegida: esa (" + CM.camisetas[4].n + ")");
+  var pares = V.paresAVestir(MAN, [CEL, CM.camisetas[4].hex]);
+  assert(pares.length === 4 && pares.every(function (p) { return (p.id === "bloqueo" || p.id === "barrida") && MAN.poses[p.id].kit === "rival"; }),
+    "a vestir: bloqueo y barrida (las de kit rival), por los dos colores (" + pares.map(function (p) { return p.clave; }).join(", ") + ")");
+  assert(V.paresAVestir(MAN, [CEL, CM.camisetas[0].hex]).length === 2, "si tu camiseta es el mismo celeste, se visten una vez");
+
+  /* (b) el obrero de verdad */
+  var w = contextoObrero(), p0 = poseSintetica(160, 100);
+  w.onmessage({ data: { n: 7, w: 160, h: 100, buf: p0.datos.buffer, destino: "#e8712f" } });
+  var env = w.enviados[0];
+  assert(env && env.m.ok === true && env.m.n === 7 && env.tr && env.tr[0] === env.m.buf, "el obrero contesta con el mismo número y los píxeles TRANSFERIDOS (sin copia)");
+  assert(env && iguales(new Uint8ClampedArray(env.m.buf), esperado(160, 100, "#e8712f")), "y viste igual que vestir() en el hilo de la página");
+  w.onmessage({ data: { n: 8, w: 10, h: 10, buf: -1, destino: CEL } });   // un buffer imposible
+  assert(w.enviados[1] && w.enviados[1].m.ok === false && w.enviados[1].m.n === 8, "si algo falla, contesta ok:false (no se cuelga)");
+
+  /* (c1) con Worker, como pide el partido (hilo: false): nada en el hilo de la página */
+  var M1 = mundoDeVestidas({});
+  M1.pose("bloqueo", 160, 100); M1.pose("barrida", 120, 90);
+  var p1 = V.paresAVestir(MAN, [CEL]);
+  var n1 = M1.PV.preparar(M1.game, p1, { hilo: false });
+  assert(n1 === 2 && M1.workers.length === 1 && M1.workers[0].url === "logic/vestir_obrero.js", "encola las dos y arranca UN obrero (logic/vestir_obrero.js)");
+  assert(M1.workers[0].mensajes === 1 && M1.workers[0].transferido, "de a una: manda la primera, con los píxeles transferidos");
+  assert(M1.PV.preparar(M1.game, p1, { hilo: false }) === 0, "pedirlas otra vez mientras se visten no las encola de nuevo");
+  await turnos(12);
+  assert(M1.T.exists("poseE_bloqueo_4fc3f7") && M1.T.exists("poseE_barrida_4fc3f7"), "vuelven las dos y quedan como texturas del juego");
+  assert(M1.llamadasVestir() === 0, "SÍNTOMA DE LA TRABA: el hilo de la página no corrió vestir() ni una vez (" + M1.llamadasVestir() + ")");
+  assert(iguales(M1.T.m["poseE_bloqueo_4fc3f7"].canvas.pix, esperado(160, 100, CEL)) && iguales(M1.T.m["poseE_barrida_4fc3f7"].canvas.pix, esperado(120, 90, CEL)),
+    "las texturas son exactamente la pose vestida (la misma función)");
+  assert(M1.T.m["poseE_bloqueo_4fc3f7"].canvas.refrescos === 1, "y se suben una vez a la placa (refresh)");
+  assert(M1.asegurados.indexOf("pose_bloqueo") >= 0, "antes de leer la pose se limpia su halo (como antes)");
+  assert(M1.ESTADO.obrero === 2 && M1.ESTADO.hilo === 0 && M1.ESTADO.fallas.length === 0, "__PAMPA_VESTIDAS: 2 en el hilo aparte, 0 en este");
+  assert(M1.PV.preparar(M1.game, p1, { hilo: false }) === 0 && M1.workers[0].mensajes === 2, "las que ya están no se vuelven a vestir");
+  /* la pose que no está todavía: se saltea sin romper */
+  var M1b = mundoDeVestidas({});
+  M1b.PV.preparar(M1b.game, p1, { hilo: false });
+  await turnos(6);
+  assert(!M1b.T.exists("poseE_bloqueo_4fc3f7") && M1b.ESTADO.fallas.length === 0, "sin la pose de origen cargada, no hay nada que vestir (y no es un error)");
+
+  /* (c2) sin Worker: el partido no viste nada; la tabla, de a una con aire */
+  var M2 = mundoDeVestidas({ obrero: "ninguno" });
+  M2.pose("bloqueo"); M2.pose("barrida");
+  M2.PV.preparar(M2.game, p1, { hilo: false });
+  M2.correrTimers(); await turnos(4);
+  assert(!M2.T.exists("poseE_bloqueo_4fc3f7") && M2.llamadasVestir() === 0, "sin Worker, lo que pide el partido NO se viste en su arranque (se viste al usarla)");
+  M2.PV.preparar(M2.game, p1, { hilo: true });
+  assert(M2.llamadasVestir() === 0 && M2.timers.length === 1 && M2.timers[0].ms === 400, "sin Worker, la tabla espera balance.vestidas.hilo_espera_ms (400) antes de la primera");
+  M2.correrTimers();
+  assert(M2.llamadasVestir() === 1 && M2.timers.length === 1, "y viste UNA por vez, con aire antes de la siguiente");
+  M2.correrTimers();
+  assert(M2.llamadasVestir() === 2 && M2.T.exists("poseE_barrida_4fc3f7") && M2.ESTADO.hilo === 2, "las dos, en este hilo (__PAMPA_VESTIDAS.hilo = 2)");
+
+  /* (c3) un Worker que falla al cargar: el error no llega a la red de errores y la tabla sigue en este hilo */
+  var M3 = mundoDeVestidas({ obrero: "error" });
+  M3.pose("bloqueo"); M3.pose("barrida");
+  M3.PV.preparar(M3.game, p1, { hilo: true });
+  await turnos(4);
+  assert(M3.workers[0].errorEv && M3.workers[0].errorEv.prevenido === true, "el error del Worker se ataja (preventDefault): no sale 'Algo se trabó'");
+  assert(M3.workers[0].terminado && M3.ESTADO.fallas.length >= 1, "el obrero se da por muerto y queda anotado (" + M3.ESTADO.fallas.join(" | ") + ")");
+  M3.correrTimers(); M3.correrTimers();
+  assert(M3.T.exists("poseE_bloqueo_4fc3f7") && M3.T.exists("poseE_barrida_4fc3f7") && M3.workers.length === 1, "y la tabla las viste en este hilo, sin volver a crear el obrero");
+
+  /* (c4) un Worker que no contesta: a los obrero_tope_ms se lo da por muerto */
+  var M4 = mundoDeVestidas({ obrero: "mudo" });
+  M4.pose("bloqueo"); M4.pose("barrida");
+  M4.PV.preparar(M4.game, p1, { hilo: true });
+  await turnos(4);
+  var tope = M4.timers.filter(function (t) { return t.vivo; })[0];
+  assert(tope && tope.ms === 15000 && !M4.T.exists("poseE_bloqueo_4fc3f7"), "mientras el obrero trabaja, hay un tope de balance.vestidas.obrero_tope_ms (15000)");
+  M4.correrTimers();
+  assert(M4.workers[0].terminado && /no contestó/.test(M4.ESTADO.fallas.join(" ")), "vencido el tope, el obrero se termina");
+  M4.correrTimers(); M4.correrTimers();
+  assert(M4.T.exists("poseE_bloqueo_4fc3f7") && M4.T.exists("poseE_barrida_4fc3f7"), "y la tabla sigue en este hilo");
+
+  /* (d1) poseDelEquipo y pedirVestidas, de cine_arte.js, sobre el partido de mentira */
+  var E = PM.escena({ mixins: ["phaser/scenes/cine_arte.js"], logica: ["phaser/logic/ambiente.js", "phaser/logic/vestir.js", "phaser/logic/avatar.js"] });
+  var s = E.s, MD = mundoDeVestidas({});
+  MD.pose("bloqueo"); MD.pose("barrida"); MD.pose("remate");
+  var usadas = [], pedidos = [];
+  E.W.PampaVestidas = {
+    vestirYa: function (g, id, d) { usadas.push(id + d); return MD.PV.vestirYa(g, id, d); },
+    preparar: function (g, ps, op) { pedidos.push({ ps: ps, op: op }); return MD.PV.preparar(g, ps, op); }
+  };
+  E.W.PampaAvatar.setCatalogoManifest && E.W.PampaAvatar.setCatalogoManifest({ camisetas: CM.camisetas.length, caras: CM.caras.length });
+  s.game = { registry: { get: function (k) { return k === "poses" ? MAN : k === "caras" ? CM : null; } }, textures: MD.T };
+  s.textures = MD.T;
+  s.poseKey = function (id) { return MD.T.exists("pose_" + id) ? "pose_" + id : null; };
+  assert(s.poseDelEquipo("remate") === "pose_remate", "una pose que no es de kit rival vuelve tal cual");
+  var vos = { esVos: true, look: { tCam: 6 } };
+  s.st = { mios: [{ esVos: false }, vos] };
+  s.pedirVestidas();
+  assert(pedidos.length === 1 && pedidos[0].op.hilo === false, "el partido las pide SOLO al hilo aparte (hilo: false)");
+  var claves = pedidos[0].ps.map(function (p) { return p.clave; }).sort().join(",");
+  assert(claves === ["poseE_barrida_4fc3f7", "poseE_barrida_" + CM.camisetas[5].hex.slice(1).toLowerCase(), "poseE_bloqueo_4fc3f7", "poseE_bloqueo_" + CM.camisetas[5].hex.slice(1).toLowerCase()].sort().join(","),
+    "con el celeste del equipo y la camiseta de VOS (" + claves + ")");
+  await turnos(20);
+  assert(s.poseDelEquipo("bloqueo") === "poseE_bloqueo_4fc3f7" && usadas.length === 0, "ya vestida: el partido la usa sin vestir nada");
+  assert(s.poseDelEquipo("bloqueo", vos) === "poseE_bloqueo_" + CM.camisetas[5].hex.slice(1).toLowerCase() && usadas.length === 0, "VOS con tu camiseta: la tuya, ya vestida");
+  assert(MD.llamadasVestir() === 0, "y en todo esto el hilo del partido no corrió vestir()");
+  MD.T.remove("poseE_barrida_4fc3f7");
+  var k = s.poseDelEquipo("barrida");
+  assert(k === "poseE_barrida_4fc3f7" && usadas.length === 1, "si al usarla falta, se viste en el acto (último recurso: nunca con las rayas del rival)");
+
+  /* (d2) el create del partido ya no viste */
+  var SRC = VIEJO ? fs.readFileSync(VIEJO, "utf8") : leer("phaser/scenes/match.js"), cre = SRC.slice(SRC.indexOf("  create() {"), SRC.indexOf("this.armarPrecalentamiento();"));
+  assert(!/poseDelEquipo\("(bloqueo|barrida)"\)/.test(cre) && /this\.pedirVestidas\(\)/.test(cre),
+    "SÍNTOMA: el create del partido vestía bloqueo y barrida en dos delayedCall; ahora solo las pide (pedirVestidas)");
+
+  /* (d3) la tabla del Master las prepara, con los colores del partido */
+  var MM = require("./_escena_de_mentira.js"), A = MM.armar({ logicaExtra: ["phaser/logic/avatar.js"] }), WM = A.window, MT = mundoDeVestidas({});
+  var pedidosM = [];
+  WM.PampaVestir = V;
+  WM.PampaVestidas = { preparar: function (g, ps, op) { pedidosM.push({ ps: ps, op: op }); return ps.length; } };
+  A.reg.set("poses", MAN); A.reg.set("caras", CM);
+  A.reg.set("balance", Object.assign({}, A.reg.get("balance") || {}, { vestidas: { espera_tabla_ms: 700 } }));
+  A.store.pampa_star_avatares = JSON.stringify({ vos: { tCam: 5 } });
+  WM.PampaAvatar.setCatalogoManifest && WM.PampaAvatar.setCatalogoManifest({ camisetas: CM.camisetas.length, caras: CM.caras.length });
+  var sm = A.nueva();
+  sm.save = A.carreraNueva(); sm.T = WM.PampaTemporada; sm.Ma = WM.PampaMaster; sm.DIV = A.datos.divisiones;
+  sm.textures = MT.T;
+  var cargas = [], completo = [], arranques = 0;
+  sm.load = { image: function (k2, u) { cargas.push(k2 + " " + u); }, once: function (ev, fn) { if (ev === "complete") completo.push(fn); }, start: function () { arranques++; } };
+  sm.vistaTemporada();
+  var tVest = sm._timers.filter(function (t) { return t.ms === 700; });
+  assert(tVest.length === 1, "la tabla, al dibujarse, programa las vestidas a los balance.vestidas.espera_tabla_ms (700)");
+  assert(pedidosM.length === 0 && cargas.length === 0, "y no hace nada antes (la tabla se dibuja limpia)");
+  tVest[0].fn();
+  assert(cargas.slice().sort().join(" | ") === "pose_barrida ../assets/poses/pose_barrida.webp | pose_bloqueo ../assets/poses/pose_bloqueo.webp" && arranques === 1,
+    "baja las dos poses que el partido iba a bajar igual (" + cargas.join(" | ") + ")");
+  completo.forEach(function (fn) { fn(); });
+  assert(pedidosM.length === 1 && pedidosM[0].op.hilo === true, "bajadas, las pide a la cola con permiso para este hilo si no hubiera Worker (la tabla está quieta)");
+  var clavesM = pedidosM[0].ps.map(function (p) { return p.clave; }).sort().join(",");
+  var tuya = CM.camisetas[4].hex.slice(1).toLowerCase();
+  assert(clavesM === ["poseE_barrida_4fc3f7", "poseE_barrida_" + tuya, "poseE_bloqueo_4fc3f7", "poseE_bloqueo_" + tuya].sort().join(","),
+    "con los colores que va a usar el partido: el celeste y tu camiseta del editor (" + clavesM + ")");
+  assert(sm.prepararVestidas() === 0 && pedidosM.length === 1, "una vez por entrada a la tabla");
+  sm.init();
+  assert(sm._vestidasPedidas === false, "P1: init() deja volver a pedirlas en la entrada siguiente");
+  /* con las poses ya en memoria (volviste de un partido): se piden sin bajar nada */
+  MT.pose("bloqueo"); MT.pose("barrida");
+  cargas.length = 0; pedidosM.length = 0;
+  sm.prepararVestidas();
+  assert(cargas.length === 0 && pedidosM.length === 1, "con las poses ya cargadas, se piden directo");
+  MT.T.m[pedidosM[0].ps[0].clave] = { canvas: {} };
+  sm.init(); pedidosM.length = 0;
+  sm.prepararVestidas();
+  assert(pedidosM.length === 1 && pedidosM[0].ps.length === 3, "y las que ya están vestidas no se vuelven a pedir");
+
+  /* (d4) lo que hace falta para que llegue al teléfono */
+  var SW = leer("phaser/sw.js"), IDX = leer("phaser/index.html");
+  assert(/"\.\/scenes\/vestidas_ui\.js"/.test(SW) && /"\.\/logic\/vestir_obrero\.js"/.test(SW), "el PRECACHE del worker tiene vestidas_ui.js y el obrero (sin red, igual anda)");
+  assert(IDX.indexOf('src="logic/vestir.js"') < IDX.indexOf('src="scenes/vestidas_ui.js"') && IDX.indexOf('src="scenes/vestidas_ui.js"') < IDX.indexOf('src="scenes/master.js"'),
+    "index.html carga vestidas_ui.js después de vestir.js y antes de las escenas");
+  console.log("[1] vestidas: el obrero viste igual que vestir() y devuelve transferido; con Worker el hilo de la página no corre vestir(); sin Worker, la tabla de a una con aire y el partido nada; " +
+    "error y tope atajados; el partido solo usa (último recurso: en el acto); la tabla baja las poses y pide los dos colores");
+}
+
+prueba1().catch(function (e) { mal++; console.error("  ✗ [1] se cortó: " + (e && e.stack || e)); }).then(function () {
+  console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
+  process.exit(mal === 0 ? 0 : 1);
+});
