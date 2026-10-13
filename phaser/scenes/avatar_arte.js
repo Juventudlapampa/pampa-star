@@ -446,7 +446,11 @@ window.PampaAvatarArte = (function () {
         /* V7-1: banda vertical opcional (0-1) — p.ej. el pelo negro solo ARRIBA,
            así los botines negros de abajo no se tiñen con el color de pelo */
         y0: Math.round((m.y0 || 0) * alto),
-        y1: Math.round((m.y1 == null ? 1 : m.y1) * alto)
+        y1: Math.round((m.y1 == null ? 1 : m.y1) * alto),
+        /* revisión de OJOS: piso de croma opcional (max-min del RGB). Lo que
+           tiene menos color que esto (blancos y grises) no se tiñe aunque
+           caiga adentro de la tolerancia. Ver 'croma_min' en mapaDeTinte. */
+        cmin: m.cmin || 0
       };
     });
   }
@@ -463,10 +467,14 @@ window.PampaAvatarArte = (function () {
          quedan intactos; si no, el tinte de pelo "sangraba" por las líneas de
          la cara y terminaba pintando media ilustración. */
       if (0.299 * r + 0.587 * g + 0.114 * b < 30) continue;
-      var py = yBase + ((i / fila) | 0);
+      var py = yBase + ((i / fila) | 0), croma = -1;
       for (var k = 0; k < reglas.length; k++) {
         var R = reglas[k];
         if (py < R.y0 || py >= R.y1) continue;
+        if (R.cmin) {
+          if (croma < 0) croma = Math.max(r, g, b) - Math.min(r, g, b);
+          if (croma < R.cmin) continue;
+        }
         var dr = r - R.r, dg = g - R.g, db = b - R.b;
         if (dr * dr + dg * dg + db * db > R.tol2) continue;
         var f = (0.299 * r + 0.587 * g + 0.114 * b) / R.luma;
@@ -584,15 +592,23 @@ window.PampaAvatarArte = (function () {
   function claveTenida(id, look) {
     return "poseT_" + id + "_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
   }
-  /* el mapa de tonos: lo que el manifest declara de origen → lo del catálogo */
+  /* el mapa de tonos: lo que el manifest declara de origen → lo del catálogo.
+     Revisión de OJOS: 'croma_min' (opcional, por pose) va a TODAS sus reglas.
+     En pose_celebracion (la del gol desde OJOS) la sombra gris del short
+     queda a 66 del tono de camiseta (#8cc5e9, tolerancia 95): lo que la piel
+     dejó de agarrar con 66 lo agarraba la camiseta, y el short salía con
+     manchas del color de tu camiseta. Bajar la tolerancia no alcanzaba (con
+     60 queda celeste sin teñir en la camiseta); lo que separa el short de la
+     camiseta es el COLOR: medido con Pillow, los grises del short tienen
+     croma 0-9 y la camiseta casi toda 20 o más. */
   function mapaDeTinte(def, look, caras) {
     var A = window.PampaAvatar, CAT = A && A.CATALOGO, mapa = [];
     if (!def || !def.tonos || !CAT) return mapa;
     var hx = function (v) { return parseInt(String(v).slice(1), 16); };
-    var T = def.tonos, tol = def.tolerancias || {};
-    if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
-    if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80 });
-    if (look.tCam > 0 && T.camiseta && caras && caras.camisetas && caras.camisetas.length) mapa.push({ de: hx(T.camiseta), a: hx(caras.camisetas[(look.tCam - 1) % caras.camisetas.length].hex), tol: tol.camiseta || 95 });
+    var T = def.tonos, tol = def.tolerancias || {}, cmin = +def.croma_min || 0;
+    if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45, cmin: cmin });
+    if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80, cmin: cmin });
+    if (look.tCam > 0 && T.camiseta && caras && caras.camisetas && caras.camisetas.length) mapa.push({ de: hx(T.camiseta), a: hx(caras.camisetas[(look.tCam - 1) % caras.camisetas.length].hex), tol: tol.camiseta || 95, cmin: cmin });
     return mapa;
   }
   /* qué hay que teñir: { base, clave, mapa } o null si nada */

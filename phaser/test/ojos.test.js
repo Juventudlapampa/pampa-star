@@ -47,6 +47,11 @@
          cruzaron las entradas del manifest: 'festejo' apunta al grito con
          los ojos abiertos (pose_celebracion.webp) y 'celebracion', que pide
          solo el asado de la semana, a la risa. Cada archivo con SUS tonos.
+         REVISIÓN DEL LOTE: con el archivo nuevo, la sombra gris del short
+         caía en la camiseta (a 66 de su tono, tolerancia 95) y salía con
+         manchas del color de tu camiseta. Se tiñe de verdad (tenirFilas)
+         con cada piel y cada camiseta: el short no cambia (croma_min) y la
+         camiseta y la piel se tiñen igual.
      [7] la semana: la de cansado (ojos apretados, sudando) estaba en
          DESCANSAR (agotada después de no hacer nada) y en ESTUDIAR (se leía
          dormida sobre los apuntes). Pasa a ENTRENAR AGUANTE; DESCANSAR va
@@ -358,12 +363,62 @@ function teatro(poseTiro) {
     "'celebracion' (el asado de la semana) apunta a pose_festejo.webp, con los suyos");
   assert(typeof fe._cruce === "string" && /celebracion/.test(fe._cruce) && typeof ce._cruce === "string", "las dos dicen que están cruzadas y cómo volver");
   /* con 80 de tolerancia la sombra gris del short (a 70-80 de #fac194) se
-     teñía con la piel: medido, 66 deja el short blanco */
+     teñía con la piel, y el lote la bajó a 66 */
   assert(fe.tolerancias.piel <= 68 && typeof fe._tolerancias === "string" && fe._tolerancias.length > 60,
     "'festejo' tiñe la piel con tolerancia 66 (medida: la sombra del short está a 70-80) y lo dice (" + fe.tolerancias.piel + ")");
-  var gris = [184, 186, 185], piel = [0xfa, 0xc1, 0x94];
-  var dGris = Math.sqrt(gris.reduce(function (t, v, i) { return t + (v - piel[i]) * (v - piel[i]); }, 0));
-  assert(dGris > fe.tolerancias.piel, "la sombra del short (184,186,185) queda afuera del tinte de piel (" + dGris.toFixed(1) + " > " + fe.tolerancias.piel + ")");
+  /* REVISIÓN DEL LOTE: "con 66 el short queda blanco" no era cierto. Esa
+     sombra está a 66,0 del tono de CAMISETA (#8cc5e9, tolerancia 95): lo que
+     la piel dejó de agarrar lo agarraba la camiseta y el short salía con
+     manchas del color de tu camiseta (ojos_27, bordó). Antes este bloque
+     medía solo la distancia a la piel y pasaba en verde con la mancha puesta.
+     Ahora se tiñe DE VERDAD, con mapaDeTinte, reglasDeTinte y tenirFilas de
+     avatar_arte.js, para cada piel y cada camiseta del catálogo. Node no
+     decodifica webp, así que los píxeles salen de lo medido con Pillow sobre
+     pose_celebracion.webp: los 6 colores más comunes del short que alcanza
+     la camiseta, el sobre de colores del short (croma 0-9 y luma 144 o más:
+     32.215 de los 32.268 píxeles del short que alcanza alguna regla), los 6
+     más comunes de la camiseta (65.592 píxeles) y los 6 más comunes de la
+     piel (93.211). */
+  new Function("window", "document", leer("phaser/scenes/avatar_arte.js"))(W, null);
+  var AA = W.PampaAvatarArte;
+  var SHORT_COMUNES = [[184, 186, 185], [185, 187, 186], [184, 186, 187], [186, 188, 187], [185, 187, 188], [185, 185, 185]];
+  var CAMISETA_COMUNES = [[141, 197, 232], [139, 197, 232], [139, 197, 234], [138, 196, 233], [142, 198, 234], [140, 195, 231]];
+  var PIEL_COMUNES = [[250, 193, 148], [251, 192, 148], [250, 194, 146], [251, 194, 150], [248, 194, 148], [251, 195, 148]];
+  var sobre = SHORT_COMUNES.slice();
+  for (var mn = 140; mn <= 255; mn++) for (var a1 = 0; a1 <= 9; a1++) for (var a2 = 0; a2 <= 9; a2++) for (var a3 = 0; a3 <= 9; a3++) {
+    if (Math.min(a1, a2, a3) !== 0 || mn + Math.max(a1, a2, a3) > 255) continue;   // el mínimo es mn: cada color una vez
+    if (0.299 * (mn + a1) + 0.587 * (mn + a2) + 0.114 * (mn + a3) < 144) continue;
+    sobre.push([mn + a1, mn + a2, mn + a3]);
+  }
+  /* tiñe una fila de colores con la entrada y el look; devuelve cuáles cambiaron */
+  function tenidos(def, look, colores) {
+    var d = new Uint8ClampedArray(colores.length * 4);
+    colores.forEach(function (c, i) { d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255; });
+    var antes = new Uint8ClampedArray(d);
+    AA.tenirFilas(d, colores.length, AA.reglasDeTinte(AA.mapaDeTinte(def, look, CARAS), 1), 0);
+    return colores.filter(function (c, i) { return d[i * 4] !== antes[i * 4] || d[i * 4 + 1] !== antes[i * 4 + 1] || d[i * 4 + 2] !== antes[i * 4 + 2]; });
+  }
+  assert(fe.croma_min >= 10 && typeof fe._croma_min === "string" && fe._croma_min.length > 100,
+    "'festejo' declara croma_min (el piso de color: blancos y grises no se tiñen) y dice lo medido (" + fe.croma_min + ")");
+  var nPieles = A.CATALOGO.pieles.length, nCam = CARAS.camisetas.length;
+  var shortTenido = [], camSinTenir = [], pielSinTenir = [];
+  for (var tp = 1; tp <= nPieles; tp++) for (var tc = 1; tc <= nCam; tc++) {
+    var look = A.validarLook({ tPiel: tp, tCam: tc });
+    var t = tenidos(fe, look, sobre);
+    if (t.length) shortTenido.push("piel " + tp + "/camiseta " + tc + ": " + t.length + " (ej. " + t[0].join(",") + ")");
+    if (tenidos(fe, look, CAMISETA_COMUNES).length !== CAMISETA_COMUNES.length) camSinTenir.push(tp + "/" + tc);
+    if (tenidos(fe, look, PIEL_COMUNES).length !== PIEL_COMUNES.length) pielSinTenir.push(tp + "/" + tc);
+  }
+  assert(shortTenido.length === 0,
+    "SÍNTOMA: el short del festejo se tiñe (" + sobre.length + " colores del short, " + nPieles + " pieles x " + nCam + " camisetas): " + shortTenido.slice(0, 3).join(" · "));
+  assert(camSinTenir.length === 0, "y la camiseta se sigue tiñendo entera con todas las combinaciones (" + camSinTenir.join(", ") + ")");
+  assert(pielSinTenir.length === 0, "y la piel también (" + pielSinTenir.join(", ") + ")");
+  /* la regresión: sin el piso, la sombra del short cae en la camiseta */
+  var sinPiso = Object.assign({}, fe); delete sinPiso.croma_min;
+  var bordo = CARAS.camisetas.findIndex(function (c) { return /bord/i.test(c.n); }) + 1;
+  var conMancha = tenidos(sinPiso, A.validarLook({ tPiel: 2, tCam: bordo }), SHORT_COMUNES);
+  assert(bordo > 0 && conMancha.length === SHORT_COMUNES.length,
+    "sin croma_min, los 6 grises más comunes del short se tiñen con la camiseta bordó (" + conMancha.length + " de 6): el test muerde");
   /* quién pide cada una: el gol pide 'festejo' (sigue igual), solo el asado pide 'celebracion' */
   var D = leer("phaser/scenes/definicion_ui.js"), J = leer("phaser/scenes/jugadon_ui.js"), I = leer("phaser/scenes/intro.js");
   assert(/poseId = o\.gol \? "festejo"/.test(D), "el gol de la Definición pide 'festejo'");
@@ -383,7 +438,8 @@ function teatro(poseTiro) {
   Object.keys(HASH).forEach(function (f) {
     assert(crypto.createHash("sha256").update(fs.readFileSync(path.join(RAIZ, f))).digest("hex") === HASH[f], f + " intacto (se cruzó la entrada, no el archivo)");
   });
-  console.log("[6] el gol muestra el grito con los ojos abiertos; la risa de ojos en arquito queda para el asado; los dos archivos intactos");
+  console.log("[6] el gol muestra el grito con los ojos abiertos; la risa de ojos en arquito queda para el asado; los dos archivos intactos; teñido de verdad con " +
+    nPieles + " pieles x " + nCam + " camisetas: " + sobre.length + " colores del short sin tocar (croma_min " + fe.croma_min + ")");
 })();
 
 /* ---------- [7] LA SEMANA: CANSADO DONDE ES ESFUERZO ---------- */
