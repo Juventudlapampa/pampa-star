@@ -15,10 +15,14 @@
      · el reintento del loader de Phaser: un archivo que falla se vuelve a
        pedir una vez, y si falla otra vez se sigue (reintentarUnaVez);
      · cuándo mostrar "Hay una versión nueva · TOCÁ PARA ACTUALIZAR"
-       (decidirAvisoVersion).
+       (decidirAvisoVersion);
+     · (L06, carga-liviana) qué baja cada pantalla y qué se baja ANTES, en
+       segundo plano: lo del opening (logic: listaDelOpening), lo del editor
+       (listaDelEditor) y lo del partido (listaDelPartido), y la cola que lo
+       baja sin apurar a nadie (crearCalentador).
 
-   Lo prueban phaser/test/cache_versiones.test.js, red_lenta.test.js y
-   aviso_version.test.js.
+   Lo prueban phaser/test/cache_versiones.test.js, red_lenta.test.js,
+   aviso_version.test.js y carga_liviana.test.js.
    ========================================================================== */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -142,9 +146,155 @@
     return decision;
   }
 
+  /* ═══ LA CARGA LIVIANA (tanda 1.0, L06 · carga-liviana) ═════════════════
+     Lo que estaba mal, medido con node sobre los archivos: antes de la
+     compuerta ("TOCÁ PARA EMPEZAR") bajaban 4,28 MB con la pantalla en
+     negro: 0,73 MB de scripts (gzip), 0,07 de JSON, 0,15 de tipografías y
+     3,33 MB del preload de la intro, que pedía las 40 imágenes de los
+     manifiestos y el opening usa 18 (1,45 MB). A 1 Mbps, 35 s de negro.
+
+     Ahora cada pantalla baja lo suyo y lo de la siguiente se baja ANTES, en
+     segundo plano, mientras se mira la actual:
+       · la intro precarga solo la compuerta (el logo, 94 KB) y baja lo del
+         opening mientras la compuerta está a la vista (listaDelOpening);
+       · terminado eso, las caras del editor (listaDelEditor);
+       · el editor y el Master bajan lo del partido (listaDelPartido).
+     Las rutas son las MISMAS que pide el preload de cada escena ("../" +
+     la ruta del manifiesto): el navegador (o el service worker) las guarda
+     y el preload de después las encuentra sin ir a la red. */
+
+  /* las piezas del opening: balance.intro.poses_intro y fondos_intro, más
+     las ilustraciones de assets/ui que la intro pide por nombre (ui) */
+  function listaDelOpening(intro, poses, ui) {
+    var out = [], I = intro || {}, man = poses || {}, base = man.base || "assets/poses/";
+    (ui || []).forEach(function (u) { if (u && u.clave && u.ruta) out.push({ clave: u.clave, ruta: u.ruta }); });
+    (I.poses_intro || []).forEach(function (id) {
+      var p = man.poses && man.poses[id];
+      if (p && p.archivo && p.cargar !== false) out.push({ clave: "pose_" + id, ruta: "../" + base + p.archivo });
+    });
+    (I.fondos_intro || []).forEach(function (id) {
+      var f = man.fondos && man.fondos[id];
+      if (f && f.archivo && f.cargar !== false) out.push({ clave: "fondo_" + id, ruta: "../" + base + f.archivo });
+    });
+    return out;
+  }
+
+  /* los bustos del editor (data/caras_manifest.json) */
+  function listaDelEditor(caras) {
+    var CM = caras || {}, base = CM.base || "assets/poses/caras/";
+    return (CM.caras || []).filter(function (c) { return c && c.archivo && c.id; })
+      .map(function (c) { return { clave: "cara_" + c.id, ruta: "../" + base + c.archivo }; });
+  }
+
+  /* lo que pide el preload del partido (scenes/match.js), con las mismas
+     reglas: cargar:false no se baja, los cuadros del ciclo, las siluetas de
+     la hinchada, los fondos, las caras, los retratos del banco, los de la
+     tribuna y las identidades si su manifiesto ya está.
+     reg: { poses, caras, portraits, tribuna, identidades } (los JSON) */
+  function listaDelPartido(reg) {
+    var R = reg || {}, out = [];
+    var man = R.portraits;
+    if (man && Array.isArray(man.retratos)) man.retratos.forEach(function (r, i) {
+      if (r && r.archivo) out.push({ clave: "retrato_" + i, ruta: "../" + r.archivo });
+    });
+    var tri = R.tribuna;
+    if (tri && Array.isArray(tri.personajes)) tri.personajes.forEach(function (p) {
+      if (p && p.retrato && p.id) out.push({ clave: "tribuna_" + p.id, ruta: "../" + p.retrato });
+    });
+    var P = R.poses;
+    if (P && P.poses) {
+      var base = P.base || "assets/poses/";
+      Object.keys(P.poses).forEach(function (id) {
+        var p = P.poses[id];
+        if (!p || p.cargar === false) return;
+        if (p.archivo) out.push({ clave: "pose_" + id, ruta: "../" + base + p.archivo });
+        if (p.ciclo && p.ciclo.cuadros) p.ciclo.cuadros.forEach(function (f, k) {
+          out.push({ clave: "pose_" + id + "_c" + k, ruta: "../" + base + f });
+        });
+      });
+      var H = P.hinchada;
+      if (H && Array.isArray(H.siluetas)) H.siluetas.forEach(function (s) {
+        if (s && s.archivo && s.id) out.push({ clave: "pose_" + s.id, ruta: "../" + (H.base || base) + s.archivo });
+      });
+      if (P.fondos) Object.keys(P.fondos).forEach(function (id) {
+        var f = P.fondos[id];
+        if (f && f.archivo) out.push({ clave: "fondo_" + id, ruta: "../" + base + f.archivo });
+      });
+      listaDelEditor(R.caras).forEach(function (c) { out.push(c); });
+    }
+    var ID = R.identidades;
+    if (ID && Array.isArray(ID.identidades)) {
+      var bi = ID.base || "assets/poses/identidades/";
+      ID.identidades.forEach(function (d) {
+        if (d && d.id && d.archivo) out.push({ clave: "ident_" + d.id, ruta: "../" + bi + d.archivo });
+      });
+    }
+    return out;
+  }
+
+  /* LA COLA DE SEGUNDO PLANO. Baja de a `paralelas` (2) lo que se le pide,
+     sin repetir, y frena cuando una escena empieza su propio preload (la
+     carga que alguien ESPERA va primero; lo que no se bajó se vuelve a pedir
+     en la pantalla siguiente). pedir(ruta) devuelve una promesa: en el
+     juego es un fetch de prioridad baja que lee el cuerpo entero, así la
+     respuesta queda en la caché del navegador o del service worker. */
+  function crearCalentador(opts) {
+    var o = opts || {};
+    var pedir = o.pedir, paralelas = Math.max(1, o.paralelas || 2);
+    var cola = [], vistos = {}, enCurso = 0, hechos = 0, fallados = 0;
+    /* cada pedido en su propia función: con los var sueltos en el while,
+       los .then de todos los pedidos veían el ÚLTIMO "fin" y el que
+       terminaba primero cerraba el de otro (lo cazó carga_liviana.test.js) */
+    function lanzar(ruta) {
+      var listo = false;
+      function fin(bien) {
+        if (listo) return;
+        listo = true;
+        enCurso--;
+        if (bien) hechos++; else { fallados++; delete vistos[ruta]; }
+        siguiente();
+      }
+      var p = null;
+      try { p = typeof pedir === "function" ? pedir(ruta) : null; } catch (e) { p = null; }
+      if (p && typeof p.then === "function") p.then(function () { fin(true); }, function () { fin(false); });
+      else fin(false);
+    }
+    function siguiente() {
+      while (enCurso < paralelas && cola.length) {
+        enCurso++;
+        lanzar(cola.shift());
+      }
+    }
+    return {
+      /* rutas (o {ruta}) a la cola; devuelve cuántas entraron (las ya
+         pedidas no se repiten) */
+      agregar: function (lista) {
+        var n = 0;
+        (lista || []).forEach(function (x) {
+          var r = typeof x === "string" ? x : (x && x.ruta);
+          if (!r || vistos[r]) return;
+          vistos[r] = 1; cola.push(r); n++;
+        });
+        siguiente();
+        return n;
+      },
+      /* lo que todavía no salió se saca de la cola (y se puede volver a
+         pedir); lo que está bajando termina */
+      frenar: function () {
+        var n = cola.length;
+        cola.forEach(function (r) { delete vistos[r]; });
+        cola.length = 0;
+        return n;
+      },
+      estado: function () { return { pendientes: cola.length, enCurso: enCurso, hechos: hechos, fallados: fallados }; }
+    };
+  }
+
   return {
     nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed,
     reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); },
-    decidirAvisoVersion: decidirAvisoVersion
+    decidirAvisoVersion: decidirAvisoVersion,
+    listaDelOpening: listaDelOpening, listaDelEditor: listaDelEditor, listaDelPartido: listaDelPartido,
+    crearCalentador: crearCalentador
   };
 });

@@ -53,18 +53,15 @@ const CODIGO = "pampa-codigo-" + VERSION;
 const ASSETS = "pampa-assets";
 /* los temas que se bajan al instalar, por su clave de data/audio.json: el
    del menú y la intro, y los dos del partido (alternan por fecha).
-   El resto NO entra "la primera vez que suena" (así decía esto hasta la
-   revisión L05, y no era cierto): entra cuando el <audio> lo PRECARGA.
-   audio/sfx.js crea un <audio preload="auto"> por tema apenas el juego
-   registra la música (piel_ui.js registrarMusicaGlobal, con el primer
-   pedirMusica), y ante cualquier pedido de un tema sin copia este worker
-   baja el archivo entero (responderAsset). Medido en el navegador contra
-   el server de prueba: al registrar el mapa (10 claves), pampa-assets pasó
-   de 3 a 9 temas en 6 s sin que sonara ninguno (unos 1,8 MB). Pasa UNA vez
-   por dispositivo: pampa-assets sobrevive a los deploys. Se deja así a
-   propósito: con preload="none" el primer toque de un tema esperaría a que
-   baje entero (el 206 se corta del archivo completo) y con señal floja la
-   música entraría tarde. */
+   El resto entra cuando el <audio> lo pide: ante cualquier pedido de un
+   tema sin copia este worker baja el archivo entero (responderAsset).
+   Hasta L05 audio/sfx.js creaba los <audio> con preload="auto" y el mapa
+   entero se bajaba junto al registrarse (medido: pampa-assets pasó de 3 a
+   9 temas en 6 s sin que sonara ninguno). Desde L06 (carga-liviana) nacen
+   con preload="none" y se precarga solo el tema que puede venir después
+   del que suena (logic/musica.js, siguientes): así el primer toque de un
+   tema no espera a que baje entero (ya se pidió antes) y lo que no se
+   escucha en la sesión no le pelea la señal a las imágenes. */
 const TEMAS_PRECACHE = ["opening", "partido", "partido_alt"];
 const PRECACHE = [
   "./index.html",

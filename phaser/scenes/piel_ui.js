@@ -20,6 +20,27 @@
   "use strict";
   /* M2: los doce temas se registran UNA VEZ para todo el juego, no por escena */
   var MUSICA_REGISTRADA = false;
+  /* L06 (carga-liviana): la cola que baja en segundo plano lo de la pantalla
+     siguiente. Una sola para todo el juego (vive acá y no en la escena:
+     Phaser reusa la instancia y lo que baja no es de nadie) */
+  var CALENTADOR = null;
+  /* prioridad baja (los navegadores que no la conocen la ignoran) y el cuerpo
+     leído entero: si no se lee, la descarga puede quedar a medias y no llegar
+     a la caché */
+  function bajarSinApuro(ruta) {
+    return fetch(ruta, { priority: "low", credentials: "same-origin" }).then(function (r) {
+      if (!r.ok) throw new Error("calentar " + r.status + " " + ruta);
+      return r.arrayBuffer();
+    });
+  }
+  function calentador() {
+    if (CALENTADOR) return CALENTADOR;
+    var K = window.PampaCarga;
+    if (!K || !K.crearCalentador || typeof fetch !== "function") return null;
+    CALENTADOR = K.crearCalentador({ paralelas: 2, pedir: bajarSinApuro });
+    window.PampaCalentador = CALENTADOR;
+    return CALENTADOR;
+  }
   var PIEL = {
 
     /* ---------- la paleta de esta escena, resuelta una vez ---------- */
@@ -409,6 +430,9 @@
       if (this._musicaTrabada && momento && momento !== "silencio") return false;
       this.registrarMusicaGlobal();
       S.musicaTema(momento === "silencio" ? null : momento, !!opts.seco);
+      /* L06 (carga-liviana): los temas nacen sin bajar; se precarga solo lo
+         que puede sonar después de este momento (logic/musica.js) */
+      if (S.precargarTemas && M.siguientes) S.precargarTemas(M.siguientes(momento));
       this._musicaMomento = momento;
       this.armarCorteDeMusica();
       return true;
@@ -525,12 +549,118 @@
          pantalla quedaba sin poder salir. Se limpia aca, que es lo primero que
          corre en cada create(). */
       this._yendo = false;
+      /* L06: si el cartel de la página ("PAMPA STAR · cargando… NN%") sigue
+         a la vista, se va con la primera pantalla que abre (lo saca la
+         intro; esto es por si se arranca por otra) */
+      if (window.PampaCartel && window.PampaCartel.sacar) window.PampaCartel.sacar();
       var velo = this.veloDeTransicion(1);
       this.tweens.add({
         targets: velo, alpha: 0, duration: T.entrada, ease: "Quad.easeOut",
         onComplete: function () { velo.destroy(); }
       });
       return velo;
+    },
+
+    /* ══════════════════════════════════════════════════════════════════════
+       L06 · LA BARRA DE CARGA (tanda 1.0, carga-liviana).
+
+       Lo que estaba mal, medido: ningún preload escuchaba "progress" (grep
+       vacío en scenes/). Entre una pantalla y la siguiente quedaba el lienzo
+       en negro mientras bajaban las poses del partido (2,1 MB) o las caras
+       del editor (2,1 MB): con poca señal, decenas de segundos sin saber si
+       el juego seguía vivo.
+
+       Ahora cada preload la llama arriba de todo. Aparece recién cuando el
+       loader ARRANCA con algo para bajar (si todo está en la caché no se ve
+       nada) y se va cuando termina. Dice "CARGANDO EL PARTIDO… 43%": el
+       número va escrito, no solo la barra (daltonismo). Si el cartel de la
+       página todavía está a la vista (la intro, recién abierto el juego), el
+       avance va ahí y no se dibuja nada encima.
+
+       El estado vive en el cierre, no en la escena (P1: Phaser reusa la
+       instancia y lo que queda en `this` llega al scene.start siguiente). Se
+       desengancha sola al terminar, o al crear la escena: un preload sin
+       nada que bajar no dispara "complete", y la intro usa el MISMO loader
+       en create() para bajar lo del opening.
+       que: lo que se está cargando, en minúscula ("el partido"). */
+    barraDeCarga: function (que) {
+      var load = this.load, self = this;
+      if (!load || typeof load.on !== "function") return null;
+      var SC = (window.Phaser && Phaser.Scenes) || {};
+      var LOADING = SC.LOADING != null ? SC.LOADING : 3;
+      var objs = null, activa = true;
+      var titulo = ("Cargando " + (que || "") ).trim().toUpperCase() + "…";
+      function cargando() { return !!(self.sys && self.sys.settings && self.sys.settings.status === LOADING); }
+      function cartel() {
+        var C = window.PampaCartel;
+        return C && C.visible && C.visible() ? C : null;
+      }
+      function dibujar(v) {
+        var p = Math.max(0, Math.min(1, v || 0)), pct = Math.floor(p * 100);
+        if (!objs) {
+          var P = self.piel ? self.piel() : {};
+          var txt = self.add.text(480, 248, "", {
+            fontFamily: window.PF.display, fontSize: "18px", color: P.texto || "#f6efdc"
+          }).setOrigin(0.5).setDepth(99990);
+          var g = self.add.graphics().setDepth(99990);
+          objs = { txt: txt, g: g, ac: (P.n && P.n.acento) || 0xf5c400, tx: (P.n && P.n.texto) || 0xf6efdc };
+        }
+        objs.txt.setText(titulo + " " + pct + "%");
+        var W = 360, H = 18, x = 480 - W / 2, y = 276;
+        objs.g.clear();
+        objs.g.lineStyle(2, objs.tx, 0.9); objs.g.strokeRect(x, y, W, H);
+        objs.g.fillStyle(objs.ac, 1); objs.g.fillRect(x + 3, y + 3, Math.round((W - 6) * p), H - 6);
+      }
+      function mostrar(v) {
+        var C = cartel();
+        if (C) { C.fase("escena", v); return; }
+        dibujar(v);
+      }
+      function alEmpezar() {
+        if (!activa) return;
+        /* lo que se estaba bajando "por las dudas" deja pasar a lo que alguien espera */
+        if (CALENTADOR) CALENTADOR.frenar();
+        if (!cargando() || !load.list || !load.list.size) return;
+        mostrar(0);
+      }
+      function alProgreso(v) { if (activa && cargando()) mostrar(v); }
+      function terminar() {
+        if (!activa) return;
+        activa = false;
+        load.off("start", alEmpezar); load.off("progress", alProgreso); load.off("complete", terminar);
+        if (objs) { objs.txt.destroy(); objs.g.destroy(); objs = null; }
+      }
+      load.on("start", alEmpezar);
+      load.on("progress", alProgreso);
+      load.once("complete", terminar);
+      if (this.events && this.events.once) this.events.once("create", terminar);
+      return { terminar: terminar };
+    },
+
+    /* L06: baja en segundo plano lo de la pantalla siguiente (rutas o
+       {ruta}); devuelve cuántas entraron a la cola */
+    calentarEnSegundoPlano: function (lista) {
+      var C = calentador();
+      return C ? C.agregar(lista) : 0;
+    },
+
+    /* L06: el editor y el Master bajan, mientras se los mira, lo que va a
+       pedir el preload del partido (logic/carga.js, listaDelPartido): las
+       poses ya no las baja la intro. Las identidades tienen su manifiesto
+       aparte (el partido lo pide con load.json): se lee y se suman. */
+    calentarElPartido: function () {
+      var K = window.PampaCarga, reg = this.game && this.game.registry;
+      if (!K || !K.listaDelPartido || !reg) return 0;
+      var self = this;
+      var n = this.calentarEnSegundoPlano(K.listaDelPartido({
+        poses: reg.get("poses"), caras: reg.get("caras"), portraits: reg.get("portraits"), tribuna: reg.get("tribuna")
+      }));
+      if (typeof fetch === "function") {
+        fetch("../data/identidades_manifest.json").then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) { if (m) self.calentarEnSegundoPlano(K.listaDelPartido({ identidades: m })); })
+          .catch(function () { /* sin manifiesto: el partido usa la pose de corrida, como siempre */ });
+      }
+      return n;
     }
   };
 

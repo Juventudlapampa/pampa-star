@@ -457,7 +457,11 @@
         a = viejos[ruta];
         if (!a) {
           a = new Audio(ruta);
-          a.preload = "auto";
+          /* L06 (carga-liviana): nace SIN bajar. Antes era "auto" y el mapa
+             entero (8 archivos, 2,5 MB) se bajaba junto apenas se registraba,
+             peleándole la señal a las imágenes. Se baja cuando suena
+             (musicaTema) o cuando es el tema que viene (precargarTemas). */
+          a.preload = "none";
           a.volume = 0;
           a.__ruta = ruta;
         }
@@ -479,6 +483,54 @@
   }
   function hayArchivo(id) { return !!archivos[id]; }
 
+  /* L06 (carga-liviana) · EL TEMA QUE VIENE. Los <audio> nacen con
+     preload="none"; esto les pone "auto" a los momentos que pueden sonar
+     después (logic/musica.js, siguientes) para que el navegador los tenga
+     cuando se los pida. Un elemento que nunca empezó a bajar (readyState 0)
+     y no está sonando se arranca con load(): hay navegadores que no
+     retoman la descarga solo porque cambie el atributo. Devuelve cuántos
+     empezaron a bajar (0 si quedaron esperando al que suena, ver abajo).
+
+     EL QUE SUENA, PRIMERO. Medido en el navegador con "Slow 4G" simulado
+     (1,44 Mbps compartidos, 562 ms por pedido): al pedir el opening se
+     precargaban en el mismo instante los dos temas que vienen, y los tres
+     (más lo que bajaba en segundo plano) se repartían la señal: el opening,
+     422 KB, seguía sin poder sonar 20 s después. Ahora lo que viene espera a
+     que el que suena pueda llegar al final (canplaythrough) o falle. */
+  function cuandoSuenaListo(cb) {
+    if (typeof cb !== "function") return false;
+    var el = archivoSonando;
+    if (!el || el.__saliendo || el.readyState >= 4 || typeof el.addEventListener !== "function") { cb(); return true; }
+    var hecho = false;
+    var f = function () {
+      if (hecho) return;
+      hecho = true;
+      try { el.removeEventListener("canplaythrough", f); el.removeEventListener("error", f); } catch (e) { }
+      cb();
+    };
+    el.addEventListener("canplaythrough", f);
+    el.addEventListener("error", f);
+    return false;
+  }
+  function precargarTemas(ids) {
+    var n = 0;
+    cuandoSuenaListo(function () { n = precargarYa(ids); });
+    return n;
+  }
+  function precargarYa(ids) {
+    var n = 0;
+    (ids || []).forEach(function (id) {
+      var e = archivos[id], el = e && e.audio;
+      if (!el || el.preload === "auto") return;
+      try { el.preload = "auto"; } catch (er) { }
+      try {
+        if (el.paused && !el.readyState && el.networkState !== 2 && typeof el.load === "function") el.load();
+      } catch (er) { }
+      n++;
+    });
+    return n;
+  }
+
   function musicaTema(nombre, seco) {
     var id = nombre === "propia" ? "propia_propio" : nombre;
     /* el mismo tema ya sonando: no se reinicia (cortaría el loop al pedo).
@@ -493,6 +545,8 @@
       /* apagar el sintetizador si estaba */
       if (mus && mus.timer) { clearInterval(mus.timer); mus.timer = null; mus.base = null; vientoOff(); }
       var entrante = archivos[id].audio;
+      /* L06: el que se pide se baja entero (nació con preload="none") */
+      try { if (entrante.preload !== "auto") entrante.preload = "auto"; } catch (e) { }
       soltarDuckYa();
       archivoSonando = entrante;
       entrante.__saliendo = false;
@@ -602,6 +656,7 @@
     /* L04: la pausa de la música (pestaña oculta, teléfono en vertical) */
     pausarMusica: pausarMusica, reanudarMusica: reanudarMusica, musicaEnPausa: musicaEnPausa,
     registrarArchivos: registrarArchivos, hayArchivo: hayArchivo,   // M2: data/audio.json
+    precargarTemas: precargarTemas, cuandoSuenaListo: cuandoSuenaListo,   // L06: el tema que viene, después del que suena
     alTerminarMusica: alTerminarMusica,
     /* M3 · musicaUrgente() sigue existiendo porque el partido la llama en el
        minuto 85 y al final, pero ya NO cambia la música: cuando la música se

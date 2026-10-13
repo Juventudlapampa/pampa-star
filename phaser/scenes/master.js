@@ -120,6 +120,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        el Master no escuchaba el error: un logo o una pose que fallaban
        quedaban afuera sin reintento. */
     if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
+    if (this.barraDeCarga) this.barraDeCarga("la carrera");   // L06: el avance con número, no el lienzo en negro
     /* D2 · el logo HORIZONTAL (4280x640) para la franja de arriba del Master,
        y D3 · el escudo del club propio. */
     this.load.image("d_logo_h", "../assets/ui/pampa-star-logo-horizontal.webp");
@@ -158,6 +159,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
   create() {
     this.entrarDesdeNegro();
+    /* L06 (carga-liviana): lo del partido, en segundo plano mientras se mira
+       la tabla y la semana (si se entró directo al Master, sin pasar por el editor) */
+    if (this.calentarElPartido) this.calentarElPartido();
     /* L04 · EL ATRÁS DEL TELÉFONO. index.html decide con logic/atras.js
        (estadoAtras, abajo) y manda la decisión. Va arriba de todo: create()
        sale temprano en varias vistas (save roto, falta de datos) y en todas

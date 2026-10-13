@@ -17,6 +17,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* L05: una cara que no bajó se vuelve a pedir una vez (logic/carga.js);
        si vuelve a fallar, queda el avatar de bloques como antes */
     if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
+    /* L06: "CARGANDO LAS CARAS… NN%" en vez del lienzo en negro (si la
+       intro ya las bajó en segundo plano, no aparece) */
+    if (this.barraDeCarga) this.barraDeCarga("las caras");
     const CM = this.game.registry.get("caras");
     if (CM && CM.caras) {
       const base = CM.base || "assets/poses/caras/";
@@ -28,6 +31,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
 
   create() {
     this.entrarDesdeNegro();
+    /* L06 (carga-liviana): mientras se elige la pinta, en segundo plano, lo
+       que va a pedir el partido (antes lo bajaba la intro, antes de la compuerta) */
+    if (this.calentarElPartido) this.calentarElPartido();
     const W = this.scale.width, H = this.scale.height;
     this.W = W; this.H = H;
     const A = window.PampaAvatar;

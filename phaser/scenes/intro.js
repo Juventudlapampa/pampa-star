@@ -11,40 +11,129 @@
 window.PampaIntro = class PampaIntro extends Phaser.Scene {
   constructor() { super("intro"); }
 
+  /* P1: Phaser reusa la instancia en cada scene.start ("VER INTRO" del
+     editor vuelve acá): lo de la carga del opening arranca de cero */
+  init() {
+    this._fin = false;
+    this._arranco = false;
+    this._openingListo = false;
+    this._esperando = false;
+    this._cargaOpening = null;
+    this._espera = null;
+    this._tocaTxt = null;
+    this._teclaTxt = null;
+    this._salteoArmado = false;
+  }
+
   preload() {
     /* A.4: nada crashea por un archivo faltante (el plano se saltea solo).
        L05: con señal floja, lo que falla se vuelve a pedir UNA vez
        (logic/carga.js); si vuelve a fallar, sigue sin él como antes. */
     if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
-    this.load.image("i_pueblo", "../assets/ui/fondo_pueblo.webp");
-    this.load.image("i_logo", "../assets/ui/logo.webp");
-    /* D1 · LOS SEIS FONDOS DE CLAUDE DESIGN. Son 1920x1080 planos y de poco
-       contraste, hechos para ir DETRÁS: resuelven que siete de los ocho planos
-       fueran figuras flotando en negro puro.
-       D2 · las dos versiones del logo. D4 · el cartel del pueblo. */
-    ["bg-01-cielo-atardecer", "bg-02-alambrado-campo", "bg-03-tribuna-tablones",
-     "bg-04-tierra-pasto-seco", "bg-05-horizonte-molino", "bg-06-noche-luces"]
-      .forEach((k, i) => this.load.image("bg" + (i + 1), "../assets/ui/" + k + ".webp"));
-    this.load.image("d_logo", "../assets/ui/pampa-star-logo.webp");
-    this.load.image("d_cartel", "../assets/ui/cartel-pueblo.webp");
-    const man = this.game.registry.get("poses");
-    if (man && man.poses) {
-      const base = man.base || "assets/poses/";
-      Object.keys(man.poses).forEach(id => {
-        /* cargar:false existe para dejar una pieza guardada SIN gastar ancho
-           de banda, y el preload la ignoraba: las marcadas se bajaban igual, o
-           sea justo lo contrario de para lo que esta la bandera. */
-        if (man.poses[id].cargar === false) return;
-        if (!this.textures.exists("pose_" + id) && man.poses[id].archivo) this.load.image("pose_" + id, "../" + base + man.poses[id].archivo);
-      });
-      if (man.fondos) Object.keys(man.fondos).forEach(id => {
-        if (man.fondos[id].cargar === false) return;
-        if (!this.textures.exists("fondo_" + id) && man.fondos[id].archivo) this.load.image("fondo_" + id, "../" + base + man.fondos[id].archivo);
-      });
+    /* L06 (carga-liviana): el avance va al cartel de la página, que sigue a
+       la vista hasta el create */
+    if (this.barraDeCarga) this.barraDeCarga("el arranque");
+    /* ══════════════════════════════════════════════════════════════════════
+       L06 · ANTES DE LA COMPUERTA, SOLO LA COMPUERTA.
+
+       Lo que estaba mal, medido con node sobre los manifiestos: este preload
+       pedía las 40 imágenes de poses_manifest (todas las poses y fondos) más
+       las diez de assets/ui: 3,33 MB, y recién con todo eso aparecía "TOCÁ
+       PARA EMPEZAR". El opening usa 18 (1,45 MB) y la compuerta, el logo
+       (94 KB). Sumado a los scripts, los JSON y las tipografías, la compuerta
+       llegaba con 4,28 MB bajados en negro: 35 s a 1 Mbps.
+
+       Ahora el preload baja SOLO el logo de la compuerta. Lo del opening
+       (PampaIntro.UI_OPENING más balance.intro.poses_intro y fondos_intro)
+       se baja en create(), con la compuerta ya a la vista; el resto de las
+       poses las pide el partido, y el editor y el Master las bajan antes,
+       en segundo plano (logic/carga.js). */
+    window.PampaIntro.UI_COMPUERTA.forEach((u) => {
+      if (!this.textures.exists(u.clave)) this.load.image(u.clave, u.ruta);
+    });
+  }
+
+  /* lo que usa el opening (logic/carga.js, listaDelOpening) */
+  listaOpening() {
+    const C = window.PampaCarga;
+    if (!C || !C.listaDelOpening) return [];
+    return C.listaDelOpening(this.I || {}, this.game.registry.get("poses"), window.PampaIntro.UI_OPENING);
+  }
+
+  /* L06 · lo del opening se baja con la compuerta a la vista, con el mismo
+     loader de la escena (create corre con la escena viva: el loader anda) */
+  cargarOpening() {
+    if (this._cargaOpening || this._openingListo) return;
+    const falta = this.listaOpening().filter((x) => !this.textures.exists(x.clave));
+    if (!falta.length || !this.load || typeof this.load.start !== "function") { this.openingListo(); return; }
+    this._cargaOpening = { v: 0, n: falta.length };
+    falta.forEach((x) => this.load.image(x.clave, x.ruta));
+    this.load.on("progress", (v) => {
+      if (this._cargaOpening) this._cargaOpening.v = v;
+      if (this._espera) this.pintarEspera();
+    });
+    this.load.once("complete", () => this.openingListo());
+    this.load.start();
+  }
+
+  openingListo() {
+    if (this._openingListo) return;
+    this._openingListo = true;
+    if (this._cargaOpening) this._cargaOpening.v = 1;
+    /* lo que viene después del opening es el editor: sus caras (2,1 MB),
+       en segundo plano, mientras la compuerta espera el toque. Si el opening
+       ya arrancó, esperan a que su música pueda sonar (p2) */
+    if (!this._arranco) this.calentarElEditor();
+    if (this._esperando && !this._fin) { this._esperando = false; this.arrancarOpening(); }
+  }
+  calentarElEditor() {
+    if (window.PampaCarga && this.calentarEnSegundoPlano) {
+      this.calentarEnSegundoPlano(window.PampaCarga.listaDelEditor(this.game.registry.get("caras")));
     }
   }
 
+  /* después del toque (o de VER INTRO): si lo del opening ya está, arranca;
+     si no, la compuerta pasa a decir cuánto falta y arranca sola al llegar */
+  seguirAlOpening() {
+    this.cargarOpening();   // si ya está todo en memoria, lo marca listo en el acto
+    if (this._openingListo) { this.arrancarOpening(); return; }
+    this._esperando = true;
+    this.mostrarEspera();
+  }
+
+  /* "CARGANDO EL OPENING… 43%" con su barra (el número escrito: no solo la
+     barra), en el lugar de "TOCÁ PARA EMPEZAR". Mientras espera, un toque
+     saltea al editor, como en el opening. */
+  mostrarEspera() {
+    if (this._tocaTxt) { this.tweens.killTweensOf(this._tocaTxt); this._tocaTxt.setVisible(false); }
+    if (this._teclaTxt) this._teclaTxt.setVisible(false);
+    const y = this.I.compuerta_toca_y || 360;
+    const txt = this.add.text(480, y, "", { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
+    const g = this.add.graphics();
+    this.capa.add(txt); this.capa.add(g);
+    this._espera = { txt: txt, g: g, y: y };
+    this.pintarEspera();
+    this.armarSalteo();
+  }
+  pintarEspera() {
+    const E = this._espera;
+    if (!E || !E.txt.active) return;
+    const v = this._cargaOpening ? this._cargaOpening.v : 0, pct = Math.floor(Math.max(0, Math.min(1, v)) * 100);
+    E.txt.setText("CARGANDO EL OPENING… " + pct + "%");
+    const W = 300, H = 14, x = 480 - W / 2, y = E.y + 22;
+    E.g.clear();
+    E.g.lineStyle(2, 0xf6efdc, 0.9); E.g.strokeRect(x, y, W, H);
+    E.g.fillStyle(0xf5c400, 1); E.g.fillRect(x + 3, y + 3, Math.round((W - 6) * v), H - 6);
+  }
+
   create() {
+    /* L06 (carga-liviana): el cartel de la página ("PAMPA STAR · cargando…
+       NN%"), que estaba desde el primer byte, se va acá. Y desde acá el
+       service worker se puede instalar: antes se registraba al terminar los
+       scripts y su instalación (el código otra vez y tres temas, ~1 MB) le
+       peleaba la señal a la compuerta (index.html, LA RED). */
+    if (window.PampaCartel) window.PampaCartel.sacar();
+    if (window.PampaRegistrarSW) window.PampaRegistrarSW("intro");
     this.entrarDesdeNegro();
     const BAL = this.game.registry.get("balance") || {};
     this.I = BAL.intro || {};
@@ -67,8 +156,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        y cualquier gesto salteaba la intro → LA COMPUERTA: una pantalla previa
        cuyo toque desbloquea el audio Y dispara el opening CON sonido desde el
        primer plano. Si la intro se pidió desde el editor, el gesto ya ocurrió. */
-    if (this.I.compuerta === false || pedida) this.arrancarOpening();
-    else this.compuerta();
+    /* L06: con la compuerta a la vista se baja lo del opening; sin compuerta
+       (o pedida desde el editor) se espera a que esté, mostrando cuánto falta */
+    if (this.I.compuerta === false || pedida) this.seguirAlOpening();
+    else { this.compuerta(); this.cargarOpening(); }
   }
 
   /* --- LA COMPUERTA: negro, el logo, y "TOCÁ PARA EMPEZAR" pulsando --- */
@@ -101,17 +192,19 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const toca = this.add.text(480, Q.compuerta_toca_y || 360, Q.t_compuerta || "👆 TOCÁ PARA EMPEZAR",
       { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
     this.capa.add(toca);
+    this._tocaTxt = toca;   // L06: si al tocar falta lo del opening, este renglón pasa a decir cuánto
     this.tweens.add({ targets: toca, alpha: 0.35, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
       const tk = this.add.text(480, Q.compuerta_tecla_y || 392, Q.t_compuerta_teclado || "(o apretá cualquier tecla)",
         { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc99" }).setOrigin(0.5);
       this.capa.add(tk);
+      this._teclaTxt = tk;   // L06: la espera usa su renglón (visto en captura: la barra le quedaba encima)
     }
     const go = () => {
       if (this._arranco || this._fin) return;
       this._arranco = true;
       this.SFX && this.SFX.unlock && this.SFX.unlock();   // EL GESTO: el audio queda habilitado
-      this.arrancarOpening();
+      this.seguirAlOpening();   // L06: arranca ya, o cuando termine de bajar lo suyo
     };
     this.input.once("pointerdown", go);
     if (this.input.keyboard) this.input.keyboard.once("keydown", go);
@@ -120,18 +213,14 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   /* --- el opening en sí (recién acá cualquier toque SALTEA) --- */
   arrancarOpening() {
     this._arranco = true;
+    this._esperando = false;
+    /* L06: con el opening corriendo, la señal es para su música: lo que se
+       bajaba en segundo plano y no salió todavía se frena (vuelve en p2,
+       cuando el tema ya puede sonar, o en el preload del editor) */
+    if (window.PampaCalentador) window.PampaCalentador.frenar();
     this.corteSeco();
-    this._gestoTs = this.time.now;
-    this.input.on("pointerdown", () => this.salir());
-    if (this.input.keyboard) this.input.keyboard.on("keydown", () => this.salir());
-    /* I1 · era gris translúcido (#f6efdc88) a 10 px sobre negro, y en el plano
-       del pueblo —fondo claro— directamente desaparecía. Si es la ÚNICA salida
-       de una intro de 20 segundos, tiene que verse siempre: ahora va con su
-       propia cajita oscura, que funciona sobre cualquier fondo. */
-    this.add.text(948, 526, "tocá para saltear ▸", {
-      fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc",
-      backgroundColor: "#0a1f13cc", padding: { x: 7, y: 3 }
-    }).setOrigin(1, 1).setDepth(99);
+    this._espera = null;
+    this.armarSalteo();
     /* la secuencia corre por RELOJ propio: cada plano agenda el siguiente */
     const D = this.I.planos_ms || [3000, 2000, 4000, 2000, 1000, 1500, 2000, 4000];
     /* I1 · p4 (EL GRITO, con vos) va ANTES que p3 (la ráfaga, que abría con un
@@ -145,6 +234,24 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       t += D[k];
     });
     this.time.delayedCall(t + 600, () => this.salir());
+  }
+
+  /* cualquier toque o tecla saltea al editor. Se arma UNA vez: al tocar la
+     compuerta (si falta lo del opening, ya mientras espera) o al arrancar */
+  armarSalteo() {
+    this._gestoTs = this.time.now;
+    if (this._salteoArmado) return;
+    this._salteoArmado = true;
+    this.input.on("pointerdown", () => this.salir());
+    if (this.input.keyboard) this.input.keyboard.on("keydown", () => this.salir());
+    /* I1 · era gris translúcido (#f6efdc88) a 10 px sobre negro, y en el plano
+       del pueblo —fondo claro— directamente desaparecía. Si es la ÚNICA salida
+       de una intro de 20 segundos, tiene que verse siempre: ahora va con su
+       propia cajita oscura, que funciona sobre cualquier fondo. */
+    this.add.text(948, 526, "tocá para saltear ▸", {
+      fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc",
+      backgroundColor: "#0a1f13cc", padding: { x: 7, y: 3 }
+    }).setOrigin(1, 1).setDepth(99);
   }
 
   /* --- utilería del opening --- */
@@ -336,6 +443,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        la intro nunca registraba archivos, sonaba el SINTETIZADOR — el "trailer
        con música vieja" que reportó Rodri. */
     this.pedirMusica("opening");
+    /* L06: las caras del editor, recién cuando el tema del opening tiene con
+       qué sonar hasta el final (antes se repartían la señal con él) */
+    if (this.SFX && this.SFX.cuandoSuenaListo) this.SFX.cuandoSuenaListo(() => this.calentarElEditor());
+    else this.calentarElEditor();
     this.flashBlanco();
   }
   /* ══════════════════════════════════════════════════════════════════════
@@ -462,3 +573,26 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.time.delayedCall(dur - 500, () => { if (!this._fin) this.cameras.main.fadeOut(480, 0, 0, 0); });   // el ÚNICO fundido: al título
   }
 };
+
+/* L06 (carga-liviana) · LAS ILUSTRACIONES DE assets/ui QUE PIDE LA INTRO.
+   La compuerta, en el preload (es lo único que hace falta para ver "TOCÁ
+   PARA EMPEZAR"); las del opening, en create(), con la compuerta a la vista
+   (junto con balance.intro.poses_intro y fondos_intro, logic/carga.js).
+   D1 · los seis fondos de Claude Design: 1920x1080 planos y de poco
+   contraste, hechos para ir DETRÁS (resuelven que siete de los ocho planos
+   fueran figuras flotando en negro puro). D2 · las dos versiones del logo.
+   D4 · el cartel del pueblo. */
+window.PampaIntro.UI_COMPUERTA = [
+  { clave: "d_logo", ruta: "../assets/ui/pampa-star-logo.webp" }
+];
+window.PampaIntro.UI_OPENING = [
+  { clave: "i_pueblo", ruta: "../assets/ui/fondo_pueblo.webp" },
+  { clave: "i_logo", ruta: "../assets/ui/logo.webp" },
+  { clave: "bg1", ruta: "../assets/ui/bg-01-cielo-atardecer.webp" },
+  { clave: "bg2", ruta: "../assets/ui/bg-02-alambrado-campo.webp" },
+  { clave: "bg3", ruta: "../assets/ui/bg-03-tribuna-tablones.webp" },
+  { clave: "bg4", ruta: "../assets/ui/bg-04-tierra-pasto-seco.webp" },
+  { clave: "bg5", ruta: "../assets/ui/bg-05-horizonte-molino.webp" },
+  { clave: "bg6", ruta: "../assets/ui/bg-06-noche-luces.webp" },
+  { clave: "d_cartel", ruta: "../assets/ui/cartel-pueblo.webp" }
+];

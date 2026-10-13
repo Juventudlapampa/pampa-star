@@ -48,6 +48,23 @@
     background:rgba(6,18,11,.86);color:#F6EFDC;border:2px solid #9FB3A5;border-radius:6px;padding:3px 8px;
     font:13px/1.3 ui-monospace,monospace;white-space:pre-wrap;}
   #perf[hidden]{display:none;}
+  /* L06 · EL CARTEL DE CARGA (carga-liviana): "PAMPA STAR · cargando…
+     NN%" desde el primer byte. Antes la compuerta tardaba en llegar (4,28 MB
+     bajados) y hasta entonces el lienzo era NEGRO, sin barra ni número. Va
+     arriba del juego y debajo del "Girá el celular" (50), que en vertical
+     dice lo que hay que hacer (y repite el porcentaje), del cartel de
+     versión (55) y de "Algo se trabó" (100). El número va escrito: no se lee
+     solo por la barra. Lo saca la intro en su create. */
+  #cargando{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;
+    background:#06120b;text-align:center;padding:16px;box-sizing:border-box;}
+  #cargando[hidden]{display:none;}
+  #cargando .lin{font-size:20px;line-height:1.3;}
+  #cargando .lin b{color:#FFD84D;font-weight:normal;letter-spacing:.12em;}
+  #cargando .barra{width:320px;max-width:80vw;height:18px;margin:12px auto 0;padding:3px;box-sizing:border-box;
+    border:2px solid #F6EFDC;border-radius:4px;}
+  #cargando .barra i{display:block;height:100%;width:0;background:#F5C400;}
+  #cargando .nota{font-size:15px;color:#9FB3A5;margin:14px auto 0;max-width:80vw;}
+  #cargando .nota[hidden]{display:none;}
   #game{width:100vw;height:100dvh;display:flex;align-items:center;justify-content:center;}
   #game canvas{max-width:100vw;max-height:100dvh;}
   /* aviso de rotar en vertical (mobile-first APAISADO) */
@@ -144,8 +161,82 @@
 </style>
 </head>
 <body>
+  <div id="cargando">
+    <div class="caja">
+      <div class="lin"><b>PAMPA STAR</b> · cargando… <span id="cg-pct">0%</span></div>
+      <div class="barra" id="cg-barra" role="progressbar" aria-label="Carga del juego" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="cg-relleno"></i></div>
+      <p class="nota" id="cg-nota" hidden>Con poca señal, la primera vez tarda más. Después abre enseguida.</p>
+    </div>
+  </div>
+  <script>
+  /* ═══════════════════════════════════════════════════════════════════════
+     EL CARTEL DE CARGA (tanda 1.0, L06 · carga-liviana) · va acá arriba,
+     antes que cualquier otro script, para estar desde el primer byte.
+
+     El porcentaje junta tres tramos, pesados por lo que bajan (medido con
+     node, en gzip: scripts 0,75 MB, JSON y tipografías 0,19, el logo de la
+     compuerta 0,09; carga_liviana.test.js lo rehace con el disco):
+       · scripts: cuántos de los scripts con archivo terminaron (SCRIPTS es
+         cuántos hay en esta página; el test lo cuenta);
+       · datos: los 14 JSON del arranque y las tipografías (DATOS);
+       · escena: el preload de la intro (lo manda la barra de carga de la
+         piel, scenes/piel_ui.js, mientras este cartel está a la vista).
+     Nunca va para atrás. A los 6 s aparece una nota: con poca señal la
+     primera vez tarda (después abre desde la caché del service worker).
+     ES5 a propósito, como LA RED DE ERRORES: tiene que andar aunque el
+     navegador no entienda lo que viene después.
+     ═══════════════════════════════════════════════════════════════════════ */
+  (function () {
+    "use strict";
+    var C = window.PampaCartel = {
+      SCRIPTS: 51, DATOS: 15,
+      PESOS: { scripts: 0.73, datos: 0.18, escena: 0.09 },
+      scripts: 0, datos: 0, escena: 0, pct: 0, fuera: false
+    };
+    function $(id) { return document.getElementById(id); }
+    C.calcular = function () {
+      var P = C.PESOS;
+      var v = P.scripts * Math.min(1, C.scripts / C.SCRIPTS) + P.datos * Math.min(1, C.datos / C.DATOS) +
+        P.escena * Math.min(1, Math.max(0, C.escena));
+      return Math.max(0, Math.min(100, Math.floor(v * 100 + 1e-6)));
+    };
+    C.pintar = function () {
+      if (C.fuera) return C.pct;
+      var p = Math.max(C.pct, C.calcular());
+      C.pct = p;
+      var t = $("cg-pct"), r = $("cg-relleno"), b = $("cg-barra"), rot = $("rot-carga");
+      if (t) t.textContent = p + "%";
+      if (r) r.style.width = p + "%";
+      if (b) b.setAttribute("aria-valuenow", String(p));
+      if (rot) rot.textContent = "cargando… " + p + "%";
+      return p;
+    };
+    C.fase = function (nombre, v) { if (nombre === "escena") C.escena = Math.max(C.escena, +v || 0); return C.pintar(); };
+    C.dato = function () { C.datos++; return C.pintar(); };
+    C.visible = function () { return !C.fuera; };
+    C.sacar = function () {
+      if (C.fuera) return false;
+      C.fuera = true;
+      var el = $("cargando"), rot = $("rot-carga");
+      if (el) el.hidden = true;
+      if (rot) rot.textContent = "";
+      return true;
+    };
+    /* el load de cada script con archivo no burbujea: se lo ve bajando
+       (captura). En el DOCUMENTO y no en la ventana: el camino de un evento
+       "load" termina en el documento (la especificación de DOM saca a la
+       ventana justo para ese tipo), así que en window no llegaba ninguno.
+       Medido en el navegador: con el juego ya creado, el cartel decía 27%. */
+    document.addEventListener("load", function (ev) {
+      var t = ev && ev.target;
+      if (t && t.tagName && String(t.tagName).toUpperCase() === "SCRIPT" && t.src) { C.scripts++; C.pintar(); }
+    }, true);
+    setTimeout(function () { var n = $("cg-nota"); if (n && !C.fuera) n.hidden = false; }, 6000);
+    C.pintar();
+  })();
+  </script>
   <div id="game"></div>
-  <div id="rotate"><div class="ico">📱↻</div><b>Girá el celular</b><div>PAMPA STAR se juega apaisado (horizontal).</div></div>
+  <div id="rotate"><div class="ico">📱↻</div><b>Girá el celular</b><div>PAMPA STAR se juega apaisado (horizontal).</div><div id="rot-carga"></div></div>
   <div id="atras-aviso" role="status" aria-live="polite" hidden></div>
   <div id="perf" hidden></div>
   <div id="version-nueva" role="status" aria-live="polite" hidden>
@@ -990,6 +1081,8 @@
 
      · El worker se registra en "load" (solo https y localhost; con file://
        no aplica): así no le compite al primer arranque por la conexión.
+       L06: en la primera visita, recién cuando abre la intro (ver abajo,
+       PampaRegistrarSW).
      · CALENTAR: en la primera visita la intro pide sus poses ANTES de que el
        worker controle la página, y esas no pasaban por él; sin red, la
        segunda visita abría sin ilustraciones. Cuando el worker toma la
@@ -1159,7 +1252,29 @@
       calentar();
       setTimeout(calentar, 15000);
     });
-    window.addEventListener("load", function () { sw.register("sw.js").catch(function () { }); });
+    /* L06 (carga-liviana) · CUÁNDO SE REGISTRA EL WORKER. Antes, en "load":
+       con los scripts bajados y la intro todavía bajando lo suyo. En la
+       primera visita la instalación revalida todo el código (unos 70
+       pedidos) y baja tres temas enteros (~1 MB, TEMAS_PRECACHE): le
+       peleaba la señal a la compuerta, que es lo primero que hay que ver.
+       Ahora espera a que la intro abra (PampaRegistrarSW, intro.js create)
+       o, si la intro no abre, ESPERA_SW_MS después de "load". Con un worker
+       que ya controla la página no hay nada que cuidar: se registra en
+       "load", como antes (es solo mirar si hay una versión nueva). */
+    var ESPERA_SW_MS = 20000;
+    var cargo = false, pedido = !!sw.controller, registrado = false;
+    function registrar() {
+      if (registrado || !cargo || !pedido) return false;
+      registrado = true;
+      sw.register("sw.js").catch(function () { });
+      return true;
+    }
+    window.PampaRegistrarSW = function () { pedido = true; return registrar(); };
+    window.addEventListener("load", function () {
+      cargo = true;
+      registrar();
+      setTimeout(function () { pedido = true; registrar(); }, ESPERA_SW_MS);
+    });
   })();
   </script>
   <script>
@@ -1226,8 +1341,10 @@
     }, TOPE_JSON_MS); });
     const pedido = fetch(url, ctl ? { signal: ctl.signal } : undefined)
       .then(r=>r.ok?r.json():respaldo).catch(()=>respaldo);
-    return Promise.race([pedido, tope]).then((v)=>{ clearTimeout(reloj); return v; });
+    return Promise.race([pedido, tope]).then((v)=>{ clearTimeout(reloj); unDatoMas(); return v; });
   }
+  /* L06: cada JSON (y las tipografías) suma al cartel de carga */
+  function unDatoMas(){ try { if (window.PampaCartel) window.PampaCartel.dato(); } catch (e) { } }
   /* balance + roster (los dos tolerantes a fallo: el juego abre igual sin server) */
   const pBal = jsonConTope("data/balance.json", BALANCE_FALLBACK);
   const pRoster = jsonConTope("../data/roster_pampeano.json", null);
@@ -1257,7 +1374,7 @@
   const pFuentes = Promise.race([
     Promise.all([document.fonts.load("12px 'Press Start 2P'"), document.fonts.load("12px 'Pixelify Sans'"), document.fonts.load("12px 'VT323'")]),
     new Promise(r=>setTimeout(r, 8000))
-  ]).catch(()=>null);
+  ]).catch(()=>null).then((v)=>{ unDatoMas(); return v; });
   /* la red del fix: cuando las fuentes terminan de llegar (aunque sea tarde),
      cada Text vivo de Phaser se re-rasteriza — los acentos nunca quedan rotos */
   document.fonts.ready.then(()=>{

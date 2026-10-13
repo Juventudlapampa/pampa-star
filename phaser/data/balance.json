@@ -128,6 +128,9 @@
     "t_pueblo": "En algún pueblo de La Pampa…",
     "t_grito": "¡CALDENAZO!",
     "t_bajada": "DEL POTRERO AL MUNDIAL",
+    "_carga": "TANDA 1.0 (L06, carga-liviana). poses_intro y fondos_intro: LO QUE USA EL OPENING y nada más. La intro las baja con la compuerta a la vista (antes de la compuerta baja solo el logo); el resto de las poses las pide el partido, y el editor y el Master las bajan antes en segundo plano. Antes el preload de la intro pedía las 40 imágenes de los manifiestos (3,33 MB) y el opening usa 18 (1,45 MB): la compuerta llegaba con 4,28 MB bajados en negro, 35 s a 1 Mbps. Si un plano nuevo usa otra pose, va acá: carga_liviana.test.js corre los ocho planos y falla si una pose que se usa no está en la lista (o si la lista pasa de 1,6 MB).",
+    "poses_intro": ["pelota_vieja", "remate", "chilena", "cabezazo", "barrida", "arquero_vuela", "festejo"],
+    "fondos_intro": ["tribuna"],
     "_compuerta": "La pantalla previa cuyo TOQUE desbloquea el audio del navegador y dispara el opening CON sonido desde el primer plano (sin ella, el opening automático sería siempre mudo). compuerta:false la saca."
   },
   "musica": {

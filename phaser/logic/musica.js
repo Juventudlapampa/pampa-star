@@ -113,6 +113,34 @@
     return out;
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     EL TEMA QUE VIENE (tanda 1.0, L06 · carga-liviana).
+
+     Lo que estaba mal, medido: el primer pedirMusica registraba el mapa
+     entero (10 momentos, 8 archivos: 2,49 MB en las fechas pares y 2,59 en
+     las impares, sumado con node sobre assets/musica) en <audio
+     preload="auto">, y el navegador los empezaba a bajar TODOS juntos,
+     encima de las imágenes que la pantalla estaba esperando. Ahora nacen con
+     preload="none" y, cada vez que suena un momento, se precargan solo los
+     que pueden venir después (esta tabla, sacada de los pedirMusica del
+     código: la intro pide opening; el Master, espera, semana y hype; el
+     partido, entrada, partido, partido_final y gol_festejo; la Definición y
+     el jugadón usan el tema del tramo final). Así el tema siguiente ya está
+     cuando se lo pide, y lo que no se escucha en la sesión no se baja. */
+  var SIGUIENTES = {
+    opening: ["espera", "entrada"],         // del opening al editor: después, el Master o el amistoso
+    espera: ["semana", "entrada"],
+    semana: ["entrada"],
+    hype: ["espera"],
+    entrada: ["partido"],
+    partido: ["partido_final", "gol_festejo"],
+    partido_final: ["gol_festejo"],
+    gol_festejo: ["partido", "partido_final"],
+    definicion: ["partido", "gol_festejo"],
+    jugadon: ["partido", "gol_festejo"]
+  };
+  function siguientes(momento) { return (SIGUIENTES[momento] || []).slice(); }
+
   /* qué momentos declarados NO tienen archivo: se anota, no se calla */
   function sinArchivo(audio) {
     if (!audio || !audio.temas) return lista().filter(function (m) { return m !== "silencio"; });
@@ -127,6 +155,7 @@
   return {
     MOMENTOS: MOMENTOS,
     existe: existe, lista: lista, temaDe: temaDe,
-    mapaCompleto: mapaCompleto, sinArchivo: sinArchivo
+    mapaCompleto: mapaCompleto, sinArchivo: sinArchivo,
+    SIGUIENTES: SIGUIENTES, siguientes: siguientes
   };
 });

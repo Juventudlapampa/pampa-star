@@ -31,6 +31,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        fallback del poseSprite cubre el hueco como antes. Va arriba de todo:
        antes el oyente se ponía solo si había manifest de poses. */
     if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
+    /* L06: "CARGANDO EL PARTIDO… NN%" mientras bajan las poses (el editor y
+       el Master ya las bajaron en segundo plano: casi siempre sale de la caché) */
+    if (this.barraDeCarga) this.barraDeCarga("el partido");
     this._retratos = { companero: [], rival: [] };
     const man = this.game.registry.get("portraits");
     if (man && Array.isArray(man.retratos)) {

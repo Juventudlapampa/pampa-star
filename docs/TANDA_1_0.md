@@ -2376,3 +2376,186 @@ La versión visible sube a `v17-1.0-l05r` (index.html y sw.js, iguales).
 - En un panel angosto (537 px de ancho, la captura del deploy real) el
   cartel de versión parte el texto en dos renglones. A 800x360 entra en
   uno.
+
+---
+
+## Ola 2 · Que cargue y se juegue en el celular — lote L06-carga
+
+Cuatro ítems sobre lo que baja y lo que ocupa: `carga-liviana`,
+`texturas-presupuesto`, `trabas-cine` y `peso-real-y-webp`, en ese orden
+(el crítico sacó la dependencia de `texturas-presupuesto`, pero el orden
+igual sirve: la barra de carga y la cola de segundo plano del primero las
+usa el tercero).
+
+**Cómo se probó en pantalla, y por qué así.** Chrome tiene "Slow 4G" en sus
+herramientas, pero el navegador integrado no las expone. Así que el server de
+prueba lo simula: `.claude/server_carga.js` (fuera del repo) sirve la carpeta
+como GitHub Pages (gzip para el texto, ETag, `max-age=600`) y le pone a todo
+el tráfico un ancho de banda COMPARTIDO de 1.440 kbps y 562 ms por pedido,
+que son los números del "Slow 4G" de Chrome (1,6 Mbps × 0,9 y 150 ms ×
+3,75). Lleva el registro de cada pedido (cuándo empezó, cuándo terminó,
+cuántos bytes salieron por el cable) y le inyecta a la página un marcador
+que avisa en qué momento el cartel entra al DOM (un script sincrónico justo
+después del cartel: los timers de una pestaña oculta van a uno por segundo)
+y cuándo se dibuja la compuerta. Con `nocache=1` todo va `no-store`: caché
+vacía en cada carga. Para comparar, el commit base (6cb4310) se sacó con
+`git archive` a una carpeta temporal y se sirvió igual, en otro puerto. Todo
+mudo con el arnés del oído. Capturas en `.claude/shots/l06_*`.
+
+### carga-liviana · el cartel desde el primer byte y una intro que baja solo lo que usa
+
+**Qué estaba mal (medido).** Con node sobre los archivos: antes de la
+compuerta bajaban 4,28 MB con el lienzo en negro (0,73 MB de scripts en
+gzip, 0,07 de JSON, 0,15 de tipografías y 3,33 MB del preload de la intro).
+La intro pedía las 40 imágenes de los manifiestos y el opening usa 18
+(1,45 MB). Ningún preload escuchaba `progress`. El primer `pedirMusica`
+registraba el mapa de música (10 momentos, 8 archivos, 2,5 MB) en
+`<audio preload="auto">` y el navegador los bajaba todos juntos. **En
+pantalla, con el commit base y "Slow 4G"**: 110 pedidos y 4,25 MB antes de
+la compuerta, que apareció a los 70,6 s; hasta entonces, negro
+(`l06_1_antes_negro.jpg`).
+
+**Qué se hizo** (commit de este ítem):
+
+1. **El cartel de la página** (`index.html`): "PAMPA STAR · cargando… NN%"
+   con su barra, desde el primer byte (está en el HTML antes de cualquier
+   script con archivo). El porcentaje junta tres tramos pesados por lo que
+   bajan (medido en gzip: scripts 0,75 MB, JSON y tipografías 0,19, el logo
+   de la compuerta 0,09): cuántos scripts terminaron, cuántos de los 14 JSON
+   y las tipografías, y el preload de la intro. Nunca va para atrás. El
+   número va escrito, no solo la barra (daltonismo). A los 6 s aparece "Con
+   poca señal, la primera vez tarda más. Después abre enseguida." Va debajo
+   del "Girá el celular" (que en vertical repite el porcentaje) y de "Algo
+   se trabó". Lo saca la intro en su create (y, por las dudas,
+   `entrarDesdeNegro` de cualquier pantalla).
+2. **La barra común** (`scenes/piel_ui.js`, `barraDeCarga`): los cuatro
+   preload la llaman arriba de todo. Aparece recién cuando el loader arranca
+   con algo para bajar (si todo está en memoria no se ve), dice "CARGANDO EL
+   PARTIDO… 43%" y se va al terminar. Con el cartel de la página a la vista,
+   el avance va ahí. Su estado vive en el cierre, no en la escena (P1).
+3. **Antes de la compuerta, solo la compuerta** (`scenes/intro.js`). El
+   preload baja el logo (94 KB). Lo del opening (`PampaIntro.UI_OPENING` y
+   `balance.intro.poses_intro` / `fondos_intro`, 17 archivos, 1,36 MB) se
+   baja en create, con la compuerta ya a la vista. Si se toca antes de que
+   termine, el renglón de "TOCÁ PARA EMPEZAR" pasa a "CARGANDO EL OPENING…
+   NN%" con su barra y el opening arranca solo al llegar; mientras, un toque
+   saltea al editor como en el opening.
+4. **En segundo plano, lo de la pantalla siguiente** (`logic/carga.js`,
+   `crearCalentador`, `listaDelEditor`, `listaDelPartido`): una cola que
+   baja de a dos, sin repetir, con `fetch` de prioridad baja (la respuesta
+   queda en la caché del navegador o del service worker), y que se frena
+   cuando una escena arranca su propio preload. Con la compuerta a la vista
+   se bajan las caras del editor; el editor y el Master bajan lo del partido
+   (54 archivos, 6,9 MB, la misma lista que pide su preload: el test lo
+   compara corriendo el preload de verdad).
+5. **La música nace sin bajar** (`audio/sfx.js`, `logic/musica.js`):
+   `preload="none"`, y cada momento precarga solo los que pueden venir
+   después (`siguientes`: del opening, espera y entrada; del partido, el
+   tramo final y el gol…). Y **el que suena, primero**: lo que viene espera
+   a que el tema que suena pueda llegar al final (`canplaythrough`) o falle.
+   Visto en pantalla con la primera versión: el opening y sus dos siguientes
+   arrancaban juntos y se repartían la señal; el opening seguía sin poder
+   sonar 20 s después. Por lo mismo, al arrancar el opening se frena la cola
+   de segundo plano y las caras vuelven cuando su tema ya puede sonar.
+6. **El service worker se registra cuando abre la intro**
+   (`PampaRegistrarSW`), no en "load": en la primera visita su instalación
+   revalida unos 70 archivos de código y baja tres temas (~1 MB), y le
+   peleaba la señal a la compuerta. Con un worker que ya controla la página
+   se registra en "load", como antes; si la intro no abre, a los 20 s.
+
+**Tests.** `carga_liviana.test.js`, corriendo el código de verdad: [1] el
+preload de la intro pide solo el logo y la intro entera pesa 1,45 MB (tope
+1,6; antes 3,33 en 40 archivos); el opening espera si se toca antes y
+arranca solo al terminar. [2] La compuerta y los ocho planos corridos con
+una escena que anota qué texturas preguntan: usan 18 ilustraciones y son
+exactamente las que baja (ni una de menos, ni una de más). [3] Los cuatro
+preload escuchan `progress`; la barra dice el porcentaje en texto, se va al
+terminar, no se dibuja fuera del preload y no deja campos en la escena.
+[4] El cartel: está antes de cualquier script, cuenta los 51 scripts y los
+15 datos (el test los cuenta en el HTML), sus pesos son los medidos, nunca
+va para atrás, y la compuerta llega con 1,01 MB contados en el disco (tope
+2). [5] Los `<audio>` nacen con `preload="none"`; con el opening pedido se
+baja solo ese hasta que puede sonar, y después los dos que vienen. [6] La
+cola, la lista del partido igual a lo que pide su preload, el editor y el
+Master la piden, y el worker se registra al abrir la intro (no en "load";
+sí en "load" si ya hay uno controlando). Contra el código de antes falla en
+[1] con "pidió 40".
+
+**Dos errores míos que cazó el test, antes de mirar la pantalla.** La cola
+compartía con `var` el "ya terminó" de cada pedido dentro del `while`: el
+pedido que terminaba primero cerraba el de otro. Y el porcentaje con los
+pesos sumando 0,9999… daba 99% con todo bajado.
+
+**Cómo se verificó en pantalla** (server de prueba, "Slow 4G", caché vacía):
+
+- **Antes** (commit base): negro hasta la compuerta, a los 70,6 s, con
+  4,25 MB bajados en 110 pedidos (`l06_1_antes_negro.jpg`).
+- **Después**: el cartel entró al DOM a los 897 ms de empezar la
+  navegación (en otras dos corridas, 881 y 924 ms) y el porcentaje avanzó
+  (`l06_1_cartel_14.jpg`, `l06_1_cartel_88.jpg`). La compuerta llegó a los
+  18,3 s con **1,02 MB** bajados en 71 pedidos (scripts 0,71, JSON 0,07,
+  tipografías 0,11, el logo 0,09) (`l06_1_compuerta_slow4g.jpg`,
+  `l06_1_compuerta_canvas.png`).
+- **Un error que vio la pantalla y no el test**: la primera versión contaba
+  los scripts escuchando "load" en la ventana, y con el juego ya creado el
+  cartel decía 27%. El camino de un evento "load" termina en el documento
+  (la especificación de DOM saca a la ventana justo para ese tipo): ahora se
+  escucha en el documento, y el test exige eso.
+- **Tocar antes de que baje el opening**: "CARGANDO EL OPENING… 23%"
+  (`l06_1_espera_toque_real.png`), 58% (`l06_1_espera_opening_mitad.png`; en
+  esa captura, la de antes del arreglo, se ve "(o apretá cualquier tecla)"
+  debajo de la barra: ahora se esconde) y, al llegar, el opening arrancó
+  solo en el plano del pueblo (`l06_1_espera_arranca_solo.png`). Los ocho
+  planos corrieron sin pedir una sola textura que no estuviera.
+- **La música**: con el toque real, en el server: el opening (422 KB) bajó
+  solo desde el segundo 49,0; a los 53,2, cuando ya podía sonar, arrancaron
+  juntos los dos que vienen (espera y entrada) y las caras del editor. Los
+  otros cinco temas quedaron en `preload="none"`, sin un byte pedido.
+- **Lo que bajó en segundo plano sirve** (con caché, como GitHub Pages):
+  con las caras bajadas mientras la compuerta esperaba, el editor abrió en
+  329 ms **sin pedirle una sola cara al server**; después de 4,8 s en el
+  editor (54 archivos bajados), el partido cargó **sin un solo pedido al
+  server** (su barra se vio un instante mientras decodificaba)
+  (`l06_1_editor_barra.png` es la misma barra con la caché vacía: "CARGANDO
+  LAS CARAS… 0%").
+- **El worker**, con el server arrancado por `preview_start` (el único con el
+  que el navegador integrado registra workers): `sw.js` se pidió 0,6 s
+  después de la marca de la compuerta, se instaló y tomó la página
+  (`pampa-assets` y `pampa-codigo-v17-1.0-l05r`). El origen quedó limpio al
+  terminar.
+
+### DECISIONES QUE TOMÉ YO (carga-liviana)
+
+1. **La compuerta antes que el opening.** El ítem decía "intro precarga
+   solo esas" (las del opening). Con eso la compuerta llegaba con 2,4 MB
+   contados en el disco, arriba de los 2 MB del criterio. Ahora el preload
+   baja solo el logo y lo del opening baja con la compuerta a la vista.
+   *Revertir:* en `intro.js`, que el preload también encole
+   `this.listaOpening()` (y la compuerta queda como antes).
+2. **Lo de la pantalla siguiente se baja con `fetch`, no con `load.image` +
+   `load.start`** como decía el ítem. Leído en `vendor/phaser.min.js`: al
+   apagar la escena el loader hace `reset()` (lo que no salió se pierde) y lo
+   que estaba en vuelo termina en un loader reiniciado; el preload del
+   partido lo volvía a pedir (dos texturas con una clave, "Texture key
+   already in use"). Y las texturas ocuparían memoria en el editor sin
+   usarse (el ítem siguiente). Con `fetch` el archivo queda en la caché y el
+   preload lo encuentra sin red. *Revertir:* `calentarElPartido` en
+   `piel_ui.js`.
+3. **Las caras del editor se bajan con la compuerta a la vista** (no estaba
+   pedido): era la otra pantalla negra larga (2,1 MB) después del opening.
+   *Revertir:* `calentarElEditor` en `intro.js`.
+4. **El service worker se registra al abrir la intro** (no estaba pedido).
+   *Revertir:* en el script de LA RED, `pedido = true` de entrada.
+5. **La música con `preload="none"`.** Da vuelta la decisión 7 de la revisión
+   de L05 ("la música se queda como está"), porque este ítem lo pide; el
+   riesgo que anotaba esa decisión (el primer toque de un tema esperando a
+   que baje entero) lo cubre la precarga del tema que viene. *Revertir:* en
+   `audio/sfx.js`, `a.preload = "auto"` en `registrarArchivos`.
+6. **"El que suena, primero"** (`cuandoSuenaListo`) no estaba en el ítem:
+   salió de mirar el server. *Revertir:* que `precargarTemas` llame directo
+   a `precargarYa`.
+7. **La versión del worker no se sube en este ítem**, como pidió el crítico:
+   desde L05 subirla solo barre el código, y se sube una vez al final del
+   lote (paso del deploy).
+8. **La nota de los 6 s** y **el porcentaje en el "Girá el celular"** no
+   estaban pedidos. *Revertir:* el `setTimeout` de 6000 y `#rot-carga`.
