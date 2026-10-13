@@ -388,8 +388,27 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   flashBlanco() { this.cameras.main.flash(70, 255, 255, 255); }
   poseImg(id, x, y, altura) {
     if (!this.textures.exists("pose_" + id)) return null;   // el plano se las arregla
-    const s = this.add.image(x, y, "pose_" + id);
+    const man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
+    const conPelota = !!(def && def.pelota && this.textures.exists("pose_pelota_vieja") && this.add.container);
+    const s = this.add.image(conPelota ? 0 : x, conPelota ? 0 : y, "pose_" + id);
     s.setScale(altura / s.height);
+    /* OJOS (tanda 1.0) · LA PELOTA EN SU HUECO. Las poses que declaran
+       'pelota' en el manifest traen la pelota RECORTADA del webp, y acá nadie
+       la ponía: en la ráfaga de héroes el cabezazo salía SIN CARA (el hueco
+       se come la frente, los ojos y la nariz; ver _pelota_en_la_cara en
+       data/poses_manifest.json) y la chilena pateaba un agujero, en el
+       opening que ve toda persona que arranca. Ahora la pelota de potrero va
+       DETRÁS de la pose, en el {x,y,r} del manifest y con ese tamaño, y las
+       dos en un contenedor: el temblor y el zoom del plano mueven a las dos
+       juntas y el hueco no se corre. */
+    if (conPelota) {
+      const dW = s.displayWidth, dH = s.displayHeight;
+      const b = this.add.image((def.pelota.x - 0.5) * dW, (def.pelota.y - 0.5) * dH, "pose_pelota_vieja");
+      b.setScale((def.pelota.r * 2 * dH) / (b.height || 1));
+      const grupo = this.add.container(x, y, [b, s]);
+      this.capa.add(grupo);
+      return grupo;
+    }
     this.capa.add(s);
     return s;
   }

@@ -61,6 +61,8 @@
     "y": 0.135,
     "r": 0.135
    },
+   "pelota_en_la_cara": true,
+   "_pelota_en_la_cara": "OJOS (tanda 1.0): el hueco que dejó recortar la pelota (centro 0,736 / 0,135, radio 0,135 del alto: en el webp de 900x855 es un círculo de 115 px de radio con centro en 662,115; medido en el navegador: adentro del 92% del radio el alfa es 0 en el 100% de los píxeles, y en el anillo de 1,12 radios 25 de 61 puntos son figura: pelo, oreja, cuello) se come la frente, los ojos y la nariz; de la cara quedan la oreja, la nuca y la punta del mentón. Mientras esta pose esté en pantalla la pelota del juego NO se despega del hueco (scenes/definicion_ui.js, defTeatroFinal; scenes/intro.js, poseImg): si viaja, la figura queda sin cara. El archivo no se toca.",
    "tonos": {
     "piel": "#fbd0b5",
     "camiseta": "#4bc0f8"

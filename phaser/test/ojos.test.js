@@ -34,6 +34,13 @@
          ya arquero_ataja_celeste (apagada) y, con la escena de verdad, que
          en la revelación el rival pasa a su pose de rodillas con la pelota
          del juego en el hueco del manifest.
+     [5] el cabezazo: el hueco de la pelota recortada se come la frente, los
+         ojos y la nariz. En la Definición la pelota arrancaba en un punto
+         fijo (W*0,42, H*0,6) y la figura salía SIN CARA a 400 px; en la
+         ráfaga del opening, también (y la chilena pateaba un agujero). Con
+         el teatro de verdad: remate, chilena y cabezazo arrancan con la
+         pelota en su hueco y de su tamaño; la del cabezazo no se despega
+         (va detrás y sigue la sacudida); el opening la pone en su lugar.
 
    Corré:  node phaser/test/ojos.test.js
    ========================================================================== */
@@ -251,6 +258,82 @@ function escenaConPoses() {
   assert(Math.abs(altoBola - p.r * 2 * arq.displayHeight) < 0.5, "con el tamaño del hueco (" + altoBola.toFixed(1) + " px)");
   assert(ball.alpha === 1 && debajo && debajo[0] === ball && debajo[1] === arq, "entera y DETRÁS de la pose");
   console.log("[4] el arquero rival con su arte en el remate (estirado, y de rodillas recién al revelar, pelota en " + Math.round(ball.x) + "," + Math.round(ball.y) + "); tu arquero ataja con el despeje; nadie pide arquero_ataja_celeste");
+})();
+
+/* ---------- [5] EL CABEZAZO NO SE QUEDA SIN CARA ---------- */
+W.PampaDefinicion = require(path.join(RAIZ, "phaser/logic/definicion.js"));
+/* el teatro final de la Definición, de verdad, con una escena de mentira que
+   anota qué se creó y qué se movió */
+function teatro(poseTiro) {
+  var e = escenaConPoses();
+  var R = { sprites: [], tweens: [], debajo: null };
+  function fig(x, y, key) {
+    var id = String(key).replace(/^pose_/, ""), def = POSES.poses[id];
+    var m = def ? medidas("assets/poses/" + def.archivo) : { w: key === "ball_hd" ? 128 : 16, h: key === "ball_hd" ? 128 : 16 };
+    var o = {
+      k: key, x: x, y: y, width: m.w, height: m.h, scaleX: 1, active: true, flipX: false,
+      setScale: function (s) { this.scaleX = s; this.displayWidth = this.width * s; this.displayHeight = this.height * s; return this; },
+      setPosition: function (a, b) { this.x = a; this.y = b; return this; },
+      setOrigin: function () { return this; }, setAlpha: function () { return this; }, setAngle: function () { return this; },
+      setFlipX: function (f) { this.flipX = f; return this; }
+    };
+    o.setScale(1);
+    R.sprites.push(o);
+    return o;
+  }
+  e.add = { image: fig, sprite: fig };
+  e.cineContent = { add: function () { }, moveBelow: function (a, b) { R.debajo = [a, b]; } };
+  e.tweens = { add: function (t) { R.tweens.push(t); }, killTweensOf: function () { } };
+  e.time = { delayedCall: function () { } };
+  e.cineBG = { clear: function () { }, fillStyle: function () { }, fillRect: function () { }, fillTriangle: function () { } };
+  e.uiCam = { flash: function () { } };
+  e.limpiarContenido = function () { }; e.fondoCine = function () { return true; };
+  e.lineasVelocidad = function () { }; e.musicaDuck = function () { }; e.msV = function (v) { return v; };
+  e.FLAGS = {};
+  e.st = { mios: [{ nombre: "VOS", esVos: true }], ctrl: 0, rivales: [{ nombre: "R" }] };
+  e._def = { fase: 3, zonaMia: 0, zonaCPU: 3, t: 0 };
+  e.defTeatroFinal({ ofensiva: true, gol: false, bloqueado: false, poseTiro: poseTiro, res: { outcome: "atajada" }, dz: 1 });
+  R.escena = e;
+  R.pose = R.sprites.filter(function (s) { return s.k === "pose_" + poseTiro; })[0];
+  R.pelota = R.sprites.filter(function (s) { return /^ball/.test(s.k); })[0];
+  return R;
+}
+(function () {
+  var cab = POSES.poses.cabezazo;
+  assert(cab.pelota_en_la_cara === true && typeof cab._pelota_en_la_cara === "string" && cab._pelota_en_la_cara.length > 60,
+    "el manifest marca el cabezazo con pelota_en_la_cara y dice por qué (el hueco se come la cara)");
+  var conCara = Object.keys(POSES.poses).filter(function (id) { return POSES.poses[id].pelota_en_la_cara; });
+  assert(conCara.join(",") === "cabezazo", "es la única pose con el hueco en la cara (" + conCara.join(",") + ")");
+  ["cabezazo", "remate", "chilena"].forEach(function (id) {
+    var R = teatro(id), p = POSES.poses[id].pelota, s = R.pose, b = R.pelota;
+    if (!s || !b) { assert(false, id + ": el teatro no creó la pose o la pelota"); return; }
+    var ex = s.x + (p.x - 0.5) * s.displayWidth, ey = s.y + (p.y - 0.5) * s.displayHeight;
+    assert(Math.abs(b.x - ex) < 0.5 && Math.abs(b.y - ey) < 0.5,
+      id + ": la pelota arranca en el hueco de la pose (" + b.x.toFixed(1) + "," + b.y.toFixed(1) + " contra " + ex.toFixed(1) + "," + ey.toFixed(1) + "; antes 403,324)");
+    var alto = b.displayHeight;
+    assert(Math.abs(alto - p.r * 2 * s.displayHeight) < 0.5, id + ": del tamaño del hueco (" + alto.toFixed(1) + " px)");
+    var vuela = R.tweens.some(function (t) { return t.targets === b; });
+    if (id === "cabezazo") {
+      assert(!vuela, "cabezazo: la pelota NO se despega de la cara (si viajara, la figura queda sin cara todo el vuelo)");
+      assert(R.debajo && R.debajo[0] === b && R.debajo[1] === s, "cabezazo: va detrás de la pose");
+      var d = R.escena._def;
+      assert(d.pelotaPegada && d.pelotaPegada.spr === b, "cabezazo: queda anotada para seguir la sacudida");
+      /* la sacudida de esfuerzo mueve la pose: la pelota va con ella */
+      d.shakeSpr = s; d.fase = 4;
+      var x0 = s.x, y0 = s.y;
+      for (var i = 0; i < 40; i++) R.escena.updateDefinicion(16);
+      assert(Math.hypot(s.x - x0, s.y - y0) > 0.3, "cabezazo: la sacudida movió la pose (" + Math.hypot(s.x - x0, s.y - y0).toFixed(2) + " px)");
+      assert(Math.abs(b.x - (s.x + d.pelotaPegada.dx)) < 0.01 && Math.abs(b.y - (s.y + d.pelotaPegada.dy)) < 0.01,
+        "cabezazo: y la pelota la siguió, clavada en el hueco");
+    } else {
+      assert(vuela, id + ": la pelota sale del pie y viaja a la zona, como antes");
+    }
+  });
+  /* el opening: la ráfaga pone la pelota en el hueco */
+  var I = leer("phaser/scenes/intro.js");
+  assert(/def && def\.pelota && this\.textures\.exists\("pose_pelota_vieja"\)/.test(I) && /this\.add\.container\(x, y, \[b, s\]\)/.test(I),
+    "intro.js: poseImg pone la pelota de potrero DETRÁS de la pose que declara 'pelota', en un contenedor con ella");
+  console.log("[5] el cabezazo con la pelota en la cara (detrás, pegada a la sacudida); remate y chilena salen del hueco y viajan; el opening la pone en su lugar");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

@@ -699,9 +699,38 @@
       /* V9 B2: acá se dibujaba SEGUNDA VEZ la misma pose del mismo jugador
          (sprPat, alto 240, encima del spr de alto 400): por eso el playtest veía
          dos veces al mismo. El sprite de arriba ya es el que patea. */
-      var ball = this.add.sprite(W * 0.42, H * 0.6, "ball").setScale(2.2);
-      this.cineContent.add(ball);
-      this.tweens.add({ targets: ball, x: bx, y: by, scale: 0.9, duration: this.msV(520), ease: "Quad.easeIn" });
+      /* ══ OJOS (tanda 1.0) · LA PELOTA SALE DE LA POSE ══
+         La pelota arrancaba en un punto fijo (W*0,42, H*0,6) que no miraba la
+         pose. Las tres del tiro (remate, chilena, cabezazo) traen la pelota
+         RECORTADA del webp y declaran dónde iba ({x,y,r} del manifest): ese
+         hueco quedaba vacío. En el cabezazo el hueco se come la frente, los
+         ojos y la nariz, así que la figura salía SIN CARA a 400 px, en el
+         momento más grande. Ahora la pelota arranca en el hueco, con su
+         tamaño. Y en la pose que declara pelota_en_la_cara (el cabezazo) no
+         se despega: es el instante del contacto, congelado; si viajara, la
+         cara quedaría vacía todo el vuelo y el silencio. A dónde fue lo
+         cuenta el arquero que vuela a su zona, y la revelación. */
+      var pmT = this.game.registry.get("poses"), defT = pmT && pmT.poses && pmT.poses[poseId];
+      var pelP = defT && defT.pelota && this.poseKey(poseId) && spr && spr.displayHeight ? defT.pelota : null;
+      var ball;
+      if (pelP) {
+        var dxP = (pelP.x - 0.5) * spr.displayWidth * (spr.flipX ? -1 : 1), dyP = (pelP.y - 0.5) * spr.displayHeight;
+        var TPt = this.texPelota ? this.texPelota(Math.max(16, pelP.r * 2 * spr.displayHeight)) : { key: "ball", esc: 2.2 };
+        ball = this.add.sprite(spr.x + dxP, spr.y + dyP, TPt.key).setScale(TPt.esc);
+        this.cineContent.add(ball);
+        if (defT.pelota_en_la_cara) {
+          /* detrás de la pose (el hueco la deja ver) y pegada a la sacudida */
+          if (this.cineContent.moveBelow) this.cineContent.moveBelow(ball, spr);
+          this._def.pelotaPegada = { spr: ball, dx: dxP, dy: dyP };
+        } else {
+          var altoFin = 0.9 * 16, altoTex = (this.textures.get(TPt.key).getSourceImage().height) || 16;
+          this.tweens.add({ targets: ball, x: bx, y: by, scale: altoFin / altoTex, duration: this.msV(520), ease: "Quad.easeIn" });
+        }
+      } else {
+        ball = this.add.sprite(W * 0.42, H * 0.6, "ball").setScale(2.2);
+        this.cineContent.add(ball);
+        this.tweens.add({ targets: ball, x: bx, y: by, scale: 0.9, duration: this.msV(520), ease: "Quad.easeIn" });
+      }
       /* V10: si te patean a vos, el que vuela es TU arquero (sus poses _celeste) */
       var idVuela = !o.ofensiva && this.poseKey("arquero_vuela_celeste") ? "arquero_vuela_celeste" : "arquero_vuela";
       var arqPose = this.poseSprite(idVuela, W * 0.74, H * 0.4, 260, function () { return null; });
@@ -822,6 +851,10 @@
       if (d.shakeSpr && d.shakeSpr.active && !d.congelado) {
         d.shakeSpr.x += Math.sin(d.t * 0.09) * 1.4;
         d.shakeSpr.y += Math.cos(d.t * 0.11) * 1.1;
+        /* OJOS: la pelota pegada a la cara (el cabezazo) tiembla con la pose,
+           o la sacudida le abre una media luna de hueco al costado */
+        var pp = d.pelotaPegada;
+        if (pp && pp.spr && pp.spr.active) pp.spr.setPosition(d.shakeSpr.x + pp.dx, d.shakeSpr.y + pp.dy);
       }
       if (d.fase === 1) {
         /* mover al jugador (dedo = arrastre; teclado = flechas) */

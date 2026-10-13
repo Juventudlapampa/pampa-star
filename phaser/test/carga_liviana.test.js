@@ -228,6 +228,10 @@ function registry() { return { get: function (k) { return registro[k]; }, set: f
   s.input = { once: function () { }, on: function () { }, keyboard: { once: function () { }, on: function () { } } };
   s.sys = { game: { device: { input: { touch: true } } } };
   s.pedirMusica = function () { };
+  /* OJOS (tanda 1.0): poseImg mira en el manifest si la pose declara
+     'pelota' (para ponerle la pelota de potrero en el hueco), así que la
+     escena de mentira lleva su registry, como la de verdad */
+  s.game = { registry: registry() };
   s.compuerta();
   [s.p1, s.p2, s.p3, s.p4, s.p5, s.p6, s.p7, s.p8].forEach(function (fn) { s.corteSeco(); fn.call(s, 1000); });
   var deAsset = Object.keys(usadas).filter(function (k) { return /^(pose_|fondo_|i_|bg\d|d_)/.test(k); });
