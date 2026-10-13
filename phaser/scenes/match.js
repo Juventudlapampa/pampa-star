@@ -4815,9 +4815,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* 1) SE APAGA LO QUE YA NO SE JUEGA. El radar con sus 22 números, los dos
        medidores, el botón de acción y el hint del teclado no tienen nada que
        decir con el partido terminado, y son justo lo que el cartel tapaba. */
+    /* L08c · LA MANO DE CARTAS TAMBIÉN. "◆ FOGONAZO ◆ PUÑALADA" (txtMano,
+       debajo de las fichas) seguía arriba a la izquierda en GANASTE
+       (l04b_1_final_master_4s.png): se sumó al HUD en la pasada de los
+       desconectados y nadie la agregó a esta lista. */
     const apagar = [this.radarG, this.radarZona, this._btnAccionCont, this._hintEspacio,
       this.gutsG, this.lblGuts, this.txtGuts, this.envionG, this.lblEnvion,
-      this.txtEnvion, this.txtEnvionEstado, this.txtFichas, this.tickerTxt];
+      this.txtEnvion, this.txtEnvionEstado, this.txtFichas, this.txtMano, this.tickerTxt];
     apagar.push(this.radarMarco, this._radarTuArco);
     apagar.forEach(o => o && o.setVisible(false));
     (this.radarNumsMios || []).forEach(t => t.setVisible(false));
@@ -5803,7 +5807,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        La cazó el guardián al mirar métodos de escena sin llamador. Va debajo de
        las fichas, que es el otro dato de estado de la misma familia, y no
        compite con nada: cambia solo cuando cambia. */
-    if (this.textoDeLaMano) {
+    /* L08c: con el partido terminado no se escribe (ni se crea) la mano: si
+       el texto naciera después del pitazo, nacería prendido sobre GANASTE */
+    if (this.textoDeLaMano && !this._finalApagado) {
       const mTxt = this.textoDeLaMano();
       if (this._hudMano !== mTxt) {
         this._hudMano = mTxt;
