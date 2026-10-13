@@ -210,7 +210,7 @@ var HUELLA_DISCO = H.calcularHuella();
 /* ---------- [6] LO QUE VA A LA CACHÉ DE ASSETS TIENE HUELLA ---------- */
 (function () {
   var enSw = (SW && SW.huella) || {};
-  var deAssets = ENTRADAS.filter(function (r) { return /^assets\//.test(r) || /^phaser\/vendor\//.test(r) || /^phaser\/icon-\d+\.png$/.test(r); });
+  var deAssets = ENTRADAS.filter(function (r) { return /^assets\//.test(r) || /^phaser\/vendor\//.test(r) || /^phaser\/icon-\d+(-maskable)?\.png$/.test(r); });
   var sin = deAssets.filter(function (r) { return !(r in enSw); });
   assert(deAssets.length >= 8, "el PRECACHE trae tipografías, motor e íconos (" + deAssets.length + ")");
   assert(sin.length === 0, "entradas del PRECACHE que irían a la caché de assets sin huella: " + sin.join(", "));

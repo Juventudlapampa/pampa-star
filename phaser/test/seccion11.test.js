@@ -114,6 +114,20 @@ FILES.forEach(f => {
       s = s.slice(0, i) + bloque.replace(/[^\n]/g, "") + s.slice(j + EXC_HASTA.length);
     }
   }
+  /* 1d) LAS ETIQUETAS DE TARJETA (L08, metadatos-y-link). Las vistas
+     previas de los links leen, además de og:, unas etiquetas <meta> cuyo
+     NOMBRE de norma empieza con el de una red (las de "tarjeta grande":
+     card, title, description, image, image:alt). Es un identificador de
+     protocolo en el <head>, que no lee quien juega ni es parte del mundo
+     del juego, y el ítem las pide. La excepción: SOLO ese prefijo, SOLO
+     como name="…:card|title|description|image|image:alt" de un <meta> de
+     una página .html, y como mucho 6 por página. Cualquier otro uso del
+     nombre (un comentario, un texto, otra etiqueta) sigue cazado abajo. */
+  let tarjetas = 0;
+  if (/\.html$/.test(rel)) {
+    s = s.replace(/<meta name="twitter:(card|title|description|image:alt|image)"/g, function () { tarjetas++; return '<meta name="'; });
+    assert(tarjetas <= 6, "§11 " + rel + ": las etiquetas de tarjeta no pasan de 6 (" + tarjetas + ")");
+  }
   s.split("\n").forEach((l, n) => {
     const h = l.match(APPS);
     if (h) assert(false, "§11 nombre de app o navegador fuera de la excepción acotada, en " + rel + ":" + (n + 1) + ": «" + h[0] +
@@ -122,6 +136,14 @@ FILES.forEach(f => {
 });
 assert(nombresEnLaExcepcion > 0 && nombresEnLaExcepcion <= 25,
   "§11 la excepción de entorno.js tiene sus nombres y no crece sin que se note (" + nombresEnLaExcepcion + "; tope 25)");
+/* el guardián probándose: la excepción 1d deja pasar la etiqueta y nada más */
+(function () {
+  const prueba = '<meta name="twitter:card" content="x">\n<!-- en twitter -->\n<meta property="twitter:card" content="x">';
+  let t = prueba.replace(/<meta name="twitter:(card|title|description|image:alt|image)"/g, '<meta name="');
+  const UNA = new RegExp(APPS.source, "i");
+  const cazados = t.split("\n").filter(l => UNA.test(l)).length;
+  assert(cazados === 2, "§11 1d: la excepción de las etiquetas de tarjeta deja pasar solo <meta name=…> (cazó " + cazados + " de 2)");
+})();
 
 /* ---------- 2) "GUTS" COMO TEXTO VISIBLE ----------
    Los identificadores internos y keys de save (gutsProximo, PS.guts, GUTS_*,

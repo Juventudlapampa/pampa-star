@@ -14,7 +14,7 @@
 
    QUÉ ENTRA: todo lo que está debajo de assets/ (menos assets/_fuente/, que
    es material crudo que el juego no pide, y los .md), el motor
-   (phaser/vendor/*.js) y los dos íconos de la PWA. Todo eso cambia muy de vez
+   (phaser/vendor/*.js) y los íconos de la PWA (tres desde L08: el maskable). Todo eso cambia muy de vez
    en cuando y pesa: 14,1 MB de assets servidos + 1,2 MB de motor (medido con
    du sobre git ls-files).
 
@@ -52,7 +52,9 @@ function listarAssets(raiz) {
     if (/\.js$/.test(n)) out.push("phaser/vendor/" + n);
   });
   fs.readdirSync(path.join(raiz, "phaser")).forEach(function (n) {
-    if (/^icon-\d+\.png$/.test(n)) out.push("phaser/" + n);
+    /* L08: también icon-512-maskable.png (el ícono que recortan los
+       lanzadores de Android): cambia tan poco como los otros dos */
+    if (/^icon-\d+(-maskable)?\.png$/.test(n)) out.push("phaser/" + n);
   });
   return out.sort();
 }

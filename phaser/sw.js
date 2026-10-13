@@ -68,6 +68,8 @@ const PRECACHE = [
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
+  /* L08: el ícono que recortan los lanzadores de Android (metadatos.test.js) */
+  "./icon-512-maskable.png",
   "./vendor/phaser.min.js",
   "./logic/duel.js", "./logic/perspectiva.js", "./logic/partido.js",
   "./logic/relator.js", "./logic/definicion.js", "./logic/master.js",
@@ -224,6 +226,7 @@ const ASSETS_HUELLA = {
   "assets/ui/portada.webp": "55732-cbb1e9a4ea31",
   "assets/ui/relatores.webp": "64798-7365607f1d93",
   "phaser/icon-192.png": "5547-3f00ab2c0d5c",
+  "phaser/icon-512-maskable.png": "19167-ebe6694fca13",
   "phaser/icon-512.png": "18225-880063768ecc",
   "phaser/vendor/phaser.min.js": "1181917-62081f6a1b51"
 };
