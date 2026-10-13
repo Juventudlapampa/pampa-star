@@ -4308,8 +4308,9 @@ cada partido (104 KB) y no la pedía ninguna escena.
   manifest real: los 50 nombres, en los dos bandos, nunca dan 'tranqui'
   (antes 4) y cambian solo esos cuatro; `validarLook({cara:7})` da Rulos y
   no tira; el ciclo del editor es de 7 en las dos direcciones; ninguna de
-  las dos piezas está en las listas de carga ni en el PRECACHE; los dos
-  archivos tienen el mismo SHA-256 que antes.
+  las dos piezas está en las listas de carga (el assert sobre el PRECACHE
+  no podía fallar: lo reemplazó, en la revisión, el worker instalado de
+  verdad, [3b]); los dos archivos tienen el mismo SHA-256 que antes.
 - Ajustados con su porqué: `camisetas.test.js` (usa `configDeCaras`, como
   index.html), `carga_liviana.test.js` (7 caras), `w1_peso.test.js` (13
   PNG en la deuda) y `presupuesto_texturas.test.js` (el censo que replica
@@ -4435,6 +4436,11 @@ ve toda persona que arranca (y la chilena pateaba un agujero).
   archivo: 25.895 píxeles del short entre 70 y 80 y casi nada debajo de
   68; en los brazos, entre 68 y 80 hay unos 1.300 de 79.000. La
   tolerancia de piel de 'festejo' baja a 66, con su `_tolerancias`.
+  **Corregido en la revisión:** con 66 el short no quedaba blanco. La
+  misma sombra está a 66,0 del tono de camiseta (tolerancia 95), y lo que
+  dejó de teñir la piel lo teñía la camiseta: manchas del color de tu
+  camiseta (bordó en `ojos_26` y `ojos_27`). Lo arregla el piso de croma
+  (`croma_min`), ver la revisión del lote.
 - `data/semana.json`: la de cansado pasa a ENTRENAR AGUANTE ("diez
   vueltas, te dolió todo": ahí los ojos apretados son de esfuerzo);
   DESCANSAR va con el caldén solo en el campo (decisión 9) y ESTUDIAR con
@@ -4453,8 +4459,9 @@ ve toda persona que arranca (y la chilena pateaba un agujero).
 - **En pantalla**: el gol de la Definición antes (`ojos_18`) y después
   (`ojos_19`); el plano del gol del opening (`ojos_23`); el teñido con
   piel oscura y camiseta bordó con 80 y con 66 (`ojos_26`) y la pose
-  teñida que arma el partido para VOS con el manifest nuevo (`ojos_27`:
-  el short blanco). En la semana del Master, los cuatro momentos:
+  teñida que arma el partido para VOS con el manifest nuevo (`ojos_27`;
+  el lote leyó ahí el short blanco, y tiene manchas bordó: ver la
+  revisión). En la semana del Master, los cuatro momentos:
   AGUANTE con la de cansado, DESCANSAR con el caldén, ESTUDIAR de espaldas
   y el ASADO con la risa (`ojos_22_*`); el save del Master quedó idéntico.
 
@@ -4502,7 +4509,8 @@ editor, "versión v17-1.0-l08b", y el worker nuevo instaló
    Lo que se pierde: la figura nueva es más angosta (206 px contra 340 a
    420 de alto) y lleva vincha. *Revertir:* intercambiar `archivo`,
    `tonos` y `tolerancias` entre 'festejo' y 'celebracion' (y volver la
-   piel a 80).
+   piel a 80; desde la revisión, `croma_min` también viaja con el
+   archivo).
 9. **DESCANSAR va con el caldén**, que no estaba en la ficha. Las dos
    salidas de la ficha tenían un problema que se ve: (a) dejar la de
    cansado ahí la repite con ENTRENAR AGUANTE (en la tira de la semana,
@@ -4510,13 +4518,19 @@ editor, "versión v17-1.0-l08b", y el worker nuevo instaló
    no hacer nada; (b) la de espaldas la repite con AYUDAR EN CASA o con
    ESTUDIAR. El caldén es la siesta pampeana y es otra forma.
    *Revertir:* `"pose": "cansado"` en descansar (y su `pose_falta` fuera).
+   La revisión encontró que, puesto como figura, se le veían los cortes
+   del archivo: ahora va a sangre (ver la revisión del lote).
 10. **La Definición defensiva hoy no se abre** (desde B3,
     `entrarDefinicionDef` sale por `escenaRemateRival`, que tiene su
     propio ¡ATAJADÓN!). Cambié las dos igual: si esa pantalla vuelve, no
     trae de vuelta los ojos cerrados.
 11. **La tolerancia del short (66) es de esa entrada sola**: el asado, que
     ahora usa el otro archivo, sigue con 80, que en ese archivo no toca el
-    short (`ojos_25`).
+    short (`ojos_25`). *Corregido en la revisión:* sí lo toca, menos.
+    Medido con Pillow en pose_festejo.webp, con 80 se tiñen con la piel
+    unos 3.000 píxeles grises del short (el salpicado que se ve en
+    `ojos_25`); antes del lote, el asado tenía el short de
+    pose_celebracion, con 30.000. Queda en las deudas de la revisión.
 12. **La versión sube a `v17-1.0-l08b`.** *Revertir:* `v17-1.0-l08r` en
     index.html y sw.js.
 
@@ -4543,3 +4557,214 @@ editor, "versión v17-1.0-l08b", y el worker nuevo instaló
   solo si esa pantalla vuelve.
 - **El nombre de la acción del asado** en la semana tiene masculino
   genérico ("con los" + un plural en masculino): `lenguaje-institucional`.
+
+---
+
+## Revisión del lote L08b-ojos
+
+Dos revisores leyeron los commits 726856e..deba810 y encontraron siete
+cosas: cuatro que se ven en pantalla, una del test que no podía fallar y
+dos de notas. Las comprobé contra el código actual antes de tocar nada, y
+las siete se sostienen. Una con un matiz: el festejo teñido con tu pinta
+(punto 1) hoy se ve solo como la silueta oscura del cuadro de impacto del
+gol, porque la escena del remate muestra el festejo sin teñir, un error
+que viene de julio y no es de este lote (`revojos_1`; está en las
+deudas). El arreglo se hizo igual: el dato estaba mal, el test
+certificaba algo falso, y en cuanto se arregle esa escena la mancha se
+vería en cada gol.
+
+En el navegador usé `localhost:8123`, con el audio desviado al arnés del
+oído, sin worker ni cachés y un `?v=` distinto por carga. El origen tenía
+la carrera del Master y tres claves más: las respaldé antes de empezar,
+la prueba de la semana escribió en el save y al terminar quedaron las
+mismas cuatro claves con los mismos valores. Capturas en
+`.claude/shots/revojos_*`.
+
+1. **El short del festejo se teñía con la camiseta** (media; commits
+   a487c3d y ff508fb). *Qué estaba mal:* el lote bajó la piel de
+   'festejo' a 66 para que la sombra gris del short (184,186,185) no se
+   tiñera de marrón, pero esa sombra está a 66,0 del tono de CAMISETA
+   (#8cc5e9, tolerancia 95): lo que dejó de agarrar la piel lo agarraba la
+   camiseta. Medido con Pillow sobre pose_celebracion.webp, haciendo la
+   cuenta de `tenirFilas`: 32.563 píxeles grises o blancos caían en la
+   camiseta. `ojos_26` y `ojos_27` lo muestran (manchas bordó), y
+   `ojos.test.js` [6] medía solo la distancia a la piel. *Qué se hizo:*
+   bajar la camiseta a 60 deja 25 grises teñidos, pero pierde 13.237
+   píxeles de celeste y deja una mancha celeste clara sin teñir en el
+   costado de la camiseta (lo rendericé). Lo que separa el short de la
+   camiseta es el color: los grises del short tienen croma 0-9 y la
+   camiseta casi toda 20 o más. Las reglas de tinte aceptan un piso de
+   croma (`cmin` en `reglasDeTinte` y `tenirFilas`, opcional y sin costo
+   si no se usa) y el manifest lo declara por pose: 'festejo' con
+   `croma_min: 15` y su `_croma_min`. Con 15 quedan 37 píxeles del short
+   (bordes del dibujo) y lo celeste de la camiseta se tiñe igual (142.168
+   píxeles). El `_tolerancias` ya no dice que con 66 el short queda
+   blanco. *Cómo se verificó:* `ojos.test.js` [6] tiñe de verdad, con
+   `mapaDeTinte`, `reglasDeTinte` y `tenirFilas` de `avatar_arte.js`, para
+   las 4 pieles y las 9 camisetas: los 29.291 colores del sobre medido del
+   short no cambian y los más comunes de la camiseta y la piel se siguen
+   tiñendo; sin `croma_min` falla. En pantalla, en un partido con piel
+   oscura y camiseta bordó, la textura que arma el juego al lado de la
+   misma sin el piso (`revojos_2_festejo_tenido_antes_y_ahora`).
+
+2. **El caldén de DESCANSAR con los cortes a la vista** (media; commit
+   a487c3d). *Qué estaba mal:* el caldén es una pieza de fondo y la copa
+   toca los bordes del archivo (calden.webp, 1600x1569: la primera
+   columna tiene 463 píxeles opacos, filas 711-1173, y la última 559,
+   filas 309-972). Chico y en el medio, la copa terminaba en dos rectas
+   en el aire: en el momento, en x 491 y 742 de un marco de 170 a 790
+   (`ojos_22`), y más chico en la tira. *Qué se hizo:* el manifest lo
+   marca `a_sangre` (con `_a_sangre`) y `master.js` lo encuadra como
+   fondo (`encuadreASangre`): de lado a lado de su ventana con 4 px de
+   aire, apoyado en el piso y recortado con la ventana. En el momento, la
+   ventana va de la banda del texto al borde del marco, sin entrada con
+   rebote; en la tira, la ranura entera adentro del trazo, y la figura se
+   dibuja antes que la etiqueta del día (si no, la tapaba). *Cómo se
+   verificó:* `ojos.test.js` [7] corre la semana de verdad con la escena
+   de mentira (elegir DESCANSAR, el momento y la tira): los dos cortes
+   caen afuera de la ventana, la máscara es la ventana, apoyado en el
+   piso, sin rebote, y "EL LUNES" encima. Sin `a_sangre` falla con 491 a
+   742. En pantalla, en el Master: el momento (`revojos_6`; los bordes en
+   `revojos_6b`: termina en la banda y en el marco) y la tira
+   (`revojos_7`, `revojos_7b`).
+
+3. **El assert del PRECACHE no podía fallar** (baja; commit 00d1578).
+   *Qué estaba mal:* el arreglo `PRECACHE` de `sw.js` nunca tuvo poses ni
+   caras (antes del lote tampoco); los dos nombres están en
+   `ASSETS_HUELLA`, que es la huella y no la precarga, y ahí tienen que
+   estar. *Qué se hizo:* fuera ese assert, con un comentario. En su
+   lugar, [3b]: el `sw.js` de verdad se instala y se activa sobre la red
+   y las cachés de mentira de los tests del worker, y ningún pedido ni
+   nada guardado es la cara de ojos cerrados ni cabezazo_v2; con la cara
+   sumada al PRECACHE (una variante), el test la ve. *Cómo se verificó*
+   (en node: es el worker): 82 pedidos y 82 guardados, ninguno de los dos.
+
+4. **En el desenlace la pelota quedaba en la cadera del arquero**
+   (media; commit 477128f). *Qué estaba mal:* desde OJOS el arquero rival
+   entra estirado, pero la pelota viajaba al punto fijo de la boca
+   pensado para la pose de rodillas: en el impacto más el silencio (unos
+   800 ms) quedaba en 447,262, la cadera, con los guantes en 540,175
+   (`ojos_8`). *Qué se hizo:* medí los guantes en
+   pose_arquero_vuela_v2.webp (900x748) con Pillow y una grilla de 25 px:
+   sin los puños, las palmas tienen centro en 760,51 y 845,98, y el punto
+   del medio (802,74) va al manifest como `manos` de arquero_vuela (con
+   `_manos`). `planoDesenlace` manda ahí la pelota en la atajada y el
+   córner (`puntoDePose`, que también usa ahora `ponerArqueroQueAtaja`).
+   *Cómo se verificó:* `ojos.test.js` [4] corre `planoDesenlace` de
+   verdad en los dos desenlaces: la pelota viaja adentro de los guantes y
+   el punto de antes cae afuera. En pantalla, un remate forzado a
+   atajada: en el silencio, la pelota entre los dos guantes (`revojos_3`,
+   zoom `revojos_3b`) y al revelar, de rodillas con la pelota en el hueco
+   (`revojos_4`); forzado a córner, también en los guantes (`revojos_5`).
+
+5. **El atajadón de tu arquero dice despeje y la lógica dice que la
+   retuvo** (baja; commit 477128f). *Qué estaba mal:* el despeje de puño
+   cuenta que la pelota sale; `resolverAtajada` dice que la retuvo y
+   salís jugando desde tu área; el relato podía decir "¡La retuvo el
+   uno!"; y la pelota del juego se esconde porque el despeje trae otra
+   pintada. Es un detalle de coherencia que pidió la ficha: arreglarlo de
+   verdad necesita arte. *Qué se hizo:* en `data/relatos.json`, las dos
+   frases que decían cómo fue ya no lo dicen ("¡Apareció el uno!",
+   "¡Mano salvadora!"), con un `_arquero_mio` que explica por qué; en el
+   manifest, `arquero_despeje_celeste` deja el `_pedido_arte` para Rodri
+   (tu arquero que la AGARRA con los ojos abiertos, con la pelota
+   recortada). *Cómo se verificó:* `ojos.test.js` [4] (ninguna frase dice
+   si la retuvo o la sacó; con el archivo de antes falla). En pantalla,
+   "te rematan" forzado a atajada: el ¡ATAJADÓN! (`revojos_8`) y el
+   relator con "¡Mano salvadora! Sigue todo igual." (`revojos_9`).
+
+6. **El festejo nuevo cuesta más y las notas citaban otro archivo**
+   (baja). *Qué estaba mal:* pose_celebracion.webp tiene 3,2 veces los
+   píxeles de pose_festejo.webp y cuatro notas seguían con "70,8 ms".
+   *Qué se hizo:* medido en el navegador, en la compu, el mismo día y con
+   el mismo código, el archivo nuevo contra el viejo: teñirlo entero,
+   54-75 ms contra 18-24; por bandas, 132 pasos (58-63 ms en total), la
+   banda más larga 4-5 ms y el último paso, el que crea y sube la
+   textura, 14-17 ms de una pieza contra 3; en memoria, 8 MB contra 2,5.
+   La `_nota` de `balance.rendimiento` lo dice entero; `carga.js`,
+   `avatar_arte.js` y `match.js` aclaran que los 70,8 eran del archivo de
+   entonces. No se cambió ningún valor (decisión 7). *Cómo se verificó:*
+   las mediciones, en la consola del navegador con las funciones de
+   verdad (cinco veces enteras y tres por bandas, por archivo).
+
+7. **La nota del manifest de caras decía dos nombres y son cuatro**
+   (baja). `_rotacion` y el `_fuera` de 'tranqui' dicen los cuatro que
+   mide `ojos.test.js` [1]: Santi y Mateo siempre, Damián y Santiago V.
+   cuando les toca tu equipo.
+
+Además se corrigieron, en la sección del lote de arriba, las frases que
+la revisión dejó viejas: el short "blanco" de OJOS 4 y su verificación,
+el PRECACHE de OJOS 1, y las decisiones 8, 9 y 11.
+
+**Cierre.** Siete commits: `91ccfd8` (el short), `3ed20a7` (la pelota a
+los guantes), `c5d57e3` (el caldén a sangre), `e9fc0bb` (el test del
+worker), `5b4e79b` (el relato y el pedido de arte), `e1f4a66` (las notas
+de caras), `cde4c57` (el costo del festejo), y el de esta documentación
+con la versión. Suite verde (92 archivos; `ojos.test.js` pasa de 96 a 119
+asserts). La versión visible sube a `v17-1.0-l08br` (index.html y sw.js,
+iguales): visto en el editor, "versión v17-1.0-l08br" (`revojos_10`), y
+el worker nuevo instaló `pampa-codigo-v17-1.0-l08br` (después lo saqué,
+con sus cachés).
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L08b-ojos)
+
+1. **Un piso de croma y no una tolerancia de camiseta más baja.** Con 60
+   el short casi no se tiñe, pero la camiseta queda con una mancha
+   celeste clara sin teñir; el piso separa por lo que de verdad los
+   distingue. *Revertir:* sacar `croma_min` de 'festejo' (el código queda
+   inerte sin él) y, si se quiere, la camiseta a 60.
+2. **El piso vale para todas las reglas de la pose**, no solo la
+   camiseta. A la piel no le cambia nada visible (con 15 pierde 16
+   píxeles de 153.056) y así un gris tampoco cae en la piel. La piel queda
+   en 66 como la dejó el lote: con el piso, 80 daría el mismo short, pero
+   no lo cambié para no volver a mirar la piel.
+3. **El caldén a sangre**, en vez de volver a la de cansado (se repite
+   con ENTRENAR AGUANTE) o dejar DESCANSAR sin figura. Apoyado en el piso
+   y sin rebote. En la tira se ve el tronco y las ramas bajas con la casa
+   atrás. *Revertir:* sacar `a_sangre` del caldén (vuelve la figura chica
+   con los cortes) o poner `"pose": "cansado"` en descansar.
+4. **En la tira, la figura se dibuja antes que la etiqueta del día**, para
+   todas las acciones: la figura chica no la tocaba, así que para ellas
+   no cambia nada. *Revertir:* volver la llamada a `figuraDeAccion`
+   adentro del `if (op)` de abajo.
+5. **La pelota va al medio de las dos palmas también en el córner**: el
+   córner es "la tocó y se le escapó", y después sale disparada como
+   antes. *Revertir:* sacar `manos` de arquero_vuela (vuelve al punto
+   fijo).
+6. **El relato de tu atajada no dice cómo fue** hasta que haya arte. Los
+   comentarios de la tribuna no los toqué (deudas). *Revertir:* las dos
+   frases de antes en `relator.arquero_mio`.
+7. **El costo del festejo se midió y no se recortó.** La textura teñida
+   (8 MB) hoy alimenta solo una silueta oscura de un cuadro; achicarla o
+   sacarla de `precalentar_poses` conviene decidirlo junto con el arreglo
+   del festejo sin pinta (deudas), que es cuando se va a ver entera.
+8. **La versión sube a `v17-1.0-l08br`.** *Revertir:* `v17-1.0-l08b` en
+   index.html y sw.js.
+
+### Lo que no se pudo ver en pantalla
+
+- El test del worker ([3b]) es en node: la red y las cachés de mentira.
+- El costo del festejo se midió en la consola del navegador; no es algo
+  que se vea, salvo como traba.
+
+### Deudas que vi y no son de esta revisión
+
+- **El festejo del gol sale sin tu pinta** en la escena del remate: en
+  la revelación, `escenaCine` cambia a `this.poseKey(finId)`, la pose
+  sin teñir (match.js, desde julio). Con piel oscura y camiseta bordó, el
+  gol muestra el festejo celeste y de piel clara (`revojos_1`). El gol
+  del jugadón y el de la Definición también piden el festejo sin teñir.
+  Cuando se arregle, la textura teñida del festejo pasa a verse entera
+  (decisión 7).
+- **El short del asado** (pose_festejo.webp, piel 80): unos 3.000
+  píxeles grises del short se tiñen con la piel (el salpicado de
+  `ojos_25`). Son grises cálidos, de croma 15 a 20 o más: un piso de 20
+  deja 208, pero le saca 2.800 píxeles a la piel. Hay que medirlo con
+  otra idea (una banda, o la tolerancia).
+- **La tribuna puede decir "Salió con los puños"** después de una
+  atajada que la lógica retiene (lo vi en la tuya, `revojos_9`): entre
+  las frases de 'atajada' de `data/tribuna.json` hay una que cuenta un
+  despeje. Va con el pedido de arte del punto 5.
+- **`presupuesto_texturas.test.js` no cuenta las texturas teñidas**: el
+  cambio de archivo del festejo (5,5 MB más, teñida) no lo vio ningún
+  test.
