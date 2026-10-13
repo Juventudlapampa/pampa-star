@@ -3662,9 +3662,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* G1: los dos son "el arquero llegó", pero terminan distinto — la que
          agarra queda en sus manos, la del córner se le escapa por el costado */
       const corner = res.outcome === "corner";
-      /* P2 · la agarra DENTRO de la boca, a la altura de las manos */
-      const manosX = gx - A.voladaX * 0.5, manosY = A.bocaY + 10;
       arq.setPosition(gx - A.voladaX * (corner ? 0.8 : 0.35), gy);
+      /* LAS MANOS DE LA ESTIRADA (revisión de OJOS). El destino era un punto
+         fijo de la boca (P2, "a la altura de las manos") pensado para la pose
+         de rodillas, que antes estaba desde el primer cuadro. Desde OJOS el
+         arquero entra estirado, y en el cuadro que más se sostiene (el
+         impacto más el silencio, unos 800 ms) la pelota quedaba clavada en
+         su cadera, 447,262, con los guantes 90 px más arriba y a la derecha
+         (ojos_8). Ahora va a las manos que declara el manifest ('manos' de
+         la estirada, medidas en el webp); sin ese dato, al punto de antes. */
+      const man = this.game.registry.get("poses");
+      const M = this.puntoDePose(arq, man && man.poses && man.poses[this._poseArqueroUltima] && man.poses[this._poseArqueroUltima].manos);
+      const manosX = M ? M.x : gx - A.voladaX * 0.5, manosY = M ? M.y : A.bocaY + 10;
       this.tweens.add({ targets: ball, x: manosX, y: manosY, scale: 1.7, duration: C.impacto_atajada_ms, ease: "Quad.easeIn" });
       this.time.delayedCall(C.impacto_atajada_ms + silencio, () => {
         ball.setPosition(manosX, manosY);
@@ -3715,14 +3724,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const A = this.arcoCine();
     arq.setTexture(k).setAngle(0);
     arq.setScale(this.escalaDePose(id, A.h * 1.15, arq));
-    const dW = arq.displayWidth, dH = arq.displayHeight;
-    const bx = arq.x + (def.pelota.x - 0.5) * dW * (arq.flipX ? -1 : 1);
-    const by = arq.y - dH + def.pelota.y * dH;   // origen (0.5, 1): arq.y son los pies
-    const TP = this.texPelota(Math.max(16, def.pelota.r * 2 * dH));
+    const P = this.puntoDePose(arq, def.pelota);
+    const TP = this.texPelota(Math.max(16, def.pelota.r * 2 * arq.displayHeight));
     this.tweens.killTweensOf(ball);
-    ball.setTexture(TP.key).setScale(TP.esc).setAlpha(1).setAngle(0).setPosition(bx, by);
+    ball.setTexture(TP.key).setScale(TP.esc).setAlpha(1).setAngle(0).setPosition(P.x, P.y);
     if (this.cineContent && this.cineContent.moveBelow) this.cineContent.moveBelow(ball, arq);
     return true;
+  }
+  /* revisión de OJOS · un punto de la pose ({x,y} normalizado del ancho y
+     del alto, como 'pelota' y 'manos' del manifest) en coordenadas del
+     lienzo, para un sprite con origen (0.5, 1): spr.y son los pies. Con flip
+     se espeja. null si falta el dato o el sprite no tiene medida. */
+  puntoDePose(spr, p) {
+    if (!spr || !p || p.x == null || p.y == null || !spr.displayWidth || !spr.displayHeight) return null;
+    const dW = spr.displayWidth, dH = spr.displayHeight;
+    return { x: spr.x + (p.x - 0.5) * dW * (spr.flipX ? -1 : 1), y: spr.y - dH + p.y * dH };
   }
   /* BLOQUE A · ¿esta acción merece cortar a viñeta?
      Devuelve true si el escalón es 2 o 3. El contexto que sube de escalón sale

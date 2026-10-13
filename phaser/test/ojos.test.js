@@ -273,7 +273,52 @@ function escenaConPoses() {
   var altoBola = ball.s * (ball.k === "ball_hd" ? 128 : 16);
   assert(Math.abs(altoBola - p.r * 2 * arq.displayHeight) < 0.5, "con el tamaño del hueco (" + altoBola.toFixed(1) + " px)");
   assert(ball.alpha === 1 && debajo && debajo[0] === ball && debajo[1] === arq, "entera y DETRÁS de la pose");
-  console.log("[4] el arquero rival con su arte en el remate (estirado, y de rodillas recién al revelar, pelota en " + Math.round(ball.x) + "," + Math.round(ball.y) + "); tu arquero ataja con el despeje; nadie pide arquero_ataja_celeste");
+
+  /* REVISIÓN DEL LOTE: antes de revelar, el arquero está ESTIRADO, pero la
+     pelota viajaba al punto fijo de la boca (gx - voladaX*0,5, bocaY + 10)
+     pensado para la pose de rodillas: en el impacto más el silencio quedaba
+     clavada en su cadera (447,262) con los guantes en 540,175 (ojos_8).
+     Ahora va a las 'manos' del manifest. Se corre planoDesenlace de verdad
+     y se mira a dónde manda la pelota. */
+  var dV = medidas("assets/poses/" + POSES.poses.arquero_vuela.archivo);
+  var man = POSES.poses.arquero_vuela.manos;
+  assert(man && man.x > 0.5 && man.y < 0.3 && typeof POSES.poses.arquero_vuela._manos === "string" && POSES.poses.arquero_vuela._manos.length > 100,
+    "arquero_vuela declara 'manos' (arriba a la derecha) y cómo se midieron");
+  /* los guantes medidos en el webp (900x748), con el puño: x 703-897, y 1-259 */
+  var GUANTES = { x0: 703 / 900, x1: 897 / 900, y0: 1 / 748, y1: 259 / 748 };
+  ["atajada", "corner"].forEach(function (outcome) {
+    var e2 = escenaConPoses(), creados = [], tweens = [];
+    function spr(x, y, k) {
+      var m = /^pose_/.test(k) ? dV : { w: 16, h: 16 };
+      var o = { k: k, x: x, y: y, width: m.w, height: m.h, flipX: false, active: true, scale: 1 };
+      o.setScale = function (s) { this.scale = s; this.displayWidth = this.width * s; this.displayHeight = this.height * s; return this; };
+      o.setOrigin = function () { return this; }; o.setAngle = function () { return this; };
+      o.setPosition = function (a, b) { this.x = a; this.y = b; return this; };
+      o.setScale(1); creados.push(o); return o;
+    }
+    e2.add = { sprite: spr, image: spr };
+    e2.res = { outcome: outcome }; e2.st = {}; e2.zona = { gy: 0 };
+    e2.limpiarContenido = function () { }; e2.fondoCine = function () { return true; };
+    e2.cineBG = { clear: function () { }, fillStyle: function () { }, fillRect: function () { } };
+    e2.cineLabel = { setText: function () { } }; e2.cineBig = { setY: function () { } }; e2.cineSub = { setY: function () { } };
+    e2.cineContent = { add: function () { } };
+    e2.tweens = { add: function (t) { tweens.push(t); }, killTweensOf: function () { } };
+    e2.time = { delayedCall: function () { } };
+    e2.musicaDuck = function () { }; e2.msV = function (v) { return v; };
+    e2.planoDesenlace();
+    var arqD = creados.filter(function (s) { return s.k === "pose_arquero_vuela"; })[0];
+    var bola = creados.filter(function (s) { return s.k === "ball"; })[0];
+    var tw = tweens.filter(function (t) { return t.targets === bola; })[0];
+    if (!arqD || !bola || !tw) { assert(false, outcome + ": planoDesenlace no armó el arquero estirado, la pelota o su viaje"); return; }
+    var dW = arqD.displayWidth, dH = arqD.displayHeight, top = arqD.y - dH, izq = arqD.x - dW / 2;
+    var gx0 = izq + GUANTES.x0 * dW, gx1 = izq + GUANTES.x1 * dW, gy0 = top + GUANTES.y0 * dH, gy1 = top + GUANTES.y1 * dH;
+    assert(tw.x >= gx0 && tw.x <= gx1 && tw.y >= gy0 && tw.y <= gy1,
+      outcome + ": la pelota viaja a los guantes de la estirada (" + tw.x.toFixed(0) + "," + tw.y.toFixed(0) + " en x " + gx0.toFixed(0) + "-" + gx1.toFixed(0) + ", y " + gy0.toFixed(0) + "-" + gy1.toFixed(0) + ")");
+    var Ac = e2.arcoCine(), viejoX = Ac.cx - Ac.voladaX * 0.5, viejoY = Ac.bocaY + 10;
+    assert(!(viejoX >= gx0 && viejoX <= gx1 && viejoY >= gy0 && viejoY <= gy1),
+      outcome + ": el punto de antes (" + viejoX.toFixed(0) + "," + viejoY.toFixed(0) + ") caía fuera de los guantes: el test muerde");
+  });
+  console.log("[4] el arquero rival con su arte en el remate (estirado, y de rodillas recién al revelar, pelota en " + Math.round(ball.x) + "," + Math.round(ball.y) + "); antes de revelar la pelota va a los guantes de la estirada; tu arquero ataja con el despeje; nadie pide arquero_ataja_celeste");
 })();
 
 /* ---------- [5] EL CABEZAZO NO SE QUEDA SIN CARA ---------- */

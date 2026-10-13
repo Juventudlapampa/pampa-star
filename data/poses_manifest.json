@@ -82,7 +82,12 @@
   "arquero_vuela": {
    "archivo": "pose_arquero_vuela_v2.webp",
    "quien": "arquero",
-   "n": "Estirada en vuelo (v2 mangas lisas)"
+   "n": "Estirada en vuelo (v2 mangas lisas)",
+   "manos": {
+    "x": 0.891,
+    "y": 0.099
+   },
+   "_manos": "Revisión de OJOS (tanda 1.0): dónde están los guantes, normalizado como 'pelota' ({x,y} del ancho y del alto; con flip se espeja). Medido con Pillow sobre pose_arquero_vuela_v2.webp (900x748) y mirado sobre una grilla de 25 px: los guantes son lo opaco, gris o negro y poco saturado (luma menor a 110, croma menor a 40) arriba a la derecha, en dos manchas: la de arriba x 703-800 / y 1-128, la otra x 745-897 / y 44-259 (con el puño). Sin los puños, las palmas con los dedos tienen centro en 760,51 y 845,98; el punto del medio, 802,74, es donde se agarra la pelota. Lo usa planoDesenlace (scenes/match.js): en la atajada y el córner la pelota viaja a las manos del arquero estirado. Antes iba a un punto fijo de la boca pensado para la pose de rodillas y en el silencio quedaba clavada en la cadera (ojos_8)."
   },
   "arquero_ataja": {
    "archivo": "pose_arquero_ataja_v2.webp",
