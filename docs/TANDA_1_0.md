@@ -4239,3 +4239,307 @@ worker nuevo instaló `pampa-codigo-v17-1.0-l08r`.
   1.2, 1.4, 2.1, 2.2 y 8.2 nombran juegos ajenos, una liga real, "pibe" y
   "pueblo"): es documentación interna, que `sitio-solo-el-juego` saca de
   lo publicado; si se decide limpiarla, va con `seccion11-al-dia`.
+
+---
+
+## Ola 3 · Que se lea, se toque, cuide a quien juega y sea solo carrera — lote L08b-ojos
+
+Un ítem, `OJOS`, que es un pedido de Rodri: "hay un personaje que tiene
+los ojos cerrados, o acomodalo o sacalo". La auditoría miró las 85
+ilustraciones y encontró siete con los ojos cerrados o sin cara. La regla
+de siempre: **ningún archivo de imagen se toca**; se saca de la rotación,
+se reemplaza su uso por otra ilustración que ya existe, o se compone en
+el juego. Se hicieron las cuatro que la auditoría marcó "sí" (la cara
+Tranqui, el arquero que ataja, el cabezazo sin cara y cabezazo_v2), el
+error de bando del arquero que encontró de paso y, de las dudosas, las
+dos que decidió el estudio: el festejo del gol y la de cansado en la
+semana. La tercera dudosa (el arquero rival de rodillas, `arquero_ataja`,
+con la sonrisa de ojos en arquito) se acomodó solo donde el arreglo del
+bando lo pedía (ver la decisión 5 y las deudas).
+
+**Cómo se probó en pantalla.** En el navegador integrado, en
+`localhost:8123`, con el audio desviado al arnés del oído, el worker y
+las cachés borrados antes de cada versión nueva y un `?v=` distinto por
+carga. El lienzo se fotografió con `renderer.snapshot`
+(`.claude/ojos_ayuda.js`); los resultados que dependen del azar (un
+remate atajado, un gol de la Definición) se forzaron reemplazando un
+momento la función que decide y devolviéndola enseguida. Capturas en
+`.claude/shots/ojos_*`. Al terminar, el origen quedó como estaba: sin
+worker, sin cachés y con las cuatro claves de localStorage del principio,
+con los mismos bytes (el save del Master no se tocó en ningún momento;
+las dos claves que creó la prueba, borradas).
+
+### OJOS · 1. la cara 'Tranqui' sale de la rotación (y cabezazo_v2 de la carga)
+
+**Qué estaba mal (medido).** `cara_tranqui.png`, la 8ª del manifest de
+caras, es la única con los ojos cerrados (dos párpados bajos, la cabeza
+gacha: se lee dormida; la abrí al lado de las otras siete). No salía solo
+en el editor: el partido les pone cara por hash del nombre a quienes no
+elegiste, y medido en node con `data/roster_pampeano.json`, Santi y Mateo
+(el que juega al lado tuyo) caían en ella en **todos** los partidos, cada
+vez que les tocaba el panel de la cruz o un primer plano; Damián y
+Santiago V. también, cuando les toca tu equipo. En el editor, desde
+Clásico, un solo toque a la izquierda caía justo ahí. Aparte,
+`pose_cabezazo_v2` (ojos cerrados, pelota pintada adentro) se bajaba en
+cada partido (104 KB) y no la pedía ninguna escena.
+
+**Qué se hizo.**
+- `data/caras_manifest.json`: 'tranqui' con `en_rotacion: false` y
+  `reemplazo: "rulos"`, con su `_fuera` y un `_rotacion` arriba que
+  explica la perilla. No se borró la entrada: el hash del roster va con
+  módulo del largo, y con 7 caras tu equipo quedaba con 6 Melenas de 10
+  (medido).
+- `logic/avatar.js`: `configDeCaras` (traduce el manifest a índices),
+  `caraEnRotacion`, `caraDelRoster` y `ciclarCara`. `validarLook` pasa una
+  cara apagada a su reemplazo; `index.html` arranca con
+  `configDeCaras(caras)`.
+- `match.js` (`_pedidoDeBusto`): el roster por `caraDelRoster`. Cambian
+  SOLO los cuatro nombres que caían en ella, y pasan a Rulos.
+- `editor.js`: la CARA cicla con `ciclarCara` (7 caras y vuelve a la
+  primera). El editor, el partido y `carga.js` (`listaDelEditor`) no bajan
+  la cara apagada: 281 KB menos.
+- `data/poses_manifest.json`: `cabezazo_v2` con `cargar: false` y su `_W2`.
+  El PRECACHE de `sw.js` nunca tuvo ninguna de las dos (las poses y las
+  caras se guardan cuando la página las pide); `ASSETS_HUELLA` sigue
+  teniendo su huella porque los archivos siguen en disco.
+
+**Cómo se verificó.**
+- `ojos.test.js` [1]-[3] corre el `_pedidoDeBusto` de verdad con el
+  manifest real: los 50 nombres, en los dos bandos, nunca dan 'tranqui'
+  (antes 4) y cambian solo esos cuatro; `validarLook({cara:7})` da Rulos y
+  no tira; el ciclo del editor es de 7 en las dos direcciones; ninguna de
+  las dos piezas está en las listas de carga ni en el PRECACHE; los dos
+  archivos tienen el mismo SHA-256 que antes.
+- Ajustados con su porqué: `camisetas.test.js` (usa `configDeCaras`, como
+  index.html), `carga_liviana.test.js` (7 caras), `w1_peso.test.js` (13
+  PNG en la deuda) y `presupuesto_texturas.test.js` (el censo que replica
+  la auditoría suma lo que se sacó después).
+- **En pantalla**, con un save que tenía `cara: 7`: el editor abrió en
+  Rulos (`ojos_1`); ► recorrió 7 caras y volvió; ◄ desde Clásico fue a
+  Mohicano (`ojos_2`, `ojos_3`); en memoria había solo 7 texturas `cara_`;
+  las 7, una al lado de otra, con los ojos abiertos (`ojos_4`). En la cruz
+  de un partido, Santi y Mateo con Rulos (`ojos_5`, `ojos_6`).
+
+### OJOS · 2. el arquero: el error de bando y el atajadón con los ojos abiertos
+
+**Qué estaba mal (medido).** Tu arquero que ataja era
+`arquero_ataja_celeste`: de rodillas, la cabeza gacha, abrazando la
+pelota con los ojos cerrados del todo (se lee rezando o dormido), a 420
+px en el ¡ATAJADÓN!. Y aparecía donde no era: `figuraArquero` tomaba como
+TU arquero todo pedido que no tuviera la palabra "rival", y el cine del
+remate común (que es siempre tu remate) pedía "planoArquero" y
+"planoDesenlace" a secas. Resultado: el arquero rival volaba y te retenía
+el remate con tu buzo azul y esos ojos cerrados. En el desenlace, además,
+la pose de "la agarró" estaba desde el primer cuadro (antes del silencio:
+contaba el final) y la pelota del juego volaba a sus manos mientras él
+abrazaba la pintada.
+
+**Qué se hizo.**
+- `figuraArquero(accion, quienLaPide, esRival)`: el bando explícito manda;
+  sin él se deduce como antes. Tu arquero que ataja es
+  `arquero_despeje_celeste` (ojos abiertos, dientes apretados, los puños
+  contra la pelota).
+- `match.js`: `planoArquero` y `planoDesenlace` piden al arquero rival. El
+  desenlace arranca SIEMPRE con la estirada y recién en la revelación de
+  la atajada `ponerArqueroQueAtaja` lo pasa a su pose de rodillas, con la
+  pelota del juego en el hueco que declara el manifest, de ese tamaño y
+  detrás de la pose.
+- `definicion_ui.js`: el ¡ATAJADÓN! de la Definición defensiva es el
+  despeje. `escenas_v9.js` ("te rematan"): tu atajada pasa al despeje,
+  pedido con el id completo, y la pelota del juego se esconde porque el
+  despeje la trae pintada en el puño.
+- `data/megacosas.json`: LA TRANQUERA con la estirada celeste (encaja con
+  su momento "salto"). `arquero_ataja_celeste` con `cargar: false` y un
+  `_W2` que dice dónde sí tendría sentido (el fin de partido con tu
+  arquero de figura). La deuda "el arquero no tiene momento" de
+  `desconectados.test.js` ya no cuelga el arte del despeje (ahora lo usa
+  el atajadón).
+
+**Cómo se verificó.**
+- `ojos.test.js` [4]: el bando explícito, tu arquero ataja con el despeje
+  en los cuatro nombres de la acción, los dos planos del remate dicen el
+  bando, ninguna escena ni carta pide `arquero_ataja_celeste`, y con la
+  escena de verdad `ponerArqueroQueAtaja` deja la pelota en el hueco, de
+  su tamaño y detrás de la pose.
+- **En pantalla**, un remate común forzado a "atajada": el arquero rival
+  vuela con su naranja (`ojos_7`), entra estirado al desenlace (`ojos_8`)
+  y al revelar ¡LA AGARRÓ! queda de rodillas con la pelota del juego en
+  las manos (`ojos_9`, zoom `ojos_9b`). "Te rematan" forzado a atajada: tu
+  arquero de celeste despeja de un puño, ojos abiertos y una sola pelota
+  (`ojos_11`). El ¡ATAJADÓN! de la Definición defensiva con el despeje
+  (`ojos_12b`), llamado a mano: esa pantalla hoy no se abre en el juego
+  (decisión 10).
+
+### OJOS · 3. el cabezazo no se queda sin cara
+
+**Qué estaba mal (medido).** `pose_cabezazo` trae la pelota RECORTADA y el
+hueco se come la cara. Medido en el navegador sobre el webp (900x855): un
+círculo de 115 px de radio con centro en 662,115, alfa 0 en el 100% de
+los píxeles hasta el 92% del radio, con pelo, oreja y cuello alrededor
+(en el anillo de 1,12 radios, 25 de 61 puntos son figura). Donde el juego
+no pone su pelota ahí, la figura sale SIN CARA: en LA DEFINICIÓN de
+cabeza (la pelota arrancaba en un punto fijo, W×0,42 / H×0,6, que no
+miraba la pose; a 400 px, en el momento más grande; el remate y la
+chilena también dejaban su hueco vacío) y en la ráfaga del opening, que
+ve toda persona que arranca (y la chilena pateaba un agujero).
+
+**Qué se hizo.**
+- `definicion_ui.js` (`defTeatroFinal`): la pelota arranca en el `{x,y,r}`
+  de la pose, con ese tamaño. En la pose que declara `pelota_en_la_cara`
+  (el cabezazo) no se despega: va detrás y sigue la sacudida de esfuerzo
+  (`updateDefinicion`). Remate y chilena salen del hueco y viajan a la
+  zona como antes.
+- `data/poses_manifest.json`: el cabezazo con `pelota_en_la_cara` y la
+  medición en su nota.
+- `intro.js` (`poseImg`): la pose que declara 'pelota' va con la pelota de
+  potrero detrás, en su hueco y de su tamaño, las dos en un contenedor
+  para que el temblor y el zoom del plano las muevan juntas.
+
+**Cómo se verificó.**
+- `ojos.test.js` [5] corre el teatro de verdad para remate, chilena y
+  cabezazo: la pelota arranca en el hueco (antes en 403,324) y de su
+  tamaño; la del cabezazo no viaja, va detrás y sigue a la pose con la
+  sacudida. `carga_liviana.test.js`: la escena de mentira de los ocho
+  planos lleva su registry (poseImg lee el manifest).
+- **En pantalla**: la Definición de cabeza por el camino de verdad
+  (`defElegirTiro` y `defConfirmarZona`), en el freeze el cabezazo con la
+  pelota en la cara y el arquero rival volando a su zona (`ojos_15`); la
+  revelación (`ojos_16`). El opening: el ¡CALDENAZO!, la chilena y el
+  cabezazo con la pelota en su hueco (`ojos_13`), y después de reacomodar
+  `poseImg`, otra vez (`ojos_17`: el contenedor tiembla con la pelota
+  adentro).
+
+### OJOS · 4. las dudosas: el festejo del gol y la de cansado en la semana
+
+**Qué estaba mal (medido).**
+- El festejo de cada gol (remate, aéreo, Definición, jugadón y el plano
+  del gol del opening) es `pose_festejo`: ojos en arquito, la risa del
+  anime. A 420 px en la compu se lee risa (`ojos_18`); simulado a escala
+  de teléfono (302 px) se lee ojos cerrados (`ojos_20`), y es la que más
+  se ve: una por gol.
+- La de cansado (ojos apretados, sudando, las manos en las rodillas)
+  estaba en DESCANSAR ("Dormiste la siesta"), agotada después de no hacer
+  nada, y en ESTUDIAR, donde con la cabeza gacha se leía dormida sobre los
+  apuntes.
+
+**Qué se hizo.**
+- `data/poses_manifest.json`: se **cruzaron** las entradas. 'festejo' (la
+  que piden el gol, el opening y el precalentado) apunta a
+  `pose_celebracion.webp`, el grito con los ojos abiertos; 'celebracion',
+  que pide solo el asado de la semana, a la risa. Cada archivo con SUS
+  tonos y un `_cruce` que dice cómo volver.
+- Al mirarlo con una pinta que no es la Original apareció un problema que
+  ese archivo ya tenía en el asado: con tolerancia 80, la sombra gris del
+  short (184,186,185, a 70-80 de #fac194) se teñía con la piel y el short
+  blanco salía con manchas marrones (`ojos_24`, `ojos_24b`). Medido en el
+  archivo: 25.895 píxeles del short entre 70 y 80 y casi nada debajo de
+  68; en los brazos, entre 68 y 80 hay unos 1.300 de 79.000. La
+  tolerancia de piel de 'festejo' baja a 66, con su `_tolerancias`.
+- `data/semana.json`: la de cansado pasa a ENTRENAR AGUANTE ("diez
+  vueltas, te dolió todo": ahí los ojos apretados son de esfuerzo);
+  DESCANSAR va con el caldén solo en el campo (decisión 9) y ESTUDIAR con
+  la de espaldas, las dos con `pose_falta`. El caldén sigue con
+  `cargar: false` para el partido (master.js baja las de la semana por
+  dato); `w1_peso` ahora cuenta las apagadas que baja la semana (0,23 MB)
+  y `presupuesto_texturas` las resta del censo de la auditoría.
+
+**Cómo se verificó.**
+- `ojos.test.js` [6] (cada entrada con su archivo y sus tonos, la
+  tolerancia medida, el gol pide 'festejo', solo el asado pide
+  'celebracion', los dos archivos intactos) y [7] (la de cansado solo en
+  AGUANTE; el caldén y la de espaldas con su porqué; y ninguna figura
+  repetida en la tira de la semana con ningún origen: las marcas salen de
+  una sola pantalla del origen, así que campo y escuela no se juntan).
+- **En pantalla**: el gol de la Definición antes (`ojos_18`) y después
+  (`ojos_19`); el plano del gol del opening (`ojos_23`); el teñido con
+  piel oscura y camiseta bordó con 80 y con 66 (`ojos_26`) y la pose
+  teñida que arma el partido para VOS con el manifest nuevo (`ojos_27`:
+  el short blanco). En la semana del Master, los cuatro momentos:
+  AGUANTE con la de cansado, DESCANSAR con el caldén, ESTUDIAR de espaldas
+  y el ASADO con la risa (`ojos_22_*`); el save del Master quedó idéntico.
+
+### Cierre del lote L08b-ojos
+
+Seis commits: `00d1578` (la cara y cabezazo_v2), `477128f` (el arquero),
+`d26981d` (el cabezazo), `a487c3d` (el festejo y la semana), `ff508fb` (la
+tolerancia del short) y el de esta documentación con la versión. Suite
+verde (92 archivos: `ojos.test.js` es nuevo, 96 asserts). La versión
+visible sube a `v17-1.0-l08b` (index.html y sw.js, iguales): visto en el
+editor, "versión v17-1.0-l08b", y el worker nuevo instaló
+`pampa-codigo-v17-1.0-l08b`.
+
+### DECISIONES QUE TOMÉ YO (L08b-ojos)
+
+1. **La cara apagada toma el lugar de Rulos, no el de Clásico.** La
+   auditoría proponía "saltear a la siguiente" (de la 8ª a la 1ª,
+   Clásico). Medido con el roster: así tu equipo queda con 6 Clásicos de
+   10, la misma cara que VOS tiene de entrada; con Rulos, 4 Clásicos y 2
+   Rulos, y Rulos es la más parecida (rulos oscuros, piel trigueña).
+   *Revertir:* `reemplazo: "clasico"` en el manifest.
+2. **Un look guardado con la cara 7 se pasa a Rulos sin preguntar**
+   (`validarLook`): el editor abre en Rulos y el próximo GUARDAR PINTA
+   escribe 1. *Revertir:* sacar `en_rotacion` y `reemplazo` de 'tranqui'.
+3. **La cara apagada no se baja** (281 KB) y `cabezazo_v2` tampoco. Los
+   archivos siguen en disco, con su huella. *Revertir:* sacar
+   `en_rotacion` / `cargar: false`.
+4. **`arquero_ataja_celeste` queda apagada** (`cargar: false`) después de
+   cambiar sus cuatro usos, como pedía la ficha. *Revertir:* sacar
+   `cargar: false`; ningún uso la pide.
+5. **Del arquero rival de rodillas (la tercera dudosa) hice solo
+   `planoDesenlace`**: el arreglo del bando lo dejaba ahí con el hueco del
+   webp vacío, así que entra estirado y se arrodilla al revelar, con la
+   pelota del juego en sus manos. Su sonrisa de ojos en arquito queda:
+   tiene sentido en "te la retuvo". Lo demás de esa ficha va a las deudas.
+6. **"Te rematan": el despeje esconde la pelota del juego** (la trae
+   pintada en el puño; si no, se ven dos). *Revertir:* sacar
+   `if (conDespeje) bola.setVisible(false)` en `escenas_v9.js`.
+7. **En la Definición, la pelota del cabezazo no viaja**: es el contacto
+   congelado. Si viajara, la figura quedaría sin cara todo el vuelo y el
+   silencio; a dónde fue lo cuentan el arquero que vuela a su zona y la
+   revelación. *Revertir:* sacar `pelota_en_la_cara` del manifest (la
+   pelota sale del hueco y viaja, y la cara queda vacía mientras vuela).
+8. **El festejo se cruzó** después de mirar las dos a escala de teléfono.
+   Lo que se pierde: la figura nueva es más angosta (206 px contra 340 a
+   420 de alto) y lleva vincha. *Revertir:* intercambiar `archivo`,
+   `tonos` y `tolerancias` entre 'festejo' y 'celebracion' (y volver la
+   piel a 80).
+9. **DESCANSAR va con el caldén**, que no estaba en la ficha. Las dos
+   salidas de la ficha tenían un problema que se ve: (a) dejar la de
+   cansado ahí la repite con ENTRENAR AGUANTE (en la tira de la semana,
+   descansar y entrenar con la misma figura) y sigue sudando después de
+   no hacer nada; (b) la de espaldas la repite con AYUDAR EN CASA o con
+   ESTUDIAR. El caldén es la siesta pampeana y es otra forma.
+   *Revertir:* `"pose": "cansado"` en descansar (y su `pose_falta` fuera).
+10. **La Definición defensiva hoy no se abre** (desde B3,
+    `entrarDefinicionDef` sale por `escenaRemateRival`, que tiene su
+    propio ¡ATAJADÓN!). Cambié las dos igual: si esa pantalla vuelve, no
+    trae de vuelta los ojos cerrados.
+11. **La tolerancia del short (66) es de esa entrada sola**: el asado, que
+    ahora usa el otro archivo, sigue con 80, que en ese archivo no toca el
+    short (`ojos_25`).
+12. **La versión sube a `v17-1.0-l08b`.** *Revertir:* `v17-1.0-l08r` en
+    index.html y sw.js.
+
+### Lo que no se pudo ver en pantalla
+
+- La Definición defensiva por su camino: no tiene llamador (decisión 10);
+  se la llamó a mano.
+- El gol del remate aéreo (`dispararAereo` con el resultado forzado no
+  abrió la viñeta en la prueba); usa la misma entrada 'festejo' que se vio
+  en la Definición y en el opening.
+
+### Deudas que vi y no son de este lote
+
+- **El arquero rival de rodillas, en el resto de sus usos** (ficha 3 de la
+  auditoría): como antagonista del remate aéreo entra ya arrodillado
+  (adelanta el resultado) y sin la pelota del juego en el hueco del webp;
+  y en la Definición ofensiva sale abrazando una pelota también en
+  ¡LA SACÓ AL CÓRNER! y ¡AFUERA!.
+- **"Te rematan" tiene dos pelotas mientras viaja** (`ojos_10`): la
+  estirada celeste trae la pelota pintada en las manos y la del juego
+  sale del pie del rival.
+- **En el ¡ATAJADÓN! de la Definición defensiva** la pelota pintada del
+  despeje queda debajo de la franja de la tribuna (`ojos_12b`): importa
+  solo si esa pantalla vuelve.
+- **El nombre de la acción del asado** en la semana tiene masculino
+  genérico ("con los" + un plural en masculino): `lenguaje-institucional`.
