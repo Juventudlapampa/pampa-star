@@ -3235,7 +3235,8 @@ Permissions check failed" (`unhandledrejection`).
 - `match.js`: **PANTALLA** en la barra del marcador, del lado del reloj (al
   lado del sonido no entra: el sonido toca hasta x=46, PAUSA hasta 129 y las
   fichas arrancan en 136 y llegan a 313). Medido: el marcador termina en
-  x=600 y el reloj arranca en 891; la pastilla va de 758 a 854 y su área
+  x=600 y el reloj arranca en 891; la pastilla va de 758 a 854 (revisión:
+  el reloj de los descuentos la pisaba; ahora va de 744 a 840) y su área
   táctil, de y=0 a 61 (tap_min), como la de PAUSA. A pantalla completa se
   esconde.
 - `editor.js`: **PANTALLA COMPLETA / SALIR DE PANTALLA COMPLETA** al lado de
@@ -3289,9 +3290,9 @@ sin respaldo.
 - **(b) Embebido**: el `<head>` decide antes de pintar (iframe o
   `?embed=1`, la misma cuenta que `entorno.embebido`) y pone la clase
   `embebido`: la portada no se muestra nunca. Si el recuadro no alcanza
-  (`entorno.modoEmbebido`: apaisado y de 820 px con el dedo, 640 con el
+  (`entorno.modoEmbebido`: apaisado, de 360 de alto desde la revisión, y de 820 px con el dedo, 640 con el
   mouse) va el **PÓSTER** con **▶ JUGAR EN PANTALLA COMPLETA** (`target=
-  _blank`, a esta misma página con `?ref=embed`) y el juego **no se
+  _blank`, a esta misma página; con `?ref=embed` hasta la revisión) y el juego **no se
   crea** hasta que alcance (`PampaPortada.cuandoAdentro`); si ya arrancó y
   el recuadro se achica, se pausa como en vertical. Embebido, el worker no
   se instala. Además, **`phaser/embed.html`**: la página liviana que va en
@@ -3347,7 +3348,7 @@ bloqueado o lleno, se jugaban horas creyendo que quedaba guardado.
 - `logic/entorno.js`: `navegadorIntegrado(ua)` → `"instagram"`,
   `"facebook"` (Messenger incluido), `"tiktok"`, `"otro"` (el `;wv)` de un
   WebView de Android, o apps conocidas en iPhone) o `null`;
-  `textoIntegrado(app, sistema)`; `linkAbrirEnChrome` (un `intent://` a la
+  `textoIntegrado(app, sistema)`; `linkAbrirEnChrome` (desde la revisión, `linkIntentAndroid`: un `intent://` a la
   misma dirección con `package=com.android.chrome` y la dirección de
   respaldo si Chrome no está); `linkLimpio`; `guardadoAndando(storage)`
   (escribir, leer y borrar una clave; false si no hay almacenamiento o si
@@ -3450,7 +3451,7 @@ así que `entorno.js` y `pantalla_ui.js` están en el precache).
 11. **INSTALAR sin `preventDefault`**: llamarlo le saca al navegador su
     propio aviso de instalar, y la portada solo se ve en vertical. Y está
     solo en la portada. *Revertir:* `ev.preventDefault()` en el oyente.
-12. **Los nombres de las apps y de los navegadores** (Instagram, Facebook,
+12. *(Reemplazada en la revisión del lote: ver su decisión 4.)* **Los nombres de las apps y de los navegadores** (Instagram, Facebook,
     TikTok, Chrome, Safari) aparecen en el cartel de la red social y en el
     aviso de que no se guarda: quien juega tiene que reconocer la app en la
     que está y el botón que busca. Son instrucciones sobre el teléfono, no
@@ -3496,3 +3497,203 @@ así que `entorno.js` y `pantalla_ui.js` están en el precache).
 - **INSTALAR apaisado**: la portada solo se ve en vertical, así que quien
   abre apaisado no ve nuestro botón (le queda el aviso propio del
   navegador). Se podría sumar al editor.
+
+---
+
+## Revisión del lote L07-celular
+
+Dos revisores leyeron los commits fe1db15..d9358c6 y encontraron doce
+cosas. Dos estaban repetidas (el Master con el guardado bloqueado y el
+atrás embebido en la nota de un medio), así que son diez. Las comprobé
+contra el código actual antes de tocar nada y ninguna se descartó: ocho
+las reproduje (en node con el código de verdad o en el navegador) y una,
+la de Safari, es posible pero no se pudo ver en un equipo (el arreglo no
+cambia nada donde no pasa). En el navegador usé `127.0.0.1:8123` (su
+localStorage estaba vacío al empezar), con el audio desviado al arnés del
+oído. Para el guardado bloqueado, `Storage.prototype.setItem` y
+`getItem` reemplazados por unos que tiran, devueltos al terminar. Al
+final ese origen quedó como estaba: sin worker, sin cachés y sin
+localStorage. Capturas en `.claude/shots/rev07_*`.
+
+1. **Con el guardado bloqueado el Master no se podía jugar, y el aviso
+   decía que sí** (alta y media, los dos revisores; commit de6871c).
+   *Qué estaba mal:* `create()` releía localStorage en cada
+   `scene.restart()`. Medido en node con master.js de verdad: setItem y
+   getItem tiran → el aviso dice "Podés jugar igual" → elegir club → la
+   entrevista → `_crearCarrera`: `guardar()` da false → restart →
+   `create()` no encuentra nada y vuelve a "🏆 MODO MASTER", en un bucle.
+   Lo mismo con PEGAR UN CÓDIGO. Con el almacenamiento LLENO, getItem
+   devolvía la carrera vieja y la fecha jugada se rebobinaba. Y el texto
+   mandaba a "abrí el juego en el navegador del teléfono (…) o
+   instalalo", que en el caso típico no cambia nada.
+   *Qué se hizo:* un `guardar()` que falla deja el texto de la carrera en
+   el registry (`masterSaveMemoria`), que dura lo que la página, y
+   `create()` lo lee antes que el almacenamiento
+   (`logic/save_master.js`, `crudoDeLaSesion`). Un `guardar()` que anda
+   lo suelta; borrar la carrera y empezar de cero también. El partido
+   anota el resultado de la fecha también ahí (`anotarResultadoEnLaCarrera`).
+   El escudo de tu club, el cartel de la intro y la alternancia de la
+   música leen la misma carrera (`piel_ui`, `crudoDelMaster`), y el
+   informe de errores la tapa. El aviso ahora dice: "Este navegador no
+   deja guardar datos de este sitio: puede estar bloqueado o lleno. Podés
+   jugar igual mientras esta página siga abierta, pero si la cerrás, la
+   carrera se pierde…" (con carrera, además, el código de carrera).
+   *Cómo se verificó:* `entorno.test.js` [7], con el master.js de verdad:
+   bloqueado, la carrera se crea, se juega una fecha y sigue en cada
+   restart; PEGAR UN CÓDIGO igual; lleno, el restart no rebobina; un
+   `guardar()` que vuelve a andar escribe lo último. Contra el master.js
+   de antes falla con el síntoma. En el navegador, bloqueado de punta a
+   punta y con clics de verdad: elegir Toay → editor → la entrevista →
+   la tabla de El Caldén de Toay con la marca
+   (`rev07_4_tabla_bloqueado.png`), la semana, el partido hasta SEGUIR LA
+   CARRERA y la tabla con 1 PJ y "✔ GANASTE 2-1"
+   (`rev07_7_tabla_fecha1.png`), con el escudo ilustrado en tu fila.
+
+2. **Embebido en la nota de un medio, el atrás del juego atrapaba el
+   botón atrás de la página** (media, los dos revisores; commit 1d941b6).
+   *Qué estaba mal:* `AT.armar` hacía `pushState` con el primer toque
+   sin mirar `PAMPA_EMBEBIDO`. El escalón de un iframe que ya recibió un
+   toque entra en el historial de la PESTAÑA del medio. Con el partido a
+   la vista, cada atrás pausaba o cerraba la pausa y volvía a ponerlo: no
+   se salía nunca del artículo. *Qué se hizo:* embebido, `AT.armar` no
+   pone el escalón y `AT.alAtras` no repone nada. *Cómo se verificó:*
+   `atras.test.js` [3c] (contra el index.html de antes falla). En el
+   navegador, en una pestaña nueva con el iframe de PARA_MEDIOS: un clic
+   de verdad arrancó la compuerta y el historial de la pestaña siguió en
+   1. Control: con `PAMPA_EMBEBIDO` apagado a mano, el clic siguiente lo
+   llevó a 2.
+
+3. **El reloj de los últimos minutos pisaba la pastilla PANTALLA**
+   (media; commit 20faafa). *Qué estaba mal:* la pastilla iba centrada en
+   806 (de 758 a 854) porque el reloj se había medido como "90:00 2T".
+   Medido en el navegador con el reloj de verdad: "⏰ 90:00+ 2T" mide 100
+   y arranca en 848, 6 px debajo de la pastilla. *Qué se hizo:* el botón
+   acepta `desdeDerecha` y `xDe`; el partido pone el borde derecho con
+   `bordeIzqDelReloj`, que mide con el mismo `txtReloj` todos los
+   relojes de los últimos minutos y de los descuentos y deja 8 px de
+   aire: de 744 a 840. Si la tipografía no bajó, se vuelve a ubicar con
+   `document.fonts.ready`. El marcador más largo, medido igual con el
+   nombre corto de cada rival y goles de dos cifras, termina en 623.
+   *Cómo se verificó:* `pantalla_completa.test.js` [5b]; en el navegador,
+   el minuto 91,8 del 2T: "⏰ 90:45+ 2T" desde 848 y la pastilla hasta
+   840, sin tocarse (`rev07_10_reloj_descuento.png`).
+
+4. **Los nombres de apps y navegadores, más allá de lo que pedía el ítem**
+   (media; commit 9aad66a). *Qué estaba mal:* además del cartel, que sí
+   tiene mandato, estaban en una función (`linkAbrirEnChrome`), en un id
+   y un campo, en comentarios que enumeraban apps y en la _nota de
+   `balance.pantalla`. Medido con git grep sobre phaser/: un navegador de
+   2 a 41 apariciones, una app de 0 a 20. Y el guardián no tenía ninguna
+   excepción escrita. *Qué se hizo:* los nombres viven solo en
+   `logic/entorno.js`, entre dos marcas ("§11 EXCEPCIÓN ACOTADA · desde
+   acá / hasta acá"), y solo en el código: las firmas del user agent, el
+   paquete del link de Android y la tabla de los textos del cartel
+   (`NOMBRE_APP`, `NAVEGADOR`). `linkIntentAndroid`, `t.abrir`,
+   `ig-abrir`; el botón y los dos textos de COPIAR EL LINK salen de la
+   tabla. *Cómo se verificó:* `seccion11.test.js` [1c]: fuera de la
+   excepción, ni un nombre en todo el producto; adentro, ninguno en un
+   comentario, y un tope de 25. Hoy son 16 (el mensaje del commit dice
+   19: conté mal a mano). Contra el código de antes encuentra 44. En el
+   navegador, el cartel quedó igual (`rev07_12_cartel_desde_la_tabla.jpg`).
+
+5. **El aviso de que no se guarda podía abrirse y cerrarse en el acto**
+   (baja; commit de6871c, con el punto 1). *Qué estaba mal:* si el primer
+   `guardar()` que falla es uno seguido de restart o irA, el apagado de
+   la escena cerraba la caja en el mismo paso y, como ya estaba marcado
+   "avisado", no volvía en la sesión. Le pasa justo al almacenamiento
+   lleno. *Qué se hizo:* si la escena se apaga con el aviso abierto, queda
+   pendiente y el `create()` siguiente lo vuelve a abrir.
+   *Cómo se verificó:* `entorno.test.js` [8]; en el navegador, con solo
+   `pampa_master_v1` tirando: PEGAR UN CÓDIGO EN SU LUGAR → después del
+   restart, la fecha del código (no la vieja) y el aviso abierto otra vez
+   (`rev07_8_lleno_aviso_vuelve.jpg`); cerrado con SEGUIR IGUAL, no volvió.
+
+6. **Safari: la rama "keyboard" de Phaser dejaba muerto el botón
+   PANTALLA** (baja, posible; commit e55e6ce). *Qué estaba mal:* el
+   parche conservaba `fs.keyboard ? request(Element.ALLOW_KEYBOARD_INPUT)`.
+   Con `requestFullscreen` sin prefijo, ese número donde va un
+   `FullscreenOptions` es un TypeError por WebIDL. *Qué se hizo:* el
+   número va solo con los pedidos con prefijo. *Cómo se verificó:*
+   `pantalla_completa.test.js` [4]; en el navegador del panel, con Safari
+   simulado (la constante, `keyboard = true` y un `requestFullscreen`
+   que rechaza lo que no es un objeto), un clic real en PANTALLA pidió con
+   las opciones y 0 fallas. **Falta verlo en un iPad o un Safari.**
+
+7. **Otra app de mensajería caía en "facebook"** (baja; commit 5f3e55a).
+   El token suelto agarraba el "MicroMessenger" de otra app. Ahora va con
+   `\b` adelante. `entorno.test.js` [1], con dos user agents de esa app.
+
+8. **Un recuadro bajo contaba como "adentro"** (baja; commit 5f3e55a).
+   `modoEmbebido` miraba solo el ancho: 700x150 (el iframe de
+   PARA_MEDIOS en un navegador sin `aspect-ratio`) arrancaba el juego a
+   escala 0,28. Ahora pide además 360 de alto (`EMBED_MIN.alto`).
+   `portada.test.js` [2]; en el navegador, el iframe forzado a 150 de alto
+   se quedó en el póster (`rev07_11_iframe_700x150_poster.jpg`).
+
+9. **PARA_MEDIOS decía que `?ref=embed` servía para saber de dónde vino
+   la visita** (baja; commit ad59692). No lo leía nada y no se mide nada:
+   el póster ya no lo lleva, y PARA_MEDIOS dice "El link del póster no
+   lleva ningún dato: el juego no mide visitas."
+
+10. **PARA_MEDIOS repartía `/phaser/` como "El link"** (baja; commit
+    ad59692). Va con un recuadro **Provisorio**: el oficial va a ser la
+    raíz cuando sea la portada (url-oficial, lote L08); el de ahora sigue
+    andando, pero conviene esperar al oficial para difundir.
+
+**La versión** sube a `v17-1.0-l07r` (index.html y sw.js, iguales). Visto
+en el editor: "versión v17-1.0-l07r" (`rev07_13_editor_version.png`), y
+el worker nuevo instaló `pampa-codigo-v17-1.0-l07r` (70 archivos) y
+`pampa-assets` (71).
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L07)
+
+1. **La copia de la sesión, y no cambiar el texto** (el revisor ofrecía
+   las dos): con el texto solo, quien tiene el guardado bloqueado no
+   podía jugar el Master. Es lo único que vive en el registry: si la
+   página se cierra, se pierde, y eso es lo que dice el aviso.
+   *Revertir:* en `guardar()`, sacar las dos líneas del registry (y el
+   aviso tiene que decir que el Master necesita guardar).
+2. **La marca "NO GUARDA" no se va en la sesión** aunque un `guardar()`
+   vuelva a andar (el almacenamiento lleno que se libera): el navegador
+   ya falló una vez. *Revertir:* `registry.set("sinGuardar", false)`
+   cuando `ok`.
+3. **La pastilla se ubica midiendo el reloj, no con otro número fijo**:
+   la tipografía del juego cambió tres veces. *Revertir:* `botonPantalla(790,
+   15, …)` sin `desdeDerecha` ni `xDe`.
+4. **La excepción de la Sección 11, acotada a una tabla.** Reemplaza la
+   decisión 12 del lote: los nombres de las apps (Instagram, Facebook,
+   TikTok) y de los navegadores (Chrome, Safari) se leen solo en el
+   cartel de la red social, porque quien juega tiene que reconocer la app
+   en la que está y el botón que busca. El ítem lo pide. **Para que la
+   confirme Rodri.** *Revertir:* vaciar `NOMBRE_APP` y `NAVEGADOR` en
+   `entorno.js`: el cartel dice "el navegador de una app" y "el
+   navegador del teléfono".
+5. **El aviso del Master, sin nombres de navegadores**: no supone la
+   causa ("puede estar bloqueado o lleno") y manda a "otro navegador, o
+   fuera de la página donde lo encontraste".
+6. **360 de alto para jugar embebido, con el dedo y con el mouse**: es el
+   alto de un teléfono apaisado de 800x360, donde ya se juega.
+   *Revertir:* `EMBED_MIN.alto = 0`.
+7. **`?ref=embed` afuera, y no dejarlo escrito como inerte** (la otra
+   opción): un dato que no lee nadie y que sugiere una medición no tiene
+   por qué viajar. *Revertir:* el `partes.push("ref=embed")` en
+   `urlParaJugar` y los href del póster.
+8. **El link /phaser/ queda en PARA_MEDIOS, marcado como provisorio**, en
+   vez de poner ya la raíz: hoy la raíz abre la versión anterior.
+9. **La versión sube a `v17-1.0-l07r`**. *Revertir:* `v17-1.0-l07` en
+   index.html y sw.js.
+
+### Deudas que vi y no son de esta revisión
+
+- **L08 tiene que actualizar PARA_MEDIOS** cuando la raíz sea la
+  portada: el link, sacar el recuadro de provisorio y el texto de 280
+  caracteres (`url-oficial` / `metadatos-y-link`).
+- **En el panel, una captura de la pantalla de la app no siempre coincide
+  con el tamaño emulado** (sale el lienzo chico, en una esquina), aunque
+  los clics caen bien con la escala del viewport. Para lo que es lienzo
+  usé `renderer.snapshot` o `toDataURL` justo después de un paso del
+  juego (`toDataURL` solo, después de una espera, dio negro).
+- **`unregister()` deja el worker viejo vivo mientras la página esté
+  abierta**: un `register()` en la misma página lo resucita y no instala
+  el nuevo hasta un `update()`. Para verificar una versión nueva hay que
+  borrar el worker y recargar dos veces, o llamar a `update()`.
