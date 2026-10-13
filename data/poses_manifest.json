@@ -364,7 +364,8 @@
    "tolerancias": {
     "piel": 80,
     "camiseta": 95
-   }
+   },
+   "_pedido_arte": "Revisión de OJOS (tanda 1.0) · PEDIDO DE ARTE para Rodri. Desde OJOS esta pose es tu atajada en 'te rematan' (scenes/escenas_v9.js) y en el ¡ATAJADÓN! de la Definición defensiva (scenes/definicion_ui.js), porque la que había (arquero_ataja_celeste) tiene los ojos cerrados. Pero cuenta un despeje de puño (la pelota sale) y la lógica dice que tu arquero la RETUVO (resolverAtajada en logic/partido.js: retiene, salís jugando desde tu área). Además trae la pelota pintada en el puño (blanca y negra), así que la del juego (de cuero marrón) se esconde y la pelota cambia de dibujo al revelar. Lo que falta: tu arquero que la AGARRA con los ojos abiertos (la energía del atajadón, no la calma de rodillas), con la pelota recortada para declarar 'pelota' {x,y,r} y que la dibuje el juego. Mientras tanto, el relato de esa atajada no dice cómo fue (data/relatos.json, _arquero_mio)."
   },
   "arquero_vuela_celeste": {
    "archivo": "pose_arquero_vuela_celeste.webp",

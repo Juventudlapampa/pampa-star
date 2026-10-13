@@ -109,11 +109,12 @@
    "La tiró a las casuarinas. Habrá otra.",
    "Se fue arriba, a la altura de los pájaros."
   ],
+  "_arquero_mio": "Revisión de OJOS (tanda 1.0): estas frases salen después de una atajada de tu arquero ('te rematan' y la Definición defensiva). Desde OJOS esa atajada se ve con arquero_despeje_celeste, un despeje de puño, y la lógica dice que la retuvo (resolverAtajada: retiene, salís jugando desde tu área). Por eso ninguna frase dice cómo fue ('la retuvo' contradecía el dibujo; 'la sacó' o 'manotazo' contradicen la lógica): '¡La retuvo el uno!' pasó a '¡Apareció el uno!' y '¡Manotazo salvador!' a '¡Mano salvadora!'. Cuando haya arte de tu arquero que la agarra con los ojos abiertos (pedido en el _pedido_arte de arquero_despeje_celeste, data/poses_manifest.json), pueden volver.",
   "arquero_mio": [
    "¡ATAJADÓN NUESTRO! Abrácenlo que no es de goma.",
-   "¡La retuvo el uno! Tranquilidad para el fondo.",
+   "¡Apareció el uno! Tranquilidad para el fondo.",
    "¡Qué arquero tenemos, mamita querida!",
-   "¡Manotazo salvador! Sigue todo igual."
+   "¡Mano salvadora! Sigue todo igual."
   ],
   "urgente": [
    "¡Últimos minutos! Corazón en la boca, se define todo.",

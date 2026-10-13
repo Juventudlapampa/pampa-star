@@ -258,6 +258,15 @@ function escenaConPoses() {
   assert(at.cargar === false && typeof at._W2 === "string" && at._W2.length > 40, "arquero_ataja_celeste apagada (cargar:false) y dice dónde sí iría");
   assert(POSES.poses.arquero_despeje_celeste.cargar !== false && !POSES.poses.arquero_despeje_celeste.pelota,
     "el despeje se carga y no declara 'pelota' (la trae pintada: no se le dibuja otra)");
+  /* REVISIÓN DEL LOTE: el despeje de puño dice que la pelota sale y la
+     lógica dice que tu arquero la retuvo; el relato decía "¡La retuvo el
+     uno!" (o "¡Manotazo salvador!"). Hasta que haya arte de tu arquero que
+     la agarra, el relato de esa atajada no dice cómo fue. */
+  var REL = json("data/relatos.json").relator;
+  var dicenComo = REL.arquero_mio.filter(function (f) { return /retuvo|retiene|manotazo|la sac[oó]|despej/i.test(f); });
+  assert(dicenComo.length === 0, "el relato de tu atajada no dice si la retuvo o la sacó (" + dicenComo.join(" | ") + ")");
+  assert(typeof POSES.poses.arquero_despeje_celeste._pedido_arte === "string" && /AGARRA/.test(POSES.poses.arquero_despeje_celeste._pedido_arte),
+    "el despeje deja anotado el pedido de arte (tu arquero que la agarra con los ojos abiertos)");
 
   /* la revelación de la atajada del remate común, con la escena de verdad */
   var dAt = medidas("assets/poses/" + POSES.poses.arquero_ataja.archivo);
