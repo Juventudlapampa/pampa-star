@@ -31,6 +31,18 @@ function archivos(dir, acc) {
 }
 const FILES = archivos(RAIZ);
 assert(FILES.length > 20, "el barrido encuentra los archivos de producto (" + FILES.length + ")");
+/* LOS README SÍ ENTRAN (revisión del lote L08, pedido de Rodri del 13/oct).
+   El repo es público y el README es su cara: lo primero que lee quien llega
+   al proyecto, y GitHub Pages lo publica tal cual. Con la regla de arriba
+   (".md = documentación") quedaban afuera, y decían los nombres de dos
+   juegos comerciales, la palabra prohibida del medidor (cinco veces),
+   "Un pibe que arranca en la Primera B de una liga de pueblo", "Nombres
+   reales de jugadores" y "Clubes… se usan con naturalidad". No son análisis:
+   son el producto presentándose. Pasan por TODO el barrido de abajo y por
+   el bloque 1e (la palabra prohibida en cualquier forma y el lenguaje). */
+const READMES = ["README.md", path.join("phaser", "README.md")].map(r => path.join(RAIZ, r));
+READMES.forEach(f => { if (fs.existsSync(f)) FILES.push(f); });
+assert(READMES.every(f => FILES.indexOf(f) >= 0), "§11 los dos README entran al barrido (" + READMES.filter(f => FILES.indexOf(f) >= 0).length + " de 2)");
 
 /* ---------- 1) MARCAS Y TERMINOLOGÍA DE TERCEROS ---------- */
 const MARCAS = [
@@ -143,6 +155,41 @@ assert(nombresEnLaExcepcion > 0 && nombresEnLaExcepcion <= 25,
   const UNA = new RegExp(APPS.source, "i");
   const cazados = t.split("\n").filter(l => UNA.test(l)).length;
   assert(cazados === 2, "§11 1d: la excepción de las etiquetas de tarjeta deja pasar solo <meta name=…> (cazó " + cazados + " de 2)");
+})();
+
+/* ---------- 1e) LOS README: LA PALABRA PROHIBIDA Y EL LENGUAJE ----------
+   En el código, la palabra del medidor se caza solo adentro de comillas
+   (bloque 2: los identificadores viejos del save no se tocan). En un README
+   no hay identificadores que cuidar: se caza en cualquier forma. Y como el
+   README le habla a la gente (escuelas, medios, quien juega), pasa el
+   filtro del lenguaje institucional: nada de "pibe", "pueblo", masculino
+   genérico, arroba ni barra de género. Lo que va entre comillas invertidas
+   (código, rutas) y las direcciones no se leen como texto. Cuando exista
+   lenguaje.test.js (ítem lenguaje-institucional), este filtro pasa allá. */
+const LENGUAJE_README = /\bpib[ea]s?\b|\bpueblos?\b|\blos jugadores\b|\bjugadores\b|\bbienvenid[oa]s?\b|\btodos\b|\blos chicos\b|\bnosotros\b|@|[a-záéíóúñ]\/[a-záéíóúñ]|\b\w+[oa]\(a\)/i;
+function textoDeReadme(s) {
+  return s.replace(/```[\s\S]*?```/g, " ").replace(/`[^`\n]*`/g, " ")
+    .replace(/\]\([^)]*\)/g, "] ").replace(/https?:\/\/\S+/g, " ").replace(/[a-z0-9.-]+\.github\.io\/\S*/gi, " ");
+}
+READMES.forEach(f => {
+  if (!fs.existsSync(f)) return;
+  const s = fs.readFileSync(f, "utf8").replace(/\r\n/g, "\n");
+  const rel = path.relative(RAIZ, f).replace(/\\/g, "/");
+  s.split("\n").forEach((l, n) => {
+    const g = l.match(/guts/i);
+    assert(!g, "§11 la palabra prohibida del medidor en " + rel + ":" + (n + 1) + ": «" + (g && g[0]) + "» → es AGUANTE");
+  });
+  textoDeReadme(s).split("\n").forEach((l, n) => {
+    const m = l.match(LENGUAJE_README);
+    assert(!m, "lenguaje institucional en " + rel + ":" + (n + 1) + ": «" + (m && m[0]) + "» → reescribir sin género (\"quien juega\", \"la gente\", \"tu equipo\") y \"localidad\"");
+  });
+});
+/* el filtro probándose: lo que decía el README de antes cae; lo que va, pasa */
+(function () {
+  const viejo = "Un pibe que arranca en la Primera B de una liga de pueblo\nNombres reales de jugadores\nentretiempo que recupera Guts";
+  const cae = textoDeReadme(viejo).split("\n").filter(l => LENGUAJE_README.test(l) || /guts/i.test(l)).length;
+  const va = textoDeReadme("Quien juega elige su localidad. Corré `phaser/test/x.test.js` o abrí https://x.github.io/a/b").split("\n").filter(l => LENGUAJE_README.test(l)).length;
+  assert(cae === 3 && va === 0, "§11 1e: el filtro de los README caza lo de antes (" + cae + " de 3) y deja pasar rutas y direcciones (" + va + ")");
 })();
 
 /* ---------- 2) "GUTS" COMO TEXTO VISIBLE ----------

@@ -1,33 +1,93 @@
-# `phaser/` — motor Phaser 3 (migración en curso)
+# `phaser/` · el juego
 
-El HTML clásico (`../index.html`) **validó el diseño** y sigue jugable como referencia viva. Acá, **al lado**, se construye el motor nuevo en **Phaser 3**, donde vive la ÉPICA (animaciones, cortes de cámara, el remate que emociona). Destino final posible: Godot — por eso la arquitectura de abajo.
+Acá vive PAMPA STAR: lo que abre ▶ JUGAR desde la portada (`../index.html`,
+el link oficial). Phaser 3.80.1 y JavaScript sin paso de compilación,
+servido tal cual por GitHub Pages. Se instala como app (PWA) con
+`manifest.webmanifest` y `sw.js`. Qué es el juego y cómo se juega: el
+[README de la raíz](../README.md) y el documento raíz,
+[`docs/PAMPA_STAR_GDD.md`](../docs/PAMPA_STAR_GDD.md).
 
-## Estado: HITO 1 — la rebanada épica
-Solo la **secuencia de remate al arco** con toda la épica (corrida → patada → pelota que vuela con curva y estela → arquero que se estira → GOL con la red sacudiéndose / ATAJADA con rebote / AFUERA), cámara con zoom + shake + flash + slow-motion, y SFX original por beat. Apuntás **tocando el arco**; toggle **ARQUERO NORMAL/FIGURA** para ver goles y atajadas a gusto; botón **REPETIR**.
+**Abrirlo:** desde la raíz del repo, `node server.js` y
+`http://localhost:8123/phaser/`.
 
-**Abrilo:** `phaser/index.html` (con el server: `http://localhost:8123/phaser/`). El HTML clásico sigue en `../index.html`.
+## Arquitectura: DATOS + LÓGICA PURA + RENDER
 
-## Arquitectura (obligatoria — pensada para portar a Godot)
-Tres capas separadas; el día del porteo, **data y lógica se copian, solo se reescribe el render**.
+Tres capas separadas. La lógica y los datos no saben que existe Phaser: si
+algún día el juego se porta a otro motor, esas dos capas viajan tal cual y
+solo se reescribe el render.
 
 | Capa | Dónde | Qué |
 |---|---|---|
-| **DATA** | `data/*.json` | Todo el contenido y balance FUERA del código: `balance.json` (velocidades, duelo, zonas de tiro, tiempos de épica). Se suma a `../data/` (roster, relatos). |
-| **LÓGICA** | `logic/*.js` | Módulos PUROS, sin Phaser ni DOM (UMD: corren en node y en el browser). `duel.js` = resolución del remate. Testeable solo. |
-| **RENDER** | `scenes/*.js`, `audio/*.js` | Todo lo Phaser/WebAudio: `shot.js` (la escena), `sprites.js` (genera sprites originales por código), `sfx.js` (audio original). |
+| **DATOS** | `../data/*.json` · `data/balance.json` | El contenido y los números, fuera del código: divisiones, plantel, relatos, entrevista, semana, eventos de la temporada, megacosas, audio y los manifiestos del arte. `balance.json` tiene las perillas del juego; cada bloque lleva su `_nota`, que cuenta qué se midió y por qué vale lo que vale. |
+| **LÓGICA PURA** | `logic/*.js` | Módulos UMD sin Phaser ni DOM: corren en el navegador y en node, y se prueban en node. El partido (`partido`, `duel`, `tiro`, `definicion`, `jugadon`, `drama`, `lectura`), la carrera (`master`, `temporada`, `save_master`, `carrera`, `escalera`, `semana`, `vida`), el relato y la música (`relator`, `musica`), y lo del aparato (`carga`, `memoria`, `entorno`, `atras`). |
+| **RENDER** | `scenes/*.js` · `audio/sfx.js` | Phaser y Web Audio. |
 
-## El bug del arquero, cerrado con test
-Feedback del playtest: *"el arquero atajó y marcó gol igual"* — la animación y el resultado estaban desacoplados. **Fix de raíz:** `logic/duel.js` `resolveShot()` decide **una sola vez** y expone `outcome` + `keeperWins` con el invariante duro **`keeperWins ⇔ outcome≠'gol'`**. La animación (`shot.js`) es **esclava** de ese resultado: nunca lo cambia. Cubierto por `test/duel.test.js`:
+## Las escenas
 
+Cuatro escenas de Phaser, en el orden en que se recorren:
+
+- **`intro.js`**: la compuerta (el primer toque desbloquea el audio y, en
+  Android, pide la pantalla completa) y el opening, que se ve una vez por
+  aparato.
+- **`editor.js`**: la pinta (cara, piel, pelo y camiseta).
+- **`master.js`**: la carrera: el mapa de las localidades, la entrevista, la
+  tabla, la semana y el código de carrera.
+- **`match.js`**: el partido.
+
+El resto de `scenes/` son **mixins**: se suman a una escena con
+`Object.assign(window.PampaMatch.prototype, …)` y le agregan una parte sin
+agrandar `match.js`. Por ejemplo `definicion_ui.js` (el mano a mano con el
+arquero), `jugadon_ui.js`, `cartas_ui.js`, `cine_arte.js` y
+`toma_remate.js`. Tres entran en las cuatro escenas: `piel_ui.js` (la piel
+común y la única puerta de la música, `pedirMusica`), `foco_ui.js` (el
+cursor para jugar con el teclado) y `pantalla_ui.js` (la pantalla
+completa). `reloj.js` hace que las animaciones y las esperas avancen con un
+solo reloj.
+
+Dos reglas que se cumplen en todas:
+
+- **Estado limpio en `init()`.** Phaser reusa la instancia de la escena en
+  cada `scene.start()`: todo estado nuevo (banderas, cachés, contadores) se
+  reinicia en `init()`. Lo vigila `test/p1_estado_limpio.test.js`.
+- **La pose ilustrada no se anima:** queda quieta y con corte seco; lo que se
+  mueve es todo lo demás (el fondo, las líneas de velocidad, la cámara).
+
+## El arranque y la caché
+
+`index.html` muestra el cartel de carga desde el primer byte, carga la
+lógica, Phaser y las escenas, y baja el arte de a poco, a medida que hace
+falta (`logic/carga.js`). `sw.js` guarda el código con red primero (un
+deploy nuevo llega en la próxima apertura) y los assets con caché primero y
+una huella por archivo (no se baja de nuevo lo que no cambió). Todo archivo
+nuevo que carga `index.html` va también al `PRECACHE` de `sw.js`;
+`test/sw_precache.test.js` lo controla.
+
+## Los tests
+
+```bash
+bash test.sh                          # desde la raíz: la suite entera
+node phaser/test/seccion11.test.js    # un archivo suelto
 ```
-node phaser/test/duel.test.js     # 2010 asserts, verde
-```
 
-## Calibración (fix del playtest)
-En `balance.json → ritmo`: el avance es **lento y con esfuerzo**, el `defensor_cerrando` es más rápido que el `portador_con_pelota` (te alcanzan), y perseguir **cuesta guts y no es infinito** (`persecucion.aguante_por_segundo` + `aguante_minimo_para_correr`). La economía completa (costos, recuperación, rendido) vive en el bloque `aguante`, escala máx 1000 del doc v2 §7.
+Cada archivo de `test/*.test.js` corre en node, sin navegador, y termina con
+`process.exit`: un test que falla frena la suite. El encabezado de cada uno
+cuenta qué estaba mal y cómo se midió. Los que necesitan una escena la
+arman de mentira (`_escena_de_mentira.js`, `_partido_de_mentira.js`,
+`_sw_de_mentira.js`). Los guardianes que conviene conocer:
+
+- `seccion11.test.js`: nada de marcas, clubes, medios ni juegos ajenos, y
+  sin apuestas, en el producto y en los dos README.
+- `desconectados.test.js`: lo que se construyó tiene que estar conectado (que
+  algo lo llame y que se vea), no en una capa invisible o detrás de un flag.
+- `p1_estado_limpio.test.js`: el estado de cada escena se reinicia en
+  `init()`.
+- `sw_precache.test.js`: lo que carga el juego está en la caché del worker.
 
 ## Sin terceros
-Sprites generados por código, SFX sintetizados en vivo, Phaser es MIT (vendorizado en `vendor/`). **Nada de assets, sprites, música, código ni nombres de Tecmo/Captain Tsubasa** — solo se emula la forma de jugar. Daltonismo: el arquero se distingue por **forma** (brazos + guantes), no solo color; el jugador lleva flecha **▼ VOS**.
 
-## Hitos siguientes (no arrancan sin playtest del anterior)
-2. Partido jugable (dos capas, movimiento calibrado, encuentro + menú, duelos, cambio, reloj). · 3. Animaciones completas. · 4. Carrera (temporada/vida/avatar). · 5. Presentación + audio. · 6. Escalera + Mundial. Ver `../PAMPA_STAR_MIGRACION_PHASER.md`.
+Las ilustraciones, el logo y las poses son originales del proyecto, y los
+archivos de `../assets/` no se reprocesan: lo que haga falta se compone en
+el juego o en un archivo nuevo. Phaser va en `vendor/` (licencia MIT). Las
+tipografías son OFL (`../assets/fonts/README.md`). Nada de arte, sonido,
+nombres ni terminología de otros juegos: de los juegos de fútbol por
+comandos se toma la forma de jugar, nada más.
