@@ -159,6 +159,11 @@ function resolver(dir, ref) {
   assert(/consumirResultadoPhaser\(\);/.test(CLASICO), "y el clásico aplica el resultado al abrir (consumirResultadoPhaser)");
   assert(!existe("pampa-star-sprites.js") && !existe("pampa-star-audio.js"), "los dos scripts del clásico se mudaron con él (no quedaron en la raíz)");
   assert(/<a class="a-portada" href="\.\.\/">/.test(CLASICO), "el modo retro tiene el link a la portada del juego nuevo");
+  /* revisión del lote: el link medía 35 px de alto en el navegador, debajo
+     del piso táctil de 44 CSS */
+  var cssPortada = (CLASICO.match(/\.a-portada\{([^}]*)\}/) || [])[1] || "";
+  var minAlto = +((cssPortada.match(/min-height:(\d+)px/) || [])[1] || 0);
+  assert(minAlto >= 44, "el link a la portada tiene el piso táctil (min-height " + minAlto + " px; piso 44)");
   console.log("[3] clasico/index.html: " + ps.length + " pedidos, todos resueltos; el puente va a ../phaser/ y vuelve a ../clasico/");
 })();
 

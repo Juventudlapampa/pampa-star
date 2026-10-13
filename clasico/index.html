@@ -47,8 +47,11 @@
   .brand .logo-img{display:block;width:min(62%,220px);margin:.2rem auto .1rem;image-rendering:auto;
     filter:drop-shadow(0 3px 6px rgba(0,0,0,.55));}
   .pix{font-family:'Press Start 2P',monospace;}
-  /* L08: el link a la portada del juego nuevo, en el pie del título */
-  .a-portada{display:block;text-align:center;color:var(--sol-2);text-decoration:underline;font-size:.85rem;margin-top:.6rem;padding:.5rem .2rem;}
+  /* L08: el link a la portada del juego nuevo, en el pie del título.
+     Revisión del lote: medía 35 px de alto (13,6 px de letra con el padding
+     de .5rem), debajo del piso táctil de 44 CSS (balance.legibilidad.tap_min,
+     61 lógicos). Con min-height de 48 y el texto centrado, el dedo no falla */
+  .a-portada{display:flex;align-items:center;justify-content:center;min-height:48px;text-align:center;color:var(--sol-2);text-decoration:underline;font-size:.85rem;margin-top:.6rem;padding:.5rem .2rem;}
   .mono{font-family:'JetBrains Mono',monospace;}
 
   /* ---------- INTRO ---------- */
