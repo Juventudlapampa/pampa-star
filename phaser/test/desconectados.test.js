@@ -292,6 +292,9 @@ var ESCRITOS_OK = {
   /* L06: lo lee el renglón de ?perf=1 en index.html (LA RED, pintar), que este barrido no mira */
   "__PAMPA_TEX": "cuánto ocupan las texturas ({n, mb}): lo lee ?perf=1 en index.html y la verificación",
   "__PAMPA_HALO": "estadísticas de la limpieza del anillo violeta (cuántas imágenes, cuántos píxeles, cuánto tardó): se leen desde la verificación, como los contadores de música",
+  /* revisión L06: el tope de cuadros según la pantalla (cine_arte.js, PampaTopeDeCuadros) */
+  "_limitRate": "campo del TimeStep de Phaser (vendor): lo lee su stepLimitFPS en cada cuadro, que este barrido no mira",
+  "__PAMPA_FPS": "lo que decidió el tope según la pantalla ({hz, divisor, limite}): lo lee ?perf=1 en index.html y la verificación",
   "_entrarDefinicionDefVieja": "el camino viejo de la definición, que se conserva a propósito para poder volver",
   "_panelReveal": "bandera de una sola pasada: se escribe para NO repetir el reveal, no para leerse",
   "_tramiteMudoUltimo": "marca anti-repetición del trámite mudo",

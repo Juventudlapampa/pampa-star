@@ -389,17 +389,79 @@
     return p;
   }
   function ms(v) { return Math.round(Number(v) || 0) + " ms"; }
-  /* el renglón del cuadro, la cola y el halo */
-  function textoCuadros(p, cola, halo) {
+  /* el renglón del cuadro, la cola y el halo (y, si ya se midió, la
+     pantalla: "PANTALLA 120 Hz · 1 de cada 2") */
+  function textoCuadros(p, cola, halo, pantalla) {
     if (!p || !p.cuadros || !p.cuadros.length) return "";
     var t = "CUADRO máx 10 s " + ms(p.intervaloMax) + " (trabajo " + ms(p.trabajoMax) + ")";
     if (cola) t += " · COLA " + cola.pendientes + (cola.tajadaMax ? " (tajada máx " + ms(cola.tajadaMax) + ")" : "");
     if (halo && halo.ms != null) t += " · HALO " + ms(halo.ms);
+    if (pantalla && pantalla.hz > 0) t += " · PANTALLA " + Math.round(pantalla.hz) + " Hz" + (pantalla.divisor > 1 ? " · 1 de cada " + pantalla.divisor : " · sin tope");
     return t;
+  }
+
+  /* ═══ EL TOPE DE CUADROS SEGÚN LA PANTALLA (revisión del lote L06) ═══
+     Lo que estaba mal, simulado con el algoritmo de Phaser 3.80.1 sacado del
+     vendor (TimeStep.stepLimitFPS suma el delta de cada cuadro y, al pasar
+     el tope, lo pone en CERO sin guardar el resto): el tope fijo de 61 que
+     dejó el lote bajaba a la mitad toda pantalla de entre 61 y 119 Hz. Una
+     de 75 Hz pasaba de 75 a 37,5 cuadros por segundo, una de 90 Hz (muchos
+     Android de gama media y baja) de 90 a 45, una de 100 Hz de 100 a 50, y
+     una de 144 Hz quedaba en 48.
+     Ahora el tope se decide MIRANDO la pantalla: el juego anota el intervalo
+     crudo entre cuadros (loop.rawDelta, que es el de la pantalla aunque
+     haya tope) y con la mediana de una tanda:
+       · hasta fps_libre_hasta_hz (100), con un 5% de aire, corre libre:
+         60, 75, 90 y 100 Hz quedan como antes del lote;
+       · arriba, se toma 1 de cada n cuadros, con el n más chico que deja el
+         juego en fps_libre_hasta_hz o menos: 120 Hz → 60, 144 → 72,
+         165 → 82,5, 240 → 80. Así 120 Hz no corre el doble, que era lo que
+         pedía el ítem;
+       · el tope va a MITAD DE CAMINO entre n-1 y n cuadros de la pantalla,
+         (n - 0,5) × intervalo, y no justo en n: con el tope justo (61 en
+         60 Hz) un cuadro que llegaba una centésima antes se salteaba. Con
+         medio cuadro de aire, el temblor normal de la pantalla no cambia la
+         cuenta.
+     intervalos: ms entre cuadros; cfg: balance.rendimiento. Devuelve
+     { hz, divisor, limite } (limite 0 = sin tope) o null si no hay muestras
+     que sirvan (la pestaña atrás, un teléfono trabado: se deja lo que hay). */
+  function topeDeCuadros(intervalos, cfg) {
+    var c = cfg || {}, libre = c.fps_libre_hasta_hz > 0 ? c.fps_libre_hasta_hz : 100;
+    /* fuera de 3-50 ms no es la pantalla: es el juego trabado o la pestaña
+       que volvió (un intervalo de 2 s), y no tiene que mover la mediana */
+    var v = (intervalos || []).filter(function (x) { return x >= 3 && x <= 50; }).sort(function (a, b) { return a - b; });
+    if (v.length < Math.max(5, Math.floor((c.fps_muestras || 60) / 2))) return null;
+    var med = v[v.length >> 1], hz = 1000 / med;
+    if (hz <= libre * 1.05) return { hz: hz, divisor: 1, limite: 0 };
+    var n = Math.ceil(hz / libre);
+    return { hz: hz, divisor: n, limite: 1000 / ((n - 0.5) * med) };
+  }
+  /* la tanda de muestras: cada fps_muestras intervalos decide de nuevo (la
+     pantalla puede cambiar: un teléfono que baja de 120 a 60 Hz para
+     ahorrar batería, la ventana que pasa a otro monitor) y llama a
+     aplicar(d) solo si cambió el divisor: dentro del mismo divisor el medio
+     cuadro de aire ya cubre las diferencias de medición. */
+  function crearMedidorDeCuadros(cfg, aplicar) {
+    var n = Math.max(10, (cfg && cfg.fps_muestras) || 60), v = [], actual = null;
+    return {
+      anotar: function (msCuadro) {
+        v.push(Number(msCuadro) || 0);
+        if (v.length < n) return null;
+        var d = topeDeCuadros(v, cfg);
+        v = [];
+        if (d && (!actual || d.divisor !== actual.divisor)) {
+          actual = d;
+          if (typeof aplicar === "function") aplicar(d);
+        }
+        return d;
+      },
+      actual: function () { return actual; }
+    };
   }
 
   return {
     crearColaPorTajadas: crearColaPorTajadas, anotarCuadro: anotarCuadro, textoCuadros: textoCuadros,
+    topeDeCuadros: topeDeCuadros, crearMedidorDeCuadros: crearMedidorDeCuadros,
     nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed, textoTex: textoTex,
     reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); },
     decidirAvisoVersion: decidirAvisoVersion,

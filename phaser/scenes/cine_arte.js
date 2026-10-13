@@ -987,6 +987,36 @@
     return window.PampaPrecalentar;
   };
 
+  /* ======================================================================
+     REVISIÓN DEL LOTE L06 · EL TOPE DE CUADROS, SEGÚN LA PANTALLA.
+     El lote había puesto fps.limit 61 fijo para que una pantalla de 120 Hz
+     no corriera el doble, y con el algoritmo de Phaser 3.80.1 (que no
+     arrastra el resto) eso bajaba a la mitad las de 75, 90 y 100 Hz. Ahora
+     la config arranca sin tope y esto anota, en cada paso, el intervalo
+     crudo de la pantalla (loop.rawDelta); cada tanda de
+     balance.rendimiento.fps_muestras decide (logic/carga.js, topeDeCuadros)
+     y prende o apaga el tope del TimeStep de Phaser: fpsLimit,
+     hasFpsLimit y _limitRate, los mismos campos que arma su constructor
+     con config.fps.limit (TimeStep.tick mira hasFpsLimit en cada cuadro).
+     La decisión queda en window.__PAMPA_FPS (la muestra ?perf=1). Lo llama
+     index.html en postBoot, como la cola de arriba.
+     ====================================================================== */
+  window.PampaTopeDeCuadros = function (game) {
+    var K = window.PampaCarga, L = game && game.loop;
+    if (!K || !K.crearMedidorDeCuadros || !L || !game.events || L.__pampaTope) return null;
+    L.__pampaTope = true;
+    var R = ((game.registry && game.registry.get("balance")) || {}).rendimiento || {};
+    var M = K.crearMedidorDeCuadros(R, function (d) {
+      L.fpsLimit = d.limite;
+      L.hasFpsLimit = d.limite > 0;
+      L._limitRate = d.limite > 0 ? 1000 / d.limite : 0;
+      L.delta = 0;   // lo juntado con la regla vieja no se arrastra a la nueva
+      window.__PAMPA_FPS = d;
+    });
+    game.events.on("prestep", function () { M.anotar(L.rawDelta); });
+    return M;
+  };
+
   /* las pinturas vivas: clave de textura → ambiente (las texturas son del
      juego entero, no de la escena, así que el registro también) */
   var PINTADAS = {};

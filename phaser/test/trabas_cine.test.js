@@ -19,9 +19,10 @@
          descarta);
      [3] el partido encola lo de la primera gambeta, el primer remate y el
          primer gol con las mismas opciones que usa cada plano;
-     [4] el tope de cuadros: con el algoritmo de Phaser 3.80 sacado del
-         vendor, 60 justo da 46 cuadros por segundo en una pantalla de 60 Hz;
-         61 da 60 en 60 y en 120 Hz;
+     [4] el tope de cuadros, con el algoritmo de Phaser 3.80 sacado del
+         vendor: sale de MEDIR la pantalla (revisión del lote: el 61 fijo
+         bajaba 75, 90 y 100 Hz a la mitad); 60, 75, 90 y 100 Hz corren
+         libres, 120 → 60, 144 → 72;
      [5] ?perf=1: el cuadro más largo de los últimos 10 s, la cola y el halo.
 
    Corré:  node phaser/test/trabas_cine.test.js
@@ -233,41 +234,111 @@ W.PampaAvatar.setCatalogoManifest && W.PampaAvatar.setCatalogoManifest({ caras: 
 
 /* =========================================================================
    [4] · EL TOPE DE CUADROS, CON EL ALGORITMO DEL VENDOR
+   Revisión del lote: el tope fijo de 61 dejaba 60 y 120 Hz en 60 cuadros,
+   pero bajaba a la mitad las pantallas de 75, 90 y 100 Hz (37,5, 45 y 50:
+   stepLimitFPS pone el delta en cero sin arrastrar el resto). Ahora el tope
+   sale de medir la pantalla (logic/carga.js, topeDeCuadros) y cada pantalla
+   se simula con el algoritmo de Phaser sacado del vendor.
    ========================================================================= */
 (function () {
   var V = leer("phaser/vendor/phaser.min.js");
+  /* todo dentro del TimeStep: "step:function" y "tick:function" aparecen en
+     otras clases del vendor, así que se busca desde su stepLimitFPS */
+  var desde = V.indexOf("stepLimitFPS:function") - 2000;
   function sacar(nombre, hasta) {
-    var a = V.indexOf(nombre + ":function"), b = V.indexOf(hasta, a);
+    var a = V.indexOf("," + nombre + ":function", desde) + 1, b = V.indexOf(hasta, a);
     return a > 0 && b > a ? V.slice(a + nombre.length + 1, b) : null;
   }
   var fSmooth = sacar("smoothDelta", ",updateFPS:function"), fStep = sacar("stepLimitFPS", ",step:function");
-  assert(!!fSmooth && !!fStep, "se pueden sacar smoothDelta y stepLimitFPS de vendor/phaser.min.js");
-  if (!fSmooth || !fStep) return;
+  var fPaso = sacar("step", ",tick:function"), fTick = sacar("tick", "},sleep:function");
+  assert(!!fSmooth && !!fStep && !!fPaso && !!fTick, "se pueden sacar smoothDelta, stepLimitFPS, step y tick de vendor/phaser.min.js");
+  if (!fSmooth || !fStep || !fPaso || !fTick) return;
+  /* tick: hasFpsLimit ? stepLimitFPS : step — el campo que prende y apaga
+     PampaTopeDeCuadros se lee en CADA cuadro */
+  assert(/this\.hasFpsLimit\?this\.stepLimitFPS\(t\):this\.step\(t\)/.test(fTick), "TimeStep.tick elige con hasFpsLimit en cada cuadro (por eso se puede cambiar en marcha)");
   function TimeStep(limit) {
     this.deltaHistory = []; for (var i = 0; i < 10; i++) this.deltaHistory[i] = 1000 / 60;
     this.deltaIndex = 0; this.deltaSmoothingMax = 10; this._coolDown = 0; this.inFocus = true;
-    this._min = 1000 / 5; this._target = 1000 / 60; this._limitRate = 1000 / limit; this.smoothStep = true;
+    this._min = 1000 / 5; this._target = 1000 / 60; this.smoothStep = true;
+    this.fpsLimit = limit || 0; this.hasFpsLimit = limit > 0; this._limitRate = limit > 0 ? 1000 / limit : 0;
     this.delta = 0; this.lastTime = 0; this.time = 0; this.nextFpsUpdate = 1e12; this.framesThisSecond = 0; this.frame = 0;
     this.llamadas = 0; var self = this; this.callback = function () { self.llamadas++; };
   }
   TimeStep.prototype.smoothDelta = eval("(" + fSmooth + ")");
   TimeStep.prototype.stepLimitFPS = eval("(" + fStep + ")");
+  TimeStep.prototype.step = eval("(" + fPaso + ")");
   TimeStep.prototype.updateFPS = function () { };
-  function cuadros(hz, limit) {
+  /* la pantalla, con un temblor de ±0,4 ms entre cuadros (determinista) */
+  function intervalos(hz, n, temblor) {
+    var out = [], semilla = 7;
+    for (var i = 0; i < n; i++) { semilla = (semilla * 9301 + 49297) % 233280; out.push(1000 / hz + ((semilla / 233280) - 0.5) * 2 * (temblor || 0)); }
+    return out;
+  }
+  /* cuadros por segundo del juego con un tope dado, 10 s de pantalla */
+  function cuadros(hz, limit, temblor) {
     var ts = new TimeStep(limit), t = 0;
-    for (var i = 0; i < hz * 10; i++) { t += 1000 / hz; ts.stepLimitFPS(t); }
+    intervalos(hz, hz * 10, temblor).forEach(function (d) {
+      t += d;
+      if (ts.hasFpsLimit) ts.stepLimitFPS(t); else ts.step(t);
+    });
     return ts.llamadas / 10;
   }
-  var lim = BAL.rendimiento.fps_limite;
-  var c60a60 = cuadros(60, 60), c61a60 = cuadros(60, lim), c61a120 = cuadros(120, lim), c0a120 = cuadros(120, 1e9);
-  assert(c60a60 < 50, "SÍNTOMA: con tope 60 justo, una pantalla de 60 Hz da " + c60a60 + " cuadros por segundo (por eso no es 60)");
-  assert(lim === 61 && Math.abs(c61a60 - 60) < 0.5, "con fps_limite " + lim + ", 60 Hz da " + c61a60 + " cuadros por segundo");
-  assert(Math.abs(c61a120 - 60) < 0.5 && c0a120 > 100, "y en 120 Hz, " + c61a120 + " (sin tope eran " + c0a120 + ")");
+  var R = BAL.rendimiento;
+  assert(R.fps_libre_hasta_hz === 100 && R.fps_muestras >= 30 && R.fps_limite === undefined, "balance.rendimiento: fps_libre_hasta_hz 100 y fps_muestras (el fps_limite fijo se fue)");
+  /* lo que estaba mal: el 61 fijo del lote */
+  var c75 = cuadros(75, 61), c90 = cuadros(90, 61), c100 = cuadros(100, 61);
+  assert(Math.abs(c75 - 37.5) < 0.6 && Math.abs(c90 - 45) < 0.6 && Math.abs(c100 - 50) < 0.6,
+    "SÍNTOMA (el tope fijo de 61): 75 Hz da " + c75 + " cuadros por segundo, 90 Hz " + c90 + " y 100 Hz " + c100 + " (la mitad)");
+  assert(cuadros(60, 60) < 50, "y 60 justo daba " + cuadros(60, 60) + " en 60 Hz (por eso el tope nunca va justo en n cuadros)");
+  /* lo de ahora: cada pantalla, medida y simulada */
+  var esperado = { 60: 60, 75: 75, 90: 90, 100: 100, 120: 60, 144: 72, 165: 82.5, 240: 80 };
+  var linea = [];
+  Object.keys(esperado).forEach(function (k) {
+    var hz = Number(k);
+    [0, 0.4, 1.2].forEach(function (temblor) {
+      var d = C.topeDeCuadros(intervalos(hz, R.fps_muestras, temblor), R);
+      var fps = d ? cuadros(hz, d.limite, temblor) : -1;
+      assert(!!d && Math.abs(fps - esperado[k]) < 0.6,
+        hz + " Hz (temblor ±" + temblor + " ms): el juego corre a " + fps + " cuadros por segundo y tiene que ser " + esperado[k] + " (divisor " + (d && d.divisor) + ", tope " + (d && d.limite.toFixed(1)) + ")");
+      if (temblor === 0.4) linea.push(hz + "→" + fps);
+    });
+  });
+  var d75 = C.topeDeCuadros(intervalos(75, 60, 0.4), R), d120 = C.topeDeCuadros(intervalos(120, 60, 0.4), R);
+  assert(d75.limite === 0 && d75.divisor === 1, "75 Hz corre SIN tope");
+  assert(d120.divisor === 2 && d120.limite > 61 && d120.limite < 120, "120 Hz: 1 de cada 2, con el tope a mitad de camino (" + d120.limite.toFixed(1) + ")");
+  /* sin muestras que sirvan (la pestaña atrás, el juego trabado) no decide */
+  assert(C.topeDeCuadros([], R) === null && C.topeDeCuadros(intervalos(2, 60, 0), R) === null, "sin muestras de pantalla (intervalos de 500 ms) no se decide nada");
+  /* el medidor: decide cada fps_muestras y avisa solo cuando cambia el divisor */
+  var aplicados = [];
+  var M = C.crearMedidorDeCuadros(R, function (d) { aplicados.push(d.divisor); });
+  intervalos(120, R.fps_muestras * 3, 0.4).forEach(function (x) { M.anotar(x); });
+  assert(aplicados.join(",") === "2", "con la pantalla a 120 Hz se aplica UNA vez (" + aplicados.join(",") + ")");
+  intervalos(60, R.fps_muestras * 2, 0.4).forEach(function (x) { M.anotar(x); });
+  assert(aplicados.join(",") === "2,1" && M.actual().limite === 0, "si la pantalla baja a 60 Hz (ahorro de batería), el tope se apaga (" + aplicados.join(",") + ")");
+  intervalos(2, R.fps_muestras, 0).forEach(function (x) { M.anotar(x); });
+  assert(aplicados.length === 2, "una tanda sin muestras de pantalla no cambia nada");
+  /* el enganche en el juego de verdad: cine_arte.js con un juego de mentira */
+  var Wc = { PampaCarga: C, PampaAmbiente: require(path.join(RAIZ, "phaser/logic/ambiente.js")), PampaHalo: require(path.join(RAIZ, "phaser/logic/halo.js")) };
+  var oyentes = {};
+  var juego = { loop: { rawDelta: 0, fpsLimit: 0, hasFpsLimit: false, _limitRate: 0, delta: 5 },
+    events: { on: function (n, f) { (oyentes[n] = oyentes[n] || []).push(f); } },
+    registry: { get: function (k) { return k === "balance" ? BAL : null; } } };
+  var ctxC = { window: Wc, document: {}, performance: { now: function () { return 0; } }, console: console, Math: Math, MessageChannel: undefined, setTimeout: function () { } };
+  vm.createContext(ctxC);
+  vm.runInContext(leer("phaser/scenes/cine_arte.js"), ctxC, { filename: "cine_arte.js" });
+  assert(typeof Wc.PampaTopeDeCuadros === "function", "cine_arte.js trae PampaTopeDeCuadros");
+  if (typeof Wc.PampaTopeDeCuadros === "function") {
+    assert(!!Wc.PampaTopeDeCuadros(juego) && Wc.PampaTopeDeCuadros(juego) === null, "se engancha una vez");
+    intervalos(120, R.fps_muestras, 0.4).forEach(function (x) { juego.loop.rawDelta = x; (oyentes.prestep || []).forEach(function (f) { f(); }); });
+    var L = juego.loop;
+    assert(L.hasFpsLimit && Math.abs(L._limitRate - 1000 / L.fpsLimit) < 1e-9 && L.delta === 0 && Wc.__PAMPA_FPS && Wc.__PAMPA_FPS.divisor === 2,
+      "en 120 Hz prende el tope del TimeStep (fpsLimit " + (L.fpsLimit && L.fpsLimit.toFixed(1)) + ", hasFpsLimit, _limitRate) y lo deja en __PAMPA_FPS");
+  }
   var IDX = leer("phaser/index.html");
-  assert(/fps: \{ target: 60, limit: \(balance && balance\.rendimiento && balance\.rendimiento\.fps_limite != null\) \? balance\.rendimiento\.fps_limite : 61 \}/.test(IDX),
-    "la config del juego toma el tope de balance.rendimiento.fps_limite");
-  assert(/61 y no 60/.test(BAL.rendimiento._nota), "la _nota cuenta por qué 61");
-  console.log("[4] el tope, con el algoritmo de Phaser del vendor: 60 justo da " + c60a60 + " cuadros/s en 60 Hz; " + lim + " da " + c61a60 + " en 60 Hz y " + c61a120 + " en 120 Hz (sin tope, " + c0a120 + ")");
+  assert(/fps: \{ target: 60 \},/.test(IDX) && !/fps_limite/.test(IDX), "la config del juego arranca SIN tope fijo");
+  assert(/window\.PampaTopeDeCuadros\(game\)/.test(IDX), "el postBoot engancha el tope según la pantalla");
+  assert(/fps_libre_hasta_hz/.test(R._nota) && /37,5/.test(R._nota), "la _nota cuenta la regla y lo que pasaba con el 61 fijo");
+  console.log("[4] el tope según la pantalla, con el algoritmo de Phaser del vendor: " + linea.join(" · ") + " (con el 61 fijo: 75→" + c75 + ", 90→" + c90 + ", 100→" + c100 + ")");
 })();
 
 /* =========================================================================
@@ -284,6 +355,10 @@ W.PampaAvatar.setCatalogoManifest && W.PampaAvatar.setCatalogoManifest({ caras: 
   assert(p.trabajoMaxSesion === 80, "el de la sesión queda aparte");
   var t = C.textoCuadros(p, { pendientes: 3, tajadaMax: 14.2 }, { ms: 812.4 });
   assert(t === "CUADRO máx 10 s 17 ms (trabajo 12 ms) · COLA 3 (tajada máx 14 ms) · HALO 812 ms", "el renglón: " + t);
+  var tp = C.textoCuadros(p, null, null, { hz: 119.8, divisor: 2, limite: 80 });
+  assert(/ · PANTALLA 120 Hz · 1 de cada 2$/.test(tp) && / · PANTALLA 90 Hz · sin tope$/.test(C.textoCuadros(p, null, null, { hz: 90.1, divisor: 1, limite: 0 })),
+    "y lo que decidió el tope según la pantalla (" + tp + ")");
+  assert(/window\.__PAMPA_FPS\)/.test(leer("phaser/index.html")), "?perf=1 le pasa la decisión (__PAMPA_FPS)");
   var IDX = leer("phaser/index.html");
   assert(/window\.PampaPerf = \{/.test(IDX) && /if \(!perf \|\| !C \|\| !C\.anotarCuadro/.test(IDX), "index.html engancha el cuadro más largo solo con ?perf=1");
   assert(/"prestep"/.test(IDX) && /"postrender"/.test(IDX) && /PampaPerf\.enganchar\(game\)/.test(IDX), "mide de prestep a postrender, desde el postBoot");
