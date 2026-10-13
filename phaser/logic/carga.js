@@ -171,9 +171,24 @@
      y el preload de después las encuentra sin ir a la red. */
 
   /* las piezas del opening: balance.intro.poses_intro y fondos_intro, más
-     las ilustraciones de assets/ui que la intro pide por nombre (ui) */
+     las ilustraciones de assets/ui que la intro pide por nombre (ui).
+     REVISIÓN DEL LOTE: si balance.json no llega en TOPE_JSON_MS (8 s, el
+     primero en pasarse con señal muy floja: 35 KB en gzip contra 7 de
+     poses_manifest), index.html sigue con BALANCE_FALLBACK, que no trae
+     estas listas, y el opening salía sin protagonistas ni tribuna. Antes del
+     lote no pasaba: el preload pedía todas las poses del manifiesto. Este
+     respaldo es el mismo que balance.intro (carga_liviana.test.js [2] lo
+     compara), como el DEF de logic/memoria.js. */
+  var OPENING_DEF = {
+    poses_intro: ["pelota_vieja", "remate", "chilena", "cabezazo", "barrida", "arquero_vuela", "festejo"],
+    fondos_intro: ["tribuna"]
+  };
   function listaDelOpening(intro, poses, ui) {
-    var out = [], I = intro || {}, man = poses || {}, base = man.base || "assets/poses/";
+    var out = [], I0 = intro || {}, man = poses || {}, base = man.base || "assets/poses/";
+    var I = {
+      poses_intro: Array.isArray(I0.poses_intro) ? I0.poses_intro : OPENING_DEF.poses_intro,
+      fondos_intro: Array.isArray(I0.fondos_intro) ? I0.fondos_intro : OPENING_DEF.fondos_intro
+    };
     (ui || []).forEach(function (u) { if (u && u.clave && u.ruta) out.push({ clave: u.clave, ruta: u.ruta }); });
     (I.poses_intro || []).forEach(function (id) {
       var p = man.poses && man.poses[id];
@@ -532,7 +547,7 @@
     nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed, textoTex: textoTex,
     reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); },
     decidirAvisoVersion: decidirAvisoVersion,
-    listaDelOpening: listaDelOpening, listaDelEditor: listaDelEditor, listaDelPartido: listaDelPartido,
+    listaDelOpening: listaDelOpening, OPENING_DEF: OPENING_DEF, listaDelEditor: listaDelEditor, listaDelPartido: listaDelPartido,
     claveDeTribuna: claveDeTribuna, crearCalentador: crearCalentador
   };
 });

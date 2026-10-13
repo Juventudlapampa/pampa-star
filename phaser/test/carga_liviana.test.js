@@ -240,6 +240,18 @@ function registry() { return { get: function (k) { return registro[k]; }, set: f
   assert(JSON.stringify(poses) === JSON.stringify(BAL.intro.poses_intro.slice().sort()),
     "las poses que usan los planos son las de balance.intro.poses_intro (" + poses.join(", ") + ")");
   assert(typeof BAL.intro._carga === "string" && /poses_intro/.test(BAL.intro._carga), "balance.intro._carga explica las listas");
+  /* revisión del lote: si balance.json pasa su tope de 8 s, index.html
+     sigue con BALANCE_FALLBACK, que no trae las listas: el opening bajaba
+     sin poses ni tribuna. logic/carga.js tiene el mismo respaldo */
+  var HTMLi = leer("phaser/index.html").replace(/\r\n/g, "\n");
+  var mFB = HTMLi.match(/const BALANCE_FALLBACK = (\{[\s\S]*?\n  \});/);
+  var FB = mFB ? new Function("return " + mFB[1])() : null;
+  var conFB = FB ? C.listaDelOpening(FB.intro, POSES, Intro.UI_OPENING).map(function (x) { return x.clave; }).sort() : [];
+  var conBAL = C.listaDelOpening(BAL.intro, POSES, Intro.UI_OPENING).map(function (x) { return x.clave; }).sort();
+  assert(!!FB && JSON.stringify(conFB) === JSON.stringify(conBAL),
+    "SÍNTOMA: con el balance de respaldo (BALANCE_FALLBACK) la intro baja las mismas " + conBAL.length + " ilustraciones que con el de verdad (bajaba " + conFB.length + ")");
+  assert(JSON.stringify(C.OPENING_DEF.poses_intro) === JSON.stringify(BAL.intro.poses_intro) && JSON.stringify(C.OPENING_DEF.fondos_intro) === JSON.stringify(BAL.intro.fondos_intro),
+    "el respaldo de logic/carga.js (OPENING_DEF) es igual a balance.intro: si cambia uno, hay que cambiar el otro");
   console.log("[2] los ocho planos usan " + deAsset.length + " ilustraciones y la intro baja esas mismas (" + poses.length + " poses: " + poses.join(", ") + ")");
 })();
 
