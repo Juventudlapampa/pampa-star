@@ -3781,7 +3781,9 @@ decodificado en node, las esquinas tienen alfa 0 y el contenido llega a
 - `phaser/index.html`: título "PAMPA STAR · Del potrero al Mundial";
   description sin género ("Fútbol pampeano jugada por jugada: armá tu
   pinta, elegí tu localidad y llevá a tu club del potrero al Mundial.
-  Gratis, en el navegador del celular o de la compu.", 161 caracteres);
+  Gratis, en el navegador del celular o de la compu.", 161 caracteres;
+  **la revisión del lote** cambió "llevá a tu club" por "jugá tu
+  carrera": al Mundial va la Selección, no el club);
   `og:type`, `site_name`, `locale` es_AR, `title`, `description`, `url`,
   `image` con `alt`, ancho, alto y tipo; las de tarjeta grande y
   `rel=canonical`, todo absoluto con https. La imagen empezó siendo
@@ -3800,7 +3802,9 @@ decodificado en node, las esquinas tienen alfa 0 y el contenido llega a
   grande empieza con el de una red. La excepción: solo como
   `name="…:card|title|description|image|image:alt"` de un `<meta>` de una
   página, hasta 6 por página, con su autoprueba (un comentario o un
-  `property=` con el nombre siguen cazados).
+  `property=` con el nombre siguen cazados). **La revisión del lote** la
+  achicó a una sola etiqueta por página, la de tarjeta grande: las otras
+  cuatro repetían las og:.
 
 **Cómo se verificó.**
 - `metadatos.test.js` (74 asserts al cierre del lote, con las dos
@@ -3876,7 +3880,9 @@ como modo retro con el save intacto):
   club del potrero al Mundial.", **▶ JUGAR** a `phaser/` (dice **▶ SEGUIR
   MI CARRERA** si hay una carrera del juego nuevo), gratis y en
   horizontal, y los 13 MB. Debajo: si hay una carrera del clásico, el
-  aviso de que sigue en el MODO RETRO; los tres pasos (con el número
+  aviso de que sigue en el MODO RETRO (**la revisión del lote**, por SOLO
+  MODO CARRERA, lo cambió por el aviso de la mudanza al Master, sin link
+  al clásico, y sacó el link del pie); los tres pasos (con el número
   escrito en su ficha, no solo color); cómo instalarlo; **Para medios**
   (el link y el código del iframe de PARA_MEDIOS, con 📋 COPIAR EL
   CÓDIGO); los créditos y la Subsecretaría. Los mismos metadatos y la
@@ -3945,7 +3951,9 @@ worker nuevo instaló `pampa-codigo-v17-1.0-l08`, y en `pampa-assets` está
 rama y la raíz pasa a ser la portada con el próximo push. Cuando se haga
 `sitio-solo-el-juego`, la lista blanca tiene que llevar `index.html` (la
 portada), `clasico/` (el modo retro y sus dos scripts) y
-`phaser/og-card.png`; `docs/og-card.html` es la receta y no se publica.
+`phaser/og-card.png`; `docs/og-card.html` es la receta: no va al juego,
+pero hoy se publica (Pages sirve el repo entero) y deja de publicarse
+cuando se haga `sitio-solo-el-juego` (docs/ fuera de la lista blanca).
 
 ### DECISIONES QUE TOMÉ YO (L08-link)
 
@@ -3974,7 +3982,8 @@ portada), `clasico/` (el modo retro y sus dos scripts) y
    etiquetas de tarjeta grande. Es un identificador de protocolo que no se
    lee; **para que lo confirme Rodri**, como la del cartel de las redes.
    *Revertir:* sacar esas cinco etiquetas de las dos páginas (las
-   vistas previas usan las og:) y el bloque 1d.
+   vistas previas usan las og:) y el bloque 1d. **Revisión del lote:**
+   quedó UNA por página, la de tarjeta grande, y la excepción con tope 1.
 7. **La tarjeta en PNG con paleta de 256 colores** (octree con tramado):
    la cruda pesa 856 KB y el tope es 300. La paleta por corte medio
    pesaba 257 KB pero pasaba la camiseta de amarillo a naranja. Un JPG
@@ -3987,7 +3996,9 @@ portada), `clasico/` (el modo retro y sus dos scripts) y
    huella en `_huella.js` y `node phaser/test/sw_precache.test.js
    --escribir`.
 9. **La receta de la tarjeta en `docs/og-card.html`**: queda en el repo
-   para rehacerla, y en `docs/` no se va a publicar.
+   para rehacerla. No va al juego; deja de publicarse cuando se haga
+   `sitio-solo-el-juego` (docs/ fuera de la lista blanca). Hasta entonces
+   Pages la sirve, como todo el repo (corregido en la revisión del lote).
 10. **Lo que dice la portada**: los tres pasos de la auditoría con una
     línea cada uno, sin prometer lo que todavía no está ("Jugás para su
     club", sin "tu gente": los planteles por localidad son otro ítem);
@@ -3998,6 +4009,8 @@ portada), `clasico/` (el modo retro y sus dos scripts) y
 11. **▶ SEGUIR MI CARRERA** en el mismo botón si hay carrera del juego
     nuevo, y el aviso del MODO RETRO solo si hay carrera del clásico.
     *Revertir:* las dos líneas del `try` en el script de la portada.
+    **Reemplazada en la revisión del lote** (SOLO MODO CARRERA): el aviso
+    ya no manda al clásico sino a traer la carrera con la mudanza.
 12. **JUGAR va a `phaser/`** (la canónica), no a `phaser/index.html`: el
     worker cae a su index.html igual en una navegación.
 13. **Los dos scripts del clásico se mudaron con él**, en vez de pedirlos
@@ -4029,9 +4042,10 @@ portada), `clasico/` (el modo retro y sus dos scripts) y
 - **El modo retro conserva sus textos de antes** ("Pueblo: +2 Carácter",
   "CREÁ TU CRACK", "Cómo te grita la hinchada"): van con
   `lenguaje-institucional`, si se decide que el retro también entra.
-- **El README** sigue nombrando Tsubasa, New Star, "Guts" y "Un pibe que
-  arranca…" (cambié solo "Jugar"): van con `seccion11-al-dia` y
-  `lenguaje-institucional`.
+- ~~**El README** seguía con los nombres de dos juegos comerciales, la
+  palabra prohibida del medidor y masculino genérico (cambié solo
+  "Jugar")~~. **Saldada en la revisión del lote:** el ítem lo pedía (la
+  corrección de Rodri del 13/oct) y los dos README se reescribieron.
 - **`balance.intro.t_pueblo`** dice "En algún pueblo de La Pampa…" (es lo
   primero del opening): `lenguaje-institucional`.
 - **El editor saca el nombre del save del clásico**: con la carrera de
@@ -4044,3 +4058,184 @@ portada), `clasico/` (el modo retro y sus dos scripts) y
 - **La captura del panel** sale a media escala en una esquina después de
   un `scrollTo` o de cambiar el tamaño: para las partes de abajo de la
   portada navegué con `#retro` y `#medios`.
+
+---
+
+## Revisión del lote L08-link
+
+Dos revisores leyeron los commits a979186..187494f y encontraron once
+cosas. Cuatro estaban repetidas (el clásico linkeado desde la portada, los
+README, las etiquetas con prefijo de red y la bajada del Mundial), así que
+son siete. Las comprobé contra el código actual antes de tocar nada: seis
+se sostienen y una (el orden de los pasos de la portada) no pide cambio,
+sino anotar la dependencia. Una salvedad que señalaron los dos: olas.json
+se modificó (02:23:50) después del último commit del lote (02:21:08), así
+que las dos correcciones del 13/oct que el lote no cumplió (SOLO MODO
+CARRERA y reescribir los README) pudieron llegar después. Igual son del
+ítem, y se hicieron acá.
+
+En el navegador usé `localhost:8123`, con el audio desviado al arnés del
+oído y el worker y las cachés borrados antes de cada versión nueva. El
+origen tenía una carrera del Master: la guardé entera antes de empezar,
+la saqué para probar la caja de la mudanza con una carrera del clásico de
+prueba, y al terminar quedó como estaba: las mismas cuatro claves con los
+mismos valores, sin worker y sin cachés (la carrera de prueba y la marca
+del opening, borradas; la copia, también). Capturas en
+`.claude/shots/rev08_*`.
+
+1. **La portada ofrecía el clásico, contra SOLO MODO CARRERA** (media, los
+   dos revisores; commit c290bc1). *Qué estaba mal:* la decisión de Rodri
+   del 13/oct dice que el clásico no se linkea desde la portada ni desde
+   el juego. La portada tenía un link en el pie ("Modo retro: la versión
+   anterior del juego"), visible siempre, y a quien tenía una carrera
+   vieja le decía "▶ SEGUIR EN EL MODO RETRO", en vez de traerla al
+   Master, que ya la importa. PARA_MEDIOS repartía `clasico/` "(modo
+   retro)", y el GDD y el README decían lo mismo. Y `url_oficial.test.js`
+   EXIGÍA el link: la suite quedaba verde contra la decisión. *Qué se
+   hizo:* fuera el link del pie. La caja (ahora `#mudanza`) dice "Tu
+   carrera de antes no se perdió: la podés traer a este juego. Tocá ▶
+   JUGAR y, al empezar tu carrera, elegí ⬆ IMPORTAR TU CARRERA…", sin
+   ningún link, con el mismo gate que el botón del Master (`clasico &&
+   clasico.name`) y solo si no hay carrera del juego nuevo. El GDD
+   (cabecera, 13.6, 16.2 con la decisión y 16.4), PARA_MEDIOS y el README:
+   `clasico/` sigue vivo, sin links, solo para quien tenga una carrera
+   vieja. *Cómo se verificó:* `url_oficial.test.js` invertido (ningún
+   href a clasico ni "modo retro" en la portada; la caja con carrera
+   vieja, con las dos, sin nombre y con el save roto; el botón que nombra
+   existe en master.js; los documentos no reparten el clásico): contra la
+   portada de antes falla 10 asserts. En pantalla, a 375x812 con una
+   carrera del clásico: la caja sin links (`rev08_1_aviso_mudanza.jpg`) y
+   el pie sin el link (`rev08_2_pie_sin_link.jpg`). A 800x360, el camino
+   que dice la caja, con clics de verdad: ▶ JUGAR, la compuerta, el
+   opening, el editor, 🏆 CARRERA y en el Master "⬆ IMPORTAR TU CARRERA
+   (nivel 1 → PRIMERA B)" (`rev08_4_master_importar.png`).
+
+2. **Los README no se habían reescrito** (alta y media, los dos
+   revisores; commit 3e98fa2). *Qué estaba mal:* el ítem lo pedía de
+   forma explícita (corrección de Rodri del 13/oct). Seguían con los
+   nombres de dos juegos comerciales, la palabra prohibida del medidor
+   cinco veces, "Un pibe que arranca en la Primera B de una liga de
+   pueblo", "Nombres reales de jugadores" y "Clubes… se usan con
+   naturalidad"; `phaser/README.md`, con "HITO 1" y el clásico en
+   `../index.html` (hoy la portada). `seccion11.test.js` salteaba todo
+   `.md`. *Qué se hizo:* los dos desde cero. El de la raíz: qué es, el
+   link oficial, cómo se juega en el celular y en la compu, el código de
+   carrera, para quién es, lo que hay de verdad hoy, cómo correrlo (`node
+   server.js`, `bash test.sh` y los omitidos del zip), dónde está cada
+   cosa, la documentación, créditos sin afirmar licencias que no constan
+   y las reglas de contenido de hoy. El de `phaser/`: DATOS + LÓGICA PURA
+   + RENDER, las cuatro escenas y los mixins, P1, la pose quieta, el
+   worker y la suite. `seccion11.test.js`: los dos README entran a todo
+   el barrido y a un bloque nuevo, 1e (la palabra prohibida en cualquier
+   forma y el filtro de lenguaje institucional, sin mirar el código ni
+   las direcciones), con su autoprueba. *Cómo se verificó* (en node: son
+   documentos, no pantalla): contra los README de antes, 19 fallas; con
+   los nuevos, verde. Cada cosa que dicen que existe se chequeó en el
+   código (las cinco divisiones, los botones del código de carrera, las
+   opciones de la semana, Phaser 3.80.1). Al escribirlo vi que la
+   ceguera del partido murió en V7-1 (pantalla partida): el README no la
+   menciona.
+
+3. **Cuatro de las cinco etiquetas con prefijo de red sobraban** (baja,
+   los dos revisores; commit fac59a4). *Qué estaba mal:* title,
+   description, image e image:alt repetían exactamente las og:, que esas
+   vistas previas usan cuando faltan las suyas; la excepción 1d dejaba
+   pasar hasta 6 por página (el nombre de una marca diez veces en el
+   producto). *Qué se hizo:* queda solo la de tarjeta grande, la única
+   sin equivalente og:; 1d con ese único name y tope 1 por página, con
+   autoprueba; `metadatos.test.js` pide UNA etiqueta con ese prefijo.
+   *Cómo se verificó:* con las páginas de antes, 8 fallas en
+   `seccion11.test.js`. En pantalla, la vista previa simulada
+   (`.claude/l08_vista_previa.html`, que lee las etiquetas de verdad) de
+   la raíz y de `phaser/`: una sola etiqueta con ese prefijo y la tarjeta
+   igual que antes (título, bajada e imagen de 1200 de las og:).
+
+4. **La bajada prometía llevar "a tu club" al Mundial** (baja, los dos
+   revisores; commit a8113bd). *Qué estaba mal:* al Mundial va la
+   Selección (decisión de Rodri), y la portada del juego ya decía "jugás
+   tu carrera del potrero al Mundial". *Qué se hizo:* esa misma frase en
+   la description y la og:description de las dos páginas ("…jugá tu
+   carrera…") y en la línea de la portada, igual letra por letra a la del
+   juego. *Cómo se verificó:* `metadatos.test.js` y `url_oficial.test.js`
+   fallan con el texto de antes. En pantalla: la vista previa
+   (`rev08_5_vista_previa_bajada.jpg`) y la portada a 375x812
+   (`rev08_6_portada_pitch.jpg`).
+
+5. **Dos links nuevos debajo del piso táctil** (baja; commit 33b4486). El
+   del pie de la portada se fue con el punto 1. El del clásico ("◀ El
+   juego nuevo…") medía 35 px de alto en el navegador: ahora tiene
+   `min-height` de 48 y el texto centrado. `url_oficial.test.js` [3] pide
+   44 o más (falla con el CSS de antes). En pantalla, a 375x812: 48 de
+   alto, y `elementFromPoint` a 2 px de cada borde da el link
+   (`rev08_7_clasico_link_48.jpg`).
+
+6. **La receta de la tarjeta decía que `docs/` no se publica** (baja;
+   commit del cierre de esta revisión). Hoy Pages publica el repo entero,
+   así que `docs/og-card.html` se sirve. Corregido en la receta, en la
+   decisión 9 y en el paso del deploy: no va al juego y deja de
+   publicarse con `sitio-solo-el-juego`.
+
+7. **Los pasos de la portada en otro orden que el flujo** (baja): **no se
+   cambia.** Es cierto que hoy la primera pantalla después de la
+   compuerta es el editor (la pinta). Pero adentro de la creación de la
+   carrera el orden ya es el de la portada: el Master elige la localidad
+   en el mapa y ARRANCAR manda al editor con "PASO 1 DE 2 · ARMÁ TU
+   PINTA" y después a la entrevista. Y los ítems de la entrada que siguen
+   a SOLO MODO CARRERA lo fijan así: `ENTRADA-1` saca al editor como
+   puerta (la compuerta va siempre al Master) y `ENTRADA-2` escribe "1 DE
+   DÓNDE SOS · 2 TU PINTA · 3 TU HISTORIA". Invertir los pasos ahora los
+   dejaría mal en cuanto entre ENTRADA-1. Queda como dependencia (en las
+   deudas).
+
+Además se corrigieron, en la sección del lote de arriba, las frases que
+la revisión dejó viejas (la bajada, la excepción 1d, el aviso del modo
+retro, el paso del deploy, las decisiones 6, 9 y 11 y la deuda del
+README, que queda saldada).
+
+**La versión** sube a `v17-1.0-l08r` (index.html y sw.js, iguales). Visto
+en el editor: "versión v17-1.0-l08r" (`rev08_8_editor_version.png`), y el
+worker nuevo instaló `pampa-codigo-v17-1.0-l08r`.
+
+### DECISIONES QUE TOMÉ YO (revisión del lote L08)
+
+1. **La caja de la mudanza solo sin carrera del juego nuevo.** Con las
+   dos, el Master abre la tabla y no el paso donde está IMPORTAR: la caja
+   mandaría a un botón que no se ve. *Revertir:* sacar `!nueva &&` en el
+   script de la portada (y el assert de "las dos" en `url_oficial.test.js`).
+2. **La caja nombra el botón tal como se lee** ("⬆ IMPORTAR TU CARRERA")
+   y el test lo ata al texto de master.js: si ENTRADA-1 lo renombra, el
+   test pide cambiar también la portada.
+3. **El link del clásico a la portada nueva se queda.** La decisión
+   prohíbe linkear el clásico DESDE el juego y la portada, no al revés: a
+   quien entra por la URL vieja le conviene la puerta al juego nuevo. Su
+   texto no se tocó. *Revertir:* sacar el `<a class="a-portada">` (y su
+   assert en `url_oficial.test.js` [3]).
+4. **El filtro de lenguaje de los README vive en `seccion11.test.js`**
+   (bloque 1e) hasta que exista `lenguaje.test.js` (ítem
+   `lenguaje-institucional`), que lo tiene que absorber. Caza también las
+   barras entre letras: en los README se escribe "o" en vez de "/".
+5. **Los README no nombran personas** (como la portada, decisión 10 del
+   lote): los créditos con nombres los define el ítem `creditos` con
+   Rodri. Y dicen que no hay LICENSE todavía, en vez de suponer una.
+6. **La etiqueta de tarjeta grande se queda** (y no las cero): sin ella
+   esa red muestra la tarjeta chica. Sigue **para que la confirme Rodri**,
+   como la excepción del cartel de las redes. *Revertir:* sacarla de las
+   dos páginas y el bloque 1d.
+7. **La versión sube a `v17-1.0-l08r`.** *Revertir:* `v17-1.0-l08` en
+   index.html y sw.js.
+
+### Deudas que vi y no son de esta revisión
+
+- **Los pasos de la portada dependen de ENTRADA-1 y ENTRADA-2**: hoy,
+  después de la compuerta se ve el editor antes que el mapa. Cuando entre
+  ENTRADA-1, revisar que la portada siga diciendo el orden de la creación
+  (localidad, pinta, historia).
+- **El Master dice "de la PRIMERA B de tu pueblo al MUNDIAL"**, y la
+  línea del respaldo de la mudanza ("el save del clásico queda
+  RESPALDADO…") queda tapada por el botón de abajo a 800x360
+  (`rev08_4_master_importar.png`): `lenguaje-institucional` y la pasada de
+  legibilidad.
+- **El GDD sigue con texto viejo** fuera de lo que toca este ítem (1.1,
+  1.2, 1.4, 2.1, 2.2 y 8.2 nombran juegos ajenos, una liga real, "pibe" y
+  "pueblo"): es documentación interna, que `sitio-solo-el-juego` saca de
+  lo publicado; si se decide limpiarla, va con `seccion11-al-dia`.
