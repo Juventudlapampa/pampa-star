@@ -431,8 +431,10 @@
       this.registrarMusicaGlobal();
       S.musicaTema(momento === "silencio" ? null : momento, !!opts.seco);
       /* L06 (carga-liviana): los temas nacen sin bajar; se precarga solo lo
-         que puede sonar después de este momento (logic/musica.js) */
-      if (S.precargarTemas && M.siguientes) S.precargarTemas(M.siguientes(momento));
+         que puede sonar después de este momento (logic/musica.js). Revisión
+         del lote: opts.cierre (la última fecha del Master) suma el tema del
+         título */
+      if (S.precargarTemas && M.siguientes) S.precargarTemas(M.siguientes(momento, { cierre: !!opts.cierre }));
       this._musicaMomento = momento;
       this.armarCorteDeMusica();
       return true;

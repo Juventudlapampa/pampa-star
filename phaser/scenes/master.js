@@ -1293,7 +1293,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        pedido si ya suena ese tema) pero es una llamada de mas por cuadro y
        ensucia cualquier medicion de musica. Se pide una sola vez por entrada. */
     if (this._musicaSemanaPuesta !== true) {
-      this.pedirMusica("semana");
+      /* revisión L06: en la última fecha, también baja el tema del título */
+      this.pedirMusica("semana", { cierre: this.T.ultimaFecha(this.save && this.save.temporada) });
       this._musicaSemanaPuesta = true;
     }
     const W = this.scale.width, H = this.scale.height;
@@ -1936,7 +1937,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ============ VISTA 2: LA TEMPORADA ============ */
   vistaTemporada() {
     const W = this.scale.width, H = this.scale.height;
-    this.pedirMusica("espera");
+    /* revisión L06: en la última fecha, la tabla ya baja el tema del título
+       ("hype"), que antes nadie precargaba: sonaba recién cuando bajaba */
+    this.pedirMusica("espera", { cierre: this.T.ultimaFecha(this.save && this.save.temporada) });
     const t = this.save.temporada, T = this.T, Ma = this.Ma;
     const div = Ma.DIVISIONES.find(d => d.id === this.save.division) || Ma.DIVISIONES[0];
     /* C2 · el PRINCIPAL de la temporada es en qué escalón estás: es el dato que

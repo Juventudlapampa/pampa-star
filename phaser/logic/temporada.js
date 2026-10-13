@@ -138,6 +138,10 @@
     return pos.length;
   }
   function terminada(t) { return t.fecha >= t.fixture.length; }
+  /* revisión L06: falta una fecha o ninguna (la que viene es la última, o
+     ya se jugó todo). La usa el Master para bajar ANTES el tema del
+     ascenso y el título (logic/musica.js, siguientes con cierre) */
+  function ultimaFecha(t) { return !!(t && t.fixture && t.fecha >= t.fixture.length - 1); }
 
   /* fin de temporada: el CAMPEÓN asciende (orden de logic/master.js DIVISIONES);
      nadie desciende. En EL MUNDIAL, salir campeón es LA GLORIA. */
@@ -231,7 +235,7 @@
   return {
     renombrarPorPosicion: renombrarPorPosicion, renombrarEquipos: renombrarEquipos,
     fixture: fixture, crear: crear, jugarFecha: jugarFecha, miPartido: miPartido,
-    posiciones: posiciones, miPosicion: miPosicion, terminada: terminada,
+    posiciones: posiciones, miPosicion: miPosicion, terminada: terminada, ultimaFecha: ultimaFecha,
     veredicto: veredicto, rng: rng,
     zonaDescenso: zonaDescenso, enZonaDescenso: enZonaDescenso
   };

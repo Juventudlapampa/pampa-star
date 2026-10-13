@@ -139,7 +139,22 @@
     definicion: ["partido", "gol_festejo"],
     jugadon: ["partido", "gol_festejo"]
   };
-  function siguientes(momento) { return (SIGUIENTES[momento] || []).slice(); }
+  /* REVISIÓN DEL LOTE · EL TEMA DEL TÍTULO. Ninguna entrada de la tabla
+     llevaba a 'hype' (el ascenso, el título, la gloria): el Master lo pide en
+     la tabla del final de la temporada, en la misma pasada que 'espera', y
+     el <audio> nace con preload="none". Con el worker en la página, un
+     pedido de rango espera a que el worker baje el archivo entero (363 KB):
+     el primer ascenso de cada aparato, con poca señal, eran 2-5 s de
+     silencio justo en el momento más grande de la carrera. Ahora, en la
+     última fecha (ctx.cierre, que el Master saca de
+     PampaTemporada.ultimaFecha), la tabla y la semana también precargan
+     'hype'. Solo ahí: en las otras 17 fechas no se escucha. */
+  var SIGUIENTES_CIERRE = { espera: ["hype"], semana: ["hype"] };
+  function siguientes(momento, ctx) {
+    var out = (SIGUIENTES[momento] || []).slice();
+    if (ctx && ctx.cierre) (SIGUIENTES_CIERRE[momento] || []).forEach(function (m) { if (out.indexOf(m) < 0) out.push(m); });
+    return out;
+  }
 
   /* qué momentos declarados NO tienen archivo: se anota, no se calla */
   function sinArchivo(audio) {
@@ -156,6 +171,6 @@
     MOMENTOS: MOMENTOS,
     existe: existe, lista: lista, temaDe: temaDe,
     mapaCompleto: mapaCompleto, sinArchivo: sinArchivo,
-    SIGUIENTES: SIGUIENTES, siguientes: siguientes
+    SIGUIENTES: SIGUIENTES, SIGUIENTES_CIERRE: SIGUIENTES_CIERRE, siguientes: siguientes
   };
 });

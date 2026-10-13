@@ -474,7 +474,30 @@ var HTML = leer("phaser/index.html").replace(/\r\n/g, "\n");
     assert(sig.length >= 1 && sig.every(function (x) { return MUS.existe(x) && MUS.temaDe(x, 0); }), "'" + m + "' tiene tema siguiente válido (" + sig.join(",") + ")");
   });
   var piel = leer("phaser/scenes/piel_ui.js");
-  assert(/S\.precargarTemas\(M\.siguientes\(momento\)\)/.test(piel), "la puerta de la música (pedirMusica) precarga el tema que viene");
+  assert(/S\.precargarTemas\(M\.siguientes\(momento, \{ cierre: !!opts\.cierre \}\)\)/.test(piel), "la puerta de la música (pedirMusica) precarga el tema que viene (con el cierre de la temporada)");
+  /* REVISIÓN DEL LOTE · CADA TEMA TIENE UN CAMINO DE PRECARGA. 'hype' (el
+     ascenso, el título) no estaba en ningún "siguientes": sonaba recién
+     cuando bajaba, con el worker esperando el archivo entero (363 KB). Cada
+     momento con archivo tiene que llegar precargado por algún lado: por la
+     tabla (con o sin el cierre de la temporada), por compartir el archivo
+     con uno que sí, o, el del opening, por la compuerta (intro.js) */
+  var mapa0 = MUS.mapaCompleto(json("data/audio.json"), 0, "../assets/musica/");
+  var precargados = {};
+  MUS.lista().forEach(function (m) {
+    MUS.siguientes(m).concat(MUS.siguientes(m, { cierre: true })).forEach(function (x) { if (mapa0[x]) precargados[mapa0[x].archivo] = true; });
+  });
+  if (/S\.precargarTemas\(\["opening"\]\)/.test(leer("phaser/scenes/intro.js")) && mapa0.opening) precargados[mapa0.opening.archivo] = true;
+  var sinCamino = Object.keys(mapa0).filter(function (m) { return !precargados[mapa0[m].archivo]; });
+  assert(sinCamino.length === 0, "SÍNTOMA: estos momentos tienen archivo y nadie los precarga: " + sinCamino.join(", "));
+  assert(MUS.siguientes("espera").indexOf("hype") < 0 && MUS.siguientes("espera", { cierre: true }).indexOf("hype") >= 0 && MUS.siguientes("semana", { cierre: true }).indexOf("hype") >= 0,
+    "'hype' se precarga solo en la última fecha, desde la tabla y la semana (en las otras no se escucha)");
+  var TEMP = require(path.join(RAIZ, "phaser/logic/temporada.js"));
+  var fx = new Array(18);
+  assert(!TEMP.ultimaFecha({ fecha: 0, fixture: fx }) && !TEMP.ultimaFecha({ fecha: 16, fixture: fx }) && TEMP.ultimaFecha({ fecha: 17, fixture: fx }) && TEMP.ultimaFecha({ fecha: 18, fixture: fx }) && !TEMP.ultimaFecha(null),
+    "PampaTemporada.ultimaFecha: la fecha 18 de 18 (y la temporada terminada), no antes");
+  var srcM = leer("phaser/scenes/master.js");
+  assert(/this\.pedirMusica\("espera", \{ cierre: this\.T\.ultimaFecha\(/.test(srcM) && /this\.pedirMusica\("semana", \{ cierre: this\.T\.ultimaFecha\(/.test(srcM),
+    "el Master pasa el cierre en la tabla y en la semana");
   console.log("[5] música: " + creados.length + " <audio> con preload=none; con el opening sonando se bajan 3 (" + auto.map(function (a) { return a.src.split("/").pop().replace(".ogg", ""); }).join(", ") + ")");
 })();
 
