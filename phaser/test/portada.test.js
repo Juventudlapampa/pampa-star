@@ -357,8 +357,11 @@ pasos.push(async function () {
   assert(/aspect-ratio:16\/9/.test(PM) && /allow="autoplay; fullscreen"/.test(PM), "16:9 y allow=\"autoplay; fullscreen\"");
   /* revisión L07: lo que se reparte a los medios dice la verdad */
   assert(!/ref=embed/.test(PM) && /no lleva ningún dato: el juego no mide visitas/.test(PM), "PARA_MEDIOS no promete una medición que no existe");
-  assert(/\*\*Provisorio\.\*\*/.test(PM) && /https:\/\/juventudlapampa\.github\.io\/pampa-star\/`/.test(PM),
-    "el link /phaser/ va marcado como provisorio hasta el link oficial (la raíz)");
+  /* L08 (url-oficial): el recuadro de provisorio se fue el día que la raíz
+     pasó a ser la portada; ahora el link que se reparte ES la raíz (lo
+     vigila además url_oficial.test.js) */
+  assert(!/\*\*Provisorio\.\*\*/.test(PM) && /```\s*\nhttps:\/\/juventudlapampa\.github\.io\/pampa-star\/\s*\n```/.test(PM.replace(/\r\n/g, "\n")),
+    "el link que reparte PARA_MEDIOS es la raíz (la portada), sin el recuadro de provisorio");
 });
 
 /* ---------- [8] lenguaje ---------- */

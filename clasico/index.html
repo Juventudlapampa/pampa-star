@@ -1,0 +1,3048 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PAMPA STAR · Modo retro</title>
+<meta name="description" content="El modo retro de PAMPA STAR: la versión anterior del juego, con la Liga de la Llanura. El juego nuevo está en la portada.">
+<!-- L08 (url-oficial) · EL CLÁSICO SE MUDÓ A /clasico/. Hasta la tanda 1.0
+     esta página era la raíz del sitio, el link que se difundía, y el juego
+     nuevo (phaser/) no tenía ningún link visible desde acá. Ahora la raíz es
+     la portada con JUGAR, y esto queda como MODO RETRO. La carrera de antes
+     sigue entera: localStorage es por ORIGEN (juventudlapampa.github.io), no
+     por carpeta, así que pampa_star_v1 es la misma clave en /clasico/. Las
+     rutas a assets/ y a phaser/ suben un nivel (../), y estos dos scripts
+     (pampa-star-sprites.js y pampa-star-audio.js) se mudaron con la página. -->
+<link rel="canonical" href="https://juventudlapampa.github.io/pampa-star/clasico/">
+<link rel="icon" type="image/png" sizes="192x192" href="../phaser/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DM+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* ===================== PAMPA STAR — identidad propia, look 8/16-bit =====================
+     Verde de cancha (es fútbol). Cancha APAISADA con scroll horizontal (fútbol por comandos estilo anime noventoso),
+     pero el celu se usa en vertical: campo arriba, controles abajo. */
+  :root{
+    --pasto:#2a9d4f; --pasto-2:#259247; --pasto-osc:#0c4322;
+    --raya:#eafff0; --sol:#f6c11d; --sol-2:#ffd84d; --cielo:#5bb8e8;
+    --crema:#f6efdc; --tinta:#0a1f13; --rojo:#e3503e; --ok:#7ee08a; --night:#06120b; --panel:#0d2a18;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
+  html,body{height:100%;}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:radial-gradient(120% 80% at 50% -10%, #12361f 0%, var(--night) 60%);
+    color:var(--crema);min-height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;padding:.5rem;}
+  .screen{display:none;flex:1;min-height:0;flex-direction:column;}
+  .screen.active{display:flex;animation:fade .3s ease;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  /* V4.3: ilustraciones de PANTALLA (assets/ui/*.webp) — fondo con overlay para que el texto
+     se lea; si la imagen no carga (file:// sin server), queda el gradiente del body de fallback.
+     El pixel-art del PARTIDO no usa esto: va en su canvas aparte. */
+  .screen.hasbg{position:relative;background-size:cover;background-position:center top;background-repeat:no-repeat;border-radius:12px;}
+  .screen.hasbg::before{content:"";position:absolute;inset:.5rem;border-radius:12px;
+    background:linear-gradient(180deg,rgba(6,18,11,.62),rgba(6,18,11,.9));z-index:0;pointer-events:none;}
+  .screen.hasbg > *{position:relative;z-index:1;}
+  #screen-title{background-image:url('../assets/ui/portada.webp');}
+  #screen-lore{background-image:url('../assets/ui/fondo_pueblo.webp');}
+  #screen-week{background-image:url('../assets/ui/fondo_menu.webp');}
+  .brand .logo-img{display:block;width:min(62%,220px);margin:.2rem auto .1rem;image-rendering:auto;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.55));}
+  .pix{font-family:'Press Start 2P',monospace;}
+  /* L08: el link a la portada del juego nuevo, en el pie del título */
+  .a-portada{display:block;text-align:center;color:var(--sol-2);text-decoration:underline;font-size:.85rem;margin-top:.6rem;padding:.5rem .2rem;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- INTRO ---------- */
+  .intro-scroll{overflow-y:auto;flex:1;min-height:0;}
+  .brand{text-align:center;padding:1.1rem 0 .5rem;}
+  .brand .kicker{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase;}
+  .brand h1{font-family:'Press Start 2P',monospace;font-size:clamp(1.4rem,7vw,2.2rem);line-height:1.25;margin:.6rem 0 .2rem;
+    color:var(--sol-2);text-shadow:3px 3px 0 #9c5a00, 0 0 10px rgba(246,193,29,.4);}
+  .brand .sub{font-size:.82rem;opacity:.85;margin-top:.5rem;line-height:1.45;padding:0 .3rem;}
+  .brand .ball{font-size:2.2rem;line-height:1;animation:bob 1.6s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-7deg)}50%{transform:translateY(-8px) rotate(7deg)}}
+  .panel{background:linear-gradient(180deg,rgba(13,42,24,.85),rgba(6,22,13,.92));border:2px solid rgba(246,193,29,.3);border-radius:14px;padding:1rem;}
+  .panel + .panel{margin-top:.6rem;}
+  label.fld{display:block;font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--sol);margin:.1rem 0 .35rem;}
+  input.txt,select.sel{width:100%;background:rgba(0,0,0,.45);border:2px solid rgba(246,239,220,.22);color:var(--crema);padding:.8rem;border-radius:9px;font-family:inherit;font-size:1rem;}
+  input.txt:focus,select.sel:focus{outline:none;border-color:var(--sol);}
+  .pos-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(246,193,29,.14);border:1px solid var(--sol);color:var(--sol-2);padding:.45rem .7rem;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;}
+  .btn{display:block;width:100%;border:none;border-radius:11px;cursor:pointer;font-family:'Press Start 2P',monospace;font-size:.82rem;line-height:1.4;padding:.95rem;margin-top:.7rem;color:var(--tinta);background:linear-gradient(180deg,var(--sol-2),var(--sol));box-shadow:0 4px 0 #b8900f;transition:transform .07s, box-shadow .07s;}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #b8900f;}
+  .btn.ghost{background:rgba(0,0,0,.4);color:var(--crema);border:2px solid rgba(246,239,220,.3);box-shadow:none;font-size:.62rem;}
+  .career-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin-top:.6rem;}
+  .career-cell{background:rgba(0,0,0,.35);border:1px solid rgba(91,184,232,.25);border-radius:9px;padding:.55rem .2rem;text-align:center;}
+  .career-cell .n{font-family:'Press Start 2P',monospace;font-size:1rem;color:var(--sol-2);}
+  .career-cell .l{font-family:'JetBrains Mono',monospace;font-size:.48rem;letter-spacing:.1em;opacity:.6;text-transform:uppercase;margin-top:.4rem;}
+
+  /* ---------- creación de avatar: tarjetas y puntos ---------- */
+  .selcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin-top:.2rem;}
+  .selcard{background:rgba(0,0,0,.4);border:2px solid rgba(246,239,220,.25);border-radius:10px;padding:.5rem .35rem;cursor:pointer;text-align:center;color:var(--crema);}
+  .selcard.sel{border-color:var(--sol);background:rgba(246,193,29,.15);}
+  .selcard.sel .sn::before{content:"✔ ";color:var(--sol-2);}   /* marca por FORMA, no solo color */
+  .selcard .sn{font-family:'Press Start 2P',monospace;font-size:.5rem;line-height:1.45;}
+  .selcard .sd{font-family:'JetBrains Mono',monospace;font-size:.5rem;opacity:.85;margin-top:.3rem;line-height:1.35;}
+  .pts-row{display:flex;align-items:center;gap:.4rem;margin-top:.35rem;font-family:'JetBrains Mono',monospace;font-size:.66rem;}
+  .pts-row .pn{flex:1;}
+  .pts-btn{width:44px;height:44px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.9rem;flex:0 0 auto;}
+  .pts-btn:active{background:rgba(246,193,29,.7);color:#000;}
+  .pts-val{min-width:46px;text-align:center;color:var(--sol-2);font-weight:700;}
+  #lore-txt b{color:var(--sol-2);}
+
+  /* ---------- TEMPORADA ---------- */
+  .se-scroll{overflow-y:auto;flex:1;min-height:0;padding-bottom:.5rem;}
+  .se-head{text-align:center;padding:.6rem 0 .4rem;}
+  .se-fecha{font-family:'Press Start 2P',monospace;font-size:.95rem;color:var(--sol-2);margin-top:.4rem;}
+  .se-title{font-family:'Press Start 2P',monospace;font-size:.58rem;color:var(--sol);margin-bottom:.5rem;}
+  .se-next .vs{font-family:'Press Start 2P',monospace;font-size:.7rem;line-height:1.7;text-align:center;}
+  .se-next .vs b{color:var(--sol-2);}
+  .se-next .subl{font-family:'JetBrains Mono',monospace;font-size:.64rem;text-align:center;opacity:.8;margin-top:.35rem;line-height:1.5;}
+  table.se-tabla{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.58rem;}
+  .se-tabla th{color:var(--sol);font-size:.5rem;text-align:right;padding:.15rem .14rem;border-bottom:1px solid rgba(246,239,220,.2);}
+  .se-tabla th.cl, .se-tabla td.cl{text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:104px;}
+  .se-tabla td{padding:.22rem .14rem;text-align:right;border-bottom:1px solid rgba(246,239,220,.08);}
+  .se-tabla tr.yo td{background:rgba(246,193,29,.16);color:var(--sol-2);font-weight:700;}
+  .se-gol{display:flex;justify-content:space-between;gap:.4rem;font-family:'JetBrains Mono',monospace;font-size:.64rem;padding:.22rem 0;border-bottom:1px solid rgba(246,239,220,.08);}
+  .se-gol.yo{color:var(--sol-2);font-weight:700;}
+  .se-res{display:flex;justify-content:space-between;gap:.4rem;font-family:'JetBrains Mono',monospace;font-size:.6rem;padding:.18rem 0;}
+  .se-res b{color:var(--sol-2);font-weight:700;}
+  .se-campeon{background:linear-gradient(135deg,rgba(246,193,29,.25),rgba(246,193,29,.06));border:2px solid var(--sol);border-radius:12px;padding:.9rem;margin:.4rem 0;text-align:center;}
+  .se-campeon .t{font-family:'Press Start 2P',monospace;font-size:.7rem;color:var(--sol-2);line-height:1.6;}
+  .se-campeon .s{font-family:'JetBrains Mono',monospace;font-size:.68rem;margin-top:.45rem;line-height:1.55;}
+
+  /* ---------- SEMANA (capa de vida) ---------- */
+  .wk-chips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:.4rem 0 .6rem;}
+  .chip{display:flex;align-items:center;gap:.3rem;background:rgba(0,0,0,.5);border:1.5px solid rgba(246,239,220,.25);border-radius:8px;padding:.3rem .55rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;}
+  .chip b{color:var(--sol-2);}
+  .wk-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+  .wk-card{background:linear-gradient(180deg,#13502c,#0c3a20);border:2px solid rgba(246,239,220,.25);border-radius:10px;padding:.6rem .55rem;cursor:pointer;color:var(--crema);text-align:left;transition:transform .06s,border-color .1s;}
+  .wk-card:active{transform:scale(.97);}
+  .wk-card:not(.off):hover{border-color:var(--sol);}
+  .wk-card .wi{font-size:1.1rem;}
+  .wk-card .wn{font-family:'Press Start 2P',monospace;font-size:.6rem;margin-top:.3rem;line-height:1.35;}
+  .wk-card .wd{font-family:'JetBrains Mono',monospace;font-size:.56rem;opacity:.75;margin-top:.25rem;line-height:1.4;}
+  .wk-card.off{opacity:.4;cursor:not-allowed;border-style:dashed;}
+  .wk-detail{background:rgba(0,0,0,.5);border-left:4px solid var(--sol);border-radius:10px;padding:.7rem .8rem;margin-top:.6rem;font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.55;min-height:2.4em;}
+  .wk-detail b{color:var(--sol-2);}
+  .wk-opts{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.5rem;}
+  .wk-opt{background:rgba(20,70,38,.9);border:1.5px solid rgba(246,239,220,.3);border-radius:8px;color:var(--crema);padding:.45rem .6rem;font-family:'JetBrains Mono',monospace;font-size:.64rem;cursor:pointer;}
+  .wk-opt:active{transform:scale(.96);}
+  .wk-opt.warn{border-color:var(--rojo);}
+  .wk-input{width:100%;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.3);color:var(--crema);padding:.5rem .6rem;border-radius:8px;font-family:inherit;font-size:.9rem;margin-top:.45rem;}
+  .wk-input:focus{outline:none;border-color:var(--sol);}
+  /* amigos */
+  .am-row{display:flex;gap:.55rem;align-items:center;background:rgba(0,0,0,.35);border:1px solid rgba(91,184,232,.25);border-radius:10px;padding:.5rem .55rem;margin-top:.45rem;}
+  .am-canvas{width:36px;height:54px;image-rendering:pixelated;flex:0 0 auto;background:rgba(0,0,0,.25);border-radius:6px;}
+  .am-info{flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:.6rem;line-height:1.5;}
+  .am-info .nm{font-family:'Press Start 2P',monospace;font-size:.58rem;color:var(--sol-2);}
+  .vinc-wrap{display:flex;align-items:center;gap:.35rem;margin-top:.2rem;}
+  .vinc-bar{flex:1;height:7px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.15);border-radius:3px;overflow:hidden;max-width:110px;}
+  .vinc-fill{height:100%;background:linear-gradient(90deg,#5bb8e8,#7ee08a);}
+  /* personalización (tu pinta) */
+  .pinta-row{display:flex;gap:.7rem;align-items:center;margin-top:.1rem;}
+  .pv-canvas{width:48px;height:72px;image-rendering:pixelated;background:rgba(0,0,0,.3);border-radius:8px;border:1px solid rgba(246,239,220,.2);flex:0 0 auto;}
+  .pinta-cycles{flex:1;display:flex;flex-direction:column;gap:.35rem;min-width:0;}
+  .cyc{display:flex;align-items:center;gap:.4rem;}
+  .cycb{width:44px;height:44px;background:rgba(0,0,0,.45);border:1.5px solid rgba(246,239,220,.35);border-radius:7px;color:var(--crema);cursor:pointer;font-size:.85rem;flex:0 0 auto;}
+  .cycb:active{background:rgba(246,193,29,.7);color:#000;}
+  .cyclbl{flex:1;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--sol-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  /* ---------- PARTIDO ---------- */
+  #screen-match{gap:.4rem;}
+  .matchbar{display:flex;align-items:center;gap:.4rem;}
+  .score{flex:1;display:flex;align-items:center;gap:.4rem;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;padding:.4rem .5rem;font-family:'Press Start 2P',monospace;font-size:.66rem;min-width:0;}
+  .score .me{color:var(--sol-2);}
+  .score .nm{font-size:.48rem;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .clockchip{display:flex;align-items:center;gap:.3rem;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;padding:.4rem .45rem;font-family:'Press Start 2P',monospace;font-size:.6rem;}
+  .clockchip .hf{color:var(--cielo);font-size:.48rem;}
+  .guts{display:flex;align-items:center;gap:.35rem;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;padding:.4rem .45rem;}
+  .guts .lab{font-family:'Press Start 2P',monospace;font-size:.48rem;color:var(--ok);}
+  .mutebtn{background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.18);border-radius:9px;color:var(--crema);
+    font-family:'JetBrains Mono',monospace;font-size:.6rem;padding:.4rem .45rem;cursor:pointer;min-width:52px;min-height:44px;}
+  .mutebtn:active{background:rgba(246,193,29,.6);color:#000;}
+  .guts-bar{width:52px;height:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.18);border-radius:2px;overflow:hidden;}
+  .guts-fill{height:100%;width:100%;background:linear-gradient(90deg,#7ee08a,#3fbf63);transition:width .25s, background .25s;}
+  /* minimapa/radar (V4.1): plano de la cancha completa con PROPORCIONES reales (105×68), FORMA antes que color */
+  .mmwrap{position:relative;width:58%;margin:0 auto;}
+  .minimap{display:block;width:100%;height:auto;image-rendering:pixelated;background:#0d2a18;border:2px solid rgba(246,239,220,.18);border-radius:8px;touch-action:manipulation;}
+  .mm-zoom{position:absolute;right:-50px;bottom:0;width:44px;height:44px;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.35);border-radius:9px;font-size:1.1rem;color:var(--crema);cursor:pointer;}
+  .mm-zoom:active{background:rgba(246,193,29,.7);}
+  .mm-tip{display:none;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--sol-2);background:rgba(0,0,0,.75);border:1px solid var(--sol);border-radius:6px;padding:.25rem .5rem;text-align:center;}
+  .mm-tip.show{display:block;}
+  /* V4.2-C: radar ampliado a pantalla (modo apuntado) */
+  .radar-big{display:none;position:fixed;inset:0;z-index:40;background:rgba(4,12,7,.94);flex-direction:column;align-items:center;justify-content:center;gap:.6rem;padding:.8rem;}
+  .radar-big.show{display:flex;}
+  .radar-big canvas{width:min(94vw, 118vh);height:auto;image-rendering:pixelated;background:#0d2a18;border:3px solid rgba(246,239,220,.3);border-radius:10px;touch-action:manipulation;}
+  .rb-head{display:flex;align-items:center;gap:.8rem;}
+  .rb-tit{font-family:'Press Start 2P',monospace;font-size:.62rem;color:var(--sol-2);}
+  .rb-close{min-height:44px;padding:.4rem .8rem;background:rgba(0,0,0,.55);border:2px solid rgba(246,239,220,.35);border-radius:9px;color:var(--crema);font-family:'JetBrains Mono',monospace;font-size:.7rem;cursor:pointer;}
+  .rb-sub{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--crema);opacity:.85;text-align:center;}
+
+  /* campo apaisado arriba + controles abajo, todo en pantalla vertical */
+  .field{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;}
+  .stage{position:relative;width:100%;border-radius:12px;overflow:hidden;border:3px solid #08321c;background:#0c4322;display:flex;justify-content:center;max-height:58dvh;}
+  canvas#pitch{display:block;width:100%;height:auto;aspect-ratio:280/156;max-height:58dvh;object-fit:contain;image-rendering:pixelated;image-rendering:crisp-edges;}
+
+  .controls{flex:1;min-height:128px;display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.7rem .3rem .2rem;}
+  .dpad{position:relative;width:136px;height:136px;flex:0 0 auto;touch-action:none;}
+  .dbtn{position:absolute;width:46px;height:46px;background:rgba(8,20,12,.7);border:2px solid rgba(246,239,220,.45);border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--crema);font-size:1.05rem;}
+  .dbtn:active,.dbtn.on{background:rgba(246,193,29,.85);color:#000;border-color:var(--sol-2);}
+  .dbtn.up{left:45px;top:0;} .dbtn.down{left:45px;top:90px;} .dbtn.left{left:0;top:45px;} .dbtn.right{left:90px;top:45px;}
+  .hint{position:absolute;top:6px;left:8px;z-index:6;font-family:'JetBrains Mono',monospace;font-size:.58rem;line-height:1.45;color:var(--crema);background:rgba(8,20,12,.62);border:1px solid rgba(246,239,220,.25);border-radius:7px;padding:.28rem .5rem;text-align:left;}
+  .hint b{color:var(--sol-2);}
+  /* botones de acción (celu): grandes, con ícono Y texto */
+  .abtns{flex:1;display:flex;flex-direction:column;gap:.5rem;max-width:170px;margin-left:auto;}
+  .abtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;min-height:56px;background:linear-gradient(180deg,#13502c,#0c3a20);border:2px solid rgba(246,239,220,.35);border-radius:12px;color:var(--crema);cursor:pointer;padding:.4rem;}
+  .abtn:active{transform:scale(.96);}
+  .abtn .abi{font-size:1.15rem;line-height:1;}
+  .abtn .abt{font-family:'Press Start 2P',monospace;font-size:.6rem;}
+  .abtn .abs{font-family:'JetBrains Mono',monospace;font-size:.5rem;opacity:.75;text-align:center;line-height:1.3;}
+  .abtn.special{border-color:var(--rojo);background:linear-gradient(180deg,#5a1e18,#33100c);}
+  .abtn.off{opacity:.45;border-style:dashed;cursor:not-allowed;}
+
+  /* menú de combate tipo Pokémon (sube desde abajo, sobre los controles) */
+  .combat{position:absolute;left:0;right:0;bottom:0;z-index:8;display:none;background:linear-gradient(180deg,rgba(6,18,11,.94),rgba(4,12,7,.98));border-top:3px solid var(--sol);border-radius:0 0 10px 10px;padding:.85rem .6rem .7rem;}
+  .combat.show{display:block;animation:slideup .18s ease;}
+  @keyframes slideup{from{transform:translateY(40%);opacity:.4}to{transform:none;opacity:1}}
+  .ctag{position:absolute;top:-13px;left:10px;background:#0d2a18;border:2px solid var(--sol);border-radius:7px;padding:.22rem .5rem;font-family:'Press Start 2P',monospace;font-size:.5rem;color:var(--sol-2);}
+  .ctag.def{border-color:var(--cielo);color:var(--cielo);}
+  .ctag.ht{border-color:var(--crema);color:var(--crema);}
+  .combat .txt{font-family:'JetBrains Mono',monospace;font-size:.74rem;line-height:1.4;min-height:2.5em;margin-bottom:.55rem;color:var(--crema);}
+  .combat .txt b{color:var(--sol-2);}
+  .cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;}
+  .cmd{position:relative;background:linear-gradient(180deg,#13502c,#0c3a20);border:2px solid rgba(246,239,220,.25);border-radius:9px;padding:.55rem .5rem;cursor:pointer;text-align:left;color:var(--crema);transition:transform .06s,border-color .1s;}
+  .cmd:active{transform:scale(.96);}
+  .cmd:not(.lock):hover{border-color:var(--sol);}
+  .cmd .cn{font-family:'Press Start 2P',monospace;font-size:.6rem;line-height:1.3;}
+  .cmd .ch{font-family:'JetBrains Mono',monospace;font-size:.7rem;margin-top:.35rem;font-weight:700;}
+  .cmd .csub{font-family:'JetBrains Mono',monospace;font-size:.54rem;opacity:.8;margin-top:.2rem;color:var(--cielo);line-height:1.3;}
+  .cmd .ch.hi{color:var(--ok);} .cmd .ch.mid{color:var(--sol-2);} .cmd .ch.lo{color:#ff9c8c;}
+  .cmd .ico{position:absolute;top:.4rem;right:.5rem;font-size:.85rem;}
+  .cmd.lock{opacity:.42;cursor:not-allowed;border-style:dashed;}
+  .cmd.special{border-color:var(--rojo);background:linear-gradient(180deg,#5a1e18,#33100c);}
+  .cmd.special .cn{color:#ff9c8c;}
+  .cmd.wide{grid-column:1 / -1;text-align:center;}
+
+  .flash{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:9;pointer-events:none;}
+  .flash.show{display:flex;}
+  .flash .big{font-family:'Press Start 2P',monospace;font-size:clamp(1.4rem,8vw,2.4rem);text-shadow:4px 4px 0 rgba(0,0,0,.5);animation:pop .8s ease;text-align:center;line-height:1.3;}
+  @keyframes pop{0%{transform:scale(.2);opacity:0}35%{transform:scale(1.18);opacity:1}80%{transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
+  .flash.gol .big{color:var(--sol-2);}
+  .flash.bad .big{color:#9fb2c4;font-size:clamp(1.1rem,6.5vw,1.9rem);}
+  /* V3·2: corte de cámara (negro seco) y cartel de cambio de control */
+  .cut{position:absolute;inset:0;background:#000;z-index:8;opacity:0;pointer-events:none;}
+  .banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:9;pointer-events:none;
+    font-family:'Press Start 2P',monospace;font-size:.72rem;line-height:1.5;color:var(--sol-2);text-align:center;
+    background:rgba(6,18,11,.82);border:2px solid var(--sol);border-radius:9px;padding:.5rem .7rem;display:none;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
+  .banner.show{display:block;animation:pop .5s ease;}
+  /* V3·4: cut-in dramático del tiro especial (retrato + líneas de velocidad) */
+  .cutin{position:absolute;inset:0;z-index:9;display:none;flex-direction:column;align-items:center;justify-content:center;
+    background:repeating-linear-gradient(115deg, rgba(227,80,62,.30) 0 7px, rgba(6,18,11,.86) 7px 18px);}
+  .cutin.show{display:flex;animation:pop .3s ease;}
+  .cutin .cara{font-size:3.6rem;filter:drop-shadow(0 3px 0 rgba(0,0,0,.55));}
+  .cutin .nom{font-family:'Press Start 2P',monospace;font-size:.9rem;color:var(--sol-2);margin-top:.55rem;text-shadow:2px 2px 0 #9c2b1d;text-align:center;}
+
+  /* ---------- FINAL ---------- */
+  #screen-final{justify-content:center;text-align:center;gap:.2rem;padding:.6rem;}
+  .f-res{font-family:'Press Start 2P',monospace;font-size:2rem;line-height:1.3;margin:.3rem 0;}
+  .f-res.win{color:var(--ok);} .f-res.draw{color:var(--cielo);} .f-res.lose{color:var(--rojo);}
+  .f-veredicto{font-family:'Press Start 2P',monospace;font-size:.8rem;margin-bottom:.3rem;}
+  .f-veredicto.win{color:var(--ok);} .f-veredicto.draw{color:var(--cielo);} .f-veredicto.lose{color:var(--rojo);}
+  .f-tag{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;opacity:.85;}
+  .f-cronica{font-size:.9rem;line-height:1.5;margin:.6rem auto;max-width:340px;}
+  .f-cronica b{color:var(--sol-2);}
+  .level-up{background:linear-gradient(135deg,rgba(246,193,29,.22),rgba(246,193,29,.05));border:2px solid var(--sol);border-radius:11px;padding:.7rem;margin:.5rem auto;max-width:300px;}
+  .level-up .t{font-family:'Press Start 2P',monospace;color:var(--sol-2);font-size:.7rem;line-height:1.4;}
+  .level-up .s{font-family:'JetBrains Mono',monospace;font-size:.78rem;margin-top:.45rem;}
+  .ratings{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem;margin:.5rem auto;max-width:340px;}
+  .rate{background:rgba(0,0,0,.35);border-radius:7px;padding:.4rem .2rem;font-family:'JetBrains Mono',monospace;font-size:.66rem;text-align:center;}
+  .rate .v{display:block;color:var(--sol-2);font-weight:700;font-size:.95rem;margin-top:.15rem;}
+  .foot{text-align:center;font-family:'JetBrains Mono',monospace;font-size:.5rem;letter-spacing:.12em;opacity:.4;margin-top:.5rem;text-transform:uppercase;}
+  .btn-row{display:flex;gap:.5rem;max-width:360px;margin:.4rem auto 0;width:100%;}
+  .btn-row .btn{margin-top:0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ TÍTULO ============ -->
+  <section class="screen active hasbg" id="screen-title">
+    <div class="intro-scroll" style="display:flex;flex-direction:column;justify-content:center;">
+      <div class="brand">
+        <div class="kicker">Modo retro · Liga de Fútbol de la Llanura · La Pampa</div>
+        <img class="logo-img" id="title-logo" src="../assets/ui/logo.webp" alt="PAMPA STAR"
+             onerror="this.style.display='none';document.getElementById('title-h1').style.display='block';">
+        <h1 id="title-h1" style="display:none">PAMPA<br>STAR</h1>
+        <div class="ball">⚽</div>
+        <div class="sub">Del potrero al Mundial. Retro, pampeano y por comandos.</div>
+      </div>
+      <div class="panel">
+        <button class="btn" id="btn-continuar" style="display:none">▶ CONTINUAR</button>
+        <div class="mono" id="continuar-info" style="display:none;text-align:center;font-size:.62rem;opacity:.8;margin-top:.45rem;line-height:1.5"></div>
+        <button class="btn ghost" id="btn-nuevo" style="margin-top:.7rem;font-size:.8rem">✚ NUEVO JUEGO</button>
+        <button class="btn ghost" id="btn-mute-title" style="margin-top:.7rem">🔊 SONIDO: ON</button>
+      </div>
+      <div class="foot">Todo original · hecho en La Pampa</div>
+      <a class="a-portada" href="../">◀ El juego nuevo: del potrero al Mundial</a>
+    </div>
+  </section>
+
+  <!-- ============ LORE ============ -->
+  <section class="screen hasbg" id="screen-lore">
+    <div class="intro-scroll" style="display:flex;flex-direction:column;justify-content:center;">
+      <div class="panel">
+        <div class="se-title">📜 TU HISTORIA</div>
+        <div id="lore-txt" style="line-height:1.75;font-size:.92rem"></div>
+      </div>
+      <button class="btn" id="btn-lore-go">⚽ PATEAR LA PRIMERA PELOTA</button>
+    </div>
+  </section>
+
+  <!-- ============ CREACIÓN DE AVATAR ============ -->
+  <section class="screen" id="screen-intro">
+    <div class="intro-scroll">
+      <div class="brand" style="padding-bottom:.2rem">
+        <div class="kicker">Carrera nueva</div>
+        <h1 style="font-size:clamp(1rem,5vw,1.5rem)">CREÁ TU CRACK</h1>
+      </div>
+      <div class="panel">
+        <label class="fld">Tu nombre</label>
+        <input type="text" class="txt" id="in-name" placeholder="Cómo te grita la hinchada" maxlength="16">
+        <div style="height:.6rem"></div>
+        <label class="fld">¿De dónde sos? (tu localidad marca tu historia)</label>
+        <select class="sel" id="in-localidad"></select>
+        <div class="mono" id="localidad-fx" style="font-size:.56rem;opacity:.8;margin-top:.3rem"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Tu historia con la pelota (rasgo permanente)</label>
+        <div class="selcards" id="sel-rasgo"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Tu estilo de ataque</label>
+        <div class="selcards" id="sel-estilo"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Repartí 5 puntos (<span id="pts-libres">5</span> libres)</label>
+        <div id="pts-rows"></div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Tu club (Primera B) — empezás desde abajo</label>
+        <select class="sel" id="in-club"></select>
+        <div class="mono" style="font-size:.56rem;opacity:.8;margin-top:.3rem">Los que pelean abajo: más difícil y más épico.</div>
+        <div style="height:.6rem"></div>
+        <label class="fld">Tu pinta</label>
+        <div class="pinta-row">
+          <canvas id="pv-canvas" width="12" height="18" class="pv-canvas"></canvas>
+          <div class="pinta-cycles">
+            <div class="cyc"><button class="cycb" data-c="piel" data-d="-1">◀</button><span class="cyclbl" id="lbl-piel">Piel clara</span><button class="cycb" data-c="piel" data-d="1">▶</button></div>
+            <div class="cyc"><button class="cycb" data-c="pelo" data-d="-1">◀</button><span class="cyclbl" id="lbl-pelo">Corto oscuro</span><button class="cycb" data-c="pelo" data-d="1">▶</button></div>
+            <div class="cyc"><button class="cycb" data-c="camiseta" data-d="-1">◀</button><span class="cyclbl" id="lbl-camiseta">Lisa</span><button class="cycb" data-c="camiseta" data-d="1">▶</button></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.7rem">
+          <span class="pos-badge">⚡ Ataque</span>
+          <span class="mono" style="font-size:.56rem;opacity:.6">posición fija</span>
+        </div>
+        <button class="btn" id="btn-start">EMPEZAR CARRERA ▶</button>
+        <button class="btn ghost" id="btn-intro-volver" style="font-size:.7rem">◀ Volver al inicio</button>
+      </div>
+      <div class="foot">Tu origen condiciona toda la carrera</div>
+    </div>
+  </section>
+
+  <!-- ============ TEMPORADA ============ -->
+  <section class="screen" id="screen-season">
+    <div class="se-scroll">
+      <div class="se-head">
+        <div class="kicker" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase">Primera B · Liga de la Llanura</div>
+        <div class="se-fecha" id="se-fecha">FECHA 1 / 18</div>
+      </div>
+      <div id="se-campeon"></div>
+      <div class="panel se-next" id="se-next"></div>
+      <button class="btn" id="btn-jugar">JUGAR FECHA</button>
+      <div class="panel" style="margin-top:.6rem">
+        <div class="se-title">📊 TABLA DE POSICIONES</div>
+        <table class="se-tabla" id="se-tabla"></table>
+      </div>
+      <div class="panel" style="margin-top:.6rem">
+        <div class="se-title">⚽ GOLEADORES</div>
+        <div id="se-goleadores"></div>
+      </div>
+      <div class="panel" style="margin-top:.6rem" id="se-resultados-wrap">
+        <div class="se-title">📋 ÚLTIMA FECHA</div>
+        <div id="se-resultados"></div>
+      </div>
+      <button class="btn ghost" id="btn-se-home">Inicio</button>
+      <div class="foot">Ida y vuelta · 18 fechas · un equipo libre por fecha</div>
+    </div>
+  </section>
+
+  <!-- ============ SEMANA (vida entre fechas) ============ -->
+  <section class="screen hasbg" id="screen-week">
+    <div class="se-scroll">
+      <div class="se-head">
+        <div class="kicker" style="font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.32em;color:var(--sol);text-transform:uppercase">Tu semana · La Pampa</div>
+        <div class="se-fecha" id="wk-fecha">TU SEMANA</div>
+      </div>
+      <div class="wk-chips">
+        <span class="chip">● PUNTOS <b id="wk-puntos">0</b></span>
+        <span class="chip">💰 <b id="wk-plata">$0</b></span>
+        <span class="chip">🧉 ÁNIMO <b id="wk-animo">70</b></span>
+        <span class="chip">🔋 AGUANTE PRÓX. <b id="wk-guts">100</b></span>
+      </div>
+      <div class="wk-grid" id="wk-grid"></div>
+      <div class="wk-detail" id="wk-detail">Repartí tus puntos de la semana y cerrala cuando estés.</div>
+      <div class="panel" style="margin-top:.6rem" id="wk-amigos-wrap">
+        <div class="se-title">🤝 TU GRUPO (<span id="wk-namigos">0</span>/4)</div>
+        <div id="wk-amigos"></div>
+      </div>
+      <button class="btn" id="btn-terminar-semana">TERMINAR SEMANA ▶</button>
+      <div class="foot">Entrená, descansá y viví: la semana también juega</div>
+    </div>
+  </section>
+
+  <!-- ============ PARTIDO ============ -->
+  <section class="screen" id="screen-match">
+    <div class="matchbar">
+      <div class="score"><span class="me" id="hud-me">VOS</span><span class="nm" id="hud-me-n"></span> <span id="hud-gme">0</span>-<span id="hud-grv">0</span> <span class="nm" id="hud-rv">RIVAL</span></div>
+      <div class="clockchip"><span id="hud-min">0'</span><span class="hf" id="hud-half">1T</span></div>
+      <button class="mutebtn" id="btn-mute">🔊 ON</button>
+      <div class="guts"><span class="lab" id="guts-lab">AGUANTE</span><div class="guts-bar"><div class="guts-fill" id="guts-fill"></div></div></div>
+    </div>
+
+    <div class="mmwrap">
+      <canvas id="minimap" class="minimap" width="210" height="136"></canvas>
+      <button class="mm-zoom" id="mm-zoom" aria-label="Ampliar radar para apuntar">🔍</button>
+    </div>
+    <div class="mm-tip" id="mm-tip"></div>
+
+    <!-- V4.2-C: RADAR AMPLIADO (doc §1.2/§4) — modo apuntado a pantalla, todo pausado -->
+    <div class="radar-big" id="radar-big">
+      <div class="rb-head"><span class="rb-tit" id="rb-tit">🎯 APUNTÁ EN EL RADAR</span><button class="rb-close" id="rb-close">✕ CERRAR</button></div>
+      <canvas id="radar-big-cv" width="210" height="136"></canvas>
+      <div class="rb-sub" id="rb-sub">Tocá un compañero (pase) o un espacio libre (pase al espacio)</div>
+    </div>
+
+    <div class="field" id="field">
+      <div class="stage" id="stage">
+        <canvas id="pitch" width="280" height="156"></canvas>
+        <div class="hint" id="hint">Al arco rival <b>▶</b></div>
+        <div class="cut" id="cut"></div>
+        <div class="cutin" id="cutin"><div class="cara" id="cutin-cara">🔥</div><div class="nom" id="cutin-nom"></div></div>
+        <div class="banner" id="banner"></div>
+        <div class="flash" id="flash"><div class="big" id="flash-big">¡GOL!</div></div>
+      </div>
+
+      <div class="controls">
+        <div class="dpad" id="dpad">
+          <div class="dbtn up"    data-dir="up">▲</div>
+          <div class="dbtn down"  data-dir="down">▼</div>
+          <div class="dbtn left"  data-dir="left">◀</div>
+          <div class="dbtn right" data-dir="right">▶</div>
+        </div>
+        <div class="abtns">
+          <button class="abtn" id="btn-pase"><span class="abi">➡️</span><span class="abt">PASE</span><span class="abs" id="pase-sub">elegí receptor</span></button>
+          <button class="abtn" id="btn-patear"><span class="abi">🎯</span><span class="abt">PATEAR</span><span class="abs" id="patear-sub">o BARRA espaciadora</span></button>
+          <button class="abtn special" id="btn-especial"><span class="abi">🔥</span><span class="abt">CALDÉN</span><span class="abs" id="especial-sub">NIVEL 3</span></button>
+        </div>
+      </div>
+
+      <div class="combat" id="combat">
+        <div class="ctag" id="combat-tag">⚔ ATAQUE</div>
+        <div class="txt" id="combat-txt">…</div>
+        <div class="cmd-grid" id="cmd-grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL ============ -->
+  <section class="screen" id="screen-final">
+    <div class="f-tag" id="f-tag">Final del partido</div>
+    <div class="f-veredicto" id="f-veredicto">…</div>
+    <div class="f-res" id="f-res">0 - 0</div>
+    <div class="f-cronica" id="f-cronica">…</div>
+    <div id="f-levelup"></div>
+    <div class="ratings" id="f-ratings"></div>
+    <div class="btn-row">
+      <button class="btn" id="btn-again" style="flex:2">CONTINUAR ▶</button>
+      <button class="btn ghost" id="btn-home" style="flex:1">Inicio</button>
+    </div>
+    <div class="foot">Sigue: ascensos · tiros especiales</div>
+  </section>
+
+</div>
+
+<script src="pampa-star-sprites.js"></script>
+<script src="pampa-star-audio.js"></script>
+<script>
+"use strict";
+/* ============================================================================
+   PAMPA STAR — Motor de partido retro (fútbol por comandos estilo anime noventoso)
+   PARTIDO COMPLETO: reloj estilizado de 90' en dos tiempos con entretiempo.
+   - ATAQUE: movés tu sprite con d-pad hacia el arco rival (derecha). Un defensor
+     te cruza -> SE CONGELA -> menú tipo Pokémon (Gambeta/Pase/Pared/Tiro) -> duelo
+     de stats + aguante, sin barra de timing. En el área, duelo con el arquero.
+   - DEFENSA: el rival avanza hacia TU arco (izquierda). Lo cruzás -> SE CONGELA ->
+     menú (Quitar/Cortar pase/Bloquear/Marcar) -> duelo. Ganás: recuperás. Perdés:
+     sigue, y si llega al área define contra tu arquero.
+   - La posesión alterna naturalmente. Gol => sube stat. Guardado en localStorage.
+   ========================================================================== */
+
+/* ====== AFINADO RÁPIDO (tocá estos valores para cambiar la sensación) ======
+   TODO el balance del partido vive acá arriba (V4.2): velocidades, radios,
+   reloj y umbrales. Tocás un número, recargás, probás. */
+/* — velocidades (px de mundo por frame; el mundo es 1050×680 = 105×68 m) — */
+const VELOCIDAD_JUGADOR = 0.62;   // tu corrida (también la del controlado en defensa vía VEL_PERSECUCION)
+const VELOCIDAD_RIVAL   = 0.48;   // rival atacando con pelota (legado; el portador rival usa VEL_RIVAL_CON_PELOTA)
+const VEL_PORTADOR_MIO  = 0.62;   // conducir es decidir, no picar
+const VEL_PERSECUCION   = 0.70;   // perseguís más rápido que el portador rival → con buen ángulo lo alcanzás
+const VEL_RIVAL_CON_PELOTA = 0.34;
+const VEL_POSICIONALES  = 0.55;   // la escenografía viva (los 22 acompañando la jugada)
+const VEL_PELOTA        = 0.12;   // px por ms (~2 px/frame @60fps) en pases y tiros
+/* — radios y umbrales de encuentro — */
+const PRESION_RADIO     = 26;     // radio del marcador de cada tercio (te alcanza → encuentro)
+const RADIO_ENCUENTRO_DEF = 24;   // en defensa: distancia al portador rival para el cruce
+const DIST_MENU_ARQUERO = 170;    // con PATEAR a menos de esto del arco: menú de definición
+const PASE_RADIO        = 380;    // receptores de pase a menos de esto (el pase largo penaliza %)
+const PASE_TOPE_VIAJE   = 2400;   // ms máximos de viaje de la pelota en un pase
+const AEREO_UMBRAL      = 300;    // V4.2: un pase más largo que esto viaja POR ARRIBA (duelo aéreo al caer)
+const GUTS_RENDIDO      = 25;     // V4 doc §8: por debajo, solo pasar y correr (SIN NAFTA)
+/* — reloj (V4 doc §6) — */
+const SEGUNDOS_POR_MINUTO = 15;   // segundos reales por minuto de juego libre (default del doc)
+const MINUTOS_POR_ACCION = [0,0]; // (v3.1: las acciones ya no saltan el reloj; queda por compat)
+const GUTS_ENTRETIEMPO   = 20;    // Aguante que recupera el equipo en el entretiempo (§6: el ARQ solo si le convirtieron)
+/* — córners y pelota aérea (V4.2) — */
+const CORNER_PROB       = 0.35;   // chance de que una atajada mande la pelota al córner
+/* =========================================================================== */
+
+/* ====== TIROS ESPECIALES PAMPEANOS ======
+   Subís de NIVEL cada GOLES_POR_NIVEL goles de carrera. Los especiales se desbloquean
+   por nivel, cuestan mucho aguante y tienen mejor chance + animación dramática.
+   Solo el Disparo del Caldén está cableado; Atuel y Tornado quedan definidos pero
+   bloqueados (PRÓXIMAMENTE) como desbloqueos futuros. */
+const GOLES_POR_NIVEL = 3;
+const TIROS_ESPECIALES = [
+  {id:"calden",  cn:"DISPARO DEL CALDÉN", ico:"🔥", nivel:3, guts:25, mult:1.30, funcional:true,
+   desc:"Remate con toda la fuerza del árbol eterno de la pampa."},
+  {id:"atuel",   cn:"TIRO ATUEL",         ico:"🌊", nivel:5, guts:30, mult:1.45, funcional:true, rasante:true,
+   desc:"Rasante y serpenteante como el río: entra pegado al pasto."},
+  {id:"tornado", cn:"TORNADO PAMPEANO",   ico:"🌪️", nivel:7, guts:40, mult:1.60, funcional:false,
+   desc:"Chilena con el viento del oeste: casi imposible de atajar."},
+];
+function nivelJugador(){ return 1 + Math.floor(((career&&career.goles)||0)/GOLES_POR_NIVEL); }
+
+/* ====== CAPA DE VIDA (semana entre fechas) ======
+   Pocos puntos por semana para repartir: entrenar, descansar, juntarte, vivir.
+   El modelo de datos nace GÉNERO NEUTRO: ningún personaje tiene género cargado
+   y los textos evitan él/ella (se usa el nombre o frases neutras). */
+const PUNTOS_SEMANA = 3;          // puntos de energía/tiempo por semana
+const GUTS_BASE_POSPARTIDO = 75;  // con cuánto aguante quedás después de un partido (descansar lo sube)
+const VIVIR_EVENTOS = [
+  {t:"Changa de fin de semana: descargaste bolsas en el acopio.", plata:60, animo:-2},
+  {t:"Asado en la pensión con todo el equipo. Se quedó hablando de fútbol hasta cualquier hora.", plata:-15, animo:8},
+  {t:"Le mandaste plata a tu familia en el pueblo. Te llamaron para agradecerte.", plata:-40, animo:10},
+  {t:"Viaje en micro a ver a tu familia: mates, tortas fritas y vuelta con viandas.", plata:-10, animo:9},
+  {t:"Cortaste el pasto de tres patios del barrio.", plata:45, animo:0},
+  {t:"Tarde de río con la gente de la pensión. Volviste con la cabeza limpia.", plata:0, animo:7},
+  {t:"En la pensión te guardaron guiso: noche tranquila y a dormir temprano.", plata:0, animo:5},
+  {t:"Ayudaste en la escuelita de fútbol del barrio. Te pagaron algo y te fuiste con una sonrisa.", plata:20, animo:6},
+];
+/* Amigos: los nombres los pone quien juega (personajes inventados, NUNCA personas reales).
+   Posiciones con nombre neutro. Sin género en el modelo. */
+const POSICIONES = [
+  {k:"ARQ", n:"Arco",     main:"fisico"},
+  {k:"DEF", n:"Defensa",  main:"fisico"},
+  {k:"VOL", n:"Volante",  main:"pase"},
+  {k:"ATA", n:"Ataque",   main:"tiro"},
+];
+const JUNTADAS = [
+  "Mates en la plaza y charla hasta que bajó el sol.",
+  "Peloteada en el potrero de siempre.",
+  "Vueltas en bici por el pueblo, sin apuro.",
+  "Tarde de río: no picó nada, pero qué risa.",
+  "Se quedaron cebando mates y armando el equipo soñado.",
+  "Fueron a la cancha a ver a las inferiores del club.",
+];
+/* Variantes de pinta ETIQUETADAS (catálogo en pampa-star-sprites.js, ver ARTE.md):
+   cada una tiene NOMBRE y (pelo/camiseta) FORMA propia, nunca solo color. HEX siempre. */
+const PIELES = PSART.PIELES, PELOS = PSART.PELOS, CAMISETAS = PSART.CAMISETAS;
+function lookAleatorio(){ return {piel:Math.floor(rnd(0,PIELES.length)), pelo:Math.floor(rnd(0,PELOS.length)), camiseta:Math.floor(rnd(0,CAMISETAS.length))}; }
+function lookLabel(look){
+  const l=look||{piel:0,pelo:1,camiseta:0};
+  return `${PIELES[l.piel%PIELES.length].n} · ${PELOS[l.pelo%PELOS.length].n} · ${CAMISETAS[l.camiseta%CAMISETAS.length].n}`;
+}
+
+/* ---------- Clubes de la Primera B + colores de camiseta (HEX) ----------
+   Sección 11 (sept 2026): eran los nueve clubes REALES de una liga pampeana,
+   con sus colores reales. Ahora son ficticios, en el MISMO ORDEN (el orden es
+   la identidad: la tabla, el fixture y los goleadores guardados van por
+   índice, y migrarClub traduce el nombre guardado de tu club). Los nombres
+   se verificaron en la web contra clubes y ligas reales. */
+const CLUBES = [
+  {n:"Jagüel Viejo",          loc:"Winifreda",   f:50, c1:"#efdfb0", c2:"#3d5a24"},
+  {n:"Espejo de Sal",         loc:"Guatraché",   f:53, c1:"#1f9e98", c2:"#3b2414"},
+  {n:"Viento Oeste",          loc:"Santa Rosa",  f:49, c1:"#c98a1b", c2:"#173f4f"},
+  {n:"Rescoldo FC",           loc:"Carro Quemado", f:46, c1:"#7d8085", c2:"#6d1a2a"},
+  {n:"Guanaco Bravo",         loc:"Luan Toro",   f:47, c1:"#7a4a2a", c2:"#ecd08a"},
+  {n:"Alpataco FC",           loc:"Victorica",   f:48, c1:"#26262a", c2:"#e58a98"},
+  {n:"Cardo Ruso FC",         loc:"Telén",       f:51, c1:"#b3a6d9", c2:"#26262a"},
+  {n:"Cauce Viejo",           loc:"Caleufú",     f:52, c1:"#3f5566", c2:"#ef8a2a"},
+  {n:"Tolvanera FC",          loc:"General Pico", f:55, c1:"#1b2a4a", c2:"#c3c8cf"},
+];
+
+const STORE = "pampa_star_v1";
+const $ = id => document.getElementById(id);
+const rnd = (a,b)=> a + Math.random()*(b-a);
+const clamp = (v,a,b)=> Math.max(a,Math.min(b,v));
+const pick = arr => arr[Math.floor(rnd(0,arr.length))];
+
+/* ---------- Carrera (guardado retrocompatible: nunca borra campos viejos) ---------- */
+let career = loadCareer();
+function loadCareer(){
+  try{
+    const r=localStorage.getItem(STORE);
+    if(r){ const o=JSON.parse(r); if(o && typeof o==="object" && !Array.isArray(o)){
+      if(migrarClub(o)){ try{ localStorage.setItem(STORE, JSON.stringify(o)); }catch(e){} }
+      migrarPedido();
+      return o; } }
+  }catch(e){}
+  return null;
+}
+/* ══ SECCIÓN 11 (sept 2026) · LOS CLUBES DEJARON DE SER LOS REALES ══
+   Hasta acá CLUBES eran los nueve clubes reales de una liga pampeana, con sus
+   colores. Ahora son ficticios, en el MISMO ORDEN. Una carrera guardada tiene
+   escrito el nombre viejo de tu club (lo único que se guarda por nombre: la
+   tabla, el fixture y los goleadores van por índice). Sin migrar, myClubIdx()
+   no lo encuentra, devuelve 0 y pasás a ser otro club sin enterarte.
+   Se traduce por el HASH del nombre viejo (la misma función que usa el
+   Master), así el código no tiene escrito ningún nombre real. */
+function hashNombre(s){ let h=0; s=String(s||""); for(let i=0;i<s.length;i++) h=((h<<5)-h+s.charCodeAt(i))|0; return Math.abs(h); }
+function indiceViejo(nombre){
+  const MAPA={1911103447:0,1803748587:1,1434934931:2,1746747294:3,1654883650:4,1688989863:5,2040825152:6,750084291:7,933524905:8};
+  const i=MAPA[hashNombre(nombre)];
+  return i==null ? -1 : i;
+}
+function migrarClub(o){
+  if(!o || typeof o.club!=="string" || CLUBES.some(c=>c.n===o.club)) return false;
+  const i=indiceViejo(o.club);
+  if(i<0) return false;
+  o.club=CLUBES[i].n;
+  return true;
+}
+/* el pedido que el clásico le deja al partido de Phaser lleva el nombre del rival */
+function migrarPedido(){
+  try{
+    const r=localStorage.getItem("pampa_pedido_phaser"); if(!r) return;
+    const p=JSON.parse(r); if(!p || !p.rival || CLUBES.some(c=>c.n===p.rival)) return;
+    const i=indiceViejo(p.rival);
+    if(i<0) localStorage.removeItem("pampa_pedido_phaser");
+    else { p.rival=CLUBES[i].n; localStorage.setItem("pampa_pedido_phaser", JSON.stringify(p)); }
+  }catch(e){}
+}
+function saveCareer(){ try{ localStorage.setItem(STORE, JSON.stringify(career)); }catch(e){} }
+function freshStats(){ return {pase:52, tiro:58, gambeta:55, velocidad:60, resistencia:54, fisico:50, aereo:47, caracter:51}; }
+function esc(s){ return String(s).replace(/[&<>"']/g, ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch])); }
+function ensureCareer(name, club){
+  if(!career){ career = {}; }
+  career.name = name; career.club = club;
+  // mergear con defaults: un guardado viejo sin alguna stat no puede dejar duelos en NaN
+  career.stats = Object.assign(freshStats(), (career.stats && typeof career.stats==="object") ? career.stats : {});
+  for(const k in career.stats) career.stats[k]=clamp(numOr(career.stats[k],50),1,99);   // ninguna stat puede quedar NaN/string
+  if(career.goles==null)     career.goles = 0;
+  if(career.partidos==null)  career.partidos = 0;
+  if(career.victorias==null) career.victorias = 0;
+  if(career.empates==null)   career.empates = 0;
+  if(career.derrotas==null)  career.derrotas = 0;
+  if(!career.look || typeof career.look!=="object") career.look={piel:0,pelo:1,camiseta:0};
+  ensureVida();
+  saveCareer();
+}
+/* Vida retrocompatible: a un guardado viejo se le agrega sin pisar nada.
+   Sanea TODO (números reales, amigos bien formados): un save corrupto no puede
+   regalar puntos infinitos ni congelar el partido. Repara EN el objeto (sin
+   recrear amigos, para no romper referencias vivas como PS.compa). */
+function numOr(x,d){ return (typeof x==="number" && !isNaN(x)) ? x : d; }
+function ensureVida(){
+  if(!career) return null;
+  if(!career.vida || typeof career.vida!=="object") career.vida = {};
+  const v=career.vida;
+  v.plata = Math.max(0, numOr(v.plata,0));
+  v.animo = clamp(numOr(v.animo,70),0,100);
+  v.gutsProximo = clamp(numOr(v.gutsProximo,100),0,100);
+  if(!Array.isArray(v.amigos)) v.amigos=[];
+  for(let i=v.amigos.length-1;i>=0;i--){
+    const a=v.amigos[i];
+    if(!a || typeof a!=="object"){ v.amigos.splice(i,1); continue; }
+    if(typeof a.nombre!=="string" || !a.nombre.trim()) a.nombre="Cantera";
+    if(!POSICIONES.some(p=>p.k===a.pos)) a.pos="VOL";
+    if(!a.stats || typeof a.stats!=="object") a.stats={};
+    for(const k of ["pase","tiro","gambeta","velocidad","fisico"]) a.stats[k]=clamp(numOr(a.stats[k],45),1,99);
+    a.vinculo = clamp(numOr(a.vinculo,25),0,100);
+    if(!a.look || typeof a.look!=="object") a.look={piel:0,pelo:1,camiseta:0};
+  }
+  if(v.amigos.length>4) v.amigos.length=4;
+  v.semanaPendiente = !!v.semanaPendiente;
+  v.puntosSemana = clamp(numOr(v.puntosSemana,0),0,PUNTOS_SEMANA);
+  return v;
+}
+
+/* ---------- Intro ---------- */
+/* ---------- Origen: localidad, rasgo y estilo (condicionan la carrera) ---------- */
+const LOCALIDADES = ["Abramo","Adolfo Van Praet","Agustoni","Algarrobo del Águila","Alpachiri","Alta Italia","Anguil","Anzoátegui","Arata","Ataliva Roca","Bernardo Larroudé","Bernasconi","Caleufú","Carro Quemado","Catriló","Ceballos","Chacharramendi","Colonia 25 de Mayo","Colonia Barón","Colonia Santa María","Conhelo","Coronel Hilario Lagos","Cuchillo-Có","Doblas","Eduardo Castex","Embajador Martini","Falucho","General Acha","General Pico","General San Martín","Gobernador Duval","Guatraché","Hucal","Ingeniero Luiggi","Intendente Alvear","Jacinto Arauz","La Adela","La Humada","La Maruja","La Reforma","Limay Mahuida","Lonquimay","Loventué","Luan Toro","Macachín","Maisonnave","Mariano Miró","Mauricio Mayer","Metileo","Miguel Riglos","Monte Nievas","Naicó","Parera","Pichi Huinca","Puelches","Puelén","Quehué","Quemú Quemú","Rancul","Realicó","Rolón","Santa Isabel","Santa Rosa","Sarah","Speluzzi","Telén","Toay","Tomás M. de Anchorena","Trenel","Unanue","Uriburu","Vértiz","Victorica","Villa Mirasol","Winifreda"];
+const CIUDADES_GRANDES = ["Santa Rosa","General Pico"];
+const RASGOS = [
+  {k:"potrerista", n:"POTRERISTA", d:"+3 Gambeta · −2 Físico. Gambeta y pases suben más rápido al entrenar."},
+  {k:"club",       n:"DE CLUB",    d:"+2 Pase. Vínculo inicial más alto al reclutar y mejores paredes."},
+  {k:"tardio",     n:"ARRANQUE TARDÍO", d:"Arrancás más abajo (−2 Tiro/Gambeta/Pase) pero TODO entrenamiento rinde más."},
+];
+const ESTILOS = [
+  {k:"encarador", n:"ENCARÁS",         d:"+2 Gambeta · +2 Velocidad."},
+  {k:"definidor", n:"LA CLAVÁS",       d:"+3 Tiro."},
+  {k:"equipo",    n:"JUGÁS EN EQUIPO", d:"+2 Pase y el vínculo pesa MÁS en pases y paredes."},
+];
+let rasgoSel=null, estiloSel=null;
+let puntosSel={tiro:0,gambeta:0,pase:0,velocidad:0,fisico:0,caracter:0};
+function puntosLibres(){ return 5 - Object.values(puntosSel).reduce((a,b)=>a+b,0); }
+function renderSelCards(contId, lista, val, setter){
+  const cont=$(contId); cont.innerHTML="";
+  lista.forEach(o=>{
+    const b=document.createElement("button");
+    b.className="selcard"+(val===o.k?" sel":"");
+    b.innerHTML=`<div class="sn">${o.n}</div><div class="sd">${o.d}</div>`;
+    b.addEventListener("click",()=>{ SFX("menu"); setter(o.k); });
+    cont.appendChild(b);
+  });
+}
+function renderOrigen(){
+  renderSelCards("sel-rasgo", RASGOS, rasgoSel, k=>{ rasgoSel=k; renderOrigen(); });
+  renderSelCards("sel-estilo", ESTILOS, estiloSel, k=>{ estiloSel=k; renderOrigen(); });
+  $("pts-libres").textContent=puntosLibres();
+  const rows=$("pts-rows"); rows.innerHTML="";
+  [["tiro","Tiro"],["gambeta","Gambeta"],["pase","Pase"],["velocidad","Velocidad"],["fisico","Físico"],["caracter","Carácter"]].forEach(([k,l])=>{
+    const r=document.createElement("div"); r.className="pts-row";
+    r.innerHTML=`<span class="pn">${l}</span><button class="pts-btn" data-k="${k}" data-d="-1">−</button><span class="pts-val">+${puntosSel[k]}</span><button class="pts-btn" data-k="${k}" data-d="1">＋</button>`;
+    rows.appendChild(r);
+  });
+  rows.querySelectorAll(".pts-btn").forEach(b=>b.addEventListener("click",()=>{
+    const k=b.dataset.k, d=+b.dataset.d;
+    if(d>0 && puntosLibres()<=0) return;
+    puntosSel[k]=clamp(puntosSel[k]+d,0,5);
+    renderOrigen();
+  }));
+  const loc=$("in-localidad").value;
+  $("localidad-fx").textContent = CIUDADES_GRANDES.includes(loc)
+    ? "Ciudad grande: +1 Pase y +1 Tiro (formación técnica)."
+    : "Pueblo: +2 Carácter (jugar contra el viento forja).";
+}
+function initIntro(){
+  const sel = $("in-club");
+  sel.innerHTML = CLUBES.map((c,i)=>`<option value="${i}">${c.n} · ${c.loc}${c.f<=48?" · la pelea abajo":""}</option>`).join("");
+  const sloc=$("in-localidad");
+  if(!sloc.options.length){
+    sloc.innerHTML = LOCALIDADES.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join("");
+    sloc.value="Santa Rosa";
+    sloc.addEventListener("change", renderOrigen);
+  }
+  if(career && !nuevoPendiente){                           // creando carrera nueva: no prellenar con la vieja
+    $("in-name").value = career.name || "";
+    const idx = CLUBES.findIndex(c=>c.n===career.club);
+    if(idx>=0) sel.value = idx;
+    if(career.look) lookSel = {                             // normaliza índices fuera de rango
+      piel: Math.abs(numOr(career.look.piel,0)|0)%PIELES.length,
+      pelo: Math.abs(numOr(career.look.pelo,1)|0)%PELOS.length,
+      camiseta: Math.abs(numOr(career.look.camiseta,0)|0)%CAMISETAS.length };
+  }
+  renderOrigen();
+  renderPinta();
+}
+/* ---------- Título ---------- */
+function renderTitle(){
+  const hay = !!(career && career.club);
+  $("btn-continuar").style.display = hay?"block":"none";
+  $("continuar-info").style.display = hay?"block":"none";
+  if(hay){
+    const f = career.temporada ? (career.temporada.terminada?"temporada terminada":`Fecha ${(career.temporada.fecha||0)+1}`) : "arrancando";
+    $("continuar-info").textContent = `${career.name} · ${career.club} · ${f} · Nivel ${nivelJugador()}`;
+  }
+  refreshMute();
+  showScreen("screen-title");
+}
+$("btn-continuar").addEventListener("click", ()=>{
+  ensureCareer(career.name, career.club);
+  ensureSeason(); renderSeason();
+});
+let nuevoPendiente=false;   // NO borra el save hasta EMPEZAR CARRERA: si volvés atrás, no perdés nada
+$("btn-nuevo").addEventListener("click", ()=>{
+  if(career && !confirm("Vas a crear una carrera nueva. Si la empezás, se reemplaza la actual. ¿Seguimos?")) return;
+  nuevoPendiente=true;
+  rasgoSel=null; estiloSel=null; puntosSel={tiro:0,gambeta:0,pase:0,velocidad:0,fisico:0,caracter:0};
+  lookSel={piel:0,pelo:1,camiseta:0};
+  $("in-name").value="";
+  initIntro(); showScreen("screen-intro");
+});
+$("btn-mute-title").addEventListener("click", ()=>{ PSAUDIO.toggleMute(); refreshMute(); });
+$("btn-intro-volver").addEventListener("click", ()=>{ nuevoPendiente=false; renderTitle(); });  // cancelar: la carrera vieja queda intacta
+/* ---------- Lore de intro (adaptativo al origen) ---------- */
+function mostrarLore(){
+  const club=CLUBES.find(c=>c.n===career.club)||CLUBES[0];
+  const loc=(career.origen&&career.origen.localidad)||"tu pueblo";
+  $("lore-txt").innerHTML =
+    `En La Pampa el viento no para nunca, y hay quienes aprenden a jugar contra él antes que a favor. Vos sos de esa gente. `+
+    `Naciste en <b>${esc(loc)}</b>, donde la pelota era lo único que sobraba. Jugaste donde se pudo, con lo que había, `+
+    `hasta que armaste el bolso y te mudaste a <b>${esc(club.loc)}</b> para probarte en <b>${esc(club.n)}</b>, `+
+    `un equipo que la pelea abajo y al que no le sobra nada. Nadie te está esperando. No hay cámaras, no hay contrato, no hay nada firmado. `+
+    `Hay una cancha, un vestuario que huele a linimento, y noventa minutos por delante para empezar a demostrar. `+
+    `De acá al Mundial hay un camino largo. <b>Se empieza pateando la primera pelota.</b>`;
+  showScreen("screen-lore");
+}
+$("btn-lore-go").addEventListener("click", ()=>{ SFX("whistle",1); renderSeason(); });
+/* ---------- Tu pinta (variantes etiquetadas: nombre + forma, nunca solo color) ---------- */
+let lookSel = {piel:0, pelo:1, camiseta:0};
+const LOOK_CATS = {piel:PIELES, pelo:PELOS, camiseta:CAMISETAS};
+function renderPinta(){
+  $("lbl-piel").textContent = PIELES[lookSel.piel%PIELES.length].n;
+  $("lbl-pelo").textContent = PELOS[lookSel.pelo%PELOS.length].n;
+  $("lbl-camiseta").textContent = CAMISETAS[lookSel.camiseta%CAMISETAS.length].n;
+  const club = CLUBES[+$("in-club").value||0];
+  const cv=$("pv-canvas"), ctx=cv.getContext("2d");
+  ctx.imageSmoothingEnabled=false; ctx.clearRect(0,0,cv.width,cv.height);
+  drawKit(ctx, 6, 14, club.c1, club.c2, false, 0, lookResolved(lookSel));
+}
+document.querySelectorAll(".cycb").forEach(b=>b.addEventListener("click",()=>{
+  const c=b.dataset.c, cat=LOOK_CATS[c];
+  lookSel[c]=(lookSel[c] + (+b.dataset.d) + cat.length)%cat.length;
+  renderPinta();
+}));
+$("in-club").addEventListener("change", renderPinta);
+$("btn-start").addEventListener("click", ()=>{
+  const name = ($("in-name").value||"").trim() || "Promesa";
+  const club = CLUBES[+$("in-club").value];
+  if(nuevoPendiente){ localStorage.removeItem(STORE); career=null; nuevoPendiente=false; }  // recién ACÁ se reemplaza la carrera vieja
+  ensureCareer(name, club.n);                       // carrera fresca
+  career.look = {piel:lookSel.piel, pelo:lookSel.pelo, camiseta:lookSel.camiseta};
+  /* ORIGEN: condiciona toda la carrera (localidad = identidad; rasgo y estilo = juego) */
+  const localidad=$("in-localidad").value;
+  career.origen = {localidad, rasgo:rasgoSel, estilo:estiloSel};
+  const s=career.stats;
+  if(CIUDADES_GRANDES.includes(localidad)){ s.pase+=1; s.tiro+=1; } else { s.caracter+=2; }
+  if(rasgoSel==="potrerista"){ s.gambeta+=3; s.fisico-=2; }
+  if(rasgoSel==="club"){ s.pase+=2; }
+  if(rasgoSel==="tardio"){ s.tiro-=2; s.gambeta-=2; s.pase-=2; }
+  if(estiloSel==="encarador"){ s.gambeta+=2; s.velocidad+=2; }
+  if(estiloSel==="definidor"){ s.tiro+=3; }
+  if(estiloSel==="equipo"){ s.pase+=2; }
+  for(const k in puntosSel) s[k]=clamp((s[k]||45)+puntosSel[k],1,99);
+  ensureSeason();
+  saveCareer();
+  mostrarLore();
+});
+
+/* ============================ TEMPORADA (Primera B, Liga de la Llanura) ============================
+   Fixture ida y vuelta con 9 clubes: método del círculo con comodín "libre" (número impar,
+   un equipo descansa por fecha). Mi partido se juega con el motor; los otros se simulan
+   con la MISMA escala de goles (0–4 por equipo, sin goleadas raras).
+   Goleadores rivales: genéricos por camiseta ("El 9 de ..."), NUNCA nombres con apariencia real. */
+const FECHAS_TOTAL = 18;
+const SLOTS_GOL = ["El 9","El 10","El 7"];
+
+function genFixture(){
+  const ids=[...CLUBES.keys()];
+  for(let i=ids.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ids[i],ids[j]]=[ids[j],ids[i]]; }
+  const teams=[...ids,-1];           // -1 = fecha libre
+  const m=teams.length, ida=[];
+  for(let r=0;r<m-1;r++){
+    const matches=[]; let libre=null;
+    for(let i=0;i<m/2;i++){
+      const a=teams[i], b=teams[m-1-i];
+      if(a===-1){ libre=b; continue; }
+      if(b===-1){ libre=a; continue; }
+      matches.push(r%2 ? {h:b,a:a} : {h:a,a:b});
+    }
+    ida.push({matches, libre});
+    teams.splice(1,0,teams.pop());   // rotación del círculo (fijo teams[0])
+  }
+  const vuelta=ida.map(f=>({matches:f.matches.map(x=>({h:x.a,a:x.h})), libre:f.libre}));
+  return ida.concat(vuelta);
+}
+function nuevaTemporada(){
+  return {
+    fixture: genFixture(), fecha: 0,
+    tabla: CLUBES.map(()=>({pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0})),
+    goleadores: {}, ultimaFecha: null,
+    golesMios: 0, campeon: null, terminada: false,
+  };
+}
+function seasonValida(t){
+  if(!t || !Array.isArray(t.fixture) || t.fixture.length!==FECHAS_TOTAL) return false;
+  if(!Array.isArray(t.tabla) || t.tabla.length!==CLUBES.length) return false;
+  for(const r of t.tabla){ if(!r||typeof r!=="object") return false; for(const k of ["pj","g","e","p","gf","gc","pts"]) if(typeof r[k]!=="number"||isNaN(r[k])) return false; }
+  if(typeof t.fecha!=="number"||t.fecha<0||t.fecha>FECHAS_TOTAL) return false;
+  return true;
+}
+function ensureSeason(){
+  if(!seasonValida(career.temporada)) career.temporada = nuevaTemporada();   // un save corrupto arranca temporada nueva, no rompe
+  saveCareer();
+}
+function myClubIdx(){ const i=CLUBES.findIndex(c=>c.n===career.club); return i>=0?i:0; }
+function simGoals(fA,fB){
+  const p=clamp(0.26+(fA-fB)*0.012, 0.06, 0.46);
+  let g=0; for(let i=0;i<5;i++) if(Math.random()<p) g++;
+  return Math.min(g,4);
+}
+function sumarGol(clave,n){ const t=career.temporada; t.goleadores[clave]=(t.goleadores[clave]||0)+n; }
+function aplicarEnTabla(h,a,gh,ga){
+  const t=career.temporada.tabla;
+  t[h].pj++; t[a].pj++; t[h].gf+=gh; t[h].gc+=ga; t[a].gf+=ga; t[a].gc+=gh;
+  if(gh>ga){ t[h].g++; t[a].p++; t[h].pts+=3; }
+  else if(gh<ga){ t[a].g++; t[h].p++; t[a].pts+=3; }
+  else { t[h].e++; t[a].e++; t[h].pts++; t[a].pts++; }
+}
+/* Cierra la fecha actual. miGoles/rivalGoles = resultado de MI partido (null si estoy libre). */
+function aplicarFecha(miGoles, rivalGoles){
+  const t=career.temporada;
+  if(t.terminada || t.fecha>=FECHAS_TOTAL) return;
+  const f=t.fixture[t.fecha], yo=myClubIdx(), resultados=[];
+  for(const m of f.matches){
+    let gh,ga;
+    if(miGoles!=null && (m.h===yo||m.a===yo)){
+      if(m.h===yo){ gh=miGoles; ga=rivalGoles; } else { gh=rivalGoles; ga=miGoles; }
+      /* V2: goleadores con nombre real de tu equipo (vos o tus amigos) */
+      const gPersonales = (PS && typeof PS.golesEnPartido==="number") ? PS.golesEnPartido : miGoles;
+      if(gPersonales>0) sumarGol("yo", gPersonales);
+      if(PS && PS.golesAmigos) for(const k in PS.golesAmigos) sumarGol("mio-"+k, PS.golesAmigos[k]);
+      if(miGoles>0) t.golesMios+=miGoles;
+      const riv=(m.h===yo?m.a:m.h);
+      if(rivalGoles>0) sumarGol(riv+"-"+Math.floor(Math.random()*SLOTS_GOL.length), rivalGoles);
+    } else {
+      gh=simGoals(CLUBES[m.h].f+2, CLUBES[m.a].f);   // localía leve
+      ga=simGoals(CLUBES[m.a].f, CLUBES[m.h].f+2);
+      if(gh>0) sumarGol(m.h+"-"+Math.floor(Math.random()*SLOTS_GOL.length), gh);
+      if(ga>0) sumarGol(m.a+"-"+Math.floor(Math.random()*SLOTS_GOL.length), ga);
+    }
+    aplicarEnTabla(m.h,m.a,gh,ga);
+    resultados.push({h:m.h,a:m.a,gh,ga});
+  }
+  t.ultimaFecha={n:t.fecha+1, resultados, libre:f.libre};
+  t.fecha++;
+  if(t.fecha>=FECHAS_TOTAL){ t.terminada=true; t.campeon=ordenTabla()[0]; }
+  const v=ensureVida();
+  if(v && !t.terminada){ v.semanaPendiente=true; v.puntosSemana=PUNTOS_SEMANA; }  // la semana vive entre fechas
+  saveCareer();
+}
+function ordenTabla(){
+  const t=career.temporada.tabla;
+  return [...CLUBES.keys()].sort((a,b)=>
+    (t[b].pts-t[a].pts) || ((t[b].gf-t[b].gc)-(t[a].gf-t[a].gc)) || (t[b].gf-t[a].gf) || CLUBES[a].n.localeCompare(CLUBES[b].n));
+}
+function miPosicion(){ return ordenTabla().indexOf(myClubIdx())+1; }
+function golLabel(clave){
+  if(clave==="yo") return `► ${esc(career.name)} (VOS) · ${abbr(career.club)}`;
+  if(clave.startsWith("mio-")){
+    const r=clave.slice(4);
+    const a=(career.vida&&career.vida.amigos)?career.vida.amigos[+r]:null;
+    return `${a?esc(a.nombre):"Cantera"} · ${abbr(career.club)}`;
+  }
+  const [ci,si]=clave.split("-").map(Number);
+  return `${SLOTS_GOL[si]} de ${CLUBES[ci].n}`;
+}
+function renderSeason(){
+  const t=career.temporada, yo=myClubIdx();
+  $("se-fecha").textContent = t.terminada ? "TEMPORADA TERMINADA" : `FECHA ${t.fecha+1} / ${FECHAS_TOTAL}`;
+  /* campeón / próximo partido */
+  if(t.terminada){
+    const pos=miPosicion();
+    $("se-campeon").innerHTML = `<div class="se-campeon">
+      <div class="t">🏆 CAMPEÓN:<br>${CLUBES[t.campeon].n.toUpperCase()}</div>
+      <div class="s">Terminaste <b>Nº ${pos}</b> con la ${career.club}.<br>Metiste <b>${t.golesMios} gol${t.golesMios===1?"":"es"}</b> en la temporada.</div>
+    </div>`;
+    $("se-next").style.display="none";
+    $("btn-jugar").textContent="NUEVA TEMPORADA ▶";
+  } else {
+    $("se-campeon").innerHTML="";
+    $("se-next").style.display="block";
+    const f=t.fixture[t.fecha];
+    const mio=f.matches.find(m=>m.h===yo||m.a===yo);
+    if(mio){
+      const soyLocal = mio.h===yo;
+      const riv=CLUBES[soyLocal?mio.a:mio.h];
+      $("se-next").innerHTML = `<div class="vs">TU PARTIDO<br><b>${abbr(career.club)}</b> vs ${abbr(riv.n)}</div>
+        <div class="subl">${soyLocal?"De local":"De visitante, en "+riv.loc} · Estás <b>Nº ${miPosicion()}</b>${f.libre!=null?` · Libre: ${abbr(CLUBES[f.libre].n)}`:""}</div>`;
+      $("btn-jugar").textContent="JUGAR FECHA ▶";
+    } else {
+      $("se-next").innerHTML = `<div class="vs">FECHA LIBRE 😴</div>
+        <div class="subl">Te toca descansar: mirás la fecha desde la tribuna. Estás <b>Nº ${miPosicion()}</b>.</div>`;
+      $("btn-jugar").textContent="SIMULAR FECHA ▶";
+    }
+    const v=ensureVida();
+    if(v){
+      $("se-next").insertAdjacentHTML("beforeend", `<div class="subl">🔋 Aguante ${v.gutsProximo} · 💰 $${v.plata} · 🧉 Ánimo ${v.animo}</div>`);
+      if(v.semanaPendiente) $("btn-jugar").textContent="VIVIR LA SEMANA ▶";
+    }
+  }
+  /* tabla */
+  const orden=ordenTabla(), tb=t.tabla;
+  let html=`<tr><th class="cl">CLUB</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>PTS</th></tr>`;
+  orden.forEach((ci,i)=>{
+    const r=tb[ci], dg=r.gf-r.gc;
+    html+=`<tr class="${ci===yo?"yo":""}"><td class="cl">${i+1}. ${ci===yo?"► ":""}${abbr(CLUBES[ci].n)}</td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.gf}</td><td>${r.gc}</td><td>${dg>0?"+":""}${dg}</td><td><b>${r.pts}</b></td></tr>`;
+  });
+  $("se-tabla").innerHTML=html;
+  /* goleadores (top 6) */
+  const gs=Object.entries(t.goleadores).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  $("se-goleadores").innerHTML = gs.length
+    ? gs.map(([k,v])=>`<div class="se-gol ${k==="yo"?"yo":""}"><span>${golLabel(k)}</span><span>${v}</span></div>`).join("")
+    : `<div class="se-gol"><span>Todavía no hay goles.</span></div>`;
+  /* última fecha */
+  const u=t.ultimaFecha;
+  $("se-resultados-wrap").style.display = u?"block":"none";
+  if(u){
+    $("se-resultados").innerHTML =
+      `<div class="se-res" style="opacity:.7"><span>Fecha ${u.n}</span><span>${u.libre!=null?"Libre: "+abbr(CLUBES[u.libre].n):""}</span></div>` +
+      u.resultados.map(r=>{
+        const esMio = r.h===yo||r.a===yo;
+        return `<div class="se-res">${esMio?"<b>":""}<span>${abbr(CLUBES[r.h].n)} ${r.gh} - ${r.ga} ${abbr(CLUBES[r.a].n)}</span>${esMio?"</b>":""}</div>`;
+      }).join("");
+  }
+  showScreen("screen-season");
+}
+/* ============ FUSIÓN CONTROLADA con el partido Phaser (Etapa Final v2) ============
+   TODO detrás del flag `partido_phaser`, APAGADO por defecto: el clásico sigue
+   siendo el camino activo y nada de lo suyo se toca. Encendido, JUGAR FECHA
+   lanza el partido nuevo (phaser/) y su resultado vuelve por el MISMO
+   aplicarFecha() de siempre. Encender/apagar: abrir con ?partido_phaser=1
+   (o =0) — queda guardado en localStorage. */
+function partidoPhaserActivo(){ try{ return localStorage.getItem("pampa_flag_partido_phaser")==="1"; }catch(e){ return false; } }
+(function flagPorURL(){
+  try{
+    const v=new URLSearchParams(location.search).get("partido_phaser");
+    if(v==="1"||v==="0") localStorage.setItem("pampa_flag_partido_phaser", v);
+  }catch(e){}
+})();
+function lanzarPartidoPhaser(rivalClub){
+  try{
+    localStorage.setItem("pampa_pedido_phaser", JSON.stringify({ fecha: career.temporada.fecha, rival: rivalClub.n, ts: Date.now() }));
+    location.href = "../phaser/index.html";   // L08: el clásico vive en clasico/, el partido nuevo en phaser/
+  }catch(e){ startPlay(CLUBES[myClubIdx()], rivalClub); }   // si algo falla, juega el clásico
+}
+function consumirResultadoPhaser(){
+  try{
+    if(!partidoPhaserActivo()) return;
+    const raw = localStorage.getItem("pampa_resultado_phaser"); if(!raw) return;
+    localStorage.removeItem("pampa_resultado_phaser");
+    const r = JSON.parse(raw);
+    if(!career || !career.temporada || career.temporada.terminada) return;
+    if((r.fecha|0) !== career.temporada.fecha) return;      // resultado de otra fecha: no corresponde
+    aplicarFecha(r.golesMio|0, r.golesRival|0);             // el MISMO camino que el resultado clásico
+    saveCareer();
+    renderSeason();
+  }catch(e){}
+}
+
+$("btn-jugar").addEventListener("click", ()=>{
+  const t=career.temporada;
+  if(t.terminada){
+    career.temporada=nuevaTemporada();
+    const v=ensureVida(); if(v){ v.semanaPendiente=false; v.puntosSemana=0; v.gutsProximo=100; }  // pretemporada: energía a full
+    saveCareer(); renderSeason(); return;
+  }
+  const v=ensureVida();
+  if(v && v.semanaPendiente){ renderWeek(); return; }  // primero se vive la semana
+  const yo=myClubIdx(), f=t.fixture[t.fecha];
+  const mio=f.matches.find(m=>m.h===yo||m.a===yo);
+  if(mio){
+    const rivalClub = CLUBES[mio.h===yo?mio.a:mio.h];
+    if(partidoPhaserActivo()) lanzarPartidoPhaser(rivalClub);
+    else startPlay(CLUBES[yo], rivalClub);
+  }
+  else { aplicarFecha(null,null); renderSeason(); }
+});
+$("btn-se-home").addEventListener("click", ()=>{ renderTitle(); });
+
+/* ============================ SEMANA (vida entre fechas) ============================ */
+function wkAcciones(){
+  const v=ensureVida();
+  const lleno = v.amigos.length>=4;
+  return [
+    {k:"entrenar",  ico:"🏋️", n:"ENTRENAR",  d:"+1 stat (tuya o del grupo)"},
+    {k:"descansar", ico:"😴", n:"DESCANSAR", d:`+15 aguante para la fecha (hoy ${v.gutsProximo})`},
+    {k:"juntarse",  ico:"🤝", n:"JUNTARSE",  d: v.amigos.length? "Subí el vínculo con tu grupo" : "Primero reclutá a alguien"},
+    {k:"vivir",     ico:"🧉", n:"VIVIR",     d:"La familia, la changa, el asado"},
+    {k:"reclutar",  ico:"➕", n:"RECLUTAR",  d: lleno? "Grupo completo (4/4)" : "Sumá a alguien al grupo", off: lleno},
+  ];
+}
+function renderWeek(){
+  const v=ensureVida();
+  $("wk-fecha").textContent = `ANTES DE LA FECHA ${career.temporada.fecha+1}`;
+  renderWeekChips();
+  $("wk-detail").innerHTML = "Repartí tus puntos de la semana y cerrala cuando estés.";
+  renderAmigosList();
+  showScreen("screen-week");
+}
+function renderWeekChips(){
+  const v=ensureVida();
+  $("wk-puntos").textContent = "●".repeat(v.puntosSemana)+"○".repeat(Math.max(0,PUNTOS_SEMANA-v.puntosSemana))+" "+v.puntosSemana;
+  $("wk-plata").textContent = "$"+v.plata;
+  $("wk-animo").textContent = v.animo;
+  $("wk-guts").textContent = v.gutsProximo;
+  const grid=$("wk-grid"); grid.innerHTML="";
+  for(const a of wkAcciones()){
+    const b=document.createElement("button");
+    const off = v.puntosSemana<=0 || a.off;
+    b.className="wk-card"+(off?" off":"");
+    b.innerHTML=`<div class="wi">${a.ico}</div><div class="wn">${a.n}</div><div class="wd">${a.d}</div>`;
+    if(!off) b.addEventListener("click", ()=> WK_HANDLERS[a.k]());
+    grid.appendChild(b);
+  }
+}
+function gastarPunto(){
+  const v=ensureVida();
+  if(v.puntosSemana<=0){ $("wk-detail").innerHTML="No te quedan puntos esta semana. Tocá <b>TERMINAR SEMANA</b>."; return false; }
+  v.puntosSemana--; saveCareer();
+  return true;
+}
+const WK_HANDLERS = {
+  entrenar(){
+    const v=ensureVida();
+    if(v.puntosSemana<=0) return gastarPunto();
+    let html=`🏋️ ¿Quién entrena esta semana?<div class="wk-opts"><button class="wk-opt" data-t="yo">VOS</button>`;
+    html += v.amigos.map((a,i)=>`<button class="wk-opt" data-t="${i}">${esc(a.nombre)}</button>`).join("")+`</div>`;
+    $("wk-detail").innerHTML = html;
+    $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
+      if(b.dataset.t==="yo") return WK_HANDLERS._entrenarYo();
+      WK_HANDLERS._entrenarAmigo(+b.dataset.t);
+    },{once:true}));
+  },
+  _entrenarYo(){
+    const opts=Object.keys(career.stats).sort(()=>Math.random()-.5).slice(0,3);
+    $("wk-detail").innerHTML = `🏋️ ¿Qué entrenás?<div class="wk-opts">`+
+      opts.map(k=>`<button class="wk-opt" data-k="${k}">${statLabel(k)} ${career.stats[k]} → +1</button>`).join("")+
+      `</div>`;
+    $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
+      if(!gastarPunto()) return;
+      const k=b.dataset.k;
+      const rasgo=career.origen&&career.origen.rasgo;   // el rasgo condiciona cómo rinde la semana
+      const pPerf = rasgo==="tardio" ? 0.5 : (rasgo==="potrerista"&&(k==="gambeta"||k==="pase")) ? 0.6 : 0.2;
+      const perfecto=Math.random()<pPerf, inc=perfecto?2:1;
+      career.stats[k]=clamp(career.stats[k]+inc,1,99); saveCareer();
+      $("wk-detail").innerHTML=`✔ Semana de entrenamiento${perfecto?" <b>PERFECTA</b>":""}: <b>+${inc} ${statLabel(k)}</b> (ahora ${career.stats[k]}).`;
+      renderWeekChips();
+    },{once:true}));
+  },
+  _entrenarAmigo(i){
+    const v=ensureVida(), a=v.amigos[i];
+    if(!a) return;
+    if(!gastarPunto()) return;
+    const pos=POSICIONES.find(p=>p.k===a.pos);
+    const key = Math.random()<0.6 && pos ? pos.main : pick(Object.keys(a.stats));
+    const inc = Math.random()<0.2 ? 2 : 1;
+    a.stats[key]=clamp(a.stats[key]+inc,1,99);
+    a.vinculo=Math.min(100,a.vinculo+2);   // entrenar juntos también une
+    saveCareer();
+    $("wk-detail").innerHTML=`✔ Entrenaste con <b>${esc(a.nombre)}</b>: <b>+${inc} ${statLabel(key)}</b> (ahora ${a.stats[key]}) y <b>+2 vínculo</b> (${a.vinculo}).`;
+    renderWeekChips(); renderAmigosList();
+  },
+  juntarse(){
+    const v=ensureVida();
+    if(!v.amigos.length){ $("wk-detail").innerHTML="🤝 Todavía no tenés grupo: usá <b>RECLUTAR</b> para sumar a alguien."; return; }
+    if(v.puntosSemana<=0) return gastarPunto();
+    $("wk-detail").innerHTML=`🤝 ¿Con quién te juntás?<div class="wk-opts">`+
+      v.amigos.map((a,i)=>`<button class="wk-opt" data-i="${i}">${esc(a.nombre)} (vínculo ${a.vinculo})</button>`).join("")+`</div>`;
+    $("wk-detail").querySelectorAll(".wk-opt").forEach(b=>b.addEventListener("click",()=>{
+      if(!gastarPunto()) return;
+      const a=v.amigos[+b.dataset.i];
+      const inc=Math.round(rnd(7,12));
+      a.vinculo=Math.min(100,a.vinculo+inc);
+      v.animo=clamp(v.animo+3,0,100); saveCareer();
+      $("wk-detail").innerHTML=`🤝 ${pick(JUNTADAS)}<br>Vínculo con <b>${esc(a.nombre)}</b>: <b>+${inc}</b> (ahora ${a.vinculo}) · <b>+3 ánimo</b>.`;
+      renderWeekChips(); renderAmigosList();
+    },{once:true}));
+  },
+  reclutar(){
+    const v=ensureVida();
+    if(v.amigos.length>=4){ $("wk-detail").innerHTML="➕ Tu grupo ya está completo (4/4)."; return; }
+    if(v.puntosSemana<=0) return gastarPunto();
+    wkCandidato = nuevoCandidato();
+    renderCandidato();
+  },
+  descansar(){
+    const v=ensureVida();
+    if(!gastarPunto()) return;
+    v.gutsProximo=Math.min(100,v.gutsProximo+15);
+    v.animo=clamp(v.animo+4,0,100); saveCareer();
+    $("wk-detail").innerHTML=`😴 Siesta larga, mate y tele: <b>+15 aguante</b> para la fecha (🔋 ${v.gutsProximo}) y <b>+4 ánimo</b> (🧉 ${v.animo}).`;
+    renderWeekChips();
+  },
+  vivir(){
+    const v=ensureVida();
+    if(!gastarPunto()) return;
+    const e=pick(VIVIR_EVENTOS);
+    v.plata=Math.max(0, v.plata+(e.plata||0));
+    v.animo=clamp(v.animo+(e.animo||0),0,100); saveCareer();
+    const fx=[];
+    if(e.plata) fx.push(`<b>${e.plata>0?"+":""}$${Math.abs(e.plata)}</b>${e.plata<0?" menos":""} (💰 $${v.plata})`);
+    if(e.animo) fx.push(`<b>${e.animo>0?"+":""}${e.animo} ánimo</b> (🧉 ${v.animo})`);
+    $("wk-detail").innerHTML=`🧉 ${e.t}<br>${fx.join(" · ")||"Una semana tranquila."}`;
+    renderWeekChips();
+  },
+};
+/* ---------- Reclutar: personaje inventado, nombre puesto por quien juega ---------- */
+let wkCandidato = null;
+function nuevoCandidato(){
+  const pos=pick(POSICIONES);
+  const st={pase:0,tiro:0,gambeta:0,velocidad:0,fisico:0};
+  for(const k in st) st[k]=Math.round(rnd(42,56));
+  st[pos.main]=clamp(st[pos.main]+8,1,99);
+  const vincIni = (career.origen&&career.origen.rasgo==="club") ? 35 : 25;   // DE CLUB: caés bien de entrada
+  return {pos:pos.k, stats:st, look:lookAleatorio(), vinculo:vincIni};
+}
+function renderCandidato(){
+  const c=wkCandidato; if(!c) return;
+  const pos=POSICIONES.find(p=>p.k===c.pos)||{n:c.pos};
+  $("wk-detail").innerHTML = `➕ Alguien del barrio quiere sumarse al grupo:<br>
+    <b>${pos.n}</b> · PAS ${c.stats.pase} · TIR ${c.stats.tiro} · GAM ${c.stats.gambeta} · VEL ${c.stats.velocidad} · FIS ${c.stats.fisico}<br>
+    Pinta: <b>${lookLabel(c.look)}</b>
+    <input class="wk-input" id="wk-nombre" maxlength="12" placeholder="Nombre inventado (no de una persona real)">
+    <div class="wk-opts">
+      <button class="wk-opt" id="wk-confirmar">✔ SUMAR (1 punto)</button>
+      <button class="wk-opt" id="wk-otro">↻ OTRA PERSONA</button>
+    </div>`;
+  $("wk-confirmar").addEventListener("click", ()=>{
+    const v=ensureVida();
+    const nom=($("wk-nombre").value||"").trim();
+    if(!nom){ $("wk-nombre").placeholder="¡Ponele un nombre primero!"; $("wk-nombre").focus(); return; }
+    if(v.amigos.length>=4 || !gastarPunto()) return;
+    v.amigos.push({nombre:nom, pos:wkCandidato.pos, stats:wkCandidato.stats, look:wkCandidato.look, vinculo:wkCandidato.vinculo});
+    wkCandidato=null; saveCareer();
+    $("wk-detail").innerHTML=`✔ <b>${esc(nom)}</b> se suma al grupo. ¡A entrenar y a jugar en equipo!`;
+    renderWeekChips(); renderAmigosList();
+  });
+  $("wk-otro").addEventListener("click", ()=>{ wkCandidato=nuevoCandidato(); renderCandidato(); });
+}
+function renderAmigosList(){
+  const v=ensureVida();
+  $("wk-namigos").textContent = v.amigos.length;
+  if(!v.amigos.length){
+    $("wk-amigos").innerHTML = `<div class="am-info" style="opacity:.7;padding:.3rem 0">Todavía no reclutaste a nadie. Usá ➕ RECLUTAR para armar tu grupo (le ponés vos el nombre).</div>`;
+    return;
+  }
+  $("wk-amigos").innerHTML = v.amigos.map((a,i)=>{
+    const pos=POSICIONES.find(p=>p.k===a.pos)||{n:a.pos};
+    return `<div class="am-row">
+      <canvas class="am-canvas" width="12" height="18" data-i="${i}"></canvas>
+      <div class="am-info">
+        <div class="nm">${esc(a.nombre)}</div>
+        <div>${pos.n} · ${lookLabel(a.look)}</div>
+        <div>PAS ${a.stats.pase} · TIR ${a.stats.tiro} · GAM ${a.stats.gambeta} · VEL ${a.stats.velocidad} · FIS ${a.stats.fisico}</div>
+        <div class="vinc-wrap"><span>VÍNCULO</span><div class="vinc-bar"><div class="vinc-fill" style="width:${a.vinculo}%"></div></div><b>${a.vinculo}</b></div>
+        <div>Dupla: pase +${Math.round(a.vinculo*0.12)}% · pared ${a.vinculo>=70?'AUTOMÁTICA ★★':'+'+Math.round(a.vinculo*0.2)+'%'}</div>
+      </div></div>`;
+  }).join("");
+  pintarAmigos();
+}
+/* dibuja el mini-sprite de cada amigo con su pinta (piel/pelo/camiseta) y los colores del club */
+function pintarAmigos(){
+  const v=ensureVida();
+  const club = CLUBES.find(c=>c.n===career.club)||CLUBES[0];
+  document.querySelectorAll("#wk-amigos .am-canvas").forEach(cv=>{
+    const a=v.amigos[+cv.dataset.i]; if(!a) return;
+    const ctx=cv.getContext("2d"); ctx.imageSmoothingEnabled=false;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    drawKit(ctx, 6, 14, club.c1, club.c2, false, 0, lookResolved(a.look));
+  });
+}
+$("btn-terminar-semana").addEventListener("click", ()=>{
+  const v=ensureVida();
+  v.semanaPendiente=false; v.puntosSemana=0; saveCareer();
+  renderSeason();
+});
+
+/* ---------- Geometría del mundo (pixel, cancha APAISADA) ----------
+   X = largo de cancha (scroll horizontal). Tu arco a la IZQUIERDA, el rival a la DERECHA. */
+const CW=280, CH=156;          // resolución interna del canvas de ACCIÓN (apaisado)
+/* ====== V4.1 — CANCHA REAL 105×68 (doc §1.2) + CÁMARA 2D CON ZOOM ======
+   El mundo es una cancha PROPORCIONADA (105×68 → 1050×680 unidades). La vista de
+   acción es una ventana con zoom que sigue la pelota en X e Y; el RADAR de abajo
+   tiene las proporciones REALES de una cancha (modelo CT2). */
+const WORLD_W=1050, CAMPO_H=680;  // 105×68 metros → ×10
+const TOP=12, BOT=CAMPO_H-12;     // líneas de banda
+const MIDY=CAMPO_H/2;
+const GOAL_X=WORLD_W-8;           // línea de gol rival (derecha)
+const AREA_X=GOAL_X-165;          // frente del área rival (16,5m)
+const MY_AREA_X=173;              // frente de TU área
+const ZOOM_ACCION=2.0;            // la vista de acción ve ~140×78 de mundo alrededor de la pelota
+const GOAL_MEDIO=55, CIRCULO=92;  // OJO: arco agrandado ADREDE (11m vs 7,3m real) por legibilidad en celu y
+                                  // porque las ZONAS de tiro (gy ±44/±38), el afuera ±70 y el clamp de arqueros ±52
+                                  // están atados a este 55 — si lo bajás a escala real (37), reescalá TODA esa cadena.
+
+/* ---------- Arte: módulo PSART (pampa-star-sprites.js, ver ARTE.md) ---------- */
+PSART.config({CW,CH,TOP,BOT,WORLD_W,GOAL_X,AREA_X,MY_AREA_X,MIDY,
+  AREA_MEDIO:200, CHICA_MEDIO:90, GOAL_MEDIO, CHICA_D:55, PENAL_D:110, PENAL_D2:118, CIRCULO});  // cancha real 105×68
+const px=PSART.px, drawKit=PSART.drawKit, drawBall=PSART.drawBall,
+      drawMarker=PSART.drawMarker, lookResolved=PSART.lookResolved,
+      drawKitBig=PSART.drawKitBig, drawBallBig=PSART.drawBallBig;
+
+/* ====== V2 · ETAPA A — EQUIPO EN LA CANCHA (DISENO_PARTIDO_V2.md) ======
+   5v5: vos + tus amigos en su posición + canteranos genéricos de relleno.
+   Los compañeros se mueven por ANCLAS: x proporcional a la pelota, banda
+   vertical propia. Nada de pathfinding. El rival usa el mismo sistema. */
+const ELASTICIDAD = {ARQ:0.05, DEF:0.30, VOL:0.50, ATA:0.72};   // cuánto acompaña cada rol a la pelota
+const STATS_CANTERA = {pase:40,tiro:38,gambeta:38,velocidad:42,fisico:40};
+/* V4: formación 11v11 = ARQ – 4 DEF – 3 VOL – 3 ATA (1-4-3-3). Cada slot: ancla X + banda Y.
+   "mia" ataca a la derecha; "rival" es el espejo (WORLD_W - x). El slot ATA central es el tuyo. */
+function bandasDe(n){   // reparte n bandas verticales parejas entre TOP y BOT
+  const h=(BOT-TOP)/n;
+  return Array.from({length:n},(_,i)=>[Math.round(TOP+i*h)+2, Math.round(TOP+(i+1)*h)-2]);
+}
+function formacion(side){
+  const mir = side==="rival", ax = x => mir ? (WORLD_W - x) : x;
+  const b4=bandasDe(4), b3=bandasDe(3);
+  return [
+    {pos:"ARQ", ax:ax(30),  by:[MIDY-100, MIDY+100]},
+    {pos:"DEF", ax:ax(190), by:b4[0]}, {pos:"DEF", ax:ax(190), by:b4[1]},
+    {pos:"DEF", ax:ax(190), by:b4[2]}, {pos:"DEF", ax:ax(190), by:b4[3]},
+    {pos:"VOL", ax:ax(460), by:b3[0]}, {pos:"VOL", ax:ax(460), by:b3[1]}, {pos:"VOL", ax:ax(460), by:b3[2]},
+    {pos:"ATA", ax:ax(730), by:b3[0]},
+    {pos:"ATA", ax:ax(730), by:[MIDY-190, MIDY+190], mio:true},   // el 9: banda central (slot de VOS)
+    {pos:"ATA", ax:ax(730), by:b3[2]},
+  ];
+}
+const JUGADORES_POR_EQUIPO = 11;
+
+/* ====== V2 · ETAPA D — ROLES: mismo comando, manos distintas (tabla afinable) ====== */
+const PESOS_POS = {
+  ATA:{gambeta:1.0, pase:1.0,  tiro:1.0,  quite:0.7},
+  VOL:{gambeta:0.9, pase:1.15, tiro:0.85, quite:0.85},
+  DEF:{gambeta:0.7, pase:0.9,  tiro:0.6,  quite:1.1},
+  ARQ:{gambeta:0.5, pase:0.8,  tiro:0.4,  quite:1.0},
+};
+function pesoCtrl(k){
+  const e=(PS&&PS.equipo)?ctrlEnt():null;
+  const pos=e?e.pos:"ATA";
+  return (PESOS_POS[pos]&&PESOS_POS[pos][k])||1;
+}
+/* (PRESION_RADIO vive en el bloque AFINADO RÁPIDO de arriba) */
+
+/* ---------- Estado del partido ---------- */
+let PS = null;
+function newState(club, rival){
+  return {
+    club, rival,
+    stats: JSON.parse(JSON.stringify(career.stats)),
+    guts: clamp((career.vida && career.vida.gutsProximo!=null) ? career.vida.gutsProximo : 100, 40, 100),
+    gMe:0, gRv:0,
+    minuto:0, half:1,
+    state:"run", running:true, raf:0,
+    posesion:"mia",
+    player:{x:300,y:MIDY,anim:0,face:1},
+    ball:{x:308,y:MIDY}, ballAlt:0,    // V4.2-D: altura de la pelota (vuela por ARRIBA en centros/pelotazos)
+    carrier:{x:0,y:0,active:false},          // atacante rival cuando defendés
+    myKeeper:{x:16,y:MIDY},
+    keeper:{x:GOAL_X-14,y:MIDY,faced:false}, // arquero rival
+    defenders:[],
+    camX:0, camY:0, dirs:{up:false,down:false,left:false,right:false},
+    encounter:null, encCooldown:0,
+    golesEnPartido:0,
+    controlIdx:0, pasesSeguidos:0, empuje:0, bonusJugada:false,   // V2·C
+    paredAutoUsada:false, vincParedes:0, golesAmigos:{},
+    escena:null, colaEscenas:[], _t:0, _last:0,                   // V3·2 máquina de escenas
+    rivalGuts:100,
+    desc1:rnd(1,3), desc2:rnd(1,4),   // V4·E4: descuento OCULTO de cada tiempo (finales de infarto)                                                // V4·E3: la CPU también se cansa (nada de aguante infinito)
+  };
+}
+/* V4·E3: fuerza efectiva del rival — baja cuando su equipo se queda sin nafta */
+function rivalF(){ return PS.rival.f * (0.86 + 0.14*clamp(PS.rivalGuts,0,100)/100); }
+function rivalGasta(n){ PS.rivalGuts = clamp(PS.rivalGuts - n, 0, 100); }
+/* ---------- V3·1: armar los equipos de 7 (vos + amigos en su pos + canteranos) ---------- */
+function mkEnt(ref, pos, nombre, stats, vinculo, guts, look, slot, idle){
+  return {ref, pos, nombre, stats, vinculo, guts, look,
+    elast:ELASTICIDAD[pos], ancla:slot.ax, banda:slot.by, idle:idle||0,
+    x: ref==="yo"?300:slot.ax, y: ref==="yo"?MIDY:(slot.by[0]+slot.by[1])/2, anim:0, face:1};
+}
+function buildEquipo(){
+  const v=ensureVida();
+  const slots=formacion("mia");
+  const usados=slots.map(()=>false);
+  const iAta=slots.findIndex(s=>s.mio); usados[iAta]=true;   // el 9 central es TUYO
+  const equipo=[mkEnt("yo","ATA",career.name,career.stats,null,null,career.look,slots[iAta])];
+  let cN=1;
+  for(let ai=0; ai<v.amigos.length && equipo.length<JUGADORES_POR_EQUIPO; ai++){
+    const a=v.amigos[ai];
+    let si=slots.findIndex((s,i)=>!usados[i] && s.pos===a.pos);   // su posición real si hay lugar
+    if(si<0) si=slots.findIndex((s,i)=>!usados[i]);               // si no, cualquier slot libre
+    if(si<0) break;
+    usados[si]=true;
+    const guts=clamp(Math.round(55+a.stats.fisico*0.5),30,100);
+    // el ROL es el del SLOT físico (si no hay lugar en su puesto, juega fuera de posición con sus stats):
+    // así el 7v7 siempre tiene EXACTAMENTE 1 ARQ y nadie queda fantasma (sin dibujar/mover/recibir)
+    equipo.push(mkEnt(ai, slots[si].pos, a.nombre, a.stats, a.vinculo, guts, a.look, slots[si], ai*1.3));
+  }
+  for(let i=0;i<slots.length;i++){ if(!usados[i]){ usados[i]=true;   // canteranos completan
+    equipo.push(mkEnt("cantera", slots[i].pos, "Cantera "+(cN), Object.assign({},STATS_CANTERA), 0, 50, {piel:cN%3,pelo:0,camiseta:0}, slots[i], cN*0.9)); cN++; } }
+  return equipo;
+}
+function buildRivales(){
+  return formacion("rival").map((s,i)=>({pos:s.pos, elast:ELASTICIDAD[s.pos], ancla:s.ax, banda:s.by,
+    x:s.ax, y:(s.by[0]+s.by[1])/2, idle:i*1.1, anim:0}));
+}
+/* índices ACTIVOS del rival (los maneja la mecánica de encuentros; el resto es escenografía).
+   7v7: idx 0=ARQ, 1-2=DEF, 3-5=VOL, 6=ATA. Cuando ataco, sus 2 DEF marcan; cuando defiendo, su ATA lleva. */
+/* V4 (11v11): los activos se eligen por CERCANÍA al iniciar cada posesión, no por índice fijo.
+   Atacando: los 2 rivales de campo más cerca tuyo son "los marcadores" (los representan los
+   sintéticos de spawnDefenders, así que se ocultan del dibujo por anclas). Defendiendo: el
+   rival de campo más cercano al punto del contragolpe "es" el portador. */
+function rivalesMasCercanos(x, y, n){
+  return PS.rivales.map((r,i)=>({i,d:(r.pos==="ARQ")?1e9:Math.hypot(r.x-x,r.y-y)}))
+    .sort((a,b)=>a.d-b.d).slice(0,n).map(o=>o.i);
+}
+function rivalesActivos(){ return PS._activos || []; }
+
+/* ====== V2 · ETAPA C — PASE REAL Y CONTROL QUE CAMBIA ======
+   El pase deja de ser un duelo: la pelota viaja a un compañero REAL y pasás
+   a controlarlo. Un solo jugador por vez; todo por menú. */
+function ctrlEnt(){ return PS.equipo[PS.controlIdx||0]; }
+function ctrlPos(){ const e=ctrlEnt(); return e.ref==="yo" ? PS.player : (e.pos==="ARQ" ? PS.myKeeper : e); }
+function ctrlGastarGuts(n){
+  const e=ctrlEnt();
+  if(e.ref==="yo") PS.guts=clamp(PS.guts-n,0,100);
+  else e.guts=clamp(e.guts-n,0,100);
+  setGuts();
+}
+function statDe(e,k){ const s=e.ref==="yo"?career.stats:e.stats; return (s&&s[k]!=null)?s[k]:45; }
+function nombreDe(e){ return e.ref==="yo" ? career.name : e.nombre; }
+function paseParVinculo(a,b){
+  const estiloEq = (career.origen&&career.origen.estilo==="equipo") ? 1.25 : 1;  // JUEGA PARA TODOS: el vínculo pesa más
+  if(a.ref==="cantera"||b.ref==="cantera") return 0;
+  if(a.ref==="yo") return (b.vinculo||0)*estiloEq;
+  if(b.ref==="yo") return (a.vinculo||0)*estiloEq;
+  return ((a.vinculo+b.vinculo)/2)*0.6;   // par amigo-amigo: promedio de vínculos con vos ×0.6
+}
+function distSeg(x1,y1,x2,y2,qx,qy){
+  const dx=x2-x1, dy=y2-y1, L2=dx*dx+dy*dy||1;
+  const t=clamp(((qx-x1)*dx+(qy-y1)*dy)/L2,0,1);
+  return Math.hypot(qx-(x1+dx*t), qy-(y1+dy*t));
+}
+function posDe(e){ return e.ref==="yo" ? PS.player : (e.pos==="ARQ" ? PS.myKeeper : e); }
+/* hasta 3 receptores ordenados por conveniencia, con dirección por FORMA (flechas).
+   filtrado=true (habilidad del VOL): ignora la presión del pasador y usa pase*0.8+carácter*0.3 */
+function receptoresPase(filtrado){
+  const ci=PS.controlIdx||0, cp=ctrlPos();
+  const cands=[];
+  /* R2: solo receptores a distancia de pase real (380 en el mundo 1050×680); si no hay nadie, la lista queda vacía */
+  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return; const p=posDe(e);
+    const d=Math.hypot(p.x-cp.x, p.y-cp.y); if(d>PASE_RADIO) return; cands.push({i,e,x:p.x,y:p.y,d}); });
+  cands.sort((a,b)=> b.x-a.x);
+  const paseEf = filtrado ? (effStat("pase")*0.8 + effStat("caracter")*0.3) : effStat("pase")*pesoCtrl("pase");
+  return cands.slice(0,3).map(c=>{
+    const dx=c.x-cp.x;
+    const dir= dx>20?"▲ adelante" : dx<-20?"▼ atrás" : "◀▶ lateral";
+    const espacio = dx>120;
+    let dmin=999; rivalPuntos().forEach((r,ri)=>{ if(ri===0) return; dmin=Math.min(dmin, distSeg(cp.x,cp.y,c.x,c.y,r.x,r.y)); });
+    const vinc=paseParVinculo(ctrlEnt(), c.e);
+    let pct = 68 + (paseEf-50)*0.5 + (statDe(c.e,"pase")-50)*0.2 + vinc*0.12 - (filtrado?0:12);
+    if(dmin<55) pct -= (55-dmin)*0.4;
+    if(espacio) pct -= 10;
+    if(c.d>200) pct -= (c.d-200)*0.05;                                 // R2: el pase largo cuesta
+    if(c.e.pos==="VOL" && c.x>WORLD_W/3 && c.x<WORLD_W*2/3) pct += 8;   // juego por el medio
+    return {idx:c.i, e:c.e, x:c.x, y:c.y, dir, espacio, pct:clamp(Math.round(pct),25,96), vinc, dupla:vinc>=60};
+  });
+}
+function renderPaseMenu(filtrado, obligatorio, libre){
+  const rs=receptoresPase(filtrado);
+  $("combat-txt").innerHTML = filtrado ? "🪡 Pase filtrado: ¿a quién se la metés entre líneas?" : "➡️ ¿A quién se la das?";
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  rs.forEach(r=>{
+    const b=document.createElement("button");
+    const cls=r.pct>=66?"hi":r.pct>=40?"mid":"lo";
+    b.className="cmd";
+    b.innerHTML=`<span class="ico">➡️</span><div class="cn">${esc(nombreDe(r.e)).toUpperCase()}</div>
+      <div class="ch ${cls}">${r.pct}%${r.dupla?" ★dupla":""}</div>
+      <div class="csub">${r.e.pos} · ${r.dir}${r.espacio?" (al espacio)":""}</div>`;
+    b.addEventListener("click", ()=>resolvePase(r), {once:true});
+    grid.appendChild(b);
+  });
+  /* V4.2-D: CENTRO desde la banda (campo rival, pegado a la raya): pelotazo AL ÁREA por arriba */
+  const cpC=ctrlPos();
+  if(!filtrado && cpC.x>WORLD_W/2 && Math.abs(cpC.y-MIDY)>190){
+    const obj=mejorAtacanteArea();
+    if(obj){
+      const tx=clamp(GOAL_X-95+rnd(-25,25), AREA_X-30, GOAL_X-30), ty=clamp(MIDY+rnd(-45,45), TOP+20, BOT-20);
+      let pctC = 55 + (effStat("pase")*pesoCtrl("pase")-50)*0.4 + (statDe(obj.e,"aereo")-50)*0.25;
+      pctC=clamp(Math.round(pctC),25,90);
+      const b=document.createElement("button");
+      const cls=pctC>=66?"hi":pctC>=40?"mid":"lo";
+      b.className="cmd";
+      b.innerHTML=`<span class="ico">🆙</span><div class="cn">CENTRO AL ÁREA</div>
+        <div class="ch ${cls}">${pctC}%</div><div class="csub">por arriba · busca a ${esc(nombreDe(obj.e))}</div>`;
+      b.addEventListener("click", ()=>resolvePase({idx:obj.idx, e:obj.e, x:tx, y:ty, dir:"al área", espacio:false,
+        pct:pctC, vinc:paseParVinculo(ctrlEnt(),obj.e), dupla:false, aereo:true}), {once:true});
+      grid.appendChild(b);
+    }
+  }
+  if(!obligatorio){   // en el saque lateral el pase es obligatorio: sin VOLVER (no hay defensor al que enfrentar)
+    const back=document.createElement("button");
+    back.className="cmd wide"; back.innerHTML=`<div class="cn">◀ VOLVER</div>`;
+    if(libre)   // V4.1: pase voluntario (botón PASE) — volver es seguir jugando, no un encuentro
+      back.addEventListener("click", ()=>{ SFX("menu"); hideCombat(); PS.encounter=null; PS.state="run"; setHint(); }, {once:true});
+    else
+      back.addEventListener("click", ()=>{ const cmds=buildCommands("def"); renderCombat(`Te marcan de cerca. ¿Qué hacés?`, cmds, "atk"); }, {once:true});
+    grid.appendChild(back);
+  }
+}
+/* (VEL_PELOTA vive en el bloque AFINADO RÁPIDO de arriba) */
+function resolvePase(r){
+  if(PS.state!=="menu") return;
+  PS.state="resolving";
+  SFX("menu"); SFX("kick");
+  ctrlGastarGuts(2); rivalGasta(1);                 // construir es barato; a ellos perseguir también les cuesta
+  $("cmd-grid").innerHTML="";
+  $("combat-txt").innerHTML=`La soltás para <b>${esc(nombreDe(r.e))}</b>… ➡️`;   // NO anuncia resultado: la imagen primero
+  const win = Math.random()*100 < r.pct;
+  renderClock();                                   // v3.1: el pase no salta el reloj (corre solo en juego)
+  if(win){
+    PS.pasesSeguidos=(PS.pasesSeguidos||0)+1;
+    if(r.e.ref!=="yo" && r.e.ref!=="cantera"){ PS.conexiones=PS.conexiones||{}; PS.conexiones[r.idx]=(PS.conexiones[r.idx]||0)+1; }  // E: dupla de la tarde
+    PS._jugadaArmada = (PS.pasesSeguidos===3);
+    if(PS._jugadaArmada){ PS.bonusJugada=true; PS.empuje=40; }
+  } else { PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; }
+  /* V4.1: cuadro breve de la patada del pase, y recién ahí la pelota viaja por la cancha */
+  encolarEscena({tipo:"cinePase", dur:340, t:0,
+    inicio:()=>{ PS.cine={tipo:"patada", t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
+    fin:()=>{ PS.cine=null; }});
+  escenaPase(r, win);
+}
+/* E2 — la escena estrella: la pelota VIAJA (cámara sobre ella); si hay corte posible,
+   hit-stop de 250ms ("¿llega?") antes del desenlace; el texto va DESPUÉS. */
+function escenaPase(r, win){
+  const cp=ctrlPos(), sx=cp.x, sy=cp.y, dx=r.x, dy=r.y;
+  /* V4.2-D (doc §4): el pase LARGO (o el centro) va POR ARRIBA — nadie lo corta a media
+     altura, pero al caer se disputa en un DUELO AÉREO si hay rival cerca */
+  if(r.aereo || Math.hypot(dx-sx,dy-sy)>AEREO_UMBRAL) return escenaPaseAereo(r, win, sx, sy);
+  let dmin=1e9, corte=null;
+  rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return;
+    const d=distSeg(sx,sy,dx,dy,rp.x,rp.y);
+    if(d<dmin){ dmin=d;
+      const L2=(dx-sx)**2+(dy-sy)**2||1, t=clamp(((rp.x-sx)*(dx-sx)+(rp.y-sy)*(dy-sy))/L2,0,1);
+      corte={x:sx+(dx-sx)*t, y:sy+(dy-sy)*t, rx:rp.x, ry:rp.y};
+    }});
+  const hayCorte = dmin<40 && corte;
+  const viaje=(x0,y0,x1,y1)=>{ const dur=clamp(Math.hypot(x1-x0,y1-y0)/VEL_PELOTA, 120, PASE_TOPE_VIAJE);   // R2: el pase largo vuela, no pasea 6s
+    return {tipo:"pase", dur, t:0, tick:(t)=>{ const k=t/dur; PS.ball.x=x0+(x1-x0)*k; PS.ball.y=y0+(y1-y0)*k; camSeguir(PS.ball.x); }}; };
+  const seq=[];
+  if(hayCorte){
+    seq.push(viaje(sx,sy,corte.x,corte.y));
+    seq.push({tipo:"hitstop", dur:250, t:0, inicio:()=>{ PS.ball.x=corte.x; PS.ball.y=corte.y; SFX("sting"); }});  // el cuarto de segundo del suspenso
+    if(win) seq.push(viaje(corte.x,corte.y,dx,dy));
+    else seq.push({tipo:"robo", dur:180, t:0, inicio:()=>{ PS.ball.x=corte.rx; PS.ball.y=corte.ry; camSeguir(PS.ball.x); }});
+  } else {
+    seq.push(viaje(sx,sy,dx,dy));
+  }
+  seq[seq.length-1].fin = ()=> win ? paseCompletado(r) : paseInterceptado(r, corte||{x:(sx+dx)/2,y:(sy+dy)/2});
+  seq.forEach(encolarEscena);
+}
+/* ====== V4.2-D — PELOTA AÉREA (doc §4) ====== */
+function escenaPaseAereo(r, win, sx, sy){
+  const dx=r.x, dy=r.y;
+  const dur=clamp(Math.hypot(dx-sx,dy-sy)/(VEL_PELOTA*1.15), 300, PASE_TOPE_VIAJE);
+  encolarEscena({tipo:"paseAereo", dur, t:0,
+    tick:(t)=>{ const k=t/dur;
+      PS.ball.x=sx+(dx-sx)*k; PS.ball.y=sy+(dy-sy)*k;
+      PS.ballAlt=Math.sin(Math.PI*k)*30;                       // el globo del envío
+      camSeguir(PS.ball.x); }});
+  encolarEscena({tipo:"hitstop", dur:280, t:0,
+    inicio:()=>{ PS.ball.x=dx; PS.ball.y=dy; PS.ballAlt=6; SFX("sting"); },
+    fin:()=>{ PS.ballAlt=0; aterrizajeAereo(r, win, dx, dy); }});
+}
+function aterrizajeAereo(r, win, dx, dy){
+  if(!win){                                                    // el envío salió pasado: dividida donde cayó
+    SFX("lose"); banner("EL ENVÍO SE FUE LARGO…");
+    PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
+    return pelotaDividida(clamp(dx+rnd(-20,20),40,GOAL_X-12), clamp(dy+rnd(-16,16),TOP+6,BOT-6));
+  }
+  let dRiv=1e9; rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return; dRiv=Math.min(dRiv, Math.hypot(rp.x-dx, rp.y-dy)); });
+  if(r.corner || dRiv<46) return dueloAereo(r, dx, dy);        // RV3: el córner SIEMPRE se disputa (área poblada); si no, solo con rival abajo
+  finRecepcionAerea(r, dx, dy);                                // solo: la baja tranquilo
+}
+function dueloAereo(r, dx, dy){
+  const my = statDe(r.e,"aereo") + statDe(r.e,"fisico")*0.35 + paseParVinculo(ctrlEnt(), r.e)*0.10;
+  let def = rivalF()*1.05 + 8; rivalGasta(3);
+  /* V4.2-E (doc §7): en el córner el arquero puede SALIR A CORTAR — más duro, pero si
+     igual la ganás, quedó en el aire (vendido) */
+  const salioArquero = r.corner && Math.random()<0.35;
+  if(salioArquero) def += 12;
+  const win2 = Math.random() < duelChance(my, def);
+  PS.state="resolving";
+  setTag("atk"); $("cmd-grid").innerHTML=""; $("combat").classList.add("show");
+  $("combat-txt").innerHTML = salioArquero
+    ? `🆙 ¡Centro al área y SALE EL ARQUERO! <b>${esc(nombreDe(r.e))}</b> va con todo…`
+    : `🆙 ¡Duelo aéreo! <b>${esc(nombreDe(r.e))}</b> salta con el defensor…`;
+  PS.cine={tipo:"duelo", enc:"aereo", gk:salioArquero, t:0, look:r.e.look};   // RV8: si sale el arquero, se lo VE
+  setTimeout(()=>{
+    if(win2){
+      if(salioArquero){ PS.keeper.faced=false; PS.bonusJugada=true; }
+      endLine(salioArquero ? `¡El arquero quedó EN EL AIRE y la ganó <b>${esc(nombreDe(r.e))}</b>! El arco está vacío…`
+                           : `¡La ganó por arriba <b>${esc(nombreDe(r.e))}</b>!`, true);
+      setTimeout(()=>{ if(checkTime()) return; finRecepcionAerea(r, dx, dy); }, 700);
+    } else {
+      endLine(salioArquero ? "¡Salió el arquero y la descolgó con seguridad!" : "La ganó el defensor en el salto…", false);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0;
+        if(salioArquero){ rivalCounter(GOAL_X-130, MIDY); PS.state="run"; }
+        else pelotaDividida(dx, dy); }, 700);
+    }
+  }, 850);
+}
+function finRecepcionAerea(r, dx, dy){
+  if(dx > AREA_X-40) return menuAereo(r, dx, dy);              // cayó llegando al área: el MENÚ AÉREO
+  paseCompletado(r);                                           // recepción normal: control al receptor
+}
+/* el menú alterno del área (doc §4): Bajarla / Volea / Dejarla pasar */
+function menuAereo(r, dx, dy){
+  PS.controlIdx=r.idx; setGuts();
+  PS.state="menu"; PS.encounter={type:"aereo", ref:null};
+  clearDirs(); $("hint").style.display="none";
+  PS.cine={tipo:"duelo", enc:"aereo", t:0, look:r.e.look};
+  const g=rivalF();
+  const cmds=[
+    {k:"bajarla", cn:"BAJARLA", ico:"🦶", cost:4,
+     my:statDe(r.e,"gambeta")*0.5+statDe(r.e,"aereo")*0.55, def:g+4, on:"bajarla", sub:"control orientado · seguís vos"},
+    {k:"volea", cn:"VOLEA", ico:"💥", cost:12,
+     my:statDe(r.e,"tiro")*0.8+statDe(r.e,"aereo")*0.35, def:g+16, on:"volea",
+     _zona:{n:"volea", mod:0, fuera:0.08, gy:pick([-38,0,38])}, sub:"de primera · el arquero no la espera"},
+  ];
+  /* DEJARLA PASAR: la finta — solo si viene un compañero por detrás de la pelota */
+  let atras=null, mejorX=dx+14;
+  PS.equipo.forEach((e,i)=>{ if(i===r.idx || e.pos==="ARQ") return; const p=posDe(e);
+    if(p.x>mejorX && p.x<GOAL_X-14 && Math.abs(p.y-dy)<120){ mejorX=p.x; atras={e,i,x:p.x,y:p.y}; } });
+  if(atras) cmds.push({k:"dejarla", cn:"DEJARLA PASAR", ico:"👻", cost:2, on:"dejarla", atras,
+    pctFijo:clamp(Math.round(58 + (statDe(r.e,"caracter")-50)*0.35), 30, 90), my:0, def:0,   // RV6: carácter CENTRADO (antes dominaba siempre con ~75%)
+    sub:`finta para ${esc(nombreDe(atras.e))} · arquero vendido`});
+  /* RV5: el umbral SIN NAFTA (doc §8) también rige acá — rendido no hay volea */
+  const gRec = r.idx===0 ? PS.guts : (r.e.guts!=null ? r.e.guts : 100);
+  if(gRec < GUTS_RENDIDO) for(const c of cmds){ if(c.k==="volea"){ c.locked=true; c.lockTxt="SIN NAFTA"; } }
+  renderCombat(`☄️ La pelota BAJA en el área… la espera <b>${esc(nombreDe(r.e))}</b>`, cmds, "atk");
+}
+function resolveDejarla(cm){
+  const win = Math.random()*100 < cm.pctFijo;
+  advanceClock();
+  if(win){
+    PS.controlIdx=cm.atras.i; setGuts();
+    const cp=ctrlPos(); PS.ball.x=clamp(cp.x+6,16,GOAL_X-12); PS.ball.y=cp.y;
+    PS.bonusJugada=true; PS.keeper.faced=false; rivalGasta(5);    // el arquero quedó VENDIDO: +10% al próximo remate
+    endLine(`¡Genial! La dejó pasar y quedó para <b>${esc(nombreDe(cm.atras.e))}</b>. ¡El arquero vendido!`, true);
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.state="run"; setHint(); }, 950);
+  } else {
+    endLine("La finta no engañó a nadie: el arquero se quedó con la pelota…", false);
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; rivalCounter(GOAL_X-130, MIDY); PS.state="run"; }, 950);
+  }
+}
+/* el mejor atacante parado en el área (o cerca) para buscar un centro */
+function mejorAtacanteArea(){
+  const ci=PS.controlIdx||0;
+  let mejor=null, md=1e9;
+  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return; const p=posDe(e);
+    const d=Math.hypot(p.x-(GOAL_X-95), p.y-MIDY); if(d<md){ md=d; mejor={idx:i, e, x:p.x, y:p.y}; } });
+  return mejor;
+}
+function paseCompletado(r){
+  if(PS.encounter && PS.encounter.ref) PS.encounter.ref.passed=true;   // tu marcador quedó atrás
+  PS.controlIdx=r.idx; const e=ctrlEnt(); if(e.anim==null){ e.anim=0; e.face=1; } setGuts();
+  banner(`AHORA JUGÁS:<br>${esc(nombreDe(r.e)).toUpperCase()} (${r.e.pos})` + (PS._jugadaArmada?`<br><span style="color:var(--ok)">¡JUGADA ARMADA! +10%</span>`:""));
+  PS._jugadaArmada=false;
+  hideCombat(); PS.encCooldown=45; setHint();
+  if(checkTime()) return;
+  PS.state="run";
+}
+function paseInterceptado(r, ip){
+  SFX("lose"); banner(`¡INTERCEPTADO!<br><span style="font-size:.55rem;color:#ff9c8c">leyeron el pase</span>`);
+  hideCombat(); PS.controlIdx=0;
+  if(checkTime()) return;
+  rivalCounter(ip.x, ip.y); PS.state="run";
+}
+/* PARED 1-2: zafás de la presión SIN perder el control. Con vínculo ≥70, la
+   primera del partido con esa dupla sale sola ("se conocen de memoria"). */
+function mejorParedPar(){
+  const ci=PS.controlIdx||0, cp=ctrlPos();
+  let mejor=null, md=999;
+  PS.equipo.forEach((e,i)=>{
+    if(i===ci || e.pos==="ARQ") return;
+    const p=posDe(e), d=Math.hypot(p.x-cp.x, p.y-cp.y);
+    if(p.x>cp.x-15 && d<md){ md=d; mejor=e; }
+  });
+  return mejor;
+}
+function resolvePared(cm){
+  const par=cm.par, vinc=paseParVinculo(ctrlEnt(), par);
+  const auto = vinc>=70 && !PS.paredAutoUsada;
+  const pct = clamp(Math.round(55 + effStat("pase")*0.35 + vinc*0.20 - rivalF()*0.3 + ((career.origen&&career.origen.rasgo==="club")?5:0)), 20, 95);
+  const win = auto || (Math.random()*100 < pct);
+  if(auto) PS.paredAutoUsada=true;
+  advanceClock();
+  if(win){
+    if(PS.encounter && PS.encounter.ref) PS.encounter.ref.passed=true;
+    const cp=ctrlPos(); cp.x=clamp(cp.x+34, 16, GOAL_X-2);
+    if(par.ref!=="cantera" && par.vinculo!=null && (PS.vincParedes||0)<3){
+      par.vinculo=Math.min(100,par.vinculo+1); PS.vincParedes=(PS.vincParedes||0)+1;
+      const a=career.vida.amigos[par.ref]; if(a) a.vinculo=par.vinculo;
+    }
+    endLine(auto ? `★★ ¡Se conocen de memoria! Pared automática con <b>${esc(par.nombre)}</b>. (+1 vínculo)`
+                 : `¡Pared con <b>${esc(par.nombre)}</b> y seguís vos! (+1 vínculo)`, true);
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.encCooldown=40; PS.state="run"; setHint(); }, 950);
+  } else {
+    PS.pasesSeguidos=0; PS.empuje=0;
+    endLine(`La pared con <b>${esc(par.nombre)}</b> no salió. La pelota queda ahí…`, false);
+    const cp=ctrlPos(), ex=cp.x, ey=cp.y;
+    setTimeout(()=>{ if(checkTime()) return; perderPelota(ex, ey); }, 1000);
+  }
+}
+
+/* ====== V2 · ETAPA F2 — PERDER LA PELOTA YA NO ES TODO-O-NADA ======
+   45% contra clásica · 35% pelota dividida (disputa automática) · 20% lateral (sacás vos) */
+function pelotaDividida(x,y){
+  let mio=null, dm=1e9;
+  PS.equipo.forEach((e,i)=>{ if(e.pos==="ARQ") return; const p=posDe(e); const d=Math.hypot(p.x-x,p.y-y); if(d<dm){ dm=d; mio={e,i}; } });
+  let dr=1e9; rivalPuntos().forEach((r,ri)=>{ if(ri===0) return; dr=Math.min(dr, Math.hypot(r.x-x,r.y-y)); });
+  const miP = statDe(mio.e,"fisico") + statDe(mio.e,"velocidad") + rnd(0,25);
+  const rvP = rivalF()*1.6 + rnd(0,25);
+  PS.cine=null;   // R1: la disputa se VE en la cancha (el cuadro del duelo viejo no la tapa)
+  PS.ballAlt=0;
+  PS.state="resolving"; setTag("def"); $("cmd-grid").innerHTML="";
+  $("combat").classList.add("show");
+  $("combat-txt").innerHTML=`⚔ Pelota dividida… ¡<b>${esc(nombreDe(mio.e))}</b> va al cruce!`;
+  setTimeout(()=>{
+    if(miP>rvP){
+      PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=mio.i;
+      const cp=posDe(mio.e); cp.x=clamp(x,30,GOAL_X-20); cp.y=clamp(y,TOP+6,BOT-6);
+      PS.ball.x=cp.x+7; PS.ball.y=cp.y;
+      spawnDefenders(cp.x); PS.encCooldown=45; setGuts();
+      endLine(`¡La ganó <b>${esc(nombreDe(mio.e))}</b>! Seguís atacando desde ahí.`, true);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.state="run"; setHint(); }, 900);
+    } else {
+      endLine("La ganó el rival en el forcejeo…", false);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.controlIdx=0; rivalCounter(x,y); PS.state="run"; }, 800);
+    }
+  }, 800);
+}
+function perderPelota(x,y){
+  const r=Math.random();
+  if(r<0.45){ hideCombat(); PS.controlIdx=0; rivalCounter(x,y); PS.state="run"; return; }   // contra clásica
+  if(r<0.80) return pelotaDividida(x,y);                                                     // disputa
+  /* lateral: reanudás vos con un pase desde la banda (obligatorio, sin defensor: encounter limpio) */
+  PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=0; PS.encounter=null; PS.cine=null;   // R1: en el lateral se ve la banda, no el duelo viejo
+  PS.player.x=clamp(x,50,GOAL_X-50); PS.player.y=TOP+8;
+  PS.ball.x=PS.player.x+7; PS.ball.y=PS.player.y;
+  setGuts(); PS.state="menu"; setTag("atk");
+  $("combat").classList.add("show");
+  renderPaseMenu(false, true);
+  $("combat-txt").innerHTML="Se fue al lateral: sacás vos. ➡️ ¿A quién se la das?";
+}
+
+/* ====== V2 · ETAPA B — MINIMAPA (plano completo, accesible por FORMA) ======
+   Míos = círculos ● · rivales = triángulos ▲ · controlado = flecha ▼ ·
+   pelota = ◎ · arcos = corchetes. Aunque los colores se confundan, la forma resuelve. */
+function equipoPuntos(){
+  return PS.equipo.map(e=>{
+    if(e.ref==="yo") return {x:PS.player.x, y:PS.player.y, e};
+    if(e.pos==="ARQ") return {x:PS.myKeeper.x, y:PS.myKeeper.y, e};
+    return {x:e.x, y:e.y, e};
+  });
+}
+function rivalPuntos(){
+  return PS.rivales.map((r,i)=>{
+    if(i===0) return {x:PS.keeper.x, y:PS.keeper.y};                       // arquero rival
+    if(PS.posesion==="mia" && (i===1||i===2)){ const df=PS.defenders[i-1]; if(df) return {x:df.x, y:df.y}; }  // sus DEF = tus marcadores (aunque estén vencidos)
+    if(PS.posesion==="rival" && i===6 && PS.carrier.active) return {x:PS.carrier.x, y:PS.carrier.y};          // su ATA lleva la pelota
+    return {x:r.x, y:r.y};
+  });
+}
+function drawMinimap(){
+  const cv=$("minimap"); if(!cv || !PS || !PS.equipo) return;
+  const c=cv.getContext("2d"); c.imageSmoothingEnabled=false;
+  const Wm=cv.width, Hm=cv.height;
+  const mX=x=> x/WORLD_W*Wm, mY=y=> 4+(y-TOP)/(BOT-TOP)*(Hm-8);
+  c.fillStyle="#0d2a18"; c.fillRect(0,0,Wm,Hm);
+  c.fillStyle="rgba(246,239,220,.25)"; c.fillRect(Wm/2,2,1,Hm-4);       // línea media
+  c.strokeStyle="rgba(246,239,220,.2)"; c.lineWidth=1;                   // círculo central
+  c.beginPath(); c.arc(Wm/2, Hm/2, CIRCULO/(BOT-TOP)*(Hm-8), 0, Math.PI*2); c.stroke();
+  /* V4.1: ventana de la cámara en 2D — qué pedazo del mundo mira la vista de acción */
+  c.strokeStyle="rgba(246,193,29,.6)"; c.lineWidth=1;
+  c.strokeRect(mX(PS.camX), mY(PS.camY), Math.max(6,mX(CWv)), Math.max(6,CHv/(BOT-TOP)*(Hm-8)));
+  const gb=Math.round(GOAL_MEDIO/(BOT-TOP)*(Hm-8));                      // corchetes de arcos [ ] a escala
+  c.fillStyle="#f6efdc";
+  c.fillRect(1,Hm/2-gb,1,gb*2); c.fillRect(1,Hm/2-gb,3,1); c.fillRect(1,Hm/2+gb-1,3,1);
+  c.fillRect(Wm-2,Hm/2-gb,1,gb*2); c.fillRect(Wm-4,Hm/2-gb,3,1); c.fillRect(Wm-4,Hm/2+gb-1,3,1);
+  for(const p of rivalPuntos()){                                         // rivales ▲
+    const x=mX(p.x), y=mY(p.y);
+    c.fillStyle="#0a1f13"; c.strokeStyle="#f6efdc"; c.lineWidth=1;
+    c.beginPath(); c.moveTo(x,y-3.2); c.lineTo(x+3,y+2.6); c.lineTo(x-3,y+2.6); c.closePath(); c.fill(); c.stroke();
+  }
+  const mios=equipoPuntos();
+  let duplaIdx=-1, bv=59;                                                // E: dupla de mejor vínculo = doble borde ◉
+  PS.equipo.forEach((e,i)=>{ if(e.ref!=="yo" && e.ref!=="cantera" && e.vinculo>bv){ bv=e.vinculo; duplaIdx=i; } });
+  mios.forEach((p,i)=>{                                                  // míos ●
+    const x=mX(p.x), y=mY(p.y);
+    c.fillStyle="#f6efdc"; c.strokeStyle="#0a1f13"; c.lineWidth=1;
+    c.beginPath(); c.arc(x,y,2.5,0,Math.PI*2); c.fill(); c.stroke();
+    if(i===duplaIdx){ c.strokeStyle="#f6efdc"; c.beginPath(); c.arc(x,y,4.4,0,Math.PI*2); c.stroke(); }
+  });
+  const ci=(PS.controlIdx!=null?PS.controlIdx:0), cp=mios[ci];           // flecha ▼ sobre el controlado
+  if(cp){ const x=mX(cp.x), y=mY(cp.y)-5;
+    c.fillStyle="#ffffff"; c.strokeStyle="#0a1f13";
+    c.beginPath(); c.moveTo(x-3,y-3); c.lineTo(x+3,y-3); c.lineTo(x,y+1); c.closePath(); c.fill(); c.stroke(); }
+  const bx=mX(PS.ball.x), by=mY(PS.ball.y);                              // pelota ◎
+  c.fillStyle="#ffffff"; c.beginPath(); c.arc(bx,by,1.3,0,Math.PI*2); c.fill();
+  c.strokeStyle="#ffffff"; c.beginPath(); c.arc(bx,by,3.2,0,Math.PI*2); c.stroke();
+  /* V4.2-C: si el radar ampliado está abierto, espejar el mismo dibujo (pixelado ×grande) */
+  const rb=$("radar-big");
+  if(rb && rb.classList.contains("show")){
+    const bc=$("radar-big-cv").getContext("2d");
+    bc.imageSmoothingEnabled=false; bc.drawImage(cv,0,0);
+  }
+}
+/* tooltip 2s al tocar un punto propio: NOMBRE · POS · vínculo */
+let mmTipTO=0;
+/* V4.2-C: el tap del radar es UNO solo (chico o ampliado): en ataque propone el pase
+   (a un compañero o AL ESPACIO); en defensa cambia el marcador; si no, tooltip. */
+function radarTap(cv, e){
+  if(!PS || !PS.equipo) return;
+  const enAim = PS.state==="aim";
+  const r=cv.getBoundingClientRect();
+  const px_=(e.clientX-r.left)/r.width*cv.width, py_=(e.clientY-r.top)/r.height*cv.height;
+  const mX=x=> x/WORLD_W*cv.width, mY=y=> 4+(y-TOP)/(BOT-TOP)*(cv.height-8);
+  if(PS.posesion==="mia" && (PS.state==="run"||enAim) && !PS.escena){
+    const wx=px_/cv.width*WORLD_W, wy=TOP+(py_-4)/(cv.height-8)*(BOT-TOP);
+    /* RV1: cerrar REANUDANDO (state=run) — si apuntarPase rebota con un banner
+       ("nadie cerca"), el juego sigue; antes quedaba pausado en "aim" sin salida (celu) */
+    if(enAim) cerrarRadarBig(true);
+    apuntarPase(wx, wy);
+    return;
+  }
+  let mejor=null, mIdx=-1, md=99;
+  const hit = 22 * (cv.width / r.width);   // R12: ~44px de DEDO en pantalla, sin importar a qué tamaño se muestre el radar
+  equipoPuntos().forEach((p,i)=>{ const d=Math.hypot(mX(p.x)-px_, mY(p.y)-py_); if(d<md && d<hit){ md=d; mejor=p; mIdx=i; } });
+  if(!mejor) return;
+  const eq=mejor.e;
+  // V3·3: en defensa, tocar un propio te pasa el control a ese jugador
+  if(PS.posesion==="rival" && (PS.state==="run"||enAim) && eq.pos!=="ARQ"){
+    if(enAim){ cerrarRadarBig(false); PS.state="run"; }
+    marcarCon(mIdx, true); return;
+  }
+  if(enAim) return;   // en el ampliado no hay tooltip
+  const t=$("mm-tip");
+  t.textContent = eq.ref==="yo" ? `${career.name} (VOS) · ATA` :
+    `${eq.nombre} · ${eq.pos} · vínculo ${eq.vinculo!=null?eq.vinculo:"—"}`;
+  t.classList.add("show");
+  clearTimeout(mmTipTO); mmTipTO=setTimeout(()=>t.classList.remove("show"), 2000);
+}
+$("minimap").addEventListener("pointerdown", e=> radarTap($("minimap"), e));
+$("radar-big-cv").addEventListener("pointerdown", e=> radarTap($("radar-big-cv"), e));
+/* abrir/cerrar el modo apuntado (doc §4: "el radar se agranda a pantalla, todo pausado") */
+function abrirRadarBig(){
+  if(!PS || !PS.equipo || PS.escena || PS.state!=="run") return;
+  clearDirs();
+  PS.state="aim";
+  $("rb-tit").textContent = PS.posesion==="mia" ? "🎯 APUNTÁ EL PASE" : "🛡 ELEGÍ A QUIÉN MARCAR";
+  $("rb-sub").textContent = PS.posesion==="mia"
+    ? "Tocá un compañero (pase) o un espacio libre (pase al espacio) · ✕ para seguir"
+    : "Tocá un jugador tuyo para pasarle el control · ✕ para seguir";
+  $("radar-big").classList.add("show");
+  SFX("menu");
+}
+function cerrarRadarBig(reanudar){
+  $("radar-big").classList.remove("show");
+  if(PS && PS.state==="aim" && reanudar!==false){ PS.state="run"; setHint(); }
+}
+$("mm-zoom").addEventListener("click", abrirRadarBig);
+$("rb-close").addEventListener("click", ()=>cerrarRadarBig(true));
+/* V4·E2: pase apuntado — elegís el DESTINO en el radar, el juego te ofrece el receptor
+   más cercano a ese punto con su % real, y confirmás o cancelás (encuentro voluntario). */
+function apuntarPase(wx, wy){
+  const ci=PS.controlIdx||0;
+  let best=null, bd=1e9;
+  PS.equipo.forEach((e,i)=>{
+    if(i===ci || e.pos==="ARQ") return;
+    const p=posDe(e), d=Math.hypot(p.x-wx, p.y-wy);
+    if(d<bd){ bd=d; best={e, idx:i, x:p.x, y:p.y}; }
+  });
+  if(!best){ banner("NADIE CERCA DE AHÍ"); return; }
+  /* V4.2-C (doc §4): tocar un punto LIBRE = pase al espacio — el más cercano sale a buscarla */
+  if(bd>240){
+    if(bd>430){ banner("MUY LEJOS DE TODOS"); return; }
+    return apuntarEspacio(wx, wy, best);
+  }
+  const cp=ctrlPos(), dx=best.x-cp.x;
+  const dir= dx>20?"▲ adelante" : dx<-20?"▼ atrás" : "◀▶ lateral";
+  const espacio = dx>200;
+  let dmin=1e9; rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return; dmin=Math.min(dmin, distSeg(cp.x,cp.y,best.x,best.y,rp.x,rp.y)); });
+  const vinc=paseParVinculo(ctrlEnt(), best.e);
+  let pct = 68 + (effStat("pase")*pesoCtrl("pase")-50)*0.5 + (statDe(best.e,"pase")-50)*0.2 + vinc*0.12 - 8;
+  if(dmin<60) pct -= (60-dmin)*0.4;
+  if(espacio) pct -= 10;
+  const ddPase=Math.hypot(best.x-cp.x, best.y-cp.y);
+  if(ddPase>200) pct -= (ddPase-200)*0.05;   // R2: apuntado lejos también cuesta
+  pct = clamp(Math.round(pct), 22, 96);
+  const rObj = {idx:best.idx, e:best.e, x:best.x, y:best.y, dir, espacio, pct, vinc, dupla:vinc>=60};
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"aim", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  $("combat-txt").innerHTML = `➡️ Pase apuntado a <b>${esc(nombreDe(best.e))}</b> (${best.e.pos} · ${dir}${espacio?" · al espacio":""})`;
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  const ok=document.createElement("button");
+  const cls=pct>=66?"hi":pct>=40?"mid":"lo";
+  ok.className="cmd";
+  ok.innerHTML=`<span class="ico">➡️</span><div class="cn">DARLE EL PASE</div><div class="ch ${cls}">${pct}%${rObj.dupla?" ★dupla":""}</div>`;
+  ok.addEventListener("click", ()=>resolvePase(rObj), {once:true});
+  grid.appendChild(ok);
+  const no=document.createElement("button");
+  no.className="cmd";
+  no.innerHTML=`<span class="ico">✖</span><div class="cn">SEGUIR</div><div class="ch mid">cancelar</div>`;
+  no.addEventListener("click", ()=>{ SFX("menu"); hideCombat(); PS.encounter=null; PS.state="run"; setHint(); }, {once:true});
+  grid.appendChild(no);
+  SFX("menu");
+}
+/* V4.2-C — PASE AL ESPACIO (doc §4): la tirás a un punto libre y el compañero más cercano
+   PICA a buscarla; carrera resuelta por su velocidad vs el rival más cercano al punto. */
+function apuntarEspacio(wx, wy, best){
+  wx=clamp(wx, 40, GOAL_X-12); wy=clamp(wy, TOP+6, BOT-6);
+  const cp=ctrlPos();
+  const dR=Math.hypot(best.x-wx, best.y-wy);
+  let dRiv=1e9; rivalPuntos().forEach((rp,ri)=>{ if(ri===0) return; dRiv=Math.min(dRiv, Math.hypot(rp.x-wx, rp.y-wy)); });
+  let pct = 62 + (statDe(best.e,"velocidad")-50)*0.6 + clamp((dRiv-dR)*0.12, -18, 18)
+              + (effStat("pase")*pesoCtrl("pase")-50)*0.3;
+  const dd=Math.hypot(wx-cp.x, wy-cp.y);
+  if(dd>200) pct -= (dd-200)*0.05;
+  pct=clamp(Math.round(pct), 15, 92);
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"aim", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  $("combat-txt").innerHTML=`💨 PASE AL ESPACIO: <b>${esc(nombreDe(best.e))}</b> (${best.e.pos}) sale a buscarla${dRiv<dR?" — <i>el rival está más cerca</i>":""}`;
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  const ok=document.createElement("button");
+  const cls=pct>=66?"hi":pct>=40?"mid":"lo";
+  ok.className="cmd";
+  ok.innerHTML=`<span class="ico">💨</span><div class="cn">LARGARLA AHÍ</div><div class="ch ${cls}">${pct}%</div>`;
+  ok.addEventListener("click", ()=>resolveEspacio({best, wx, wy, pct}), {once:true});
+  grid.appendChild(ok);
+  const no=document.createElement("button");
+  no.className="cmd";
+  no.innerHTML=`<span class="ico">✖</span><div class="cn">SEGUIR</div><div class="ch mid">cancelar</div>`;
+  no.addEventListener("click", ()=>{ SFX("menu"); hideCombat(); PS.encounter=null; PS.state="run"; setHint(); }, {once:true});
+  grid.appendChild(no);
+  SFX("menu");
+}
+function resolveEspacio(o){
+  if(PS.state!=="menu") return;
+  PS.state="resolving";
+  SFX("menu"); SFX("kick");
+  ctrlGastarGuts(3); rivalGasta(2);
+  $("cmd-grid").innerHTML="";
+  $("combat-txt").innerHTML=`La largás al espacio para <b>${esc(nombreDe(o.best.e))}</b>… 💨`;
+  const win = Math.random()*100 < o.pct;
+  if(win){ PS.pasesSeguidos=(PS.pasesSeguidos||0)+1; PS._jugadaArmada=(PS.pasesSeguidos===3); if(PS._jugadaArmada){ PS.bonusJugada=true; PS.empuje=40; } }
+  else { PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false; }
+  const cp=ctrlPos(), sx=cp.x, sy=cp.y;
+  const eEnt=o.best.e, p0=posDe(eEnt), ex0=p0.x, ey0=p0.y;
+  const dur=clamp(Math.hypot(o.wx-sx, o.wy-sy)/VEL_PELOTA, 200, PASE_TOPE_VIAJE);
+  encolarEscena({tipo:"cinePase", dur:340, t:0,
+    inicio:()=>{ PS.cine={tipo:"patada", t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
+    fin:()=>{ PS.cine=null; }});
+  encolarEscena({tipo:"paseEspacio", dur, t:0,
+    tick:(t)=>{ const k=t/dur;
+      PS.ball.x=sx+(o.wx-sx)*k; PS.ball.y=sy+(o.wy-sy)*k;
+      const obj=posDe(eEnt);   // el receptor PICA hacia el punto (la carrera se VE)
+      obj.x=ex0+(o.wx-ex0)*Math.min(1,k*1.05); obj.y=ey0+(o.wy-ey0)*Math.min(1,k*1.05);
+      camSeguir(PS.ball.x); }});
+  encolarEscena({tipo:"hitstop", dur:250, t:0,
+    inicio:()=>{ PS.ball.x=o.wx; PS.ball.y=o.wy; SFX("sting"); },
+    fin:()=>{
+      if(win){ paseCompletado({idx:o.best.idx, e:o.best.e}); }
+      else {
+        SFX("lose"); banner("¡LLEGÓ PRIMERO EL RIVAL!");
+        hideCombat(); PS.controlIdx=0;
+        if(checkTime()) return;
+        rivalCounter(o.wx, o.wy); PS.state="run";
+      }
+    }});
+}
+/* V3·1: los POSICIONALES son escenografía viva — van despacio a su ancla, con idle de 1px,
+   y NO chan la pelota (por eso ignoran los pases rápidos: solo siguen la conducción lenta). */
+/* ====== V3·5 — ritmo: lo lento son los CUERPOS, lo rápido la PELOTA (constantes en AFINADO RÁPIDO) ====== */
+function moverPosicional(e, obj){
+  const targetX = clamp((e.ancla+(PS.empuje||0)) + (PS.ball.x - WORLD_W/2)*e.elast, 30, GOAL_X-16);
+  const targetY = clamp(PS.ball.y, e.banda[0], e.banda[1]) + Math.sin(PS._t*0.03 + (e.idle||0))*1.0;
+  obj.x += clamp(targetX-obj.x, -VEL_POSICIONALES, VEL_POSICIONALES);
+  obj.y += clamp(targetY-obj.y, -VEL_POSICIONALES, VEL_POSICIONALES);
+}
+function updateAnclas(){
+  PS._t=(PS._t||0)+1;
+  const ci=PS.controlIdx||0;                           // al controlado (ataque o defensa) lo movés vos
+  PS.equipo.forEach((e,i)=>{
+    if(e.pos==="ARQ" || i===ci) return;
+    moverPosicional(e, e.ref==="yo" ? PS.player : e);  // el resto es escenografía viva
+  });
+  const act=rivalesActivos();
+  PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; moverPosicional(e, e); });
+  // V3·1: el defensor SUPERADO no desaparece: vuelve caminando a su ancla, vencido atrás tuyo
+  for(const df of PS.defenders){
+    if(df.passed && df.tercio){
+      const restX=(df.tercio[0]+df.tercio[1])/2 - 40;
+      df.x += clamp(restX-df.x, -0.4, 0.4);
+      df.y += clamp((MIDY)-df.y, -0.55, 0.55);
+    }
+  }
+}
+
+function spawnDefenders(fromX){
+  /* F1/V4: marcaje selectivo — UN marcador por tercio (correr por espacio libre ES libre).
+     Los sintéticos nacen SOBRE los 2 rivales de campo más cercanos (que se ocultan del
+     dibujo por anclas): visualmente son ellos, mecánicamente el tercio manda. */
+  const cp=(PS.equipo&&ctrlPos())||{x:fromX,y:MIDY};
+  PS._activos = PS.rivales ? rivalesMasCercanos(cp.x, cp.y, 2) : [];
+  const rA=PS.rivales?PS.rivales[PS._activos[0]]:null, rB=PS.rivales?PS.rivales[PS._activos[1]]:null;
+  const T1=Math.round(WORLD_W/3), T2=Math.round(WORLD_W*2/3);
+  PS.defenders = [
+    {x:rA?rA.x:clamp(fromX+180, 260, AREA_X-80), y:rA?rA.y:rnd(MIDY-90,MIDY+90), passed:false, tercio:[T1,T2]},
+    {x:rB?rB.x:clamp(fromX+400, 420, AREA_X-40), y:rB?rB.y:rnd(MIDY-90,MIDY+90), passed:false, tercio:[T2,WORLD_W]},
+  ];
+  PS.keeper.faced = false;
+}
+function musicaDeJuego(){ MUSICA((PS.half===2 && PS.minuto>=80) ? "final" : "posesion"); }  // reanuda el loop correcto (el silencio del especial no es para siempre)
+function kickoff(quien){
+  corteNegro(120);   // E3: saque desde el medio -> corte de cámara
+  musicaDeJuego();
+  PS.posesion = quien;
+  PS.cine = null;    // V4.1: se apaga el cuadro de animación, vuelve la cancha
+  PS.ballAlt = 0;
+  PS.encounter = null; PS.encCooldown = 40;
+  PS.controlIdx = 0; PS.pasesSeguidos = 0; PS.empuje = 0; setGuts();   // volvés a jugar VOS
+  if(quien==="mia"){
+    PS.player.x=WORLD_W/2-20; PS.player.y=MIDY;
+    PS.ball.x=PS.player.x+8; PS.ball.y=MIDY;
+    PS.carrier.active=false;
+    spawnDefenders(PS.player.x);
+  } else {
+    PS.carrier={x:WORLD_W/2+20,y:MIDY,active:true};
+    PS._activos = PS.rivales ? rivalesMasCercanos(PS.carrier.x, PS.carrier.y, 1) : [];  // ese rival "es" el portador
+    PS.player.x=WORLD_W/2-70; PS.player.y=MIDY+18;   // te ubicás entre el rival y tu arco
+    PS.ball.x=PS.carrier.x-8; PS.ball.y=MIDY;
+  }
+  camSeguir(PS.ball.x);   // V4: la cámara arranca sobre la pelota
+  setHint();
+}
+/* posesión rival arrancando desde su campo (contragolpe / saque del arquero) */
+/* V3·3: en defensa controlás automáticamente al propio MÁS CERCANO a la pelota.
+   Podés cambiar tocando otro punto propio en el minimapa. */
+function idxMasCercanoALaPelota(){
+  let mejor=0, md=1e9;
+  PS.equipo.forEach((e,i)=>{ if(e.pos==="ARQ") return; const pp=posDe(e); const d=Math.hypot(pp.x-PS.ball.x, pp.y-PS.ball.y); if(d<md){ md=d; mejor=i; } });
+  return mejor;
+}
+function marcarCon(idx, avisar){
+  PS.controlIdx=idx; setGuts();
+  const e=ctrlEnt();
+  if(avisar) banner(`AHORA MARCÁS CON:<br>${esc(nombreDe(e)).toUpperCase()} (${e.pos})`);
+  setHint();
+}
+function rivalCounter(fromX, fromY){
+  corteNegro(120);   // E3: la cámara salta al contragolpe -> corte seco
+  musicaDeJuego();
+  PS.posesion="rival";
+  PS.cine=null;      // V4.1: contragolpe = cancha, no cuadro
+  PS.ballAlt=0;
+  PS.pasesSeguidos=0; PS.empuje=0; PS.bonusJugada=false;
+  PS.carrier={x:clamp(fromX, 260, GOAL_X-160), y:clamp(fromY||MIDY, TOP+14, BOT-14), active:true};
+  PS._activos = PS.rivales ? rivalesMasCercanos(PS.carrier.x, PS.carrier.y, 1) : [];  // ese rival "es" el portador
+  PS.controlIdx = idxMasCercanoALaPelota();          // auto-switch al más cercano
+  const cp=ctrlPos();
+  cp.x = clamp(PS.carrier.x-50, 20, GOAL_X-40);
+  cp.y = clamp(PS.carrier.y+14, TOP+6, BOT-6);
+  PS.encCooldown = 45; setGuts();
+  camSeguir(PS.ball.x);   // V4: corte y cámara sobre el contragolpe
+  banner(`AHORA MARCÁS CON:<br>${esc(nombreDe(ctrlEnt())).toUpperCase()} (${ctrlEnt().pos})`);
+  setHint();
+}
+/* recuperás: pasás a atacar desde donde estás */
+function recoverBall(){
+  corteNegro(120); banner("⚔ ¡LA RECUPERASTE!");   // E3: corte + cartel
+  PS.posesion="mia";
+  PS.controlIdx=0; PS.pasesSeguidos=0; setGuts();   // la recuperaste vos
+  PS.carrier.active=false;
+  PS.ball.x=PS.player.x+7; PS.ball.y=PS.player.y;
+  spawnDefenders(PS.player.x);
+  PS.encCooldown = 40;
+  setHint();
+}
+
+/* ---------- Stats efectivas DEL JUGADOR CONTROLADO (su stat, su Guts; el ánimo suma un poquito) ---------- */
+function effStat(key){
+  const animo=(career&&career.vida&&career.vida.animo!=null)?career.vida.animo:70;
+  let base, g;
+  if(PS.equipo && (PS.controlIdx||0)!==0){ const e=ctrlEnt(); base=(e.stats[key]!=null?e.stats[key]:45); g=e.guts; }
+  else { base=PS.stats[key]; g=PS.guts; }
+  return base*(0.55 + 0.45*(clamp(g,0,100)/100))*(0.97 + 0.06*(clamp(animo,0,100)/100));
+}
+function duelChance(my, def){ return clamp(0.5 + (my-def)/58, 0.07, 0.95); }
+function myKeeperSkill(){ return 54 + (PS.stats.caracter-50)*0.25; }
+
+/* ---------- Arranque del partido ---------- */
+function startPlay(club, rival){
+  PS = newState(club, rival);
+  window.PS = PS; // debug/test
+  $("hud-me-n").textContent = abbr(club.n);
+  $("hud-rv").textContent = abbr(rival.n);
+  $("hud-gme").textContent = 0; $("hud-grv").textContent = 0;
+  setGuts(); renderClock();
+  hideCombat();
+  showScreen("screen-match");
+  const cv = $("pitch"); PS.ctx = cv.getContext("2d"); PS.ctx.imageSmoothingEnabled=false;
+  PS.equipo = buildEquipo();            // V2: 5v5 con amigos reales + canteranos
+  PS.rivales = buildRivales();
+  $("guts-lab").textContent = "AGUANTE·"+String(career.name).toUpperCase().slice(0,7);  // el HUD dice de QUIÉN es el Guts
+  kickoff("mia");
+  PS.state="run";
+  SFX("whistle",1); MUSICA("posesion");
+  loop();
+}
+function abbr(n){ return n.replace("Deportivo","Dep.").replace("Atlético","Atl.").toUpperCase().slice(0,12); }
+
+/* ====== V3·2 — MÁQUINA DE ESCENAS (unidad de presentación; cola única, sin setTimeout sueltos) ======
+   Una escena a la vez en PS.escena; el resto encolado en PS.colaEscenas. Se avanza por TIEMPO REAL
+   (dt en ms), así funciona igual con el reloj del navegador y es testeable a mano. */
+function perfNow(){ return (window.performance && performance.now) ? performance.now() : 0; }
+function encolarEscena(esc){ PS.colaEscenas.push(esc); if(!PS.escena) siguienteEscena(); }
+function siguienteEscena(){
+  PS.escena = PS.colaEscenas.shift() || null;
+  const e=PS.escena; if(e){ e.t=0; if(e.inicio) e.inicio(); }
+}
+function avanzarEscena(dt){
+  const e=PS.escena; if(!e) return;
+  e.t += dt;
+  if(e.tick) e.tick(Math.min(e.t, e.dur), dt);
+  if(e.t >= e.dur){ const fin=e.fin; siguienteEscena(); if(fin) fin(); }  // siguienteEscena antes de fin: fin puede encolar la próxima
+}
+/* V4: la vista de acción es una ventana con ZOOM — ve CW/ZOOM px de mundo (drama de cerca) */
+const CWv = CW/ZOOM_ACCION, CHv = CH/ZOOM_ACCION;
+function camSeguir(px){ PS.camX = clamp(px - CWv/2, 0, WORLD_W-CWv); }    // centra la cámara en un punto del mundo
+/* corte en negro (E3): 120ms para saltos largos; paneo suave lo maneja el ease de camX */
+let cutTO=0;
+function corteNegro(ms){
+  const el=$("cut"); if(!el) return;
+  clearTimeout(cutTO); el.style.transition="none"; el.style.opacity="1";
+  requestAnimationFrame(()=>{ el.style.transition="opacity 90ms ease"; el.style.opacity="0"; });
+  cutTO=setTimeout(()=>{ el.style.opacity="0"; }, ms||120);
+}
+function banner(txt, ms){
+  const b=$("banner"); if(!b) return;
+  b.innerHTML=txt; b.className="banner show";
+  clearTimeout(b._to); b._to=setTimeout(()=>b.classList.remove("show"), ms||1200);
+}
+
+/* ---------- Bucle principal ---------- */
+function loop(){
+  if(PS && PS.running){
+    const now=perfNow(), dt = PS._last ? Math.min(80, now-PS._last) : 16; PS._last=now;
+    if(PS.escena) avanzarEscena(dt);          // durante una escena, el juego no procesa input
+    else if(PS.state==="run") update();
+    draw();
+    drawMinimap();
+  }
+  if(PS) PS.raf = requestAnimationFrame(loop);
+}
+function update(){
+  /* v3.1: reloj continuo — corre SOLO acá (estado run); menús y escenas lo congelan */
+  PS.minuto += (1/60)/SEGUNDOS_POR_MINUTO;
+  renderClock();
+  if(checkTime()) return;                // 45' -> entretiempo / 90' -> final, aun en pleno juego
+  if(PS.encCooldown>0) PS.encCooldown--;
+  if(PS.equipo) updateAnclas();          // V2: los equipos acompañan la jugada
+  const p=PS.equipo ? ctrlPos() : PS.player;  // movés al que controlás (en ataque el portador; en defensa tu perseguidor)
+  const d=PS.dirs, SP=(PS.posesion==="mia") ? VEL_PORTADOR_MIO : VEL_PERSECUCION;
+  let vx=0, vy=0;
+  if(d.left) vx-=1; if(d.right) vx+=1; if(d.up) vy-=1; if(d.down) vy+=1;
+  if(vx) p.face = vx>0?1:-1;
+  if(vx||vy){
+    const m=Math.hypot(vx,vy)||1; p.x=clamp(p.x+vx/m*SP*1.15, 16, GOAL_X-2); p.y=clamp(p.y+vy/m*SP, TOP+5, BOT-5); p.anim+=0.25;
+    PS._pasoT=(PS._pasoT||0)+1; if(PS._pasoT%26===0) SFX("paso");   // pasitos al correr, muy suaves
+  }
+
+  if(PS.posesion==="mia"){
+    // la pelota va con vos
+    PS.ball.x += ((p.x+7) - PS.ball.x)*0.4;
+    PS.ball.y += (p.y - PS.ball.y)*0.4;
+    // defensores te buscan
+    for(const df of PS.defenders){
+      if(df.passed) continue;
+      if(Math.abs(p.x-df.x) < 130){ df.y += clamp(p.y-df.y,-0.85,0.85); df.x += clamp(p.x-df.x,-0.25,0.25); }
+    }
+    PS.keeper.y = clamp(PS.keeper.y + clamp(PS.ball.y-PS.keeper.y, -1.2,1.2), MIDY-52, MIDY+52);   // V4.1: el arquero rival VIVE (cubre su arco)
+    PS.myKeeper.y = clamp(PS.myKeeper.y + clamp(PS.ball.y-PS.myKeeper.y, -1.0,1.0), MIDY-52, MIDY+52);
+    if(PS.encCooldown===0){
+      for(const df of PS.defenders){
+        if(df.passed) continue;
+        if(df.tercio && (p.x<df.tercio[0] || p.x>=df.tercio[1])) continue;   // F1: cada marcador cuida SU tercio
+        if(Math.hypot(p.x-df.x, p.y-df.y) < PRESION_RADIO){ startEncounter("def", df); return; }
+      }
+    }
+    if(!PS.keeper.faced && p.x > AREA_X){
+      PS.keeper.faced=true;
+      if(PS.pasesSeguidos>=3){ ctrlGastarGuts(-5); PS._subidon=true; }   // V3·4: jugada armada al área = +5 Guts (subidón)
+      startEncounter("gk", PS.keeper); return;
+    }
+  } else {
+    // DEFENSA: el rival avanza hacia tu arco (izquierda)
+    const cr=PS.carrier;
+    cr.x -= VEL_RIVAL_CON_PELOTA;
+    cr.y = clamp(cr.y + Math.sin(cr.x*0.045)*0.3, TOP+10, BOT-10);
+    PS.ball.x += ((cr.x-7) - PS.ball.x)*0.4;
+    PS.ball.y += (cr.y - PS.ball.y)*0.4;
+    PS.myKeeper.y = clamp(PS.myKeeper.y + clamp(PS.ball.y-PS.myKeeper.y, -1.2,1.2), MIDY-52, MIDY+52);
+    PS.keeper.y = clamp(PS.keeper.y + clamp(MIDY-PS.keeper.y, -0.6,0.6), MIDY-52, MIDY+52);
+    if(PS.encCooldown===0 && Math.hypot(p.x-cr.x, p.y-cr.y) < RADIO_ENCUENTRO_DEF){ startEncounter("dfs", cr); return; }
+    if(cr.x < MY_AREA_X){ rivalShot(); return; }
+  }
+  // cámara sigue el centro de gravedad (jugador+pelota)
+  PS.camX = clamp(((p.x+PS.ball.x)/2) - CWv/2, 0, WORLD_W-CWv);
+}
+
+/* ============================ RENDER (arte en pampa-star-sprites.js) ============================ */
+function draw(){
+  const c=PS.ctx, cam=PS.camX;
+  /* V4.1: VISTA DE ACCIÓN con cámara 2D — mundo 1050×680 proporcionado (105×68 m, doc §1.2);
+     la cámara sigue la pelota en X e Y; el radar da el panorama */
+  PS.camY = clamp(PS.ball.y - CHv/2, 0, CAMPO_H-CHv);
+  const oy=PS.camY;
+  c.setTransform(ZOOM_ACCION, 0, 0, ZOOM_ACCION, 0, 0);
+  PSART.drawPitch(c, cam, oy);
+  /* V2: compañeros con su pinta y rivales pasivos acompañando por anclas */
+  if(PS.equipo){
+    for(const e of PS.equipo){
+      if(e.ref==="yo" || e.pos==="ARQ") continue;
+      drawKit(c, e.x-cam, e.y-oy, PS.club.c1, PS.club.c2, false, e.x*0.22, lookResolved(e.look));
+    }
+    const act=rivalesActivos();
+    PS.rivales.forEach((e,i)=>{ if(i===0 || act.includes(i)) return; drawKit(c, e.x-cam, e.y-oy, PS.rival.c1, PS.rival.c2, false, e.x*0.22); });
+  }
+  /* V3·1: los marcadores del tercio SIEMPRE se dibujan; el superado se ve vencido (más chico/tenue), nunca desaparece */
+  if(PS.posesion==="mia") for(const df of PS.defenders){
+    drawKit(c, df.x-cam, df.y-oy, PS.rival.c1, PS.rival.c2, false, df.x*0.22);
+    if(df.passed){ c.fillStyle="rgba(6,18,11,0.35)"; c.fillRect((df.x-cam-4)|0,(df.y-oy-13)|0,8,17); }  // veladura de "vencido"
+  }
+  if(PS.carrier.active) drawKit(c, PS.carrier.x-cam, PS.carrier.y-oy, PS.rival.c1, PS.rival.c2, false, PS.carrier.x*0.25);
+  drawKit(c, PS.keeper.x-cam, PS.keeper.y-oy, "#ffe14d", "#1a1a1a", true);            // arquero rival (amarillo)
+  drawKit(c, PS.myKeeper.x-cam, PS.myKeeper.y-oy, "#5bb8e8", "#1a1a1a", true);        // tu arquero (celeste)
+  /* V3·4: estela de fuego del megatiro (post-pitch, así no la pisa el repintado del frame) */
+  if(PS.escena && PS.escena.tipo==="tiro" && PS.escena.esp){
+    for(let m=1;m<=4;m++) px(c, PS.ball.x-m*7-cam, PS.ball.y-oy-1, 5, 3, m<3?"#ff8c3a":"#f6c11d");
+  }
+  /* V4.2-D: pelota aérea — sombra en el pasto y la pelota arriba (se LEE que va por el aire) */
+  if(PS.ballAlt>0.5){ c.fillStyle="rgba(0,0,0,.3)"; c.fillRect((PS.ball.x-cam-2)|0,(PS.ball.y-oy-1)|0,5,2); }
+  drawBall(c, PS.ball.x-cam, PS.ball.y-oy-(PS.ballAlt||0));
+  drawKit(c, PS.player.x-cam, PS.player.y-oy, PS.club.c1, PS.club.c2, false, PS.player.anim, lookResolved(career.look));
+  /* RV2: la flecha y el nombre van sobre el CONTROLADO real — también en defensa
+     (antes en defensa quedaban clavados sobre TU sprite aunque marcaras con otro) */
+  const cp = PS.equipo ? ctrlPos() : PS.player;
+  drawMarker(c, cp.x-cam, cp.y-oy);   // la flecha ▼ SIGUE al jugador controlado (forma, no color)
+  c.setTransform(1,0,0,1,0,0);     // V4: fuera del mundo, coordenadas de canvas normales
+  /* V4.2: NOMBRE sobre el controlado — que nunca haya duda de a quién dirigís (forma+texto) */
+  if(PS.equipo && PS.state==="run" && !PS.escena){
+    const nx=(cp.x-cam)*ZOOM_ACCION, ny=(cp.y-oy)*ZOOM_ACCION;
+    if(nx>-40 && nx<CW+40){
+      const nom=String(nombreDe(ctrlEnt())).toUpperCase().slice(0,8);
+      const nyy=Math.max(12, ny-52);   // RV9: pegado a la banda de arriba, el nombre no se va del canvas
+      c.font="7px 'Press Start 2P', monospace"; c.textAlign="center"; c.textBaseline="alphabetic";
+      c.lineWidth=3; c.strokeStyle="#0a1f13"; c.strokeText(nom, nx, nyy);
+      c.fillStyle="#ffffff"; c.fillText(nom, nx, nyy);
+      c.textAlign="left";
+    }
+  }
+  dibujarCine(c);                  // V4.1: el CUADRO DE ANIMACIÓN pisa la vista cuando hay acción grande
+}
+/* ====== V4.1 — CUADRO DE ANIMACIÓN: la acción en grande (el "dibujito" de la serie) ======
+   Mientras hay un encuentro o un remate, el canvas muestra el cara a cara / la patada
+   con sprites grandes; el radar sigue dando el panorama táctico. */
+/* etiqueta a prueba de daltonismo: flecha ▼ grande + "VOS" sobre TU sprite (FORMA + texto, nunca solo color) */
+function marcaVosCine(c, x, topY){
+  c.fillStyle="#0a1f13";
+  c.beginPath(); c.moveTo(x-9,topY); c.lineTo(x+9,topY); c.lineTo(x,topY+12); c.closePath(); c.fill();
+  c.fillStyle="#ffffff";
+  c.beginPath(); c.moveTo(x-6,topY+2); c.lineTo(x+6,topY+2); c.lineTo(x,topY+9); c.closePath(); c.fill();
+  c.font="7px 'Press Start 2P', monospace"; c.textAlign="center"; c.textBaseline="alphabetic";
+  c.lineWidth=3; c.strokeStyle="#0a1f13"; c.strokeText("VOS", x, topY-3);
+  c.fillStyle="#ffffff"; c.fillText("VOS", x, topY-3);
+  c.textAlign="left";
+}
+function dibujarCine(c){
+  const ci=PS.cine; if(!ci) return;
+  /* R10: t avanza por TIEMPO REAL (1 unidad ≈ 1 frame de 60Hz) — a 120Hz el cuadro dura lo mismo */
+  const now=perfNow();
+  ci.t=(ci.t||0) + Math.min(3,(now-(ci._last||now))/16.7); ci._last=now;
+  const piso=CH-20;                                          // los pies apoyan sobre el piso del cuadro
+  PSART.drawCineFondo(c, ci.t, ci.esp);
+  const S=4;
+  const meLook = lookResolved(ci.look||career.look);
+  if(ci.tipo==="duelo"){
+    if(ci.enc==="dfs"){                                      // defendés: el rival viene con la pelota
+      drawKitBig(c, 82, piso, S, 1, "correr", ci.t, PS.club.c1, PS.club.c2, meLook);
+      drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 172, piso-4, 2.4);
+    } else if(ci.enc==="arq"){                               // ¡remata el rival! tu arquero al frente
+      drawKitBig(c, 82, piso, S, 1, "arquero", ci.t, "#5bb8e8", "#1a1a1a", meLook, true);
+      drawKitBig(c, 198, piso, S, -1, "patear", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 168, piso-10, 2.4);
+    } else if(ci.enc==="gk"){                                // mano a mano con el arquero
+      drawKitBig(c, 82, piso, S, 1, "encarar", ci.t, PS.club.c1, PS.club.c2, meLook);
+      drawKitBig(c, 202, piso, S, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);
+      drawBallBig(c, 106, piso-4, 2.4);
+    } else if(ci.enc==="aereo"){                             // V4.2-D: la pelota BAJA del cielo en el área
+      drawKitBig(c, 82, piso, S, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);   // saltando, brazos arriba
+      if(ci.gk) drawKitBig(c, 198, piso, S, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);   // RV8: ¡salió el arquero!
+      else drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 90, 36 + Math.sin(ci.t*0.09)*3, 2.6);   // la pelota cayendo sobre él
+    } else {                                                 // te sale al cruce un defensor
+      drawKitBig(c, 82, piso, S, 1, "encarar", ci.t, PS.club.c1, PS.club.c2, meLook);
+      drawKitBig(c, 198, piso, S, -1, "encarar", ci.t, PS.rival.c1, PS.rival.c2, null);
+      drawBallBig(c, 106, piso-4, 2.4);
+    }
+    marcaVosCine(c, 82, piso - 26*S - 16);                   // R11: tu lado SIEMPRE señalado con ▼ + VOS
+  } else if(ci.tipo==="patada"){                             // el remate / el pase que sale
+    drawKitBig(c, 96, piso, S+0.5, 1, "patear", ci.t, PS.club.c1, PS.club.c2, meLook);
+    const bx=118+ci.t*7;
+    if(bx<CW+50){                                            // R9: la estela sale deslizándose, no se esfuma
+      if(ci.esp) for(let m=1;m<=4;m++) px(c, bx-m*9, piso-34-m, 7, 4, m<3?"#ff8c3a":"#f6c11d");
+      drawBallBig(c, bx, piso-32, 2.6);
+    }
+  } else if(ci.tipo==="festejo"){                            // ¡grito de gol!
+    drawKitBig(c, CW/2, piso, S+0.5, 1, "festejo", ci.t, PS.club.c1, PS.club.c2, meLook);   // R8: 4.5 entra entero, con saltito y todo
+  } else if(ci.tipo==="atajada"){                            // V4.2-B: ¡la sacó el arquero rival!
+    const S2=S+0.5;
+    drawKitBig(c, CW/2+10, piso, S2, -1, "arquero", ci.t, "#ffe14d", "#1a1a1a", null, true);
+    if(ci.corner) drawBallBig(c, CW/2-38 - ci.t*1.2, Math.max(10, piso-26*S2 - ci.t*0.8), 2.2);   // desviada: se va al córner
+    else drawBallBig(c, CW/2+10 - 7*S2 - 2, piso - 26*S2 + 6, 2.2);                               // retenida en el guante
+  }
+}
+
+/* ============================ COMBATE (menú tipo Pokémon) ============================ */
+function clearDirs(){ ["up","down","left","right"].forEach(d=>setDir(d,false)); }
+/* El vínculo pega en la cancha: pases y paredes se juegan CON un compañero del grupo,
+   y cuanto más alto el vínculo, mejor salen. */
+function vinculoBonus(compa){ return compa ? compa.vinculo*0.12 + (compa.stats.pase-50)*0.08 : 0; }
+function startEncounter(type, ref){
+  PS.state = "menu";
+  PS.encounter = {type, ref};
+  SFX("sting");
+  const amigos=(career.vida&&career.vida.amigos)||[];
+  PS.compa = (type==="def" && amigos.length) ? pick(amigos) : null;  // quién te acompaña la jugada
+  /* V4.1: arranca el CUADRO DE ANIMACIÓN — el cara a cara en grande mientras decidís */
+  PS.cine = {tipo:"duelo", enc:type, t:0, look: PS.equipo ? ctrlEnt().look : career.look};
+  clearDirs();
+  $("hint").style.display = "none";
+  const cmds = buildCommands(type);
+  let txt, tag;
+  if(type==="def"){ txt=`Te sale al cruce un <b>defensor de ${PS.rival.n}</b>. ¿Qué hacés?`; tag="atk"; }
+  else if(type==="gk"){ txt=`¡Quedaste <b>mano a mano con el arquero</b>! Es ahora.`; tag="atk";
+    if(PS._subidon){ PS._subidon=false; setGuts(); banner('⚡ ¡SUBIDÓN!<br><span style="font-size:.55rem;color:var(--ok)">+5 de AGUANTE por la jugada armada</span>'); } }
+  else { txt=`¡<b>${PS.rival.n}</b> avanza con la pelota! Te toca defender.`; tag="def"; }
+  renderCombat(txt, cmds, tag);
+}
+function buildCommands(type){
+  const g = rivalF();   // V4·E3: el cansancio de la CPU pesa
+  if(type==="def"){
+    /* V2: PASE abre submenú de receptores reales; PARED es 1-2; comandos según el ROL del que controlás */
+    const rol=(PS.equipo?ctrlEnt().pos:"ATA");
+    const par=mejorParedPar();
+    const nRec=receptoresPase().length;
+    const cmds=[
+      {k:"gambeta", cn: rol==="DEF"?"SUBIDA":"GAMBETA", ico:"🌀", cost:8,
+       my:effStat("gambeta")*pesoCtrl("gambeta") - (rol==="DEF"?6:0), def:g+6, on:"gambeta"},
+      {k:"paseMenu",cn:"PASE ▸",  ico:"➡️", cost:2, submenu:"normal", sub:`${nRec} opciones · barato`},
+    ];
+    if(rol==="VOL") cmds.push({k:"filtrado", cn:"P. FILTRADO ▸", ico:"🪡", cost:3, submenu:"filtrado", sub:"rompe líneas · sin presión"});
+    if(par) cmds.push({k:"pared", cn:"PARED (1-2)", ico:"🔁", cost:4, on:"pared2", par,
+      my:0, def:0, pctFijo:clamp(Math.round(55 + effStat("pase")*0.35 + paseParVinculo(ctrlEnt(),par)*0.20 - g*0.3),20,95),
+      sub:`con ${esc(par.nombre)}${paseParVinculo(ctrlEnt(),par)>=70?" ★★":""}`});
+    else cmds.push({k:"pared", cn:"PARED (1-2)", ico:"🔁", locked:true, lockTxt:"SIN COMPAÑERO"});
+    if(rol==="DEF") cmds.push({k:"despeje", cn:"DESPEJE", ico:"🦶", cost:2, on:"despeje", pctFijo:100, my:0, def:0, sub:"seguro · pelota dividida lejos"});
+    cmds.push({k:"tiro", cn:"TIRO", ico:"🎯", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"});
+    /* V4 doc §8: umbral de RENDIDO — con el tanque casi vacío solo podés pasar y correr */
+    const gCtrl = (PS.controlIdx||0)===0 ? PS.guts : ctrlEnt().guts;
+    if(gCtrl < GUTS_RENDIDO){
+      for(const c of cmds){ if(c.k!=="paseMenu" && !c.locked){ c.locked=true; c.lockTxt="SIN NAFTA"; } }
+    }
+    return cmds;
+  }
+  if(type==="gk"){
+    const base = [
+      {k:"tiro",    cn:"TIRO",     ico:"🎯", cost:10, my:effStat("tiro"),    def:g+8,  on:"tiroGol"},
+      {k:"colocado",cn:"COLOCADO", ico:"🎽", cost:8,  my:effStat("tiro")*0.92+effStat("caracter")*0.12, def:g+5, on:"tiroGol"},
+      {k:"gambeta", cn:"GAMBETEAR",ico:"🌀", cost:9,  my:effStat("gambeta"), def:g+2,  on:"gambetaGk"},
+    ];
+    const nv = nivelJugador();
+    if(PS.equipo && (PS.controlIdx||0)!==0) return base;   // los especiales son TUYOS: llegá vos al área
+    for(const e of TIROS_ESPECIALES){
+      if(nv < e.nivel)        base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"NIVEL "+e.nivel});
+      else if(!e.funcional)   base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"PRÓXIMAMENTE"});
+      else if(PS.guts<e.guts) base.push({k:e.id, cn:e.cn, ico:e.ico, locked:true, lockTxt:"AGUANTE "+e.guts});
+      else base.push({k:e.id, cn:e.cn, ico:e.ico, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:g+8, on:"tiroGol", especial:e});
+    }
+    return base;
+  }
+  /* DEFENSA: tus stats contra el atacante rival (peso de quite según tu rol) */
+  const pq=pesoCtrl("quite");
+  const cmds=[
+    {k:"quitar",  cn:"QUITAR",      ico:"🦵", cost:8, my:effStat("fisico")*pq,                             def:g+5, on:"defensa", adv:34},
+    {k:"cortar",  cn:"CORTAR PASE", ico:"✂️", cost:6, my:effStat("velocidad"),                             def:g+1, on:"defensa", adv:20},
+    {k:"bloquear",cn:"BLOQUEAR",    ico:"🧱", cost:7, my:(effStat("fisico")*0.55+effStat("aereo")*0.45)*pq,def:g+4, on:"defensa", adv:24},
+    {k:"marcar",  cn:"MARCAR",      ico:"👁️", cost:4, my:effStat("caracter")*0.9+effStat("velocidad")*0.25,def:g+3, on:"defensa", adv:14},
+  ];
+  /* CIERRE: tackle de cobertura de tu amigo DEF (sus piernas, tu lectura) */
+  const aDef = PS.equipo ? PS.equipo.find(e=>e.pos==="DEF" && e.ref!=="cantera" && e.ref!=="yo") : null;
+  if(aDef) cmds.push({k:"cierre", cn:"CIERRE", ico:"🤜", cost:6,
+    my: statDe(aDef,"fisico")*(0.55+0.45*clamp(aDef.guts,0,100)/100) + career.stats.caracter*0.2,
+    def:g+3, on:"defensa", adv:22, sub:`cobertura de ${esc(aDef.nombre)}`});
+  return cmds;
+}
+function renderCombat(txt, cmds, tag){
+  $("combat-txt").innerHTML = txt;
+  setTag(tag);
+  const grid = $("cmd-grid"); grid.innerHTML = "";
+  for(const cm of cmds){
+    const b=document.createElement("button");
+    if(cm.locked){ b.className="cmd special lock"; b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch lo">${cm.lockTxt||"Bloqueado"}</div>`; }
+    else{
+      const ch = cm.submenu ? null : (cm.pctFijo!=null ? cm.pctFijo : Math.round(duelChance(cm.my, cm.def)*100));
+      const cls = ch==null?"mid":ch>=66?"hi":ch>=40?"mid":"lo";
+      b.className = cm.especial ? "cmd special" : "cmd";
+      b.innerHTML=`<span class="ico">${cm.ico}</span><div class="cn">${cm.cn}</div><div class="ch ${cls}">${ch==null?"elegir receptor":ch+"%"}${cm.especial?" · -"+cm.cost+" AGUANTE":""}</div>${cm.sub?`<div class="csub">${cm.sub}</div>`:""}`;
+      b.addEventListener("click", ()=> chooseCommand(cm), {once:true});
+    }
+    grid.appendChild(b);
+  }
+  $("combat").classList.add("show");
+}
+function setTag(tag){
+  const el=$("combat-tag");
+  if(tag==="def"){ el.textContent="🛡 DEFENSA"; el.className="ctag def"; }
+  else if(tag==="ht"){ el.textContent="⏸ ENTRETIEMPO"; el.className="ctag ht"; }
+  else { el.textContent="⚔ ATAQUE"; el.className="ctag"; }
+}
+function hideCombat(){ $("combat").classList.remove("show"); if(PS) PS.cine=null; }   // V4.1: al cerrar el menú, vuelve la cancha
+function chooseCommand(cm){
+  if(PS.state!=="menu") return;
+  if(cm.submenu){ SFX("menu"); renderPaseMenu(cm.submenu==="filtrado"); return; }   // V2: PASE abre receptores, sigue en menú
+  /* V4 doc §4 — TIRO CON ARCO EN 6 ZONAS TOCABLES: esquinas rinden más pero pueden
+     irse afuera; al medio es seguro pero atajable. Solo tiros normales (el especial va solo). */
+  if(cm.on==="tiroGol" && !cm.especial && !cm._zona){
+    SFX("menu");
+    const grid=$("cmd-grid"); grid.innerHTML="";
+    $("combat-txt").innerHTML="🎯 ¿A qué zona del arco? (esquinas: más gol, más riesgo de afuera)";
+    const ZONAS=[   /* V4.1: gy = a qué punto del arco viaja la pelota (que se VEA a dónde apuntaste) */
+      {n:"↖ ESQUINA ALTA", mod:6, fuera:0.14, gy:-44},{n:"↑ ALTO CENTRO", mod:-2, fuera:0.03, gy:0},{n:"↗ ESQUINA ALTA", mod:6, fuera:0.14, gy:44},
+      {n:"↙ PALO BAJO",    mod:4, fuera:0.08, gy:-38},{n:"↓ AL MEDIO",    mod:-4, fuera:0.01, gy:0},{n:"↘ PALO BAJO",   mod:4, fuera:0.08, gy:38},
+    ];
+    grid.style.gridTemplateColumns="1fr 1fr 1fr";
+    ZONAS.forEach(z=>{
+      const b=document.createElement("button");
+      const pct=Math.round(duelChance(cm.my+z.mod, cm.def)*100*(1-z.fuera));
+      const cls=pct>=60?"hi":pct>=38?"mid":"lo";
+      b.className="cmd";
+      b.innerHTML=`<div class="cn" style="font-size:.5rem">${z.n}</div><div class="ch ${cls}">${pct}%</div>`;
+      b.addEventListener("click", ()=>{ grid.style.gridTemplateColumns=""; chooseCommand(Object.assign({},cm,{_zona:z, my:cm.my+z.mod})); }, {once:true});
+      grid.appendChild(b);
+    });
+    return;
+  }
+  PS.state = "resolving";
+  SFX("menu");
+  if(cm.on==="tiroGol"||cm.on==="tiroLejano"||cm.on==="volea") SFX("kick");
+  ctrlGastarGuts(cm.cost);                                  // V2: el Guts es del jugador controlado
+  if(cm.on==="pared2"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML=duelIntro("pared"); return setTimeout(()=>resolvePared(cm), 700); }
+  if(cm.on==="dejarla"){ $("cmd-grid").innerHTML=""; $("combat-txt").innerHTML="La deja pasar entre las piernas… 👻"; return setTimeout(()=>resolveDejarla(cm), 800); }   // V4.2-D
+  if(PS.bonusJugada && ["gambeta","tiroGol","tiroLejano","gambetaGk","volea","bajarla"].includes(cm.on)){
+    cm = Object.assign({}, cm, {my: cm.my+6});              // ¡jugada armada / arquero vendido! +10% aprox (RV4: la volea también cobra)
+    PS.bonusJugada=false; PS.empuje=0;
+  }
+  /* V4·E3 — MATRIZ DE INTENCIONES (quite>gambeta · corte>pase · bloqueo>tiro):
+     el rival elige su intención OCULTA según la zona; adivinar(te) cambia el duelo. */
+  PS._intentTxt="";
+  if(["gambeta","tiroLejano"].includes(cm.on)){
+    const zonaBaja = ctrlPos().x > WORLD_W*0.66;                       // cerca de su arco defienden el tiro
+    const intent = pick(zonaBaja ? ["bloqueo","quite","bloqueo"] : ["quite","corte","corte"]);
+    const contra = {gambeta:"quite", tiroLejano:"bloqueo"}[cm.on];
+    if(intent===contra){ cm=Object.assign({},cm,{my:cm.my-8}); PS._intentTxt=" — te la olió"; }
+    else { cm=Object.assign({},cm,{my:cm.my+6}); PS._intentTxt=" — esperaba otra cosa"; }
+    rivalGasta(3);
+  }
+  if(cm.on==="defensa"){
+    const cerca = PS.carrier.x < WORLD_W*0.33;                          // cerca de TU arco busca el tiro
+    const accion = pick(cerca ? ["tiro","gambeta","tiro"] : ["pase","gambeta","pase"]);
+    const gana = {cortar:"pase", quitar:"gambeta", bloquear:"tiro"}[cm.k];
+    if(gana===accion){ cm=Object.assign({},cm,{my:cm.my+8}); PS._intentTxt=" — ¡le leíste la intención!"; }
+    else if(cm.k!=="marcar"){ cm=Object.assign({},cm,{my:cm.my-4}); PS._intentTxt=" — iba a otra cosa"; }
+    rivalGasta(4);
+  }
+  let win = Math.random() < duelChance(cm.my, cm.def);
+  if(win && cm._zona && Math.random()<cm._zona.fuera){ win=false; PS._afuera=true; }   // V4 §4: la esquina también puede irse
+  $("cmd-grid").innerHTML = "";
+  if(cm.on==="tiroGol"||cm.on==="gambetaGk"||cm.on==="tiroLejano"||cm.on==="volea") return escenaTiro(cm, win);   // V3·4: E4/E5 · V4.2: la volea también es escena
+  $("combat-txt").innerHTML = duelIntro(cm.k);
+  setTimeout(()=> applyOutcome(cm, win), 850);
+}
+/* ====== V3·4 — E4/E5: el remate como escena (pelota al arco + hit-stop + desenlace, texto DESPUÉS) ====== */
+function mostrarCutin(e){ $("cutin-cara").textContent=e.ico; $("cutin-nom").textContent=e.cn; $("cutin").className="cutin show"; }
+function ocultarCutin(){ $("cutin").classList.remove("show"); }
+function escenaTiro(cm, win){
+  const esp=cm.especial, cp=ctrlPos(), sx=cp.x, sy=cp.y;
+  /* V4.1: la pelota viaja a la ZONA que elegiste (palo/esquina), no siempre al medio;
+     si se va afuera, pasa de largo el palo (se ve el error) */
+  let gy = (esp&&esp.rasante) ? MIDY+44 : MIDY + ((cm._zona&&cm._zona.gy)||0);
+  if(PS._afuera) gy = MIDY + (cm._zona&&cm._zona.gy<0 ? -70 : 70);
+  const seq=[];
+  if(esp){
+    seq.push({tipo:"cutin", dur:650, t:0, inicio:()=>{ SFX("especial"); mostrarCutin(esp); }});
+    seq.push({tipo:"silencio", dur:400, t:0, inicio:()=>{ MUSICA(null); }});   // silencio dramático antes del disparo
+  }
+  /* V4.1: primero el CUADRO de la patada (el dibujito), después la pelota viaja en la cancha.
+     R7: la GAMBETA al arquero no patea — conserva el cara a cara del duelo, sin SFX de remate */
+  if(cm.on!=="gambetaGk")
+    seq.push({tipo:"cinePatada", dur:480, t:0,
+      inicio:()=>{ if(!esp) SFX("kick"); ocultarCutin(); PS.cine={tipo:"patada", esp:!!esp, t:0, look: PS.equipo ? ctrlEnt().look : career.look}; },
+      fin:()=>{ PS.cine=null; }});
+  const dist=Math.hypot((GOAL_X-8)-sx, gy-sy), dur=Math.max(220, dist/(esp?0.17:0.13));
+  /* V4.2-B: el arquero REACCIONA — vuela hacia la zona; si ataja LLEGA, si es gol queda a mitad
+     de camino, si va afuera la mira pasar */
+  const afueraTiro=PS._afuera, ky0=PS.keeper.y;
+  const kyFin = afueraTiro ? ky0
+              : win ? MIDY + (gy-MIDY)*0.45
+              : clamp(gy, MIDY-GOAL_MEDIO+6, MIDY+GOAL_MEDIO-6);
+  seq.push({tipo:"tiro", esp, dur, t:0,
+    tick:(t)=>{ const k=t/dur; PS.ball.x=sx+((GOAL_X-8)-sx)*k; PS.ball.y=sy+(gy-sy)*k + (esp?Math.sin(t*0.03)*(esp.rasante?2:5):0);
+      PS.keeper.y = ky0 + (kyFin-ky0)*Math.min(1, k*1.15);   // el vuelo del arquero
+      camSeguir(PS.ball.x); }});
+  seq.push({tipo:"hitstop", dur:400, t:0, inicio:()=>{ PS.ball.x=GOAL_X-8; PS.ball.y=gy; PS.keeper.y=kyFin; SFX("sting"); }});  // arquero en el aire: ¿gol o atajada?
+  seq[seq.length-1].fin = ()=>{ if(win) goalSequence(cm.on==="gambetaGk", cm.on==="tiroLejano", esp); else tiroAtajado(cm); };
+  seq.forEach(encolarEscena);
+}
+function tiroAtajado(cm){
+  const afuera = PS._afuera; PS._afuera=false;
+  const esGambeta = cm.on==="gambetaGk";
+  const corner = !afuera && !esGambeta && Math.random()<CORNER_PROB;   // V4.2-E: la atajada puede irse al córner (RV7: la gambeta perdida NO — no hubo tiro)
+  if(afuera){ SFX("lose"); flash("bad","¡AFUERA!"); banner("¡SE FUE POR CENTÍMETROS!"); }   // V4 §4: el riesgo de la esquina
+  else if(corner){ SFX("save"); flash("bad","¡AL CÓRNER!"); banner("¡EL ARQUERO LA SACÓ AL CÓRNER!"); }
+  else if(esGambeta){ SFX("save"); flash("bad","¡TE LA SACÓ!"); banner("¡EL ARQUERO SE QUEDÓ CON TUS PIES!"); }
+  else { SFX("save"); flash("bad","¡LA SACÓ!"); banner(cm.especial ? "¡VOLÓ Y LA MANOTEÓ!" : "¡ATAJÓ EL ARQUERO!"); }
+  hideCombat(); advanceClock();
+  if(checkTime()) return;
+  if(afuera){ rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; return; }   // afuera → saca el rival
+  /* V4.2-B: el CUADRO de la atajada — el arquero rival en grande, y recién ahí lo que sigue */
+  encolarEscena({tipo:"cineAtajada", dur:750, t:0,
+    inicio:()=>{ PS.cine={tipo:"atajada", corner, t:0}; },   // RV: al córner se ve la pelota DESVIADA, no en el guante
+    fin:()=>{ PS.cine=null;
+      if(corner) iniciarCorner();
+      else { rivalCounter(GOAL_X-140, PS.player.y||MIDY); PS.state="run"; } }});
+}
+/* ====== V4.2-E — CÓRNER con reposicionamiento (doc §5) ====== */
+function iniciarCorner(){
+  corteNegro(120);
+  PS.posesion="mia"; PS.carrier.active=false; PS.encounter={type:"corner", ref:null};
+  PS.cine=null; PS.ballAlt=0; PS.pasesSeguidos=0;
+  PS.controlIdx=0;                                        // el córner lo tirás VOS
+  const lado = PS.ball.y<MIDY ? TOP+6 : BOT-6;            // del lado al que salió la pelota
+  const cp=ctrlPos(); cp.x=GOAL_X-8; cp.y=lado;
+  PS.ball.x=GOAL_X-4; PS.ball.y=lado;
+  camSeguir(PS.ball.x); setGuts();
+  const obj=mejorCabeceador();
+  PS.state="menu";
+  clearDirs(); $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  const esArriba = lado<MIDY;
+  const spots=[
+    {n:"PRIMER PALO",  ico:"🥅", x:GOAL_X-38,  y:MIDY+(esArriba?-34:34), mod:+6, sub:"cerca · gana el pique"},
+    {n:"PUNTO PENAL",  ico:"⚪", x:GOAL_X-108, y:MIDY,                    mod:0,  sub:"clásico · frontal"},
+    {n:"SEGUNDO PALO", ico:"🎯", x:GOAL_X-38,  y:MIDY+(esArriba?34:-34), mod:-5, sub:"sorpresa · más espacio"},
+  ];
+  $("combat-txt").innerHTML=`🚩 CÓRNER. ¿Dónde ubicás a <b>${esc(nombreDe(obj.e))}</b> para ir a buscar el centro?`;
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  spots.forEach(s=>{
+    let pct = 56 + (effStat("pase")*0.3-15) + (statDe(obj.e,"aereo")-50)*0.45 + s.mod;
+    pct=clamp(Math.round(pct),25,90);
+    const b=document.createElement("button");
+    const cls=pct>=66?"hi":pct>=40?"mid":"lo";
+    b.className="cmd";
+    b.innerHTML=`<span class="ico">${s.ico}</span><div class="cn">${s.n}</div><div class="ch ${cls}">${pct}%</div><div class="csub">${s.sub}</div>`;
+    b.addEventListener("click", ()=>ejecutarCorner(obj, s, pct), {once:true});
+    grid.appendChild(b);
+  });
+  SFX("sting");
+}
+function mejorCabeceador(){
+  const ci=PS.controlIdx||0;
+  let mejor=null, mv=-1;
+  PS.equipo.forEach((e,i)=>{ if(i===ci || e.pos==="ARQ") return;
+    const v=statDe(e,"aereo")+statDe(e,"fisico")*0.3; if(v>mv){ mv=v; mejor={idx:i, e}; } });
+  return mejor;
+}
+function ejecutarCorner(obj, s, pct){
+  if(PS.state!=="menu") return;
+  /* REPOSICIONAMIENTO (doc §5): tu cabeceador al punto elegido, dos acompañan, la defensa se cierra */
+  const pO=posDe(obj.e); pO.x=s.x; pO.y=s.y;
+  let extra=0;
+  PS.equipo.forEach((e,i)=>{ if(i===(PS.controlIdx||0) || i===obj.idx || e.pos==="ARQ" || extra>=2) return;
+    if(e.pos==="ATA"||e.pos==="VOL"){ const p=posDe(e); p.x=GOAL_X-130-extra*26; p.y=MIDY+(extra?-52:52); extra++; } });
+  let rext=0;
+  PS.rivales.forEach((e,i)=>{ if(i===0 || rext>=3) return; e.x=GOAL_X-70-rext*24; e.y=MIDY+(rext-1)*40; rext++; });
+  /* RV3: los MARCADORES (la capa mecánica y lo que muestra el radar como "sus DEF")
+     también se paran en los palos — sin esto, la defensa del córner era un fantasma */
+  PS.defenders.forEach((df,k)=>{ df.passed=false; df.x=GOAL_X-44; df.y=MIDY+(k?30:-30); });
+  PS.keeper.y=MIDY;
+  draw(); drawMinimap();
+  resolvePase({idx:obj.idx, e:obj.e, x:s.x, y:s.y, dir:"al área", espacio:false, pct,
+    vinc:paseParVinculo(ctrlEnt(), obj.e), dupla:false, aereo:true, corner:true});
+}
+function duelIntro(k){
+  return ({
+    gambeta:"Amagás y encarás… 🌀", pase:"La tocás al compañero… ➡️", pared:"Pared y a picar al espacio… 🔁",
+    tiro:"¡Sacás el remate! 🎯", colocado:"Buscás el palo con un zurdazo colocado… 🎽",
+    quitar:"Vas al piso con todo… 🦵", cortar:"Leés el pase y saltás a la línea… ✂️",
+    bloquear:"Ponés el cuerpo… 🧱", marcar:"Aguantás firme, sin comerte el amague… 👁️",
+    cierre:"¡Llega la cobertura barriendo! 🤜", despeje:"La revoleás lejos, sin vueltas… 🦶",
+    atajar:"¡Vuelo al palo! 🧤", despejar:"¡Puños afuera! 👊", atajadaEsp:"✨ ¡Toda la fe en ese guante!",
+    bajarla:"La espera con el pecho… 🦶", volea:"¡Se tira de VOLEA! 💥",
+  })[k] || "…";
+}
+
+/* ---------- Reloj estilizado ---------- */
+function advanceClock(){ PS.minuto += rnd(0.6, 1.4); renderClock(); }   // V4·E4: cada accion salta el reloj (ademas corre en tiempo real al conducir)
+function renderClock(){
+  const _m=Math.round(PS.minuto); $("hud-min").textContent = (PS.half===1&&PS.minuto>45.01)?"45+'":(PS.half===2&&PS.minuto>90.01)?"90+'":Math.min(90,_m)+"'";
+  $("hud-half").textContent = PS.half===1?"1T":"2T";
+  if(PS.half===2 && PS.minuto>=80) MUSICA("final");   // últimos minutos: música urgente
+}
+/* devuelve true si interceptó el flujo (entretiempo o final) */
+function checkTime(){
+  if(PS.minuto>=90+(PS.desc2||0)){ fullTime(); return true; }
+  if(PS.half===1 && PS.minuto>=45+(PS.desc1||0)){ halftime(); return true; }
+  return false;
+}
+function halftime(){
+  PS.state="halftime";
+  PS.cine=null;   // R1c: si el 45' interceptó un desenlace, que el entretiempo no herede el cuadro colgado
+  SFX("whistle",2); MUSICA(null);
+  PS.minuto=45; renderClock();
+  PS.guts = clamp(PS.guts + GUTS_ENTRETIEMPO, 0, 100); setGuts();
+  PS.rivalGuts = clamp(PS.rivalGuts + 13, 0, 100);   // V4·E3: la CPU recupera ~1/8, como vos
+  if(PS.equipo) PS.equipo.forEach(e=>{
+    if(e.guts==null) return;
+    if(e.pos==="ARQ" && PS.gRv===0) return;   // V4 doc §6: el arquero SOLO recupera si le convirtieron (la tensión del asedio se arrastra)
+    e.guts=clamp(e.guts+GUTS_ENTRETIEMPO,0,100);
+  });
+  setTag("ht");
+  $("combat-txt").innerHTML = `Final del primer tiempo: <b>${PS.gMe}-${PS.gRv}</b>. Naranjas, charla del técnico y recuperás <b>aguante</b>.`;
+  const grid=$("cmd-grid"); grid.innerHTML="";
+  const b=document.createElement("button");
+  b.className="cmd wide"; b.innerHTML=`<div class="cn">SEGUNDO TIEMPO ▶</div>`;
+  b.addEventListener("click", ()=>{
+    PS.half=2; PS.minuto=45; renderClock();
+    hideCombat();
+    SFX("whistle",1); MUSICA("posesion");
+    kickoff("rival");           // el segundo tiempo lo saca el rival
+    PS.state="run";
+  }, {once:true});
+  grid.appendChild(b);
+  $("combat").classList.add("show");
+}
+
+/* ---------- Resolución de duelos ---------- */
+function applyOutcome(cm, win){
+  const enc = PS.encounter;
+  /* --- duelo con el arquero rival --- */
+  if(cm.on==="tiroGol" || cm.on==="gambetaGk"){
+    if(win) return goalSequence(cm.on==="gambetaGk", false, cm.especial);
+    endLine(cm.especial ? "¡Voló el arquero y la manoteó al córner! Casi la rompés." :
+      cm.on==="gambetaGk" ? "El arquero se queda con tus pies. ¡Te la sacó!" : "¡Tapadón del arquero! Saca rápido…", false);
+    advanceClock();
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); rivalCounter(GOAL_X-140, PS.player.y); PS.state="run"; }, 1100);
+    return;
+  }
+  /* --- tiro lejano --- */
+  if(cm.on==="tiroLejano"){
+    if(win) return goalSequence(false, true);
+    endLine("El remate de lejos se va desviado. Saca el arquero…", false);
+    advanceClock();
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); rivalCounter(GOAL_X-140, MIDY); PS.state="run"; }, 1100);
+    return;
+  }
+  /* --- V4.2-D: BAJARLA (recepción aérea en el área) --- */
+  if(cm.on==="bajarla"){
+    advanceClock();
+    if(win){
+      const cp=ctrlPos(); cp.x=clamp(PS.ball.x-4, 16, GOAL_X-14); cp.y=clamp(PS.ball.y, TOP+6, BOT-6);
+      PS.keeper.faced=false;                      // dominada en el área: podés encarar el mano a mano
+      endLine("¡La bajó de pecho, quedó dominada en el área!", true);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.state="run"; setHint(); }, 900);
+    } else {
+      endLine("No la pudo domar: el control se le fue largo…", false);
+      const bx=PS.ball.x, by=PS.ball.y;
+      setTimeout(()=>{ if(checkTime()) return; perderPelota(bx, by); }, 900);
+    }
+    return;
+  }
+  /* --- V2·D: DESPEJE del DEF (100% seguro, pelota dividida lejos, nunca gol en contra) --- */
+  if(cm.on==="despeje"){
+    advanceClock();
+    endLine("Despeje largo, sin especular: la pelota vuela al mediocampo.", true);
+    setTimeout(()=>{ if(checkTime()) return; pelotaDividida(WORLD_W/2 + rnd(-40,40), rnd(TOP+20,BOT-20)); }, 900);
+    return;
+  }
+  /* --- V2·D: tu ARQUERO define el remate rival --- */
+  if(cm.on==="atajar" || cm.on==="despejarArq" || cm.on==="atajarEsp"){
+    advanceClock();
+    if(cm.especialArq) cm.especialArq.guts=clamp(cm.especialArq.guts-20,0,100);
+    if(win){
+      if(cm.on==="despejarArq"){
+        flash("gol","¡LA SACÓ!");
+        endLine("¡Puñetazo salvador! La pelota queda dividida en el medio.", true);
+        setTimeout(()=>{ if(checkTime()) return; pelotaDividida(WORLD_W/2, MIDY); }, 1100);
+      } else {
+        flash("gol", cm.on==="atajarEsp" ? "✨¡ATAJADÓN!" : "¡LA SACÓ!");
+        endLine(cm.on==="atajarEsp" ? "✨ ¡Vuelo imposible! La atajada del partido. Salís jugando." : "¡Atajadón! Te la deja a vos: salí jugando.", true);
+        setTimeout(()=>{
+          if(checkTime()) return;
+          hideCombat();
+          PS.posesion="mia"; PS.carrier.active=false; PS.controlIdx=0;
+          PS.player.x=MY_AREA_X+20; PS.player.y=MIDY; PS.ball.x=PS.player.x+7; PS.ball.y=MIDY;   // R4: salís jugando apenas AFUERA de tu área (antes 130 quedaba adentro)
+          spawnDefenders(PS.player.x); PS.encCooldown=40; setGuts(); setHint();
+          PS.state="run";
+        }, 1200);
+      }
+    } else {
+      PS.gRv++; $("hud-grv").textContent=PS.gRv;
+      flash("bad","GOL RIVAL");
+      endLine(`No llegó. <b>${PS.gMe}-${PS.gRv}</b>. Sacás del medio.`, false);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); kickoff("mia"); PS.state="run"; }, 1300);
+    }
+    return;
+  }
+  /* --- DEFENSA: duelo contra el atacante rival --- */
+  if(cm.on==="defensa"){
+    advanceClock();
+    if(win){
+      endLine(({quitar:"¡Barrida limpia! Te llevás la pelota.", cortar:"¡Anticipo perfecto, cortaste el avance!",
+        bloquear:"¡Bloqueaste con el cuerpo y quedó para vos!", marcar:"Lo secaste: se queda sin ángulo y se la robás."})[cm.k], true);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); recoverBall(); PS.state="run"; }, 950);
+    } else {
+      PS.carrier.x = clamp(PS.carrier.x - cm.adv, MY_AREA_X-2, GOAL_X);
+      const cpd=ctrlPos(); cpd.x = clamp(PS.carrier.x + 34, 16, GOAL_X-2); cpd.y = clamp(PS.carrier.y+10, TOP+6, BOT-6);   // te dejó atrás EL CONTROLADO: a correrlo
+      PS.encCooldown = 45;
+      endLine(({quitar:"Te tiraste y le pifiaste: te dejó pagando.", cortar:"Amagó el pase y siguió: te comió el mediocampo.",
+        bloquear:"Te hizo pasar de largo con un enganche.", marcar:"Aceleró de golpe y te sacó medio metro."})[cm.k], false);
+      setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.state="run"; setHint(); }, 950);
+    }
+    return;
+  }
+  /* --- ATAQUE: duelo contra defensor --- */
+  advanceClock();
+  const conCompa = PS.compa && (cm.on==="pase"||cm.on==="pared");
+  const nomCompa = conCompa ? esc(PS.compa.nombre) : "";
+  if(win){
+    enc.ref.passed = true;
+    const cp=ctrlPos(); cp.x = clamp(cp.x + (cm.on==="pared"?34:cm.on==="gambeta"?26:20), 16, GOAL_X-2);  // avanza el que TENÉS, no siempre vos
+    if(conCompa){ PS.compa.vinculo = Math.min(100, PS.compa.vinculo+1); }  // jugar juntos une
+    endLine(conCompa
+      ? (cm.on==="pared" ? `¡Pared perfecta con <b>${nomCompa}</b>! Se entienden de memoria. (+1 vínculo)`
+                         : `Pase justo de <b>${nomCompa}</b> a la carrera. La conexión funciona. (+1 vínculo)`)
+      : ({gambeta:"¡Gambeta bárbara, lo dejaste pagando! Seguís.",
+          pase:"Pase y devolución, la jugada sigue. Ganás metros.",
+          pared:"¡Pared perfecta, te metés entre líneas!"})[cm.on] || "¡Seguís!", true);
+    setTimeout(()=>{ if(checkTime()) return; hideCombat(); PS.state="run"; setHint(); }, 950);
+  } else {
+    endLine(({gambeta:"Te clavó el pie en el enganche. La pelota queda ahí…",
+          pase:"Pase flojo, la pelota queda boyando…",
+          pared:"Le adivinaron la pared. La pelota queda ahí…"})[cm.on] || "Perdiste la pelota…", false);
+    const ex=enc.ref.x, ey=enc.ref.y;
+    setTimeout(()=>{ if(checkTime()) return; perderPelota(ex, ey); }, 1000);   // F2: no siempre es contra
+  }
+}
+function endLine(txt, good){
+  if(PS && PS._sfxBig){ PS._sfxBig=false; }        // ya sonó un momento grande (gol/atajada): no dupliques
+  else SFX(good?"win":"lose");
+  let extra="";
+  if(PS && PS._intentTxt){ extra=`<i style="opacity:.8">${PS._intentTxt}</i>`; PS._intentTxt=""; }  // V4·E3: revela la intención rival
+  $("combat-txt").innerHTML = (good?"✔ ":"✖ ") + txt + extra;
+}
+
+/* ---------- V2·D: el remate rival se JUEGA con tu arquero (menú de 3) ---------- */
+function rivalShot(){
+  PS.state="menu";
+  clearDirs(); $("hint").style.display="none";
+  const arq=PS.equipo.find(e=>e.pos==="ARQ") || {ref:"cantera", pos:"ARQ", nombre:"Cantera", stats:Object.assign({},STATS_CANTERA), vinculo:0, guts:50};  // guard: nunca sin arquero
+  const atk=rivalF()+6; rivalGasta(8);   // rematar cansa (V4·E3)
+  const carArq = arq.ref==="yo" ? career.stats.caracter : (arq.stats.caracter!=null?arq.stats.caracter:45);
+  const base = statDe(arq,"fisico")*0.7 + carArq*0.4;
+  const esCantera = arq.ref==="cantera";
+  const cmds=[{k:"atajar", cn:"ATAJAR", ico:"🧤", cost:0, my:base, def:atk, on:"atajar"}];
+  if(!esCantera){                                  // con cantera en el arco SOLO hay atajar: reclutá
+    cmds.push({k:"despejar", cn:"DESPEJAR", ico:"👊", cost:0, my:base+7, def:atk, on:"despejarArq", sub:"más seguro · pelota dividida"});
+    if(arq.ref!=="yo" && arq.vinculo>=50 && arq.guts>=20)
+      cmds.push({k:"atajadaEsp", cn:"ATAJADA ESPECIAL", ico:"✨", cost:0, my:base+15, def:atk, on:"atajarEsp",
+        especialArq:arq, sub:`-20 de aguante de ${esc(arq.nombre)} · vínculo ${arq.vinculo}`});
+  }
+  PS.encounter={type:"arq", ref:arq};
+  PS.cine={tipo:"duelo", enc:"arq", t:0, look: arq.look};   // V4.1: cuadro del remate rival vs tu arquero
+  SFX("sting"); SFX("kick");
+  renderCombat(`¡El ataque de <b>${PS.rival.n}</b> remata! <b>${esc(nombreDe(arq))}</b> bajo los tres palos…`, cmds, "def");
+}
+
+/* ---------- Gol de tu equipo (tuyo o de un amigo con la pelota) ---------- */
+function goalSequence(dribble, lejano, especial){
+  PS.gMe++;
+  const amigoAnota = PS.equipo && (PS.controlIdx||0)!==0;
+  let quien=null;
+  if(amigoAnota){
+    const e=ctrlEnt(); quien=e;
+    PS.golesAmigos[e.ref]=(PS.golesAmigos[e.ref]||0)+1;
+    if(e.ref!=="cantera" && e.vinculo!=null){                       // el gol compartido une
+      e.vinculo=Math.min(100,e.vinculo+1);
+      const a=career.vida.amigos[e.ref]; if(a) a.vinculo=e.vinculo;
+    }
+  } else {
+    PS.golesEnPartido++;                                            // gol PERSONAL: sube stats y nivel
+  }
+  $("hud-gme").textContent = PS.gMe;
+  PS.ball.x = GOAL_X; PS.ball.y = MIDY;
+  /* V4.1: cuadro del festejo — el goleador con los brazos arriba (se limpia en el saque) */
+  PS.cine = {tipo:"festejo", t:0, look: quien ? quien.look : career.look};
+  draw();
+  flash("gol", (lejano||especial) ? "¡GOLAZO!" : "¡GOL!");
+  endLine(quien ? `¡GOL de <b>${esc(quien.nombre)}</b>! La jugada la armaron entre todos. (+1 vínculo)`
+        : especial ? `¡El ${especial.cn} rompió la red! El arquero ni la vio.`
+        : dribble ? "¡Gambeteaste al arquero y la empujaste al arco vacío!"
+        : lejano  ? "¡Golazo desde lejos, la clavaste en un ángulo!"
+        : "¡Definiste de primera, el arquero no llegó!", true);
+  advanceClock();
+  setTimeout(()=>{ if(checkTime()) return; hideCombat(); kickoff("rival"); PS.state="run"; }, 1400);
+}
+
+/* ---------- Final del partido ---------- */
+function fullTime(){
+  PS.state="end";
+  PS.cine=null;   // R1c: ídem entretiempo — el pitazo final limpia el cuadro
+  SFX("whistle",3); MUSICA(null);
+  PS.minuto=90; renderClock();
+  const win = PS.gMe>PS.gRv, draw_ = PS.gMe===PS.gRv;
+  career.partidos = (career.partidos||0)+1;
+  if(win) career.victorias=(career.victorias||0)+1;
+  else if(draw_) career.empates=(career.empates||0)+1;
+  else career.derrotas=(career.derrotas||0)+1;
+  let lvl = "";
+  const nivelAntes = nivelJugador();
+  if(PS.golesEnPartido>0){
+    const key = pick(["tiro","tiro","gambeta","caracter"]);
+    const inc = Math.min(2, PS.golesEnPartido);
+    career.stats[key] = clamp((career.stats[key]||50)+inc, 1, 99);
+    lvl = `+${inc} ${statLabel(key)}`;
+    career.goles = (career.goles||0)+PS.golesEnPartido;
+  }
+  if(win){ career.stats.caracter = clamp(career.stats.caracter+1,1,99); }
+  const nivelNuevo = nivelJugador()>nivelAntes ? nivelJugador() : 0;
+  /* E: la dupla de la tarde (más pases conectados) gana +1 vínculo */
+  if(PS.conexiones){
+    let best=null, bn=0;
+    for(const k in PS.conexiones) if(PS.conexiones[k]>bn){ bn=PS.conexiones[k]; best=+k; }
+    if(best!=null && bn>=2){
+      const e=PS.equipo[best];
+      if(e && e.vinculo!=null){ e.vinculo=Math.min(100,e.vinculo+1); const a=career.vida.amigos[e.ref]; if(a) a.vinculo=e.vinculo; }
+      PS.duplaTarde={nombre:e?e.nombre:"", pases:bn};
+    }
+  }
+  const v=ensureVida();
+  if(v){
+    v.plata += 40 + 10*PS.golesEnPartido + (win?15:0);  // sueldo modesto + premios
+    v.gutsProximo = GUTS_BASE_POSPARTIDO;                // el partido te vacía: la semana recupera
+  }
+  saveCareer();
+  aplicarResultadoPartido();  // la fecha se consume en el MISMO guardado: recargar acá no la deja rejugar
+  setTimeout(()=> renderFinal(win, draw_, lvl, nivelNuevo), 900);
+}
+function renderFinal(win, draw_, lvl, nivelNuevo){
+  PS.running = false; cancelAnimationFrame(PS.raf);
+  hideCombat();
+  $("f-veredicto").textContent = win ? "¡GANASTE!" : draw_ ? "EMPATE" : "PERDISTE";
+  $("f-veredicto").className = "f-veredicto "+(win?"win":draw_?"draw":"lose");
+  $("f-res").textContent = `${PS.gMe} - ${PS.gRv}`;
+  $("f-res").className = "f-res "+(win?"win":draw_?"draw":"lose");
+  $("f-tag").textContent = `${PS.club.n}  vs  ${PS.rival.n}`;
+  let cr = PS.golesEnPartido>0 ? `Metiste <b>${PS.golesEnPartido} gol${PS.golesEnPartido>1?"es":""}</b>. ` : `Hoy no la pudiste mandar a guardar. `;
+  cr += win ? `Tres puntos para la <b>${PS.club.n}</b> y aplausos del pueblo.` : draw_ ? `Punto luchado en una tarde pareja.` : `Golpe duro, pero esto recién arranca.`;
+  $("f-cronica").innerHTML = cr;
+  let lu = lvl ? `<div class="level-up"><div class="t">⬆ MEJORASTE</div><div class="s">${lvl} por tus goles</div></div>` : "";
+  if(nivelNuevo){
+    const desbloqueados = TIROS_ESPECIALES.filter(e=>e.nivel===nivelNuevo);
+    lu += `<div class="level-up"><div class="t">🌟 ¡NIVEL ${nivelNuevo}!</div><div class="s">${
+      desbloqueados.length
+        ? desbloqueados.map(e=>`${e.ico} Desbloqueaste: <b>${e.cn}</b>${e.funcional?"":" (próximamente)"}`).join("<br>")
+        : "Seguí metiendo goles para desbloquear tiros especiales."
+    }</div></div>`;
+  }
+  if(PS.duplaTarde) lu += `<div class="level-up"><div class="t">🤝 DUPLA DE LA TARDE</div><div class="s">Con <b>${esc(PS.duplaTarde.nombre)}</b>: ${PS.duplaTarde.pases} pases conectados · +1 vínculo</div></div>`;
+  $("f-levelup").innerHTML = lu;
+  const s=career.stats;
+  const order=[["tiro","Tiro"],["gambeta","Gambeta"],["pase","Pase"],["velocidad","Veloc."],["fisico","Físico"],["caracter","Carácter"]];
+  $("f-ratings").innerHTML = order.map(([k,l])=>`<div class="rate">${l}<span class="v">${s[k]}</span></div>`).join("");
+  showScreen("screen-final");
+}
+function statLabel(k){ return {pase:"Pase",tiro:"Tiro",gambeta:"Gambeta",velocidad:"Velocidad",resistencia:"Resistencia",fisico:"Físico",aereo:"Juego aéreo",caracter:"Carácter"}[k]||k; }
+
+/* ---------- Flash / Guts / pantallas / hint ---------- */
+let flashTO=0;
+function flash(kind, text){
+  /* sonido según el momento (goles, atajadas, gol rival) y marca "momento grande" para no duplicar en endLine */
+  let big=true;
+  if(/GOLAZO|¡GOL!|¡GOOOL/.test(text)) SFX("goal");
+  else if(/GOL RIVAL/.test(text)) SFX("golRival");
+  else if(/SACÓ|ATAJADÓN/.test(text)) SFX("save");
+  else big=false;
+  if(PS) PS._sfxBig = big;
+  const f=$("flash");
+  clearTimeout(flashTO);            // que el flash anterior no apague a este
+  f.className="flash"; void f.offsetWidth;  // reinicia la animación CSS
+  $("flash-big").textContent=text;
+  f.className="flash show "+kind;
+  flashTO=setTimeout(()=> f.classList.remove("show"), 900);
+}
+function setGuts(){
+  let g=100, nom=null;
+  if(PS){
+    if(PS.equipo && (PS.controlIdx||0)!==0){ const e=ctrlEnt(); g=e.guts; nom=e.nombre; }
+    else { g=PS.guts; nom=career?career.name:null; }
+  }
+  g=clamp(g,0,100);
+  $("guts-fill").style.width=g+"%";
+  $("guts-fill").style.background = g>55?"linear-gradient(90deg,#7ee08a,#3fbf63)":g>25?"linear-gradient(90deg,#f6c11d,#ffaf3a)":"linear-gradient(90deg,#e3503e,#ff7a5e)";
+  if(nom) $("guts-lab").textContent="AGUANTE·"+String(nom).toUpperCase().slice(0,7);   // el HUD dice de QUIÉN es el Guts
+  if(typeof refreshActionBtns==="function") refreshActionBtns();
+}
+function showScreen(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); $(id).classList.add("active"); }
+function setHint(){
+  const h=$("hint"); h.style.display="block";
+  const nom = PS.equipo ? esc(nombreDe(ctrlEnt())).toUpperCase().slice(0,9) : "";
+  h.innerHTML = PS.posesion==="mia"
+    ? `⚔ JUGÁS: <b>${nom}</b> ▶ · radar = pase`
+    : `🛡 MARCÁS: <b>${nom}</b> ◀ · radar = cambiar`;
+  refreshActionBtns();
+}
+/* ====== Integración 2: PATEAR y ESPECIAL desde el juego (botón o tecla) ====== */
+function accionPatear(){
+  /* V4 doc §5: defendiendo, el mismo botón es CAMBIO → te pasa al defensor más cercano a la pelota */
+  if(PS && PS.state==="run" && PS.posesion==="rival" && !PS.escena){ marcarCon(idxMasCercanoALaPelota(), true); return; }
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
+  const g=PS.rival.f, p=ctrlPos(), dist=GOAL_X-p.x;
+  if(dist<=DIST_MENU_ARQUERO){                     // en zona de remate: abre el menú de arquero (con especiales)
+    PS.keeper.faced=true; startEncounter("gk", PS.keeper); return;
+  }
+  clearDirs();                                     // de lejos: tiro directo etiquetado "DESDE LEJOS"
+  PS.state="menu"; PS.encounter={type:"shot", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  chooseCommand({k:"tiro", cn:"TIRO", cost:10, my:effStat("tiro")*0.7*pesoCtrl("tiro"), def:g+34, on:"tiroLejano"});
+}
+/* V4.1: PASE como acción directa — la tocás cuando quieras, sin esperar el encuentro */
+function accionPase(){
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena || !PS.equipo) return;
+  if(!receptoresPase().length){ banner("SIN RECEPTORES CERCA"); return; }
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"pase", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  renderPaseMenu(false, false, true);
+  SFX("menu");
+}
+function accionEspecial(){
+  if(!PS || PS.state!=="run" || PS.posesion!=="mia" || PS.escena) return;
+  if(PS.equipo && (PS.controlIdx||0)!==0) return;            // el especial es TUYO: llegá vos
+  const e=TIROS_ESPECIALES[0];
+  if(!e.funcional || nivelJugador()<e.nivel || PS.guts<e.guts) return;
+  clearDirs();
+  PS.state="menu"; PS.encounter={type:"shot", ref:null};
+  $("hint").style.display="none"; setTag("atk"); $("combat").classList.add("show");
+  PS.keeper.faced=true;
+  chooseCommand({k:e.id, cn:e.cn, cost:e.guts, my:effStat("tiro")*e.mult+effStat("caracter")*0.15, def:rivalF()+8, on:"tiroGol", especial:e});
+}
+function refreshActionBtns(){
+  const bp=$("btn-patear"), be=$("btn-especial"), bpa=$("btn-pase");
+  if(!bp || !PS) return;
+  const puedo = PS.posesion==="mia";
+  bp.classList.remove("off");                      // V4: el botón SIEMPRE sirve — patear o cambiar de marcador
+  bp.querySelector(".abt").textContent = puedo ? "PATEAR" : "CAMBIO";
+  bp.querySelector(".abi").textContent = puedo ? "🎯" : "🔁";
+  $("patear-sub").textContent = puedo ? "o BARRA espaciadora" : "al más cercano · o BARRA";
+  if(bpa){ bpa.classList.toggle("off", !puedo); $("pase-sub").textContent = puedo ? "elegí receptor · tecla P" : "sin pelota"; }
+  const e=TIROS_ESPECIALES[0];
+  const yoCtrl = !PS.equipo || (PS.controlIdx||0)===0;
+  let sub, off=true;
+  if(nivelJugador()<e.nivel) sub="NIVEL "+e.nivel;
+  else if(!puedo) sub="sin pelota";
+  else if(!yoCtrl) sub="si llegás VOS";
+  else if(PS.guts<e.guts) sub="AGUANTE "+e.guts;
+  else { sub="-"+e.guts+" AGUANTE · tecla E"; off=false; }
+  be.classList.toggle("off", off);
+  $("especial-sub").textContent=sub;
+}
+$("btn-patear").addEventListener("click", accionPatear);
+$("btn-pase").addEventListener("click", accionPase);
+$("btn-especial").addEventListener("click", accionEspecial);
+
+/* ---------- Botones final: aplicar mi resultado a la fecha y volver a la temporada ---------- */
+function aplicarResultadoPartido(){
+  if(PS && !PS.fechaAplicada){ PS.fechaAplicada=true; aplicarFecha(PS.gMe, PS.gRv); }
+}
+$("btn-again").addEventListener("click", ()=>{ aplicarResultadoPartido(); renderSeason(); });
+$("btn-home").addEventListener("click", ()=>{
+  if(PS){ PS.running=false; cancelAnimationFrame(PS.raf); }
+  aplicarResultadoPartido();
+  renderTitle();
+});
+
+/* ---------- Input: d-pad (touch + mouse + teclado) ---------- */
+function setDir(dir,on){ if(PS&&PS.dirs) PS.dirs[dir]=on; const el=document.querySelector('.dbtn.'+dir); if(el) el.classList.toggle('on',on); }
+(function bindDpad(){
+  document.querySelectorAll(".dbtn").forEach(btn=>{
+    const dir=btn.dataset.dir;
+    // pointer capture: aunque el overlay de combate tape el botón, el pointerup llega igual
+    const down=e=>{ e.preventDefault(); if(e.pointerId!=null && btn.setPointerCapture){ try{ btn.setPointerCapture(e.pointerId); }catch(_){}} setDir(dir,true); };
+    const up=e=>{ e.preventDefault(); setDir(dir,false); };
+    btn.addEventListener("pointerdown",down);
+    btn.addEventListener("pointerup",up);
+    btn.addEventListener("pointerleave",up);
+    btn.addEventListener("pointercancel",up);
+  });
+  const KMAP={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right",w:"up",s:"down",a:"left",d:"right"};
+  // nunca robar teclas cuando el foco está en un formulario (nombre, club)
+  const enFormulario = e => { const t=e.target&&e.target.tagName; return t==="INPUT"||t==="SELECT"||t==="TEXTAREA"; };
+  const keyDir = e => KMAP[e.key] || KMAP[e.key.toLowerCase()]; // toLowerCase: que Shift/CapsLock no deje la tecla pegada
+  const enPartido = () => $("screen-match").classList.contains("active");   // los atajos de juego solo en la cancha
+  addEventListener("keydown",e=>{
+    if(enFormulario(e)) return;
+    if(enPartido() && (e.key===" "||e.code==="Space")){ accionPatear(); e.preventDefault(); return; }   // patear (no roba Espacio en botones)
+    if(enPartido() && e.key.toLowerCase()==="e"){ accionEspecial(); e.preventDefault(); return; }        // tiro especial
+    if(enPartido() && e.key.toLowerCase()==="p"){ accionPase(); e.preventDefault(); return; }            // V4.1: pase voluntario
+    if(enPartido() && e.key.toLowerCase()==="r"){                                                        // V4.2: radar ampliado (abrir/cerrar)
+      if(PS && PS.state==="aim") cerrarRadarBig(true); else abrirRadarBig();
+      e.preventDefault(); return; }
+    const k=keyDir(e); if(k && enPartido()){ setDir(k,true); e.preventDefault(); }
+  });
+  addEventListener("keyup",  e=>{ if(enFormulario(e)) return; const k=keyDir(e); if(k){ setDir(k,false); e.preventDefault(); } });
+})();
+
+/* ---------- Audio: desbloqueo al primer toque + mute persistido ---------- */
+function SFX(n,a){ try{ if(PSAUDIO&&PSAUDIO.sfx[n]) PSAUDIO.sfx[n](a); }catch(e){} }
+function MUSICA(cual){ try{ if(cual) PSAUDIO.music.play(cual); else PSAUDIO.music.stop(); }catch(e){} }
+function refreshMute(){
+  const m=PSAUDIO.isMuted();
+  $("btn-mute").textContent = m ? "🔇 OFF" : "🔊 ON";
+  const t=$("btn-mute-title"); if(t) t.textContent = m ? "🔇 SONIDO: OFF" : "🔊 SONIDO: ON";
+}
+/* reanuda el AudioContext en cada interacción y al volver a foco: iOS/Android lo suspenden al cambiar de app o bloquear */
+function audioKeepAlive(){ try{ PSAUDIO.unlock(); }catch(e){} }
+addEventListener("pointerdown", audioKeepAlive);
+addEventListener("keydown", audioKeepAlive);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) audioKeepAlive(); });
+$("btn-mute").addEventListener("click", ()=>{ PSAUDIO.toggleMute(); refreshMute(); });
+refreshMute();
+
+/* ---------- Arranque: título con Continuar/Nuevo ---------- */
+initIntro();
+renderTitle();
+consumirResultadoPhaser();   // fusión v2: si volvés del partido Phaser con resultado, se aplica y te deja en la temporada
+</script>
+</body>
+</html>

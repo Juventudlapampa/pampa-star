@@ -126,9 +126,12 @@ function delSitio(url) { return url && url.indexOf(SITIO) === 0 ? url.slice(SITI
    arroba y la barra ("chicos/as") */
 var PROHIBIDO = /\bpib[ea]s?\b|\blos jugadores\b|\bbienvenid[oa]s?\b|\bpueblos?\b|@|\w\/\w/i;
 
-/* las páginas que se comparten. La raíz entra con la portada (url-oficial):
-   hasta entonces es el clásico y su <head> no se toca acá */
-var PAGINAS = [{ archivo: "phaser/index.html", canonica: SITIO + "phaser/" }];
+/* las páginas que se comparten: la raíz (la portada desde url-oficial: es
+   el link oficial) y la del juego. Cada una es su propia canónica */
+var PAGINAS = [
+  { archivo: "index.html", canonica: SITIO },
+  { archivo: "phaser/index.html", canonica: SITIO + "phaser/" }
+];
 
 /* ---------- [1] LAS ETIQUETAS ---------- */
 PAGINAS.forEach(function (P) {

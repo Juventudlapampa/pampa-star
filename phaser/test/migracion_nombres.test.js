@@ -23,7 +23,7 @@ var T = require(path.join(RAIZ, "phaser/logic/temporada.js"));
 var M = require(path.join(RAIZ, "phaser/logic/master.js"));
 var DIV = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/divisiones.json"), "utf8")).divisiones;
 var ROSTER = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/roster_pampeano.json"), "utf8"));
-var CLASICO = fs.readFileSync(path.join(RAIZ, "index.html"), "utf8");
+var CLASICO = fs.readFileSync(path.join(RAIZ, "clasico/index.html"), "utf8");   // L08: el clásico se mudó a clasico/ (la raíz es la portada)
 var ok = 0, mal = 0;
 function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); } }
 

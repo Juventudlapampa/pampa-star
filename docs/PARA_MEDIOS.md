@@ -8,18 +8,18 @@ carrera del potrero al Mundial, jugada por jugada.
 ## El link
 
 ```
-https://juventudlapampa.github.io/pampa-star/phaser/
+https://juventudlapampa.github.io/pampa-star/
 ```
 
-Se abre directo en el juego y la carrera queda guardada en el navegador de
-cada persona.
+Abre la portada del juego: qué es, cómo se juega y un botón grande **▶
+JUGAR**. Pegado en un mensaje o en una red, el link muestra la tarjeta del
+juego (el logo sobre la ilustración del campo pampeano y "DEL POTRERO AL
+MUNDIAL"). La carrera queda guardada en el navegador de cada persona.
 
-> **Provisorio.** El link oficial va a ser la raíz del sitio,
-> `https://juventudlapampa.github.io/pampa-star/`, cuando pase a ser la
-> portada del juego (con su botón JUGAR). Hoy la raíz todavía abre la
-> versión anterior. El link de arriba va a seguir andando igual, pero
-> conviene esperar al link oficial antes de difundirlo en una nota o en
-> redes; este documento se actualiza ese día.
+Si hace falta el link que entra directo a jugar, sin la portada:
+`https://juventudlapampa.github.io/pampa-star/phaser/`. La versión anterior
+del juego sigue en `https://juventudlapampa.github.io/pampa-star/clasico/`
+(modo retro).
 
 ## Para ponerlo adentro de una nota (iframe)
 
@@ -68,9 +68,9 @@ El link del póster no lleva ningún dato: el juego no mide visitas.
 
 ## Texto corto para acompañar (280 caracteres)
 
-(Con el link provisorio: cuando esté el oficial, va ese.)
-
 > Llegó PAMPA STAR, el juego de fútbol pampeano: armás tu pinta, elegís tu
 > localidad y hacés tu carrera del potrero al Mundial, jugada por jugada.
 > Gratis, en el celular o en la compu. Jugalo acá:
-> juventudlapampa.github.io/pampa-star/phaser/
+> juventudlapampa.github.io/pampa-star/
+
+(Son 231 caracteres con el link.)

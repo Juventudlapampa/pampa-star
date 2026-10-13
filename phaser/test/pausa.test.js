@@ -209,12 +209,13 @@ function espiarTick(E) {
 (function () {
   /* principal: lo que tiene que hacer el botón donde arranca el cursor, que
      es también lo que hacen atrás y ESC (revisión L04). En el partido que
-     pide el clásico es APLICAR: escribe pampa_resultado_phaser y vuelve a
-     ../index.html. Antes atrás y ESC ahí iban al editor y la fecha se perdía. */
+     pide el clásico es APLICAR: escribe pampa_resultado_phaser y vuelve al
+     clásico, que desde L08 vive en ../clasico/index.html (la raíz es la
+     portada). Antes atrás y ESC ahí iban al editor y la fecha se perdía. */
   function aplicado(E) {
     var r = null;
     try { r = JSON.parse(E.ls.getItem("pampa_resultado_phaser")); } catch (e) { r = null; }
-    return !!r && r.fecha === 3 && r.golesMio === 2 && r.golesRival === 1 && E.W.location.href === "../index.html" && E.irA.length === 0;
+    return !!r && r.fecha === 3 && r.golesMio === 2 && r.golesRival === 1 && E.W.location.href === "../clasico/index.html" && E.irA.length === 0;
   }
   var casos = [
     { n: "amistoso", o: {}, sale: function (E) { return E.irA.indexOf("editor") >= 0; },

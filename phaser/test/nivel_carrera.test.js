@@ -25,7 +25,7 @@ var Ma = require(path.join(RAIZ, "phaser/logic/master.js"));
 var MEGA = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/megacosas.json"), "utf8"));
 var MATCH = fs.readFileSync(path.join(RAIZ, "phaser/scenes/match.js"), "utf8");
 var MASTER = fs.readFileSync(path.join(RAIZ, "phaser/scenes/master.js"), "utf8");
-var INDEX = fs.readFileSync(path.join(RAIZ, "index.html"), "utf8");
+var INDEX = fs.readFileSync(path.join(RAIZ, "clasico/index.html"), "utf8");   // L08: el clásico se mudó a clasico/ (la raíz es la portada)
 
 /* el gate viejo se CITA en los comentarios del arreglo (para que el proximo
    sepa que fue lo que estaba roto), asi que la prueba tiene que mirar codigo y

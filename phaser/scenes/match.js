@@ -4880,7 +4880,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
             localStorage.setItem("pampa_resultado_phaser", JSON.stringify({ fecha: this._pedido.fecha | 0, golesMio: st.golesMio, golesRival: st.golesRival, ts: Date.now() }));
             localStorage.removeItem("pampa_pedido_phaser");
           } catch (e) { }
-          window.location.href = "../index.html";
+          /* L08 (url-oficial): el clásico se mudó a clasico/ (la raíz es la
+             portada); volver a "../index.html" dejaba el resultado escrito y
+             a quien jugaba en la portada, sin su temporada a la vista */
+          window.location.href = "../clasico/index.html";
         };
         b2.on("pointerdown", aplicar);
         items.unshift({ obj: b2, caja: { x: 270, y: 496 - tap / 2, w: 420, h: tap }, cb: aplicar });
