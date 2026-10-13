@@ -5,7 +5,8 @@ const path = require("path");
 
 const ROOT = __dirname;
 const PORT = process.env.PORT || 8123;
-const TYPES = { ".html":"text/html; charset=utf-8", ".js":"text/javascript", ".css":"text/css", ".svg":"image/svg+xml", ".json":"application/json" };
+/* L08c: .ico con su tipo, como lo sirve el hosting (el favicon.ico de la raíz) */
+const TYPES = { ".html":"text/html; charset=utf-8", ".js":"text/javascript", ".css":"text/css", ".svg":"image/svg+xml", ".json":"application/json", ".ico":"image/x-icon" };
 
 /* EL SILENCIO DE DESARROLLO (oct 2026). Rodri trabaja con el navegador de
    pruebas abierto en su compu y el audio del juego le salía por los

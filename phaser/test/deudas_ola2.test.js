@@ -88,5 +88,45 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   console.log("[2] FINAL: la mano de cartas se apaga con el pitazo y no vuelve en 30 cuadros (control en LIBRE: a la vista)");
 })();
 
+/* ---------- [4] /favicon.ico EXISTE (y los íconos de antes, intactos) ----------
+   Daba 404 a quien lo pide directo (curl del 12/oct, en el origen y en la
+   carpeta del sitio): las páginas declaran rel=icon con el PNG, pero quien
+   pide /favicon.ico sin leer la página (un lector de links, la barra de
+   favoritos de algunos navegadores) recibía nada. Ahora hay un archivo
+   NUEVO en la raíz del repo, derivado de phaser/icon-512.png con Pillow
+   (16, 32 y 48 px, PNG adentro del ICO): la raíz del repo es la raíz del
+   sitio publicado y la del server de desarrollo. */
+(function () {
+  var crypto = require("crypto");
+  var f = path.join(RAIZ, "favicon.ico");
+  assert(fs.existsSync(f), "SÍNTOMA DEL 404: hay favicon.ico en la raíz del sitio");
+  if (!fs.existsSync(f)) return;
+  var b = fs.readFileSync(f);
+  /* el encabezado ICO: reservado 0, tipo 1 (ícono), cantidad de imágenes */
+  var n = b.readUInt16LE(4);
+  assert(b.readUInt16LE(0) === 0 && b.readUInt16LE(2) === 1 && n >= 2, "favicon.ico es un ICO de verdad con varias medidas (" + n + ")");
+  var medidas = [];
+  for (var i = 0; i < n; i++) {
+    var e = 6 + i * 16, w = b[e] || 256, h = b[e + 1] || 256, largo = b.readUInt32LE(e + 8), off = b.readUInt32LE(e + 12);
+    medidas.push(w + "x" + h);
+    assert(off + largo <= b.length && b.slice(off, off + 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+      "la imagen de " + w + "x" + h + " está entera y es PNG (con transparencia)");
+  }
+  assert(medidas.indexOf("16x16") >= 0 && medidas.indexOf("32x32") >= 0, "trae 16 y 32, las que pide la pestaña (" + medidas.join(", ") + ")");
+  assert(b.length < 20000, "es liviano (" + b.length + " B)");
+  /* lo que no se toca: los íconos de los que sale */
+  var HUELLAS = { "phaser/icon-512.png": "880063768ecc97add04b7c0cacd51faea8c6285964e027a1ffc39a0e409d4ae1",
+    "phaser/icon-192.png": "3f00ab2c0d5cf5efdb4f93e7b298ad0d613ad505477e80059a949e518bae4842" };
+  Object.keys(HUELLAS).forEach(function (k) {
+    assert(crypto.createHash("sha256").update(fs.readFileSync(path.join(RAIZ, k))).digest("hex") === HUELLAS[k], k + " intacto (el favicon es un archivo nuevo)");
+  });
+  /* que se publique: no lo ignora git, y el server de desarrollo lo sirve con su tipo */
+  var ignorado = true;
+  try { require("child_process").execSync("git check-ignore -q favicon.ico", { cwd: RAIZ }); } catch (err) { ignorado = false; }
+  assert(!ignorado, "git no ignora favicon.ico (si no, no llega al sitio)");
+  assert(/"\.ico":\s*"image\/x-icon"/.test(leer("server.js")), "server.js lo sirve como image/x-icon");
+  console.log("[4] /favicon.ico: ICO de " + b.length + " B con " + medidas.join(", ") + " (PNG adentro), los íconos de origen intactos");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);
