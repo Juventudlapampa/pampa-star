@@ -337,7 +337,9 @@
    "tolerancias": {
     "piel": 80,
     "camiseta": 95
-   }
+   },
+   "cargar": false,
+   "_W2": "OJOS (tanda 1.0): NO SE CARGA. De rodillas, la cabeza gacha, abrazando la pelota con los ojos cerrados del todo y una sonrisa tranquila: se lee rezando o dormido, no un atajadón, y salía a 420 px en el ¡ATAJADÓN! de la Definición, en la atajada de 'te rematan' y (por un error de bando) como el arquero RIVAL en cada remate común retenido. Sus cuatro usos pasaron a arquero_despeje_celeste (ojos abiertos) y a arquero_vuela_celeste (LA TRANQUERA). El archivo queda intacto. Lugar donde SÍ tiene sentido, la calma y el alivio después de atajar: el fin de partido cuando la figura es tu arquero, o el recuerdo de una atajada en la Definición; para prenderla, sacar cargar:false y engancharla ahí."
   },
   "arquero_despeje_celeste": {
    "archivo": "pose_arquero_despeje_celeste.webp",

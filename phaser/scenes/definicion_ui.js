@@ -67,18 +67,33 @@
       return null;   // el caller decide, pero NUNCA con bloques
     },
 
-    /* la pose del ARQUERO según lo que está haciendo. Existen dos ilustradas:
-       arquero_ataja (la retuvo, de rodillas) y arquero_vuela (estirada). */
-    figuraArquero(accion, quienLaPide) {
-      var id = (accion === "ataja" || accion === "atajada" || accion === "retiene" || accion === "despeje")
-        ? "arquero_ataja" : "arquero_vuela";
+    /* la pose del ARQUERO según lo que está haciendo. El rival tiene dos
+       ilustradas: arquero_ataja (la retuvo, de rodillas) y arquero_vuela
+       (estirada). TU arquero, las celestes: la estirada y el despeje.
+       esRival: de qué bando es. Si no se dice, se deduce de quienLaPide
+       (contiene "rival"), como antes.
+       ══ OJOS (tanda 1.0) · EL ERROR DE BANDO Y LOS OJOS CERRADOS ══
+       Antes era propio todo pedido sin la palabra "rival" en quienLaPide, y
+       el cine del remate (planoArquero, planoDesenlace) pedía "planoArquero"
+       y "planoDesenlace" a secas: el arquero RIVAL salía en SU arco con el
+       arte de TU arquero (buzo azul) cada vez que te retenía un remate común.
+       Y lo de tu arquero que ataja era arquero_ataja_celeste: de rodillas
+       abrazando la pelota con los ojos cerrados del todo (parece rezando o
+       dormido), a 420 px en el ¡ATAJADÓN! de la Definición. Ahora tu arquero
+       que ataja es arquero_despeje_celeste (ojos abiertos, dientes apretados,
+       los puños contra la pelota) y los planos del remate dicen el bando. */
+    figuraArquero(accion, quienLaPide, esRival) {
+      var ataja = accion === "ataja" || accion === "atajada" || accion === "retiene" || accion === "despeje";
+      var rival = esRival != null ? !!esRival : (quienLaPide || "").indexOf("rival") >= 0;
+      var id = ataja ? "arquero_ataja" : "arquero_vuela";
       /* A3 · TU arquero usa las poses CELESTES nuevas; el rival, la suya. El
          escalador de mas abajo necesita saber QUE pose salio para leer su
          alto_rel del manifiesto: la estirada mide 1905x746 y a alto completo
          se sale de pantalla. */
-      var propio = (quienLaPide || "").indexOf("rival") < 0;
-      var conCelestes = propio && this.poseKey && this.poseKey(id + "_celeste");
-      if (conCelestes) id = id + "_celeste";
+      if (!rival && this.poseKey) {
+        var celeste = ataja ? "arquero_despeje_celeste" : "arquero_vuela_celeste";
+        if (this.poseKey(celeste)) id = celeste;
+      }
       this._poseArqueroUltima = id;
       return this.figuraCine(id, quienLaPide || "arquero", "arquero_vuela");
     },
@@ -732,9 +747,15 @@
         titulo = o.gol ? "GOL DE " + this.nombreRival : "¡ATAJADÓN!";
         sub = o.gol ? (o.dz >= 2 ? "te fue al otro palo…" : "no alcanzó…") : (o.dz === 0 ? "¡LE ADIVINASTE LA ZONA!" : "¡llegaste con lo justo!");
         color = o.gol ? 0xe3503e : 0x7ee08a;
-        poseId = o.gol ? "arquero_vuela" : "arquero_ataja";
-        /* V10: es TU arquero el que vuela o ataja: sus poses propias */
+        /* V10: es TU arquero el que vuela o ataja: sus poses propias.
+           OJOS (tanda 1.0): el ¡ATAJADÓN! era arquero_ataja_celeste, de
+           rodillas con los ojos cerrados (se leía rezando o dormido, no un
+           atajadón) y lo más grande de la pantalla. Ahora el despeje: los
+           ojos abiertos y la energía del grito. Trae la pelota pintada y no
+           declara 'pelota', así que no se le dibuja otra encima. */
+        poseId = o.gol ? "arquero_vuela" : "arquero_despeje";
         if (this.poseKey(poseId + "_celeste")) poseId = poseId + "_celeste";
+        else if (!o.gol) poseId = "arquero_ataja";
       }
       /* V10: el bloqueo es del que tapó (tuyo si te patearon); el festejo, tuyo;
          los arqueros quedan como están (van con el buzo de arquero) */

@@ -504,12 +504,19 @@
         } else if (!res.golRival) {
           self.uiCam.flash(60, 255, 255, 255);
           self.SFX && self.SFX.gloves && self.SFX.gloves();
+          /* OJOS (tanda 1.0): acá tu arquero pasaba a arquero_ataja_celeste,
+             de rodillas con los ojos cerrados. Ahora el despeje (ojos
+             abiertos, los puños contra la pelota), pedido con el id completo
+             porque poseDePlano("arquero_despeje") no existe sin sufijo. Esa
+             pose trae la pelota PINTADA en el puño: la del juego se esconde,
+             o se ven dos. */
+          var conDespeje = false;
           if (arqSpr && arqSpr.active) {
-            var kAt = self.poseDePlano("arquero_ataja", arqM, false);
-            if (kAt && arqSpr.setTexture) { arqSpr.setTexture(kAt); arqSpr.setScale(210 / arqSpr.height); }
+            var kAt = self.poseDePlano("arquero_despeje_celeste", arqM, false);
+            if (kAt && arqSpr.setTexture) { arqSpr.setTexture(kAt); arqSpr.setScale(210 / arqSpr.height); conDespeje = true; }
             self.tweens.add({ targets: arqSpr, x: 800, scale: arqSpr.scale * 1.1, duration: 260 });
           }
-          if (bola.active) bola.setPosition(806, H * 0.5);
+          if (bola.active) { bola.setPosition(806, H * 0.5); if (conDespeje) bola.setVisible(false); }
           self.punch("¡ATAJADÓN!", self.porQueRemateRival(lectura, res), 0x5bb8e8);
           if (self.tribunaSaltando) self.tribunaSaltando();
           self.SFX && self.SFX.crowd && self.SFX.crowd(900);

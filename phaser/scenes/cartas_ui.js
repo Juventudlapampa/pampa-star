@@ -53,8 +53,9 @@
        eran inalcanzables. Dos de las ocho, el 25% del sistema. Y
        d_decisiones.test.js:48 certificaba en verde que existían los cuatro
        puestos, así que el sistema PARECÍA completo. Hasta hay una pose
-       (arquero_despeje_celeste) que se carga en cada arranque solo para una
-       carta que no se puede ver.
+       (arquero_despeje_celeste) que se cargaba en cada arranque solo para una
+       carta que no se puede ver (desde la tanda 1.0, OJOS, es también el
+       ¡ATAJADÓN! de tu arquero).
        ══════════════════════════════════════════════════════════════════════ */
     manoDeJugador: function (idx) {
       var C = window.PampaCartas, D = this.game.registry.get("megacosas");

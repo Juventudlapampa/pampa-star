@@ -3528,7 +3528,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        pantalla que no miraba nada. Ahora el plano tiene SU arco —el mismo de
        arcoCine()— y el arquero se para en la línea, adentro de la boca. */
     this.dibujarArcoCine(this.cineBG);
-    const arq = this.add.sprite(A.cx + A.voladaX * 0.5, A.linea, this.figuraArquero("vuela", "planoArquero"));
+    /* OJOS (tanda 1.0): este plano es SIEMPRE tu remate, así que el que vuela
+       es el arquero RIVAL. Pedía "planoArquero" a secas y figuraArquero lo
+       tomaba como propio: volaba con el buzo azul de tu arquero. */
+    const arq = this.add.sprite(A.cx + A.voladaX * 0.5, A.linea, this.figuraArquero("vuela", "planoArquero (arquero rival)", true));
     arq.setOrigin(0.5, 1).setAngle(6)
       .setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", A.h * 1.15, arq));
     this.cineContent.add(arq);
@@ -3610,9 +3613,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        aterriza el cuerpo del arquero. */
     this.cineBig.setY(A.carteles);
     this.cineSub.setY(A.carteles + 42);
-    /* B3: el otro "cine_arquero". Acá SÍ se sabe cómo terminó, así que el
-       arquero va con la pose que corresponde: atajó de rodillas o se estiró. */
-    const arq = this.add.sprite(gx, gy, this.figuraArquero(res.outcome === "atajada" ? "ataja" : "vuela", "planoDesenlace"));
+    /* B3: el otro "cine_arquero".
+       OJOS (tanda 1.0): dos cosas estaban mal acá. (1) EL BANDO: el plano es
+       SIEMPRE tu remate y pedía "planoDesenlace" a secas, así que
+       figuraArquero lo tomaba como TU arquero: el rival te retenía el remate
+       con tu buzo azul, de rodillas y con los ojos cerrados
+       (arquero_ataja_celeste). (2) EL ADELANTO: la pose de "la agarró" estaba
+       desde el primer cuadro, antes del silencio, y contaba el final; y la
+       pelota del juego volaba a sus manos mientras él abrazaba el hueco del
+       webp. Ahora el arquero rival entra SIEMPRE estirado, y recién en la
+       revelación de la atajada pasa a su pose de rodillas con la pelota del
+       juego en el hueco que dice el manifiesto. */
+    const arq = this.add.sprite(gx, gy, this.figuraArquero("vuela", "planoDesenlace (arquero rival)", true));
     /* A3: idem — la estirada es mas ancha que alta */
     arq.setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", gh * 1.15, arq));
     /* P2 · LOS PIES EN LA LÍNEA. El origen baja al pie del sprite, así que la
@@ -3660,6 +3672,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.dust(gx - 30, gy - 20);
         const d = this.desenlaceRemate(res);
         this.punch(d.titulo, d.sub, d.color);
+        /* OJOS: la que agarra se ve RECIÉN ACÁ: el arquero rival pasa a su
+           pose de rodillas y la pelota del juego queda en sus manos */
+        if (!corner && this.ponerArqueroQueAtaja(arq, ball)) return;
         /* la del córner sale DISPARADA al costado; la agarrada queda cerca */
         this.tweens.add({
           targets: ball,
@@ -3682,6 +3697,32 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda).
        El gol programa su propia salida: espera a la explosión del festejo. */
     if (res.outcome !== "gol") this.time.delayedCall(C.impacto_gol_ms + silencio + this.msV(C.desenlace_hold_ms), () => this.salirCine());
+  }
+  /* OJOS (tanda 1.0) · EL ARQUERO RIVAL QUE LA AGARRA, en la revelación del
+     remate común (planoDesenlace). Pasa de la estirada a arquero_ataja (de
+     rodillas, con la pelota recortada del webp: donde iba hay un hueco) a la
+     misma altura y con los pies en el mismo piso (origen abajo), y la pelota
+     del juego va al hueco que declara el manifiesto ({x,y,r}), con ese
+     tamaño y DETRÁS de la pose, como en animarResolucion. La sonrisa de ojos
+     en arquito de esa pose tiene sentido acá: te la retuvo y está contento.
+     Devuelve false si falta algo, y el desenlace sigue como antes. */
+  ponerArqueroQueAtaja(arq, ball) {
+    if (!arq || !arq.active || !arq.setTexture || !ball || !ball.active) return false;
+    const k = this.figuraArquero("ataja", "planoDesenlace (arquero rival)", true);
+    const id = this._poseArqueroUltima;
+    const man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
+    if (!k || !def || !def.pelota) return false;
+    const A = this.arcoCine();
+    arq.setTexture(k).setAngle(0);
+    arq.setScale(this.escalaDePose(id, A.h * 1.15, arq));
+    const dW = arq.displayWidth, dH = arq.displayHeight;
+    const bx = arq.x + (def.pelota.x - 0.5) * dW * (arq.flipX ? -1 : 1);
+    const by = arq.y - dH + def.pelota.y * dH;   // origen (0.5, 1): arq.y son los pies
+    const TP = this.texPelota(Math.max(16, def.pelota.r * 2 * dH));
+    this.tweens.killTweensOf(ball);
+    ball.setTexture(TP.key).setScale(TP.esc).setAlpha(1).setAngle(0).setPosition(bx, by);
+    if (this.cineContent && this.cineContent.moveBelow) this.cineContent.moveBelow(ball, arq);
+    return true;
   }
   /* BLOQUE A · ¿esta acción merece cortar a viñeta?
      Devuelve true si el escalón es 2 o 3. El contexto que sube de escalón sale

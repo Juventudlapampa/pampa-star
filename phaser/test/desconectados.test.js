@@ -769,14 +769,17 @@ var TEXTOS_MUNDO_OK = {
    pueden alcanzar hasta que Rodri tome una decisión de diseño. No son campos
    sueltos, así que no las ve la parte [2] — pero cuentan igual. */
 var DEUDA_CONTENIDO = {
-  /* UNA sola decisión de diseño, tres cosas colgando de ella. Se cuenta como
+  /* UNA sola decisión de diseño, dos cosas colgando de ella (eran tres: ver OJOS abajo). Se cuenta como
      una porque se resuelve de una: o el arquero recupera un momento propio, o
-     las tres se borran. */
-  "el arquero no tiene momento": "cuelgan TRES cosas: (1) LA TRANQUERA y EL PATADÓN, 2 de las 8 cartas — el 25% " +
+     las dos se borran. */
+  /* OJOS (tanda 1.0): eran TRES cosas; la tercera, el arte
+     arquero_despeje_celeste, que existía sólo para EL PATADÓN, ahora es el
+     ¡ATAJADÓN! de tu arquero (en la Definición y en "te rematan"): ya no
+     cuelga de esta decisión. */
+  "el arquero no tiene momento": "cuelgan DOS cosas: (1) LA TRANQUERA y EL PATADÓN, 2 de las 8 cartas — el 25% " +
     "del sistema — porque la mano se arma con st.ctrl y el arquero nunca lo es (lo excluyen masCercanoAPelota, " +
     "receptoresPase, receptorAlVacio, scoreMarcador, cambiarA, el saque tras atajada y el kickoff); " +
-    "(2) la situación `saque_arquero` de data/relatos.json, declarada con sus frases y que nadie pide nunca; " +
-    "(3) el arte arquero_despeje_celeste, que existe sólo para una de esas cartas. " +
+    "(2) la situación `saque_arquero` de data/relatos.json, declarada con sus frases y que nadie pide nunca. " +
     "Darle un momento significa devolverle al arquero una decisión, y la V9 C1 sacó esa pantalla a propósito.",
   "megadefensa TRANQUERA": "único pedido en defBotonesDef(), que no tiene llamador. Misma raíz que las cartas.",
   "física del súper tiro": "resolverSuperTiro y ARCO solo corren en el test; ya marcado ⚠ PENDIENTE DE RODRI en jugadon_ui.js."

@@ -67,7 +67,7 @@ vm.runInContext(leer("phaser/scenes/intro.js"), vm.createContext({ window: WI, P
    [1] · EL CENSO DEL PRELOAD
    ========================================================================= */
 /* OJOS (tanda 1.0): lo que se dejó de bajar después de la auditoría */
-var SACADAS_DESPUES = ["assets/poses/caras/cara_tranqui.png", "assets/poses/pose_cabezazo_v2.webp"];
+var SACADAS_DESPUES = ["assets/poses/caras/cara_tranqui.png", "assets/poses/pose_cabezazo_v2.webp", "assets/poses/pose_arquero_ataja_celeste.webp"];
 (function () {
   var tex = {};                       // clave → archivo
   var conflictos = [];

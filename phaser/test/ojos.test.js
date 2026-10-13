@@ -24,6 +24,16 @@
      [3] la carga: ni cara_tranqui.png ni pose_cabezazo_v2.webp están en lo
          que bajan el editor y el partido, ni en el PRECACHE de sw.js; los
          dos archivos siguen en disco con el mismo hash.
+     [4] el arquero: el cine del remate común le pedía a figuraArquero
+         "planoArquero" y "planoDesenlace" a secas, y todo pedido sin la
+         palabra "rival" era TU arquero: el rival te retenía el remate con tu
+         buzo azul, de rodillas y con los ojos cerrados
+         (arquero_ataja_celeste), y esa pose estaba desde el primer cuadro.
+         Se prueba el bando explícito, que tu arquero ataja con el despeje
+         (ojos abiertos) en la Definición y en "te rematan", que nadie pide
+         ya arquero_ataja_celeste (apagada) y, con la escena de verdad, que
+         en la revelación el rival pasa a su pose de rodillas con la pelota
+         del juego en el hueco del manifest.
 
    Corré:  node phaser/test/ojos.test.js
    ========================================================================== */
@@ -146,6 +156,101 @@ escena.textures = { exists: function (k) { return /^cara_/.test(k); } };
     if (fs.existsSync(p)) assert(crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex") === HASH[f], f + " tiene el mismo hash que antes (no se reprocesó)");
   });
   console.log("[3] ni la cara de ojos cerrados ni cabezazo_v2 se bajan (editor " + editor.length + " caras, partido " + partido.length + " archivos); los dos archivos intactos en disco");
+})();
+
+/* ---------- [4] EL ARQUERO: EL BANDO Y LOS OJOS CERRADOS ---------- */
+/* el ancho y alto de un webp/png del repo, leyendo la cabecera */
+function medidas(rel) {
+  var b = fs.readFileSync(path.join(RAIZ, rel));
+  if (b[0] === 0x89 && b.toString("ascii", 1, 4) === "PNG") return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+  var t = b.toString("ascii", 12, 16);
+  if (t === "VP8 ") return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
+  if (t === "VP8L") { var v = b.readUInt32LE(21); return { w: (v & 0x3fff) + 1, h: ((v >> 14) & 0x3fff) + 1 }; }
+  return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };   // VP8X
+}
+new Function("window", "Phaser", leer("phaser/scenes/definicion_ui.js").replace(/\r\n/g, "\n"))(W, W.Phaser);
+function escenaConPoses() {
+  var cargadas = {};
+  Object.keys(POSES.poses).forEach(function (id) { if (POSES.poses[id].cargar !== false) cargadas["pose_" + id] = true; });
+  var e = Object.create(W.PampaMatch.prototype);
+  e.FLAGS = {}; e.BAL = BAL;
+  e.game = { registry: { get: function (k) { return k === "poses" ? POSES : k === "caras" ? CARAS : null; } } };
+  e.textures = {
+    exists: function (k) { return !!cargadas[k] || k === "ball" || k === "ball_hd"; },
+    get: function (k) { return { getSourceImage: function () { return { height: k === "ball_hd" ? 128 : 16, width: k === "ball_hd" ? 128 : 16 }; } }; }
+  };
+  e.tweens = { killTweensOf: function () { } };
+  return e;
+}
+(function () {
+  var e = escenaConPoses();
+  /* el cine del remate es SIEMPRE tu remate: el arquero es el rival */
+  assert(e.figuraArquero("vuela", "planoArquero (arquero rival)", true) === "pose_arquero_vuela", "el arquero rival vuela con SU arte (arquero_vuela)");
+  assert(e.figuraArquero("ataja", "planoDesenlace (arquero rival)", true) === "pose_arquero_ataja", "y la agarra con SU arte (arquero_ataja)");
+  /* el bando explícito manda sobre el nombre de quien la pide */
+  assert(e.figuraArquero("vuela", "planoArquero", true) === "pose_arquero_vuela", "esRival=true sin la palabra 'rival' en el pedido: igual es el rival");
+  assert(e.figuraArquero("vuela", "algo rival", false) === "pose_arquero_vuela_celeste", "esRival=false manda aunque el pedido diga 'rival'");
+  /* TU arquero: ataja con el despeje (ojos abiertos), nunca de rodillas con los ojos cerrados */
+  ["ataja", "atajada", "retiene", "despeje"].forEach(function (a) {
+    assert(e.figuraArquero(a, "texturaEscena(tu arquero)") === "pose_arquero_despeje_celeste",
+      "tu arquero que '" + a + "' es arquero_despeje_celeste (" + e.figuraArquero(a, "texturaEscena(tu arquero)") + ")");
+  });
+  assert(e.figuraArquero("vuela", "texturaEscena(tu arquero)") === "pose_arquero_vuela_celeste", "y vuela con la estirada celeste");
+  /* los dos planos del remate dicen el bando (la regresión con nombre) */
+  var M = leer("phaser/scenes/match.js");
+  assert(/figuraArquero\("vuela", "planoArquero \(arquero rival\)", true\)/.test(M), "SÍNTOMA: planoArquero no le dice a figuraArquero que el arquero es el rival");
+  assert(/figuraArquero\("vuela", "planoDesenlace \(arquero rival\)", true\)/.test(M),
+    "SÍNTOMA: planoDesenlace no arranca con el arquero rival estirado (antes la pose de 'la agarró' estaba desde el primer cuadro y era la tuya)");
+  assert(/if \(!corner && this\.ponerArqueroQueAtaja\(arq, ball\)\) return;/.test(M), "la atajada pasa a la pose de rodillas RECIÉN en la revelación");
+  /* nadie pide la de los ojos cerrados, y está apagada */
+  var ESC = ["match.js", "definicion_ui.js", "escenas_v9.js", "jugadon_ui.js", "cine_arte.js", "intro.js", "master.js"].map(function (f) {
+    return leer("phaser/scenes/" + f).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  }).join("\n");
+  assert(ESC.indexOf("arquero_ataja_celeste") < 0, "ninguna escena pide arquero_ataja_celeste");
+  assert(!/"arquero_ataja"/.test(leer("phaser/scenes/escenas_v9.js").replace(/\/\*[\s\S]*?\*\//g, "")), "'te rematan' ya no pasa a arquero_ataja (+_celeste)");
+  assert(/poseDePlano\("arquero_despeje_celeste", arqM, false\)/.test(leer("phaser/scenes/escenas_v9.js")), "'te rematan': tu atajada es el despeje, con el id completo");
+  var D = leer("phaser/scenes/definicion_ui.js");
+  assert(/poseId = o\.gol \? "arquero_vuela" : "arquero_despeje";/.test(D), "el ¡ATAJADÓN! de la Definición es el despeje");
+  var MEGA = json("data/megacosas.json");
+  var usos = [];
+  (function andar(x) { if (Array.isArray(x)) x.forEach(andar); else if (x && typeof x === "object") Object.keys(x).forEach(function (k) { if (k === "pose" && x[k] === "arquero_ataja_celeste") usos.push(x.id || "?"); andar(x[k]); }); })(MEGA);
+  assert(usos.length === 0, "ninguna carta usa arquero_ataja_celeste (" + usos.join(", ") + ")");
+  var tranquera = null;
+  (function andar(x) { if (Array.isArray(x)) x.forEach(andar); else if (x && typeof x === "object") { if (x.id === "atajadon_arq") tranquera = x; Object.keys(x).forEach(function (k) { andar(x[k]); }); } })(MEGA);
+  assert(tranquera && tranquera.pose === "arquero_vuela_celeste" && tranquera.momento === "salto", "LA TRANQUERA: la estirada (ojos abiertos) con su momento 'salto'");
+  var at = POSES.poses.arquero_ataja_celeste;
+  assert(at.cargar === false && typeof at._W2 === "string" && at._W2.length > 40, "arquero_ataja_celeste apagada (cargar:false) y dice dónde sí iría");
+  assert(POSES.poses.arquero_despeje_celeste.cargar !== false && !POSES.poses.arquero_despeje_celeste.pelota,
+    "el despeje se carga y no declara 'pelota' (la trae pintada: no se le dibuja otra)");
+
+  /* la revelación de la atajada del remate común, con la escena de verdad */
+  var dAt = medidas("assets/poses/" + POSES.poses.arquero_ataja.archivo);
+  var arq = {
+    active: true, x: 400, y: 330, flipX: false, angle: 0,
+    setTexture: function (k) { this.k = k; this.width = dAt.w; this.height = dAt.h; return this; },
+    setAngle: function (a) { this.angle = a; return this; },
+    setScale: function (s) { this.scaleX = this.scaleY = s; this.displayWidth = this.width * s; this.displayHeight = this.height * s; return this; }
+  };
+  arq.setTexture("pose_arquero_vuela");
+  var ball = {
+    active: true, alpha: 0.4,
+    setTexture: function (k) { this.k = k; return this; }, setScale: function (s) { this.s = s; return this; },
+    setAlpha: function (a) { this.alpha = a; return this; }, setAngle: function () { return this; },
+    setPosition: function (x, y) { this.x = x; this.y = y; return this; }
+  };
+  var debajo = null;
+  e.cineContent = { moveBelow: function (a, b) { debajo = [a, b]; } };
+  var hizo = e.ponerArqueroQueAtaja(arq, ball);
+  var A = e.arcoCine(), p = POSES.poses.arquero_ataja.pelota;
+  var esperaX = arq.x + (p.x - 0.5) * arq.displayWidth, esperaY = arq.y - arq.displayHeight + p.y * arq.displayHeight;
+  assert(hizo && arq.k === "pose_arquero_ataja", "en la revelación, el arquero rival pasa a arquero_ataja (" + arq.k + ")");
+  assert(Math.abs(arq.displayHeight - A.h * 1.15) < 0.5, "con la misma altura que el plano le da al arquero (" + arq.displayHeight.toFixed(1) + ")");
+  assert(Math.abs(ball.x - esperaX) < 0.5 && Math.abs(ball.y - esperaY) < 0.5,
+    "la pelota del juego queda en el hueco del manifest (" + ball.x.toFixed(1) + "," + ball.y.toFixed(1) + " contra " + esperaX.toFixed(1) + "," + esperaY.toFixed(1) + ")");
+  var altoBola = ball.s * (ball.k === "ball_hd" ? 128 : 16);
+  assert(Math.abs(altoBola - p.r * 2 * arq.displayHeight) < 0.5, "con el tamaño del hueco (" + altoBola.toFixed(1) + " px)");
+  assert(ball.alpha === 1 && debajo && debajo[0] === ball && debajo[1] === arq, "entera y DETRÁS de la pose");
+  console.log("[4] el arquero rival con su arte en el remate (estirado, y de rodillas recién al revelar, pelota en " + Math.round(ball.x) + "," + Math.round(ball.y) + "); tu arquero ataja con el despeje; nadie pide arquero_ataja_celeste");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

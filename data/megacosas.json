@@ -157,7 +157,8 @@
    "aguante": 330,
    "efecto": "bonus_atajada",
    "valor": 22,
-   "pose": "arquero_ataja_celeste",
+   "pose": "arquero_vuela_celeste",
+   "_pose": "OJOS (tanda 1.0): era arquero_ataja_celeste, tu arquero de rodillas con los ojos cerrados del todo (se lee rezando o dormido). La carta todavía no tiene momento (el arquero nunca es el controlado), pero cuando lo tenga no hereda esa cara: la estirada tiene los ojos abiertos y encaja con el momento 'salto'.",
    "momento": "salto",
    "recarga_min": 24
   },
@@ -177,5 +178,5 @@
   }
  ],
  "_cartas": "D1 · LAS CARTAS POR PUESTO reemplazan al superbloqueo suelto. Cada jugador tiene DOS según donde juega: ATA dos de ataque, VOL una de ataque y una de recuperacion, DEF un megapase y una supersacada, ARQ una atajada especial y un saque largo. Se gastan y vuelven con el tiempo, como las fichas del jugadón. Lo que cambia NO es la economía: es que EL JUGADOR QUE CONTROLAS decide que podés hacer, y por eso elegir a quien le pasás significa algo. recarga_min son MINUTOS DE PARTIDO (no reales). En segúndos no mordia: 150 s son dos momentos y medio y la carta volvia antes de que la extrañaras. momento: qué plano de anime le toca (carga/salto/giro/piernas/horizonte).",
- "_cartas_arte": "POSES DE PRESTADO (pedido de arte): supersacada_def usa barrida, que es el defensor NARANJA — para tu propio defensor hace falta la versión celeste. megapase_def y pase_filtrado comparten la pose pase. definicion_ata usa volea. El resto (remate, quite, arquero_ataja_celeste, arquero_despeje_celeste) son las que corresponden."
+ "_cartas_arte": "POSES DE PRESTADO (pedido de arte): supersacada_def usa barrida, que es el defensor NARANJA — para tu propio defensor hace falta la versión celeste. megapase_def y pase_filtrado comparten la pose pase. definicion_ata usa volea. El resto (remate, quite, arquero_vuela_celeste, arquero_despeje_celeste) son las que corresponden. La tanda 1.0 (OJOS) cambió la de LA TRANQUERA: era arquero_ataja_celeste, con los ojos cerrados."
 }
