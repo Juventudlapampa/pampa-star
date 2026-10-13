@@ -53,6 +53,9 @@ nota. No lleva ningún dato de quien lee.
 - **Se juega apaisado.** Si alguien lo abre en vertical, ve la portada con
   la ayuda para girar el teléfono y, en Android, el botón **JUGAR EN
   HORIZONTAL**.
+- **Abierto desde Instagram, Facebook o TikTok** se abre en el navegador de
+  la app. El juego avisa y ofrece abrirlo en el navegador del teléfono (en
+  Android, con un botón), para que la carrera quede guardada.
 - **Peso:** la primera vez baja de a poco unos 13 MB a lo largo de la carrera
   (las ilustraciones y la música). Después abre desde el teléfono, sin bajar
   todo de nuevo.

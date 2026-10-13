@@ -184,6 +184,38 @@
     #cajacodigo textarea{height:4.6em;margin-top:4px;}
     #cajacodigo .botones{gap:8px;margin:4px 0 2px;}
   }
+  /* EL NAVEGADOR DE UNA RED SOCIAL (L07): "Estás en el navegador de
+     Instagram…". Arriba de la portada (50), del póster y de la versión nueva
+     (55), debajo de la caja del código (60), del atrás (70) y de "Algo se
+     trabó" (100). Con la misma piel que los otros avisos; los botones con
+     ícono y texto, de 48 de alto. El link se puede seleccionar (para
+     copiarlo a mano si el portapapeles no deja). */
+  #integrado{position:fixed;inset:0;z-index:58;display:flex;align-items:center;justify-content:center;
+    background:rgba(6,18,11,.9);padding:12px;box-sizing:border-box;overflow:auto;touch-action:pan-y;}
+  #integrado[hidden],#integrado [hidden]{display:none !important;}
+  #integrado .caja{max-width:560px;width:100%;max-height:100%;overflow:auto;box-sizing:border-box;
+    background:#0A1F13;border:3px solid #F5C400;border-radius:12px;padding:14px 18px;text-align:center;}
+  #integrado h1{margin:0 0 6px;font-size:20px;color:#FFD84D;font-weight:normal;}
+  #integrado h1 .ico{display:inline-block;margin-right:8px;}
+  #integrado p{margin:6px 0;font-size:16px;line-height:1.3;}
+  #integrado .pasos{color:#FFD84D;}
+  #integrado .nota{font-size:14px;color:#9FB3A5;}
+  #integrado .link{font:13px/1.35 ui-monospace,monospace;word-break:break-all;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;
+    background:#06120b;border:2px solid #9FB3A5;border-radius:6px;padding:6px;}
+  #integrado .botones{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:10px 0 4px;}
+  #integrado button,#integrado a.btn{font:inherit;font-size:16px;min-height:48px;min-width:150px;padding:8px 14px;cursor:pointer;box-sizing:border-box;
+    display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+    border:3px solid #06120b;border-radius:10px;background:#F6EFDC;color:#0A1F13;box-shadow:0 4px 0 #06120b;}
+  #integrado .prim{background:#7EE08A !important;}
+  #integrado .sec{background:#9FB3A5 !important;}
+  #integrado button:focus-visible,#integrado a.btn:focus-visible{outline:3px solid #FFD84D;outline-offset:3px;}
+  @media (max-height:420px){
+    #integrado{padding:6px;}
+    #integrado .caja{padding:8px 14px;}
+    #integrado h1{font-size:18px;margin:0 0 2px;}
+    #integrado p{margin:3px 0;font-size:15px;}
+    #integrado .botones{gap:8px;margin:6px 0 2px;}
+  }
   /* LA VERSIÓN NUEVA (L05): encima del juego y del "Girá el celular" (50),
      debajo de la caja del código (60), del aviso del atrás (70) y de "Algo
      se trabó" (100). Dos botones con texto e ícono (no se distinguen solo
@@ -363,6 +395,22 @@
       <p>Fútbol pampeano jugada por jugada: armás tu pinta, elegís tu localidad y jugás tu carrera del potrero al Mundial.</p>
       <a id="ps-jugar" class="ps-jugar" href="./index.html?ref=embed" target="_blank" rel="noopener">▶ JUGAR EN PANTALLA COMPLETA</a>
       <p class="ps-nota">Se abre en una pestaña nueva: ahí tu carrera queda guardada.</p>
+    </div>
+  </div>
+  <!-- L07 · EL NAVEGADOR DE UNA RED SOCIAL: los textos los arma
+       logic/entorno.js (textoIntegrado) según la app y el sistema -->
+  <div id="integrado" role="dialog" aria-modal="true" aria-labelledby="ig-tit" hidden>
+    <div class="caja">
+      <h1><span class="ico" aria-hidden="true">⚠</span><span id="ig-tit"></span></h1>
+      <p id="ig-txt"></p>
+      <p id="ig-pasos" class="pasos" hidden></p>
+      <div class="botones">
+        <a id="ig-chrome" class="btn prim" href="#" hidden>🌐 ABRIR EN CHROME</a>
+        <button type="button" id="ig-copiar">📋 COPIAR EL LINK</button>
+        <button type="button" id="ig-seguir" class="sec">▶ SEGUIR ACÁ IGUAL</button>
+      </div>
+      <p id="ig-link" class="link" hidden></p>
+      <p id="ig-nota" class="nota"></p>
     </div>
   </div>
   <div id="atras-aviso" role="status" aria-live="polite" hidden></div>
@@ -1171,6 +1219,114 @@
       if (PT.ofrece === "ios" && pasosIos) pasosIos.hidden = !pasosIos.hidden;
     });
     PT.pintarInstalar();
+  })();
+  </script>
+  <script>
+  /* ═══════════════════════════════════════════════════════════════════════
+     EL NAVEGADOR DE UNA RED SOCIAL Y EL GUARDADO (tanda 1.0, L07 ·
+     navegadores-de-redes-y-guardado). ES5, antes que el motor.
+
+     Lo que estaba mal, medido: userAgent, Instagram, FBAN y TikTok daban 0
+     en phaser/ (grep). La difusión es por redes, y ahí el link se abre en el
+     navegador de la app: la carrera queda en ESE almacenamiento y después
+     no aparece en Chrome ni en la app instalada. Ahora, si
+     logic/entorno.js (navegadorIntegrado) reconoce la app, aparece el
+     cartel arriba de la portada y de la compuerta: qué pasa, ABRIR EN CHROME
+     en Android (un link intent:// a esta misma dirección), los pasos del
+     menú ··· en iPhone, COPIAR EL LINK y SEGUIR ACÁ IGUAL (se puede jugar
+     igual; en la sesión no vuelve a aparecer).
+
+     LOS TOQUES Y LAS TECLAS DEL CARTEL NO LLEGAN AL JUEGO. En horizontal el
+     cartel tapa la compuerta, que arranca con cualquier toque o tecla, y
+     Phaser escucha las teclas, el mousedown y el touchstart en window (con la
+     caja del código de carrera, L03, un clic sobre la caja apretó el botón
+     de atrás). Medido acá con un clic de mouse sobre un recuadro DOM encima
+     de la compuerta: el clic no la arrancó; con el dedo no se pudo probar en
+     un teléfono, y una tecla sí le llega (Phaser la escucha en window). Se
+     cortan en el cartel, como en esa caja: es barato y cubre los tres.
+
+     EL GUARDADO: se prueba al abrir (entorno.guardadoAndando: escribir,
+     leer y borrar una clave) y queda en window.PAMPA_GUARDADO. El Master lo
+     mira al entrar y en cada guardar(); con false avisa que la carrera NO se
+     guarda (scenes/master.js).
+     ═══════════════════════════════════════════════════════════════════════ */
+  (function () {
+    "use strict";
+    var E = window.PampaEntorno || null;
+    var IG = window.PampaIntegrado = { app: null, visible: false };
+    function $(id) { return document.getElementById(id); }
+    var almacen = null;
+    try { almacen = window.localStorage; } catch (e) { almacen = null; }
+    window.PAMPA_GUARDADO = E && E.guardadoAndando ? E.guardadoAndando(almacen) : true;
+    var ua = "";
+    try { ua = String(navigator.userAgent || ""); } catch (e) { }
+    IG.app = E && E.navegadorIntegrado ? E.navegadorIntegrado(ua) : null;
+    IG.sistema = E && E.sistema ? E.sistema(ua) : "otro";
+    var CLAVE = "pampa_integrado_seguir";
+    function yaSiguio() {
+      if (IG.siguio) return true;
+      try { return window.sessionStorage.getItem(CLAVE) === "1"; } catch (e) { return false; }
+    }
+    function link() { return E && E.linkLimpio ? E.linkLimpio(location.href) : String(location.href); }
+    IG.ocultar = function () {
+      var el = $("integrado"); if (el) el.hidden = true;
+      IG.visible = false;
+    };
+    IG.seguir = function () {
+      IG.siguio = true;
+      try { window.sessionStorage.setItem(CLAVE, "1"); } catch (e) { }
+      IG.ocultar();
+    };
+    IG.copiar = function () {
+      var u = link(), caja = $("ig-link"), txt = $("ig-nota");
+      var aMano = function () {
+        if (!caja) return;
+        caja.textContent = u; caja.hidden = false;
+        try {
+          var r = document.createRange(); r.selectNodeContents(caja);
+          var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        } catch (e) { }
+        if (txt) txt.textContent = "Copiá este link (mantené apretado) y pegalo en " + (IG.sistema === "ios" ? "Safari" : IG.sistema === "android" ? "Chrome" : "el navegador") + ".";
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(u).then(function () {
+            var b = $("ig-copiar"); if (b) b.textContent = "✓ LINK COPIADO";
+            if (txt) txt.textContent = "Ya está copiado: abrí " + (IG.sistema === "ios" ? "Safari" : IG.sistema === "android" ? "Chrome" : "el navegador") + " y pegalo arriba, donde va la dirección.";
+          }, aMano);
+          return true;
+        }
+      } catch (e) { }
+      aMano();
+      return false;
+    };
+    IG.mostrar = function () {
+      var el = $("integrado");
+      var t = E && E.textoIntegrado ? E.textoIntegrado(IG.app, IG.sistema) : null;
+      if (!el || !t) return false;
+      $("ig-tit").textContent = t.titulo;
+      $("ig-txt").textContent = t.texto;
+      var pasos = $("ig-pasos"); pasos.textContent = t.pasos || ""; pasos.hidden = !t.pasos;
+      $("ig-nota").textContent = t.nota;
+      var ch = $("ig-chrome"), href = t.chrome && E.linkAbrirEnChrome ? E.linkAbrirEnChrome(location.href) : null;
+      if (ch) { if (href) ch.href = href; ch.hidden = !href; }
+      el.hidden = false;
+      IG.visible = true;
+      var primero = href ? ch : $("ig-copiar");
+      try { if (primero) primero.focus(); } catch (e) { }
+      return true;
+    };
+    var el = $("integrado");
+    if (el) {
+      ["mousedown", "mouseup", "touchstart", "touchend", "pointerdown", "pointerup", "click", "keydown", "keyup", "keypress"].forEach(function (t) {
+        el.addEventListener(t, function (ev) { ev.stopPropagation(); });
+      });
+      var b1 = $("ig-copiar"), b2 = $("ig-seguir");
+      if (b1) b1.addEventListener("click", IG.copiar);
+      if (b2) b2.addEventListener("click", IG.seguir);
+    }
+    /* adentro de la nota de un medio no: el póster ya manda a una pestaña propia */
+    if (IG.app && !window.PAMPA_EMBEBIDO && !yaSiguio()) IG.mostrar();
   })();
   </script>
   <script>

@@ -12,12 +12,15 @@
        "Girá el celular";
      · self !== top, embed y beforeinstallprompt: 0. Embebido como lo embebe
        un medio (iframe de 100% de ancho y 1100 px de alto) el juego quedaba
-       en "Girá el celular" a 358, 700 y 780 px.
+       en "Girá el celular" a 358, 700 y 780 px;
+     · userAgent, Instagram, FBAN y TikTok: 0. Abierta desde una red social,
+       la carrera quedaba en el navegador de la app; y si guardar fallaba,
+       master.js lo tragaba en silencio.
 
    Acá van las DECISIONES, como funciones puras que reciben lo que hay que
    saber del navegador (index.html, embed.html y las escenas lo miden y se lo
    pasan): así corren en node y se prueban sin teléfono
-   (phaser/test/pantalla_completa.test.js y portada.test.js).
+   (phaser/test/pantalla_completa.test.js, portada.test.js y entorno.test.js).
    ========================================================================== */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory();
@@ -142,6 +145,101 @@
     if (/Android/i.test(s)) return "android";
     if (/iPhone|iPad|iPod/i.test(s)) return "ios";
     return "otro";
+  };
+
+  /* ══════════════════════════════════════════════════════════════════════
+     EL NAVEGADOR DE UNA RED SOCIAL (navegadores-de-redes-y-guardado)
+
+     La difusión es por redes, y en Instagram, Facebook o TikTok el link se
+     abre adentro del navegador de la app. La carrera vive en el
+     almacenamiento del navegador donde se juega: empezada ahí, no aparece
+     después en Chrome ni en la app instalada (y esos navegadores no
+     ofrecen instalar; la pantalla completa varía según la app: datos de
+     plataforma, no reproducidos acá).
+
+     Devuelve "instagram", "facebook", "tiktok", "otro" (el navegador de
+     otra app) o null (un navegador de verdad: Chrome, Samsung Internet,
+     Safari, Firefox…). Lo que cada app pone en su user agent:
+       · Instagram: "Instagram 307.0…" (Android y iPhone);
+       · Facebook:  "FBAN/", "FBAV/" o "FB_IAB" (y Messenger, de la misma
+                    familia: "FB_IAB/Orca-Android" o "FBAN/Messenger");
+       · TikTok:    "musical_ly", "trill_", "BytedanceWebview" o "TikTok";
+       · otra app en Android: el ";wv)" del WebView del sistema (Chrome y
+         Samsung Internet no lo llevan); en iPhone, las apps que se
+         presentan con su nombre (Twitter, Snapchat, LinkedIn, Line…).
+     El orden importa: Instagram y Facebook en Android también llevan ";wv)".
+     Los nombres de las apps y de los navegadores aparecen SOLO en este
+     cartel: quien juega tiene que reconocer la app en la que está y el
+     botón que busca. No son parte del mundo del juego. */
+  E.navegadorIntegrado = function (ua) {
+    var s = String(ua || "");
+    if (!s) return null;
+    if (/\bInstagram\b/i.test(s)) return "instagram";
+    if (/FBAN\/|FBAV\/|FB_IAB|FB4A|Messenger/i.test(s)) return "facebook";
+    if (/musical_ly|trill_|BytedanceWebview|\bTikTok\b/i.test(s)) return "tiktok";
+    if (/;\s*wv\)/.test(s)) return "otro";
+    if (/\b(Twitter|Snapchat|LinkedInApp|Line\/|MicroMessenger|Pinterest|GSA\/)/i.test(s)) return "otro";
+    return null;
+  };
+  E.NOMBRE_APP = { instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok" };
+  /* ABRIR EN CHROME (Android): un link intent:// que le pide al sistema abrir
+     esta misma dirección con Chrome. Si Chrome no está, el sistema va a
+     browser_fallback_url, que es la misma dirección (abre con el navegador
+     que haya). La dirección va limpia: sin ?ref, sin ?embed y sin #. */
+  /* la dirección para llevarse a otro navegador: sin ?ref, ?embed ni # */
+  E.linkLimpio = function (href) {
+    var s = String(href || "");
+    var hash = s.indexOf("#");
+    if (hash >= 0) s = s.slice(0, hash);
+    var q = s.indexOf("?"), base = q >= 0 ? s.slice(0, q) : s, busq = q >= 0 ? s.slice(q + 1) : "";
+    var partes = busq.split("&").filter(function (p) { return p && !/^(embed|ref)=/.test(p); });
+    return base + (partes.length ? "?" + partes.join("&") : "");
+  };
+  E.linkAbrirEnChrome = function (href) {
+    var limpio = E.linkLimpio(href);
+    var m = limpio.match(/^https?:\/\/(.+)$/i);
+    if (!m) return null;
+    return "intent://" + m[1] + "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
+      encodeURIComponent(limpio) + ";end";
+  };
+  /* el texto del cartel, por app y por sistema: se habla de "tu carrera" y
+     de lo que hay que tocar (sin masculino genérico) */
+  E.textoIntegrado = function (app, sistema) {
+    if (!app) return null;
+    var nombre = E.NOMBRE_APP[app];
+    var t = {
+      titulo: nombre ? "Estás en el navegador de " + nombre : "Estás en el navegador de una app",
+      texto: "", pasos: null, chrome: false,
+      nota: "Se puede jugar igual, pero lo que juegues acá queda solo adentro de esta app."
+    };
+    if (sistema === "android") {
+      t.texto = "Para que tu carrera quede guardada y se juegue a pantalla completa, abrilo en Chrome.";
+      t.chrome = true;
+    } else if (sistema === "ios") {
+      t.texto = "Para que tu carrera quede guardada, abrilo en Safari.";
+      t.pasos = "Tocá el menú ··· (arriba a la derecha) y elegí «Abrir en el navegador».";
+    } else {
+      t.texto = "Para que tu carrera quede guardada, abrilo en el navegador del teléfono.";
+    }
+    return t;
+  };
+
+  /* ══════════════════════════════════════════════════════════════════════
+     ¿EL GUARDADO ANDA? Escribe, lee y borra una clave de prueba. false si no
+     hay almacenamiento (en un iframe de otro sitio con las cookies de
+     terceros bloqueadas, LEER window.localStorage ya tira: quien llama pasa
+     null), si setItem tira (bloqueado o lleno) o si lo escrito no vuelve.
+     Antes master.js lo tragaba en silencio ("try { localStorage.setItem(…) }
+     catch (e) { }") y se jugaban horas creyendo que quedaba guardado. */
+  E.CLAVE_PRUEBA = "pampa_prueba_guardado";
+  E.guardadoAndando = function (storage) {
+    if (!storage || typeof storage.setItem !== "function") return false;
+    try {
+      storage.setItem(E.CLAVE_PRUEBA, "1");
+      var ok = storage.getItem(E.CLAVE_PRUEBA) === "1";
+      storage.removeItem(E.CLAVE_PRUEBA);
+      return ok;
+    } catch (e) { return false; }
   };
 
   return E;

@@ -33,6 +33,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* L04: a dónde lleva el atrás del teléfono desde la vista a la vista
        (null = al editor, que es de donde se entra al Master) */
     this._atrasVista = null;
+    /* L07: la marca "⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA" es de cada vista */
+    this._marcaSG = null;
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -296,6 +298,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.guardar();
     }
 
+    /* L07 · ¿este navegador guarda? (ver sinGuardar). Con la partida ya
+       leída, para que el aviso sepa si ofrecer el código de carrera */
+    if (!this.guardadoAnda()) this.sinGuardar();
+
     /* D5 · volviste del editor: la entrevista, sin pasar de nuevo por elegir
        club (el club ya lo elegiste antes de ir a armar la pinta). */
     if (this._pendienteOrigen) {
@@ -330,8 +336,80 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
 
 
+  /* L07 · guardar() DICE SI GUARDÓ. Era "try { localStorage.setItem(…) }
+     catch (e) { }": con el almacenamiento bloqueado (el iframe de un medio
+     con las cookies de terceros bloqueadas, un navegador con los datos del
+     sitio bloqueados) o lleno, el error se tragaba en silencio y se jugaban
+     horas creyendo que quedaba guardado. Ahora devuelve true o false, y la
+     primera vez que da false se avisa (sinGuardar, abajo). */
   guardar() {
-    try { localStorage.setItem("pampa_master_v1", JSON.stringify(this.save)); } catch (e) { }
+    let ok = false;
+    try { localStorage.setItem("pampa_master_v1", JSON.stringify(this.save)); ok = true; } catch (e) { ok = false; }
+    if (!ok) this.sinGuardar();
+    return ok;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     L07 · "EN ESTE NAVEGADOR TU CARRERA NO SE GUARDA"
+     (navegadores-de-redes-y-guardado)
+
+     Dos maneras de enterarse: al entrar al Master se prueba el
+     almacenamiento (logic/entorno.js, guardadoAndando: escribir, leer y
+     borrar una clave), y cada guardar() que falla. Lo que se sabe queda en
+     el registry ("sinGuardar"), que dura toda la sesión, porque el Master
+     se reinicia en cada vista.
+       · la PRIMERA vez en la sesión, la caja con qué pasa y qué hacer:
+         💾 CÓDIGO DE CARRERA (si ya hay carrera) y ▶ SEGUIR IGUAL;
+       · y FIJO, en la tabla y al elegir club, arriba a la izquierda (el
+         hueco medido en captura: el logo de arriba al centro empieza en
+         x≈365 y el título de elegir club en x≈370): "⚠ ESTE NAVEGADOR NO
+         GUARDA TU CARRERA", que vuelve a abrir la caja. Con el ⚠ y las
+         palabras, no solo el color.
+     ══════════════════════════════════════════════════════════════════════ */
+  guardadoAnda() {
+    const E = window.PampaEntorno;
+    if (!E || !E.guardadoAndando) return true;
+    let almacen = null;
+    try { almacen = localStorage; } catch (e) { almacen = null; }
+    return E.guardadoAndando(almacen);
+  }
+  sinGuardar() {
+    const reg = this.game.registry;
+    reg.set("sinGuardar", true);
+    if (this.add) this.marcaSinGuardar();
+    if (!reg.get("sinGuardarAvisado")) {
+      reg.set("sinGuardarAvisado", true);
+      this.avisoSinGuardar();
+    }
+  }
+  avisoSinGuardar() {
+    const hay = !!this.save;
+    return this.cajaDeTexto({
+      titulo: "⚠ En este navegador tu carrera NO se guarda",
+      texto: hay
+        ? "Si cerrás esta página, la carrera se pierde. Guardá tu código de carrera en un mensaje o en una nota: con él la seguís en otro navegador. Para que se guarde sola, abrí el juego en el navegador del teléfono (Chrome o Safari) o instalalo."
+        : "Podés jugar igual, pero al cerrar esta página la carrera se pierde. Para que se guarde, abrí el juego en el navegador del teléfono (Chrome o Safari) o instalalo.",
+      sinCaja: true,
+      botones: (hay && window.PampaCarrera ? [{ texto: "💾 CÓDIGO DE CARRERA", principal: true, accion: () => { this.cerrarCaja(); this.vistaCodigo(); } }] : [])
+        .concat([{ texto: "▶ SEGUIR IGUAL", principal: !hay, accion: () => this.cerrarCaja() }])
+    });
+  }
+  marcaSinGuardar() {
+    if (!this.game.registry.get("sinGuardar")) return null;
+    if (this._marcaSG && this._marcaSG.scene) return this._marcaSG;
+    const t = this.add.text(12, 8, "⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA", {
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d",
+      backgroundColor: "#0a1f13ee", padding: { x: 8, y: 4 }
+    }).setOrigin(0, 0).setDepth(80);
+    if (this.pisoTactil) this.pisoTactil(t);
+    if (!t.input) t.setInteractive({ useHandCursor: true });
+    t.on("pointerdown", (p, xx, yy, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation();
+      const S = window.PampaSFX; if (S && S.ui) S.ui("abrir");
+      this.avisoSinGuardar();
+    });
+    this._marcaSG = t;
+    return t;
   }
   /* V7 §3 LA MUDANZA: antes de que la carrera Phaser escriba por primera vez,
      el save CLÁSICO entero se respalda UNA vez (nunca se pisa el backup) */
@@ -795,7 +873,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       el.addEventListener("click", () => b.accion(ta.value, decir));
       fila.appendChild(el);
     });
-    caja.appendChild(h); caja.appendChild(p); caja.appendChild(ta); caja.appendChild(msg); caja.appendChild(fila);
+    /* L07: sinCaja = un aviso con botones y sin texto para copiar o pegar
+       ("En este navegador tu carrera NO se guarda") */
+    caja.appendChild(h); caja.appendChild(p); if (!o.sinCaja) caja.appendChild(ta); caja.appendChild(msg); caja.appendChild(fila);
     fondo.appendChild(caja);
     /* las teclas son de la caja: Phaser escucha en window, y un Enter o un
        espacio tipeados acá movían el cursor de la pantalla de atrás */
@@ -813,7 +893,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       .forEach((t) => fondo.addEventListener(t, (e) => e.stopPropagation()));
     if (this.input) this.input.enabled = false;
     document.body.appendChild(fondo);
-    try { ta.focus(); if (o.soloLectura) ta.select(); } catch (e) { }
+    try {
+      if (o.sinCaja) { if (fila.children && fila.children[0] && fila.children[0].focus) fila.children[0].focus(); }
+      else { ta.focus(); if (o.soloLectura) ta.select(); }
+    } catch (e) { }
     this._caja = { el: fondo, ta, decir, p };
     /* si la escena se apaga con la caja abierta (VOLVER AL MENÚ del aviso de
        error, por ejemplo), la caja se va con ella. Un gancho por vida de la
@@ -941,6 +1024,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     } else {
       this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
     }
+    /* L07: si este navegador no guarda, se dice antes de empezar la carrera */
+    this.marcaSinGuardar();
   }
   /* ══════════════════════════════════════════════════════════════════════
      ¿ES EL CLÁSICO?
@@ -2160,6 +2245,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       });
       this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
     }
+    /* L07: fijo en la tabla mientras este navegador no guarde */
+    this.marcaSinGuardar();
   }
 };
 
