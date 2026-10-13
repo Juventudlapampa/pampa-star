@@ -15,6 +15,11 @@
    El procedimiento para convertir una tanda está en
    docs/COMO_PESAN_LOS_ASSETS.md.
 
+   TANDA 1.0 (L06): el barrido no veía las caras, las identidades ni las
+   rutas literales de intro.js y master.js: decía 3,43 MB y el juego carga
+   7,77. Ahora las cuenta y los 14 PNG que quedan son una DEUDA a la vista
+   (convertirlos espera el OK de Rodri). Ver "EL PESO REAL", abajo.
+
    Corré:  node phaser/test/w1_peso.test.js
    ========================================================================== */
 "use strict";
@@ -27,7 +32,7 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 function mb(b) { return +(b / 1048576).toFixed(2); }
 
 /* ---------- qué archivos pide el juego, según los manifiestos ---------- */
-function loQueCarga() {
+function loQueCargaPorManifiesto() {
   var out = [];
   var P = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/poses_manifest.json"), "utf8"));
   var base = P.base || "assets/poses/";
@@ -52,14 +57,69 @@ function loQueCarga() {
   return out.filter(function (v, i, a) { return a.indexOf(v) === i; });
 }
 
-/* ---------- [1] NINGÚN PNG EN LO QUE CARGA EL JUEGO ---------- */
+/* ══════════════════════════════════════════════════════════════════════
+   TANDA 1.0 (L06, peso-real-y-webp) · EL PESO REAL.
+   Lo que estaba mal, medido: este barrido leía solo poses, retratos y la
+   tribuna, y decía "3,43 MB". El juego carga además las caras del editor
+   (data/caras_manifest.json: 8 PNG, 2,11 MB; las piden el editor y el
+   partido), las identidades de corrida (data/identidades_manifest.json:
+   6 PNG, 1,51 MB; las pide el partido) y lo que intro.js y master.js piden
+   por RUTA LITERAL, sin manifiesto (assets/ui: 12 archivos, 0,72 MB). El
+   total real era 7,77 MB, a 0,23 del tope, y la regla "ningún PNG" no se
+   cumplía para esos 14.
+   Ahora el barrido los cuenta. Los 14 PNG quedan como DEUDA (no como
+   falla): pasarlos a webp q88 (el procedimiento W1) deriva archivos de las
+   ilustraciones de Rodri, y eso espera su OK. Un PNG NUEVO, que no sea uno
+   de esos 14, sí es falla. */
+var PNG_DEUDA = [
+  "assets/poses/caras/cara_clasico.png", "assets/poses/caras/cara_rulos.png", "assets/poses/caras/cara_melena.png",
+  "assets/poses/caras/cara_rapado.png", "assets/poses/caras/cara_colorado.png", "assets/poses/caras/cara_flequillo.png",
+  "assets/poses/caras/cara_mohicano.png", "assets/poses/caras/cara_tranqui.png",
+  "assets/poses/identidades/jugador_rulos.png", "assets/poses/identidades/jugador_largo.png",
+  "assets/poses/identidades/jugador_rapado.png", "assets/poses/identidades/jugador_colorado.png",
+  "assets/poses/identidades/rival_flequillo.png", "assets/poses/identidades/rival_mohicano.png"
+];
+function leerJson(f) { return JSON.parse(fs.readFileSync(path.join(RAIZ, f), "utf8")); }
+function loQueCargaAparte() {
+  var out = [];
+  var C = leerJson("data/caras_manifest.json");
+  (C.caras || []).forEach(function (c) { if (c && c.archivo) out.push({ f: (C.base || "assets/poses/caras/") + c.archivo, de: "caras" }); });
+  var I = leerJson("data/identidades_manifest.json");
+  (I.identidades || []).forEach(function (d) { if (d && d.archivo) out.push({ f: (I.base || "assets/poses/identidades/") + d.archivo, de: "identidades" }); });
+  /* las rutas literales: "../assets/…" escritas en el código de las escenas
+     que las piden por nombre (como pide docs/COMO_PESAN_LOS_ASSETS.md) */
+  ["phaser/scenes/intro.js", "phaser/scenes/master.js"].forEach(function (f) {
+    fs.readFileSync(path.join(RAIZ, f), "utf8").replace(/"\.\.\/(assets\/[^"]+\.(?:webp|png|jpe?g))"/g, function (_, ruta) {
+      out.push({ f: ruta, de: "literales" }); return _;
+    });
+  });
+  return out;
+}
+function loQueCarga() {
+  return loQueCargaPorManifiesto().concat(loQueCargaAparte().map(function (x) { return x.f; }))
+    .filter(function (v, i, a) { return a.indexOf(v) === i; });
+}
+
+/* ---------- [1] NINGÚN PNG EN LO QUE CARGA EL JUEGO (salvo la deuda) ---------- */
 (function () {
   var lista = loQueCarga();
   assert(lista.length > 40, "el barrido tiene que encontrar los assets (encontró " + lista.length + ")");
+  var aparte = loQueCargaAparte();
+  ["caras", "identidades", "literales"].forEach(function (g) {
+    assert(aparte.some(function (x) { return x.de === g; }), "el barrido cuenta también " + g);
+  });
   var pngs = lista.filter(function (f) { return /\.png$/i.test(f); });
-  assert(pngs.length === 0,
-    "estos assets se cargan en PNG y tendrían que ser .webp (pesan ~7 veces más):\n        " + pngs.join("\n        "));
-  console.log("[1] " + lista.length + " assets declarados, 0 en PNG");
+  var nuevos = pngs.filter(function (f) { return PNG_DEUDA.indexOf(f) < 0; });
+  assert(nuevos.length === 0,
+    "estos assets se cargan en PNG y tendrían que ser .webp (pesan ~7 veces más):\n        " + nuevos.join("\n        "));
+  var deuda = pngs.filter(function (f) { return PNG_DEUDA.indexOf(f) >= 0; });
+  if (deuda.length) {
+    var pd = deuda.reduce(function (t, f) { return t + fs.statSync(path.join(RAIZ, f)).size; }, 0);
+    console.log("DEUDA: " + deuda.length + " PNG en lo que carga el juego (" + mb(pd) + " MB: las caras del editor y las identidades de corrida). " +
+      "Pasarlos a webp q88 (procedimiento W1, docs/COMO_PESAN_LOS_ASSETS.md) los baja a una fracción, pero deriva archivos de las ilustraciones de Rodri: espera su OK. " +
+      deuda.map(function (f) { return f.split("/").pop(); }).join(", "));
+  }
+  console.log("[1] " + lista.length + " assets cargados, " + (pngs.length - deuda.length) + " PNG fuera de la deuda" + (deuda.length ? " (" + deuda.length + " en la deuda)" : ""));
 })();
 
 /* ---------- [2] EL PESO TOTAL, CON TOPE ---------- */
@@ -71,14 +131,29 @@ function loQueCarga() {
     total += fs.statSync(p).size;
   });
   assert(faltan.length === 0, "estos archivos se declaran y NO existen: " + faltan.join(", "));
-  /* el tope: 8 MB. Está por encima de lo que pesa hoy (5,3) para dejar lugar a
-     una tanda más, y muy por debajo de los 34 que había. Si una tanda futura lo
-     pasa, el test lo dice antes de que alguien tenga que cronometrar. */
+  /* el tope: 8 MB. Se puso cuando el barrido decía 5,3 (y después 3,43) para
+     dejar lugar a una tanda más, muy por debajo de los 34 que había. L06:
+     contado de verdad (con caras, identidades y rutas literales) son 7,77,
+     a 0,23 del tope: la próxima pieza que entre en PNG lo pasa. Convertir los
+     14 PNG de la deuda lo deja en unos 5. Si una tanda futura lo pasa, el
+     test lo dice antes de que alguien tenga que cronometrar. */
   var TOPE = 8;
   assert(mb(total) <= TOPE,
     "lo que carga el juego pesa " + mb(total) + " MB y el tope es " + TOPE +
     ". Convertí la tanda nueva a webp (ver docs/COMO_PESAN_LOS_ASSETS.md).");
-  console.log("[2] lo que carga el juego: " + mb(total) + " MB (tope " + TOPE + ")");
+  /* L06: el total REAL, por partes, y la meta de la conversión: con los 14
+     PNG en webp, 5 MB o menos */
+  var porGrupo = { manifiestos: 0, caras: 0, identidades: 0, literales: 0 };
+  loQueCargaPorManifiesto().forEach(function (f) { var p = path.join(RAIZ, f); if (fs.existsSync(p)) porGrupo.manifiestos += fs.statSync(p).size; });
+  var vistos = {};
+  loQueCargaAparte().forEach(function (x) {
+    if (vistos[x.f]) return; vistos[x.f] = 1;
+    var p = path.join(RAIZ, x.f); if (fs.existsSync(p)) porGrupo[x.de] += fs.statSync(p).size;
+  });
+  var pngsAhora = lista.filter(function (f) { return /\.png$/i.test(f); }).length;
+  if (pngsAhora === 0) assert(mb(total) <= 5, "convertidos los PNG, lo que carga el juego tiene que quedar en 5 MB o menos (pesa " + mb(total) + ")");
+  console.log("[2] lo que carga el juego, DE VERDAD: " + mb(total) + " MB (tope " + TOPE + "): manifiestos " + mb(porGrupo.manifiestos) +
+    " + caras " + mb(porGrupo.caras) + " + identidades " + mb(porGrupo.identidades) + " + rutas literales " + mb(porGrupo.literales));
 })();
 
 /* ---------- [3] LA FUENTE NO SE PERDIÓ ---------- */

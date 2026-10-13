@@ -2811,3 +2811,37 @@ medición que manda es la del ítem, en un teléfono de verdad con `?perf=1`
   jugar el primer partido con una pinta que no sea la Original y anotar el
   "CUADRO máx 10 s" justo después de la primera gambeta, el primer remate y
   el primer gol; lo mismo con la versión anterior.
+
+### peso-real-y-webp · w1_peso mide lo que de verdad se carga (7,77 MB y no 3,43)
+
+**Qué estaba mal (medido).** `loQueCarga()` de `w1_peso.test.js` leía solo
+poses, retratos y la tribuna e imprimía "3,43 MB". No contaba las caras del
+editor (`data/caras_manifest.json`: 8 PNG, 2,11 MB), las identidades de
+corrida (`data/identidades_manifest.json`: 6 PNG, 1,51 MB) ni lo que
+`intro.js` y `master.js` piden por ruta literal (`assets/ui`: 12 archivos,
+0,72 MB). El total real era 7,77 MB, a 0,23 del tope de 8, y la regla
+"ningún PNG en la carga" no se cumplía para esos 14.
+
+**Qué se hizo** (commit de este ítem, solo el test):
+
+- El barrido cuenta las caras, las identidades y las rutas literales
+  (leídas del código con una expresión regular, como pide
+  `docs/COMO_PESAN_LOS_ASSETS.md`), e imprime el total real por partes:
+  "7.77 MB (tope 8): manifiestos 3.43 + caras 2.11 + identidades 1.51 +
+  rutas literales 0.72".
+- Los 14 PNG quedan como **DEUDA** a la vista en cada corrida de la suite,
+  con sus nombres, y no como falla. Un PNG nuevo que no sea uno de esos 14
+  sí es falla.
+- Si algún día se convierten (0 PNG en la carga), el test exige 5 MB o
+  menos.
+
+**La conversión a webp NO se hizo**: deriva archivos de las ilustraciones de
+Rodri y el ítem la condiciona a su OK. Cuando lo dé: el procedimiento W1 de
+`docs/COMO_PESAN_LOS_ASSETS.md` (calidad 88, los PNG a `assets/_fuente/`,
+los manifiestos apuntando al webp), y después `node
+phaser/test/sw_precache.test.js --escribir` (cambian las huellas del worker).
+
+**Cómo se verificó.** `node phaser/test/w1_peso.test.js` imprime el total
+real y la deuda con los 14 nombres; la suite la muestra en "DEUDAS A LA
+VISTA". En pantalla no hay nada que ver: no cambió ningún archivo que cargue
+el juego (el editor sigue con sus mismas caras).
