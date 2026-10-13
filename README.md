@@ -42,8 +42,8 @@ Con el repo completo (`git clone`) los dos bloques corren normalmente.
 
 ## Jugar
 
-- **Online:** `https://juventudlapampa.github.io/pampa-star/`, el link oficial (tanda 1.0). Es la **portada**: qué es, cómo se juega y ▶ JUGAR. El juego vive en `phaser/` y la versión anterior, en `clasico/` (modo retro, con su carrera guardada). Se publica con GitHub Pages.
-- **Local:** `node server.js` y abrí `http://localhost:8123` (la portada) o `http://localhost:8123/phaser/` (el juego). El modo retro (`clasico/index.html`) también abre con doble clic: es un único archivo autónomo (HTML + CSS + JS) que solo usa internet para las tipografías de Google.
+- **Online:** `https://juventudlapampa.github.io/pampa-star/`, el link oficial (tanda 1.0). Es la **portada**: qué es, cómo se juega y ▶ JUGAR. El juego vive en `phaser/`. Se publica con GitHub Pages.
+- **Local:** `node server.js` y abrí `http://localhost:8123` (la portada) o `http://localhost:8123/phaser/` (el juego).
 
 ## Estado: temporada completa jugable (estilo Captain Tsubasa)
 

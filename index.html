@@ -14,8 +14,16 @@
      portada liviana, solo HTML y CSS (sin el motor del juego: unos 250 KB
      con la ilustración, el logo y la tipografía), que se lee en vertical:
      qué es, tres pasos, ▶ JUGAR a phaser/, cómo instalarlo, el código para
-     medios y los créditos. El clásico se mudó a clasico/ como MODO RETRO, con
-     su carrera intacta (localStorage es por origen, no por carpeta).
+     medios y los créditos. El clásico se mudó a clasico/ con su carrera
+     intacta (localStorage es por origen, no por carpeta).
+
+     SOLO MODO CARRERA (decisión de Rodri, 13/oct): la portada NO linkea el
+     clásico. El lote lo ofrecía en el pie ("Modo retro: la versión anterior
+     del juego") y, a quien tenía una carrera vieja, le decía que siguiera
+     allá: dos puertas, y el juego se leía "como que está opcional". Ahora
+     hay una sola, ▶ JUGAR, y a quien tiene una carrera del clásico se le
+     dice que la traiga al juego nuevo con la mudanza del Master (⬆
+     IMPORTAR TU CARRERA). La URL de clasico/ sigue viva, sin links.
 
      EL ORIGEN SE FIJA ANTES DE DIFUNDIR: la carrera de cada persona vive en
      el localStorage de juventudlapampa.github.io. Si algún día el juego se
@@ -95,7 +103,7 @@
   .caja{background:var(--panel);border:2px solid rgba(246,239,220,.18);border-radius:12px;padding:14px 16px;}
   .caja p{margin:0 0 8px;}
   .caja p:last-child{margin-bottom:0;}
-  .retro{border-color:rgba(246,193,29,.55);}
+  .aviso{border-color:rgba(246,193,29,.55);}
   .boton2{display:inline-block;margin-top:6px;padding:12px 18px;border-radius:10px;border:2px solid var(--crema);
     color:var(--crema);background:transparent;text-decoration:none;font:inherit;font-weight:700;cursor:pointer;min-height:48px;}
   textarea{width:100%;min-height:118px;margin:6px 0 4px;padding:10px;border-radius:8px;border:2px solid rgba(246,239,220,.25);
@@ -104,7 +112,6 @@
   .chico{font-size:.88rem;color:#c9cfc2;}
   footer{max-width:640px;margin:0 auto;padding:22px 16px 40px;border-top:1px solid rgba(246,239,220,.15);font-size:.9rem;color:#c9cfc2;text-align:center;}
   footer b{color:var(--crema);}
-  footer a{display:inline-block;padding:10px 4px;}
 
   /* apaisado y bajo (un teléfono acostado): el logo más chico para que
      JUGAR entre sin scroll */
@@ -128,9 +135,9 @@
 </header>
 
 <main>
-  <section id="retro" class="caja retro" hidden>
-    <p><b>¿Jugabas la versión anterior?</b> Tu carrera de antes sigue entera en el <b>MODO RETRO</b>, guardada en este navegador.</p>
-    <a class="boton2" href="clasico/">▶ SEGUIR EN EL MODO RETRO</a>
+  <section id="mudanza" class="caja aviso" hidden>
+    <p><b>¿Jugabas la versión anterior?</b> Tu carrera de antes no se perdió: la podés traer a este juego.</p>
+    <p class="chico">Tocá ▶ JUGAR y, al empezar tu carrera, elegí <b>⬆ IMPORTAR TU CARRERA</b>: arrancás en la división que te toca por tu nivel, y la carrera de antes queda guardada como respaldo.</p>
   </section>
 
   <h2 id="como">Cómo se juega</h2>
@@ -167,7 +174,6 @@
 <footer>
   <p><b>Subsecretaría de Juventudes de La Pampa</b></p>
   <p>El juego no mide visitas ni junta datos: tu carrera queda guardada en el navegador donde jugás.</p>
-  <a href="clasico/">Modo retro: la versión anterior del juego</a>
 </footer>
 
 <script>
@@ -177,9 +183,15 @@
   "use strict";
   try {
     /* con una carrera del juego nuevo, el mismo link dice que se sigue */
-    if (localStorage.getItem("pampa_master_v1")) document.getElementById("jugar").textContent = "▶ SEGUIR MI CARRERA";
-    /* con una carrera del clásico, se avisa dónde quedó */
-    if (localStorage.getItem("pampa_star_v1")) document.getElementById("retro").hidden = false;
+    var nueva = localStorage.getItem("pampa_master_v1");
+    if (nueva) document.getElementById("jugar").textContent = "▶ SEGUIR MI CARRERA";
+    /* con una carrera del clásico y ninguna del juego nuevo, se dice cómo
+       traerla (SOLO MODO CARRERA: no se manda al clásico). El mismo gate
+       que el botón de la mudanza del Master (`clasico && clasico.name`):
+       con una carrera nueva el Master abre la tabla, no ese botón */
+    var vieja = null;
+    try { vieja = JSON.parse(localStorage.getItem("pampa_star_v1")); } catch (e) { }
+    if (!nueva && vieja && vieja.name) document.getElementById("mudanza").hidden = false;
   } catch (e) { }
   var b = document.getElementById("copiar"), t = document.getElementById("codigo"), ok = document.getElementById("copiado");
   function listo() { ok.hidden = false; }

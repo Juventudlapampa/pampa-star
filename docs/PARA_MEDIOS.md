@@ -17,9 +17,7 @@ juego (el logo sobre la ilustración del campo pampeano y "DEL POTRERO AL
 MUNDIAL"). La carrera queda guardada en el navegador de cada persona.
 
 Si hace falta el link que entra directo a jugar, sin la portada:
-`https://juventudlapampa.github.io/pampa-star/phaser/`. La versión anterior
-del juego sigue en `https://juventudlapampa.github.io/pampa-star/clasico/`
-(modo retro).
+`https://juventudlapampa.github.io/pampa-star/phaser/`.
 
 ## Para ponerlo adentro de una nota (iframe)
 

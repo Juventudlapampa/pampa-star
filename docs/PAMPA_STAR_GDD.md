@@ -4,8 +4,8 @@
 **Autor y dirección de diseño:** Rodri (Rodrigo Draeger)
 **Implementación:** Claude Code (agente único autorizado sobre los archivos núcleo)
 **Repositorio:** `github.com/Juventudlapampa/pampa-star` (público)
-**En vivo:** `juventudlapampa.github.io/pampa-star/` (la portada: el link oficial, con ▶ JUGAR) · `.../pampa-star/phaser/` (el juego) · `.../pampa-star/clasico/` (modo retro: la versión anterior)
-**Estado:** terminando la 1.0 (tanda 1.0, `docs/TANDA_1_0.md`) · la carrera entera vive en el juego Phaser (Modo Master); el clásico queda como modo retro, con su carrera guardada
+**En vivo:** `juventudlapampa.github.io/pampa-star/` (la portada: el link oficial, con ▶ JUGAR) · `.../pampa-star/phaser/` (el juego)
+**Estado:** terminando la 1.0 (tanda 1.0, `docs/TANDA_1_0.md`) · la carrera entera vive en el juego Phaser (Modo Master), que va a ser la única entrada (SOLO MODO CARRERA, 16.2); el motor anterior quedó en `clasico/`, sin links desde la portada ni desde el juego: su URL sigue viva solo para quien tenga una carrera vieja, que el Master importa (la mudanza)
 
 > Este documento describe el juego completo: qué es, cómo se juega, de qué está hecho, cómo llegó hasta acá y hacia dónde va. Los documentos de diseño por tanda (v2, v3 Feel, v4 Anime, v6 Maestro) son especificaciones de implementación y viven en `/docs`. Este es el documento raíz.
 
@@ -499,7 +499,7 @@ Clave única `pampa_star_v1`, compartida entre el motor clásico y el Phaser. Lo
 
 Cada feature nueva detrás de un flag apagable. `partido_phaser` **apagado por defecto**: el motor clásico sigue siendo el camino activo hasta que Rodri autorice la fusión. El flag se persiste en el navegador y se fuerza por URL (`?partido_phaser=1` / `=0`).
 
-**Desde la tanda 1.0** el flag vive solo en el modo retro (`clasico/index.html`): el juego que se difunde es el Phaser, desde la portada de la raíz. Encendido, el partido del clásico va a `../phaser/index.html` y APLICAR Y VOLVER regresa a `../clasico/index.html`.
+**Desde la tanda 1.0** el flag vive solo en el clásico (`clasico/index.html`, sin links desde la portada ni desde el juego): el juego que se difunde es el Phaser, desde la portada de la raíz. Encendido, el partido del clásico va a `../phaser/index.html` y APLICAR Y VOLVER regresa a `../clasico/index.html`.
 
 ## 13.7 Proceso de desarrollo
 
@@ -570,7 +570,7 @@ Fixes urgentes (radar, arquero, intercepción, cambio de jugador, marca, rename 
 
 ## 16.2 Decisiones abiertas
 
-- ~~**Encender `partido_phaser`** como camino definitivo, y qué pasa con el clásico (¿queda como "modo retro"?).~~ **Decidido (Rodri, tanda 1.0):** la raíz del sitio es una portada liviana con ▶ JUGAR al juego Phaser, y el clásico se mudó a `clasico/` como modo retro, con su carrera intacta. El link oficial es `juventudlapampa.github.io/pampa-star/`. Antes de difundir se fija el origen definitivo (ver 13.5); la portada y `clasico/` van en la lista blanca de lo que publica el sitio.
+- ~~**Encender `partido_phaser`** como camino definitivo, y qué pasa con el clásico (¿queda como "modo retro"?).~~ **Decidido (Rodri, tanda 1.0):** la raíz del sitio es una portada liviana con ▶ JUGAR al juego Phaser, y el clásico se mudó a `clasico/` con su carrera intacta. El link oficial es `juventudlapampa.github.io/pampa-star/`. **SOLO MODO CARRERA (Rodri, 13/oct):** el clásico no se linkea desde la portada ni desde el juego ("hacé el juego para que tenga SOLO modo carrera, porque ahora está raro, como que está opcional"); su URL sigue viva solo para quien tenga una carrera vieja, que el Master puede importar (la mudanza, ⬆ IMPORTAR TU CARRERA), y la portada se lo dice a quien la tiene. Antes de difundir se fija el origen definitivo (ver 13.5); la portada y `clasico/` van en la lista blanca de lo que publica el sitio.
 - **Información asimétrica:** hoy se muestran los porcentajes de las dos partes. El original ocultaba todo (y degeneraba en elegir siempre el número más alto). Punto dulce a probar: mostrar los tuyos, ocultar los del rival, y dar una pista de lectura ("DYLAN viene calentito", "DYLAN está fundido").
 - **Reorientación vertical de la perspectiva.**
 
@@ -580,7 +580,7 @@ Viento que afecta pases y tiros · estado de la cancha (seca / embarrada) · el 
 
 ## 16.4 Deudas conocidas
 
-- ~~La carrera (temporada, vida, progresión) sigue viviendo en el motor clásico: el partido Phaser lee el nivel pero no la corre adentro.~~ **Saldada:** la carrera entera corre en el juego Phaser (Modo Master desde V7, `logic/temporada.js` + `scenes/master.js`, save `pampa_master_v1`), y desde la tanda 1.0 es lo que abre el link oficial. El clásico queda en `clasico/` como modo retro.
+- ~~La carrera (temporada, vida, progresión) sigue viviendo en el motor clásico: el partido Phaser lee el nivel pero no la corre adentro.~~ **Saldada:** la carrera entera corre en el juego Phaser (Modo Master desde V7, `logic/temporada.js` + `scenes/master.js`, save `pampa_master_v1`), y desde la tanda 1.0 es lo que abre el link oficial. El clásico queda en `clasico/`, sin links: su carrera se trae al Master con la mudanza.
 - Las tandas Feel y Anime corrieron con auto-revisión inline; la adversarial multi-agente cayó por límite de sesión. Las features más nuevas tienen menos red que las viejas.
 - El pase no pasa por la matriz de duelo: su riesgo vive en un porcentaje suelto del receptor.
 - IA genérica: sin perfiles por rival ni tácticas.
