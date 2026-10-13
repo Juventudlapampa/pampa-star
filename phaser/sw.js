@@ -463,9 +463,11 @@ async function precachearMusica(assets, codigo) {
   } catch (err) { }
 }
 
-/* EL CALENTAMIENTO. En la primera visita el worker se registra en "load", y
-   la intro ya pidió sus poses ANTES de que él controlara la página: esas no
-   pasaron por acá y sin red, en la segunda visita, faltaban. Cuando la
+/* EL CALENTAMIENTO. En la primera visita el worker se registra cuando
+   termina la intro (index.html, LA RED: desde la revisión de L06; antes, en
+   "load" y después al abrir la intro), así que la página ya bajó sola el
+   logo, lo del opening y quizás las caras del editor ANTES de que él la
+   controlara: eso no pasó por acá y sin red, en la segunda visita, faltaba. Cuando la
    página queda controlada manda la lista de lo que bajó por su cuenta, y
    acá se guarda sacándolo de la caché HTTP del navegador ("force-cache": ya
    está bajado, no cuesta red). Como esa copia puede ser de antes de un

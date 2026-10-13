@@ -1351,23 +1351,39 @@
        primera visita la instalación revalida todo el código (unos 70
        pedidos) y baja tres temas enteros (~1 MB, TEMAS_PRECACHE): le
        peleaba la señal a la compuerta, que es lo primero que hay que ver.
-       Ahora espera a que la intro abra (PampaRegistrarSW, intro.js create)
-       o, si la intro no abre, ESPERA_SW_MS después de "load". Con un worker
-       que ya controla la página no hay nada que cuidar: se registra en
-       "load", como antes (es solo mirar si hay una versión nueva). */
-    var ESPERA_SW_MS = 20000;
-    var cargo = false, pedido = !!sw.controller, registrado = false;
+       REVISIÓN DEL LOTE: el lote lo registraba al ABRIR la intro, o sea con
+       la compuerta a la vista, que es justo cuando baja lo del opening
+       (1,36 MB de imágenes y su tema): la instalación se repartía la señal
+       con eso, y el tema del opening podía bajar dos veces (el worker y el
+       <audio>). La medición con "Slow 4G" se había hecho sin worker. Ahora
+       la intro avisa al abrir que tiene para bajar
+       (PampaRegistrarSW("espera"): el tope corto ya no vale) y avisa otra
+       vez cuando termina, al saltear o al ir directo al editor
+       (PampaRegistrarSW()): ahí se registra. Si la intro no abre,
+       ESPERA_SW_MS después de "load"; si abrió y nunca terminó (nadie tocó
+       la compuerta), ESPERA_SW_INTRO_MS. Con un worker que ya controla la
+       página no hay nada que cuidar: se registra en "load", como antes (es
+       solo mirar si hay una versión nueva). */
+    var ESPERA_SW_MS = 20000, ESPERA_SW_INTRO_MS = 120000;
+    var cargo = false, pedido = !!sw.controller, registrado = false, introEspera = false;
     function registrar() {
       if (registrado || !cargo || !pedido) return false;
       registrado = true;
       sw.register("sw.js").catch(function () { });
       return true;
     }
-    window.PampaRegistrarSW = function () { pedido = true; return registrar(); };
+    window.PampaRegistrarSW = function (cuando) {
+      if (cuando === "espera") {
+        if (!introEspera) { introEspera = true; setTimeout(function () { pedido = true; registrar(); }, ESPERA_SW_INTRO_MS); }
+        return false;
+      }
+      pedido = true;
+      return registrar();
+    };
     window.addEventListener("load", function () {
       cargo = true;
       registrar();
-      setTimeout(function () { pedido = true; registrar(); }, ESPERA_SW_MS);
+      setTimeout(function () { if (!introEspera) { pedido = true; registrar(); } }, ESPERA_SW_MS);
     });
   })();
   </script>

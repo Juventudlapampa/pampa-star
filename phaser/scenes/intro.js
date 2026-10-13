@@ -181,20 +181,22 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
 
   create() {
     /* L06 (carga-liviana): el cartel de la página ("PAMPA STAR · cargando…
-       NN%"), que estaba desde el primer byte, se va acá. Y desde acá el
-       service worker se puede instalar: antes se registraba al terminar los
-       scripts y su instalación (el código otra vez y tres temas, ~1 MB) le
-       peleaba la señal a la compuerta (index.html, LA RED). */
+       NN%"), que estaba desde el primer byte, se va acá. Revisión del lote:
+       el service worker se instala recién cuando la intro TERMINA (salir(),
+       o acá mismo si no hay intro): su instalación (el código otra vez y
+       tres temas, ~1 MB) le peleaba la señal a lo del opening, que baja con
+       la compuerta a la vista (index.html, LA RED) */
     if (window.PampaCartel) window.PampaCartel.sacar();
-    if (window.PampaRegistrarSW) window.PampaRegistrarSW("intro");
     this.entrarDesdeNegro();
     const BAL = this.game.registry.get("balance") || {};
     this.I = BAL.intro || {};
     const flagOff = BAL.flags && BAL.flags.intro_opening === false;
     if (flagOff || (this.game.registry.get("introVista") && !this.game.registry.get("introPedida"))) {
+      if (window.PampaRegistrarSW) window.PampaRegistrarSW();
       this.irA("editor");
       return;
     }
+    if (window.PampaRegistrarSW) window.PampaRegistrarSW("espera");
     const pedida = this.game.registry.get("introPedida");
     this.game.registry.set("introVista", true);
     this.game.registry.set("introPedida", false);
@@ -313,6 +315,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     if (this._fin) return;
     if (this._gestoTs != null && this.time.now - this._gestoTs < 180) return;   // el gesto de la compuerta no saltea
     this._fin = true;
+    /* revisión L06: lo del opening ya no hace falta: ahora sí se instala el
+       service worker (index.html, LA RED) */
+    if (window.PampaRegistrarSW) window.PampaRegistrarSW();
     /* M4 · acá había un "por las dudas" (pedirMusica si existe, si no
        SFX.musicaTema directo). Ese por-las-dudas ES la segunda puerta: el
        mixin de piel se aplica a las cuatro escenas en el arranque, así que
