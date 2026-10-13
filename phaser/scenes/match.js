@@ -89,11 +89,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const f = poses.fondos[id];
         if (f && f.archivo) this.load.image("fondo_" + id, "../" + base + f.archivo);
       });
-      /* EDITOR v2: los 8 bustos ilustrados (para duelos y cut-ins, teñidos) */
+      /* EDITOR v2: los bustos ilustrados (para duelos y cut-ins, teñidos).
+         OJOS: la que está fuera de rotación no se baja (nadie la ve) */
       const CM = this.game.registry.get("caras");
       if (CM && CM.caras) {
         const baseC = CM.base || "assets/poses/caras/";
         CM.caras.forEach(c => {
+          if (c.en_rotacion === false) return;
           if (c.archivo && !this.textures.exists("cara_" + c.id)) this.load.image("cara_" + c.id, "../" + baseC + c.archivo);
         });
       }
@@ -2034,9 +2036,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const A = window.PampaAvatar;
     const look = A.validarLook(j.look || {});
     const esMioElegido = !esRival && (j.esVos || j.esAmigo);
-    const idx = esMioElegido
-      ? look.cara % CM.caras.length
-      : A.hashSemilla((j.nombre || "x") + (esRival ? "|r" : "|m")) % CM.caras.length;
+    /* OJOS (tanda 1.0): el roster por hash, pero nunca una cara fuera de
+       rotación (la de ojos cerrados le tocaba siempre a Santi y a Mateo);
+       el look elegido ya viene con su reemplazo desde validarLook */
+    const idx = (esMioElegido
+      ? look.cara
+      : (A.caraDelRoster ? A.caraDelRoster(j.nombre, esRival) : A.hashSemilla((j.nombre || "x") + (esRival ? "|r" : "|m")))) % CM.caras.length;
     const cara = CM.caras[idx];
     if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
     /* V7 §0.2: tintes OPCIONALES — el roster va con la ilustración ORIGINAL

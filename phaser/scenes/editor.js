@@ -24,7 +24,8 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     if (CM && CM.caras) {
       const base = CM.base || "assets/poses/caras/";
       CM.caras.forEach(c => {
-        if (c.archivo && !this.textures.exists("cara_" + c.id)) this.load.image("cara_" + c.id, "../" + base + c.archivo);
+        /* OJOS (tanda 1.0): la cara fuera de rotación no se baja */
+        if (c.archivo && c.en_rotacion !== false && !this.textures.exists("cara_" + c.id)) this.load.image("cara_" + c.id, "../" + base + c.archivo);
       });
     }
   }
@@ -283,7 +284,11 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* v2: CARA cicla sobre el manifest; fallback: catálogo completo */
     const n = campo === "cara" ? this.CM.caras.length
       : A.CATALOGO[A.CAMPOS[campo]].length;
-    p.look[campo] = (((p.look[campo] || 0) + d) % n + n) % n;
+    /* OJOS (tanda 1.0): la cara fuera de rotación (la de ojos cerrados) se
+       saltea, como el pelo saltea los tintes que una cara no admite. Antes,
+       desde Clásico un solo toque a la izquierda caía justo en ella. */
+    if (campo === "cara" && A.ciclarCara) p.look.cara = A.ciclarCara(A.validarLook(p.look).cara, d);
+    else p.look[campo] = (((p.look[campo] || 0) + d) % n + n) % n;
     /* al cambiar de cara, un tinte de pelo que esa cara no admite vuelve a Original */
     if (campo === "cara" && this._v2) {
       const cara = this.CM.caras[p.look.cara % this.CM.caras.length];

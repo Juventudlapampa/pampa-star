@@ -79,14 +79,82 @@
      Antes estaban a mano (8 caras, 3+1 camisetas) y agregar arte en el manifest
      no alcanzaba: los índices nuevos se plegaban con módulo y el jugador elegía
      una camiseta y veía otra. */
-  var MANIFEST = { caras: 8, camisetas: 3 };
+  var MANIFEST = { caras: 8, camisetas: 3, reemplazos: {} };
   function setCatalogoManifest(cfg) {
     if (!cfg || typeof cfg !== "object") return MANIFEST;
     ["caras", "camisetas"].forEach(function (k) {
       var v = cfg[k];
       if (typeof v === "number" && isFinite(v) && v >= 1) MANIFEST[k] = Math.floor(v);
     });
+    /* OJOS: las caras fuera de rotación y quién toma su lugar (índice → índice).
+       Solo se pisa si viene: un cfg sin reemplazos deja los que había. */
+    if (cfg.reemplazos && typeof cfg.reemplazos === "object") {
+      var r = {};
+      Object.keys(cfg.reemplazos).forEach(function (k) {
+        var de = parseInt(k, 10), a = cfg.reemplazos[k];
+        if (isFinite(de) && typeof a === "number" && isFinite(a) && a >= 0 && a !== de) r[de] = Math.floor(a);
+      });
+      MANIFEST.reemplazos = r;
+    }
     return MANIFEST;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     OJOS (tanda 1.0) · LAS CARAS FUERA DE ROTACIÓN.
+     Pedido de Rodri: "hay un personaje que tiene los ojos cerrados, o
+     acomodalo o sacalo". Era la cara 'Tranqui' (la 8ª, índice 7): dos
+     párpados bajos y la cabeza gacha. No salía solo en el editor: el partido
+     les pone cara por hash del nombre a quienes no elegiste, y medido en node
+     con data/roster_pampeano.json, Santi y Mateo (el que juega al lado tuyo)
+     caían en ella en TODOS los partidos; Damián y Santiago V. también, cuando
+     les toca tu equipo. Acomodarla sería redibujarle los ojos, y el PNG es
+     arte de Rodri: se SACA de la rotación sin tocar el archivo.
+     El manifest la marca con en_rotacion:false y un reemplazo (Rulos). Esto
+     lo traduce a índices, para que validarLook (un look guardado con esa
+     cara), el roster y el ciclo del editor no la vean nunca. No se borra la
+     entrada porque el hash del roster va con módulo del largo: con 7 caras
+     tu equipo quedaba con 6 Melenas de 10 (medido). Así cambian SOLO los
+     que caían en ella. cm = el JSON de data/caras_manifest.json. */
+  function configDeCaras(cm) {
+    var caras = (cm && Array.isArray(cm.caras)) ? cm.caras : [];
+    var enRot = function (c) { return !!c && c.en_rotacion !== false; };
+    var primera = -1;
+    caras.forEach(function (c, i) { if (primera < 0 && enRot(c)) primera = i; });
+    var reemplazos = {};
+    caras.forEach(function (c, i) {
+      if (!c || enRot(c)) return;
+      var a = -1;
+      caras.forEach(function (d, k) { if (a < 0 && enRot(d) && c.reemplazo && d.id === c.reemplazo) a = k; });
+      /* sin reemplazo válido (o apunta a otra apagada): la primera en rotación */
+      reemplazos[i] = a >= 0 ? a : Math.max(0, primera);
+    });
+    return {
+      caras: caras.length || undefined,
+      camisetas: cm && Array.isArray(cm.camisetas) ? cm.camisetas.length : undefined,
+      reemplazos: reemplazos
+    };
+  }
+  /* el índice que de verdad se ve (el reemplazo si esa cara está apagada) */
+  function caraEnRotacion(i) {
+    var r = MANIFEST.reemplazos[i];
+    return typeof r === "number" ? r : i;
+  }
+  /* la cara de quien no la eligió (roster y rivales): por hash del nombre,
+     el mismo de siempre ("|m" tu equipo, "|r" el rival) — mismo nombre,
+     misma cara en todos los partidos — y nunca una fuera de rotación */
+  function caraDelRoster(nombre, esRival) {
+    return caraEnRotacion(hashSemilla((nombre || "x") + (esRival ? "|r" : "|m")) % MANIFEST.caras);
+  }
+  /* el stepper CARA del editor: un paso (d = -1 / +1) salteando las apagadas,
+     como el de color de pelo saltea los tintes que una cara no admite */
+  function ciclarCara(actual, d) {
+    var n = MANIFEST.caras, paso = d < 0 ? -1 : 1;
+    var v = ((Math.floor(Number(actual)) || 0) % n + n) % n;
+    for (var k = 0; k < n; k++) {
+      v = ((v + paso) % n + n) % n;
+      if (typeof MANIFEST.reemplazos[v] !== "number") return v;
+    }
+    return caraEnRotacion(v);
   }
 
   /* tolerante: campos faltantes → default; índices fuera de rango → módulo */
@@ -102,6 +170,10 @@
     /* EDITOR v2: la CARA ilustrada (del manifest de bustos). Look viejo sin
        cara → 0 (Clásico): retrocompatible. El campo viaja con el look siempre. */
     out.cara = typeof l.cara === "number" && isFinite(l.cara) ? Math.abs(Math.floor(l.cara)) % MANIFEST.caras : 0;
+    /* OJOS: una cara fuera de rotación guardada en un look (la eligió alguien
+       antes de la tanda 1.0) pasa a su reemplazo: el editor abre con una cara
+       de ojos abiertos y el partido muestra esa misma */
+    out.cara = caraEnRotacion(out.cara);
     /* V7 §0.2: los TINTES de la cara ilustrada son OPCIONALES — 0 = "Original"
        (respeta los colores propios de la ilustración), k>0 = catálogo[k-1].
        tCam cicla los tonos de camiseta del manifest de caras + Original. */
@@ -226,6 +298,8 @@
     migrarDelClasico: migrarDelClasico, lookProcedural: lookProcedural,
     lookLabel: lookLabel, hexNum: hexNum, hashSemilla: hashSemilla,
     lookParaBloques: lookParaBloques, masCercano: masCercano,
-    setCatalogoManifest: setCatalogoManifest, MANIFEST: MANIFEST
+    setCatalogoManifest: setCatalogoManifest, MANIFEST: MANIFEST,
+    configDeCaras: configDeCaras, caraEnRotacion: caraEnRotacion,
+    caraDelRoster: caraDelRoster, ciclarCara: ciclarCara
   };
 });

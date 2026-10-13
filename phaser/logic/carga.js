@@ -201,10 +201,12 @@
     return out;
   }
 
-  /* los bustos del editor (data/caras_manifest.json) */
+  /* los bustos del editor (data/caras_manifest.json). OJOS (tanda 1.0): la
+     que tiene en_rotacion:false no se baja — nadie la ve (logic/avatar.js,
+     configDeCaras); eran 281 KB de la cara con los ojos cerrados */
   function listaDelEditor(caras) {
     var CM = caras || {}, base = CM.base || "assets/poses/caras/";
-    return (CM.caras || []).filter(function (c) { return c && c.archivo && c.id; })
+    return (CM.caras || []).filter(function (c) { return c && c.archivo && c.id && c.en_rotacion !== false; })
       .map(function (c) { return { clave: "cara_" + c.id, ruta: "../" + base + c.archivo }; });
   }
 

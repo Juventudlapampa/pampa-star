@@ -2087,11 +2087,12 @@
        avisamos acá, una sola vez, antes de crear el juego: si no, los índices
        que pasan del tope viejo se pliegan con módulo y elegís una camiseta y
        aparece otra. Agregar arte al manifest ahora alcanza, sin tocar código. */
+    /* OJOS (tanda 1.0): también qué caras están fuera de rotación y quién
+       toma su lugar (configDeCaras lee en_rotacion/reemplazo del manifest) */
     if (window.PampaAvatar && caras) {
-      window.PampaAvatar.setCatalogoManifest({
-        caras: caras.caras && caras.caras.length,
-        camisetas: caras.camisetas && caras.camisetas.length
-      });
+      window.PampaAvatar.setCatalogoManifest(window.PampaAvatar.configDeCaras
+        ? window.PampaAvatar.configDeCaras(caras)
+        : { caras: caras.caras && caras.caras.length, camisetas: caras.camisetas && caras.camisetas.length });
     }
     const config = {
       type: Phaser.AUTO,

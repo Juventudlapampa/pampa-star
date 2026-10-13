@@ -63,8 +63,9 @@ assert(new Set(hexes).size === hexes.length,
 console.log("[1] " + CAMS.length + " camisetas: " + CAMS.map(c => c.n).join(" · "));
 
 /* ---------- [2] el código: validarLook respeta el tope del manifest ---------- */
-/* así lo hace index.html al arrancar, con el manifest ya cargado */
-A.setCatalogoManifest({ caras: (MAN.caras || []).length, camisetas: CAMS.length });
+/* así lo hace index.html al arrancar, con el manifest ya cargado (desde la
+   tanda 1.0, OJOS, con configDeCaras: también las caras fuera de rotación) */
+A.setCatalogoManifest(A.configDeCaras(MAN));
 
 assert(A.MANIFEST.camisetas === CAMS.length,
   "setCatalogoManifest no tomó el largo de camisetas (esperaba " + CAMS.length + ", quedó " + A.MANIFEST.camisetas + ")");
@@ -84,8 +85,11 @@ const fuera = A.validarLook({ tCam: CAMS.length + 1 });
 assert(fuera.tCam === 0,
   "tCam " + (CAMS.length + 1) + " está fuera de rango y tendría que volver a Original (dio " + fuera.tCam + ")");
 
-/* lo mismo para las CARAS, que tenían el mismo número clavado (% 8) */
+/* lo mismo para las CARAS, que tenían el mismo número clavado (% 8). OJOS
+   (tanda 1.0): las que están en rotación sobreviven tal cual; la que está
+   fuera (en_rotacion:false) pasa a su reemplazo — eso lo prueba ojos.test.js */
 for (let v = 0; v < (MAN.caras || []).length; v++) {
+  if (MAN.caras[v].en_rotacion === false) continue;
   assert(A.validarLook({ cara: v }).cara === v,
     "cara " + v + " se plegó: el manifest declara " + (MAN.caras || []).length + " caras y validarLook no las respeta");
 }
@@ -103,7 +107,7 @@ A.setCatalogoManifest(null);
 assert(A.MANIFEST.camisetas === 20, "setCatalogoManifest(null) no tiene que romper nada");
 
 /* lo dejamos como está en el juego real, por si otro test comparte el módulo */
-A.setCatalogoManifest({ caras: (MAN.caras || []).length, camisetas: CAMS.length });
+A.setCatalogoManifest(A.configDeCaras(MAN));
 console.log("[3] el tope sigue al manifest (probado con 20 camisetas y 14 caras)");
 
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");

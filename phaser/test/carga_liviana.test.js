@@ -140,7 +140,9 @@ function registry() { return { get: function (k) { return registro[k]; }, set: f
   s2.load.emit("complete");
   assert(s2._openingListo && arranco === 1, "al terminar de bajar, el opening arranca solo (" + arranco + ")");
   var carasEd = C.listaDelEditor(CARAS).map(function (x) { return x.ruta; });
-  assert(carasEd.length >= 8 && carasEd.every(function (r) { return calentado.some(function (c) { return c.ruta === r; }); }),
+  /* OJOS (tanda 1.0): 7 y no 8 — la cara de ojos cerrados quedó fuera de
+     rotación y no se baja (data/caras_manifest.json, en_rotacion:false) */
+  assert(carasEd.length >= 7 && carasEd.every(function (r) { return calentado.some(function (c) { return c.ruta === r; }); }),
     "terminado lo del opening, se bajan en segundo plano las caras del editor (" + calentado.length + ")");
   /* y si ya está todo (VER INTRO desde el editor) arranca de una */
   var s3 = Object.create(Intro.prototype);

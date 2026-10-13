@@ -74,7 +74,9 @@ function loQueCargaPorManifiesto() {
 var PNG_DEUDA = [
   "assets/poses/caras/cara_clasico.png", "assets/poses/caras/cara_rulos.png", "assets/poses/caras/cara_melena.png",
   "assets/poses/caras/cara_rapado.png", "assets/poses/caras/cara_colorado.png", "assets/poses/caras/cara_flequillo.png",
-  "assets/poses/caras/cara_mohicano.png", "assets/poses/caras/cara_tranqui.png",
+  /* OJOS (tanda 1.0): cara_tranqui.png salió de esta lista porque ya no se
+     carga (en_rotacion:false en data/caras_manifest.json): quedan 13 */
+  "assets/poses/caras/cara_mohicano.png",
   "assets/poses/identidades/jugador_rulos.png", "assets/poses/identidades/jugador_largo.png",
   "assets/poses/identidades/jugador_rapado.png", "assets/poses/identidades/jugador_colorado.png",
   "assets/poses/identidades/rival_flequillo.png", "assets/poses/identidades/rival_mohicano.png"
@@ -83,7 +85,8 @@ function leerJson(f) { return JSON.parse(fs.readFileSync(path.join(RAIZ, f), "ut
 function loQueCargaAparte() {
   var out = [];
   var C = leerJson("data/caras_manifest.json");
-  (C.caras || []).forEach(function (c) { if (c && c.archivo) out.push({ f: (C.base || "assets/poses/caras/") + c.archivo, de: "caras" }); });
+  /* OJOS (tanda 1.0): la que está fuera de rotación no se baja, no pesa */
+  (C.caras || []).forEach(function (c) { if (c && c.archivo && c.en_rotacion !== false) out.push({ f: (C.base || "assets/poses/caras/") + c.archivo, de: "caras" }); });
   var I = leerJson("data/identidades_manifest.json");
   (I.identidades || []).forEach(function (d) { if (d && d.archivo) out.push({ f: (I.base || "assets/poses/identidades/") + d.archivo, de: "identidades" }); });
   /* las rutas literales: "../assets/…" escritas en el código de las escenas
