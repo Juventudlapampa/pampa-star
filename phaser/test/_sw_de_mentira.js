@@ -15,14 +15,72 @@
        3,1 s de este reloj, no de verdad;
      · clientes de mentira que juntan lo que el worker les manda.
 
+   L08c · NADA DE ESTE MUNDO DEPENDE DEL TIEMPO DE VERDAD NI DEL GC.
+   red_lenta.test.js fallaba de vez en cuando con la máquina cargada (2 veces
+   en la suite y 1 de 12 corridas sueltas en L06; medido acá: 5 de 60 con 12
+   corridas a la vez), con síntomas que parecían del worker ("CACHÉ
+   CONTAMINADA", "LINK COMPARTIDO" en 0, un TypeError leyendo .buf). No era
+   el worker: era la INSTALACIÓN que fallaba, con "Response body is already
+   used" en las 9 respuestas de assets a la vez. La causa es de node, no del
+   navegador: en node 22 (undici 6.21.2) Response.clone() registra el CLON
+   en un FinalizationRegistry que, cuando el GC se lleva al clon, CANCELA el
+   cuerpo del ORIGINAL. huellaDe() hace res.clone().arrayBuffer() y después
+   guarda el original: si el GC pasaba en el medio (más probable con la
+   máquina ocupada y las descargas más lentas), el original llegaba
+   cancelado. Probado con gc() a mano: después del GC el original da
+   bodyUsed true y no se puede leer. Los navegadores no hacen eso (el clon y
+   el original son dos ramas de un tee, y el GC de una no cancela la otra).
+   Así que acá:
+     · Respuesta: las respuestas de este mundo (la red, la caché y las que
+       arma el propio sw.js con new Response) clonan desde los bytes que ya
+       tienen, sin tee: el GC de un clon no le hace nada a nadie;
+     · el SHA-256 de crypto.subtle.digest se hace con el hash de node en el
+       acto (una promesa ya cumplida) y no en el pool de hilos: lo que el
+       worker verifica termina en las vueltas de vaciar(), esté ocupada o no
+       la máquina.
+   red_lenta.test.js [g] lo prueba con el GC forzado.
+
    Lo usan cache_versiones.test.js, red_lenta.test.js y aviso_version.test.js.
    ========================================================================== */
 "use strict";
-var fs = require("fs"), path = require("path"), vm = require("vm");
+var fs = require("fs"), path = require("path"), vm = require("vm"), crypto = require("crypto");
 var RAIZ = path.join(__dirname, "..", "..");
 var ORIGEN = "https://x.test";
 var BASE = ORIGEN + "/repo/";                  // la raíz del sitio (como un repo publicado en el hosting)
 var SW_URL = BASE + "phaser/sw.js";
+
+/* ---------- la respuesta que clona sin tee (L08c, ver arriba) ----------
+   Guarda con qué cuerpo se armó (texto, bytes, Blob o nada) y el clon se arma
+   de nuevo con eso. Un cuerpo que es un stream no se puede reusar: ese cae
+   al clone() de node. Con PAMPA_RESPUESTA_NODE=1 el mundo usa la Response de
+   node tal cual (para ver fallar a red_lenta [g] con el síntoma). */
+var CRUDO = new WeakMap();
+class Respuesta extends Response {
+  constructor(cuerpo, init) {
+    super(cuerpo, init);
+    CRUDO.set(this, cuerpo == null ? null : cuerpo);
+  }
+  clone() {
+    var c = CRUDO.get(this);
+    if (c && typeof c === "object" && typeof c.getReader === "function") return super.clone();
+    if (this.bodyUsed || (this.body && this.body.locked)) throw new TypeError("Response.clone: Body has already been consumed.");
+    return new Respuesta(c, { status: this.status, statusText: this.statusText, headers: this.headers });
+  }
+}
+var RESP = process.env.PAMPA_RESPUESTA_NODE ? Response : Respuesta;
+
+/* ---------- el SHA-256 sin pool de hilos (L08c) ---------- */
+var cryptoQuieto = {
+  subtle: {
+    digest: function (alg, datos) {
+      var nombre = String((alg && alg.name) || alg).replace("-", "").toLowerCase();   // "SHA-256" → "sha256"
+      var buf = ArrayBuffer.isView(datos) ? Buffer.from(datos.buffer, datos.byteOffset, datos.byteLength) : Buffer.from(datos);
+      var d = crypto.createHash(nombre).update(buf).digest();
+      return Promise.resolve(d.buffer.slice(d.byteOffset, d.byteOffset + d.length));
+    }
+  },
+  getRandomValues: function (a) { return globalThis.crypto.getRandomValues(a); }
+};
 
 /* ---------- el CacheStorage ---------- */
 function crearCaches() {
@@ -37,9 +95,12 @@ function crearCaches() {
       for (var [k, v] of this.m) { if (k.split("?")[0] === base) { e = v; break; } }
     }
     if (!e) return undefined;
-    return new Response(e.buf.slice(0), { status: e.status, statusText: e.statusText, headers: e.headers });
+    return new RESP(e.buf.slice(0), { status: e.status, statusText: e.statusText, headers: e.headers });
   };
   Cache.prototype.put = async function (req, res) {
+    /* L08c: antesDeGuardar() corre antes de cada guardado (red_lenta [g]
+       fuerza ahí el GC: es el momento en que el original ya fue clonado) */
+    if (CS.antesDeGuardar) await CS.antesDeGuardar(urlDe(req));
     if (res.status === 206) throw new TypeError("Partial response (status code 206) is unsupported");
     if (res.bodyUsed) throw new TypeError("Response body is already used");
     var buf = await res.arrayBuffer();
@@ -113,17 +174,19 @@ function crearRed() {
     var ruta = u.pathname.indexOf("/repo/") === 0 ? decodeURIComponent(u.pathname.slice(6)) : u.pathname;
     if (ruta === "" || ruta.slice(-1) === "/") ruta += "index.html";
     N.log.push({ ruta: ruta, url: url, rango: rango, cache: modoCache, modoRed: N.modo });
+    /* L08c: alPedir(ruta) corre en cada pedido (red_lenta [g] fuerza el GC acá) */
+    if (N.alPedir) N.alPedir(ruta);
     if (N.modo === "caida" || N.fallar[ruta] === "caida") return Promise.reject(new TypeError("Failed to fetch"));
     /* colgar[ruta] = "a_mano": queda esperando hasta que el test llame soltar() */
     if (N.colgar[ruta] === "a_mano") return new Promise(function (res) { N.colgados.push({ ruta: ruta, soltar: function () { delete N.colgar[ruta]; res(N.fetch(input, init)); } }); });
     if (N.modo === "colgada" || N.colgar[ruta]) return new Promise(function () { });
     if (N.fallarVeces[ruta] > 0) { N.fallarVeces[ruta]--; return Promise.reject(new TypeError("Failed to fetch")); }
-    if (N.fallar[ruta] === 404) return Promise.resolve(new Response("no", { status: 404, statusText: "Not Found" }));
+    if (N.fallar[ruta] === 404) return Promise.resolve(new RESP("no", { status: 404, statusText: "Not Found" }));
     var buf;
     if (N.cambios[ruta]) buf = N.cambios[ruta];
     else {
       var f = path.join(RAIZ, ruta);
-      if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) return Promise.resolve(new Response("no", { status: 404, statusText: "Not Found" }));
+      if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) return Promise.resolve(new RESP("no", { status: 404, statusText: "Not Found" }));
       buf = fs.readFileSync(f);
     }
     var tipo = /\.ogg$/.test(ruta) ? "audio/ogg" : /\.webp$/.test(ruta) ? "image/webp" : /\.png$/.test(ruta) ? "image/png" :
@@ -133,10 +196,10 @@ function crearRed() {
       var ini = m[1] === "" ? Math.max(0, buf.length - +m[2]) : +m[1];
       var fin = m[2] === "" || m[1] === "" ? buf.length - 1 : Math.min(+m[2], buf.length - 1);
       var parte = buf.slice(ini, fin + 1);
-      return Promise.resolve(new Response(parte, { status: 206, headers: { "content-type": tipo, "content-length": String(parte.length),
+      return Promise.resolve(new RESP(parte, { status: 206, headers: { "content-type": tipo, "content-length": String(parte.length),
         "content-range": "bytes " + ini + "-" + fin + "/" + buf.length } }));
     }
-    return Promise.resolve(new Response(buf, { status: 200, headers: { "content-type": tipo, "content-length": String(buf.length) } }));
+    return Promise.resolve(new RESP(buf, { status: 200, headers: { "content-type": tipo, "content-length": String(buf.length) } }));
   };
   N.pedidosA = function (re) { return N.log.filter(function (x) { return re.test(x.ruta); }); };
   N.limpiar = function () { N.log = []; };
@@ -161,8 +224,8 @@ function cargar(texto, mundo) {
   FakeDate.now = function () { return reloj.t; };
   caches._fetch = red.fetch;
   var ctx = {
-    console: console, URL: URL, Request: Request, Response: Response, Headers: Headers, Blob: Blob,
-    crypto: globalThis.crypto, TextEncoder: TextEncoder, TextDecoder: TextDecoder, Uint8Array: Uint8Array,
+    console: console, URL: URL, Request: Request, Response: RESP, Headers: Headers, Blob: Blob,
+    crypto: cryptoQuieto, TextEncoder: TextEncoder, TextDecoder: TextDecoder, Uint8Array: Uint8Array,
     caches: caches, fetch: red.fetch, setTimeout: reloj.setTimeout, clearTimeout: reloj.clearTimeout, Date: FakeDate,
     location: new URL(SW_URL), PerformanceObserver: FakePO, performance: { clearResourceTimings: function () { } },
     addEventListener: function (t, fn) { handlers[t] = fn; },
@@ -277,5 +340,6 @@ module.exports = {
   RAIZ: RAIZ, BASE: BASE, SW_URL: SW_URL,
   crearCaches: crearCaches, crearRed: crearRed, crearReloj: crearReloj, cargar: cargar,
   leerRes: leerRes, variante: variante, vaciar: vaciar, publicar: publicar,
+  Respuesta: RESP, cryptoQuieto: cryptoQuieto,
   leerSW: function () { return fs.readFileSync(process.env.PAMPA_SW ? path.resolve(process.env.PAMPA_SW) : path.join(RAIZ, "phaser/sw.js"), "utf8"); }
 };

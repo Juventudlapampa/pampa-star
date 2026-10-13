@@ -51,6 +51,18 @@
          no se escribe nada de otra versión (antes quedaban index.html y
          duel.js del deploy siguiente). [b] ahora abre la página primero:
          solo una página atada a VERSION por la red guarda lo que baja.
+     [g] (L08c) LO QUE FALLABA AL AZAR. [f] y [d] fallaban de vez en
+         cuando con la máquina ocupada ("SÍNTOMA DE LA CACHÉ CONTAMINADA",
+         "LINK COMPARTIDO" en 0; medido: 5 de 60 corridas con 12 a la vez).
+         No era el worker: la INSTALACIÓN de base fallaba con "Response body
+         is already used", y [d] y [f] no miraban si se había instalado. La
+         causa es de node (undici): el GC de un clon le cancela el cuerpo al
+         original, y huellaDe() clona antes de guardar. Ahora el mundo de
+         mentira clona sin tee y hace el SHA-256 sin pool de hilos (ver
+         _sw_de_mentira.js), y [g] fuerza el GC justo antes de cada guardado
+         de tres instalaciones: con la Response de node se caen las tres
+         (PAMPA_RESPUESTA_NODE=1), con la del mundo, ninguna. Y cada mundo de
+         [c]-[f] dice si se instaló, con el motivo si no.
    REVISIÓN L05, el tope del loader: era 15 s con la cuenta de UN archivo,
    pero Phaser baja varios a la vez (6 o 32 según el sistema) y el tope
    es total por archivo. [a] ahora rehace la cuenta con el disco: el archivo
@@ -70,6 +82,12 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 
 var INDEX = leer("phaser/index.html");
 var SW = M.leerSW();
+/* L08c: cada mundo dice si su instalación de base terminó. Antes no se
+   miraba, y una instalación caída salía como un síntoma del worker */
+function instalado(ins, que) {
+  assert(ins && ins.ok, "la instalación de base de " + que + " termina (" + (ins && ins.error && ins.error.message) + ")");
+  return ins;
+}
 
 (async function () {
   /* ---------- [a] index.html ---------- */
@@ -234,7 +252,7 @@ var SW = M.leerSW();
   /* ---------- [c] instalación atómica ---------- */
   var mundoC = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
   var Wc1 = M.cargar(SW, mundoC);
-  await Wc1.instalar(); await Wc1.activar();
+  instalado(await Wc1.instalar(), "[c]"); await Wc1.activar();
   var codigo1 = Wc1.leer("typeof CODIGO !== 'undefined' ? CODIGO : 'v16-toma'");
   var antes = mundoC.caches.claves(codigo1).length;
   mundoC.red.fallar["phaser/scenes/match.js"] = 404;
@@ -257,7 +275,7 @@ var SW = M.leerSW();
   /* ---------- [d] sin red, ?ref= ---------- */
   var mundoD = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
   var Wd = M.cargar(SW, mundoD);
-  await Wd.instalar(); await Wd.activar();
+  instalado(await Wd.instalar(), "[d]"); await Wd.activar();
   mundoD.red.modo = "caida";
   var indexTxt = leer("phaser/index.html");
   var casos = ["phaser/?ref=compartir", "phaser/index.html?embed=1", "phaser/"];
@@ -276,7 +294,7 @@ var SW = M.leerSW();
   /* ---------- [e] el reintento del loader no baja dos veces lo mismo ---------- */
   var mundoE = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
   var We = M.cargar(SW, mundoE);
-  await We.instalar(); await We.activar();
+  instalado(await We.instalar(), "[e]"); await We.activar();
   var cara = "assets/poses/caras/cara_colorado.png";
   var crudaCara = fs.readFileSync(path.join(RAIZ, cara));
   mundoE.red.limpiar();
@@ -319,7 +337,7 @@ var SW = M.leerSW();
   /* (1) index.html nuevo de la red, duel.js nuevo y match.js colgado */
   var mF = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
   var Wf = M.cargar(SW, mF);
-  await Wf.instalar(); await Wf.activar();
+  instalado(await Wf.instalar(), "[f] (1)"); await Wf.activar();
   mF.red.cambios["phaser/index.html"] = Buffer.from(indexNuevo);
   mF.red.cambios["phaser/logic/duel.js"] = Buffer.from("// duel del deploy siguiente");
   mF.red.colgar["phaser/scenes/match.js"] = "a_mano";
@@ -353,7 +371,7 @@ var SW = M.leerSW();
   /* (2) la navegación colgada: index.html de la caché; la red rápida trae el deploy siguiente */
   var mG = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
   var Wg = M.cargar(SW, mG);
-  await Wg.instalar(); await Wg.activar();
+  instalado(await Wg.instalar(), "[f] (2)"); await Wg.activar();
   mG.red.cambios["phaser/index.html"] = Buffer.from(indexNuevo);
   mG.red.cambios["phaser/logic/duel.js"] = Buffer.from("// duel del deploy siguiente");
   mG.red.cambios["phaser/logic/tiro.js"] = Buffer.from("// tiro del deploy siguiente");
@@ -378,7 +396,7 @@ var SW = M.leerSW();
   /* (2b) una página que el worker no ató (se registró con la página ya abierta): como antes, pero sin guardar */
   var mH = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
   var Wh = M.cargar(SW, mH);
-  await Wh.instalar(); await Wh.activar();
+  instalado(await Wh.instalar(), "[f] (2b)"); await Wh.activar();
   mH.red.cambios["phaser/logic/duel.js"] = Buffer.from("// duel de quién sabe qué versión");
   var evH = Wh.pedir("phaser/logic/duel.js", { clientId: "sin-atar" });
   var rH = await M.leerRes(await evH.res); await evH.lista();
@@ -400,6 +418,48 @@ var SW = M.leerSW();
   assert(bytesMarca > 0 && bytesMarca < 65536 - 100 && bytesMarca < bytesScript,
     "window.PAMPA_VERSION está en los primeros 64 KB de index.html (" + bytesMarca + " B) y antes del primer <script src> (" + bytesScript + " B)");
   console.log("[f] deploy con señal floja: página del deploy siguiente → su código solo de la red (match.js colgado no sale de la caché vieja, ni con el worker reiniciado) · página de la caché → su código de la caché · " + CODIGO_V + " sin nada de otra versión");
+
+  /* ---------- [g] (L08c) el GC no tumba nada ---------- */
+  require("v8").setFlagsFromString("--expose-gc");
+  var gc = vm.runInNewContext("gc");
+  /* un turno de la vuelta de eventos: ahí corren los avisos del GC
+     (FinalizationRegistry). setImmediate y no un timer: sin tiempo de verdad */
+  function turno() { return new Promise(function (r) { setImmediate(r); }); }
+  async function gcConTurno() { for (var i = 0; i < 3; i++) { gc(); await turno(); } }
+  /* (1) lo que hace huellaDe (clonar, leer el clon, guardar el original) y
+     lo que hace leerVersion (clonar, leer un pedazo, cancelar el clon), con
+     el GC en el medio */
+  var rq = new M.Respuesta(Buffer.alloc(100000, 7));
+  await rq.clone().arrayBuffer();
+  await gcConTurno();
+  var largoRq = -1;
+  try { largoRq = (await rq.arrayBuffer()).byteLength; } catch (e) { largoRq = e.message; }
+  assert(largoRq === 100000, "SÍNTOMA DEL GC: el original sigue entero después del GC de su clon leído (" + largoRq + ")");
+  var rv = new M.Respuesta("x".repeat(70000));
+  var lec = rv.clone().body.getReader();
+  await lec.read(); lec.cancel().catch(function () { });
+  await gcConTurno();
+  var largoRv = -1;
+  try { largoRv = (await rv.text()).length; } catch (e) { largoRv = e.message; }
+  assert(largoRv === 70000, "y después del GC de un clon leído a medias y cancelado (" + largoRv + ")");
+  /* (2) EL CRITERIO, de punta a punta: tres instalaciones con el GC forzado
+     antes de CADA guardado en la caché (el momento en que los originales ya
+     fueron clonados por huellaDe y leerVersion) */
+  var caidas = 0, motivoG = "", guardados = 0;
+  for (var g3 = 0; g3 < 3; g3++) {
+    var mGc = { caches: M.crearCaches(), red: M.crearRed(), reloj: M.crearReloj(), mensajes: [] };
+    mGc.caches.antesDeGuardar = async function () { guardados++; gc(); await turno(); };
+    var insGc = await M.cargar(SW, mGc).instalar();
+    if (!insGc.ok) { caidas++; motivoG = insGc.error && insGc.error.message; }
+  }
+  assert(caidas === 0, "SÍNTOMA DE LA INSTALACIÓN QUE SE CAE AL AZAR: con el GC antes de cada guardado se cayeron " + caidas + " de 3 (" + motivoG + ")");
+  /* (3) cómo es node hoy, para saber cuándo sobra el arreglo (no frena) */
+  var rn = new Response(Buffer.alloc(100000, 7));
+  await rn.clone().arrayBuffer();
+  await gcConTurno();
+  console.log("[g] GC forzado: el clon sin tee deja entero al original (leído y a medias) · 3 instalaciones con el GC antes de cada uno de los " + guardados +
+    " guardados, " + caidas + " caídas · node " + process.versions.node + " (undici " + process.versions.undici + "): el GC de un clon " +
+    (rn.bodyUsed ? "SÍ le cancela el cuerpo al original (por eso el mundo de mentira clona sin tee)" : "ya NO le cancela el cuerpo al original (el arreglo del mundo de mentira se puede sacar)"));
 
   console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
   process.exit(mal === 0 ? 0 : 1);
