@@ -67,11 +67,24 @@
 
   /* pesos de cada punto (xs, ys en px de la textura, en reposo) */
   function pesos(xs, ys, B) {
-    var n = xs.length, hw = new Float32Array(n), kw = new Float32Array(n);
+    var n = xs.length, W8 = { hw: new Float32Array(n), kw: new Float32Array(n), largo: 0 };
+    pesosTramo(xs, ys, B, 0, n, W8);
+    return W8;
+  }
+  /* REVISIÓN DEL LOTE L06 · LOS PESOS POR TRAMOS. Sobre los 13.824 vértices
+     de la malla de la toma, pesos() son 31 ms de una sola vez en la compu
+     (más de 150 en un teléfono de gama baja), y la cola de precalentamiento
+     solo puede cortar entre trabajo y trabajo. Cada vértice se calcula solo,
+     así que se pueden hacer de a tramos [desde, hasta) sobre el mismo
+     W8 = { hw, kw } (scenes/toma_remate.js, trabajoDePesosDeLaToma): la
+     cuenta es la misma, número por número (trabas_cine.test.js lo compara). */
+  function pesosTramo(xs, ys, B, desde, hasta, W8) {
+    var hw = W8.hw, kw = W8.kw;
     var lMuslo = Math.hypot(B.rodilla[0] - B.cadera[0], B.rodilla[1] - B.cadera[1]);
     var lCan = Math.hypot(B.tobillo[0] - B.rodilla[0], B.tobillo[1] - B.rodilla[1]);
     var lPie = Math.hypot(B.punta[0] - B.tobillo[0], B.punta[1] - B.tobillo[1]);
-    for (var i = 0; i < n; i++) {
+    W8.largo = lMuslo + lCan + lPie;
+    for (var i = desde; i < hasta; i++) {
       var a = proy(xs[i], ys[i], B.cadera, B.rodilla);
       var b = proy(xs[i], ys[i], B.rodilla, B.tobillo);
       var c = proy(xs[i], ys[i], B.tobillo, B.punta);
@@ -86,7 +99,7 @@
       hw[i] = m * suave(-0.08, 0.35, s);
       kw[i] = m * suave(0.82, 1.12, s);
     }
-    return { hw: hw, kw: kw, largo: lMuslo + lCan + lPie };
+    return W8;
   }
 
   /* posa los puntos con los ángulos de cadera y rodilla. outX/outY pueden
@@ -163,7 +176,7 @@
   }
 
   return {
-    suave: suave, huesos: huesos, pesos: pesos, posar: posar, puntoDelPie: puntoDelPie,
+    suave: suave, huesos: huesos, pesos: pesos, pesosTramo: pesosTramo, posar: posar, puntoDelPie: puntoDelPie,
     coreografia: coreografia, COREO: COREO
   };
 });

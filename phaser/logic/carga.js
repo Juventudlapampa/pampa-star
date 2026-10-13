@@ -315,40 +315,101 @@
      cuadro de 73 ms); teñir el remate, 25,8 ms en el toque de TIRO; los
      retratos del duelo, 67 ms al abrir la cruz; las pinturas del arco y de
      la cancha en fuga, 14 ms cada una en el viaje de la pelota.
-     Esta cola hace eso ANTES, en los ratos tranquilos (LIBRE y los menús),
-     de a tajadas: cada tajada corre trabajos hasta gastar presupuestoMs
-     (12, como la cola del halo) y le devuelve el cuadro al juego. Un trabajo
-     es { clave, paso(fin, ahora) }: paso devuelve true cuando terminó;
-     los que se pueden partir (el teñido, por bandas de filas) miran `fin`
-     y cortan solos. Fuera de los ratos tranquilos (permitido() da false) la
-     cola espera a que alguien la empuje.
+     Esta cola hace eso ANTES, en los ratos tranquilos, de a tajadas: cada
+     tajada corre trabajos hasta gastar presupuestoMs (12, como la cola del
+     halo) y le devuelve el cuadro al juego. Un trabajo es
+     { clave, paso(fin, ahora), partible, costoMs }: paso devuelve true
+     cuando terminó y false si todavía no (se le acabó la tajada, o espera a
+     otro trabajo); los que se pueden partir (partible: el teñido, por
+     bandas de filas; los pesos de la toma, por tramos) miran `fin` y cortan
+     solos.
+     REVISIÓN DEL LOTE: un trabajo que NO se parte (atómico) corría entero
+     aunque costara más que la tajada: medido en la compu, tajadas de 24 a
+     61 ms (el retrato de VOS 48, los pesos de la toma 31, cada pintura 14),
+     y en un teléfono de gama baja (4-6 veces más lento) eso son 200-350 ms
+     de traba, en LIBRE o en la cruz del duelo si quien juega elige rápido
+     el tempo. La traba se mudaba en vez de irse. Ahora:
+       · permitido() dice CUÁNTA calma hay: 0 nada; 1 un rato CORTO (se
+         juega o se elige: LIBRE, la cruz, el pase), donde corre SOLO lo que
+         se parte; 2 un rato LARGO (un menú quieto: el tempo, la pausa, el
+         tutorial; y fuera del partido), donde también corre lo atómico:
+         lo grande (más que una tajada), UNO por tajada y antes que lo demás,
+         y lo chico si su costo estimado entra en lo que queda. true vale 2 y
+         false 0. Lo atómico NO entra en un rato corto ni aunque "quepa":
+         su costo se midió en la compu y en el teléfono no se sabe cuánto
+         tarda hasta correr el primero (medido en el navegador: medir los
+         pies de una pose, declarado 8 ms, tardó 22 la primera vez).
+       · el costo estimado es costoMs (lo medido en la compu,
+         balance.rendimiento.costo_ms) por el FACTOR del aparato: cada
+         atómico que corre se cronometra y factor = la mayor proporción
+         medido/declarado de la sesión (de 1 a FACTOR_MAX). Un atómico sin
+         costoMs cuenta como grande.
+       · en un rato corto, una tajada por cuadro (la empuja el update del
+         partido); en uno largo, la siguiente enseguida (MessageChannel).
      o: { ahora(), programar(fn), presupuestoMs, permitido() } */
+  var FACTOR_MAX = 8;
   function crearColaPorTajadas(o) {
     var op = o || {};
     var presupuesto = op.presupuestoMs > 0 ? op.presupuestoMs : 12;
-    var cola = [], claves = {}, programado = false;
-    var stats = { hechos: 0, fallas: 0, tajadas: 0, tajadaMax: 0, ms: 0 };
+    var cola = [], claves = {}, programado = false, factor = 1;
+    var stats = { hechos: 0, fallas: 0, tajadas: 0, tajadaMax: 0, ms: 0, grandes: 0, factor: 1, atomicoMax: 0 };
     function ahora() { return typeof op.ahora === "function" ? op.ahora() : Date.now(); }
-    function puede() { return typeof op.permitido !== "function" || !!op.permitido(); }
+    function nivel() {
+      if (typeof op.permitido !== "function") return 2;
+      var p = op.permitido();
+      if (p === true) return 2;
+      return p > 0 ? Math.min(2, Math.floor(p)) : 0;
+    }
+    function estimado(t) { return t.costoMs > 0 ? t.costoMs * factor : Infinity; }
+    function grande(t) { return !t.partible && estimado(t) > presupuesto; }
     function empujar() {
-      if (programado || !cola.length || !puede() || typeof op.programar !== "function") return false;
+      if (programado || !cola.length || !nivel() || typeof op.programar !== "function") return false;
       programado = true;
       op.programar(tajada);
       return true;
     }
+    /* corre un paso y aprende del reloj (solo lo atómico que terminó) */
+    function correr(t, fin) {
+      var a0 = ahora(), listo = true;
+      try { listo = t.paso(fin, ahora) !== false; } catch (e) { listo = true; stats.fallas++; }
+      var d = ahora() - a0;
+      if (listo && !t.partible && t.costoMs > 0 && d > 0) {
+        factor = Math.max(factor, Math.min(FACTOR_MAX, d / t.costoMs));
+        stats.factor = factor;
+        if (d > stats.atomicoMax) stats.atomicoMax = d;
+      }
+      if (listo) stats.hechos++;
+      return listo;
+    }
     function tajada() {
       programado = false;
-      if (!cola.length || !puede()) return 0;
-      var t0 = ahora(), fin = t0 + presupuesto, n = 0;
-      while (cola.length && ahora() < fin) {
-        var t = cola[0], listo = true;
-        try { listo = t.paso(fin, ahora) !== false; } catch (e) { listo = true; stats.fallas++; }
-        if (listo) { cola.shift(); stats.hechos++; n++; }
+      var nv = nivel();
+      if (!cola.length || !nv) return 0;
+      var t0 = ahora(), fin = t0 + presupuesto, n = 0, i;
+      /* rato largo: lo atómico grande primero, uno por tajada */
+      if (nv >= 2) {
+        for (i = 0; i < cola.length; i++) {
+          if (!grande(cola[i])) continue;
+          if (correr(cola[i], fin)) { cola.splice(i, 1); n++; stats.grandes++; break; }
+        }
+      }
+      /* lo que entra: lo que se parte, y (en un rato largo) lo atómico que
+         cabe en lo que queda.
+         Lo que espera (paso dio false con tiempo de sobra) no frena a los de
+         atrás: se sigue con el próximo */
+      i = 0;
+      while (i < cola.length && ahora() < fin) {
+        var t = cola[i];
+        if (!t.partible && (nv < 2 || estimado(t) > fin - ahora())) { i++; continue; }
+        if (correr(t, fin)) { cola.splice(i, 1); n++; } else i++;
       }
       var d = ahora() - t0;
       stats.tajadas++; stats.ms += d;
       if (d > stats.tajadaMax) stats.tajadaMax = d;
-      empujar();
+      /* encadenar solo si hubo algo que hacer: si todo lo que queda espera
+         (a la cola del halo, por ejemplo), la próxima la empuja el cuadro
+         siguiente y no se gira en vacío */
+      if (nv >= 2 && (n > 0 || d >= 1)) empujar();
       return n;
     }
     return {
@@ -362,6 +423,12 @@
       empujar: empujar,
       tajada: tajada,
       pendientes: function () { return cola.length; },
+      /* ¿este trabajo todavía está en la cola? (los que dependen de otro,
+         como los pies de una pose teñida, lo esperan solo mientras esté) */
+      tiene: function (clave) {
+        for (var k = 0; k < cola.length; k++) if (cola[k].clave === clave) return true;
+        return false;
+      },
       /* se va la escena: lo que quedaba se tira (y se puede volver a pedir) */
       vaciar: function () { var n = cola.length; cola.length = 0; claves = {}; return n; },
       stats: function () { return stats; }

@@ -106,12 +106,18 @@
     /* V7 §0.2: la pose del héroe teñida al NARANJA rival (la camiseta celeste
        del arte base pasa al color de bando; piel y pelo quedan). Cacheada. */
     poseRivalNaranja(id) {
+      var P = this.pedidoRivalNaranja(id);
+      if (!P || !window.PampaAvatarArte || !window.PampaAvatarArte.tenirImagen) return P ? P.base : null;
+      if (this.textures.exists(P.clave)) return P.clave;
+      window.PampaAvatarArte.tenirImagen(this, P.base, P.clave, P.mapa);
+      return this.textures.exists(P.clave) ? P.clave : P.base;
+    },
+    /* revisión L06: qué teñir para el naranja, aparte, para que el
+       precalentamiento del partido lo haga por tajadas con el MISMO mapa
+       (avatar_arte.js, trabajoDeTinteImagen) */
+    pedidoRivalNaranja(id) {
       var src = this.poseKey(id);
-      if (!src || !window.PampaAvatarArte || !window.PampaAvatarArte.tenirImagen) return src;
-      var key = "poseR_" + id;
-      if (this.textures.exists(key)) return key;
-      window.PampaAvatarArte.tenirImagen(this, src, key, [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }]);
-      return this.textures.exists(key) ? key : src;
+      return src ? { base: src, clave: "poseR_" + id, mapa: [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }] } : null;
     },
 
     /* ============ ENTRADAS ============ */

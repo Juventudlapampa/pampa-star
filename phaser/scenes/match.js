@@ -1582,42 +1582,79 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      están en balance.rendimiento (precalentar_*), con lo medido en la _nota:
      son las de esos tres momentos y nada más, porque cada pose teñida es una
      textura del tamaño de la pose (2-9 MB) y teñirlas todas eran 139 MB.
-     Si la escena se va, la cola se vacía. */
+     Si la escena se va, la cola se vacía.
+
+     REVISIÓN DEL LOTE: casi todo iba como trabajo de una pieza (atómico), y
+     la cola los corría enteros aunque no entraran en la tajada: medido, de
+     24 a 61 ms en la compu, en LIBRE o en la cruz si quien juega elegía
+     rápido el tempo. Ahora lo que se puede partir se parte: los bustos del
+     duelo (el tuyo y el naranja de cada rival) y la barrida naranja se
+     tiñen por bandas como tus poses, y los pesos de la toma van por tramos
+     (toma_remate.js). Lo que queda de una pieza corre solo en los menús
+     quietos (el tempo, la pausa, el tutorial), con su costo medido
+     (balance.rendimiento.costo_ms) para que la cola sepa si comparte la
+     tajada: los pies (5-22 ms), el ensayo de la malla de la toma (su primer
+     dibujo, ~50) y las pinturas del cine (15). Lo que depende de otro trabajo (los pies de una
+     pose teñida, el ensayo de la toma) espera a que ese termine: antes, en
+     orden, nunca se adelantaba, pero ahora la cola saltea lo que no entra. */
   armarPrecalentamiento() {
     const Q = window.PampaPrecalentar, AA = window.PampaAvatarArte;
     if (!Q || !this.st) return 0;
-    const R = this.BAL.rendimiento || {}, st = this.st;
+    const R = this.BAL.rendimiento || {}, st = this.st, CO = R.costo_ms || {};
     const vos = st.mios.find((j) => j.esVos);
     let n = 0;
     const vivo = () => this.sys && this.sys.settings.status === 5;
-    const atomico = (clave, fn) => {
-      if (Q.agregar({ clave: clave, paso: () => { if (vivo()) fn(); return true; } })) n++;
+    /* de una pieza: fn() devuelve false si todavía no puede (espera a otro) */
+    const atomico = (clave, costo, fn) => {
+      if (Q.agregar({ clave: clave, costoMs: costo, paso: () => (vivo() ? fn() !== false : true) })) n++;
     };
+    const partido = (t) => { if (t && Q.agregar(t)) n++; };
+    /* ¿el teñido de esa clave sigue en la cola? Mientras siga, se espera */
+    const esperaTinte = (clave) => !!clave && !this.textures.exists(clave) && !!(Q.tiene && Q.tiene("tinte:" + clave));
+    const porBandas = !!(AA && AA.trabajoDeTinteImagen);
     /* 1) los retratos de la cruz del duelo: el tuyo y el de CADA rival de
        campo (el busto del rival sale de su nombre: medido, la primera
        versión precalentaba uno solo y el primer duelo fue contra otro, 34,6
-       ms al abrir la cruz). Los que comparten busto salen de la caché. */
-    if (vos) atomico("retrato:vos", () => this.retratoKey(vos, false, "concentrado"));
-    st.rivales.forEach((j, i) => { if (j && j.pos !== "ARQ") atomico("retrato:rival:" + i, () => this.retratoKey(j, true, "concentrado")); });
+       ms al abrir la cruz). Los que comparten busto son el mismo trabajo. */
+    const retrato = (j, esRival, clave) => {
+      const P = this._pedidoDeBusto ? this._pedidoDeBusto(j, esRival) : null;
+      if (P && P.mapa && P.mapa.length && porBandas) partido(AA.trabajoDeTinteImagen(this, P.base, P.clave, P.mapa));
+      else if (!P) atomico(clave, CO.retrato, () => { this.retratoKey(j, esRival, "concentrado"); });
+    };
+    if (vos) retrato(vos, false, "retrato:vos");
+    st.rivales.forEach((j, i) => { if (j && j.pos !== "ARQ") retrato(j, true, "retrato:rival:" + i); });
     /* 2) las poses de VOS con tu pinta (por tajadas) y dónde apoyan los pies */
     const conPinta = vos && vos.look && AA && AA.trabajoDeTinte && this.FLAGS.v7_caras !== false;
     (R.precalentar_poses || []).forEach((id) => {
       if (!conPinta) return;
-      const t = AA.trabajoDeTinte(this, id, vos.look);
-      if (t && Q.agregar(t)) n++;
-      atomico("pie:" + id, () => {
+      partido(AA.trabajoDeTinte(this, id, vos.look));
+      atomico("pie:" + id, CO.pie, () => {
+        const P = AA.pedidoDeTinte ? AA.pedidoDeTinte(this, id, vos.look) : null;
+        if (P && esperaTinte(P.clave)) return false;
         const k = this.poseHeroeTenida(vos, id);
         if (k && this.pieDePose) this.pieDePose(k);
       });
     });
-    /* 3) las del rival, en naranja, y sus pies */
-    (R.precalentar_rival || []).forEach((id) => atomico("naranja:" + id, () => {
-      const k = this.poseRivalNaranja ? this.poseRivalNaranja(id) : null;
-      if (k && this.pieDePose) this.pieDePose(k);
-    }));
-    /* 4) los pesos de la pierna de la toma del remate (31 ms en cada remate,
-       medido; se calculan una vez y quedan) */
-    if (this.prepararTomaDelRemate) atomico("toma:remate", () => this.prepararTomaDelRemate());
+    /* 3) las del rival, en naranja (por tajadas), y sus pies */
+    (R.precalentar_rival || []).forEach((id) => {
+      const P = this.pedidoRivalNaranja ? this.pedidoRivalNaranja(id) : null;
+      if (P && porBandas) partido(AA.trabajoDeTinteImagen(this, P.base, P.clave, P.mapa));
+      atomico("naranja:" + id, CO.pie, () => {
+        if (P && esperaTinte(P.clave)) return false;
+        const k = this.poseRivalNaranja ? this.poseRivalNaranja(id) : null;
+        if (k && this.pieDePose) this.pieDePose(k);
+      });
+    });
+    /* 4) la toma del remate: los pesos de la pierna por tramos (31 ms de una
+       vez, medido) y después el ensayo de la malla, que espera a los pesos y
+       a tu remate teñido (si no, lo teñiría ahí mismo, entero) */
+    if (this.trabajoDePesosDeLaToma) partido(this.trabajoDePesosDeLaToma());
+    if (this.prepararTomaDelRemate) atomico("toma:remate", CO.toma_ensayo, () => {
+      if (Q.tiene && Q.tiene("toma:pesos")) return false;
+      const P = conPinta && AA.pedidoDeTinte ? AA.pedidoDeTinte(this, "remate", vos.look) : null;
+      if (P && esperaTinte(P.clave)) return false;
+      this.prepararTomaDelRemate();
+    });
     /* 5) las pinturas del cine, con las mismas opciones que el plano que las usa */
     const opciones = (p) => {
       if (p.tipo === "profunda") { const F = this.fugaDelViaje(); return { vp: F.vp, nearY: F.nearY, k: this.BAL.cine.persp.k }; }
@@ -1627,7 +1664,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     (R.precalentar_pinturas || []).forEach((p) => {
       if (!p || !p.tipo || !this.texturaDeFondo) return;
-      atomico("pintura:" + p.tipo + ":" + (p.bando || "") + (p.cx != null ? p.cx + "," + p.cy : ""), () => this.texturaDeFondo(p.tipo, opciones(p)));
+      atomico("pintura:" + p.tipo + ":" + (p.bando || "") + (p.cx != null ? p.cx + "," + p.cy : ""), CO.pintura, () => { this.texturaDeFondo(p.tipo, opciones(p)); });
     });
     this.events.once("shutdown", () => Q.vaciar());
     return n;
@@ -1980,9 +2017,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      editor, los duelos, los cut-ins y los primeros planos. El roster mapea
      determinista a las 8 caras (mismo id, misma cara). Rival = camiseta naranja. */
   _bustoIlustrado(j, esRival) {
+    const P = this._pedidoDeBusto(j, esRival);
+    if (!P) return null;
+    if (!P.mapa) return P.base;   // Original puro
+    if (!this.textures.exists(P.clave)) window.PampaAvatarArte.tenirImagen(this, P.base, P.clave, P.mapa);
+    return this.textures.exists(P.clave) ? P.clave : P.base;
+  }
+  /* revisión L06: QUÉ busto y con qué tonos, aparte del teñido, para que el
+     precalentamiento del partido lo tiña por tajadas con el MISMO mapa
+     (avatar_arte.js, trabajoDeTinteImagen): el tuyo eran 48 ms de una sola
+     vez en la compu. Devuelve { base, clave, mapa } (mapa null = la
+     ilustración tal cual) o null si no hay busto ilustrado. */
+  _pedidoDeBusto(j, esRival) {
     const CM = this.game.registry.get("caras");
-    if (this.FLAGS.v7_caras === false || !CM || !CM.caras || !CM.caras.length) return null;
-    const A = window.PampaAvatar, Arte = window.PampaAvatarArte;
+    if (!j || this.FLAGS.v7_caras === false || !CM || !CM.caras || !CM.caras.length) return null;
+    const A = window.PampaAvatar;
     const look = A.validarLook(j.look || {});
     const esMioElegido = !esRival && (j.esVos || j.esAmigo);
     const idx = esMioElegido
@@ -1999,19 +2048,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const tPiel = esMioElegido ? look.tPiel : 0;
     const tPelo = esMioElegido && peloOk ? look.tPelo : 0;
     const tCam = esMioElegido ? look.tCam : 0;
-    if (!tPiel && !tPelo && !tCam && !esRival) return "cara_" + cara.id;   // Original puro
+    const base = "cara_" + cara.id;
+    if (!tPiel && !tPelo && !tCam && !esRival) return { base: base, clave: base, mapa: null };   // Original puro
     const key = "caraT_" + idx + "_" + tPiel + "_" + tPelo + "_" + tCam + (esRival ? "_r" : "");
-    if (!this.textures.exists(key)) {
-      const hx = s => parseInt(String(s).slice(1), 16);
-      const T = cara.tonos || {}, tol = CM.tolerancias || {};
-      const CAT = A.CATALOGO;
-      const mapa = [];
-      if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 46, y1: cara.pelo_y1 != null ? cara.pelo_y1 : 0.5 });
-      if (tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[tPiel - 1].hex), tol: tol.piel || 85 });
-      if (T.camiseta && (esRival || tCam > 0)) mapa.push({ de: hx(T.camiseta), a: esRival ? 0xFF8A50 : hx(CM.camisetas[(tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
-      Arte.tenirImagen(this, "cara_" + cara.id, key, mapa);
-    }
-    return this.textures.exists(key) ? key : "cara_" + cara.id;
+    const hx = s => parseInt(String(s).slice(1), 16);
+    const T = cara.tonos || {}, tol = CM.tolerancias || {};
+    const CAT = A.CATALOGO;
+    const mapa = [];
+    if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 46, y1: cara.pelo_y1 != null ? cara.pelo_y1 : 0.5 });
+    if (tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[tPiel - 1].hex), tol: tol.piel || 85 });
+    if (T.camiseta && (esRival || tCam > 0)) mapa.push({ de: hx(T.camiseta), a: esRival ? 0xFF8A50 : hx(CM.camisetas[(tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
+    return { base: base, clave: key, mapa: mapa };
   }
   retratoKey(j, esRival, expresion) {
     /* EDITOR v2 primero: el busto ilustrado teñido (consistencia total) */

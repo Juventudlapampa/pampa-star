@@ -498,40 +498,62 @@ window.PampaAvatarArte = (function () {
      Teñir una pose entera de una vez cuesta 26-71 ms en la compu (medido en
      el navegador: el remate 25,8 ms, el festejo 70,8) y se hacía en el
      momento en que la pose entraba a escena. Esto lo hace antes, partido:
-       1) la fuente (sin el halo) se dibuja en un lienzo aparte;
-       2) por bandas de BANDA filas: se lee la banda, se tiñe, se escribe;
-          cada banda mira el reloj y la tajada corta cuando se le acaba;
+       1) se arma un lienzo aparte del tamaño de la fuente (sin el halo);
+       2) por bandas (BANDA_PX, abajo): se dibuja ese pedazo de la fuente,
+          se lee, se tiñe y se escribe; cada banda mira el reloj y la tajada
+          corta cuando se le acaba;
        3) al final, si nadie la tiñó entera mientras tanto, se crea la
           textura con la clave de siempre ("poseT_…") y se sube.
      Mientras no termina la textura NO existe: si la escena la pide antes,
      poseTenida la tiñe entera como siempre y esto se descarta al final.
-     Devuelve { clave, paso(fin, ahora) } para la cola de logic/carga.js,
-     o null si no hay nada que teñir. */
-  var BANDA = 48;
+     Devuelve { clave, paso(fin, ahora), partible } para la cola de
+     logic/carga.js, o null si no hay nada que teñir.
+     REVISIÓN DEL LOTE: el mismo trabajo sirve para cualquier imagen con su
+     mapa de tonos (trabajoDeTinteImagen): el busto del duelo con tu pinta o
+     con la camiseta naranja del rival (700x700, 48 ms el tuyo en la compu,
+     que en la cola iba ENTERO) y la barrida del rival en naranja (12,6 ms).
+     Y si la fuente todavía tiene pendiente la limpieza del anillo violeta
+     (la cola del halo), espera a que la haga esa cola, de a tajadas: el
+     PampaHaloAsegurar de antes la limpiaba ahí mismo, de una sola vez. */
+  /* la banda va por PÍXELES y no por filas (revisión del lote): con 48
+     filas fijas, una banda de una pose ancha era el doble que una del busto,
+     y en el navegador la tajada en LIBRE llegó a 21,6 ms (12 + una banda +
+     el dibujo de la fuente entera, que iba de una sola vez al empezar).
+     Ahora cada banda dibuja SU pedazo de la fuente y lo tiñe: unos 16.000
+     píxeles por banda, nunca menos de 8 filas */
+  var BANDA_PX = 16384, BANDA_MIN = 8;
   function trabajoDeTinte(scene, id, lookCrudo) {
     var P = pedidoDeTinte(scene, id, lookCrudo);
     if (!P || scene.textures.exists(P.clave)) return null;
-    var fase = 0, cv = null, c = null, w = 0, h = 0, y = 0, reglas = null;
+    return trabajoDeTinteImagen(scene, P.base, P.clave, P.mapa);
+  }
+  function trabajoDeTinteImagen(scene, base, clave, mapa) {
+    if (!scene || !base || !clave || !mapa || !mapa.length || scene.textures.exists(clave)) return null;
+    var P = { base: base, clave: clave, mapa: mapa };
+    var fase = 0, cv = null, c = null, src = null, w = 0, h = 0, y = 0, banda = BANDA_MIN, reglas = null;
     function vivo() { return scene.sys && scene.sys.settings && scene.sys.settings.status <= 5 && scene.sys.settings.status >= 2; }
     return {
       clave: "tinte:" + P.clave,
+      partible: true,
       paso: function (fin, ahora) {
         if (!vivo() || scene.textures.exists(P.clave) || !scene.textures.exists(P.base)) return true;
         var reloj = typeof ahora === "function" ? ahora : function () { return 0; };
         if (fase === 0) {
+          if (window.PampaHaloPendiente && window.PampaHaloPendiente(P.base)) return false;   // la limpia su cola
           if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(P.base);
-          var src = scene.textures.get(P.base).getSourceImage();
+          src = scene.textures.get(P.base).getSourceImage();
           w = src.width; h = src.height;
+          banda = Math.max(BANDA_MIN, Math.floor(BANDA_PX / Math.max(1, w)));
           cv = document.createElement("canvas"); cv.width = w; cv.height = h;
           c = cv.getContext("2d", { willReadFrequently: true });
-          c.drawImage(src, 0, 0);
           reglas = reglasDeTinte(P.mapa, h);
           fase = 1;
           if (reloj() >= fin) return false;
         }
         if (fase === 1) {
           while (y < h) {
-            var alto = Math.min(BANDA, h - y);
+            var alto = Math.min(banda, h - y);
+            c.drawImage(src, 0, y, w, alto, 0, y, w, alto);
             var img = c.getImageData(0, y, w, alto);
             tenirFilas(img.data, w, reglas, y);
             c.putImageData(img, 0, y);
@@ -543,7 +565,7 @@ window.PampaAvatarArte = (function () {
         }
         var ct = scene.textures.createCanvas(P.clave, w, h);
         if (ct) { ct.getContext().drawImage(cv, 0, 0); ct.refresh(); }
-        cv = null; c = null;
+        cv = null; c = null; src = null;
         return true;
       }
     };
@@ -596,5 +618,5 @@ window.PampaAvatarArte = (function () {
 
   return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, KITS: KITS, bake: bake,
     claveTenida: claveTenida, mapaDeTinte: mapaDeTinte, pedidoDeTinte: pedidoDeTinte, poseTenida: poseTenida,
-    reglasDeTinte: reglasDeTinte, tenirFilas: tenirFilas, trabajoDeTinte: trabajoDeTinte };
+    reglasDeTinte: reglasDeTinte, tenirFilas: tenirFilas, trabajoDeTinte: trabajoDeTinte, trabajoDeTinteImagen: trabajoDeTinteImagen };
 })();

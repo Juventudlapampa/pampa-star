@@ -42,9 +42,10 @@
      precalentamiento del partido los hace antes (prepararTomaDelRemate). Se
      leen y nunca se escriben (PampaPierna.posar). */
   var PESOS = {};
+  function claveDePesos(tw, th, GX, n, pierna) { return [tw, th, GX, n, JSON.stringify(pierna)].join("|"); }
   function pesosDeLaToma(plano, tw, th, B, GX, pierna) {
     var vs = plano.vertices, n = vs.length;
-    var ck = [tw, th, GX, n, JSON.stringify(pierna)].join("|");
+    var ck = claveDePesos(tw, th, GX, n, pierna);
     if (PESOS[ck]) return PESOS[ck];
     var rx = new Float32Array(n), ry = new Float32Array(n);
     for (var i = 0; i < n; i++) { rx[i] = vs[i].u * tw; ry[i] = vs[i].v * th; }
@@ -52,7 +53,77 @@
     return PESOS[ck];
   }
 
+  /* REVISIÓN DEL LOTE L06 · LOS PESOS, POR TRAMOS. El lote los calculaba
+     dentro de prepararTomaDelRemate, que la cola corre de una sola vez: 31 ms
+     en la compu (con el ensayo de la malla, una tajada de hasta 61), y en un
+     teléfono de gama baja 150 o más, en LIBRE si quien juega elige rápido
+     el tempo. Ahora es un trabajo que se parte: dónde cae en la textura cada
+     vértice de la malla de la toma (uvDeLaMalla, abajo) y
+     PampaPierna.pesosTramo de a TRAMO vértices, mirando el reloj. Al final
+     quedan en PESOS con la misma clave que usa pesosDeLaToma, así que la
+     toma y su ensayo los encuentran hechos. */
+  var TRAMO = 1024;
+  /* LOS VÉRTICES SIN ARMAR LA MALLA. La primera versión armaba un
+     add.plane de GX x GX para leer sus vértices y lo destruía: medido en el
+     navegador, ese paso solo eran 10-20 ms (13.824 vértices con sus caras).
+     Lo que hace falta es nada más dónde cae cada vértice en la textura, y
+     Phaser 3.80.1 lo arma con una cuenta fija (vendor/phaser.min.js,
+     GenerateGridVerts, la que usa Plane.setGridSize sin mosaico): los puntos
+     de la grilla van de u0 a u1 y de v0 a v1 en GX pasos, y cada celda da
+     seis vértices en este orden: (i,j) (i,j+1) (i+1,j) (i,j+1) (i+1,j+1)
+     (i+1,j). Se escribe directo en px de la textura (rx, ry), igual que
+     pesosDeLaToma con los vértices de la malla; el navegador comparó las
+     dos cuentas, vértice por vértice, con una malla de verdad. */
+  function uvDeLaMalla(GX, fr, tw, th) {
+    var u0 = fr ? fr.u0 : 0, u1 = fr ? fr.u1 : 1, v0 = fr ? fr.v0 : 0, v1 = fr ? fr.v1 : 1;
+    var n = 6 * GX * GX, rx = new Float32Array(n), ry = new Float32Array(n), k = 0;
+    var W = u1 - u0, H = v1 - v0;
+    function punto(i, j) { rx[k] = (u0 + W * (i / GX)) * tw; ry[k] = (v0 + H * (j / GX)) * th; k++; }
+    for (var j = 0; j < GX; j++) {
+      for (var i = 0; i < GX; i++) {
+        punto(i, j); punto(i, j + 1); punto(i + 1, j);
+        punto(i, j + 1); punto(i + 1, j + 1); punto(i + 1, j);
+      }
+    }
+    return { rx: rx, ry: ry, n: n };
+  }
+  window.PampaUvDeLaMalla = uvDeLaMalla;   // lo compara la verificación (y trabas_cine.test.js)
   Object.assign(window.PampaMatch.prototype, {
+    trabajoDePesosDeLaToma: function () {
+      if (!this.puedeTomaDelRemate()) return null;
+      var self = this, def = this.game.registry.get("poses").poses.remate;
+      var key = this.poseKey("remate"), img = this.textures.get(key).getSourceImage();
+      var GX = ((this.BAL && this.BAL.toma) || {}).malla || 48;
+      var PI = window.PampaPierna, tw = img.width, th = img.height;
+      if (!PI.pesosTramo) return null;
+      var B = PI.huesos(def.pierna, tw, th);
+      var fase = 0, rx = null, ry = null, n = 0, ck = null, W8 = null, i = 0;
+      return {
+        clave: "toma:pesos", partible: true,
+        paso: function (fin, ahora) {
+          if (!(self.sys && self.sys.settings && self.sys.settings.status === 5)) return true;
+          var reloj = typeof ahora === "function" ? ahora : function () { return 0; };
+          if (fase === 0) {
+            var uv = uvDeLaMalla(GX, self.textures.get(key).get(), tw, th);
+            rx = uv.rx; ry = uv.ry; n = uv.n;
+            ck = claveDePesos(tw, th, GX, n, def.pierna);
+            if (PESOS[ck]) return true;
+            W8 = { hw: new Float32Array(n), kw: new Float32Array(n), largo: 0 };
+            fase = 1;
+            if (reloj() >= fin) return false;
+          }
+          while (i < n) {
+            var hasta = Math.min(n, i + TRAMO);
+            PI.pesosTramo(rx, ry, B, i, hasta, W8);
+            i = hasta;
+            if (i < n && reloj() >= fin) return false;
+          }
+          if (!PESOS[ck]) PESOS[ck] = W8;
+          rx = ry = null;
+          return true;
+        }
+      };
+    },
     /* L06 (trabas-cine): los pesos de la toma, antes (los usa la cola de
        precalentamiento del partido). Una malla igual a la de la toma, sin
        agregarla a la escena, para tener los vértices en el mismo orden.
