@@ -126,19 +126,24 @@ FILES.forEach(f => {
       s = s.slice(0, i) + bloque.replace(/[^\n]/g, "") + s.slice(j + EXC_HASTA.length);
     }
   }
-  /* 1d) LAS ETIQUETAS DE TARJETA (L08, metadatos-y-link). Las vistas
+  /* 1d) LA ETIQUETA DE TARJETA GRANDE (L08, metadatos-y-link). Las vistas
      previas de los links leen, además de og:, unas etiquetas <meta> cuyo
-     NOMBRE de norma empieza con el de una red (las de "tarjeta grande":
-     card, title, description, image, image:alt). Es un identificador de
+     NOMBRE de norma empieza con el de una red. Es un identificador de
      protocolo en el <head>, que no lee quien juega ni es parte del mundo
-     del juego, y el ítem las pide. La excepción: SOLO ese prefijo, SOLO
-     como name="…:card|title|description|image|image:alt" de un <meta> de
-     una página .html, y como mucho 6 por página. Cualquier otro uso del
-     nombre (un comentario, un texto, otra etiqueta) sigue cazado abajo. */
+     del juego.
+     REVISIÓN DEL LOTE: el lote había puesto cinco por página (card, title,
+     description, image, image:alt) y esta excepción dejaba pasar hasta 6:
+     el nombre de la marca diez veces en el producto. Cuatro repetían
+     exactamente las og: (title, description, image y su alt), que esas
+     vistas previas ya usan cuando faltan las propias. La única sin
+     equivalente og: es la que pide la tarjeta GRANDE ("card"). La
+     excepción queda en esa sola: SOLO name="…:card" de un <meta> de una
+     página .html, y UNA por página. Cualquier otro uso del nombre (otra
+     etiqueta, un comentario, un texto) sigue cazado abajo. */
   let tarjetas = 0;
   if (/\.html$/.test(rel)) {
-    s = s.replace(/<meta name="twitter:(card|title|description|image:alt|image)"/g, function () { tarjetas++; return '<meta name="'; });
-    assert(tarjetas <= 6, "§11 " + rel + ": las etiquetas de tarjeta no pasan de 6 (" + tarjetas + ")");
+    s = s.replace(/<meta name="twitter:card"/g, function () { tarjetas++; return '<meta name="'; });
+    assert(tarjetas <= 1, "§11 " + rel + ": la etiqueta de tarjeta grande va una vez por página (" + tarjetas + ")");
   }
   s.split("\n").forEach((l, n) => {
     const h = l.match(APPS);
@@ -148,13 +153,15 @@ FILES.forEach(f => {
 });
 assert(nombresEnLaExcepcion > 0 && nombresEnLaExcepcion <= 25,
   "§11 la excepción de entorno.js tiene sus nombres y no crece sin que se note (" + nombresEnLaExcepcion + "; tope 25)");
-/* el guardián probándose: la excepción 1d deja pasar la etiqueta y nada más */
+/* el guardián probándose: la excepción 1d deja pasar la etiqueta "card" y
+   nada más (ni las otras cuatro que repetían las og:, ni un comentario, ni
+   un property=) */
 (function () {
-  const prueba = '<meta name="twitter:card" content="x">\n<!-- en twitter -->\n<meta property="twitter:card" content="x">';
-  let t = prueba.replace(/<meta name="twitter:(card|title|description|image:alt|image)"/g, '<meta name="');
+  const prueba = '<meta name="twitter:card" content="x">\n<meta name="twitter:title" content="x">\n<meta name="twitter:image" content="x">\n<!-- en twitter -->\n<meta property="twitter:card" content="x">';
+  let t = prueba.replace(/<meta name="twitter:card"/g, '<meta name="');
   const UNA = new RegExp(APPS.source, "i");
   const cazados = t.split("\n").filter(l => UNA.test(l)).length;
-  assert(cazados === 2, "§11 1d: la excepción de las etiquetas de tarjeta deja pasar solo <meta name=…> (cazó " + cazados + " de 2)");
+  assert(cazados === 4, "§11 1d: la excepción deja pasar solo <meta name=…:card> (cazó " + cazados + " de 4)");
 })();
 
 /* ---------- 1e) LOS README: LA PALABRA PROHIBIDA Y EL LENGUAJE ----------

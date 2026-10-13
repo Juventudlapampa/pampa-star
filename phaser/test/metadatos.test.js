@@ -12,9 +12,10 @@
    40% de 512). En los lanzadores de Android que recortan en círculo, la
    pelota se cortaba y las esquinas salían de otro color.
 
-     [1] la página del juego: título, description, og:, twitter:, canónica e
-         ícono, con direcciones absolutas https, y la imagen existe en el
-         repo con las medidas que declara;
+     [1] la página del juego: título, description, og:, la etiqueta de
+         tarjeta grande (una sola: las otras cuatro repetían las og:, ver la
+         revisión del lote), canónica e ícono, con direcciones absolutas
+         https, y la imagen existe en el repo con las medidas que declara;
      [2] el lenguaje: nada de "pibe", masculino genérico ni "pueblo" en lo
          que se lee al compartir o instalar;
      [3] el manifest: el ícono "any" separado del "maskable", y cada uno con
@@ -148,12 +149,18 @@ PAGINAS.forEach(function (P) {
     P.archivo + ": og:type website, og:locale es_AR, og:site_name PAMPA STAR");
   assert(meta(html, "property", "og:title") === TITULO, P.archivo + ": og:title igual al título");
   assert(meta(html, "property", "og:description") === desc, P.archivo + ": og:description igual a la description");
-  assert(meta(html, "name", "twitter:card") === "summary_large_image", P.archivo + ": twitter:card summary_large_image");
-  ["twitter:title", "twitter:description", "twitter:image"].forEach(function (k) { assert(!!meta(html, "name", k), P.archivo + ": falta " + k); });
+  assert(meta(html, "name", "twitter:card") === "summary_large_image", P.archivo + ": la etiqueta de tarjeta grande, summary_large_image");
+  /* REVISIÓN DEL LOTE: el lote puso además title, description, image e
+     image:alt con ese prefijo, que repetían las og: (las vistas previas las
+     usan cuando faltan) y multiplicaban por cinco el nombre de una marca en
+     el producto (la excepción 1d de seccion11). Ahora va solo la "card", la
+     única sin equivalente og: */
+  var conPrefijo = cabeza(html).match(/<meta\s+(?:name|property)="twitter:[^"]*"/gi) || [];
+  assert(conPrefijo.length === 1, P.archivo + ": una sola etiqueta con ese prefijo, la de tarjeta grande (" + conPrefijo.length + ")");
   var can = link(html, "canonical"), url = meta(html, "property", "og:url");
   assert(can === P.canonica && url === P.canonica, P.archivo + ": canónica y og:url = " + P.canonica + " (" + can + " · " + url + ")");
-  var img = meta(html, "property", "og:image"), tw = meta(html, "name", "twitter:image");
-  assert(/^https:\/\//.test(img) && img === tw, P.archivo + ": og:image absoluta con https e igual a twitter:image (" + img + ")");
+  var img = meta(html, "property", "og:image");
+  assert(/^https:\/\//.test(img), P.archivo + ": og:image absoluta con https (" + img + ")");
   var rel = delSitio(img);
   assert(!!rel && fs.existsSync(path.join(RAIZ, rel)), P.archivo + ": la og:image es un archivo del repo (" + rel + ")");
   if (rel && fs.existsSync(path.join(RAIZ, rel))) {
@@ -164,7 +171,7 @@ PAGINAS.forEach(function (P) {
   }
   var ic = link(html, "icon");
   assert(!!ic && fs.existsSync(path.join(RAIZ, path.dirname(P.archivo), ic)), P.archivo + ": rel=icon a un archivo que existe (" + ic + ")");
-  console.log("[1] " + P.archivo + ": \"" + t + "\", description de " + desc.length + ", og y twitter completos, imagen " + rel);
+  console.log("[1] " + P.archivo + ": \"" + t + "\", description de " + desc.length + ", og completas y la tarjeta grande, imagen " + rel);
 });
 
 /* ---------- [2] EL LENGUAJE DE LO QUE SE COMPARTE O SE INSTALA ---------- */
@@ -266,8 +273,7 @@ var ORIGINALES_DE_LA_TARJETA = {
   assert(kb < 300, "la tarjeta pesa menos de 300 KB (" + kb.toFixed(1) + ")");
   PAGINAS.forEach(function (P) {
     var html = leer(P.archivo);
-    assert(meta(html, "property", "og:image") === SITIO + f && meta(html, "name", "twitter:image") === SITIO + f,
-      P.archivo + ": og:image y la imagen de la tarjeta grande apuntan a " + SITIO + f);
+    assert(meta(html, "property", "og:image") === SITIO + f, P.archivo + ": og:image apunta a " + SITIO + f);
   });
   var cambiados = Object.keys(ORIGINALES_DE_LA_TARJETA).filter(function (r) {
     return H.huellaArchivo(path.join(RAIZ, r)) !== ORIGINALES_DE_LA_TARJETA[r];
