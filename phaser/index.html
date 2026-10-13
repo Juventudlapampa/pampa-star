@@ -437,8 +437,8 @@
     /* los tres avisos, del que más manda al que menos: un script que no bajó
        explica todo lo que viene después (las clases que lo necesitaban tiran
        al leerse), y un juego que no arrancó explica cualquier "se trabó" */
-    /* L06: "sin_memoria" (se perdió el contexto WebGL) manda sobre "se trabó":
-       los errores que vengan después son consecuencia de eso */
+    /* L06: "sin_memoria" (se perdió el contexto WebGL y no volvió) manda
+       sobre "se trabó": los errores que vengan después son consecuencia de eso */
     var RANGO = { no_bajo: 3, no_abre: 2, sin_memoria: 2, trabado: 1 };
     R.mostrar = function (tipo) {
       var caja = $("trabado"); if (!caja) return;
@@ -464,10 +464,15 @@
          Queda RECARGAR, que vuelve a armar las texturas de cero */
       var puedeMenu = !noBajo && !sinMem && anda && !R.menuRoto;
       var puedeSeguir = puedeMenu && !R.dormido && !R.sinSeguir && !R.escenaRota(g);
-      $("tb-tit").textContent = sinMem ? "Se quedó sin memoria" : noAbre ? "El juego no pudo arrancar"
+      $("tb-tit").textContent = sinMem ? "Se cortó el dibujo" : noAbre ? "El juego no pudo arrancar"
         : noBajo ? "No terminó de bajar el juego" : "Algo se trabó";
+      /* revisión L06: el texto no afirma la causa ni el aparato. Perder el
+         contexto pasa por memoria, pero también porque el sistema reinicia la
+         parte que dibuja (la app en segundo plano) o por un controlador, y en
+         la compu también: "El teléfono se quedó sin memoria" no siempre era
+         cierto */
       $("tb-txt").textContent = sinMem
-        ? "El teléfono se quedó sin memoria para los dibujos del juego. Tocá para recargar: lo que tenías guardado sigue ahí."
+        ? "El navegador dejó de dibujar el juego y no volvió a arrancar. Tocá para recargar: lo que tenías guardado sigue ahí."
         : noAbre
         ? "Este navegador no pudo abrir una parte del juego. Probá de nuevo con buena señal y, si vuelve a pasar, actualizá el navegador o abrí el juego en otro."
         : noBajo ? "La conexión está floja. Probá de nuevo cuando tengas señal."
@@ -499,20 +504,56 @@
       var prim = $(noBajo ? "tb-reintentar" : (puedeMenu ? "tb-menu" : "tb-recargar"));
       try { if (prim) prim.focus(); } catch (e) { }
     };
-    /* ══ L06 (texturas-presupuesto) · SIN MEMORIA DE VIDEO ══
+    /* ══ L06 (texturas-presupuesto) · SIN EL CONTEXTO DE DIBUJO ══
        Lo que estaba mal, medido: "webglcontextlost" no aparecía en ningún
        lado (grep). Con la placa de video llena, el navegador del teléfono
        le saca el contexto al lienzo y el juego queda en NEGRO, sin aviso y
-       sin salida (instalado, ni siquiera hay botón de recargar). Ahora sale
-       "Se quedó sin memoria" con RECARGAR, y el juego se pausa. Lo engancha
-       el postBoot del juego, una vez. */
+       sin salida (instalado, ni siquiera hay botón de recargar).
+       REVISIÓN DEL LOTE: el lote mostraba el aviso con RECARGAR en el acto,
+       pero Phaser 3.80.1 RECUPERA el contexto solo cuando el navegador lo
+       devuelve (vendor/phaser.min.js: contextLostHandler hace preventDefault
+       y contextRestoredHandler recrea texturas, buffers y pipelines). Pasa
+       en el teléfono al volver de otra app, cuando el sistema reinició la
+       parte que dibuja: una pérdida pasajera terminaba en una recarga y se
+       perdía el partido. Ahora, al perderlo, el juego se PAUSA
+       (PampaPausa, motivo "sin_dibujo": la música también, y el partido en
+       LIBRE abre su PAUSA, como al irse a otra app) y se espera
+       balance.rendimiento.contexto_tope_ms. Si vuelve antes, sigue sin
+       aviso; si no, "Se cortó el dibujo" con RECARGAR; si vuelve con el
+       aviso a la vista, el aviso se va y el juego sigue. Las dos cosas
+       quedan en el informe. Lo engancha el postBoot del juego, una vez. */
     R.vigilarMemoria = function (g) {
       var cv = g && g.canvas;
       if (!cv || typeof cv.addEventListener !== "function" || cv.__pampaMemoria) return false;
       cv.__pampaMemoria = true;
+      var perdido = null, reloj = null;
+      function topeMs() {
+        try {
+          var b = g.registry && g.registry.get("balance"), v = b && b.rendimiento && b.rendimiento.contexto_tope_ms;
+          if (v >= 0) return v;
+        } catch (e) { }
+        return 5000;
+      }
       cv.addEventListener("webglcontextlost", function () {
-        R.registrar(new Error("se perdió el contexto WebGL: la placa de video se quedó sin memoria"), "memoria");
-        R.mostrar("sin_memoria");
+        if (perdido != null) return;
+        perdido = Date.now();
+        R.registrar(new Error("se perdió el contexto WebGL (el navegador dejó de dibujar el juego)"), "memoria");
+        var P = window.PampaPausa;
+        if (P && P.poner) P.poner("sin_dibujo");
+        else if (g.pause) { try { g.pause(); } catch (e) { } }
+        clearTimeout(reloj);
+        reloj = setTimeout(function () { if (perdido != null) R.mostrar("sin_memoria"); }, topeMs());
+      }, false);
+      cv.addEventListener("webglcontextrestored", function () {
+        if (perdido == null) return;
+        var ms = Date.now() - perdido;
+        perdido = null;
+        clearTimeout(reloj);
+        R.registrar(new Error("volvió el contexto WebGL a los " + ms + " ms: el juego siguió"), "memoria");
+        if (R.tipo === "sin_memoria") R.ocultar();
+        var P = window.PampaPausa;
+        if (P && P.sacar) P.sacar("sin_dibujo");
+        else if (g.resume && !R.tipo) { try { g.resume(); } catch (e) { } }
       }, false);
       return true;
     };
@@ -1549,7 +1590,7 @@
         timeout: (balance && balance.red_floja && balance.red_floja.loader_timeout_ms) || 75000,
         maxParallelDownloads: (balance && balance.red_floja && balance.red_floja.loader_paralelas) || 4
       },
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* L06: la cola de precalentamiento y, con ?perf=1, el cuadro más largo */ if (window.PampaPrecalentarEnganchar) window.PampaPrecalentarEnganchar(game); /* revisión L06: el tope de cuadros, después de medir la pantalla */ if (window.PampaTopeDeCuadros) window.PampaTopeDeCuadros(game); if (window.PampaPerf) window.PampaPerf.enganchar(game); /* L06: "Se quedó sin memoria" si se pierde el contexto WebGL */ if (window.PampaRed && window.PampaRed.vigilarMemoria) window.PampaRed.vigilarMemoria(game); /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* L06: la cola de precalentamiento y, con ?perf=1, el cuadro más largo */ if (window.PampaPrecalentarEnganchar) window.PampaPrecalentarEnganchar(game); /* revisión L06: el tope de cuadros, después de medir la pantalla */ if (window.PampaTopeDeCuadros) window.PampaTopeDeCuadros(game); if (window.PampaPerf) window.PampaPerf.enganchar(game); /* L06: si se pierde el contexto WebGL, pausa y espera; si no vuelve, "Se cortó el dibujo" */ if (window.PampaRed && window.PampaRed.vigilarMemoria) window.PampaRed.vigilarMemoria(game); /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);

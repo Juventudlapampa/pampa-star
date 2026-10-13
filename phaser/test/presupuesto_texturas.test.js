@@ -20,8 +20,11 @@
      [3] el gancho de texturas de verdad (scenes/cine_arte.js) achica lo que
          pasa el tope, deja las poses como están, no toca los lienzos del
          código y cuenta window.__PAMPA_TEX;
-     [4] perder el contexto WebGL muestra "Se quedó sin memoria" con
-         RECARGAR (el script de LA RED DE ERRORES corriendo).
+     [4] perder el contexto WebGL pausa el juego y espera a que el
+         navegador lo devuelva (Phaser 3.80.1 lo recupera solo; revisión del
+         lote: antes salía RECARGAR en el acto y se perdía el partido); si no
+         vuelve, "Se cortó el dibujo" con RECARGAR (el script de LA RED DE
+         ERRORES corriendo).
 
    Corré:  node phaser/test/presupuesto_texturas.test.js
    ========================================================================== */
@@ -225,50 +228,111 @@ vm.runInContext(leer("phaser/scenes/intro.js"), vm.createContext({ window: WI, P
 })();
 
 /* =========================================================================
-   [4] · SIN MEMORIA DE VIDEO: EL AVISO
+   [4] · SIN EL CONTEXTO DE DIBUJO: PAUSA, ESPERA Y, SI NO VUELVE, EL AVISO
+   Revisión del lote: el lote mostraba el aviso con RECARGAR en el acto,
+   pero Phaser 3.80.1 recupera el contexto solo cuando el navegador lo
+   devuelve. Una pérdida pasajera (el teléfono que vuelve de otra app)
+   terminaba en una recarga y se perdía el partido.
    ========================================================================= */
 (function () {
   var HTML = leer("phaser/index.html").replace(/\r\n/g, "\n");
   var scripts = [];
   HTML.replace(/<script>([\s\S]*?)<\/script>/g, function (_, c) { scripts.push(c); return _; });
   var RED = scripts.filter(function (c) { return c.indexOf("window.PampaRed = {") >= 0; })[0] || "";
-  var els = {};
-  function el(id) {
-    if (!els[id]) els[id] = { id: id, hidden: id === "trabado" || id === "tb-informe", textContent: "", ls: {}, hijos: [],
-      addEventListener: function (t, f) { (this.ls[t] = this.ls[t] || []).push(f); }, appendChild: function (c) { this.hijos.push(c); },
-      focus: function () { }, click: function () { (this.ls.click || []).forEach(function (f) { f({}); }); } };
-    return els[id];
+  /* Phaser recupera el contexto solo: si el vendor deja de hacerlo, esta
+     espera no tiene sentido y hay que volver al aviso en el acto */
+  var V = leer("phaser/vendor/phaser.min.js");
+  assert(/this\.contextRestoredHandler=function/.test(V) && /n\.addEventListener\("webglcontextrestored",this\.contextRestoredHandler/.test(V) && /contextLostHandler=function\(t\)\{[^}]*t\.preventDefault\(\)\}/.test(V),
+    "el vendor (Phaser 3.80.1) hace preventDefault al perder el contexto y lo recrea al volver (por eso se espera)");
+  function armar(conPausa) {
+    var els = {};
+    function el(id) {
+      if (!els[id]) els[id] = { id: id, hidden: id === "trabado" || id === "tb-informe", textContent: "", ls: {}, hijos: [],
+        addEventListener: function (t, f) { (this.ls[t] = this.ls[t] || []).push(f); }, appendChild: function (c) { this.hijos.push(c); },
+        focus: function () { }, click: function () { (this.ls.click || []).forEach(function (f) { f({}); }); } };
+      return els[id];
+    }
+    var win = { addEventListener: function () { }, innerWidth: 800, innerHeight: 360, devicePixelRatio: 2, matchMedia: function () { return { matches: false }; } };
+    var store = {}, X = { recargas: 0, relojes: [], pausado: 0, reanudado: 0, motivos: [] };
+    var ls = { getItem: function (k) { return store[k] == null ? null : store[k]; }, setItem: function (k, v) { store[k] = String(v); } };
+    win.PampaInforme = require(path.join(RAIZ, "phaser/logic/informe.js"));
+    function pon(fn, ms) { X.relojes.push({ fn: fn, ms: ms, vivo: true }); return X.relojes.length; }
+    function saca(id) { if (X.relojes[id - 1]) X.relojes[id - 1].vivo = false; }
+    new Function("window", "document", "localStorage", "navigator", "location", "console", "setTimeout", "clearTimeout", RED)(win,
+      { getElementById: el, createElement: function (t) { return { tag: t }; }, createTextNode: function (t) { return { text: t }; } },
+      ls, { userAgent: "prueba" }, { origin: "http://localhost:8123", protocol: "http:", reload: function () { X.recargas++; } }, { error: function () { }, log: function () { } }, pon, saca);
+    var oyentes = {};
+    var juego = { isRunning: true, pause: function () { X.pausado++; }, resume: function () { X.reanudado++; },
+      registry: { get: function (k) { return k === "balance" ? BAL : null; } },
+      scene: { getScenes: function () { return []; }, getScene: function () { return null; } },
+      canvas: { addEventListener: function (t, f) { (oyentes[t] = oyentes[t] || []).push(f); } } };
+    win.PAMPA_GAME = juego;
+    /* PampaPausa de verdad suma motivos y reanuda si no queda ninguno ni un aviso */
+    if (conPausa) win.PampaPausa = {
+      m: {},
+      poner: function (k) { this.m[k] = true; X.motivos.push("+" + k); juego.pause(); },
+      sacar: function (k) { delete this.m[k]; X.motivos.push("-" + k); if (!Object.keys(this.m).length && !win.PampaRed.tipo) juego.resume(); }
+    };
+    return { R: win.PampaRed, el: el, X: X, oyentes: oyentes, juego: juego, store: store,
+      perder: function () { (oyentes.webglcontextlost || []).forEach(function (f) { f({ preventDefault: function () { } }); }); },
+      volver: function () { (oyentes.webglcontextrestored || []).forEach(function (f) { f({ preventDefault: function () { } }); }); },
+      vencer: function () { X.relojes.filter(function (r) { return r.vivo; }).forEach(function (r) { r.vivo = false; r.fn(); }); } };
   }
-  var win = { addEventListener: function () { }, innerWidth: 800, innerHeight: 360, devicePixelRatio: 2, matchMedia: function () { return { matches: false }; } };
-  var store = {}, recargas = 0;
-  var ls = { getItem: function (k) { return store[k] == null ? null : store[k]; }, setItem: function (k, v) { store[k] = String(v); } };
-  win.PampaInforme = require(path.join(RAIZ, "phaser/logic/informe.js"));
-  new Function("window", "document", "localStorage", "navigator", "location", "console", RED)(win,
-    { getElementById: el, createElement: function (t) { return { tag: t }; }, createTextNode: function (t) { return { text: t }; } },
-    ls, { userAgent: "prueba" }, { origin: "http://localhost:8123", protocol: "http:", reload: function () { recargas++; } }, { error: function () { }, log: function () { } });
-  var R = win.PampaRed;
-  assert(R && typeof R.vigilarMemoria === "function", "LA RED trae vigilarMemoria");
-  var oyentes = {};
-  var pausado = 0;
-  var juego = { isRunning: true, pause: function () { pausado++; }, scene: { getScenes: function () { return []; }, getScene: function () { return null; } },
-    canvas: { addEventListener: function (t, f) { (oyentes[t] = oyentes[t] || []).push(f); } } };
-  win.PAMPA_GAME = juego;
-  assert(R.vigilarMemoria(juego) && !R.vigilarMemoria(juego), "se engancha una vez al lienzo");
-  assert((oyentes.webglcontextlost || []).length === 1, "escucha webglcontextlost en el lienzo");
-  oyentes.webglcontextlost[0]({ preventDefault: function () { } });
-  assert(!el("trabado").hidden && el("tb-tit").textContent === "Se quedó sin memoria", "SÍNTOMA: al perder el contexto aparece \"Se quedó sin memoria\" (antes: negro sin aviso) — " + el("tb-tit").textContent);
-  assert(/Tocá para recargar/.test(el("tb-txt").textContent) && /guardado sigue ahí/.test(el("tb-txt").textContent), "dice que hay que tocar para recargar y que lo guardado sigue ahí");
-  assert(!el("tb-recargar").hidden && el("tb-menu").hidden && el("tb-seguir").hidden, "la salida es RECARGAR (sin memoria de video no hay menú que se pueda dibujar)");
-  assert(pausado === 1, "el juego se pausa detrás del aviso");
-  el("tb-recargar").click();
-  assert(recargas === 1, "RECARGAR recarga");
-  var rec = JSON.parse(store.pampa_ultimo_error || "{}");
-  assert(rec.origen === "memoria" && /WebGL/.test(rec.mensaje || ""), "queda en el informe de error (origen memoria)");
-  /* un error que llega después no lo pisa */
-  R.mostrar("trabado");
-  assert(el("tb-tit").textContent === "Se quedó sin memoria", "un \"se trabó\" que llega después no lo pisa (es consecuencia)");
+  var tope = BAL.rendimiento.contexto_tope_ms;
+  assert(tope > 0 && tope <= 10000 && /contexto_tope_ms/.test(BAL.rendimiento._contexto || ""), "balance.rendimiento.contexto_tope_ms (" + tope + ") con su _contexto");
+
+  /* 1) se pierde y VUELVE antes del tope: sin aviso, el juego sigue */
+  var A = armar(true);
+  assert(A.R && typeof A.R.vigilarMemoria === "function", "LA RED trae vigilarMemoria");
+  assert(A.R.vigilarMemoria(A.juego) && !A.R.vigilarMemoria(A.juego), "se engancha una vez al lienzo");
+  assert((A.oyentes.webglcontextlost || []).length === 1 && (A.oyentes.webglcontextrestored || []).length === 1, "escucha webglcontextlost Y webglcontextrestored en el lienzo");
+  A.perder();
+  assert(A.el("trabado").hidden, "SÍNTOMA: al perder el contexto el aviso NO sale en el acto (Phaser lo puede recuperar solo)");
+  assert(A.X.motivos.join(",") === "+sin_dibujo" && A.X.pausado === 1, "el juego se pausa con PampaPausa, motivo sin_dibujo (la música también; el partido abre su PAUSA)");
+  assert(A.X.relojes.length === 1 && A.X.relojes[0].ms === tope, "y espera contexto_tope_ms (" + (A.X.relojes[0] && A.X.relojes[0].ms) + ")");
+  A.volver();
+  assert(A.el("trabado").hidden && A.X.motivos.join(",") === "+sin_dibujo,-sin_dibujo" && A.X.reanudado === 1, "si vuelve antes del tope, el juego sigue sin aviso (" + A.X.motivos.join(",") + ")");
+  A.vencer();
+  assert(A.el("trabado").hidden, "el tope que llega después de volver no muestra nada");
+  var rec = JSON.parse(A.store.pampa_ultimo_error || "{}");
+  assert(rec.origen === "memoria" && /volvió el contexto WebGL/.test(rec.mensaje || "") && A.R.errores === 2, "las dos cosas quedan en el informe (" + rec.mensaje + ")");
+
+  /* 2) se pierde y NO vuelve: el aviso con RECARGAR */
+  var B = armar(true);
+  B.R.vigilarMemoria(B.juego);
+  B.perder();
+  B.vencer();
+  assert(!B.el("trabado").hidden && B.el("tb-tit").textContent === "Se cortó el dibujo", "si no vuelve en el tope, sale el aviso (" + B.el("tb-tit").textContent + ")");
+  var txt = B.el("tb-txt").textContent;
+  assert(/Tocá para recargar/.test(txt) && /guardado sigue ahí/.test(txt) && !/teléfono|memoria/i.test(txt + B.el("tb-tit").textContent),
+    "dice que hay que tocar para recargar y que lo guardado sigue ahí, sin afirmar la causa ni el aparato (" + txt + ")");
+  assert(!B.el("tb-recargar").hidden && B.el("tb-menu").hidden && B.el("tb-seguir").hidden, "la salida es RECARGAR");
+  B.R.mostrar("trabado");
+  assert(B.el("tb-tit").textContent === "Se cortó el dibujo", "un \"se trabó\" que llega después no lo pisa (es consecuencia)");
+  B.el("tb-recargar").click();
+  assert(B.X.recargas === 1, "RECARGAR recarga");
+  var recB = JSON.parse(B.store.pampa_ultimo_error || "{}");
+  assert(recB.origen === "memoria" && /se perdió el contexto WebGL/.test(recB.mensaje || ""), "la pérdida queda en el informe (origen memoria)");
+
+  /* 3) vuelve con el aviso ya a la vista: el aviso se va y el juego sigue */
+  var C3 = armar(true);
+  C3.R.vigilarMemoria(C3.juego);
+  C3.perder(); C3.vencer();
+  assert(!C3.el("trabado").hidden, "(el aviso a la vista)");
+  C3.volver();
+  assert(C3.el("trabado").hidden && C3.R.tipo === null && C3.X.reanudado === 1, "si vuelve con el aviso a la vista, el aviso se va y el juego sigue (antes: solo RECARGAR, se perdía el partido)");
+
+  /* 4) sin PampaPausa (el script de la pausa no bajó): pausa y reanuda el juego directo */
+  var D = armar(false);
+  D.R.vigilarMemoria(D.juego);
+  D.perder();
+  assert(D.X.pausado === 1 && D.el("trabado").hidden, "sin PampaPausa, pausa el juego directo");
+  D.volver();
+  assert(D.X.reanudado === 1, "y lo reanuda al volver");
+  /* el motivo nuevo no lo pisa nadie: la pausa del teléfono en vertical, aparte */
+  assert(/P\.poner\("sin_dibujo"\)/.test(HTML) && /P\.sacar\("sin_dibujo"\)/.test(HTML), "usa la pausa del juego (PampaPausa) con su propio motivo");
   assert(/vigilarMemoria\(game\)/.test(HTML), "el postBoot del juego engancha la vigilancia");
-  console.log("[4] perder el contexto WebGL muestra \"Se quedó sin memoria\" con RECARGAR, pausa el juego y queda en el informe");
+  console.log("[4] sin el contexto de dibujo: pausa y espera " + tope + " ms; si vuelve, sigue sin aviso; si no, \"Se cortó el dibujo\" con RECARGAR, que se va si vuelve después");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
