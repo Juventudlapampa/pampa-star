@@ -152,8 +152,62 @@ function registry() { return { get: function (k) { return registro[k]; }, set: f
   /* P1: init() deja todo de cero */
   var s4 = Object.create(Intro.prototype);
   s4._openingListo = true; s4._esperando = true; s4._cargaOpening = { v: 1 }; s4._salteoArmado = true;
+  s4._imgsListas = true; s4._temaPedido = true; s4._temaListo = true; s4._topeTema = {};
   s4.init();
-  assert(!s4._openingListo && !s4._esperando && !s4._cargaOpening && !s4._salteoArmado, "init() reinicia lo de la carga (Phaser reusa la escena: P1)");
+  assert(!s4._openingListo && !s4._esperando && !s4._cargaOpening && !s4._salteoArmado && !s4._imgsListas && !s4._temaPedido && !s4._temaListo && !s4._topeTema,
+    "init() reinicia lo de la carga, también lo del tema (Phaser reusa la escena: P1)");
+
+  /* REVISIÓN DEL LOTE · EL TEMA DEL OPENING, CON LA COMPUERTA. Antes la
+     música se registraba recién en p2 (preload="none"): con poca señal, el
+     opening de la primera visita arrancaba mudo (4,2 s medidos) */
+  function introConTema(conArchivo) {
+    var X = { pedidos: [], avisos: {}, demoras: [], regs: 0, arranco: 0 };
+    var q = Object.create(Intro.prototype);
+    q.init(); q.I = BAL.intro; q.load = loaderDeMentira(); q.game = { registry: registry() };
+    q.textures = { exists: function () { return false; } };
+    q.time = { delayedCall: function (ms, fn) { var d = { ms: ms, fn: fn }; X.demoras.push(d); return d; } };
+    q.registrarMusicaGlobal = function () { X.regs++; return 10; };
+    q.arrancarOpening = function () { X.arranco++; }; q.mostrarEspera = function () { }; q.calentarEnSegundoPlano = function () { return 0; };
+    W.PampaSFX = { precargarTemas: function (ids) { X.pedidos.push(ids.join(",")); return 1; }, hayArchivo: function (id) { return conArchivo && id === "opening"; },
+      cuandoTemaListo: function (id, cb) { X.avisos[id] = cb; return false; } };
+    X.q = q;
+    return X;
+  }
+  var A5 = introConTema(true);
+  A5.q.cargarOpening();
+  assert(A5.regs === 1 && A5.pedidos.join("|") === "opening" && typeof A5.avisos.opening === "function",
+    "SÍNTOMA: con la compuerta a la vista se registra la música y se baja el tema del opening (antes, recién en p2: el opening arrancaba mudo)");
+  A5.q.seguirAlOpening();          // tocan antes de que baje
+  A5.q.load.emit("complete");
+  assert(A5.arranco === 0 && !A5.q._openingListo, "con las imágenes ya bajadas, la espera sigue esperando al tema");
+  assert(A5.demoras.length === 1 && A5.demoras[0].ms === BAL.intro.tema_tope_ms && BAL.intro.tema_tope_ms > 0, "con su tope, balance.intro.tema_tope_ms (" + BAL.intro.tema_tope_ms + ")");
+  A5.avisos.opening();
+  assert(A5.arranco === 1 && A5.q._openingListo, "cuando el tema puede sonar entero, el opening arranca solo");
+  var B5 = introConTema(true);
+  B5.q.cargarOpening(); B5.q.seguirAlOpening(); B5.q.load.emit("complete");
+  B5.demoras[0].fn();
+  assert(B5.arranco === 1, "si el tema no llega (red colgada), al vencer el tope el opening arranca igual");
+  var C5 = introConTema(false);
+  C5.q.cargarOpening(); C5.q.seguirAlOpening(); C5.q.load.emit("complete");
+  assert(C5.arranco === 1 && C5.pedidos.length === 0, "sin archivo para el opening, no hay nada que esperar");
+  /* el cartel de la espera: "CARGANDO LA INTRO… NN%" (decía "EL OPENING"; el
+     botón del editor que lleva acá dice "▶ VER INTRO") */
+  var D5 = introConTema(true);
+  D5.q._espera = { txt: objeto("Text"), g: objeto("Graphics"), y: 360 };
+  D5.q._cargaOpening = { v: 0.5 };
+  D5.q.pintarEspera();
+  var txtEspera = D5.q._espera.txt.texto;
+  assert(BAL.intro.t_cargando_intro === "CARGANDO LA INTRO…" && /^CARGANDO LA INTRO… \d+%$/.test(txtEspera) && !/OPENING/.test(txtEspera),
+    "la espera dice " + txtEspera + " (el texto en balance.intro.t_cargando_intro)");
+  assert(/VER INTRO/.test(leer("phaser/scenes/editor.js")), "y el botón del editor sigue diciendo VER INTRO (la misma palabra)");
+  /* el tema pesa en la barra lo que pesa en el disco */
+  var m5 = leer("phaser/scenes/intro.js").match(/const PESO_TEMA = ([0-9.]+);/);
+  var temaOp = peso("assets/musica/" + json("data/audio.json").temas.opening.archivo);
+  var pesoImgs = C.listaDelOpening(BAL.intro, POSES, Intro.UI_OPENING).reduce(function (t, p) { return t + peso(delRepo(p.ruta)); }, 0);
+  var medido = temaOp / (temaOp + pesoImgs);
+  assert(m5 && Math.abs(Number(m5[1]) - medido) < 0.03, "PESO_TEMA (" + (m5 && m5[1]) + ") es lo que pesa el tema al lado de las imágenes, medido en el disco (" + medido.toFixed(3) + ")");
+  delete W.PampaSFX;
+  console.log("[1b] el tema del opening se baja con la compuerta; la espera dice \"" + txtEspera + "\" y espera al tema (tope " + BAL.intro.tema_tope_ms + " ms)");
 })();
 
 (function () {
@@ -387,6 +441,20 @@ var HTML = leer("phaser/index.html").replace(/\r\n/g, "\n");
   assert(S.precargarTemas(MUS.siguientes("opening")) === 0 && creados.filter(function (a) { return a.preload === "auto"; }).length === 3, "precargar dos veces no repite");
   var listo = 0; S.cuandoSuenaListo(function () { listo++; });
   assert(listo === 1, "con el tema que suena ya listo, cuandoSuenaListo avisa en el acto");
+  /* revisión del lote: cuandoTemaListo, para un tema que todavía no suena
+     (la compuerta espera al del opening) */
+  var espera = creados.filter(function (a) { return a.src === MUS.mapaCompleto(json("data/audio.json"), 0, "../assets/musica/").espera.archivo; })[0];
+  var avisoE = 0;
+  assert(S.cuandoTemaListo("espera", function () { avisoE++; }) === false && avisoE === 0, "cuandoTemaListo espera a que el tema pueda sonar");
+  espera.disparar("canplaythrough");
+  assert(avisoE === 1, "y avisa con canplaythrough");
+  var avisoX = 0; S.cuandoTemaListo("no_existe", function () { avisoX++; });
+  assert(avisoX === 1, "sin archivo para ese momento, avisa en el acto");
+  var hype = creados.filter(function (a) { return /Beyond_the_Mushroom/.test(a.src); })[0];
+  hype.error = { code: 4 };
+  var avisoH = 0; S.cuandoTemaListo("hype", function () { avisoH++; });
+  assert(avisoH === 1, "si el tema ya falló (un iOS viejo sin OGG Opus), avisa en el acto: no queda esperando un evento que no vuelve");
+  hype.error = null;
   /* la tabla: cada momento con tema tiene su siguiente, y todos existen */
   var conTema = MUS.lista().filter(function (m) { return MUS.temaDe(m, 0); });
   conTema.forEach(function (m) {

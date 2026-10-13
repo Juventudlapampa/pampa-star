@@ -19,6 +19,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this._openingListo = false;
     this._esperando = false;
     this._cargaOpening = null;
+    this._imgsListas = false;
+    this._temaPedido = false;
+    this._temaListo = false;
+    this._topeTema = null;
     this._espera = null;
     this._tocaTxt = null;
     this._teclaTxt = null;
@@ -64,17 +68,53 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
      loader de la escena (create corre con la escena viva: el loader anda) */
   cargarOpening() {
     if (this._cargaOpening || this._openingListo) return;
+    this.bajarTemaDelOpening();
     const falta = this.listaOpening().filter((x) => !this.textures.exists(x.clave));
-    if (!falta.length || !this.load || typeof this.load.start !== "function") { this.openingListo(); return; }
+    if (!falta.length || !this.load || typeof this.load.start !== "function") { this.imagenesListas(); return; }
     this._cargaOpening = { v: 0, n: falta.length };
     falta.forEach((x) => this.load.image(x.clave, x.ruta));
     this.load.on("progress", (v) => {
       if (this._cargaOpening) this._cargaOpening.v = v;
       if (this._espera) this.pintarEspera();
     });
-    this.load.once("complete", () => this.openingListo());
+    this.load.once("complete", () => this.imagenesListas());
     this.load.start();
   }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     REVISIÓN DEL LOTE L06 · EL TEMA DEL OPENING, CON LA COMPUERTA.
+     Lo que estaba mal, medido por quien hizo el lote: los <audio> nacen con
+     preload="none" y la música se registraba recién en el primer
+     pedirMusica, que en la intro es p2: el tema del opening (422 KB) recién
+     pudo sonar 4,2 s después de pedirse, y el opening se ve UNA vez por
+     aparato, justo en la primera visita, con poca señal. La compuerta
+     existe para que suene desde el primer plano, y p2 y el grito salían
+     mudos. Ahora, junto con las imágenes: se registra la música (la misma
+     puerta de piel_ui.js: registrarMusicaGlobal) y se precarga el tema del
+     opening. Y la espera ("CARGANDO LA INTRO… NN%") espera también a que
+     el tema pueda sonar entero, con tope: balance.intro.tema_tope_ms
+     después de que llegan las imágenes (si el tema falla o no hay red, el
+     opening arranca igual, como antes). */
+  bajarTemaDelOpening() {
+    if (this._temaPedido) return;
+    this._temaPedido = true;
+    const S = window.PampaSFX;
+    const n = this.registrarMusicaGlobal ? this.registrarMusicaGlobal() : 0;
+    if (!S || !S.precargarTemas || !S.cuandoTemaListo || !n || (S.hayArchivo && !S.hayArchivo("opening"))) { this._temaListo = true; return; }
+    S.precargarTemas(["opening"]);
+    S.cuandoTemaListo("opening", () => { this._temaListo = true; this.quizasListo(); });
+  }
+  imagenesListas() {
+    this._imgsListas = true;
+    if (this._cargaOpening) this._cargaOpening.v = 1;
+    if (this._espera) this.pintarEspera();
+    if (!this._temaListo && !this._topeTema && this.time) {
+      const tope = this.I && this.I.tema_tope_ms != null ? this.I.tema_tope_ms : 4000;
+      this._topeTema = this.time.delayedCall(tope, () => { this._temaListo = true; this.quizasListo(); });
+    }
+    this.quizasListo();
+  }
+  quizasListo() { if (this._imgsListas && this._temaListo) this.openingListo(); }
 
   openingListo() {
     if (this._openingListo) return;
@@ -101,9 +141,12 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.mostrarEspera();
   }
 
-  /* "CARGANDO EL OPENING… 43%" con su barra (el número escrito: no solo la
+  /* "CARGANDO LA INTRO… 43%" con su barra (el número escrito: no solo la
      barra), en el lugar de "TOCÁ PARA EMPEZAR". Mientras espera, un toque
-     saltea al editor, como en el opening. */
+     saltea al editor, como en el opening. Revisión del lote: decía "EL
+     OPENING", y el botón del editor que lleva acá dice "▶ VER INTRO": la
+     misma pantalla con dos nombres (y uno en inglés). El texto va en
+     balance.intro.t_cargando_intro, como los otros t_ de la intro. */
   mostrarEspera() {
     if (this._tocaTxt) { this.tweens.killTweensOf(this._tocaTxt); this._tocaTxt.setVisible(false); }
     if (this._teclaTxt) this._teclaTxt.setVisible(false);
@@ -118,12 +161,22 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   pintarEspera() {
     const E = this._espera;
     if (!E || !E.txt.active) return;
-    const v = this._cargaOpening ? this._cargaOpening.v : 0, pct = Math.floor(Math.max(0, Math.min(1, v)) * 100);
-    E.txt.setText("CARGANDO EL OPENING… " + pct + "%");
+    const v = this.avanceDelOpening(), pct = Math.floor(Math.max(0, Math.min(1, v)) * 100);
+    E.txt.setText((this.I.t_cargando_intro || "CARGANDO LA INTRO…") + " " + pct + "%");
     const W = 300, H = 14, x = 480 - W / 2, y = E.y + 22;
     E.g.clear();
     E.g.lineStyle(2, 0xf6efdc, 0.9); E.g.strokeRect(x, y, W, H);
     E.g.fillStyle(0xf5c400, 1); E.g.fillRect(x + 3, y + 3, Math.round((W - 6) * v), H - 6);
+  }
+
+  /* cuánto de lo del opening ya está: las imágenes pesan 1,36 MB y el tema
+     0,41 (medido en el disco: lo de listaDelOpening y Victory_Lap_At_Dawn.ogg, 422 KB),
+     así que el tema es el 23% de la barra; el loader da el avance de las
+     imágenes y el tema suma entero cuando puede sonar (o vence su tope) */
+  avanceDelOpening() {
+    const PESO_TEMA = 0.23;
+    const vImg = this._imgsListas ? 1 : (this._cargaOpening ? this._cargaOpening.v : 0);
+    return vImg * (1 - PESO_TEMA) + (this._temaListo ? PESO_TEMA : 0);
   }
 
   create() {

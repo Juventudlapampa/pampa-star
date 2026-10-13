@@ -500,7 +500,22 @@
   function cuandoSuenaListo(cb) {
     if (typeof cb !== "function") return false;
     var el = archivoSonando;
-    if (!el || el.__saliendo || el.readyState >= 4 || typeof el.addEventListener !== "function") { cb(); return true; }
+    if (!el || el.__saliendo) { cb(); return true; }
+    return cuandoListo(el, cb);
+  }
+  /* revisión L06: lo mismo para un tema que NO suena todavía, por su
+     momento: la compuerta espera al del opening antes de arrancarlo (con su
+     tope en la intro). Sin archivo para ese momento, avisa en el acto */
+  function cuandoTemaListo(id, cb) {
+    if (typeof cb !== "function") return false;
+    var e = archivos[id];
+    if (!e || !e.audio) { cb(); return true; }
+    return cuandoListo(e.audio, cb);
+  }
+  /* puede llegar al final sin cortarse (canplaythrough), o falló (un iOS
+     viejo que no lee OGG Opus da error enseguida: tampoco hay que esperarlo) */
+  function cuandoListo(el, cb) {
+    if (el.readyState >= 4 || el.error || typeof el.addEventListener !== "function") { cb(); return true; }   // el error ya pasó: no vuelve a avisar
     var hecho = false;
     var f = function () {
       if (hecho) return;
@@ -657,6 +672,7 @@
     pausarMusica: pausarMusica, reanudarMusica: reanudarMusica, musicaEnPausa: musicaEnPausa,
     registrarArchivos: registrarArchivos, hayArchivo: hayArchivo,   // M2: data/audio.json
     precargarTemas: precargarTemas, cuandoSuenaListo: cuandoSuenaListo,   // L06: el tema que viene, después del que suena
+    cuandoTemaListo: cuandoTemaListo,   // revisión L06: el del opening, con la compuerta a la vista
     alTerminarMusica: alTerminarMusica,
     /* M3 · musicaUrgente() sigue existiendo porque el partido la llama en el
        minuto 85 y al final, pero ya NO cambia la música: cuando la música se
