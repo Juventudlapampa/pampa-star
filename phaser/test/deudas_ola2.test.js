@@ -247,7 +247,9 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
          ese obrero: el hilo de la página NO llama a vestir(); sin Worker, la
          tabla viste de a una con aire y el partido no viste nada; un Worker
          que falla o no contesta no rompe nada (y el error no llega a la red
-         de errores);
+         de errores); y (c5, revisión del lote) lo que la tabla dejó
+         pendiente NO se viste en este hilo si ya arrancó el partido: el
+         permiso es de la tabla mientras siga a la vista;
      (d) poseDelEquipo y pedirVestidas (cine_arte.js) y prepararVestidas
          (master.js) de verdad, y el create del partido sin las dos vestidas. */
 var vm = require("vm");
@@ -350,6 +352,14 @@ function mundoDeVestidas(op) {
     pose: function (id, W, H) { T.m["pose_" + id] = { img: poseSintetica(W || 160, H || 100) }; }
   };
 }
+/* la tabla del Master de mentira: lo único que mira la cola es si sigue a la
+   vista (sys.isActive, como en Phaser: RUNNING) y si se está yendo (_yendo,
+   el fundido de irA en piel_ui.js) */
+function tablaDeMentira() {
+  var e = { _yendo: false, activa: true };
+  e.sys = { isActive: function () { return e.activa; } };
+  return e;
+}
 /* lo que tiene que quedar: vestir() de verdad sobre la misma pose */
 function esperado(W, H, destino) { var p = poseSintetica(W, H); V.vestir(p.datos, W, H, { destino: destino }); return p.datos; }
 
@@ -404,7 +414,7 @@ async function prueba1() {
   M2.PV.preparar(M2.game, p1, { hilo: false });
   M2.correrTimers(); await turnos(4);
   assert(!M2.T.exists("poseE_bloqueo_4fc3f7") && M2.llamadasVestir() === 0, "sin Worker, lo que pide el partido NO se viste en su arranque (se viste al usarla)");
-  M2.PV.preparar(M2.game, p1, { hilo: true });
+  M2.PV.preparar(M2.game, p1, { hilo: true, escena: tablaDeMentira() });
   assert(M2.llamadasVestir() === 0 && M2.timers.length === 1 && M2.timers[0].ms === 400, "sin Worker, la tabla espera balance.vestidas.hilo_espera_ms (400) antes de la primera");
   M2.correrTimers();
   assert(M2.llamadasVestir() === 1 && M2.timers.length === 1, "y viste UNA por vez, con aire antes de la siguiente");
@@ -414,7 +424,7 @@ async function prueba1() {
   /* (c3) un Worker que falla al cargar: el error no llega a la red de errores y la tabla sigue en este hilo */
   var M3 = mundoDeVestidas({ obrero: "error" });
   M3.pose("bloqueo"); M3.pose("barrida");
-  M3.PV.preparar(M3.game, p1, { hilo: true });
+  M3.PV.preparar(M3.game, p1, { hilo: true, escena: tablaDeMentira() });
   await turnos(4);
   assert(M3.workers[0].errorEv && M3.workers[0].errorEv.prevenido === true, "el error del Worker se ataja (preventDefault): no sale 'Algo se trabó'");
   assert(M3.workers[0].terminado && M3.ESTADO.fallas.length >= 1, "el obrero se da por muerto y queda anotado (" + M3.ESTADO.fallas.join(" | ") + ")");
@@ -424,7 +434,7 @@ async function prueba1() {
   /* (c4) un Worker que no contesta: a los obrero_tope_ms se lo da por muerto */
   var M4 = mundoDeVestidas({ obrero: "mudo" });
   M4.pose("bloqueo"); M4.pose("barrida");
-  M4.PV.preparar(M4.game, p1, { hilo: true });
+  M4.PV.preparar(M4.game, p1, { hilo: true, escena: tablaDeMentira() });
   await turnos(4);
   var tope = M4.timers.filter(function (t) { return t.vivo; })[0];
   assert(tope && tope.ms === 15000 && !M4.T.exists("poseE_bloqueo_4fc3f7"), "mientras el obrero trabaja, hay un tope de balance.vestidas.obrero_tope_ms (15000)");
@@ -432,6 +442,51 @@ async function prueba1() {
   assert(M4.workers[0].terminado && /no contestó/.test(M4.ESTADO.fallas.join(" ")), "vencido el tope, el obrero se termina");
   M4.correrTimers(); M4.correrTimers();
   assert(M4.T.exists("poseE_bloqueo_4fc3f7") && M4.T.exists("poseE_barrida_4fc3f7"), "y la tabla sigue en este hilo");
+
+  /* (c5) REVISIÓN L08c: lo que la tabla dejó pendiente NO se viste en el
+     arranque del partido. El aire entre una y otra es un setTimeout de la
+     ventana y cruza el cambio de escena: sin Worker, si se tocaba JUGAR LA
+     FECHA antes de que la tabla terminara (2 o 4 vestidas, ~300 ms cada una
+     en la compu y ~1 s en un teléfono), las que faltaban se vestían de una
+     pieza en los primeros segundos del partido. Ahora el permiso es de la
+     tabla y se mira otra vez justo antes de vestir. */
+  var M5 = mundoDeVestidas({ obrero: "ninguno" }), tab5 = tablaDeMentira();
+  M5.pose("bloqueo"); M5.pose("barrida");
+  M5.PV.preparar(M5.game, p1, { hilo: true, escena: tab5 });
+  assert(M5.timers.length === 1 && M5.llamadasVestir() === 0, "la tabla las pide y espera el aire antes de la primera");
+  tab5.activa = false;                                            // JUGAR LA FECHA: la tabla se para, arranca el partido
+  assert(M5.PV.preparar(M5.game, p1, { hilo: false }) === 0, "el partido las vuelve a pedir (pedirVestidas): ya estaban pedidas");
+  M5.correrTimers(); M5.correrTimers(); await turnos(4);
+  assert(M5.llamadasVestir() === 0 && !M5.T.exists("poseE_bloqueo_4fc3f7") && !M5.T.exists("poseE_barrida_4fc3f7"),
+    "SÍNTOMA DE LA TRABA QUE CRUZA LA ESCENA: con el partido corriendo, lo que dejó pendiente la tabla no se viste en este hilo (" + M5.llamadasVestir() + " vestir())");
+  assert(M5.timers.length === 0 && M5.ESTADO.soltadas === 2 && M5.ESTADO.hilo === 0, "las dos se sueltan (__PAMPA_VESTIDAS.soltadas = " + M5.ESTADO.soltadas + ") y no queda nada programado");
+  /* soltadas, se pueden volver a pedir: la tabla siguiente las viste */
+  tab5.activa = true;
+  assert(M5.PV.preparar(M5.game, p1, { hilo: true, escena: tab5 }) === 2, "de vuelta en la tabla se vuelven a encolar (no quedaron marcadas como pendientes)");
+  M5.correrTimers(); M5.correrTimers();
+  assert(M5.llamadasVestir() === 2 && M5.T.exists("poseE_bloqueo_4fc3f7") && M5.T.exists("poseE_barrida_4fc3f7"), "y con la tabla a la vista se visten, de a una");
+  /* el fundido a negro de irA (200 ms): la tabla sigue activa pero se está yendo */
+  var M6 = mundoDeVestidas({ obrero: "ninguno" }), tab6 = tablaDeMentira();
+  M6.pose("bloqueo"); M6.pose("barrida");
+  M6.PV.preparar(M6.game, p1, { hilo: true, escena: tab6 });
+  tab6._yendo = true;
+  M6.correrTimers(); M6.correrTimers();
+  assert(M6.llamadasVestir() === 0 && M6.ESTADO.soltadas === 2, "en el fundido de salida (_yendo) tampoco: trabaría el fundido");
+  /* el Worker que no contesta y la tabla que se va antes del tope */
+  var M7 = mundoDeVestidas({ obrero: "mudo" }), tab7 = tablaDeMentira();
+  M7.pose("bloqueo"); M7.pose("barrida");
+  M7.PV.preparar(M7.game, p1, { hilo: true, escena: tab7 });
+  await turnos(4);
+  tab7.activa = false;
+  M7.correrTimers(); M7.correrTimers(); M7.correrTimers();
+  assert(M7.workers[0].terminado && M7.llamadasVestir() === 0 && !M7.T.exists("poseE_bloqueo_4fc3f7"),
+    "vencido el tope del obrero con el partido ya corriendo, tampoco se viste en este hilo (morir vuelve a encolar, puedeAca no deja)");
+  /* sin escena no hay permiso: nadie viste en este hilo a ciegas */
+  var M8 = mundoDeVestidas({ obrero: "ninguno" });
+  M8.pose("bloqueo"); M8.pose("barrida");
+  M8.PV.preparar(M8.game, p1, { hilo: true });
+  M8.correrTimers(); M8.correrTimers();
+  assert(M8.llamadasVestir() === 0 && M8.timers.length === 0, "hilo:true sin la escena que da el permiso: no se viste en este hilo");
 
   /* (d1) poseDelEquipo y pedirVestidas, de cine_arte.js, sobre el partido de mentira */
   var E = PM.escena({ mixins: ["phaser/scenes/cine_arte.js"], logica: ["phaser/logic/ambiente.js", "phaser/logic/vestir.js", "phaser/logic/avatar.js"] });
@@ -489,7 +544,8 @@ async function prueba1() {
   assert(cargas.slice().sort().join(" | ") === "pose_barrida ../assets/poses/pose_barrida.webp | pose_bloqueo ../assets/poses/pose_bloqueo.webp" && arranques === 1,
     "baja las dos poses que el partido iba a bajar igual (" + cargas.join(" | ") + ")");
   completo.forEach(function (fn) { fn(); });
-  assert(pedidosM.length === 1 && pedidosM[0].op.hilo === true, "bajadas, las pide a la cola con permiso para este hilo si no hubiera Worker (la tabla está quieta)");
+  assert(pedidosM.length === 1 && pedidosM[0].op.hilo === true && pedidosM[0].op.escena === sm,
+    "bajadas, las pide a la cola con permiso para este hilo si no hubiera Worker, y el permiso es de la tabla (op.escena: vale mientras siga a la vista)");
   var clavesM = pedidosM[0].ps.map(function (p) { return p.clave; }).sort().join(",");
   var tuya = CM.camisetas[4].hex.slice(1).toLowerCase();
   assert(clavesM === ["poseE_barrida_4fc3f7", "poseE_barrida_" + tuya, "poseE_bloqueo_4fc3f7", "poseE_bloqueo_" + tuya].sort().join(","),
@@ -513,7 +569,7 @@ async function prueba1() {
   assert(IDX.indexOf('src="logic/vestir.js"') < IDX.indexOf('src="scenes/vestidas_ui.js"') && IDX.indexOf('src="scenes/vestidas_ui.js"') < IDX.indexOf('src="scenes/master.js"'),
     "index.html carga vestidas_ui.js después de vestir.js y antes de las escenas");
   console.log("[1] vestidas: el obrero viste igual que vestir() y devuelve transferido; con Worker el hilo de la página no corre vestir(); sin Worker, la tabla de a una con aire y el partido nada; " +
-    "error y tope atajados; el partido solo usa (último recurso: en el acto); la tabla baja las poses y pide los dos colores");
+    "error y tope atajados; lo pendiente de la tabla no cruza al partido; el partido solo usa (último recurso: en el acto); la tabla baja las poses y pide los dos colores");
 }
 
 prueba1().catch(function (e) { mal++; console.error("  ✗ [1] se cortó: " + (e && e.stack || e)); }).then(function () {

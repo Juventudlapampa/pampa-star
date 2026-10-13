@@ -2439,7 +2439,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!pares.length) return 0;
     const faltan = [];
     pares.forEach((p) => { if (!this.textures.exists("pose_" + p.id) && faltan.indexOf(p.id) < 0) faltan.push(p.id); });
-    const pedir = () => PV.preparar(this.game, pares, { hilo: true });
+    /* escena: el permiso para vestir en el hilo del juego (sin Worker) vale
+       mientras la tabla siga a la vista; si arranca el partido, lo que
+       falte se viste al usarlo (revisión L08c, vestidas_ui.js puedeAca) */
+    const pedir = () => PV.preparar(this.game, pares, { hilo: true, escena: this });
     if (!faltan.length) return pedir();
     const base = (man && man.base) || "assets/poses/";
     faltan.forEach((id) => this.load.image("pose_" + id, "../" + base + man.poses[id].archivo));

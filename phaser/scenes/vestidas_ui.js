@@ -31,18 +31,32 @@
      · SIN WORKER (un navegador muy viejo, o si el hilo falla o no contesta
        en balance.vestidas.obrero_tope_ms): la tabla las viste en este hilo,
        de a una y con balance.vestidas.hilo_espera_ms de aire entre una y
-       otra. El partido no: ahí espera a usarlas.
+       otra, MIENTRAS SIGA A LA VISTA (puedeAca). El partido no: ahí espera
+       a usarlas.
    Un error del Worker (el archivo que no bajó) se ataja acá: no llega a la
    red de errores como "Algo se trabó".
 
-   window.__PAMPA_VESTIDAS cuenta cuántas hizo cada camino y cuánto tardó lo
-   que queda en este hilo (se mira en el navegador para medir).
+   REVISIÓN DEL LOTE L08c. El aire entre vestida y vestida es un setTimeout
+   de la VENTANA, no de la escena: sobrevive al cambio de escena. Sin Worker
+   (obrero:false, que es la forma documentada de revertir) la tabla pide 2
+   o 4 vestidas a los 700 ms, la primera sale 400 ms después y cada una
+   tarda unos 300 ms en la compu y cerca de 1 s en un teléfono: si se toca
+   JUGAR LA FECHA y se pasa la semana rápido, las que faltaban se vestían
+   de una pieza en los primeros segundos del partido, que es justo la traba
+   que el lote sacó del arranque. Ahora el permiso para este hilo es de la
+   pantalla que lo dio (op.escena) y se pregunta otra vez justo antes de
+   vestir: si ya no está a la vista, la vestida se suelta y la viste
+   poseDelEquipo al usarla, como lo que pide el partido.
+
+   window.__PAMPA_VESTIDAS cuenta cuántas hizo cada camino, cuánto tardó lo
+   que queda en este hilo y cuántas se soltaron para vestirse al usarlas (se
+   mira en el navegador para medir).
    ========================================================================== */
 (function () {
   "use strict";
   var V = window.PampaVestir;
   var URL_OBRERO = "logic/vestir_obrero.js";
-  var ESTADO = window.__PAMPA_VESTIDAS = { obrero: 0, hilo: 0, hechas: [], fallas: [], msHiloMax: 0 };
+  var ESTADO = window.__PAMPA_VESTIDAS = { obrero: 0, hilo: 0, soltadas: 0, hechas: [], fallas: [], msHiloMax: 0 };
   var obrero = null, obreroMuerto = false, cola = [], enCurso = null, nSig = 1, reloj = null;
   var pendientes = {};     // clave → true mientras está en la cola o en el hilo aparte
 
@@ -55,6 +69,17 @@
     };
   }
   function ahora() { return (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now(); }
+
+  /* ¿se puede vestir EN ESTE HILO ahora? Solo con el permiso de una pantalla
+     quieta (op.escena: la tabla del Master) y mientras siga a la vista: ni
+     parada (arrancó el partido, se fue al editor) ni yéndose (el fundido a
+     negro de irA, piel_ui.js: 200 ms que una vestida de una pieza trabaría).
+     Sin escena no hay permiso. Se pregunta al encolar el turno y otra vez
+     justo antes de vestir, porque en el medio pasa hilo_espera_ms */
+  function puedeAca(t) {
+    var e = t.hilo ? t.escena : null, sys = e && e.sys;
+    return !!(sys && typeof sys.isActive === "function" && sys.isActive() && !e._yendo);
+  }
 
   /* la pose de origen, con el anillo del halo ya limpio (como antes) */
   function fuenteDe(game, id) {
@@ -174,28 +199,33 @@
       catch (e) { morir("no se pudo mandar al obrero: " + (e && e.message)); }
       return;
     }
-    if (t.hilo) {
+    if (puedeAca(t)) {
       /* sin hilo aparte, y donde se puede (la tabla, quieta): en este hilo,
-         con aire entre una y otra */
+         con aire entre una y otra. El permiso se vuelve a mirar al vencer
+         la espera: el reloj es de la ventana y cruza el cambio de escena */
       enCurso = t;
       setTimeout(function () {
         if (enCurso === t) enCurso = null;
         delete pendientes[t.clave];
-        vestirAca(t.game, t.id, t.destino);
+        if (puedeAca(t)) vestirAca(t.game, t.id, t.destino);
+        else ESTADO.soltadas++;
         bombear();
       }, cfg(t.game).espera);
       return;
     }
-    /* sin hilo aparte y sin permiso para este hilo (el partido): se viste al
-       usarla, como antes */
+    /* sin hilo aparte y sin permiso para este hilo (lo pidió el partido, o
+       la tabla ya no está a la vista): se viste al usarla, como antes */
     delete pendientes[t.clave];
+    ESTADO.soltadas++;
     bombear();
   }
 
   window.PampaVestidas = {
     /* pares = [{ id, destino, clave }] (logic/vestir.js paresAVestir).
-       op.hilo: true si, sin hilo aparte, se pueden vestir en este hilo (la
-       tabla del Master); el partido pasa false. Devuelve cuántas encoló. */
+       op.hilo: true si, sin hilo aparte, se pueden vestir en este hilo, y
+       op.escena: la pantalla quieta que da ese permiso (la tabla del
+       Master); vale mientras esa escena siga a la vista (puedeAca). El
+       partido pasa hilo: false. Devuelve cuántas encoló. */
     preparar: function (game, pares, op) {
       if (!V || !game || !game.textures) return 0;
       op = op || {};
@@ -204,12 +234,15 @@
         var clave = p.clave || V.claveVestida(p.id, p.destino);
         if (game.textures.exists(clave)) return;
         if (pendientes[clave]) {
-          /* ya pedida: si ahora se puede usar este hilo, que valga */
-          if (op.hilo) cola.forEach(function (t) { if (t.clave === clave) t.hilo = true; });
+          /* ya pedida: si ahora se puede usar este hilo, que valga (con el
+             permiso de quien lo da ahora). Un pedido sin permiso (el
+             partido) no le saca el suyo a la tabla: eso lo resuelve
+             puedeAca, que pregunta si la tabla sigue a la vista */
+          if (op.hilo) cola.forEach(function (t) { if (t.clave === clave) { t.hilo = true; t.escena = op.escena || null; } });
           return;
         }
         pendientes[clave] = true;
-        cola.push({ game: game, id: p.id, destino: p.destino, clave: clave, hilo: !!op.hilo });
+        cola.push({ game: game, id: p.id, destino: p.destino, clave: clave, hilo: !!op.hilo, escena: op.escena || null });
         n++;
       });
       bombear();
