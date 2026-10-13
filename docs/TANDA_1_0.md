@@ -3697,3 +3697,350 @@ el worker nuevo instaló `pampa-codigo-v17-1.0-l07r` (70 archivos) y
   abierta**: un `register()` en la misma página lo resucita y no instala
   el nuevo hasta un `update()`. Para verificar una versión nueva hay que
   borrar el worker y recargar dos veces, o llamar a `update()`.
+
+---
+
+## Ola 2 · Que cargue y se juegue en el celular — lote L08-link
+
+Cuatro ítems sobre el link que se difunde y lo primero que ve quien lo
+abre: `opening-una-vez`, `metadatos-y-link`, `og-card` y `url-oficial`. En
+ese orden: el primero no depende de nada; la tarjeta necesita las etiquetas
+y la portada de la raíz necesita las dos (lleva los mismos metadatos y la
+misma tarjeta). `metadatos-y-link` dependía de `lenguaje-institucional`,
+que todavía no se hizo: los textos nuevos de este lote se escribieron sin
+masculino genérico, con "localidad", y los vigila un filtro propio en
+`metadatos.test.js` y `url_oficial.test.js`.
+
+**Cómo se probó en pantalla.** En el navegador integrado, en
+`localhost:8123`, con el audio desviado al arnés del oído y el worker y
+las cachés borrados antes de cada versión nueva. El lienzo se fotografió
+con `renderer.snapshot` (`.claude/l08_ayuda.js`); lo que es DOM (la
+portada, el modo retro), con la captura del panel. Las vistas previas de
+las redes no se pueden ver sin publicar: para eso armé
+`.claude/l08_vista_previa.html`, que lee las etiquetas DE VERDAD de la
+página y dibuja la tarjeta como la arma un mensaje, y el ícono maskable
+con las máscaras de los lanzadores. Al terminar, el origen quedó como
+estaba: sin worker, sin cachés y con las mismas cuatro claves de
+localStorage del principio (las tres de prueba, borradas). Capturas en
+`.claude/shots/l08_*`.
+
+### opening-una-vez · el opening se ve una vez por aparato, no en cada recarga
+
+**Qué estaba mal (medido).** La marca de "ya se vio" vivía solo en el
+registry de Phaser (`intro.js`: `get/set("introVista")`), que muere con
+la página. Cada vez que se abría el link o se recargaba: la compuerta, los
+19.500 ms de planos (la suma de `balance.intro.planos_ms`) y otra vez a
+bajar lo del opening (17 archivos, 1,45 MB) antes de llegar al editor.
+
+**Qué se hizo.**
+- `intro.js`: la marca va también a localStorage (`pampa_intro_vista` =
+  "1", `PampaIntro.CLAVE_VISTA`), escrita en `arrancarOpening`, cuando el
+  opening de verdad arranca. Las dos lecturas, dentro de `try`.
+- Con la marca, la compuerta sigue (su toque desbloquea el audio y en
+  Android pide la pantalla completa) pero su toque, o una tecla, va
+  directo a `salir()`: no se baja nada del opening y mientras espera el
+  toque se bajan las caras del editor, que es adonde va. Sin compuerta
+  (`balance.intro.compuerta` en false) y con la marca, directo al editor.
+- VER INTRO del editor (`introPedida`) lo sigue mostrando entero.
+- Perilla `balance.intro.una_vez_por_aparato` (true) con su `_una_vez`;
+  en false, una vez por sesión, como antes. P1: `_directo` se apaga en
+  `init()`.
+
+**Cómo se verificó.**
+- `opening_una_vez.test.js` (37 asserts) corre el `create()` de verdad con
+  una escena y un localStorage de mentira: la primera vez (compuerta, 17
+  archivos, 8 planos, la marca al arrancar), **la segunda carga** (0
+  archivos del opening, 0 planos y al editor con el toque o con una
+  tecla: el criterio de aceptación), VER INTRO con la marca (8 planos), el
+  guardado bloqueado (como la primera vez, sin errores), la perilla en
+  false, sin compuerta, la misma sesión y saltear mientras baja (sin
+  marca). Contra el `intro.js` de antes falla 12 asserts.
+- **En pantalla**: la primera carga, la compuerta
+  (`l08_1_compuerta_primera.png`); un clic de verdad arrancó el opening y
+  escribió la marca (`l08_2_opening_primera.png`, el plano de la pelota);
+  al terminar, el editor. **Recargada**, la compuerta de nuevo
+  (`l08_3_compuerta_segunda.png`) con `_directo` en true, nada del
+  opening pedido; un clic de verdad llevó al editor
+  (`l08_4_editor_segunda.png`) sin ningún plano y sin una sola textura del
+  opening en memoria (`bg1`, `bg4`, `i_pueblo`, `pose_chilena`: no
+  existen). Desde ahí, VER INTRO mostró el opening: el plano del grito
+  (`l08_5_ver_intro.png`).
+
+### metadatos-y-link · el link se ve bien al compartirlo
+
+**Qué estaba mal (medido).** `phaser/index.html` se titulaba "PAMPA STAR
+(Phaser) — tu pinta + el partido" y no tenía meta description, ni og:, ni
+las etiquetas de tarjeta grande (grep vacío, y en vivo con curl): pegado
+en un mensaje, el link salía sin imagen ni bajada. El manifest decía "la
+carrera de un pibe pampeano". Su ícono de 512 era "any maskable":
+decodificado en node, las esquinas tienen alfa 0 y el contenido llega a
+229,7 px del centro, con la zona segura de un maskable en 205 (el 40% de
+512).
+
+**Qué se hizo.**
+- `phaser/index.html`: título "PAMPA STAR · Del potrero al Mundial";
+  description sin género ("Fútbol pampeano jugada por jugada: armá tu
+  pinta, elegí tu localidad y llevá a tu club del potrero al Mundial.
+  Gratis, en el navegador del celular o de la compu.", 161 caracteres);
+  `og:type`, `site_name`, `locale` es_AR, `title`, `description`, `url`,
+  `image` con `alt`, ancho, alto y tipo; las de tarjeta grande y
+  `rel=canonical`, todo absoluto con https. La imagen empezó siendo
+  `assets/ui/portada.webp` y pasó a la tarjeta en el ítem siguiente.
+- `manifest.webmanifest`: "Del potrero al Mundial: fútbol pampeano jugada
+  por jugada, con tu pinta, tu localidad y tu club."; `icon-512.png`
+  queda "any" y se suma **`icon-512-maskable.png`**, generado por código
+  (`phaser/test/_png.js` lee y escribe PNG con zlib;
+  `node phaser/test/metadatos.test.js --escribir` lo rehace): fondo a
+  sangre con los dos colores del ícono, medidos en el archivo (cielo
+  #06120b hasta la fila 387, pasto #2e7d32 desde la 388, con el horizonte
+  escalado) y el ícono entero al 78% encima. El original no se toca.
+- `sw.js`: el maskable en el PRECACHE y en la huella (`_huella.js` y
+  `sw_precache.test.js` aceptan `icon-512-maskable.png`).
+- `seccion11.test.js` 1d: el nombre de norma de las etiquetas de tarjeta
+  grande empieza con el de una red. La excepción: solo como
+  `name="…:card|title|description|image|image:alt"` de un `<meta>` de una
+  página, hasta 6 por página, con su autoprueba (un comentario o un
+  `property=` con el nombre siguen cazados).
+
+**Cómo se verificó.**
+- `metadatos.test.js` (74 asserts al cierre del lote, con las dos
+  páginas): las etiquetas; el ancho, el alto y el tipo de la imagen contra
+  la cabecera del archivo; el lenguaje de todo lo que se comparte o se
+  instala; el manifest; y el maskable: 0 píxeles transparentes, el
+  contenido hasta 179,6 px del centro (tope 205; el original medido igual,
+  229,7) e idéntico a la composición del ícono de hoy.
+- **En pantalla**: `document.title` y las etiquetas, leídas en la página;
+  la vista previa armada con esas etiquetas (título, bajada, dominio y
+  link) y el maskable con las máscaras de círculo, gota y cuadrado
+  redondeado: el sol y la pelota adentro, sin bordes de otro color.
+
+### og-card · la tarjeta del link (1200x630)
+
+**Qué estaba mal (medido).** No había ninguna imagen de 1200x630. La
+portada mide 1024x576 y es WebP, y las vistas previas de los mensajes son
+más confiables con PNG o JPG.
+
+**Qué se hizo.**
+- `docs/og-card.html`, la receta: la portada a lo ancho (1200x675,
+  recortada pareja arriba y abajo), un velo oscuro arriba con el logo
+  horizontal de 600 de ancho y "DEL POTRERO AL MUNDIAL" en Archivo Black
+  (la tipografía de títulos del juego); de la mitad para abajo la
+  ilustración queda limpia: el caldén y quien corre con la pelota al pie.
+- Sacada con Chrome sin ventana (`--headless=new --window-size=1200,630
+  --screenshot`, servida por `node server.js` porque Chrome no carga
+  tipografías desde `file://`): 856 KB. Bajada a 256 colores con Pillow
+  (`quantize(256, FASTOCTREE, FLOYDSTEINBERG)`, `optimize=True`): **185
+  KB**, PSNR 36,5 dB contra la cruda.
+- **Todo lo que se lee va adentro del cuadrado del centro** (x de 285 a
+  915). La primera composición tenía el logo de 860 y la bajada abajo de
+  punta a punta: en el recorte cuadrado de una vista previa chica decía
+  "MPA STA" y "L POTRERO AL MUND", y la bajada tapaba la pelota
+  (`l08_6b_og_card_primera_composicion.png`). La final:
+  `l08_6_og_card.png` y su cuadrado, `l08_7_og_card_cuadrado.png`.
+- `og:image` y la imagen de la tarjeta grande de las dos páginas a
+  `phaser/og-card.png` (image/png, 1200x630) con su `alt`.
+- `_png.js` lee también PNG con paleta (así es la tarjeta).
+
+**Cómo se verificó.**
+- `metadatos.test.js` [6]: PNG de 1200x630 y 185,1 KB (tope 300); las dos
+  páginas apuntan ahí; los dos originales (`portada.webp`
+  55732-cbb1e9a4ea31 y `pampa-star-logo-horizontal.webp`
+  63116-8cc0ef1ded46) siguen con la huella que tenían al componerla; y,
+  medido por las letras amarillas, el logo (x 334-886) y la bajada (x
+  310-889) caen adentro del cuadrado. Con la primera composición esas dos
+  fallan (el logo llegaba de 219 a 1010).
+- `sha256sum` de los 16 archivos de `assets/ui` y de la tipografía, antes
+  de componer y después: 17 de 17 iguales (el criterio de aceptación).
+- **En pantalla**, la vista previa con las etiquetas de verdad muestra la
+  tarjeta, el título y la bajada.
+
+**Pendiente:** que **Rodri apruebe la composición** (es una pieza nueva
+sobre su ilustración y su logo, y la cara del lanzamiento) y pegar el
+link en un mensaje con el sitio publicado.
+
+### url-oficial · un solo link oficial: la raíz es la portada y el clásico se muda
+
+**Qué estaba mal (medido).** La raíz servía el clásico ("Liga de la
+Llanura", una sola división, "Sigue: ascensos"), con el partido nuevo
+detrás de `partido_phaser` apagado y sin ningún link visible a `phaser/`:
+el link que se difundía abría la versión vieja. El GDD (16.4) seguía
+diciendo que la carrera vivía en el clásico y PARA_MEDIOS repartía
+`/phaser/` como provisorio.
+
+**Qué se hizo** (decisión de Rodri: portada liviana con JUGAR, el clásico
+como modo retro con el save intacto):
+- **`index.html` (raíz), la portada**: solo HTML y CSS, sin el motor; 248
+  KB con la ilustración, el logo y la tipografía (el juego baja unos 13
+  MB). En la primera pantalla: la ilustración, el logo, "Fútbol pampeano,
+  jugada por jugada: armás tu pinta, elegís tu localidad y llevás a tu
+  club del potrero al Mundial.", **▶ JUGAR** a `phaser/` (dice **▶ SEGUIR
+  MI CARRERA** si hay una carrera del juego nuevo), gratis y en
+  horizontal, y los 13 MB. Debajo: si hay una carrera del clásico, el
+  aviso de que sigue en el MODO RETRO; los tres pasos (con el número
+  escrito en su ficha, no solo color); cómo instalarlo; **Para medios**
+  (el link y el código del iframe de PARA_MEDIOS, con 📋 COPIAR EL
+  CÓDIGO); los créditos y la Subsecretaría. Los mismos metadatos y la
+  misma tarjeta que el juego, con la raíz como canónica.
+- **`clasico/index.html`** (git mv), con `pampa-star-sprites.js` y
+  `pampa-star-audio.js`: las rutas a `assets/` suben un nivel, el partido
+  nuevo se pide en `../phaser/index.html`, el título es "PAMPA STAR · Modo
+  retro", el copete dice "Modo retro" y debajo del título hay un link
+  "◀ El juego nuevo: del potrero al Mundial". La carrera es la misma:
+  localStorage es por origen, no por carpeta.
+- **`match.js`**: APLICAR Y VOLVER A LA CARRERA vuelve a
+  `../clasico/index.html` (era `../index.html`, que ahora es la portada).
+- **El origen se fija antes de difundir** (corrección del crítico): la
+  carrera vive en el localStorage de `juventudlapampa.github.io`. Está
+  escrito en el GDD 13.5 y en la portada: si el juego se muda alguna vez
+  a otro dominio, el origen viejo tiene que quedar con una página puente
+  que ofrezca el código de carrera.
+- **GDD**: la cabecera (en vivo: portada, juego y modo retro; estado), 13.5
+  (las dos claves y el origen), 13.6 (el flag vive solo en el modo retro),
+  16.2 (decidido) y 16.4 (saldada: la carrera corre en el Master).
+  **PARA_MEDIOS**: el link es la raíz, sin el recuadro de provisorio, con
+  el directo a `phaser/` y el modo retro aparte, y el texto corto con la
+  raíz (231 caracteres). **README**: dónde se juega.
+
+**Cómo se verificó.**
+- `url_oficial.test.js` (47 asserts): la portada sin scripts, con JUGAR a
+  `phaser/`, el modo retro, instalar, medios y créditos, el viewport y el
+  cuerpo a 17 px; su peso; los MB iguales a los del juego; el código de
+  PARA_MEDIOS; su texto sin masculino genérico, "pibe" ni "pueblo"; los 9
+  pedidos de `clasico/index.html` resueltos desde su carpeta (los dos
+  scripts incluidos, el criterio de aceptación); el puente de ida y de
+  vuelta; `pampa_star_v1` (STORE) en el clásico; la portada corriendo con
+  un DOM de mentira (SEGUIR MI CARRERA, el aviso del retro, guardado
+  bloqueado sin errores, COPIAR); el GDD y PARA_MEDIOS.
+  `metadatos.test.js` suma la raíz. `pausa`, `portada`,
+  `migracion_nombres` y `nivel_carrera`, a la ruta nueva.
+- **En pantalla, un save viejo abre en /clasico/** (el criterio de
+  aceptación): ANTES de mudar, en la raíz de HEAD (el clásico), creé una
+  carrera con clics de verdad ("Retro L08", Toay, Jagüel Viejo); su
+  `pampa_star_v1` dio SHA-256 00aa2ba0fbe2deb5. Después de la mudanza,
+  `/clasico/` mostró ▶ CONTINUAR con "Retro L08 · Jagüel Viejo · Fecha 1 ·
+  Nivel 1", el save con el mismo SHA-256, la ilustración y el logo
+  cargados y 0 pedidos fallidos.
+- **La portada** a 375x812 (emulando Android): se entiende en la primera
+  pantalla, y ▶ SEGUIR MI CARRERA va en una línea (a 390 se partía en
+  dos: se arregló con `nowrap` y un tamaño que acompaña el ancho). Debajo,
+  el aviso del modo retro, los pasos, instalar, medios (COPIAR con un clic
+  de verdad: "✓ CÓDIGO COPIADO") y créditos (medido a 390: sin scroll horizontal). A
+  800x360 entra todo en la primera pantalla. Un toque de verdad en SEGUIR
+  MI CARRERA llevó a `/phaser/`.
+- **El puente, de punta a punta**: en `/clasico/?partido_phaser=1`, la
+  función del botón JUGAR FECHA (`lanzarPartidoPhaser`) fue a
+  `/phaser/index.html` con el pedido; el partido contra Alpataco FC
+  terminó 2-1 (`l08_8_final_puente.png`) y un clic de verdad en ▶
+  APLICAR Y VOLVER A LA CARRERA volvió a `/clasico/index.html`, con
+  "JAGÜEL VIEJO 2 - 1 ALPATACO FC" en la fecha 1 y la tabla con 3 puntos.
+
+### Cierre del lote L08-link
+
+**La versión** visible sube a `v17-1.0-l08` (index.html y sw.js, iguales).
+Visto en el editor: "versión v17-1.0-l08" (`l08_9_editor_version.png`); el
+worker nuevo instaló `pampa-codigo-v17-1.0-l08`, y en `pampa-assets` está
+`icon-512-maskable.png` con su huella. La tarjeta no (ver decisión 8).
+
+**Paso del deploy.** No hay que configurar nada: GitHub Pages publica la
+rama y la raíz pasa a ser la portada con el próximo push. Cuando se haga
+`sitio-solo-el-juego`, la lista blanca tiene que llevar `index.html` (la
+portada), `clasico/` (el modo retro y sus dos scripts) y
+`phaser/og-card.png`; `docs/og-card.html` es la receta y no se publica.
+
+### DECISIONES QUE TOMÉ YO (L08-link)
+
+1. **La marca del opening se escribe cuando el opening arranca**, no al
+   abrir la compuerta ni al saltear mientras baja: quien cerró la página
+   en la compuerta o salteó antes del primer plano no lo vio.
+   *Revertir:* llamar a `marcarOpeningVisto()` en `create()`.
+2. **La perilla `una_vez_por_aparato`** no la pedía el ítem: es la forma
+   de volver a "una vez por sesión" sin tocar código. *Revertir:* false.
+3. **`opening_una_vez.test.js` aparte**, y no dentro de
+   `transiciones.test.js` (el ítem lo listaba): ese test es de los
+   fundidos entre pantallas.
+4. **La canónica de `phaser/index.html` es ella misma**, no la raíz: quien
+   recibe el link del juego entra directo a jugar, y una canónica a la
+   portada le diría a las redes que el juego es una copia de ella.
+   *Revertir:* `canonical` y `og:url` a la raíz en `phaser/index.html` (y
+   la tabla de `metadatos.test.js`).
+5. **El maskable con el fondo de dos colores del ícono, y no #06120b
+   liso** (el ítem decía "fondo #06120b"): con el fondo liso, el pasto del
+   ícono quedaba como un rectángulo flotando y sus esquinas, a 283 px del
+   centro, afuera de la zona segura (el criterio pide "todo adentro de
+   205"). Con el cielo y el pasto a sangre, el recorte cae siempre sobre
+   cielo o pasto. *Revertir:* en `generarMaskable`, `fondo = M.cielo`
+   siempre (y el test va a marcar el pasto afuera).
+6. **La excepción 1d de la Sección 11** para el nombre de norma de las
+   etiquetas de tarjeta grande. Es un identificador de protocolo que no se
+   lee; **para que lo confirme Rodri**, como la del cartel de las redes.
+   *Revertir:* sacar esas cinco etiquetas de las dos páginas (las
+   vistas previas usan las og:) y el bloque 1d.
+7. **La tarjeta en PNG con paleta de 256 colores** (octree con tramado):
+   la cruda pesa 856 KB y el tope es 300. La paleta por corte medio
+   pesaba 257 KB pero pasaba la camiseta de amarillo a naranja. Un JPG
+   pesaría menos, pero el ítem pide PNG. *Revertir:* otra paleta con
+   `paleta.py` (en el paso de arriba) o un JPG (y el test).
+8. **La tarjeta NO va al PRECACHE** (el ítem decía sumarla): el juego no la
+   muestra nunca, la piden los servidores de las redes y no el teléfono, y
+   serían 185 KB más en la instalación de cada persona, con datos móviles.
+   *Revertir:* `"./og-card.png"` en el PRECACHE de sw.js, la regla de la
+   huella en `_huella.js` y `node phaser/test/sw_precache.test.js
+   --escribir`.
+9. **La receta de la tarjeta en `docs/og-card.html`**: queda en el repo
+   para rehacerla, y en `docs/` no se va a publicar.
+10. **Lo que dice la portada**: los tres pasos de la auditoría con una
+    línea cada uno, sin prometer lo que todavía no está ("Jugás para su
+    club", sin "tu gente": los planteles por localidad son otro ítem);
+    instalar sin nombres de navegadores (la Sección 11), con "el menú del
+    navegador" y el botón Compartir; créditos mínimos, sin nombres de
+    personas (eso lo decide el ítem `creditos` con Rodri), y la música
+    como decidió Rodri.
+11. **▶ SEGUIR MI CARRERA** en el mismo botón si hay carrera del juego
+    nuevo, y el aviso del MODO RETRO solo si hay carrera del clásico.
+    *Revertir:* las dos líneas del `try` en el script de la portada.
+12. **JUGAR va a `phaser/`** (la canónica), no a `phaser/index.html`: el
+    worker cae a su index.html igual en una navegación.
+13. **Los dos scripts del clásico se mudaron con él**, en vez de pedirlos
+    con `../`: la raíz queda solo con la portada, que es lo que va a
+    publicar la lista blanca.
+14. **El clásico cambia lo mínimo**: rutas, título, copete, el link a la
+    portada, canónica e ícono. Sus textos ("Pueblo: +2 Carácter", "CREÁ TU
+    CRACK") quedan como estaban: es el modo retro (va en las deudas).
+15. **La portada no tiene manifest ni worker**: el del juego tiene alcance
+    `phaser/`. Para instalar, la portada manda a abrir JUGAR y usar el
+    menú del navegador.
+16. **La versión sube a `v17-1.0-l08`**. *Revertir:* `v17-1.0-l07r` en
+    index.html y sw.js.
+
+### Lo que no se pudo ver en pantalla
+
+- **El link pegado en un mensaje o en un validador de Open Graph**: el
+  sitio no está publicado con estos cambios (no se hace push). Las
+  etiquetas se leyeron de la página y la tarjeta se dibujó con ellas, pero
+  falta verlo con el sitio publicado.
+- **El maskable en un lanzador de Android de verdad** (simulado con las
+  máscaras de círculo, gota y cuadrado redondeado).
+- **La aprobación de Rodri** de la tarjeta.
+- **En un teléfono de verdad**, la portada: el panel emula el ancho y el
+  user agent, no el teléfono.
+
+### Deudas que vi y no son de este lote
+
+- **El modo retro conserva sus textos de antes** ("Pueblo: +2 Carácter",
+  "CREÁ TU CRACK", "Cómo te grita la hinchada"): van con
+  `lenguaje-institucional`, si se decide que el retro también entra.
+- **El README** sigue nombrando Tsubasa, New Star, "Guts" y "Un pibe que
+  arranca…" (cambié solo "Jugar"): van con `seccion11-al-dia` y
+  `lenguaje-institucional`.
+- **`balance.intro.t_pueblo`** dice "En algún pueblo de La Pampa…" (es lo
+  primero del opening): `lenguaje-institucional`.
+- **El editor saca el nombre del save del clásico**: con la carrera de
+  prueba del modo retro, el editor decía "★ RETRO L08"
+  (`l08_9_editor_version.png`). Es lo que la auditoría pidió cortar ("que
+  el Master deje de depender de pampa_star_v1 para nombre y stats"):
+  `apodo-en-la-entrevista`.
+- **`/favicon.ico` sigue en 404** para quien lo pide directo (las dos
+  páginas ya declaran su ícono con `rel=icon`).
+- **La captura del panel** sale a media escala en una esquina después de
+  un `scrollTo` o de cambiar el tamaño: para las partes de abajo de la
+  portada navegué con `#retro` y `#medios`.
