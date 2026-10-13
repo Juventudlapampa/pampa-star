@@ -504,7 +504,11 @@ window.PampaAvatarArte = (function () {
   /* ══════════════════════════════════════════════════════════════════════
      L06 (trabas-cine) · EL TEÑIDO POR TAJADAS.
      Teñir una pose entera de una vez cuesta 26-71 ms en la compu (medido en
-     el navegador: el remate 25,8 ms, el festejo 70,8) y se hacía en el
+     el navegador: el remate 25,8 ms, el festejo 70,8; revisión de OJOS: ese
+     festejo era pose_festejo.webp, y el de ahora, pose_celebracion.webp,
+     tiene 3,2 veces los píxeles: entero 54-75 ms, y el último paso de las
+     bandas, el que sube la textura de 8 MB, 14-17; ver la _nota de
+     balance.rendimiento) y se hacía en el
      momento en que la pose entraba a escena. Esto lo hace antes, partido:
        1) se arma un lienzo aparte del tamaño de la fuente (sin el halo);
        2) por bandas (BANDA_PX, abajo): se dibuja ese pedazo de la fuente,

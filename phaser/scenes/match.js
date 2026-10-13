@@ -1578,7 +1578,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          en el cine, las pinturas de la cancha en fuga (14,3) y del arco
          (14,2) y el golpe de color (6);
        · el primer gol: teñir el festejo, 70,8 ms en pleno cine: un cuadro de
-         73 ms.
+         73 ms (con pose_festejo.webp; desde OJOS el festejo es
+         pose_celebracion.webp, 3,2 veces los píxeles: lo medido de nuevo
+         está en la _nota de balance.rendimiento).
      Todo eso se encola acá y lo hace la cola de cine_arte.js
      (PampaPrecalentar) en los ratos tranquilos, de a tajadas. Las listas
      están en balance.rendimiento (precalentar_*), con lo medido en la _nota:

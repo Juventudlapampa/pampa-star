@@ -329,7 +329,9 @@
      Lo que estaba mal, medido en el navegador con una pinta que no es la
      Original: lo pesado se hacía la PRIMERA vez que hacía falta, adentro del
      momento: teñir el festejo con tu pinta, 70,8 ms en pleno cine del gol (un
-     cuadro de 73 ms); teñir el remate, 25,8 ms en el toque de TIRO; los
+     cuadro de 73 ms; con pose_festejo.webp, el de entonces: desde OJOS el
+     festejo es un archivo con 3,2 veces los píxeles, medido de nuevo en la
+     _nota de balance.rendimiento); teñir el remate, 25,8 ms en el toque de TIRO; los
      retratos del duelo, 67 ms al abrir la cruz; las pinturas del arco y de
      la cancha en fuga, 14 ms cada una en el viaje de la pelota.
      Esta cola hace eso ANTES, en los ratos tranquilos, de a tajadas: cada
