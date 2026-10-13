@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAMPA STAR</title>
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PAMPA STAR · phaser/embed.html — LA PÁGINA LIVIANA PARA LOS MEDIOS
+     (tanda 1.0, L07 · portada-vertical-y-embebido). La que va en el iframe
+     de docs/PARA_MEDIOS.md.
+
+     Por qué existe además del póster de index.html: index.html adentro de
+     un iframe ya muestra el póster y no crea el juego, pero igual baja sus
+     scripts y sus JSON (medido en carga_liviana.test.js: 0,75 MB de scripts
+     y 0,19 de datos, en gzip) a cada persona que lee la nota y pasa por
+     encima, con datos prepagos. Esta página baja la ilustración de fondo,
+     el logo y logic/entorno.js (unos 160 KB en total) y nada más:
+       · si el recuadro alcanza para jugar (logic/entorno.js, modoEmbebido:
+         apaisado y de 640 px con el mouse u 820 con el dedo), se cambia
+         sola por index.html?embed=1 y se juega adentro;
+       · si no, queda el PÓSTER con ▶ JUGAR EN PANTALLA COMPLETA, que abre el
+         juego en una pestaña nueva (?ref=embed: de dónde vino, sin ningún
+         dato de quien juega);
+       · abierta fuera de un iframe, va directo al juego.
+     Sin tipografías del juego a propósito (la de texto pesa 79 KB): el
+     nombre lo lleva el logo.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<style>
+  html,body{margin:0;height:100%;background:#06120b;overflow:hidden;color:#f6efdc;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent;}
+  #poster{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+    background:#06120b url('../assets/ui/portada.webp') 68% 50%/cover no-repeat;text-align:center;padding:16px;box-sizing:border-box;}
+  #poster::before{content:"";position:absolute;inset:0;z-index:-1;background:rgba(6,18,11,.28);}
+  .ps-logo{display:block;width:auto;height:auto;max-width:min(60vw,300px);max-height:34vh;}
+  .ps-caja{display:flex;flex-direction:column;align-items:center;gap:10px;max-width:30em;
+    background:rgba(6,18,11,.84);border:2px solid rgba(246,239,220,.25);border-radius:12px;padding:12px 14px;box-sizing:border-box;}
+  p{margin:0;font-size:16px;line-height:1.35;}
+  .ps-nota{font-size:14px;color:#9FB3A5;}
+  a.ps-jugar{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:8px 18px;box-sizing:border-box;
+    font-size:18px;font-weight:bold;text-decoration:none;color:#0A1F13;background:#7EE08A;border:3px solid #06120b;border-radius:10px;box-shadow:0 4px 0 #06120b;}
+  a.ps-jugar:focus-visible{outline:3px solid #FFD84D;outline-offset:3px;}
+  @media (max-height:420px){ #poster{gap:8px;} .ps-logo{max-height:28vh;} p{font-size:15px;} }
+  /* un 16:9 en la columna de un teléfono mide 334x188 (visto en captura: el
+     logo y la nota quedaban cortados): se achica todo y la nota se va */
+  @media (max-height:300px){
+    #poster{gap:6px;padding:8px;} .ps-logo{max-height:24vh;} .ps-caja{gap:6px;padding:8px 10px;}
+    p{font-size:13px;} .ps-nota{display:none;} a.ps-jugar{min-height:44px;font-size:15px;padding:6px 14px;white-space:nowrap;}
+  }
+</style>
+</head>
+<body>
+  <div id="poster" role="region" aria-label="PAMPA STAR">
+    <img class="ps-logo" src="../assets/ui/pampa-star-logo.webp" alt="PAMPA STAR" width="2400" height="2200">
+    <div class="ps-caja">
+      <p>Fútbol pampeano jugada por jugada: armás tu pinta, elegís tu localidad y jugás tu carrera del potrero al Mundial.</p>
+      <a id="ps-jugar" class="ps-jugar" href="./index.html?ref=embed" target="_blank" rel="noopener">▶ JUGAR EN PANTALLA COMPLETA</a>
+      <p class="ps-nota">Se abre en una pestaña nueva: ahí tu carrera queda guardada.</p>
+    </div>
+  </div>
+  <script src="logic/entorno.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    var E = window.PampaEntorno;
+    var enIframe = true;
+    try { enIframe = window.self !== window.top; } catch (e) { enIframe = true; }
+    /* abierta sola (no en un iframe): directo al juego */
+    if (!enIframe) { location.replace("./index.html?ref=embed"); return; }
+    function tactil() { try { return !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches); } catch (e) { return false; } }
+    var hecho = false;
+    function mirar() {
+      if (hecho || !E || !E.modoEmbebido) return;
+      if (E.modoEmbebido({ ancho: window.innerWidth, alto: window.innerHeight, tactil: tactil() }) === "adentro") {
+        hecho = true;
+        location.replace("./index.html?embed=1");
+      }
+    }
+    mirar();
+    window.addEventListener("resize", mirar);
+  })();
+  </script>
+</body>
+</html>
