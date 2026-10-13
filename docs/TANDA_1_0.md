@@ -4768,3 +4768,286 @@ con sus cachés).
 - **`presupuesto_texturas.test.js` no cuenta las texturas teñidas**: el
   cambio de archivo del festejo (5,5 MB más, teñida) no lo vio ningún
   test.
+
+---
+
+## Ola 3 · Que se lea, se toque, cuide a quien juega y sea solo carrera — lote L08c-deudas
+
+Un ítem, `deudas-ola2`: las cinco deudas que los lotes L04b a L08 vieron,
+midieron y anotaron porque no eran suyas. Las cinco quedaron hechas, cada
+una en su commit: la traba de las vestidas al empezar el partido, la mano
+de cartas en la pantalla final, el test de la red lenta que fallaba al
+azar, el `/favicon.ico` y el INSTALAR apaisado. Las pruebas están en
+`phaser/test/deudas_ola2.test.js` ([1], [2], [4] y [5]) y en
+`red_lenta.test.js` [g] (la [3]).
+
+**Cómo se probó en pantalla.** En el navegador integrado, mudo (el arnés
+del oído) y con el reloj virtual. El save de Rodri vive en
+`localhost:8123`: ahí solo corrí partidos sueltos (que no escriben en la
+carrera) y comparé las cuatro claves de localStorage contra una copia del
+principio (`.claude/shots/l08c_ls_antes.json`): terminaron iguales, byte a
+byte. Todo lo del Master lo hice en `127.0.0.1:8123`, otro origen, que
+estaba vacío, con una carrera de prueba nueva (Winifreda, Primera B); al
+terminar lo dejé vacío otra vez. Los dos orígenes quedaron sin worker y
+sin cachés. Las capturas son del lienzo (`renderer.snapshot`, ayudante en
+`.claude/l08c_ayuda.js`) y van en `.claude/shots/l08c_*`. **El cuadro más
+largo** se midió envolviendo `game.loop.step` con el reloj de verdad
+(`performance.now`), paso por paso, durante 3,5 s del reloj del juego
+desde que el partido terminó su create.
+
+### deudas-ola2 · 1. la traba al empezar el partido: las vestidas, antes y en un hilo aparte
+
+**Qué estaba mal (medido).** `pose_bloqueo` y `pose_barrida` están
+dibujadas con el kit del rival; cuando las usa alguien de tu equipo,
+`logic/vestir.js` las viste con tu camiseta. Eso pasaba en el create del
+partido, en dos `delayedCall` (900 y 1700 ms), y `vestir()` es de una sola
+pieza. Medido en el navegador con el código de la base (9668ffa): los dos
+cuadros más largos de los primeros 3,5 s del partido eran 382 y 313 ms,
+separados por 800 ms (los dos `delayedCall`). En node, `vestir()` tarda
+120-240 ms por pose (799x900 y 900x683). Hasta ahora caían detrás del
+menú de tempo; con TEMPO-1 ese menú se va y la traba quedaba en pleno
+arranque.
+
+**Qué se hizo.**
+- `logic/vestir.js`: `claveVestida`, `destinoDelLook` y `paresAVestir`,
+  para que quien prepara y quien usa calculen igual la clave
+  (`poseE_<pose>_<hex>`) y el color (el celeste del equipo, o tu camiseta
+  del editor si elegiste una).
+- `logic/vestir_obrero.js` (nuevo): un Worker que carga `vestir.js` con
+  `importScripts` y corre la MISMA función, sin cambiarle nada; recibe los
+  píxeles y los devuelve transferidos (sin copia).
+- `scenes/vestidas_ui.js` (nuevo, `window.PampaVestidas`): la cola del
+  juego. En el hilo de la página solo se leen los píxeles de la pose
+  (`drawImage` + `getImageData`) y se pone el resultado como textura del
+  juego, que sobrevive al cambio de escena. De a una. Si no hay Worker, o
+  falla, o no contesta en `balance.vestidas.obrero_tope_ms`, la tabla las
+  viste en este hilo con `hilo_espera_ms` de aire entre una y otra; el
+  partido no viste nada en su arranque. El error del Worker se ataja: no
+  llega a la red de errores como "Algo se trabó".
+- `scenes/master.js`: la tabla, `espera_tabla_ms` (700) después de
+  dibujarse, baja las dos poses si faltan (el partido las iba a bajar
+  igual) y las pide con los colores del partido (`prepararVestidas`,
+  `colorDeTuCamiseta`). Una vez por entrada; se reinicia en `init()` (P1).
+- `scenes/match.js` y `scenes/cine_arte.js`: el create ya no viste;
+  `pedirVestidas` las vuelve a pedir **solo al hilo aparte**, por si se
+  entró sin pasar por la tabla. `poseDelEquipo` usa la que ya está; si al
+  usarla todavía falta, la viste en el acto como antes (decisión 2).
+- `balance.vestidas` con su `_nota`; `index.html` carga `vestidas_ui.js`
+  (el cartel de carga cuenta 55 scripts) y el renglón de `?perf=1` dice
+  "vestidas: N en el hilo aparte · N en este (máx X ms)"; el PRECACHE de
+  `sw.js` suma los dos archivos nuevos.
+
+**Cómo se verificó.**
+- `deudas_ola2.test.js` [1]: la clave y el color con los manifiestos de
+  verdad; el obrero corriendo en node da exactamente lo mismo que
+  `vestir()` y transfiere; la cola con un Worker de mentira (que corre ese
+  obrero) deja las dos texturas sin que el hilo de la página llame a
+  `vestir()` ni una vez; sin Worker, lo que pide el partido no se viste y
+  la tabla viste de a una con 400 ms de aire; un Worker que falla al
+  cargar (el `preventDefault` del error) o que no contesta (el tope de
+  15 s) no rompe nada y la tabla sigue en su hilo; `poseDelEquipo`,
+  `pedirVestidas` y `prepararVestidas` de verdad (las dos poses, los dos
+  colores, una vez por entrada, P1). Contra el `match.js` de antes falla
+  con el síntoma.
+- **En pantalla, medido** (la compu, mudo):
+
+  | caso | cuadro más largo, primeros 3,5 s del partido | vestidas |
+  |---|---|---|
+  | antes (9668ffa), partido directo | **382 ms** (y 313) | en el hilo del juego |
+  | después, partido directo (sin la tabla) | **71 ms** | 2 en el hilo aparte (323 y 245 ms allá; acá 5 ms al leer y 4 al poner) |
+  | después, por la tabla del Master | **60 ms** | ya estaban; la tabla no pasó de **24 ms** mientras se vestían |
+  | después, sin Worker (`obrero: false`) | **71 ms** | 2 en la tabla, en su hilo (308 y 260 ms, quieta) |
+
+  Los 60-71 ms que quedan no son las vestidas: son el trabajo de una pieza
+  más grande de la cola de precalentamiento de L06 (`atomicoMax` 55,6 ms),
+  que ya estaba (67 y 74 ms en la base) y que corre en el menú de tempo.
+- Con el service worker de la versión nueva controlando la página, el
+  Worker se pidió por él y vistió igual; `pampa-codigo-v17-1.0-l08c`
+  quedó con `vestidas_ui.js` y `vestir_obrero.js`. Con una camiseta
+  elegida (Bordó salitral) la tabla preparó las cuatro.
+- Capturas: la original al lado de las dos vestidas por el Worker
+  (`l08c_1_vestidas_lado_a_lado.png`: celeste lisa, sin rayas, la piel
+  intacta), las de tu camiseta (`l08c_1_vestidas_tu_camiseta.png`) y tu
+  barrida en el panel del partido, puesta en 0,2 ms
+  (`l08c_1_partido_barrida_tuya_vestida.png`).
+
+### deudas-ola2 · 2. la mano de cartas no queda en la pantalla final
+
+**Qué estaba mal.** "◆ FOGONAZO ◆ PUÑALADA" (`txtMano`, debajo de las
+fichas) seguía arriba a la izquierda en GANASTE
+(`l04b_1_final_master_4s.png`): `pantallaFinal()` apagaba las fichas del
+jugadón pero no la mano, que entró al HUD después. Y si la mano nacía
+recién después del pitazo, nacía prendida.
+
+**Qué se hizo.** `txtMano` entra a la lista de lo que apaga
+`pantallaFinal()`, y `refrescarHUD()` no escribe ni crea la mano con el
+partido terminado (`_finalApagado`).
+
+**Cómo se verificó.** `deudas_ola2.test.js` [2] corre `finDelPartido()` y
+`refrescarHUD()` de verdad: control en LIBRE (la mano se ve), 30 cuadros
+en FINAL sin ella, y una mano que aparece después del pitazo no se dibuja;
+contra el `match.js` de antes, 4 de 6 fallan con el síntoma. En pantalla:
+la mano a la vista en el partido (`l08c_2_libre_con_mano.png`) y GANASTE
+sin ella (`l08c_2_final_sin_mano.png`, y otra vez con todo el lote junto,
+`l08c_f_final.png`).
+
+### deudas-ola2 · 3. red_lenta.test.js deja de fallar al azar
+
+**Qué estaba mal (medido).** "SÍNTOMA DE LA CACHÉ CONTAMINADA" salía de vez
+en cuando con la máquina ocupada. Lo reproduje: 5 de 60 corridas con 12 a
+la vez, y 25 de 30 seguidas con 6 procesos ocupando la máquina, con tres
+síntomas distintos ([f] CACHÉ CONTAMINADA, [d] LINK COMPARTIDO en 0 y un
+`TypeError` leyendo `.buf`). No era el worker ni el reloj: instalando el worker
+cientos de veces bajo carga (un script aparte), la instalación de base fallaba
+con **"Response body is already used"** en las 9 respuestas de assets a la
+vez, y [d] y [f] no miraban si se había instalado. La causa es de node 22
+(undici 6.21.2): `Response.clone()` registra el clon en un
+`FinalizationRegistry` que, cuando el GC se lleva al clon, **cancela el
+cuerpo del original**. `huellaDe()` y `leerVersion()` clonan y después se
+guarda el original: si el GC pasaba en el medio, el original llegaba
+cancelado. Probado con el GC a mano: después del GC el original da
+`bodyUsed: true` y no se puede leer. Los navegadores no hacen eso: el
+`sw.js` está bien.
+
+**Qué se hizo.** En `_sw_de_mentira.js`, las respuestas de ese mundo (la
+red, la caché y las que arma `sw.js` con `new Response`) clonan desde sus
+propios bytes, sin tee, y el SHA-256 del worker se hace con el hash de
+node en el acto (sin el pool de hilos, que dependía del tiempo de verdad).
+`red_lenta.test.js` [g] fuerza el GC antes de cada guardado de tres
+instalaciones, y cada mundo de [c] a [f] dice si se instaló, con el motivo
+si no. `sw.js` no se tocó.
+
+**Cómo se verificó.** Con la `Response` de node
+(`PAMPA_RESPUESTA_NODE=1`), [g] tumba las tres instalaciones con el
+síntoma; con la del mundo, ninguna. `red_lenta.test.js`: **30 de 30
+seguidas con la máquina ocupada** (antes 25 de 30) y 60 de 60 con 12 a la
+vez (antes 55 de 60). `cache_versiones` y `aviso_version`, que usan el
+mismo mundo, 30 de 30 cada uno. Es lógica de test: no hay nada que ver en
+pantalla.
+
+### deudas-ola2 · 4. /favicon.ico
+
+**Qué estaba mal.** `/favicon.ico` daba 404 (curl del 12/oct). Las páginas
+declaran su ícono con `rel=icon`, pero quien lo pide directo (un lector de
+links, la barra de favoritos de algunos navegadores) no recibía nada.
+
+**Qué se hizo.** `favicon.ico` NUEVO en la raíz del repo, derivado de
+`phaser/icon-512.png` con Pillow: 16, 32 y 48 px, PNG con transparencia
+adentro del ICO, 5 KB. Los íconos de origen no se tocaron (mismo SHA-256).
+`server.js` lo sirve como `image/x-icon`, como el hosting.
+
+**Cómo se verificó.** `deudas_ola2.test.js` [4] lee el ICO (encabezado,
+tres medidas, cada imagen PNG entera), las huellas de los dos íconos, que
+git no lo ignora y el tipo en `server.js`. En el navegador, un `server.js`
+nuevo en otro puerto dio 200 `image/x-icon` y la pestaña mostró
+"favicon.ico (48×48)" con el sol y la pelota; el de siempre (8123), 200.
+Las tres medidas las miré ampliadas.
+
+### deudas-ola2 · 5. INSTALAR también apaisado
+
+**Qué estaba mal.** 📲 INSTALAR vivía solo en la portada vertical de
+`index.html`: quien abría el juego apaisado (casi todos: se juega así) no
+lo veía; le quedaba el aviso propio del navegador.
+
+**Qué se hizo.**
+- `index.html`: el diálogo se abre con `PampaPortada.instalar()` (da
+  "dialogo", "pasos", "menu" o "nada"; el botón de la portada lo usa), y
+  quien quiere enterarse de si se ofrece se anota con
+  `alCambiarInstalar(fn)`. Instalada, un evento que llegue después ya no
+  lo ofrece.
+- `master.js`: "📲 instalar el juego" es el tercer acceso de abajo de la
+  tabla, en el medio, entre la salida y el código, creado antes que JUGAR
+  y EDITOR (en el borde que comparten con el piso táctil, gana el botón,
+  como con los otros dos). Aparece solo cuando el navegador lo ofrece,
+  aunque el evento llegue con la tabla abierta, y se va al usarse. Abre al
+  **soltar** el dedo, que es cuando el navegador da el gesto. Si el
+  diálogo no abre, una caja con los pasos del menú del navegador. La
+  anotación se suelta al destruirse el texto y en `init()` (P1).
+
+**Cómo se verificó.** `deudas_ola2.test.js` [5] corre `vistaTemporada()`
+de verdad (escondido sin el evento, aparece al llegar, abre al soltar y no
+al apoyar, se va al usarse, no pisa a los otros accesos, va antes que los
+botones, también en NUEVA TEMPORADA, la caja del menú, `init` suelta la
+anotación); `portada.test.js` [4c] prueba `instalar()` y
+`alCambiarInstalar()` con la portada de verdad. En pantalla, apaisado a
+800x360: la tabla sin el acceso (`l08c_5_tabla_sin_evento.png`); con un
+`beforeinstallprompt` sintético, como en L07, aparece abajo al medio
+(`l08c_5_tabla_con_evento.png`); un clic de verdad sobre el lienzo abrió
+el diálogo una vez y, contestado, el acceso se fue
+(`l08c_5_tabla_despues_del_dialogo.png`); con un `prompt()` que tira,
+apareció la caja con los pasos del menú. En vertical (390x844) el botón de
+la portada sigue abriendo el diálogo.
+
+### Decisiones que tomé yo (L08c)
+
+1. **Un Worker para vestir, además de mudarlo a la tabla.** El ítem pedía
+   mudar el trabajo a un momento quieto del Master. Mudado tal cual, en un
+   teléfono de gama baja serían de dos a cuatro bloqueos de casi un
+   segundo cada uno en la tabla, justo cuando se toca JUGAR LA FECHA.
+   Con el Worker no se traba nada en ningún lado y la función es la misma,
+   sin cambiarle una línea. *Revertir:* `balance.vestidas.obrero: false`
+   (la tabla las viste en su hilo, de a una, que es lo que pedía el ítem).
+2. **Si al usarla falta, se viste en el acto.** El ítem dice que el
+   partido "solo las use si ya están". Si no están, la alternativa era
+   mostrar a un defensor tuyo con las rayas naranjas del rival, que es la
+   marca que NO depende del color (GDD §10.5): confunde justo a quien
+   distingue por forma. No debería pasar (el primer bloqueo llega mucho
+   después de que vuelve el Worker). *Revertir:* en
+   `cine_arte.poseDelEquipo`, devolver `src` en vez de `vestirYa`.
+3. **El partido también las pide, solo al Worker.** Por si se entra sin
+   pasar por la tabla (hoy, el arnés; mañana, cualquier camino nuevo).
+   *Revertir:* sacar la llamada a `pedirVestidas` del create.
+4. **La tabla baja `pose_bloqueo` y `pose_barrida`** (176 KB) antes de lo
+   que las bajaba el partido. Son los mismos bytes, antes. *Revertir:*
+   que `prepararVestidas` las pida solo si ya están cargadas.
+5. **La clave va con el hex en minúscula.** "Celeste titular" (#4FC3F7) y
+   el celeste del equipo (#4fc3f7) eran dos texturas iguales vestidas dos
+   veces. *Revertir:* sacar el `toLowerCase` de `claveVestida`.
+6. **La red lenta se arregló en el mundo de mentira, no en `sw.js`.** El
+   GC que cancela al original es de node; en un navegador no pasa, y
+   cambiar el worker por eso sería tocar código que anda. *Revertir:*
+   `PAMPA_RESPUESTA_NODE=1` corre con la `Response` de node (y vuelve a
+   fallar al azar).
+7. **El favicon va en la raíz del repo**, que en el sitio publicado es la
+   carpeta del juego (`…/pampa-star/favicon.ico`). La raíz del ORIGEN
+   (`juventudlapampa.github.io/favicon.ico`) es de otro repo (el sitio de
+   la cuenta), al que no llego desde acá: ver pendientes. *Revertir:*
+   borrar `favicon.ico`.
+8. **INSTALAR va en la tabla, no en la pausa, y solo con "prompt".** La
+   pausa es del partido (no es momento de mandar a instalar) y la tabla es
+   la pantalla quieta a la que se vuelve cada fecha. En iPhone no hay
+   diálogo: los pasos siguen en la portada vertical. *Revertir:* sacar
+   las dos llamadas a `accesoAInstalar` de `vistaTemporada`.
+9. **Esperas de la tabla: 700 ms** (la entrada desde negro dura 240) y,
+   sin Worker, 400 ms entre vestida y vestida. Son de la compu; en
+   `balance.vestidas`.
+10. **La versión sube a `v17-1.0-l08c`** (index.html y sw.js, iguales).
+    *Revertir:* `v17-1.0-l08br`.
+
+### Pendiente (deudas-ola2)
+
+- **Medirlo en un teléfono de gama baja.** No tengo uno. Con el juego
+  publicado: abrir `…/phaser/?perf=1`, entrar a la tabla, esperar dos
+  segundos y leer el renglón "vestidas: …" (tienen que ser 2 o 4 en el
+  hilo aparte y 0 en este); después JUGAR LA FECHA y mirar "CUADRO máx
+  10 s" en los primeros segundos del partido.
+- **El favicon de la raíz del origen** (`juventudlapampa.github.io/
+  favicon.ico`) depende del repo del sitio de la cuenta, si existe: no lo
+  hace un agente. El del juego (`…/pampa-star/favicon.ico`) queda servido
+  con el próximo deploy.
+
+### Deudas que vi y no son de este lote
+
+- **La cola de precalentamiento de L06 también vive en el menú de tempo.**
+  Sus trabajos de una pieza (el más largo, 55,6 ms medido) corren solo en
+  los "menús quietos" (tempo, pausa, tutorial). Con TEMPO-1 el menú de
+  tempo se va: o esperan a una pausa o llegan tarde a su primer uso. Va
+  con TEMPO-1 (la tabla del Master puede ser su lugar, como acá).
+- **"(⋮)" en los pasos del menú** (`PampaPortada.textoMenu`, de L07) se ve
+  como "(:)" en la tipografía de la caja: la decisión del estudio de que
+  ninguna información viaje en glifos que no están en las tipografías del
+  juego. Acá la información va en las palabras, pero el glifo sale mal.
+- **Para probar el service worker en el arnés**: `register()` sobre una
+  registración dada de baja mientras la página seguía controlada la
+  revive con el worker VIEJO (salió uno de L07 con su caché vacía). No es
+  del juego; hay que pedir `reg.update()` o recargar sin control antes.
