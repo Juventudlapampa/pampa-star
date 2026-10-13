@@ -27,7 +27,9 @@
          iframe sin permiso) y al entrar traba la orientación en horizontal,
          con el rechazo de lock() atrapado;
      [4] el parche de Phaser: un requestFullscreen que el navegador rechaza
-         termina en FULLSCREEN_FAILED, sin rechazos sueltos;
+         termina en FULLSCREEN_FAILED, sin rechazos sueltos; (revisión L07)
+         con requestFullscreen sin prefijo y la constante vieja de WebKit
+         (Safari), van las opciones y no el número;
      [5] el botón PANTALLA: no existe sin API ni instalada, pide AL SOLTAR,
          cambia de texto y de ícono, y en el partido se esconde adentro;
      [5b] (revisión L07) en el partido, pegado al reloj MÁS ANCHO medido
@@ -115,8 +117,11 @@ function navegador(op) {
   var html = { requestFullscreen: function (o) {
     registro.pedidos.push(o);
     if (op.rechaza) return Promise.reject(new TypeError("Permissions check failed"));
+    /* revisión L07: el sin prefijo pide un FullscreenOptions (WebIDL): un
+       número es un TypeError, que con una promesa llega como rechazo */
+    if (o !== undefined && o !== null && typeof o !== "object") return Promise.reject(new TypeError("The provided value is not of type 'FullscreenOptions'."));
     return Promise.resolve();
-  } };
+  }, webkitRequestFullscreen: function (o) { registro.pedidos.push(o); return undefined; } };
   var win = {
     matchMedia: function (q) {
       return { matches: /pointer: coarse/.test(q) ? !!op.tactil : /standalone/.test(q) ? !!op.instalada : false };
@@ -125,7 +130,7 @@ function navegador(op) {
     PF: { texto: "Pixelify Sans" }
   };
   /* el ScaleManager de Phaser con lo que usa el parche (y el original, para comparar) */
-  function SM() { Emisor.call(this); this.fullscreen = { available: op.api !== false, request: "requestFullscreen", cancel: "exitFullscreen", keyboard: false }; this.fullscreenTarget = html; }
+  function SM() { Emisor.call(this); this.fullscreen = { available: op.api !== false, request: op.request || "requestFullscreen", cancel: "exitFullscreen", keyboard: !!op.teclado }; this.fullscreenTarget = html; }
   SM.prototype = Object.create(Emisor.prototype);
   SM.prototype.getFullscreenTarget = function () { return this.fullscreenTarget; };
   SM.prototype.fullscreenErrorHandler = function (e) { this.emit(EV.FULLSCREEN_FAILED, e); };
@@ -139,7 +144,8 @@ function navegador(op) {
   };
   var Phaser = { Scale: { ScaleManager: SM, Events: EV }, Geom: { Rectangle: function (x, y, w, h) { this.x = x; this.y = y; this.width = w; this.height = h; this.setTo = function (a, b, c, d) { this.x = a; this.y = b; this.width = c; this.height = d; return this; }; } } };
   Phaser.Geom.Rectangle.Contains = function () { return true; };
-  var ctx = { window: win, document: doc, Phaser: Phaser, Element: {}, Promise: Promise, Math: Math, console: console };
+  /* teclado: el navegador tiene la constante vieja de WebKit (Safari), y la detección del vendor pone keyboard = true */
+  var ctx = { window: win, document: doc, Phaser: Phaser, Element: op.teclado ? { ALLOW_KEYBOARD_INPUT: 1 } : {}, Promise: Promise, Math: Math, console: console };
   win.Phaser = Phaser;
   vm.createContext(ctx);
   vm.runInContext(leer("phaser/scenes/pantalla_ui.js"), ctx, { filename: "pantalla_ui.js" });
@@ -231,7 +237,20 @@ pasos.push(async function () {
   sueltos.length = antes;
   assert(/SM\.__pampaPantalla = true/.test(PUI) && /p\.then\(null, function \(e\) \{ sm\.fullscreenErrorHandler\(e\); \}\)/.test(PUI),
     "el parche se aplica una vez y atrapa la promesa con el manejador de error de Phaser");
-  console.log("[4] el parche: un no del navegador es FULLSCREEN_FAILED, no 'Algo se trabó'");
+  /* revisión L07 · Safari (Mac, iPad): requestFullscreen SIN prefijo y Element.ALLOW_KEYBOARD_INPUT
+     a la vez. La rama "keyboard" de Phaser le pasaba el número y el pedido fallaba SIEMPRE */
+  var NS = navegador({ tactil: true, teclado: true });
+  var sS = escena(NS), fallasS = 0;
+  sS.scale.on(EV.FULLSCREEN_FAILED, function () { fallasS++; });
+  sS.pantallaCompleta("boton");
+  await esperar(); await esperar();
+  assert(NS.registro.pedidos.length === 1 && typeof NS.registro.pedidos[0] === "object" && NS.registro.pedidos[0].navigationUI === "hide",
+    "SÍNTOMA: Safari con requestFullscreen sin prefijo recibe las opciones, no el número de ALLOW_KEYBOARD_INPUT (" + JSON.stringify(NS.registro.pedidos[0]) + ")");
+  assert(fallasS === 0, "y el pedido no falla (" + fallasS + " FULLSCREEN_FAILED)");
+  var NW = navegador({ tactil: true, teclado: true, request: "webkitRequestFullscreen" });
+  escena(NW).pantallaCompleta("boton");
+  assert(NW.registro.pedidos.length === 1 && NW.registro.pedidos[0] === 1, "con el pedido viejo con prefijo, sí va ALLOW_KEYBOARD_INPUT (el WebKit de antes lo espera)");
+  console.log("[4] el parche: un no del navegador es FULLSCREEN_FAILED, no 'Algo se trabó'; en Safari, las opciones y no el número");
 });
 
 /* ---------- [5] el botón ---------- */

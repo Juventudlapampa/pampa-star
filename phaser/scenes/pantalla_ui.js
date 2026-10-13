@@ -47,8 +47,18 @@
       if (!fs || !fs.available) { this.emit(Phaser.Scale.Events.FULLSCREEN_UNSUPPORTED); return false; }
       if (document.fullscreenElement || document.webkitFullscreenElement) return false;
       var blanco = this.getFullscreenTarget(), p;
+      /* revisión L07 · LA RAMA "keyboard" DE PHASER, SOLO CON PREFIJO. La
+         detección del vendor elige "requestFullscreen" primero y pone
+         keyboard = true si existe Element.ALLOW_KEYBOARD_INPUT (la
+         constante vieja de WebKit). Con requestFullscreen SIN prefijo
+         (Safari desde la 16.4, en Mac y en iPad), pasar ese número donde va
+         un FullscreenOptions es un TypeError por WebIDL: la promesa se
+         rechaza, termina en FULLSCREEN_FAILED y el botón PANTALLA queda
+         muerto. El número es del pedido viejo (webkitRequestFullScreen);
+         al sin prefijo van las opciones. A confirmar en un iPad. */
+      var conTeclado = fs.keyboard && fs.request !== "requestFullscreen";
       try {
-        p = fs.keyboard ? blanco[fs.request](Element.ALLOW_KEYBOARD_INPUT) : blanco[fs.request](opciones);
+        p = conTeclado ? blanco[fs.request](Element.ALLOW_KEYBOARD_INPUT) : blanco[fs.request](opciones);
       } catch (e) { this.fullscreenErrorHandler(e); return false; }
       if (p && typeof p.then === "function") p.then(null, function (e) { sm.fullscreenErrorHandler(e); });
       return true;
