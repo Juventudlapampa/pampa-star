@@ -809,6 +809,8 @@
   window.PampaHaloEnganchar = function (game) {
     var HA = window.PampaHalo;
     if (!HA || !game || !game.textures) return;
+    /* L06: el mismo gancho achica en memoria lo que se ve chico y cuenta lo
+       que ocupa todo (ver "EL TOPE DE LADO EN MEMORIA", abajo) */
     /* estado por clave: 1 = en la cola, 2 = mirada */
     var estado = {}, cola = [], programado = false;
     var stats = { miradas: 0, limpiadas: 0, px: 0, ms: 0, claves: [] };
@@ -863,12 +865,81 @@
       programado = true;
       if (canal) canal.port2.postMessage(0); else setTimeout(tanda, 0);
     }
+    /* ══════════════════════════════════════════════════════════════════
+       L06 (texturas-presupuesto) · EL TOPE DE LADO EN MEMORIA.
+       Lo decide logic/memoria.js con balance.arte; acá se hace. Tiene que
+       ser EN EL ACTO, dentro del mismo aviso de "textura nueva": el create
+       que viene después ya ve la achicada y escala por su alto. Achicar
+       después (en la cola del halo) dejaría sprites apuntando a una textura
+       destruida. Solo las que vienen de un ARCHIVO (HTMLImageElement): las
+       que dibuja el código (el espejo de la tribuna, las pinturas del cine)
+       son lienzos que alguien está por pintar, y reemplazarlas las dejaría
+       en blanco. La textura grande se saca (y con ella su lugar en la placa
+       de video) y entra un lienzo con la medida nueva, con la misma clave;
+       la medida original queda en customData.ladoOriginal. */
+    var MEM = window.PampaMemoria;
+    var ARTE = ((game.registry && game.registry.get("balance")) || {}).arte || null;
+    var topando = {};
+    stats.topadas = 0; stats.mbAhorrados = 0;
+    function topar(key) {
+      if (!MEM || topando[key] || typeof document === "undefined") return false;
+      var tex = game.textures.exists(key) ? game.textures.get(key) : null;
+      var fuente = tex && tex.source && tex.source[0];
+      var src = fuente && fuente.image;
+      if (!src || !src.width || typeof HTMLImageElement === "undefined" || !(src instanceof HTMLImageElement)) return false;
+      var m = MEM.medidaConTope(key, src.width, src.height, ARTE || MEM.DEF);
+      if (!m) return false;
+      var cv = document.createElement("canvas");
+      cv.width = m.w; cv.height = m.h;
+      var c = cv.getContext("2d");
+      c.imageSmoothingEnabled = true;
+      try { c.imageSmoothingQuality = "high"; } catch (e) { }
+      c.drawImage(src, 0, 0, m.w, m.h);
+      var w0 = src.width, h0 = src.height;
+      topando[key] = true;
+      try {
+        game.textures.remove(key);
+        var nueva = game.textures.addCanvas(key, cv);
+        if (nueva && nueva.customData) nueva.customData.ladoOriginal = { w: w0, h: h0 };
+        stats.topadas++;
+        stats.mbAhorrados += MEM.mb(w0, h0) - MEM.mb(m.w, m.h);
+      } catch (e) {
+        console.error("[tope] " + key + ": " + (e && e.message));
+      } finally {
+        delete topando[key];
+      }
+      return true;
+    }
+    /* ══════════════════════════════════════════════════════════════════
+       L06 · CUÁNTO OCUPAN: window.__PAMPA_TEX = { n, mb } (se ve con
+       ?perf=1). Cuenta todo lo que hay en el administrador de texturas
+       (archivos, lienzos del código, teñidos), menos las tres internas de
+       Phaser, sumando ancho × alto × 4 de cada fuente. */
+    var TEX = window.__PAMPA_TEX = { n: 0, mb: 0 };
+    function contar() {
+      var lista = [];
+      try {
+        var L = game.textures.list;
+        Object.keys(L).forEach(function (k) {
+          if (k === "__DEFAULT" || k === "__MISSING" || k === "__WHITE" || k === "__NORMAL") return;
+          (L[k].source || []).forEach(function (s) { lista.push({ w: s.width, h: s.height }); });
+        });
+      } catch (e) { }
+      var r = MEM ? MEM.resumen(lista) : { n: lista.length, mb: 0 };
+      TEX.n = r.n; TEX.mb = r.mb;
+      if (window.__PAMPA_RED_PINTAR) { try { window.__PAMPA_RED_PINTAR(); } catch (e) { } }
+      return TEX;
+    }
+    window.PampaContarTexturas = contar;
     game.textures.on("addtexture", function (key) {
+      if (topar(key)) return;     // la que entra en su lugar vuelve a avisar (y se cuenta)
+      contar();
       if (estado[key] || !HA.aplica(key)) return;
       estado[key] = 1;
       cola.push(key);
       programar();
     });
+    game.textures.on("removetexture", function () { if (!Object.keys(topando).length) contar(); });
     /* quien DERIVA una imagen de otra (el teñido de tu pinta, la camiseta del
        equipo, los pies medidos) pide que la fuente esté limpia antes */
     window.PampaHaloAsegurar = function (key) {

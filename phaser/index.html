@@ -189,7 +189,7 @@
   (function () {
     "use strict";
     var C = window.PampaCartel = {
-      SCRIPTS: 51, DATOS: 15,
+      SCRIPTS: 52, DATOS: 15,
       PESOS: { scripts: 0.73, datos: 0.18, escena: 0.09 },
       scripts: 0, datos: 0, escena: 0, pct: 0, fuera: false
     };
@@ -437,7 +437,9 @@
     /* los tres avisos, del que más manda al que menos: un script que no bajó
        explica todo lo que viene después (las clases que lo necesitaban tiran
        al leerse), y un juego que no arrancó explica cualquier "se trabó" */
-    var RANGO = { no_bajo: 3, no_abre: 2, trabado: 1 };
+    /* L06: "sin_memoria" (se perdió el contexto WebGL) manda sobre "se trabó":
+       los errores que vengan después son consecuencia de eso */
+    var RANGO = { no_bajo: 3, no_abre: 2, sin_memoria: 2, trabado: 1 };
     R.mostrar = function (tipo) {
       var caja = $("trabado"); if (!caja) return;
       if (R.tipo && RANGO[R.tipo] > RANGO[tipo]) return;
@@ -445,6 +447,7 @@
          SyntaxError en un navegador viejo, o un archivo cortado). Se ofrece lo
          mismo que en "no_bajo", con otro título y otro texto */
       var noAbre = tipo === "no_abre", noBajo = tipo === "no_bajo" || noAbre, g = juego();
+      var sinMem = tipo === "sin_memoria";
       R.tipo = tipo;
       /* qué salidas son de verdad (revisión del lote: VOLVER AL MENÚ y SEGUIR
          IGUAL dejaban la pantalla muerta en tres casos):
@@ -457,11 +460,15 @@
            congelada para siempre (su create no vuelve a correr), así que no
            se ofrece. VOLVER AL MENÚ sí, porque la frena. */
       var anda = !!g && g.isRunning !== false;
-      var puedeMenu = !noBajo && anda && !R.menuRoto;
+      /* L06: sin memoria de video no hay menú que valga: se dibuja todo negro.
+         Queda RECARGAR, que vuelve a armar las texturas de cero */
+      var puedeMenu = !noBajo && !sinMem && anda && !R.menuRoto;
       var puedeSeguir = puedeMenu && !R.dormido && !R.sinSeguir && !R.escenaRota(g);
-      $("tb-tit").textContent = noAbre ? "El juego no pudo arrancar"
+      $("tb-tit").textContent = sinMem ? "Se quedó sin memoria" : noAbre ? "El juego no pudo arrancar"
         : noBajo ? "No terminó de bajar el juego" : "Algo se trabó";
-      $("tb-txt").textContent = noAbre
+      $("tb-txt").textContent = sinMem
+        ? "El teléfono se quedó sin memoria para los dibujos del juego. Tocá para recargar: lo que tenías guardado sigue ahí."
+        : noAbre
         ? "Este navegador no pudo abrir una parte del juego. Probá de nuevo con buena señal y, si vuelve a pasar, actualizá el navegador o abrí el juego en otro."
         : noBajo ? "La conexión está floja. Probá de nuevo cuando tengas señal."
         : puedeMenu ? "Lo que tenías guardado sigue ahí: volver al menú no lo toca."
@@ -491,6 +498,23 @@
       if (g && g.pause && !noBajo) { try { g.pause(); } catch (e) { } }
       var prim = $(noBajo ? "tb-reintentar" : (puedeMenu ? "tb-menu" : "tb-recargar"));
       try { if (prim) prim.focus(); } catch (e) { }
+    };
+    /* ══ L06 (texturas-presupuesto) · SIN MEMORIA DE VIDEO ══
+       Lo que estaba mal, medido: "webglcontextlost" no aparecía en ningún
+       lado (grep). Con la placa de video llena, el navegador del teléfono
+       le saca el contexto al lienzo y el juego queda en NEGRO, sin aviso y
+       sin salida (instalado, ni siquiera hay botón de recargar). Ahora sale
+       "Se quedó sin memoria" con RECARGAR, y el juego se pausa. Lo engancha
+       el postBoot del juego, una vez. */
+    R.vigilarMemoria = function (g) {
+      var cv = g && g.canvas;
+      if (!cv || typeof cv.addEventListener !== "function" || cv.__pampaMemoria) return false;
+      cv.__pampaMemoria = true;
+      cv.addEventListener("webglcontextlost", function () {
+        R.registrar(new Error("se perdió el contexto WebGL: la placa de video se quedó sin memoria"), "memoria");
+        R.mostrar("sin_memoria");
+      }, false);
+      return true;
     };
     R.ocultar = function () { var c = $("trabado"); if (c) c.hidden = true; R.tipo = null; };
     R.volverAlMenu = function () {
@@ -1042,6 +1066,8 @@
   <script src="logic/atras.js"></script>
   <!-- L05: la carga con señal floja (cuánto vino de la red, ?perf=1) -->
   <script src="logic/carga.js"></script>
+  <!-- L06: el tope de lado en memoria de las texturas y cuánto ocupan (?perf=1) -->
+  <script src="logic/memoria.js"></script>
   <script src="audio/sfx.js"></script>
   <script src="scenes/piel_ui.js"></script>
   <script src="scenes/sprites.js"></script>
@@ -1115,7 +1141,12 @@
     var perf = /[?&]perf=1(&|$)/.test(location.search);
     var el = document.getElementById("perf");
     if (perf && el) el.hidden = false;
-    function pintar() { if (perf && el && C) el.textContent = C.textoRed(RED); }
+    /* L06: y debajo, lo que ocupan las texturas (window.__PAMPA_TEX) */
+    function pintar() {
+      if (!(perf && el && C)) return;
+      var t = C.textoTex ? C.textoTex(window.__PAMPA_TEX) : "";
+      el.textContent = C.textoRed(RED) + (t ? "\n" + t : "");
+    }
     window.__PAMPA_RED_PINTAR = pintar;
     /* el juego carga más de 150 recursos y el búfer de tiempos trae 250 por
        defecto: sin agrandarlo, calentar no vería los últimos */
@@ -1489,7 +1520,7 @@
         timeout: (balance && balance.red_floja && balance.red_floja.loader_timeout_ms) || 75000,
         maxParallelDownloads: (balance && balance.red_floja && balance.red_floja.loader_paralelas) || 4
       },
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* L06: "Se quedó sin memoria" si se pierde el contexto WebGL */ if (window.PampaRed && window.PampaRed.vigilarMemoria) window.PampaRed.vigilarMemoria(game); /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
       scene: [ window.PampaIntro, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → editor → (🏆 carrera) → partido
     };
     window.PAMPA_GAME = new Phaser.Game(config);

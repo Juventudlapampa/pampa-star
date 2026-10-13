@@ -71,6 +71,13 @@
     return t;
   }
 
+  /* L06 (texturas-presupuesto): el renglón de las texturas en ?perf=1,
+     con window.__PAMPA_TEX = { n, mb } (lo cuenta scenes/cine_arte.js) */
+  function textoTex(t) {
+    if (!t || !(t.n >= 0)) return "";
+    return "TEX " + (Number(t.mb) || 0).toFixed(1).replace(".", ",") + " MB en " + t.n + " texturas";
+  }
+
   /* ═══ EL REINTENTO DEL LOADER DE PHASER (L05, arranque-con-senal-floja) ═══
      Antes los cuatro preload (intro, editor, master, partido) se tragaban el
      "loaderror" sin hacer nada: con una raya de señal, una pose que no bajaba
@@ -189,7 +196,8 @@
   /* lo que pide el preload del partido (scenes/match.js), con las mismas
      reglas: cargar:false no se baja, los cuadros del ciclo, las siluetas de
      la hinchada, los fondos, las caras, los retratos del banco, los de la
-     tribuna y las identidades si su manifiesto ya está.
+     tribuna (con la clave del personaje: una sola por archivo, ver
+     claveDeTribuna) y las identidades si su manifiesto ya está.
      reg: { poses, caras, portraits, tribuna, identidades } (los JSON) */
   function listaDelPartido(reg) {
     var R = reg || {}, out = [];
@@ -199,7 +207,7 @@
     });
     var tri = R.tribuna;
     if (tri && Array.isArray(tri.personajes)) tri.personajes.forEach(function (p) {
-      if (p && p.retrato && p.id) out.push({ clave: "tribuna_" + p.id, ruta: "../" + p.retrato });
+      if (p && p.retrato && p.id) out.push({ clave: claveDeTribuna(p), ruta: "../" + p.retrato });
     });
     var P = R.poses;
     if (P && P.poses) {
@@ -231,6 +239,16 @@
     }
     return out;
   }
+
+  /* UNA SOLA CLAVE POR ARCHIVO (L06, texturas-presupuesto). Nelda y el Tuli
+     se cargaban dos veces: "personaje_nelda" en el Master (de
+     portraits_manifest) y "tribuna_nelda" en el partido (de tribuna.json),
+     el mismo archivo con dos claves: dos texturas de 1600x1542 en la placa
+     de video (19 MB las dos, a tamaño completo). La tribuna usa la clave del
+     personaje; si tribuna.json apuntara a OTRO archivo para ese id,
+     presupuesto_texturas.test.js lo frena (dos archivos con una clave sería
+     peor: el primero que llega gana). */
+  function claveDeTribuna(p) { return "personaje_" + ((p && p.id) || "?"); }
 
   /* LA COLA DE SEGUNDO PLANO. Baja de a `paralelas` (2) lo que se le pide,
      sin repetir, y frena cuando una escena empieza su propio preload (la
@@ -291,10 +309,10 @@
   }
 
   return {
-    nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed,
+    nuevaCuenta: nuevaCuenta, sumarRed: sumarRed, sumarDirecto: sumarDirecto, textoRed: textoRed, textoTex: textoTex,
     reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); },
     decidirAvisoVersion: decidirAvisoVersion,
     listaDelOpening: listaDelOpening, listaDelEditor: listaDelEditor, listaDelPartido: listaDelPartido,
-    crearCalentador: crearCalentador
+    claveDeTribuna: claveDeTribuna, crearCalentador: crearCalentador
   };
 });

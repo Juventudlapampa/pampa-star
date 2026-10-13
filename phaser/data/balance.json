@@ -754,6 +754,14 @@
     "_version": "version_reintento_ms: con una versión nueva del juego en el service worker, el cartel 'Hay una versión nueva · TOCÁ PARA ACTUALIZAR' (index.html) no aparece en medio de un partido: cada tanto vuelve a mirar si ya terminó. Cada 2000 ms alcanza: el cartel aparece a lo sumo 2 s después de salir del partido, y mirar más seguido no cambia nada que se vea. Revisión L05: con el cartel A LA VISTA también se mira cada version_reintento_ms, por si arranca un partido (lo esconde antes el evento 'start' de la escena; esto es el respaldo): el cartel tapaba ⏸ PAUSA y un toque recargaba la página en pleno partido.",
     "version_reintento_ms": 2000
   },
+  "arte": {
+    "_nota": "TANDA 1.0 (L06, texturas-presupuesto) · EL TOPE DE LADO EN MEMORIA. Los archivos de assets/ NO se tocan: cuando una textura entra al juego, si su lado mayor pasa el tope se redibuja achicada (suavizado alto) y esa es la que queda en la placa de video. Medido: los cuatro preload sumaban 69 texturas = 384,6 MB (RGBA) y nada se liberaba; con el tope y una sola clave por archivo, la base queda en 257 MB (presupuesto_texturas.test.js, tope 270). Las escenas escalan por el alto de la textura, así que nada se mueve. max_lado_px (1024) es para lo que llena la pantalla: los seis fondos de la intro (1920x1080, se ven a 960x540: el lienzo mide 960x540) y fondo_pueblo. max_lado_chicas_px (512) es para lo que se ve chico, medido en el código: el logo de la compuerta a 360x330 (el más grande de todos), el cartel del pueblo a 196 de alto, el logo horizontal a 230x34, el escudo a 15-30 de alto, Nito a 84 y los de la tribuna a 43. FUERA DEL TOPE: las poses, las caras y las identidades (logic/vestir.js y logic/halo.js miden en píxeles), y fondo_tribuna (tope_excepto): el cine la muestra a 960 de ancho y la cámara del cine la acerca hasta 1,25 (balance.cine.zoom_viaje): necesita sus 1280. Si subís un número la textura vuelve a ocupar más; si lo bajás de lo que se ve, se agranda en pantalla (con pixelArt, en escalones).",
+    "max_lado_px": 1024,
+    "max_lado_chicas_px": 512,
+    "tope_prefijos": ["bg", "i_", "fondo_"],
+    "chicas_prefijos": ["d_", "personaje_", "tribuna_", "retrato_"],
+    "tope_excepto": ["fondo_tribuna"]
+  },
   "flags": {
     "a3_bloqueo": true
   }

@@ -1,0 +1,275 @@
+/* ============================================================================
+   PAMPA STAR · EL PRESUPUESTO DE TEXTURAS (tanda 1.0, L06 · texturas-presupuesto)
+
+   Lo que estaba mal, medido con node sobre los encabezados de los webp/png:
+   los cuatro preload pedían 69 texturas, 100,8 Mpx = 384,6 MB en la placa de
+   video (RGBA: 4 bytes por píxel), nada se liberaba, había archivos cargados
+   dos veces con dos claves (Nelda y el Tuli: "personaje_" en el Master y
+   "tribuna_" en el partido) y la misma pose teñida dos veces ("poseM_" en el
+   Master, "poseV_" en el partido: las nueve poses de la semana, 45 MB). El
+   logo de la compuerta (2400x2200, 20 MB) se ve a 360x330; el horizontal
+   (4280x640) a 230x34. Y "webglcontextlost" no aparecía en ningún lado: con
+   la placa llena, el lienzo quedaba negro sin aviso.
+
+   Qué se prueba:
+     [1] el CENSO del preload (los manifiestos y las rutas que piden intro,
+         editor, Master y partido), con el tope de balance.arte y una clave
+         por archivo: la base es 270 MB o menos (antes 384,6);
+     [2] poseM_ y poseV_ ya no existen: el Master y el partido, corridos de
+         verdad, tiñen la misma pose con la MISMA clave (poseT_) y una vez;
+     [3] el gancho de texturas de verdad (scenes/cine_arte.js) achica lo que
+         pasa el tope, deja las poses como están, no toca los lienzos del
+         código y cuenta window.__PAMPA_TEX;
+     [4] perder el contexto WebGL muestra "Se quedó sin memoria" con
+         RECARGAR (el script de LA RED DE ERRORES corriendo).
+
+   Corré:  node phaser/test/presupuesto_texturas.test.js
+   ========================================================================== */
+"use strict";
+var fs = require("fs"), path = require("path"), vm = require("vm");
+var RAIZ = path.join(__dirname, "..", "..");
+function leer(f) { return fs.readFileSync(path.join(RAIZ, f), "utf8"); }
+function json(f) { return JSON.parse(leer(f)); }
+function delRepo(ruta) { return path.normalize(path.join("phaser", ruta)).replace(/\\/g, "/"); }
+
+var ok = 0, mal = 0;
+function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); } }
+
+var BAL = json("phaser/data/balance.json");
+var POSES = json("data/poses_manifest.json"), CARAS = json("data/caras_manifest.json");
+var PORTRAITS = json("data/portraits_manifest.json"), TRIBUNA = json("data/tribuna.json");
+var IDENT = json("data/identidades_manifest.json"), SEMANA = json("data/semana.json");
+var C = require(path.join(RAIZ, "phaser/logic/carga.js"));
+var MEM = require(path.join(RAIZ, "phaser/logic/memoria.js"));
+
+/* las medidas de una imagen, leídas del encabezado (webp con VP8/VP8L/VP8X, o png) */
+function medidas(rel) {
+  var b = fs.readFileSync(path.join(RAIZ, rel));
+  if (b[0] === 0x89 && b.toString("ascii", 1, 4) === "PNG") return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+  if (b.toString("ascii", 0, 4) === "RIFF") {
+    var t = b.toString("ascii", 12, 16);
+    if (t === "VP8 ") return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
+    if (t === "VP8L") { var v = b.readUInt32LE(21); return { w: (v & 0x3fff) + 1, h: ((v >> 14) & 0x3fff) + 1 }; }
+    if (t === "VP8X") return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
+  }
+  throw new Error("formato desconocido: " + rel);
+}
+
+/* ---------- la intro, cargada con un Phaser de mentira (sus listas de assets/ui) ---------- */
+var WI = { PF: {}, PampaCarga: C };
+vm.createContext(Object.assign({ window: WI, Phaser: { Scene: function () { } } }, { console: console }));
+vm.runInContext(leer("phaser/scenes/intro.js"), vm.createContext({ window: WI, Phaser: { Scene: function () { } }, console: console }), { filename: "intro.js" });
+
+/* =========================================================================
+   [1] · EL CENSO DEL PRELOAD
+   ========================================================================= */
+(function () {
+  var tex = {};                       // clave → archivo
+  var conflictos = [];
+  function poner(clave, rel, quien) {
+    if (tex[clave] && tex[clave].f !== rel) conflictos.push(clave + ": " + tex[clave].f + " y " + rel);
+    if (!tex[clave]) tex[clave] = { f: rel, quien: quien };
+  }
+  /* intro: la compuerta y el opening */
+  WI.PampaIntro.UI_COMPUERTA.concat(C.listaDelOpening(BAL.intro, POSES, WI.PampaIntro.UI_OPENING))
+    .forEach(function (x) { poner(x.clave, delRepo(x.ruta), "intro"); });
+  /* editor: las caras */
+  C.listaDelEditor(CARAS).forEach(function (x) { poner(x.clave, delRepo(x.ruta), "editor"); });
+  /* Master: las rutas literales de su preload, las poses de la semana y los personajes */
+  var MASTER = leer("phaser/scenes/master.js");
+  var lit = 0;
+  MASTER.replace(/this\.load\.image\("(d_\w+)", "\.\.\/(assets\/ui\/[^"]+)"\)/g, function (_, k, f) { lit++; poner(k, f, "master"); return _; });
+  assert(lit === 2, "el Master pide sus dos ilustraciones por ruta (los logos y el escudo): " + lit);
+  ["recibiendo"].concat((SEMANA.opciones || []).map(function (o) { return o.pose; })).forEach(function (id) {
+    var p = id && POSES.poses[id];
+    if (p && p.archivo) poner("pose_" + id, "assets/poses/" + p.archivo, "master");
+  });
+  PORTRAITS.personajes.forEach(function (p) { if (p.cargar !== false && p.archivo) poner("personaje_" + p.id, p.archivo, "master"); });
+  /* partido */
+  C.listaDelPartido({ poses: POSES, caras: CARAS, portraits: PORTRAITS, tribuna: TRIBUNA, identidades: IDENT })
+    .forEach(function (x) { poner(x.clave, delRepo(x.ruta), "partido"); });
+
+  assert(conflictos.length === 0, "SÍNTOMA: una clave con dos archivos (el primero que llega gana): " + conflictos.join(" · "));
+  /* una sola clave por archivo */
+  var porArchivo = {};
+  Object.keys(tex).forEach(function (k) { (porArchivo[tex[k].f] = porArchivo[tex[k].f] || []).push(k); });
+  var dobles = Object.keys(porArchivo).filter(function (f) { return porArchivo[f].length > 1; });
+  assert(dobles.length === 0, "SÍNTOMA: el mismo archivo con dos claves (dos texturas en memoria): " + dobles.map(function (f) { return porArchivo[f].join("+"); }).join(" · "));
+  /* la tribuna y el Master dicen el mismo archivo para la misma persona */
+  TRIBUNA.personajes.forEach(function (p) {
+    var q = PORTRAITS.personajes.filter(function (x) { return x.id === p.id; })[0];
+    assert(!q || !p.retrato || q.archivo === p.retrato, "data/tribuna.json y portraits_manifest dicen otro archivo para '" + p.id + "' (" + p.retrato + " / " + (q && q.archivo) + "): con una sola clave, uno de los dos no se vería");
+  });
+
+  var antes = 0, base = 0, n = 0, topadas = [];
+  Object.keys(tex).forEach(function (k) {
+    var d = medidas(tex[k].f);
+    antes += MEM.mb(d.w, d.h);
+    var m = MEM.medidaConTope(k, d.w, d.h, BAL.arte);
+    if (m) topadas.push(k + " " + d.w + "x" + d.h + "→" + m.w + "x" + m.h);
+    base += m ? MEM.mb(m.w, m.h) : MEM.mb(d.w, d.h);
+    n++;
+  });
+  /* lo de antes, para el registro: las dos claves de la tribuna, sin tope */
+  TRIBUNA.personajes.forEach(function (p) { if (p.retrato) { var d = medidas(p.retrato); antes += MEM.mb(d.w, d.h); } });
+  assert(Math.abs(antes - 384.6) < 0.5, "el censo replica la medición de la auditoría (384,6 MB sin tope y con la tribuna doble): " + antes.toFixed(1));
+  assert(base <= 270, "SÍNTOMA: la base de texturas es " + base.toFixed(1) + " MB y el tope es 270 (antes 384,6)");
+  /* lo que no se toca */
+  Object.keys(tex).forEach(function (k) {
+    if (/^(pose_|cara_|ident_)/.test(k)) assert(MEM.ladoMaximo(k, BAL.arte) === 0, "'" + k + "' no lleva tope (vestir.js y halo.js miden en píxeles)");
+  });
+  assert(MEM.ladoMaximo("fondo_tribuna", BAL.arte) === 0, "fondo_tribuna queda entera (el cine la acerca hasta 1,25)");
+  assert(typeof BAL.arte._nota === "string" && /384,6/.test(BAL.arte._nota) && BAL.arte.max_lado_px === 1024, "balance.arte tiene su _nota con la medición y el tope de 1024");
+  console.log("[1] censo del preload: " + n + " texturas · antes " + antes.toFixed(1) + " MB · con el tope y una clave por archivo " + base.toFixed(1) + " MB (tope 270) · achicadas " + topadas.length + ": " + topadas.join(", "));
+})();
+
+/* =========================================================================
+   [2] · UNA SOLA POSE TEÑIDA PARA EL MASTER Y EL PARTIDO
+   ========================================================================= */
+(function () {
+  ["master.js", "match.js", "avatar_arte.js", "escenas_v9.js", "toma_remate.js", "jugadon_ui.js", "definicion_ui.js"].forEach(function (f) {
+    var sinCom = leer("phaser/scenes/" + f).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    assert(!/poseM_|poseV_/.test(sinCom), "SÍNTOMA: " + f + " todavía arma una clave poseM_ o poseV_ (la misma pose teñida dos veces)");
+  });
+  /* corriendo los dos de verdad */
+  var W = { PF: {}, PampaAvatar: require(path.join(RAIZ, "phaser/logic/avatar.js")), PampaCarga: C };
+  W.PampaAvatar.setCatalogoManifest && W.PampaAvatar.setCatalogoManifest({ caras: CARAS.caras.length, camisetas: CARAS.camisetas.length });
+  new Function("window", leer("phaser/scenes/avatar_arte.js"))(W);
+  var Ph = { Scene: function () { }, Textures: { FilterMode: { NEAREST: 1 } } };
+  new Function("window", "Phaser", leer("phaser/scenes/master.js").replace(/\r\n/g, "\n"))(W, Ph);
+  new Function("window", "Phaser", leer("phaser/scenes/match.js").replace(/\r\n/g, "\n"))(W, Ph);
+  new Function("window", "Phaser", leer("phaser/scenes/definicion_ui.js").replace(/\r\n/g, "\n"))(W, Ph);
+  var texturas = { "pose_remate": { w: 6, h: 6 } }, creadas = [];
+  function lienzo(w, h) {
+    var datos = new Uint8ClampedArray(w * h * 4);
+    return { getContext: function () { return { drawImage: function () { }, getImageData: function () { return { data: datos }; }, putImageData: function () { } }; }, refresh: function () { } };
+  }
+  var TM = {
+    exists: function (k) { return !!texturas[k]; },
+    get: function (k) { return { getSourceImage: function () { return { width: texturas[k].w, height: texturas[k].h }; } }; },
+    createCanvas: function (k, w, h) { texturas[k] = { w: w, h: h }; creadas.push(k); return lienzo(w, h); }
+  };
+  var reg = { poses: POSES, caras: CARAS };
+  var look = { cara: 1, tPiel: 2, tPelo: 3, tCam: 4 };
+  var sM = Object.create(W.PampaMasterScene.prototype);
+  sM.textures = TM; sM.game = { registry: { get: function (k) { return reg[k]; } } };
+  sM.lookGuardado = function () { return look; };
+  var kM = sM.poseConTuPinta("remate");
+  var sP = Object.create(W.PampaMatch.prototype);
+  sP.textures = TM; sP.game = sM.game; sP.FLAGS = {};
+  var kP = sP.poseHeroeTenida({ look: look }, "remate");
+  assert(/^poseT_remate_/.test(kM || ""), "el Master tiñe con la clave poseT_ (" + kM + ")");
+  assert(kM === kP, "SÍNTOMA: el Master y el partido usan la MISMA clave para la misma pose y la misma pinta (" + kM + " / " + kP + ")");
+  assert(creadas.length === 1, "la pose se tiñe UNA vez para las dos escenas (" + creadas.join(", ") + ")");
+  /* todo en Original: no se tiñe nada */
+  var orig = { cara: 1, tPiel: 0, tPelo: 0, tCam: 0 };
+  sM.lookGuardado = function () { return orig; };
+  assert(sM.poseConTuPinta("remate") === "pose_remate" && sP.poseHeroeTenida({ look: orig }, "remate") === null && creadas.length === 1,
+    "con la pinta en Original no se tiñe nada: el Master usa la pose tal cual y el partido también");
+  console.log("[2] el Master y el partido tiñen la pose con la misma clave (" + kM + "), una sola vez; poseM_ y poseV_ no existen más");
+})();
+
+/* =========================================================================
+   [3] · EL GANCHO DE TEXTURAS DE VERDAD
+   ========================================================================= */
+(function () {
+  function Emisor() { this._ev = {}; }
+  Emisor.prototype.on = function (n, fn) { (this._ev[n] = this._ev[n] || []).push(fn); };
+  Emisor.prototype.emit = function (n) { var a = [].slice.call(arguments, 1); (this._ev[n] || []).slice().forEach(function (fn) { fn.apply(null, a); }); };
+  function HTMLImageElement(w, h) { this.width = w; this.height = h; }
+  var dibujos = [];
+  var doc = { createElement: function () {
+    var cv = { width: 0, height: 0, esLienzo: true };
+    cv.getContext = function () { return { set imageSmoothingQuality(v) { cv.calidad = v; }, imageSmoothingEnabled: false, drawImage: function (src, x, y, w, h) { dibujos.push({ w: w, h: h }); } }; };
+    return cv;
+  } };
+  var TM = new Emisor();
+  TM.list = {};
+  function textura(key, fuente) { return { key: key, customData: {}, source: [{ image: fuente, width: fuente.width, height: fuente.height }] }; }
+  TM.exists = function (k) { return !!TM.list[k]; };
+  TM.get = function (k) { return TM.list[k]; };
+  TM.addImage = function (k, img) { TM.list[k] = textura(k, img); TM.emit("addtexture", k, TM.list[k]); return TM.list[k]; };
+  TM.addCanvas = function (k, cv) { TM.list[k] = textura(k, cv); TM.emit("addtexture", k, TM.list[k]); return TM.list[k]; };
+  TM.remove = function (k) { delete TM.list[k]; TM.emit("removetexture", k); };
+  var W = { PampaAmbiente: require(path.join(RAIZ, "phaser/logic/ambiente.js")), PampaHalo: require(path.join(RAIZ, "phaser/logic/halo.js")), PampaMemoria: MEM };
+  var pintados = 0;
+  W.__PAMPA_RED_PINTAR = function () { pintados++; };
+  var ctx = { window: W, document: doc, HTMLImageElement: HTMLImageElement, performance: { now: function () { return 0; } }, console: console, Math: Math, MessageChannel: undefined, setTimeout: function () { } };
+  vm.createContext(ctx);
+  vm.runInContext(leer("phaser/scenes/cine_arte.js"), ctx, { filename: "cine_arte.js" });
+  var juego = { textures: TM, registry: { get: function (k) { return k === "balance" ? BAL : null; } } };
+  W.PampaHaloEnganchar(juego);
+  TM.addImage("d_logo", new HTMLImageElement(2400, 2200));
+  var t = TM.get("d_logo");
+  assert(t && t.source[0].width === 512 && t.source[0].height === 469, "SÍNTOMA: d_logo (2400x2200) queda en memoria a 512x469 (quedó " + (t && t.source[0].width + "x" + t.source[0].height) + ")");
+  assert(t && t.customData.ladoOriginal && t.customData.ladoOriginal.w === 2400, "la medida original queda anotada (customData.ladoOriginal)");
+  assert(dibujos.length === 1 && dibujos[0].w === 512, "se redibuja una vez, a la medida nueva");
+  TM.addImage("bg1", new HTMLImageElement(1920, 1080));
+  assert(TM.get("bg1").source[0].width === 1024 && TM.get("bg1").source[0].height === 576, "un fondo de la intro (1920x1080) queda a 1024x576");
+  TM.addImage("pose_remate", new HTMLImageElement(900, 854));
+  TM.addImage("pose_recibiendo", new HTMLImageElement(1250, 1818));
+  assert(TM.get("pose_recibiendo").source[0].width === 1250, "las poses quedan como están (vestir.js y halo.js miden en píxeles)");
+  TM.addImage("fondo_tribuna", new HTMLImageElement(1280, 720));
+  assert(TM.get("fondo_tribuna").source[0].width === 1280, "fondo_tribuna queda entera");
+  var lienzoDelCodigo = { width: 2560, height: 720, esLienzo: true };
+  TM.addCanvas("fondo_tribuna_esp", lienzoDelCodigo);
+  assert(TM.get("fondo_tribuna_esp").source[0].image === lienzoDelCodigo, "un lienzo que dibuja el código (el espejo de la tribuna) no se reemplaza aunque pase el tope: alguien está por pintarlo");
+  var TX = W.__PAMPA_TEX;
+  var esperado = MEM.mb(512, 469) + MEM.mb(1024, 576) + MEM.mb(900, 854) + MEM.mb(1250, 1818) + MEM.mb(1280, 720) + MEM.mb(2560, 720);
+  assert(TX && TX.n === 6 && Math.abs(TX.mb - esperado) < 0.2, "window.__PAMPA_TEX cuenta lo que hay en memoria (" + (TX && TX.n) + " texturas, " + (TX && TX.mb) + " MB; esperado " + esperado.toFixed(1) + ")");
+  assert(pintados > 0, "cada cambio repinta el renglón de ?perf=1");
+  TM.remove("bg1");
+  assert(W.__PAMPA_TEX.n === 5, "al sacar una textura la cuenta baja");
+  assert(C.textoTex(W.__PAMPA_TEX) === "TEX " + W.__PAMPA_TEX.mb.toFixed(1).replace(".", ",") + " MB en 5 texturas", "el renglón de ?perf=1: " + C.textoTex(W.__PAMPA_TEX));
+  console.log("[3] el gancho achica d_logo a 512x469 y los fondos a 1024x576, deja poses, fondo_tribuna y los lienzos del código; __PAMPA_TEX = " + JSON.stringify(W.__PAMPA_TEX));
+})();
+
+/* =========================================================================
+   [4] · SIN MEMORIA DE VIDEO: EL AVISO
+   ========================================================================= */
+(function () {
+  var HTML = leer("phaser/index.html").replace(/\r\n/g, "\n");
+  var scripts = [];
+  HTML.replace(/<script>([\s\S]*?)<\/script>/g, function (_, c) { scripts.push(c); return _; });
+  var RED = scripts.filter(function (c) { return c.indexOf("window.PampaRed = {") >= 0; })[0] || "";
+  var els = {};
+  function el(id) {
+    if (!els[id]) els[id] = { id: id, hidden: id === "trabado" || id === "tb-informe", textContent: "", ls: {}, hijos: [],
+      addEventListener: function (t, f) { (this.ls[t] = this.ls[t] || []).push(f); }, appendChild: function (c) { this.hijos.push(c); },
+      focus: function () { }, click: function () { (this.ls.click || []).forEach(function (f) { f({}); }); } };
+    return els[id];
+  }
+  var win = { addEventListener: function () { }, innerWidth: 800, innerHeight: 360, devicePixelRatio: 2, matchMedia: function () { return { matches: false }; } };
+  var store = {}, recargas = 0;
+  var ls = { getItem: function (k) { return store[k] == null ? null : store[k]; }, setItem: function (k, v) { store[k] = String(v); } };
+  win.PampaInforme = require(path.join(RAIZ, "phaser/logic/informe.js"));
+  new Function("window", "document", "localStorage", "navigator", "location", "console", RED)(win,
+    { getElementById: el, createElement: function (t) { return { tag: t }; }, createTextNode: function (t) { return { text: t }; } },
+    ls, { userAgent: "prueba" }, { origin: "http://localhost:8123", protocol: "http:", reload: function () { recargas++; } }, { error: function () { }, log: function () { } });
+  var R = win.PampaRed;
+  assert(R && typeof R.vigilarMemoria === "function", "LA RED trae vigilarMemoria");
+  var oyentes = {};
+  var pausado = 0;
+  var juego = { isRunning: true, pause: function () { pausado++; }, scene: { getScenes: function () { return []; }, getScene: function () { return null; } },
+    canvas: { addEventListener: function (t, f) { (oyentes[t] = oyentes[t] || []).push(f); } } };
+  win.PAMPA_GAME = juego;
+  assert(R.vigilarMemoria(juego) && !R.vigilarMemoria(juego), "se engancha una vez al lienzo");
+  assert((oyentes.webglcontextlost || []).length === 1, "escucha webglcontextlost en el lienzo");
+  oyentes.webglcontextlost[0]({ preventDefault: function () { } });
+  assert(!el("trabado").hidden && el("tb-tit").textContent === "Se quedó sin memoria", "SÍNTOMA: al perder el contexto aparece \"Se quedó sin memoria\" (antes: negro sin aviso) — " + el("tb-tit").textContent);
+  assert(/Tocá para recargar/.test(el("tb-txt").textContent) && /guardado sigue ahí/.test(el("tb-txt").textContent), "dice que hay que tocar para recargar y que lo guardado sigue ahí");
+  assert(!el("tb-recargar").hidden && el("tb-menu").hidden && el("tb-seguir").hidden, "la salida es RECARGAR (sin memoria de video no hay menú que se pueda dibujar)");
+  assert(pausado === 1, "el juego se pausa detrás del aviso");
+  el("tb-recargar").click();
+  assert(recargas === 1, "RECARGAR recarga");
+  var rec = JSON.parse(store.pampa_ultimo_error || "{}");
+  assert(rec.origen === "memoria" && /WebGL/.test(rec.mensaje || ""), "queda en el informe de error (origen memoria)");
+  /* un error que llega después no lo pisa */
+  R.mostrar("trabado");
+  assert(el("tb-tit").textContent === "Se quedó sin memoria", "un \"se trabó\" que llega después no lo pisa (es consecuencia)");
+  assert(/vigilarMemoria\(game\)/.test(HTML), "el postBoot del juego engancha la vigilancia");
+  console.log("[4] perder el contexto WebGL muestra \"Se quedó sin memoria\" con RECARGAR, pausa el juego y queda en el informe");
+})();
+
+console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
+process.exit(mal === 0 ? 0 : 1);

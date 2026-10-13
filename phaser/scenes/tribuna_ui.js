@@ -135,7 +135,8 @@
        textura cargó, va la cara de verdad recortada en redondo. Si no cargó
        (sin server, archivo movido), queda el borrón de antes: feo, pero nunca
        un hueco. */
-    var key = personaje && personaje.id ? "tribuna_" + personaje.id : null;
+    /* L06: la clave del personaje (la misma del Master): una sola textura por archivo */
+    var key = personaje && personaje.id ? (window.PampaCarga && window.PampaCarga.claveDeTribuna ? window.PampaCarga.claveDeTribuna(personaje) : "personaje_" + personaje.id) : null;
     if (key && sc.textures.exists(key)) {
       b.cara.setTexture(key);
       var alto = b.cara.height || 1;

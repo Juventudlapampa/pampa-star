@@ -270,7 +270,11 @@ if (CENSO) {
 var PENDIENTES = {};
 
 var DEUDA_HOY = null;
-var LEIDOS_OK = {};
+var LEIDOS_OK = {
+  /* L06: la función que repinta el renglón de ?perf=1 la escribe index.html
+     (el script de LA RED), que este barrido no lee; si no está, no se pinta */
+  "__PAMPA_RED_PINTAR": "la escribe index.html (LA RED): repinta ?perf=1 cuando cambian las texturas"
+};
 /* asas y sellos: referencias que se dejan puestas para limpiar, para inspeccionar
    o para que las use quien tenga el objeto. No son contenido que no corre. */
 var ESCRITOS_OK = {
@@ -285,6 +289,8 @@ var ESCRITOS_OK = {
   "__PAMPA_MUSICA_FECHA": "contador de diagnóstico de música, se lee desde la verificación",
   "__PAMPA_MUSICA_MALOS": "idem, momentos desconocidos",
   "__PAMPA_MUSICA_TARDIOS": "idem, pedidos de escenas muertas",
+  /* L06: lo lee el renglón de ?perf=1 en index.html (LA RED, pintar), que este barrido no mira */
+  "__PAMPA_TEX": "cuánto ocupan las texturas ({n, mb}): lo lee ?perf=1 en index.html y la verificación",
   "__PAMPA_HALO": "estadísticas de la limpieza del anillo violeta (cuántas imágenes, cuántos píxeles, cuánto tardó): se leen desde la verificación, como los contadores de música",
   "_entrarDefinicionDefVieja": "el camino viejo de la definición, que se conserva a propósito para poder volver",
   "_panelReveal": "bandera de una sola pasada: se escribe para NO repetir el reveal, no para leerse",

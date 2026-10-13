@@ -48,10 +48,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        leía como un rectángulo vacío. El retrato lo declara data/tribuna.json
        en el campo `retrato` de cada personaje, así que cambiarlo es cambiar
        una línea de JSON, no tocar código. */
+    /* L06 (texturas-presupuesto): con la clave del PERSONAJE, la misma que usa
+       el Master (logic/carga.js, claveDeTribuna). Antes "tribuna_nelda" y
+       "personaje_nelda" eran el mismo archivo dos veces en memoria. Si el
+       Master ya la cargó, no se pide. */
     const tri = this.game.registry.get("tribuna");
     if (tri && Array.isArray(tri.personajes)) {
       tri.personajes.forEach((p) => {
-        if (p && p.retrato) this.load.image("tribuna_" + p.id, "../" + p.retrato);
+        const k = window.PampaCarga && window.PampaCarga.claveDeTribuna ? window.PampaCarga.claveDeTribuna(p) : "personaje_" + p.id;
+        if (p && p.retrato && !this.textures.exists(k)) this.load.image(k, "../" + p.retrato);
       });
     }
     /* V6 §3.2: las POSES ILUSTRADAS del manifest — fallback tolerante: se carga
@@ -1564,27 +1569,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   poseHeroeTenida(j, poseId) {
     const id = poseId || "corriendo";
     const src = this.poseKey(id);
-    const poses = this.game.registry.get("poses");
-    const def = poses && poses.poses && poses.poses[id];
-    if (!src || !def || !def.tonos || this.FLAGS.v7_caras === false || !j.look || !window.PampaAvatarArte) return null;
-    const A = window.PampaAvatar;
-    const look = A.validarLook(j.look);
-    /* V7 §0.2: tintes OPCIONALES — todos en Original: la pose queda tal cual */
-    if (!look.tPiel && !look.tPelo && !look.tCam) return null;
-    /* la pose entra en la key: si no, la primera que se tiñe queda cacheada
-       para todas y aparece un remate donde iba un festejo */
-    const key = "poseV_" + id + "_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
-    if (this.textures.exists(key)) return key;
-    const CAT = A.CATALOGO;
-    const CM = this.game.registry.get("caras");
-    const hx = s => parseInt(String(s).slice(1), 16);
-    const T = def.tonos, tol = def.tolerancias || {};
-    const mapa = [];
-    if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
-    if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80 });
-    if (look.tCam > 0 && T.camiseta && CM && CM.camisetas) mapa.push({ de: hx(T.camiseta), a: hx(CM.camisetas[(look.tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
-    window.PampaAvatarArte.tenirImagen(this, src, key, mapa);
-    return this.textures.exists(key) ? key : null;
+    if (!src || !j || this.FLAGS.v7_caras === false || !j.look || !window.PampaAvatarArte || !window.PampaAvatarArte.poseTenida) return null;
+    /* V7 §0.2: tintes OPCIONALES — todos en Original: la pose queda tal cual
+       (poseTenida devuelve null). La pose entra en la clave: si no, la
+       primera que se tiñe queda cacheada para todas y aparece un remate
+       donde iba un festejo. L06 (texturas-presupuesto): la clave es la
+       misma que la del Master ("poseT_…", scenes/avatar_arte.js): antes
+       eran "poseV_…" acá y "poseM_…" allá, la misma pose teñida dos veces */
+    return window.PampaAvatarArte.poseTenida(this, id, j.look);
   }
   updatePanelEscena(delta) {
     if (!this._split || !this.panelJug) return;

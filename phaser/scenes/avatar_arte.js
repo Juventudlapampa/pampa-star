@@ -485,5 +485,51 @@ window.PampaAvatarArte = (function () {
     return dstKey;
   }
 
-  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, KITS: KITS, bake: bake };
+  /* ══════════════════════════════════════════════════════════════════════
+     L06 (texturas-presupuesto) · LA POSE CON TU PINTA, UNA SOLA CLAVE.
+     El Master (poseConTuPinta) y el partido (poseHeroeTenida) teñían la
+     MISMA pose con el MISMO look y la guardaban con dos claves: "poseM_…" y
+     "poseV_…". Medido sobre los manifiestos: las nueve poses de la semana
+     que también usa el partido eran 45 MB repetidos en la placa de video,
+     y el teñido (35 ms o más por pose) se hacía dos veces. Ahora las dos
+     escenas piden acá y la clave es una: "poseT_<pose>_<piel>_<pelo>_<cam>".
+     Devuelve la clave teñida, o null si no hay nada que teñir (todo en
+     Original, la pose sin tonos en el manifest, o sin la pose cargada). */
+  function claveTenida(id, look) {
+    return "poseT_" + id + "_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
+  }
+  /* el mapa de tonos: lo que el manifest declara de origen → lo del catálogo */
+  function mapaDeTinte(def, look, caras) {
+    var A = window.PampaAvatar, CAT = A && A.CATALOGO, mapa = [];
+    if (!def || !def.tonos || !CAT) return mapa;
+    var hx = function (v) { return parseInt(String(v).slice(1), 16); };
+    var T = def.tonos, tol = def.tolerancias || {};
+    if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
+    if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80 });
+    if (look.tCam > 0 && T.camiseta && caras && caras.camisetas && caras.camisetas.length) mapa.push({ de: hx(T.camiseta), a: hx(caras.camisetas[(look.tCam - 1) % caras.camisetas.length].hex), tol: tol.camiseta || 95 });
+    return mapa;
+  }
+  /* qué hay que teñir: { base, clave, mapa } o null si nada */
+  function pedidoDeTinte(scene, id, lookCrudo) {
+    var A = window.PampaAvatar, base = "pose_" + id;
+    if (!A || !scene || !scene.textures.exists(base)) return null;
+    var pm = scene.game.registry.get("poses"), def = pm && pm.poses && pm.poses[id];
+    if (!def || !def.tonos || !lookCrudo) return null;
+    var look;
+    try { look = A.validarLook(lookCrudo); } catch (e) { return null; }
+    if (!look || (!look.tPiel && !look.tPelo && !look.tCam)) return null;
+    var mapa = mapaDeTinte(def, look, scene.game.registry.get("caras"));
+    if (!mapa.length) return null;
+    return { base: base, clave: claveTenida(id, look), mapa: mapa };
+  }
+  function poseTenida(scene, id, lookCrudo) {
+    var P = pedidoDeTinte(scene, id, lookCrudo);
+    if (!P) return null;
+    if (scene.textures.exists(P.clave)) return P.clave;
+    try { tenirImagen(scene, P.base, P.clave, P.mapa); } catch (e) { return null; }
+    return scene.textures.exists(P.clave) ? P.clave : null;
+  }
+
+  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, KITS: KITS, bake: bake,
+    claveTenida: claveTenida, mapaDeTinte: mapaDeTinte, pedidoDeTinte: pedidoDeTinte, poseTenida: poseTenida };
 })();

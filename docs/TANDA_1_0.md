@@ -2559,3 +2559,126 @@ pesos sumando 0,9999… daba 99% con todo bajado.
    lote (paso del deploy).
 8. **La nota de los 6 s** y **el porcentaje en el "Girá el celular"** no
    estaban pedidos. *Revertir:* el `setTimeout` de 6000 y `#rot-carga`.
+
+### texturas-presupuesto · memoria de texturas con techo y aviso si se pierde WebGL
+
+**Qué estaba mal (medido).** Con node sobre los encabezados de los webp y
+png que piden los cuatro preload: 69 texturas, 100,8 Mpx = 384,6 MB en la
+placa de video (Phaser las sube al crearlas, 4 bytes por píxel) y nada se
+liberaba. Lo desproporcionado: el logo de la compuerta (2400x2200, 20,1 MB)
+se ve a 360x330; el logo horizontal (4280x640, 10,4 MB) a 230x34 en el
+Master; el cartel del pueblo (2000x1800, 13,7 MB) a 196 de alto; los seis
+fondos de la intro (1920x1080, 7,9 MB cada uno) a 960x540, que es todo el
+lienzo. Nelda y el Tuli se cargaban dos veces con dos claves
+("personaje_" en el Master, "tribuna_" en el partido). Y la misma pose con
+tu pinta se teñía dos veces: "poseM_" en el Master y "poseV_" en el
+partido (las nueve poses de la semana, 44,8 MB repetidos, medido). `grep
+webglcontextlost` = 0: con la placa llena, el lienzo quedaba negro y sin
+salida. **En el navegador, con el commit base**, intro → Master → partido:
+403,9 MB en 178 texturas.
+
+**Qué se hizo** (commit de este ítem):
+
+1. **El tope de lado en memoria** (`logic/memoria.js`, nuevo; el gancho
+   `PampaHaloEnganchar` de `scenes/cine_arte.js`; `balance.arte` con su
+   `_nota`). Cuando una textura que viene de un ARCHIVO entra al juego, si
+   pasa su tope se redibuja achicada (suavizado alto) y esa es la que queda;
+   la grande se saca, y con ella su lugar en la placa. Es en el acto, dentro
+   del mismo aviso de textura nueva: el create que viene después ya ve la
+   chica y escala por su alto, así que nada se mueve. Dos topes, por lo que
+   se ve en pantalla (medido en el código): 1024 para lo que llena la
+   pantalla (los fondos de la intro) y 512 para lo que se ve chico (los
+   logos, el cartel, el escudo, Nito, Nelda y el Tuli: lo más grande es el
+   logo de la compuerta a 360x330). Afuera: las poses, las caras y las
+   identidades (vestir.js y halo.js miden en píxeles), `fondo_tribuna` (el
+   cine la acerca hasta 1,25) y los lienzos que dibuja el código (el espejo
+   de la tribuna mide 2560x720 y hay que pintarlo: reemplazarlo lo dejaría
+   en blanco). La medida original queda en `customData.ladoOriginal`.
+2. **Una sola clave por archivo.** La tribuna usa la clave del personaje
+   (`claveDeTribuna` en `logic/carga.js`): el partido pide
+   "personaje_nelda" y si el Master ya la cargó, no la pide. La pose con tu
+   pinta: `PampaAvatarArte.poseTenida` (`scenes/avatar_arte.js`) con la
+   clave "poseT_<pose>_<piel>_<pelo>_<camiseta>", que usan el Master
+   (`poseConTuPinta`) y el partido (`poseHeroeTenida`).
+3. **"Se quedó sin memoria"** (`index.html`, LA RED DE ERRORES): el postBoot
+   engancha `webglcontextlost` en el lienzo; el aviso dice "Se quedó sin
+   memoria · El teléfono se quedó sin memoria para los dibujos del juego.
+   Tocá para recargar: lo que tenías guardado sigue ahí." con RECARGAR (y
+   COPIAR INFORME), pausa el juego, queda en el informe de error (origen
+   "memoria") y un "se trabó" que llegue después no lo pisa.
+4. **`window.__PAMPA_TEX = { n, mb }`** y su renglón en `?perf=1`: "TEX
+   276,6 MB en 176 texturas". Cuenta todo lo que hay en memoria (archivos,
+   lienzos del código, teñidos) y se repinta en cada alta o baja.
+
+**Tests.** `presupuesto_texturas.test.js`: [1] el censo del preload
+(intro, editor, Master por sus rutas literales y sus poses, partido) replica
+la medición de la auditoría (384,6 MB sin tope y con la tribuna doble) y
+con el tope y una clave por archivo da **257,3 MB** (tope 270); no hay
+clave con dos archivos ni archivo con dos claves; tribuna.json y
+portraits_manifest dicen el mismo archivo para Nelda y el Tuli; las poses,
+caras e identidades no llevan tope. [2] poseM_ y poseV_ no están en el
+código, y el Master y el partido, corridos de verdad, tiñen la misma pose
+con la misma clave y una sola vez. [3] El gancho de verdad: d_logo queda a
+512x469, un fondo a 1024x576, las poses y fondo_tribuna enteras, el espejo
+de la tribuna no se reemplaza, y `__PAMPA_TEX` cuenta y baja. [4] El
+script de LA RED corriendo: perder el contexto muestra el aviso con
+RECARGAR, pausa y queda en el informe. `desconectados.test.js` suma
+`__PAMPA_TEX` y `__PAMPA_RED_PINTAR` a sus listas de "se leen desde otro
+lado" (index.html, que ese barrido no mira).
+
+**Cómo se verificó en pantalla.** Mismos pasos en los dos servers (sin
+"Slow 4G"): intro → Master → entrevista → partido.
+
+- **La memoria**: con el código de antes, 403,9 MB en 178 texturas en el
+  partido; con el de ahora, **276,6 MB en 176** en el mismo lugar (las
+  achicadas: d_logo 512x469, d_cartel 512x461, d_logo_h 512x77, d_escudo
+  439x512, personaje_nito/nelda/tuli ~512, bg1-6 1024x576; fondo_tribuna
+  1280x720 y su espejo 2560x720 enteros; ya no hay tribuna_nelda ni
+  tribuna_tuli). `?perf=1` lo muestra (`l06_2_perf_tex.jpg`).
+- **Sin diferencia visible** (para que lo mire Rodri: pares
+  `l06_2_antes_*` / `l06_2_despues_*`). Además de mirarlas, la diferencia
+  media por canal, de 0 a 255, medida con un decodificador de PNG en node:
+  la entrevista entera 0,04 y el retrato de Nito 1,53
+  (`l06_2_antes_entrevista.png`); los retratos de Nelda y el Tuli en los
+  globos de la tribuna 1,61 (`l06_2_antes_tribuna.png`); el panel del
+  partido 0,00 (`l06_2_antes_partido.png`: fondo_tribuna no se toca); el
+  logo de la compuerta 1,32 (`l06_2_antes_compuerta.png`); el fondo
+  tierra y pasto seco de la intro 2,19 (`l06_2_antes_bg4.png`). Lo que
+  cambia está en el borde de las figuras: con pixelArt cada píxel de
+  pantalla toma uno solo de la textura, y de una textura más chica toma
+  otro.
+- **La misma pose teñida**: con una pinta guardada (piel 3, pelo 2,
+  camiseta 3), el Master tiñó "poseT_recibiendo_3_2_3" y
+  "poseT_remate_3_2_3"; en el partido el remate de VOS usó esa misma
+  textura (no se creó otra) y el panel corre con "poseT_corriendo_3_2_3"
+  (`l06_2_poseT_partido.png`).
+- **Sin memoria**: con `WEBGL_lose_context` (la extensión que lo simula),
+  apareció "Se quedó sin memoria" con RECARGAR y COPIAR INFORME, el juego
+  pausado y el informe con "se perdió el contexto WebGL"
+  (`l06_2_sin_memoria.jpg`). Un toque real en RECARGAR recargó la página y
+  el juego volvió a arrancar.
+
+### DECISIONES QUE TOMÉ YO (texturas-presupuesto)
+
+1. **Dos topes (1024 y 512) y no uno de 1024.** Con 1024 solo, el censo
+   daba 273,3 MB: la cuenta de la auditoría (270) le restaba la tribuna
+   doble a tamaño completo después de haberla achicado. El segundo tope sale
+   de lo que se ve chico, medido en el código (lo más grande, el logo de la
+   compuerta a 360x330; 512 le deja 1,4 veces de aire). *Revertir:*
+   `chicas_prefijos: []` en `balance.arte`.
+2. **`fondo_tribuna` fuera del tope.** Se ve a 960 de ancho en el cine y la
+   cámara del cine la acerca hasta 1,25: necesita sus 1280 (achicada se
+   agrandaría, con pixelArt en escalones). Además el panel la usa con
+   `setTileScale(0.5)` y `tilePositionY = 270`, en píxeles de la textura.
+   *Revertir:* `tope_excepto: []` (y corregir el panel por el factor).
+3. **Solo texturas de archivo.** Los lienzos que dibuja el código no se
+   tocan (el espejo de la tribuna se hubiera quedado en blanco). *Revertir:*
+   no tiene sentido; es parte del arreglo.
+4. **"Sin memoria" usa el aviso de "Algo se trabó"** (mismo lugar, mismos
+   botones de 48 px, mismo informe), con su título, su texto y solo
+   RECARGAR. Para Rodri queda la duda de si conviene probar a seguir cuando
+   el navegador devuelve el contexto (`webglcontextrestored`); no lo hice
+   porque en un teléfono sin memoria lo más probable es que vuelva a pasar.
+   *Revertir:* `R.vigilarMemoria` y el tipo `sin_memoria`.
+5. **`logic/memoria.js` es un archivo nuevo** (y entra al precache del
+   worker y al conteo del cartel: 52 scripts). *Revertir:* junto con el 1.

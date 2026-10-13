@@ -1258,26 +1258,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   poseConTuPinta(id) {
     const base = "pose_" + id;
     if (!this.textures.exists(base)) return null;
-    const A = window.PampaAvatar, AA = window.PampaAvatarArte;
-    const pm = this.game.registry.get("poses");
-    const def = pm && pm.poses && pm.poses[id];
-    if (!A || !AA || !def || !def.tonos) return base;
-    let look;
-    try { look = A.validarLook(this.lookGuardado()); } catch (e) { return base; }
-    if (!look || (!look.tPiel && !look.tPelo && !look.tCam)) return base;
-    const key = "poseM_" + id + "_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
-    if (this.textures.exists(key)) return key;
-    try {
-      const CAT = A.CATALOGO, CM = this.game.registry.get("caras");
-      const hx = v => parseInt(String(v).slice(1), 16);
-      const T = def.tonos, tol = def.tolerancias || {}, mapa = [];
-      if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45 });
-      if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80 });
-      if (look.tCam > 0 && T.camiseta && CM && CM.camisetas) mapa.push({ de: hx(T.camiseta), a: hx(CM.camisetas[(look.tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
-      if (!mapa.length) return base;
-      AA.tenirImagen(this, base, key, mapa);
-    } catch (e) { return base; }
-    return this.textures.exists(key) ? key : base;
+    const AA = window.PampaAvatarArte;
+    if (!AA || !AA.poseTenida) return base;
+    /* L06 (texturas-presupuesto): la misma clave que el partido ("poseT_…",
+       scenes/avatar_arte.js). Antes era "poseM_…" y el partido teñía la
+       misma pose otra vez como "poseV_…": 45 MB repetidos en memoria */
+    return AA.poseTenida(this, id, this.lookGuardado()) || base;
   }
 
   /* el look guardado del editor, sin depender de que la escena lo tenga */
