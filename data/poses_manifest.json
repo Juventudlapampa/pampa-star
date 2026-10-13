@@ -104,9 +104,10 @@
     "camiseta": "#8cc5e9"
    },
    "tolerancias": {
-    "piel": 80,
+    "piel": 66,
     "camiseta": 95
-   }
+   },
+   "_tolerancias": "OJOS (tanda 1.0): piel en 66 y no en 80, MEDIDO en este archivo (pose_celebracion.webp). La sombra gris del short (184,186,185) está a 70-80 de #fac194 (distancia RGB): con 80, al teñir una piel oscura el short blanco salía con manchas marrones. En la zona del short hay 25.895 píxeles entre 70 y 80 y casi nada abajo de 68; en los brazos, entre 68 y 80 hay unos 1.300 de 79.000 (el borde de la sombra, que ya no se teñía entre 80 y 100). Con 66 el short queda blanco y la piel igual de teñida (ojos_26)."
   },
   "gambeta_gana": {
    "archivo": "pose_gambeta_gana.webp",

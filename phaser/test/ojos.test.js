@@ -357,6 +357,13 @@ function teatro(poseTiro) {
   assert(ce.archivo === "pose_festejo.webp" && ce.tonos.piel === "#fcceb4" && ce.tonos.camiseta === "#4bbff8",
     "'celebracion' (el asado de la semana) apunta a pose_festejo.webp, con los suyos");
   assert(typeof fe._cruce === "string" && /celebracion/.test(fe._cruce) && typeof ce._cruce === "string", "las dos dicen que están cruzadas y cómo volver");
+  /* con 80 de tolerancia la sombra gris del short (a 70-80 de #fac194) se
+     teñía con la piel: medido, 66 deja el short blanco */
+  assert(fe.tolerancias.piel <= 68 && typeof fe._tolerancias === "string" && fe._tolerancias.length > 60,
+    "'festejo' tiñe la piel con tolerancia 66 (medida: la sombra del short está a 70-80) y lo dice (" + fe.tolerancias.piel + ")");
+  var gris = [184, 186, 185], piel = [0xfa, 0xc1, 0x94];
+  var dGris = Math.sqrt(gris.reduce(function (t, v, i) { return t + (v - piel[i]) * (v - piel[i]); }, 0));
+  assert(dGris > fe.tolerancias.piel, "la sombra del short (184,186,185) queda afuera del tinte de piel (" + dGris.toFixed(1) + " > " + fe.tolerancias.piel + ")");
   /* quién pide cada una: el gol pide 'festejo' (sigue igual), solo el asado pide 'celebracion' */
   var D = leer("phaser/scenes/definicion_ui.js"), J = leer("phaser/scenes/jugadon_ui.js"), I = leer("phaser/scenes/intro.js");
   assert(/poseId = o\.gol \? "festejo"/.test(D), "el gol de la Definición pide 'festejo'");
