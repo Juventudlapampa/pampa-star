@@ -5372,10 +5372,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        además se cortaba contra el borde de abajo.
        Ahora cada medidor es una fila: ETIQUETA · barra · NÚMERO, las tres cosas
        una al lado de la otra y ninguna encima de nada. El número siempre a la
-       vista, que la lectura no puede depender del color de la barra. */
-    const MD = this.MEDIDORES = { xEtq: 754, xBarra: 820, xNum: 948, yEnvion: 500, yGuts: 522, wBarra: 84 };
-    this.lblEnvion = this.add.text(MD.xEtq, MD.yEnvion, "ENVIÓN", { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0, 0.5);
-    this.lblGuts = this.add.text(MD.xEtq, MD.yGuts, "AGUANTE", { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0, 0.5);
+       vista, que la lectura no puede depender del color de la barra.
+       L09: las etiquetas pasaron de 10 a 13 px y la de ENVIÓN quedaba
+       debajo del canto del ⚡ ACCIÓN (que llega a y 498, 499 con el pulso):
+       las dos filas bajaron 7 y 5. AGUANTE termina en y 535. */
+    const MD = this.MEDIDORES = { xEtq: 754, xBarra: 820, xNum: 948, yEnvion: 507, yGuts: 527, wBarra: 84 };
+    this.lblEnvion = this.add.text(MD.xEtq, MD.yEnvion, "ENVIÓN", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0, 0.5);
+    this.lblGuts = this.add.text(MD.xEtq, MD.yGuts, "AGUANTE", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0, 0.5);
     this.txtGuts = this.add.text(MD.xNum, MD.yGuts, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtDivision, this.txtReloj, this.gutsG, this.lblGuts, this.txtGuts]);
