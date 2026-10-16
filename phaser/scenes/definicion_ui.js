@@ -208,7 +208,15 @@
       }
       if (!this._def.arq) this._def.arq = this.add.rectangle(W / 2, 148, 26, 44, 0xf6c11d).setStrokeStyle(2, 0x0a1f13);
       this.cineContent.add(this._def.arq);
-      this.cineLabel.setText("· LA DEFINICIÓN · buscá el ángulo, los defensores se acercan");
+      /* L09: el rótulo del cine va abajo a la izquierda y en la Definición
+         ahí está la fila de botones: pasaba por debajo de TIRO (visto en una
+         captura a 800x360). La consigna va arriba de la fila, como la de la
+         fase 2 (defZonas), y se va con los botones */
+      this.cineLabel.setText("");
+      var consigna = this.add.text(W / 2, H - 86, "LA DEFINICIÓN · buscá el ángulo, los defensores se acercan",
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+      this.cineContent.add(consigna);
+      this._def.botones.push(consigna);
       this.defBotonesOf(opts);
       this.selloDef();
       /* M2 · EL PASILLO. Antes pedía "rival", que no existe en el mapa nuevo:
@@ -277,7 +285,7 @@
       /* área */
       g.lineStyle(4, 0xeafff0, 0.7); g.strokeRect(W / 2 - 260, 128, 520, 210);
       if (esMiArco) {
-        var t = this.add.text(16, 128, "⚠ TU ARCO", { fontFamily: window.PF.display, fontSize: "11px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 2 });
+        var t = this.add.text(16, 128, "⚠ TU ARCO", { fontFamily: window.PF.display, fontSize: "13px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 2 });
         this.cineContent.add(t);
       }
     },
@@ -297,9 +305,12 @@
        defBoton queda como el atajo de la fila de abajo. Los textos y los
        tamaños son los de siempre: solo se mueven con la y. */
     defBotonEn(x, y, texto, sub, color, cb, ancho) {
-      var r = this.add.rectangle(x, y, ancho || 148, 52, color || 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(x, y - 8, texto, { fontFamily: window.PF.display, fontSize: "9px", color: "#0a1f13" }).setOrigin(0.5);
-      var s = this.add.text(x, y + 10, sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
+      /* L09: los rótulos iban a 9 y 10 px (6,5 y 7,2 reales en un teléfono
+         de 844x390); ahora al piso de las decisiones, y adentro de la caja */
+      var L = this.BAL.legibilidad, px = L.texto_decision_min + "px", w = ancho || 148;
+      var r = this.add.rectangle(x, y, w, 52, color || 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      var t = this.encajarTexto(this.add.text(x, y - 9, texto, { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5), w - 2 * L.cruz.aire);
+      var s = this.encajarTexto(this.add.text(x, y + 11, sub || "", { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), w - 2 * L.cruz.aire);
       this.cineContent.add(r); this.cineContent.add(t); this.cineContent.add(s);
       var self = this;
       r.on("pointerdown", function (p, xx, yy, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
@@ -420,7 +431,7 @@
     },
     avisarDef(txt) {
       if (this._def && this._def.aviso && this._def.aviso.active) this._def.aviso.destroy();
-      var t = this.add.text(W / 2, H * 0.16, txt, { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+      var t = this.add.text(W / 2, H * 0.16, txt, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
       this.cineContent.add(t);
       this._def.aviso = t;
       this.tweens.add({ targets: t, alpha: 0, delay: 1500, duration: 400 });
@@ -432,7 +443,7 @@
       var vivos = this._def.defs.filter(function (d) { return d.vivo; });
       if (!vivos.length) { this.avisarDef("No tenés a nadie encima"); return; }
       var acc = P.accionesAtaque(st).find(function (a) { return a.id === "gambeta"; });
-      if (!acc || acc.bloqueada) { this.avisarDef("▨ " + ((acc && acc.motivo) || "sin aguante")); return; }
+      if (!acc || acc.bloqueada) { this.avisarDef((acc && acc.motivo) || "sin aguante"); return; }
       var yo = st.mios[st.ctrl];
       var r = P.resolverDuelo(st, { accion: "gambeta", poder: acc.poder, costo: acc.costo });
       if (r.win) {
@@ -458,7 +469,7 @@
     defPared() {
       var st = this.st, P = window.PampaPartido;
       var A = this.BAL.aguante;
-      if (!P.accionesAtaque(st).find(function (a) { return a.id === "pared"; }) || st.mios[st.ctrl].aguante < A.costo_pared) { this.avisarDef("▨ sin compañero o sin aguante"); return; }
+      if (!P.accionesAtaque(st).find(function (a) { return a.id === "pared"; }) || st.mios[st.ctrl].aguante < A.costo_pared) { this.avisarDef("sin compañero o sin aguante"); return; }
       st.mios[st.ctrl].aguante = Math.max(0, st.mios[st.ctrl].aguante - A.costo_pared);
       var vivos = this._def.defs.filter(function (d) { return d.vivo; });
       if (vivos.length) {
@@ -536,7 +547,7 @@
         self._def.zonaRects.push(r);
       });
       var ayuda = this.add.text(W / 2, H - 86, "¿DÓNDE la ponés? — el arquero ya eligió su palo, a ciegas",
-        { fontFamily: window.PF.texto, fontSize: "12px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
       this.cineContent.add(ayuda);
       this._def.botones.push(ayuda);
       /* elección secreta del otro lado, decidida YA (una sola vez) */

@@ -87,7 +87,9 @@
       var c = m.carta;
       return {
         texto: "🃏 " + String(c.n).toUpperCase().slice(0, 15),
-        sub: m.puede ? (c.sub || "") + " · " + c.aguante + " aguante" : m.motivo,
+        /* L09: en el centro de la cruz entra el costo; la frase de la carta
+           ("todo el cuerpo atrás de la pelota") se lee al jugarla, en su momento */
+        sub: m.puede ? c.aguante + " aguante" : m.motivo,
         bloqueada: !m.puede,
         motivo: m.motivo,
         cb: function () {

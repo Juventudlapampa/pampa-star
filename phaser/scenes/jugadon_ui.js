@@ -30,11 +30,13 @@
       var P = window.PampaPiel, cfg = (this.game.registry.get("balance") || {}).piel;
       var F = P ? P.franja(cfg) : { y1: 528 };
       var y = Math.round(F.y1 - 24);
-      var col = (fila || 0);
-      var ancho = 228, x = 480 + (col === 0 ? -(ancho / 2 + 6) : (ancho / 2 + 6));
+      /* L09: a 13 px, con 248 de ancho entra "🌟 GAMBETA-TIRO (quedan 2)"
+         (213 medido con la tipografía); con 228 y a 10 px no se leía */
+      var col = (fila || 0), L = this.BAL.legibilidad, px = L.texto_decision_min + "px";
+      var ancho = 248, x = 480 + (col === 0 ? -(ancho / 2 + 6) : (ancho / 2 + 6));
       var b = this.add.rectangle(x, y, ancho, 44, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(x, y - 8, texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5);
-      var s = this.add.text(x, y + 10, sub, { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5);
+      var t = this.encajarTexto(this.add.text(x, y - 9, texto, { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5), ancho - 2 * L.cruz.aire);
+      var s = this.encajarTexto(this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), ancho - 2 * L.cruz.aire);
       this.menuLayer.add([b, t, s]);
       var self = this;
       b.on("pointerdown", function (p, x, y2, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
@@ -77,7 +79,9 @@
          (1..9) — el jugadón es operable solo-dedo Y solo-teclado */
       var num = (this._jg.nBotones = (this._jg.nBotones || 0) + 1);
       var b = this.add.rectangle(x, y, wpx, 54, bg, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.add.text(x, y, num + "·" + texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
+      /* L09: 13 px y en dos renglones si hace falta ("◀ SALIR POR IZQUIERDA"
+         mide 197 y con cinco gestos el botón deja 162) */
+      var t = this.add.text(x, y, num + "·" + texto, { fontFamily: window.PF.display, fontSize: this.BAL.legibilidad.texto_decision_min + "px", color: "#0a1f13", align: "center", wordWrap: { width: wpx - 12 } }).setOrigin(0.5);
       this.cineContent.add(b); this.cineContent.add(t);
       var self = this;
       var disparar = function () { self._uiTocado = self.time.now; cb(); };
@@ -201,7 +205,7 @@
         var sr = kR ? self.add.image(0, 0, kR) : self.add.rectangle(0, 0, 40, 90, 0xff8a50);
         sr._altoBase = sr.height || 90;
         self.cineContent.add(sr);
-        var nom = self.add.text(0, 0, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
+        var nom = self.add.text(0, 0, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
         self.cineContent.add(nom);
         /* P7 · el POZO no es un rival: no lleva figura ni nombre de jugador.
            Es la cancha jugando, y se tiene que ver distinto o no se entiende. */
@@ -231,6 +235,7 @@
          dos. Se ve en la captura REV_pasillo_lectura. */
       var ayuda = this.add.text(W / 2, H - 46, "esquivá con el DEDO o con las FLECHAS · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 8, y: 2 } }).setOrigin(0.5).setAlpha(0.9);
       this.cineContent.add(ayuda);
+      this._jgMini.ayuda = ayuda;
       /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */
       this.pedirMusica("jugadon");
       this.pintarCorridaVertical(0);
@@ -262,7 +267,9 @@
         if (r.spr.setDepth) r.spr.setDepth(Math.round((1 - r.d) * 10));
         if (r.nom && r.nom.active) {
           r.nom.setPosition(x, s.y - 78 * s.escala);
-          r.nom.setScale(Math.max(0.6, s.escala));
+          /* L09: el nombre crece con la cercanía pero no baja de 13 px (con
+             el 0,6 de antes, a lo lejos quedaba en 7,8) */
+          r.nom.setScale(Math.max(1, s.escala));
           r.nom.setVisible(r.vivo);
         }
       });
@@ -360,6 +367,10 @@
       }
 
       this.SFX && this.SFX.whoosh && this.SFX.whoosh(220);
+      /* L09: la ayuda de la corrida (H-46) queda debajo de la fila de
+         botones (H-60, 54 de alto): con los botones a la vista se asomaba
+         por los costados. Ya se usó: se va */
+      if (m.ayuda) m.ayuda.setVisible(false);
       var ops = obs ? J2.opcionesDeObstaculo(obs, m.statG)
                     : ((m.gestos && m.gestos.length) ? m.gestos : g.opciones);
       var wpx = Math.min(200, (W - 40) / ops.length - 10);
@@ -376,7 +387,7 @@
              subtítulo no se leía. Y sin el subtítulo, "POR AFUERA" no dice qué
              te cuesta, que es toda la gracia de la clase. */
           var ts = self.add.text(x, H - 104, mv.sub, {
-            fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2",
+            fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2",
             align: "center", wordWrap: { width: wpx + 8 }
           }).setOrigin(0.5);
           self.cineContent.add(ts); self._jg.sprites.push(ts);
@@ -546,7 +557,7 @@
       var kBloqMio = this.poseDelEquipo ? this.poseDelEquipo("bloqueo", st.mios[st.ctrl]) : this.poseKey("bloqueo");
       var kYo = this.poseHeroeTenida ? (this.poseHeroeTenida(st.mios[st.ctrl]) || kBloqMio) : kBloqMio;
       if (kYo) { var sy = this.add.image(480, 350, kYo); sy.setScale(120 / sy.height); this.cineContent.add(sy); }
-      var C = J.CIERRES, wpx = 210;
+      var C = J.CIERRES, wpx = 224;
       C.forEach(function (c, i) {
         var x = W / 2 + (i - (C.length - 1) / 2) * (wpx + 8);
         self.jugadonBoton(x, H - 60, wpx, c.n, 0xf6efdc, function () { self.jugadonQuite(c.id); });

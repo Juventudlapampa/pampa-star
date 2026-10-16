@@ -2099,13 +2099,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const img = this.add.image(x, 386, key);
     const esc = 132 / img.height; img.setScale(esc);
     const marco = this.add.rectangle(x, 386, img.width * esc + 10, 142, 0x0a1f13, 0.55).setStrokeStyle(2, esRival ? 0xff8a50 : 0x4fc3f7);
-    const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", fontStyle: "bold" }).setOrigin(0.5);
+    /* L09: el nombre y el aguante de los retratos también son de la cruz: 13 px */
+    const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", fontStyle: "bold" }).setOrigin(0.5);
     /* §6: nombre + BARRA de aguante (color por umbral) + número SIEMPRE */
     const max = this.BAL.aguante.max, frac = Phaser.Math.Clamp(gutsVal / max, 0, 1);
     const barCol = frac > 0.5 ? 0x2e7d32 : frac > 0.25 ? 0xf9a825 : 0xc62828;
     const barBg = this.add.rectangle(x, 480, 96, 9, 0x0a1f13, 0.9).setStrokeStyle(1, 0xf6efdc, 0.7);
     const bar = this.add.rectangle(x - 48 + 48 * frac, 480, 96 * frac, 7, barCol, 1);
-    const aguante = this.add.text(x, 495, "AGUANTE " + Math.round(gutsVal), { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    const aguante = this.add.text(x, 495, "AGUANTE " + Math.round(gutsVal), { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.menuLayer.add([marco, img, nom, barBg, bar, aguante]);
   }
 
@@ -2200,7 +2201,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const franjaTut = this.add.rectangle(480, 372, 960, 92, 0x0a1f13, 0.94);
     const lineaTut = this.add.rectangle(480, 328, 960, 2, 0xf5c400, 0.65);
     const caja = this.add.text(480, 362, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center", lineSpacing: 6 }).setOrigin(0.5);
-    const pie = this.add.text(480, 404, "tocá para seguir ▸", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0.5);
+    const pie = this.add.text(480, 404, "tocá para seguir ▸", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     const anillo = this.add.graphics();
     this.menuLayer.add([velo, franjaTut, lineaTut, caja, pie, anillo]);
     this.selloMenu();
@@ -2416,6 +2417,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.uiCam) this.uiCam.ignore(this.sprDuelo);
   }
   quitarDuelo() { if (this.sprDuelo) { this.sprDuelo.destroy(); this.sprDuelo = null; } this._dueloJ = null; }
+  /* L09 · UN RÓTULO NO SE SALE DE SU BOTÓN. A 13 px, lo que se arma con datos
+     (el nombre de un especial, el motivo de una carta) puede no entrar:
+     primero se va, de atrás para adelante, lo que viene después de un " · ",
+     y si todavía no entra, el ícono del principio (los ojos de "te tienen
+     leído" son forma además de texto: se van últimos). La letra no se
+     achica nunca. */
+  encajarTexto(t, ancho) {
+    while (t.width > ancho && t.text.indexOf(" · ") > 0) t.setText(t.text.slice(0, t.text.lastIndexOf(" · ")));
+    if (t.width > ancho) t.setText(t.text.replace(/^[^\p{L}\p{N}¡¿~+(]+\s+/u, ""));
+    return t;
+  }
   /* la cruz: opciones en W/N/E/S como el pad del original (doc §8) */
   abrirMenuCruz(cfg) {
     this.estado = "MENU";
@@ -2435,35 +2447,55 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.menuLayer.add([strip, tit]);
     if (cfg.izq) this.retratoPanel(104, cfg.izq.j, !!cfg.izq.esRival, cfg.izq.aguante);
     if (cfg.der) this.retratoPanel(856, cfg.der.j, cfg.der.esRival !== false, cfg.der.aguante);
-    const POS = { N: [480, 352], S: [480, 458], W: [318, 405], E: [642, 405] };
+    /* L09 · A 13 PX Y SIN PISARSE. Los rótulos iban a 10 px (7,2 reales en
+       un teléfono de 844x390) en botones de 176x50, y el centro, de 150, se
+       montaba sobre PASE y TIRO. La geometría es dato (balance.legibilidad.
+       cruz, medida contra los retratos y la fila de las fichas). */
+    const LG = this.BAL.legibilidad, CZ = LG.cruz, px = LG.texto_decision_min + "px";
+    const rotulos = (x, y, w, titulo, sub, colT, colS) => {
+      const t = this.encajarTexto(this.add.text(x, y - (sub ? 9 : 0), titulo, { fontFamily: window.PF.display, fontSize: px, color: colT }).setOrigin(0.5), w - 2 * CZ.aire);
+      const s = sub ? this.encajarTexto(this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: px, color: colS }).setOrigin(0.5), w - 2 * CZ.aire) : null;
+      this.menuLayer.add(s ? [t, s] : [t]);
+    };
     this._menuOps = {}; this._menuSel = null; this._menuBtns = {};
     ["N", "S", "W", "E"].forEach(dir => {
       const op = cfg.opciones[dir];
       if (!op) return;
       this._menuOps[dir] = op;
-      const [x, y] = POS[dir];
+      const [x, y, w, h] = CZ[dir];
       const bg = op.bloqueada ? 0x333d36 : 0xf6efdc;
-      /* bloqueado se ve por TEXTURA (rayado ▨) + motivo escrito, no solo por el gris */
-      const r = this.add.rectangle(x, y, 176, 50, bg, 0.97).setStrokeStyle(2, 0x0a1f13);
+      const r = this.add.rectangle(x, y, w, h, bg, 0.97).setStrokeStyle(2, 0x0a1f13);
       /* B2 · la apertura del menú también lleva anticipación y rebote */
       if (window.PampaFeel) window.PampaFeel.aparecer(this, r, { x: x, y: y, scale: 1, desdeX: 480 }, 2);
-      const subTxt = op.bloqueada ? ("▨ " + (op.motivo || "no disponible")) : op.sub;
-      const t = this.add.text(x, y - (subTxt ? 9 : 0), op.texto, { fontFamily: window.PF.display, fontSize: "10px", color: op.bloqueada ? "#9aa59d" : "#0a1f13" }).setOrigin(0.5);
-      this.menuLayer.add([r, t]);
-      if (subTxt) { const s = this.add.text(x, y + 13, subTxt, { fontFamily: window.PF.texto, fontSize: "10px", color: op.bloqueada ? "#c76a5e" : "#365a41" }).setOrigin(0.5); this.menuLayer.add(s); }
+      this.menuLayer.add(r);
+      /* bloqueado se ve por TEXTURA (un rayado dibujado: el glifo ▨ no está
+         en las tipografías del juego) + el motivo escrito, no solo por el
+         gris. El motivo va en #f6efdc: en el rojo de antes daba 3,04:1 de
+         contraste (2,49 con protanopía); así da 9,8 (9,6). */
+      if (op.bloqueada) {
+        const g = this.add.graphics().lineStyle(3, 0x0a1f13, 0.45);
+        const x0 = x - w / 2, y0 = y - h / 2;
+        for (let d = 8 - h; d < w; d += 12) {
+          const a = Math.max(0, d), b = Math.min(w, d + h);
+          g.beginPath(); g.moveTo(x0 + a, y0 + h - (a - d)); g.lineTo(x0 + b, y0 + h - (b - d)); g.strokePath();
+        }
+        this.menuLayer.add(g);
+      }
+      const subTxt = op.bloqueada ? (op.motivo || "no disponible") : op.sub;
+      rotulos(x, y, w, op.texto, subTxt, op.bloqueada ? "#b9c3bc" : "#0a1f13", op.bloqueada ? "#f6efdc" : "#365a41");
       if (!op.bloqueada) {
         r.setInteractive({ useHandCursor: true });
         r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; op.cb(); });
       }
       this._menuBtns[dir] = r;
     });
-    /* opción del CENTRO (p.ej. 🔥 CALDÉN cuando está disponible, sin pisar el TIRO) */
+    /* opción del CENTRO (tu carta, o el especial cuando está disponible) */
     let centroRect = null;
     if (cfg.centro) {
-      const c = this.add.rectangle(480, 405, 150, 50, 0xff8c3a, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const ct = this.add.text(480, 398, cfg.centro.texto, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      const cs = this.add.text(480, 416, cfg.centro.sub || "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#5a2d12" }).setOrigin(0.5);
-      this.menuLayer.add([c, ct, cs]);
+      const [cx, cy, cw, ch] = CZ.C;
+      const c = this.add.rectangle(cx, cy, cw, ch, 0xff8c3a, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      this.menuLayer.add(c);
+      rotulos(cx, cy, cw, cfg.centro.texto, cfg.centro.sub || "", "#0a1f13", "#5a2d12");
       c.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.centro.cb(); });
       centroRect = c;
     }
@@ -2501,19 +2533,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const items = [];
       /* la caja va DECLARADA: los botones entran volando con PampaFeel.aparecer
          y medirlos ahora es medirlos en vuelo. Acá sabemos exactamente dónde
-         van a quedar — son POS y 176x50, y el centro 150x50. */
+         van a quedar: balance.legibilidad.cruz. */
+      const caja = ([bx, by, bw, bh]) => ({ x: bx - bw / 2, y: by - bh / 2, w: bw, h: bh });
       ["N", "W", "E", "S"].forEach(dir => {
         const r = this._menuBtns[dir], op = this._menuOps[dir];
         if (!r || !op) return;
-        const [bx, by] = POS[dir];
         items.push({
           obj: r, bloqueada: !!op.bloqueada, motivo: op.motivo,
-          caja: { x: bx - 88, y: by - 25, w: 176, h: 50 },
+          caja: caja(CZ[dir]),
           cb: () => { this._uiTocado = this.time.now; op.cb(); }, _dir: dir
         });
       });
       if (centroRect) items.push({
-        obj: centroRect, caja: { x: 480 - 75, y: 405 - 25, w: 150, h: 50 },
+        obj: centroRect, caja: caja(CZ.C),
         cb: () => { this._uiTocado = this.time.now; cfg.centro.cb(); }, _dir: "C"
       });
       if (items.length) {
@@ -2588,7 +2620,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
              suelto — una función declarada hecha que nunca se pudo ver jugando. */
           const sec = !libre ? this.secuenciaDisponible("megacorrida") : null;
           if (sec && !gam.bloqueada) {
-            return { texto: "🌠 MEGACORRIDA", sub: sec.costo + " aguante · se te van quedando atrás", cb: () => this.secuenciaMegacorrida() };
+            return { texto: "🌠 MEGACORRIDA", sub: sec.costo + " aguante · los dejás atrás", cb: () => this.secuenciaMegacorrida() };
           }
           return {
             texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " aguante", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
@@ -2631,9 +2663,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            lo estás por elegir, no después de que falle. */
         const leido = this.avisoLectura(megaListo.id);
         return {
-          texto: "🔥 " + megaListo.n.toUpperCase().slice(0, 15),
-          sub: leido ? leido + " · ficha (quedan " + F.tiros + ")"
-            : "encarás y definís · ficha (quedan " + F.tiros + ")",
+          /* L09: el nombre entero (cortado a 15 letras quedaba "DISPARO DEL
+             CAL"); si no entra, encajarTexto le saca el ícono. Si te tienen
+             leído, eso va primero: es lo último que se recorta */
+          texto: "🔥 " + megaListo.n.toUpperCase(),
+          sub: (leido ? leido + " · " : "") + "ficha de tiro · quedan " + F.tiros,
           cb: () => {
             if (!window.PampaJugadon.gastarFicha(F, "tiros")) return;
             this.entrarJugadonGambeta(rivalIdx, { mega: megaListo, marcadores: 3 });
@@ -2654,7 +2688,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.botonJugadon && this.jugadonFichas) {
       const F = this.jugadonFichas();
       if (F.gambetas > 0) {
-        this.botonJugadon("🌟 GAMBETA-TIRO (quedan " + F.gambetas + ")", "encarás en la corrida y definís de frente al arco", () => {
+        this.botonJugadon("🌟 GAMBETA-TIRO (quedan " + F.gambetas + ")", "encarás y definís de frente al arco", () => {
           if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx, { marcadores: 2 });
         }, 0);
       }
@@ -2731,7 +2765,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.botonJugadon && this.jugadonFichas) {
       const F = this.jugadonFichas();
       if (F.quites > 0) {
-        this.botonJugadon("🌟 SÚPER QUITE (quedan " + F.quites + ")", "te metés en su jugada: leé su movida y cerrale el camino", () => {
+        this.botonJugadon("🌟 SÚPER QUITE (quedan " + F.quites + ")", "leé su movida y cerrale el camino", () => {
           if (window.PampaJugadon.gastarFicha(F, "quites")) this.entrarJugadonQuite();
         });
       }
@@ -5333,8 +5367,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        una al lado de la otra y ninguna encima de nada. El número siempre a la
        vista, que la lectura no puede depender del color de la barra. */
     const MD = this.MEDIDORES = { xEtq: 754, xBarra: 820, xNum: 948, yEnvion: 500, yGuts: 522, wBarra: 84 };
-    this.lblEnvion = this.add.text(MD.xEtq, MD.yEnvion, "ENVIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#9fb3a5" }).setOrigin(0, 0.5);
-    this.lblGuts = this.add.text(MD.xEtq, MD.yGuts, "AGUANTE", { fontFamily: window.PF.texto, fontSize: "10px", color: "#9fb3a5" }).setOrigin(0, 0.5);
+    this.lblEnvion = this.add.text(MD.xEtq, MD.yEnvion, "ENVIÓN", { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0, 0.5);
+    this.lblGuts = this.add.text(MD.xEtq, MD.yGuts, "AGUANTE", { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0, 0.5);
     this.txtGuts = this.add.text(MD.xNum, MD.yGuts, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtDivision, this.txtReloj, this.gutsG, this.lblGuts, this.txtGuts]);

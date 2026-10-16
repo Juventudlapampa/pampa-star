@@ -155,7 +155,12 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
     e.cineContent = { add: function () {} };
     e.time = { now: 1000, delayedCall: function () {} };
     e.msV = function (x) { return x; };
-    e.BAL = { aguante: { costo_quite: 120, max: 1000, recupera_no_moverse: 30 } };
+    /* L09: los rótulos de defBotonEn van al piso de las decisiones
+       (balance.legibilidad) y se recortan con encajarTexto, que vive en
+       match.js; acá no se mide el ancho de nada, así que pasa derecho */
+    e.BAL = { aguante: { costo_quite: 120, max: 1000, recupera_no_moverse: 30 },
+      legibilidad: JSON.parse(fs.readFileSync(path.join(__dirname, "../data/balance.json"), "utf8")).legibilidad };
+    e.encajarTexto = function (t) { return t; };
     e.st = { envion: envion, ctrl: 1, mios: [{ pos: "ARQ", aguante: 900 }, { pos: "ATA", aguante: 800 }] };
     e._def = { botones: [] };
     e.megaDefensaDisponible = function () { return mega; };

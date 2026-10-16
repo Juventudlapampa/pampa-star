@@ -36,13 +36,27 @@ const TEL = { w: 844, h: 390 };
 const K = TEL.h / 540;                       // 0.7222
 const real = (logico) => logico * K;
 const logico = (r) => r / K;
+/* TANDA 1.0, L09: y el chico, que es contra el que se mide desde este lote
+   (800x360: con FIT manda el alto, 360/540 = 0,6667). Lo que entra en este
+   entra en todos los apaisados de 360 de alto para arriba. */
+const CHICO = { w: 800, h: 360 };
+const KC = CHICO.h / 540;                    // 0.6667
+const realChico = (l) => l * KC;
 
 /* ---------- [1] el bloque existe y es coherente ---------- */
 assert(BAL.legibilidad != null, "balance.json tiene que traer el bloque 'legibilidad'");
-["num_mapa", "ficha_r", "tap_min", "texto_info_min"].forEach(k => {
+["num_mapa", "ficha_r", "tap_min", "texto_info_min", "texto_decision_min"].forEach(k => {
   assert(typeof LEG[k] === "number" && LEG[k] > 0, "legibilidad." + k + " tiene que ser un número > 0");
 });
-console.log("[1] factor del teléfono de referencia: " + TEL.w + "x" + TEL.h + " → " + K.toFixed(4));
+console.log("[1] factor de los teléfonos: " + TEL.w + "x" + TEL.h + " → " + K.toFixed(4) + " · " + CHICO.w + "x" + CHICO.h + " → " + KC.toFixed(4));
+/* el texto con el que se decide, en el teléfono chico, no puede quedar por
+   debajo de lo que es el piso de información en el de referencia */
+assert(realChico(LEG.texto_decision_min) >= real(LEG.texto_info_min) - 0.01,
+  "legibilidad.texto_decision_min (" + LEG.texto_decision_min + ") da " + realChico(LEG.texto_decision_min).toFixed(1) +
+  " px reales en un " + CHICO.w + "x" + CHICO.h + ", menos que el piso de información en el de " + TEL.w + "x" + TEL.h +
+  " (" + real(LEG.texto_info_min).toFixed(1) + "). SÍNTOMA: en el teléfono chico, lo que decide el partido se lee peor que un dato cualquiera en el grande.");
+console.log("    · el texto de decisión: " + LEG.texto_decision_min + " lógicos = " + real(LEG.texto_decision_min).toFixed(1) +
+  " reales en " + TEL.w + "x" + TEL.h + " y " + realChico(LEG.texto_decision_min).toFixed(1) + " en " + CHICO.w + "x" + CHICO.h);
 
 /* ---------- [2] EL NÚMERO DEL MAPA SE RESUELVE ----------
    Dos criterios independientes, los mismos con los que se calculó el piso. */
@@ -70,6 +84,10 @@ assert(trazoReal >= 1,
   "vuelven la misma mancha. Subí legibilidad.num_mapa.");
 console.log("[2] número del mapa: " + LEG.num_mapa + " lógicos = " + real(LEG.num_mapa).toFixed(1) +
   " reales · cap " + arcmin.toFixed(1) + " arcmin · trazo " + trazoReal.toFixed(2) + " px");
+/* en el chico solo se informa: el piso del número se calculó para el de
+   referencia y moverlo es re-maquetar el mapa entero */
+console.log("    · en un " + CHICO.w + "x" + CHICO.h + ": " + realChico(LEG.num_mapa).toFixed(1) + " reales · cap " +
+  (realChico(LEG.num_mapa) * CAP_EM * ARCMIN_POR_PX_REAL).toFixed(1) + " arcmin · trazo " + (realChico(LEG.num_mapa) * TRAZO_EM).toFixed(2) + " px");
 
 /* ---------- [3] LA FICHA CONTIENE AL NÚMERO ----------
    El número de dos dígitos más ancho ("88") mide, medido con la fuente real,
@@ -102,7 +120,8 @@ const TAP_CSS = 44;                                   // el piso de accesibilida
 assert(Math.abs(real(LEG.tap_min) - TAP_CSS) < 2,
   "legibilidad.tap_min (" + LEG.tap_min + " lógicos) tiene que dar ~" + TAP_CSS + " px reales en el teléfono " +
   "(da " + real(LEG.tap_min).toFixed(1) + "). SÍNTOMA: los botones quedan por debajo del piso táctil y el dedo no acierta.");
-console.log("[4] piso táctil: " + LEG.tap_min + " lógicos = " + real(LEG.tap_min).toFixed(1) + " px reales");
+console.log("[4] piso táctil: " + LEG.tap_min + " lógicos = " + real(LEG.tap_min).toFixed(1) + " px reales (" +
+  realChico(LEG.tap_min).toFixed(1) + " en un " + CHICO.w + "x" + CHICO.h + ")");
 
 /* ---------- [5] LOS TEXTOS DE INFORMACIÓN DEL CÓDIGO ----------
    Barre los fontSize literales de las escenas y avisa de los que llevan
@@ -151,7 +170,8 @@ if (bajos.length > 0) {
   const detalle = Object.entries(porArchivo).sort((a, b) => b[1] - a[1])
     .map(([f, n]) => f.replace(".js", "") + " " + n).join(", ");
   console.log("DEUDA: " + bajos.length + " textos por debajo de " + LEG.texto_info_min +
-    " px lógicos (" + (real(LEG.texto_info_min)).toFixed(1) + " reales en teléfono). " +
+    " px lógicos (" + (real(LEG.texto_info_min)).toFixed(1) + " reales en un " + TEL.w + "x" + TEL.h + ", " +
+    realChico(LEG.texto_info_min).toFixed(1) + " en un " + CHICO.w + "x" + CHICO.h + "). " +
     "El más chico: " + peor.px + "px en " + peor.archivo + ":" + peor.linea + ". Por archivo: " + detalle);
 }
 
