@@ -963,17 +963,18 @@
      de balance.rendimiento.tajada_ms (12, como el halo de arriba) entre
      cuadro y cuadro. La cola es logic/carga.js (crearColaPorTajadas); acá
      se le dan el reloj, el MessageChannel y CUÁNTA calma hay (CALMA): en el
-     partido, 2 en los menús quietos (el tempo, la pausa, el tutorial: ahí
+     partido, 2 en los menús quietos (la pausa, el tutorial: ahí
      corre también lo que no se parte, lo grande de a uno por tajada), 1
      donde se juega o se elige (LIBRE, la cruz del duelo, el pase: SOLO lo
      que se parte, de a bandas) y 0 en el resto (la escena, el cine, la
      Definición); fuera del partido, 2 (son menús). REVISIÓN DEL LOTE: eran
      todos iguales, y un trabajo de una pieza de 48 ms corría entero en LIBRE
-     o en la cruz (en la primera gambeta) si quien juega elegía rápido el
-     tempo. La llena el partido en su create (armarPrecalentamiento) y la
-     empuja su update. Lo llama index.html en postBoot, como el halo.
+     o en la cruz (en la primera gambeta). La llena el partido en su create
+     (armarPrecalentamiento) y la empuja su update. Lo llama index.html en
+     postBoot, como el halo. TEMPO-1: el menú de tempo, que era el rato
+     quieto más seguro, ya no existe (el tempo se elige al crear la carrera).
      ====================================================================== */
-  var CALMA = { TEMPO_MENU: 2, PAUSA: 2, TUTORIAL: 2, LIBRE: 1, MENU: 1, PASE: 1 };
+  var CALMA = { PAUSA: 2, TUTORIAL: 2, LIBRE: 1, MENU: 1, PASE: 1 };
   window.PampaPrecalentarEnganchar = function (game) {
     var K = window.PampaCarga;
     if (!K || !K.crearColaPorTajadas || !game || window.PampaPrecalentar) return window.PampaPrecalentar || null;

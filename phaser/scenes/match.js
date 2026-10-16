@@ -154,7 +154,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._btnEnvion = null;
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null;
-    this._escSkip = null; this._velRapida = false;           // V6 R4: skip y velocidad, limpios por partido
+    this._escSkip = null;                                    // V6 R4: el skip, limpio por partido
+    /* TEMPO-1: la VELOCIDAD vivía en el menú de tempo; ahora se cambia en la
+       PAUSA y queda guardada en el aparato, como antes (pampa_velocidad) */
+    let vel = null;
+    try { vel = localStorage.getItem("pampa_velocidad"); } catch (e) { }
+    this._velRapida = vel === "rapida";
     this._respiroHasta = 0;                                  // oct 2026: el respiro de los golpes cortos, por partido
     this._cineSkip = null; this._cineSaltado = false; this._cineTimer = null;   // V7 §1: skip del cine de 5 planos
     this._colorMapaMio = null;                               // V7 fix: el tono del mapa se recalcula por partido
@@ -308,7 +313,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* --- estado del partido: los 22 como entidades lógicas (mismo save de siempre) --- */
     const plantel = this.armarPlanteles();
-    this.st = window.PampaPartido.crearPartido({ bal: this.BAL, mios: plantel.mios, rivales: plantel.rivales });
+    /* TEMPO-1: el tempo es de la carrera (masterPartido.tempo); sin dato, INTERMEDIO */
+    const balPartido = this.FLAGS.v6_tempo
+      ? window.PampaSaveMaster.balConTempo(this.BAL, this.game.registry.get("masterPartido"))
+      : this.BAL;
+    this.st = window.PampaPartido.crearPartido({ bal: balPartido, mios: plantel.mios, rivales: plantel.rivales });
     this.nombreRival = plantel.nombreRival;
     /* FUSIÓN (flag partido_phaser): si la carrera clásica pidió este partido,
        el rival lleva el nombre del club del clásico y el final ofrece volver con el resultado */
@@ -524,8 +533,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          teléfono (logic/atras.js). Con un menú que se puede cerrar, lo
          cierra (lo de siempre: el pase dirigido, la cruz con ✕, y ahora la
          PAUSA, que es SEGUIR); en LIBRE abre la PAUSA; en una jugada la pide
-         para cuando termine; en el final es su salida principal; en el menú
-         de tempo, antes de empezar, vuelve sin jugar. La cruz de
+         para cuando termine; en el final es su salida principal. La cruz de
          la pausa no registra su propio ESC: si lo hiciera, este mismo
          keydown la cerraría y la volvería a abrir. */
       this.input.keyboard.on("keydown-ESC", () => this.alAtras(this.decidirAtras()));
@@ -578,9 +586,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });
     }
 
-    /* V6 §2 R4: ANTES del partido se elige el TEMPO (presets) y la VELOCIDAD.
-       Al confirmar, sigue el tutorial de 3 pasos si hace falta. */
-    this.menuTempoSiCorresponde();
+    /* TEMPO-1: el tempo llega puesto desde la carrera (balPartido) y el
+       partido arranca sin menú. El tutorial se abre ANTES de la ficha de la
+       fecha: con TUTORIAL puesto, la ficha y los avisos esperan detrás del
+       velo y salen al cerrarlo. */
+    this.tutorialSiHaceFalta();
+    if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, "📋", { prioridad: true }));
 
     /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
     if (!this._vista4) this.st._noAutoHasta = 9e15;
@@ -654,14 +665,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      iba por avisar() y no se veía; ahora entra acá, con la misma espera si el
      HUD está apagado. La línea pendiente se guarda ENTERA, con su ícono. */
   /* REVISIÓN DEL LOTE · LA FICHA SE LEE. La ficha sale 1,4 s después de
-     elegir el tempo, y en la primera fecha de una carrera nueva justo ahí
+     arrancar el partido, y en la primera fecha de una carrera nueva justo ahí
      arranca el tutorial: anunciarEnTicker sólo esperaba al HUD apagado, así
      que la ficha se pintaba detrás del velo del tutorial y se iba a los 2,8
      s, mientras quien juega leía el tutorial. Los avisos ya esperaban al menú
      de tempo y al tutorial (soltarAvisos): el mismo caso estaba resuelto de
      dos maneras. Y cualquier relatar() en esos 2,8 s la borraba
      (killTweensOf + setText). Ahora:
-       · la franja espera también detrás del menú de tempo y del tutorial;
+       · la franja espera también detrás del tutorial;
        · op.prioridad (la ficha): mientras está a la vista, la frase del
          relator espera detrás; y una frase que espera no desplaza a una
          ficha que espera (el lugar de espera es uno solo). */
@@ -670,7 +681,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* L04: detrás del velo de la PAUSA tampoco se lee: espera a SEGUIR */
     /* L04b: con la cruz (MENU) o el pase dirigido (PASE) abiertos, tampoco:
        su título va en la misma franja (ver apartarTicker) */
-    return this.estado !== "TEMPO_MENU" && this.estado !== "TUTORIAL" && this.estado !== "PAUSA" &&
+    return this.estado !== "TUTORIAL" && this.estado !== "PAUSA" &&
       this.estado !== "MENU" && this.estado !== "PASE";
   }
   /* ══════════════════════════════════════════════════════════════════════
@@ -1598,7 +1609,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      duelo (el tuyo y el naranja de cada rival) y la barrida naranja se
      tiñen por bandas como tus poses, y los pesos de la toma van por tramos
      (toma_remate.js). Lo que queda de una pieza corre solo en los menús
-     quietos (el tempo, la pausa, el tutorial), con su costo medido
+     quietos (la pausa, el tutorial), con su costo medido
      (balance.rendimiento.costo_ms) para que la cola sepa si comparte la
      tajada: los pies (5-22 ms), el ensayo de la malla de la toma (su primer
      dibujo, ~50) y las pinturas del cine (15). Lo que depende de otro trabajo (los pies de una
@@ -2162,108 +2173,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return String(nombre || "").toUpperCase().slice(0, tope || 14);
   }
 
-
-  /* V6 §2 R4: EL TEMPO se elige ANTES de cada partido — tres presets, una perilla.
-     Recuerda la última elección (resaltada); teclas 1/2/3 en la compu. */
-  menuTempoSiCorresponde() {
-    const T = this.BAL.tempo;
-    if (!this.FLAGS.v6_tempo || !T || !T.presets) { this.tutorialSiHaceFalta(); return; }
-    let ult = null;
-    try { ult = JSON.parse(localStorage.getItem("pampa_tempo") || "null"); } catch (e) { }
-    ult = ult || { preset: "intermedio", rapida: false };
-    this._velRapida = !!ult.rapida;
-    this.estado = "TEMPO_MENU";
-    this.st.modo = "congelado";
-    const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.72).setInteractive();
-    const tit = this.add.text(480, 74, "⏱ ¿QUÉ PARTIDO JUGAMOS?", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
-    const sub = this.add.text(480, 104, "el reloj avanza POR MOMENTOS: cada jugada consume minutos del partido", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
-    this.menuLayer.add([velo, tit, sub]);
-    const PRESETS = [
-      { k: "relampago", n: "⚡ RELÁMPAGO", d: "≈8-10 momentos por tiempo · para un rato corto" },
-      { k: "intermedio", n: "★ INTERMEDIO", d: "≈16-18 momentos por tiempo · recomendado" },
-      { k: "largo", n: "🕰 LARGO", d: "≈35 momentos por tiempo · el clásico entero" }
-    ];
-    const elegir = (k) => {
-      if (this.estado !== "TEMPO_MENU") return;
-      T.minutos_por_momento = T.presets[k] || 2.5;
-      try { localStorage.setItem("pampa_tempo", JSON.stringify({ preset: k, rapida: this._velRapida })); } catch (e) { }
-      this.limpiarMenu();
-      this.estado = "LIBRE";
-      this.st.modo = "juego";
-      /* REVISIÓN DEL LOTE: el tutorial se abre ANTES de los avisos. Iba al
-         final, y avisar() suelta la cola en el acto: con el estado todavía en
-         LIBRE, el tempo y el perfil del rival (que esperaba desde create) se
-         pintaban en ese instante y se iban detrás del velo del tutorial, sin
-         que nadie los leyera (visto en el navegador, primera fecha con el
-         tutorial pendiente). Con TUTORIAL ya puesto, esperan y salen al
-         cerrarlo. */
-      this.tutorialSiHaceFalta();
-      this.avisar("Tempo " + k.toUpperCase() + " · " + T.minutos_por_momento + "' por momento");
-      /* V8 A1: LA FICHA DEL PARTIDO — por qué hoy te cuesta (o te sobra) */
-      /* TANDA 1.0: por el ticker del relator, que tiene su espera; por
-         avisar() iba a la capa del mundo y no se leía nunca */
-      if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, "📋", { prioridad: true }));
-    };
-    const _rects = [];
-    PRESETS.forEach((p, i) => {
-      /* O1 · los tres presets arrancaban en y=176, o sea ARRIBA: era uno de los
-         dos grupos de opciones del juego que no caían en la franja de decisión.
-         Ahora se ubican con el helper, que es la misma cuenta en todas las
-         pantallas. */
-      /* cuatro opciones, no tres: el toggle de VELOCIDAD también es elegir, y
-         antes vivía suelto en y=470 pisando al tercer preset apenas se movieron
-         a la franja. Entra en el mismo reparto. */
-      const y = Math.round(window.PampaPiel.yDeOpcion(i, PRESETS.length + 1, 52, this.BAL.piel));
-      const r = this.add.rectangle(480, y, 500, 52, p.k === ult.preset ? 0xffd84d : 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const t = this.add.text(480, y - 9, (i + 1) + " · " + p.n + " (" + T.presets[p.k] + "' por momento)", { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      const esUltimo = p.k === ult.preset;
-      const d = this.add.text(480, y + 11, p.d + (esUltimo ? "  ·  ✔ el de la vez pasada" : ""),
-        { fontFamily: window.PF.texto, fontSize: "10px", color: "#365a41" }).setOrigin(0.5);
-      this.menuLayer.add([r, t, d]);
-      r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; elegir(p.k); });
-      _rects.push({ obj: r, cb: () => elegir(p.k) });
-    });
-    const yVel = Math.round(window.PampaPiel.yDeOpcion(PRESETS.length, PRESETS.length + 1, 52, this.BAL.piel));
-    const vr = this.add.rectangle(480, yVel, 420, 46, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const vt = this.add.text(480, yVel, "", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
-    const pintarVel = () => vt.setText("🎬 VELOCIDAD: " + (this._velRapida ? "RÁPIDA — animaciones cortas" : "NORMAL"));
-    pintarVel();
-    this.menuLayer.add([vr, vt]);
-    const cambiarVel = () => { this._velRapida = !this._velRapida; pintarVel(); const S = window.PampaSFX; if (S && S.ui) S.ui("mover"); };
-    vr.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cambiarVel(); });
-    _rects.push({ obj: vr, cb: cambiarVel });
-    if (this.input.keyboard) {
-      this.input.keyboard.once("keydown-ONE", () => elegir("relampago"));
-      this.input.keyboard.once("keydown-TWO", () => elegir("intermedio"));
-      this.input.keyboard.once("keydown-THREE", () => elegir("largo"));
-    }
-    /* ══════════════════════════════════════════════════════════════════════
-       EL CURSOR, la primera pantalla donde entra.
-
-       Antes esto era: tres tarjetas, el elegido marcado SOLO por ser amarillo
-       —que con daltonismo no se distingue— y tres atajos numéricos sueltos. Sin
-       flechas, sin nadie enfocado, sin un sonido.
-
-       Ahora se navega con flechas, el cursor VIAJA de una tarjeta a la otra, la
-       enfocada se levanta y las escuadras respiran al latido del mundo. El
-       amarillo sigue estando, pero ya no es lo único.
-
-       Arranca en el preset RECOMENDADO, no en el primero: abrir con el foco en
-       lo que la mayoría va a elegir ahorra dos toques por partido, y son 18
-       partidos por temporada.
-       ══════════════════════════════════════════════════════════════════════ */
-    /* EL FOCO ARRANCA EN EL QUE ELEGISTE LA VEZ PASADA.
-       El preset se guardaba en localStorage y se leia (ult.preset) — y despues
-       no lo usaba nadie: la pantalla preguntaba igual y arrancaba siempre en el
-       mismo lugar. Otro dato escrito, leido y sin conectar.
-       En una temporada de 18 fechas son 18 veces la misma pregunta; que al
-       menos arranque donde vos ya dijiste que querias. */
-    let iInicial = PRESETS.findIndex(p => p.k === ult.preset);
-    if (iInicial < 0) iInicial = PRESETS.findIndex(p => p.k === "intermedio");
-    this.grupoFoco(_rects, { inicial: iInicial >= 0 ? iInicial : 0 });
-    const Sui = window.PampaSFX; if (Sui && Sui.ui) Sui.ui("abrir");
-    this.selloMenu();
-  }
   /* Feel B3: la PRIMERA vez que se juega, tres pasos superpuestos al juego real */
   tutorialSiHaceFalta() {
     let visto = false;
@@ -5635,10 +5544,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.menuLayer.add([velo, tit, sub, marc]);
     const enFecha = !!this._masterPartido;
     const sonidoTxt = () => (this.SFX && this.SFX.isMuted()) ? "🔇 SONIDO: NO" : "🔊 SONIDO: SÍ";
+    const velTxt = () => this._velRapida ? "VELOCIDAD: RÁPIDA" : "VELOCIDAD: NORMAL";
+    const velSub = () => this._velRapida ? "animaciones más cortas" : "animaciones enteras";
     const OPS = [
       { k: "seguir", x: 480, y: 252, color: 0x7ee08a, t: "▶ SEGUIR", s: "el reloj vuelve a correr", cb: () => this.cerrarPausa() },
       { k: "sonido", x: 250, y: 344, color: 0xf6efdc, t: sonidoTxt(), s: "música y efectos", cb: null },
-      { k: "salir", x: 710, y: 344, color: 0xdcd6c2,
+      { k: "velocidad", x: 710, y: 344, color: 0xf6efdc, t: velTxt(), s: velSub(), cb: null },
+      { k: "salir", x: 480, y: 436, color: 0xdcd6c2,
         t: enFecha ? "◀ SALIR DEL PARTIDO" : "◀ VOLVER AL MENÚ",
         s: enFecha ? "la fecha queda para jugarla de nuevo" : "el partido no cuenta",
         cb: () => this.salirDelPartido() }
@@ -5658,6 +5570,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           if (this._muteTxt) this._muteTxt.setText(this.SFX.isMuted() ? "🔇" : "🔊");
         };
       }
+      if (op.k === "velocidad") {
+        op.cb = () => {
+          this._velRapida = !this._velRapida;
+          try {
+            if (this._velRapida) localStorage.setItem("pampa_velocidad", "rapida");
+            else localStorage.removeItem("pampa_velocidad");
+          } catch (e) { }
+          t.setText(velTxt()); s.setText(velSub());
+        };
+      }
       r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; op.cb(); });
       items.push({ obj: r, caja: { x: op.x - W / 2, y: op.y - H / 2, w: W, h: H }, cb: () => op.cb() });
     });
@@ -5665,7 +5587,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        intro): Phaser crea el plugin de teclado también en el teléfono, y con
        mirar solo `keyboard` la línea salía en el celular, sobre el mapa */
     if (this.input && this.input.keyboard && !this.sys.game.device.input.touch) {
-      const pie = this.add.text(480, 430, "teclado: flechas y ENTER · P o ESC para seguir", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5);
+      const pie = this.add.text(480, 498, "teclado: flechas y ENTER · P o ESC para seguir", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5);
       this.menuLayer.add(pie);
     }
     /* sin `volver`: el ESC lo atiende el keydown-ESC del partido (ver create) */
@@ -5713,9 +5635,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (d === "pausa") return this.pedirPausa();
     if (d === "volver") {
       if (this.estado === "FINAL" && this._salidaFinal) { this._salidaFinal(); return true; }
-      /* el menú de tempo: el partido no empezó, se vuelve sin jugar (en el
-         Master, la fecha queda para jugarla, como con SALIR) */
-      if (this.estado === "TEMPO_MENU") { this.salirDelPartido(); return true; }
     }
     return false;
   }
@@ -5767,7 +5686,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ...y con el partido TERMINADO tampoco: la pantalla de final los apaga y
        refrescarHUD sigue corriendo, así que sin esto los volvería a encender
        en el frame siguiente. */
-    const menuAbierto = this.estado === "MENU" || this.estado === "TEMPO_MENU" ||
+    const menuAbierto = this.estado === "MENU" ||
       this.estado === "FINAL" || this._finalApagado ||
       (this.menuLayer && this.menuLayer.visible && this.menuLayer.list.length > 0);
     if (this._medidoresOcultos !== menuAbierto) {
@@ -6008,7 +5927,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        estado justo para que no dependa de en qué estado esté el partido. */
     if (this._relPendiente && this.soltarRelatoPendiente) this.soltarRelatoPendiente();
     /* TANDA 1.0: lo mismo para los avisos que esperaban al HUD (o a que se
-       cierre el menú de tempo) */
+       cierre el tutorial) */
     if (this._avisosCola && this._avisosCola.length) this.soltarAvisos();
 
     /* Feel B5: el CINE de 5 planos y la BARRA DE TIMING tienen su propio pulso */
@@ -6282,10 +6201,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!cola || !cola.length) return;
     if (this._finalApagado) { cola.length = 0; return; }
     if (!this.hudLayer || !this.hudLayer.visible) return;
-    /* detrás del velo del menú de tempo o del tutorial no se lee: se espera,
-       y esa espera no cuenta para el vencimiento (el perfil del rival sale
-       en create(), con el menú de tempo abierto, y tiene que llegar a leerse) */
-    if (this.estado === "TEMPO_MENU" || this.estado === "TUTORIAL" || this.estado === "PAUSA") {   // L04: y la PAUSA
+    /* detrás del velo del tutorial o de la pausa no se lee: se espera, y esa
+       espera no cuenta para el vencimiento (el perfil del rival sale en
+       create(), con el tutorial abierto en la primera fecha, y tiene que
+       llegar a leerse) */
+    if (this.estado === "TUTORIAL" || this.estado === "PAUSA") {
       cola.forEach(a => { a.t = this.time.now; });
       return;
     }

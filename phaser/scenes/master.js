@@ -44,6 +44,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* L08c: las poses vestidas del partido se piden una vez por entrada a la
        tabla (prepararVestidas); la cola que las viste es del juego */
     this._vestidasPedidas = false;
+    /* TEMPO-1: el tempo que se marca en la creación (NORMAL de entrada) y el
+       que viaja por el editor en carreraPendiente hasta _crearCarrera */
+    this._tempoElegido = window.PampaSaveMaster.TEMPO_POR_DEFECTO;
+    this._tempoDeLaCarrera = null;
+    this._tempoFoco = null;
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -187,6 +192,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (pend && pend.division) {
       this.game.registry.set("carreraPendiente", null);
       this._pendienteOrigen = pend.division;
+      this._tempoDeLaCarrera = pend.tempo;
     }
     const W = this.scale.width, H = this.scale.height;
     /* PIEL P1: fondo radial (ver editor.js) */
@@ -481,9 +487,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
 
   /* ---- botón grande accesible (texto + borde, no solo color) ---- */
-  boton(x, y, w, texto, bg, cb) {
+  boton(x, y, w, texto, bg, cb, sub) {
     const r = this.add.rectangle(x, y, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.add.text(x, y, texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    this.add.text(x, sub ? y - 9 : y, texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    if (sub) this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
     r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
     return r;
   }
@@ -1068,10 +1075,58 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        ══════════════════════════════════════════════════════════════════════ */
     /* el mapa y la ficha se leen como un bloque, así que se centra el BLOQUE:
        antes se centraba el mapa y la ficha lo empujaba todo a la derecha (se
-       ve en la primera captura). Y el alto termina arriba del botón. */
+       ve en la primera captura). Y el alto termina arriba del botón.
+       TEMPO-1: el mapa bajó de 254 a 242 de alto y la nota de las ubicaciones
+       pasó debajo de la ficha, para que entre la pregunta del tempo. */
     const anchoFicha = 232, aire = 18, anchoMapa = 330;
     const x0Bloque = Math.round((W - (anchoMapa + aire + anchoFicha)) / 2);
-    this.mapaCaja = { x: x0Bloque, y: 74, w: anchoMapa, h: 254, wFicha: anchoFicha, aire };
+    this.mapaCaja = { x: x0Bloque, y: 66, w: anchoMapa, h: 242, wFicha: anchoFicha, aire };
+
+    /* ══════════════════════════════════════════════════════════════════════
+       TEMPO-1 · CUÁNTO DURA CADA PARTIDO. Se elige UNA vez, acá, y queda en
+       la carrera (save.tempo): antes era un menú antes de cada partido.
+       NORMAL viene marcado, así que crear la carrera sin tocar nada no suma
+       ningún toque. La elegida se distingue por FORMA y PALABRA, no solo por
+       el color: borde grueso, un tilde dibujado (los glifos de tilde no
+       están en las tipografías del juego) y ELEGIDO debajo. Las opciones
+       entran al cursor del mapa (dibujarMapa arma el grupo con ellas).
+       ══════════════════════════════════════════════════════════════════════ */
+    const TB = this.game.registry.get("balance").tempo;
+    const yT = 362, anchoT = 200, altoT = 48, pasoT = 216;
+    this.add.text(W / 2, yT - 38, TB.titulo_creacion, { fontFamily: window.PF.display, fontSize: "14px", color: "#ffd84d" }).setOrigin(0.5);
+    const caraT = this.add.graphics();
+    const marcaT = this.add.text(0, yT + 37, "ELEGIDO", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    const opsT = TB.opciones.map((o, i) => ({ o, x: W / 2 + (i - (TB.opciones.length - 1) / 2) * pasoT }));
+    const pintarT = () => {
+      const PP = window.PampaPiel, P = this.piel();
+      caraT.clear();
+      opsT.forEach(({ o, x }) => {
+        const sel = o.k === this._tempoElegido;
+        const C = PP.capasBoton(sel ? 0xffd84d : 0xf6efdc, P);
+        const x0 = x - anchoT / 2, y0 = yT - altoT / 2;
+        caraT.fillStyle(C.canto, 1).fillRoundedRect(x0, y0 + C.cantoPx, anchoT, altoT, C.radio);
+        caraT.fillStyle(C.cara, 1).fillRoundedRect(x0, y0, anchoT, altoT, C.radio);
+        caraT.lineStyle(sel ? 5 : 2, 0x0a1f13, 1).strokeRoundedRect(x0, y0, anchoT, altoT, C.radio);
+        if (sel) {
+          const tx = x0 + 16, ty = yT - 9;
+          caraT.lineStyle(4, 0x0a1f13, 1).beginPath();
+          caraT.moveTo(tx - 6, ty).lineTo(tx - 1, ty + 6).lineTo(tx + 8, ty - 7).strokePath();
+          marcaT.setX(x);
+        }
+      });
+    };
+    this._tempoFoco = opsT.map(({ o, x }) => {
+      this.add.text(x, yT - 9, o.n, { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(x, yT + 11, o.d, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
+      /* zona de toque transparente: la cara la pinta pintarT (vestirPendientes no la viste) */
+      const zona = this.add.rectangle(x, yT, anchoT, altoT, 0x000000, 0);
+      if (this.pisoTactil) this.pisoTactil(zona);
+      if (!zona.input) zona.setInteractive({ useHandCursor: true });
+      const elegir = () => { this._tempoElegido = o.k; pintarT(); };
+      zona.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
+      return { obj: zona, cb: elegir };
+    });
+    pintarT();
     this.dibujarMapa();
     if (this.input.keyboard) {
       this.input.keyboard.on("keydown-LEFT", () => { this.pSel = (this.pSel + this.pueblos.length - 1) % this.pueblos.length; this.dibujarMapa(); });
@@ -1094,7 +1149,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        carrera, solo que hay algo pendiente. */
     const arrancarEn = (divId) => {
       this.backupClasico();   // V7 §3: la mudanza respalda el clásico primero
-      this.game.registry.set("carreraPendiente", { division: divId });
+      this.game.registry.set("carreraPendiente", { division: divId, tempo: this._tempoElegido });
       this.irA("editor");
     };
     this._crearCarrera = (divId, origen) => {
@@ -1104,6 +1159,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.save = {
         v: (window.PampaSaveMaster && window.PampaSaveMaster.VERSION) || 1, club, pueblo: this.pueblos[this.pSel], division: divId, temporadaN: 1, titulos: [],
         origen: origen || null, bolsaEventos: [], modFecha: null, racha: 0,
+        tempo: window.PampaSaveMaster.tempoDe(this._tempoDeLaCarrera),
         temporada: this.T.crear({
           division: divId, miClub: club,
           rivales: this.DIV.divisiones[divId].rivales,
@@ -1115,21 +1171,26 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.pedirQueNoSeBorre();
       this.scene.restart();
     };
-    this.boton(W / 2, H - 156, 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id));
     /* V7 §3 LA MUDANZA: si el clásico tiene carrera, se puede IMPORTAR — tu
        nivel de allá te ubica en la división que corresponde (con backup) */
     let clasico = null;
     try { clasico = JSON.parse(localStorage.getItem("pampa_star_v1")); } catch (e) { }
+    /* TEMPO-1: con IMPORTAR, los dos arranques van lado a lado en la misma fila */
+    const hayClasico = !!(clasico && clasico.name);
+    this.boton(hayClasico ? W / 2 - 195 : W / 2, H - 102, hayClasico ? 360 : 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id));
     /* el gate era `clasico.nivel`, un campo que el clasico no guarda nunca:
        el boton no aparecio jamas y la mudanza entera era inalcanzable. El nivel
        se CALCULA (logic/master.nivelDeCarreraClasica). Gate nuevo: que haya
        carrera de verdad, o sea nombre — un save recien creado con 0 goles da
        nivel 1 y tambien merece el boton. */
-    if (clasico && clasico.name) {
+    if (hayClasico) {
       const nvImp = this.Ma.nivelDeCarreraClasica(clasico);
       const divImp = this.Ma.divisionPorNivel(nvImp);
-      this.boton(W / 2, H - 100, 480, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id));
-      this.add.text(W / 2, H - 72, "el save del clásico queda RESPALDADO (pampa_star_v1_backup_pre_v7) y no se toca", { fontFamily: window.PF.texto, fontSize: "10px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+      /* TEMPO-1: lo del respaldo va adentro del botón (era un renglón de
+         10 px abajo, con el nombre de la clave de localStorage, y ya no
+         entraba entre esta fila y la de abajo) */
+      this.boton(W / 2 + 195, H - 102, 360, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
+        "tu carrera de antes queda guardada, sin tocar");
     }
     /* tanda 1.0: el código de carrera se pega acá, donde se empieza. Va al
        lado de VOLVER, del mismo tamaño: es la otra forma de entrar */
@@ -1207,17 +1268,6 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
     g.closePath(); g.fillPath(); g.strokePath();
 
-    /* --- las zonas, nombradas: el mapa es esquemático y se dice --- */
-    /* la etiqueta va en la ESQUINA de su caja, no en el medio: en el medio
-       quedaba abajo de los nombres de los pueblos y las dos cosas se pisaban
-       (se ve en la primera captura). Las cajas se solapan, así que el centro
-       es justo donde hay más pueblos. */
-    Object.keys(M.ZONAS).forEach(z => {
-      const Z = M.ZONAS[z];
-      const t = this.add.text(aX(Z.x0) + 4, aY(Z.y0) + 2, Z.n,
-        { fontFamily: window.PF.texto, fontSize: "12px", color: "#2f5c40" }).setOrigin(0, 0);
-      capa.add(t);
-    });
 
     /* --- los pueblos --- */
     const sel = this.pueblos[this.pSel];
@@ -1235,7 +1285,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         /* FORMA además de color: anillo + estrella. Un punto que solo cambia
            de tono no se distingue, y esa es una regla del proyecto. */
         const anillo = this.add.circle(x, y, 16).setStrokeStyle(3, 0xffd84d, 1);
-        const est = this.add.text(x, y - 22, "★", { fontFamily: window.PF.texto, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
+        const est = this.add.text(x - 26, y, "★", { fontFamily: window.PF.texto, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
         capa.add([anillo, est]);
       }
       /* el nombre siempre visible: son diez, entran */
@@ -1259,6 +1309,40 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       });
     });
 
+    /* --- las zonas, nombradas: el mapa es esquemático y se dice --- */
+    /* la etiqueta va en una ESQUINA de su caja, no en el medio: en el medio
+       quedaba abajo de los nombres de los pueblos y las dos cosas se pisaban
+       (se ve en la primera captura). TEMPO-1: aun en la esquina, CENTRO caía
+       sobre la estrella de Winifreda y ESTE sobre Intendente Alvear (medido
+       con getBounds). Ahora se prueba esquina por esquina, después de ubicar
+       los pueblos, y va en la primera que no pisa ninguno; si ninguna sirve,
+       esa zona queda sin rótulo (la de tu localidad la dice la ficha). */
+    const caja = (o) => ({ x: o.x - o.width * (o.originX || 0), y: o.y - o.height * (o.originY || 0), w: o.width, h: o.height });
+    const ocupado = capa.list.filter(o => o.type === "Text" || o.type === "Arc").map(caja);
+    const pisa = (b) => ocupado.some(o => b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h);
+    /* adentro del contorno, no solo de la caja: la punta de abajo está recortada */
+    const enProvincia = (x, y) => {
+      let dentro = false;
+      for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+        const [xi, yi] = pts[i], [xj, yj] = pts[j];
+        if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) dentro = !dentro;
+      }
+      return dentro;
+    };
+    Object.keys(M.ZONAS).forEach(z => {
+      const Z = M.ZONAS[z];
+      const t = this.add.text(0, 0, Z.n, { fontFamily: window.PF.texto, fontSize: "12px", color: "#2f5c40" });
+      const esquina = [[aX(Z.x0) + 4, aY(Z.y0) + 2, 0, 0], [aX(Z.x1) - 4, aY(Z.y0) + 2, 1, 0],
+        [aX(Z.x0) + 4, aY(Z.y1) - 2, 0, 1], [aX(Z.x1) - 4, aY(Z.y1) - 2, 1, 1]].find(([x, y, ox, oy]) => {
+          t.setPosition(x, y).setOrigin(ox, oy);
+          const b = caja(t);
+          return [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]].every(([px, py]) => enProvincia(px, py)) && !pisa(b);
+        });
+      if (!esquina) { t.destroy(); return; }
+      ocupado.push(caja(t));
+      capa.add(t);
+    });
+
     /* --- la ficha del elegido: club, apodo y en qué división arranca --- */
     const info = clubes[sel] || {};
     const divN = (this.Ma && this.Ma.DIVISIONES && this.Ma.DIVISIONES[0]) ? this.Ma.DIVISIONES[0].n : "PRIMERA B";
@@ -1279,13 +1363,15 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* --- y se dice que el mapa es esquemático --- */
     if (this.grupoFoco && _focoMapa.length) {
       const iSel = ubic.findIndex(p => p.nombre === sel);
-      this.grupoFoco(_focoMapa, { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
+      this.grupoFoco(_focoMapa.concat(this._tempoFoco || []), { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
     }
+    /* TEMPO-1: va debajo de la ficha y no debajo del mapa, donde ahora está
+       la pregunta del tempo */
     const exactos = M.cuantosExactos(ubic);
-    capa.add(this.add.text(C.x + C.w / 2, C.y + C.h + 8,
+    capa.add(this.add.text(fx + medioF, fichaY + 152,
       exactos === ubic.length ? "ubicaciones exactas"
         : "mapa por zonas · las ubicaciones exactas van cuando estén los datos",
-      { fontFamily: window.PF.texto, fontSize: "12px", color: "#7a8a80" }).setOrigin(0.5, 0));
+      { fontFamily: window.PF.texto, fontSize: "12px", color: "#7a8a80", align: "center", wordWrap: { width: anchoF } }).setOrigin(0.5, 0));
   }
 
   /* ============ V8 A1 · PARTE 1: DE DÓNDE SALÍS (3 pantallas, una vez) ============
@@ -2170,7 +2256,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       mod: this.save.modFecha || null,
       origen: this.save.origen || null,
       semana: this.save.semanaResumen || null,
-      mejoras: this.save.mejoras || null
+      mejoras: this.save.mejoras || null,
+      tempo: window.PampaSaveMaster.tempoDe(this.save)
     });
     this.save.enCancha = { temporadaN: c.temporadaN, fecha: c.fecha, rival };
     this.guardar();

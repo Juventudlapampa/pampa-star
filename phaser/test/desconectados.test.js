@@ -573,12 +573,15 @@ var TEXTOS_MUNDO_OK = {
   assert(s2._avisos.length === 0 && s2._avisosCola.length === 1, "con el HUD apagado (cine, Definición, Jugadón) el aviso espera");
   s2.hudLayer.visible = true; s2.soltarAvisos();
   assert(s2._avisos.length === 1, "y sale cuando el HUD vuelve");
-  /* detrás del menú de tempo espera, y esa espera no lo vence */
+  /* detrás del tutorial espera, y esa espera no lo vence. Era el menú de
+     tempo, que se fue con TEMPO-1 (decisión de Rodri, 13/oct: el tempo se
+     elige al crear la carrera); el perfil del rival sale en create() y el
+     velo que puede haber encima en la primera fecha es el del tutorial */
   var E3 = escena(true), s3 = E3.s;
-  s3.estado = "TEMPO_MENU";
+  s3.estado = "TUTORIAL";
   s3.avisar("⚔ ESPEJO DE SAL juega con una ESTRELLA");
   s3.time.now = 30000; s3.soltarAvisos();
-  assert(s3._avisos.length === 0, "con el menú de tempo abierto (velo encima) el perfil del rival espera");
+  assert(s3._avisos.length === 0, "con el tutorial abierto (velo encima) el perfil del rival espera");
   s3.estado = "LIBRE"; s3.time.now = 30016; s3.soltarAvisos();
   assert(s3._avisos.length === 1, "y se lee al cerrar el menú, aunque haya tardado (no vence detrás del menú)");
   /* el que esperó demasiado al HUD, vence */
@@ -656,16 +659,18 @@ var TEXTOS_MUNDO_OK = {
   assert(s9.tickerTxt.text === "📋 Llegás con poca energía" && s9._relPendiente === "🎙 ¡Qué gambeta!", "la frase espera detrás");
   s9.time.now = 500 + HOLD + 1; s9.soltarRelatoPendiente();
   assert(s9.tickerTxt.text === "🎙 ¡Qué gambeta!", "y sale cuando la ficha cumplió su tiempo");
-  s9.estado = "TEMPO_MENU"; s9.anunciarEnTicker("Se juega.", "🎙");
-  assert(s9.tickerTxt.text === "🎙 ¡Qué gambeta!", "detrás del menú de tempo tampoco se escribe");
-  /* y lo que se encontró verificando esto en pantalla: el tempo y el perfil
-     del rival se soltaban en el instante de elegir el tempo, con el estado
-     todavía en LIBRE, y el tutorial se abría encima un renglón después */
-  var iElegir = SRC_M.indexOf("const elegir = (k) => {"), finElegir = SRC_M.indexOf("};", iElegir);
-  var cuerpoElegir = SRC_M.slice(iElegir, finElegir);
-  assert(iElegir > 0 && cuerpoElegir.indexOf("this.tutorialSiHaceFalta();") >= 0 &&
-    cuerpoElegir.indexOf("this.tutorialSiHaceFalta();") < cuerpoElegir.indexOf('this.avisar("Tempo "'),
-    "SÍNTOMA DE LOS AVISOS DETRÁS DEL TUTORIAL: al elegir el tempo, el tutorial se abre ANTES de avisar (si no, el aviso se pinta y queda tapado)");
+  /* TEMPO-1: era el menú de tempo, que ya no existe (decisión de Rodri,
+     13/oct); el otro velo que tapa la franja es el de la PAUSA */
+  s9.estado = "PAUSA"; s9.anunciarEnTicker("Se juega.", "🎙");
+  assert(s9.tickerTxt.text === "🎙 ¡Qué gambeta!", "detrás de la pausa tampoco se escribe");
+  /* y lo que se encontró verificando esto en pantalla: el perfil del rival y
+     la ficha se soltaban con el estado todavía en LIBRE, y el tutorial se
+     abría encima un renglón después. Desde TEMPO-1 no hay menú de tempo: el
+     orden se cuida en create(), donde el partido arranca */
+  var cre = SRC_M.slice(SRC_M.indexOf("  create() {"));
+  var iTut = cre.indexOf("this.tutorialSiHaceFalta();");
+  assert(iTut > 0 && iTut < cre.indexOf("anunciarEnTicker(this._vidaFicha") && iTut < cre.indexOf('this.avisar("⚔ " + this.nombreRival'),
+    "SÍNTOMA DE LOS AVISOS DETRÁS DEL TUTORIAL: al arrancar, el tutorial se abre ANTES de la ficha y del perfil del rival (si no, se pintan y quedan tapados)");
   assert(/this\._relPendiente = null;/.test(SRC_M.slice(SRC_M.indexOf("  init() {"), SRC_M.indexOf("  create() {"))),
     "init() vacía la frase que esperaba (patrón P1: si no, salía al arrancar la fecha siguiente)");
 

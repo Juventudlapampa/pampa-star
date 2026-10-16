@@ -311,7 +311,7 @@
     "_bloqueo_reparto_nota": "A3 · que pasa DESPUES de un bloqueo. corner = la desvio afuera y el corner es tuyo. rebote = queda picando, seguis vos ahi mismo. El resto (1 - corner - rebote) es despeje: la pelota es de ellos. Medido en 20.000 remates: con el rebote adentro los goles por remate pasan de 51,7% a 46,0% y los corners suben 49%. La chance de que te bloqueen sale de bloqueo_base, que es COMPARTIDA con el remate del rival contra vos: bajarla afloja los dos arcos."
   },
   "tempo": {
-    "_nota": "V6 §2 R4: EL RELOJ A SALTOS (perilla única). minutos_por_momento = cuántos minutos de partido consume cada momento de decisión; el reloj entre momentos solo GOTEA (goteo_seg_por_minuto segundos reales por minuto de juego). Presets elegibles antes del partido. Si se borra minutos_por_momento, vuelve el reloj continuo v4 (duracion_real_min).",
+    "_nota": "V6 §2 R4: EL RELOJ A SALTOS (perilla única). minutos_por_momento = cuántos minutos de partido consume cada momento de decisión; el reloj entre momentos solo GOTEA (goteo_seg_por_minuto segundos reales por minuto de juego). Presets: se elige uno al crear la carrera (ver _tempo_1). Si se borra minutos_por_momento, vuelve el reloj continuo v4 (duracion_real_min).",
     "minutos_por_momento": 2.2,
     "goteo_seg_por_minuto": 8,
     "presets": {
@@ -322,7 +322,14 @@
     "duracion_real_min": 10,
     "_v7": "V7 §0.3: intermedio 2.5→2.2 minutos por momento (unas 20 jugadas por tiempo — el partido rinde más).",
     "tramo_seg": 15,
-    "_v8_reloj": "V8 E: el reloj del HUD muestra MM:SS y los segundos avanzan de a tramo_seg (10 o 15) para que se vea correr el partido."
+    "_v8_reloj": "V8 E: el reloj del HUD muestra MM:SS y los segundos avanzan de a tramo_seg (10 o 15) para que se vea correr el partido.",
+    "_tempo_1": "TANDA 1.0 · TEMPO-1 (decisión de Rodri, 13/oct): el tempo se elige UNA vez, al crear la carrera (scenes/master.js, el paso del mapa), con NORMAL ya marcado, y no se cambia después. Antes era un menú ANTES DE CADA PARTIDO (18 veces la misma pregunta por temporada, en jerga: 'momentos', 'el clásico entero'). Va en el save (save.tempo, una clave de presets) y viaja en masterPartido.tempo; sin dato, INTERMEDIO (TEMPO_POR_DEFECTO en logic/save_master.js, que también valida el save). logic/save_master.js (tempoDe, minutosPorMomento, balConTempo) arma el balance del partido con el preset puesto, en una copia: el menú viejo escribía minutos_por_momento en este bloque, que es del juego entero, y un partido le dejaba su tempo al siguiente. opciones: lo que se lee en la creación, en el orden de la pantalla. Las duraciones las midió la auditoría con el simulador de partido completo hecho con la lógica pura (flujo por defecto de match.js y 2,5 s por decisión): RELÁMPAGO 2,9 min, INTERMEDIO 5,8 (p10-p90 5,5-6,2), LARGO 9,3. Los presets todavía cambian la dificultad (con menos momentos hay menos chances de gol): normalizarlos es del ítem curva-de-dificultad (lote L19), que depende de este.",
+    "opciones": [
+      { "k": "relampago", "n": "CORTO", "d": "unos 3 min" },
+      { "k": "intermedio", "n": "NORMAL", "d": "unos 6 min" },
+      { "k": "largo", "n": "LARGO", "d": "unos 9 min" }
+    ],
+    "titulo_creacion": "¿CUÁNTO DURA CADA PARTIDO?"
   },
   "feel": {
     "_nota": "FEEL v3 (ver el doc de Feel v3 en docs/): timing del drama. Cada jugada clave se ANUNCIA (beat), se decide, se ejecuta y se resuelve con teatro — si dura menos de 3s entre anuncio y resolución, está mal.",

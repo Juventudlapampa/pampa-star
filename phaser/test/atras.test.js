@@ -65,7 +65,10 @@ if (!AT || !AT.decidir) { console.log("\n✗ " + mal + " FALLARON (" + ok + " ok
     [{ escena: "match", estado: "DEFINICION" }, 500, "pausa", "la Definición, doble atrás: tampoco sale"],
     [{ escena: "match", estado: "ESCENA" }, Infinity, "pausa", "una escena: la pausa queda pedida"],
     [{ escena: "match", estado: "FINAL" }, Infinity, "volver", "la pantalla final: su salida principal"],
-    [{ escena: "match", estado: "TEMPO_MENU" }, Infinity, "volver", "el menú de tempo (antes de empezar): vuelve sin jugar"],
+    /* TANDA 1.0, TEMPO-1 (decisión de Rodri del 13/oct): el menú de tempo
+       antes de cada partido ya no existe, el tempo se elige al crear la
+       carrera. Se fue la fila de TEMPO_MENU ("vuelve sin jugar"): el partido
+       arranca en LIBRE, y ahí atrás pausa (primera fila). */
     [{ escena: "master", vista: "semana" }, Infinity, "volver", "la semana del Master: la vista anterior"],
     [{ escena: "master", vista: "semana" }, 400, "volver", "la semana, doble atrás: vuelve dos veces, no sale"],
     [{ escena: "master", cajaAbierta: true }, Infinity, "cerrar_menu", "la caja del código de carrera: se cierra"],
@@ -354,10 +357,11 @@ function mundo(opts) {
   s.estado = "DEFINICION";
   s.alAtras(s.decidirAtras());
   assert(s.estado === "DEFINICION" && s._pausaPedida === true, "DEFINICION + atrás: no se corta la Definición, la pausa espera");
-  /* el menú de tempo: vuelve sin jugar */
-  var Tm = PM.escena({ master: true }); Tm.s.estado = "TEMPO_MENU";
+  /* TEMPO-1: sin menú de tempo, el partido de una fecha arranca en LIBRE y
+     atrás abre la PAUSA; salir sin jugar es SALIR DEL PARTIDO, desde ahí */
+  var Tm = PM.escena({ master: true });
   Tm.s.alAtras(Tm.s.decidirAtras());
-  assert(Tm.irA.indexOf("master") >= 0 && Tm.s.game.registry.get("masterPartido") === undefined, "TEMPO_MENU + atrás en una fecha: vuelve al Master sin jugar");
+  assert(Tm.s.estado === "PAUSA" && Tm.irA.length === 0, "una fecha recién arrancada + atrás: la PAUSA, no se sale solo");
   /* el final: la salida principal */
   var Fm = PM.escena(); Fm.s.finDelPartido();
   Fm.s.alAtras(Fm.s.decidirAtras());

@@ -19,8 +19,7 @@
                          (la PAUSA misma, el pase dirigido, la cruz con ✕, la
                          caja del código de carrera)
      'volver'            a la pantalla anterior (las vistas del Master; la
-                         pantalla final del partido sale por su botón principal;
-                         el menú de tempo, antes de empezar, vuelve sin jugar)
+                         pantalla final del partido sale por su botón principal)
      'confirmar_salida'  en el editor y en la intro: "Tocá ATRÁS otra vez para
                          salir" durante VENTANA_MS
      'salir'             el segundo atrás dentro de la ventana: index.html no
@@ -62,9 +61,6 @@
          es la que anota el resultado). El partido la cumple recién cuando los
          botones están a la vista (match.js, salidasDelFinal) */
       if (e.estado === "FINAL") return "volver";
-      /* antes de que empiece (el menú de tempo, con el reloj en 0:00) no hay
-         partido que perder: atrás vuelve a donde se venía */
-      if (e.estado === "TEMPO_MENU") return "volver";
       /* con la PAUSA abierta, atrás es SEGUIR: lo que se abre con atrás se
          cierra con atrás, como cualquier diálogo del teléfono */
       if (e.estado === "PAUSA") return "cerrar_menu";

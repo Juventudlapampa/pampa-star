@@ -167,8 +167,15 @@ console.log("[1] la franja es " + F.y0 + ".." + F.y1 + " (alto " + F.alto + ") y
 (function () {
   var match = fs.readFileSync(path.join(__dirname, "..", "scenes", "match.js"), "utf8");
   var master = fs.readFileSync(path.join(__dirname, "..", "scenes", "master.js"), "utf8");
-  assert(/yDeOpcion\(i, PRESETS\.length \+ 1/.test(match),
-    "los presets de tempo tienen que ubicarse con yDeOpcion (estaban clavados en y=176)");
+  /* TANDA 1.0, TEMPO-1 (decisión de Rodri, 13/oct): los presets se fueron
+     con el menú de tempo de antes de cada partido. El tempo se elige una vez,
+     al crear la carrera, debajo del mapa: sus opciones (con el área táctil
+     entera) también tienen que caer en la franja */
+  var mT = master.match(/const yT = (\d+), anchoT = \d+, altoT = (\d+)/);
+  var altoTap = mT ? Math.max(+mT[2], BAL.legibilidad.tap_min) : 0;
+  assert(mT && Piel.enFranja(+mT[1], altoTap, P),
+    "las opciones del tempo en la creación tienen que caer en la franja (" + (mT ? "y=" + mT[1] + ", alto táctil " + altoTap : "no se encontró yT") + ")");
+  assert(!/menuTempoSiCorresponde/.test(match), "quedó el menú de tempo antes de cada partido");
   /* D2 · la semana ya no se elige por DÍA. Las ranuras de lunes/miércoles/
      viernes se volvieron el RESUMEN de arriba —lo que se mira— y lo que se
      elige es la lista de las diez acciones, que es lo que ahora tiene que caer
@@ -179,7 +186,7 @@ console.log("[1] la franja es " + F.y0 + ".." + F.y1 + " (alto " + F.alto + ") y
     "y el botón de jugar es la tercera fila de la misma franja");
   assert(!/const y = 176 \+ i \* 92/.test(match), "quedó la cuenta vieja de los presets");
   assert(!/anchoR \+ 14\), y = 250/.test(master), "quedó la cuenta vieja de las ranuras");
-  console.log("[3] los dos grupos que se salían (presets de tempo, ranuras de la semana) usan el helper");
+  console.log("[3] las ranuras de la semana usan el helper y el tempo de la creación cae en la franja");
 })();
 
 console.log(mal === 0 ? "✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "✗ " + mal + " FALLARON (" + ok + " ok)");

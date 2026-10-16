@@ -42,6 +42,46 @@
   var VERSION = 1;
   var NUMEROS_FILA = ["pj", "g", "e", "p", "gf", "gc", "pts"];
 
+  /* ══════════════════════════════════════════════════════════════════════
+     TEMPO-1 · EL TEMPO ES DE LA CARRERA.
+
+     Antes se elegía ANTES DE CADA PARTIDO, en un menú de tres presets
+     ("⏱ ¿QUÉ PARTIDO JUGAMOS?") que hablaba de "momentos" y del "clásico
+     entero": 18 veces la misma pregunta por temporada, en la jerga del
+     código, y guardada en pampa_tempo (localStorage), afuera de la carrera.
+     Decisión de Rodri (13/oct): se elige UNA vez, al crear la carrera, con
+     NORMAL ya marcado, y no se cambia después. Vive en el save (save.tempo)
+     y viaja al partido en masterPartido.tempo.
+
+     Los valores son las claves de balance.tempo.presets (relampago,
+     intermedio, largo); en pantalla se dicen CORTO / NORMAL / LARGO
+     (balance.tempo.opciones). Una carrera vieja sin el campo juega
+     INTERMEDIO sin que se le escriba nada (el save sano sale igual que
+     entró); un valor que no se conoce se repara a INTERMEDIO.
+     ══════════════════════════════════════════════════════════════════════ */
+  var TEMPOS = ["relampago", "intermedio", "largo"];
+  var TEMPO_POR_DEFECTO = "intermedio";
+  function tempoValido(t) { return TEMPOS.indexOf(t) >= 0; }
+  /* el tempo de un save, de un masterPartido o de una clave suelta */
+  function tempoDe(x) {
+    var t = esObjeto(x) ? x.tempo : x;
+    return tempoValido(t) ? t : TEMPO_POR_DEFECTO;
+  }
+  /* los minutos de partido que consume cada momento con ese tempo
+     (logic/partido.js los lee de st.bal.tempo) */
+  function minutosPorMomento(tempo, balTempo) {
+    return balTempo.presets[tempoDe(tempo)];
+  }
+  /* el balance del partido con ese tempo puesto, en una copia: el menú viejo
+     escribía minutos_por_momento en el balance compartido del registry, y el
+     tempo de un partido quedaba puesto para el siguiente. Sin
+     minutos_por_momento el reloj es el continuo de v4 y el tempo no aplica. */
+  function balConTempo(bal, tempo) {
+    var T = Object.assign({}, bal.tempo);
+    if (T.minutos_por_momento > 0) T.minutos_por_momento = minutosPorMomento(tempo, bal.tempo);
+    return Object.assign({}, bal, { tempo: T });
+  }
+
   var _T = null;
   function temporadaLogica() {
     if (typeof window !== "undefined" && window.PampaTemporada) return window.PampaTemporada;
@@ -258,6 +298,7 @@
     }
     if (s.racha != null && entero(s.racha) == null) { s.racha = 0; reparado.push("racha"); }
     if (s.racha == null) s.racha = 0;
+    if (s.tempo != null && !tempoValido(s.tempo)) { s.tempo = TEMPO_POR_DEFECTO; reparado.push("tempo"); }
     if (s.modFecha != null && !esObjeto(s.modFecha)) { s.modFecha = null; reparado.push("evento de la fecha"); }
     if (s.modFecha === undefined) s.modFecha = null;
     if (s.origen != null && !esObjeto(s.origen)) { s.origen = null; reparado.push("origen"); }
@@ -343,5 +384,7 @@
     try { return typeof leer === "function" ? leer() : null; } catch (e) { return null; }
   }
 
-  return { VERSION: VERSION, CLAVE: CLAVE, sanear: sanear, sePuedeJugar: sePuedeJugar, tablaDesdeResultados: tablaDesdeResultados, crudoDeLaSesion: crudoDeLaSesion };
+  return { VERSION: VERSION, CLAVE: CLAVE, sanear: sanear, sePuedeJugar: sePuedeJugar, tablaDesdeResultados: tablaDesdeResultados, crudoDeLaSesion: crudoDeLaSesion,
+    TEMPOS: TEMPOS, TEMPO_POR_DEFECTO: TEMPO_POR_DEFECTO, tempoValido: tempoValido, tempoDe: tempoDe,
+    minutosPorMomento: minutosPorMomento, balConTempo: balConTempo };
 });

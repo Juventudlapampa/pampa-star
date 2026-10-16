@@ -98,7 +98,10 @@ function espiarTick(E) {
   assert(tx.indexOf("🔊 SONIDO: SÍ") >= 0, "tiene 🔊 SONIDO: SÍ (ícono + palabra, no solo color)");
   assert(tx.indexOf("◀ VOLVER AL MENÚ") >= 0, "en el amistoso, la salida es ◀ VOLVER AL MENÚ");
   var bs = E.botones();
-  assert(bs.length === 3, "tres botones en la cruz (" + bs.length + ")");
+  /* TANDA 1.0, TEMPO-1: eran tres. La VELOCIDAD vivía en el menú de tempo
+     de antes de cada partido, que se fue (decisión de Rodri, 13/oct: el
+     tempo se elige al crear la carrera); se cambia acá, al lado del SONIDO */
+  assert(bs.length === 4, "cuatro botones en la cruz: SEGUIR, SONIDO, VELOCIDAD y la salida (" + bs.length + ")");
   assert(bs.every(function (b) { return b.height >= tap && b.width >= tap; }), "cada botón mide al menos el piso táctil (" + tap + ")");
   assert(s._foco && s._foco.vivo && s._foco.i === 0, "el cursor arranca puesto, en el primero");
   assert(s._foco && E.textoCerca(s._foco.items[0].obj).indexOf("SEGUIR") >= 0, "y el primero es SEGUIR: un Enter de reflejo no te saca del partido");
@@ -112,6 +115,17 @@ function espiarTick(E) {
   E.tocar(son);
   assert(s.SFX.isMuted() === false && E.textos().indexOf("🔊 SONIDO: SÍ") >= 0, "otro toque lo vuelve a prender (el juego no queda muteado)");
   assert(s.estado === "PAUSA", "tocar SONIDO no cierra la pausa");
+  /* la velocidad: NORMAL de entrada, se cambia con palabra y queda guardada
+     en el aparato (pampa_velocidad) para el partido siguiente */
+  assert(!s._velRapida && E.textos().indexOf("VELOCIDAD: NORMAL") >= 0, "la VELOCIDAD arranca NORMAL y lo dice");
+  var vel = bs.filter(function (b) { return /VELOCIDAD/.test(E.textoCerca(b)); })[0];
+  E.tocar(vel);
+  assert(s._velRapida === true && E.textos().indexOf("VELOCIDAD: RÁPIDA") >= 0 && E.textos().indexOf("animaciones más cortas") >= 0,
+    "tocar VELOCIDAD la pasa a RÁPIDA y el botón lo dice con palabras");
+  assert(E.ls.getItem("pampa_velocidad") === "rapida" && s.msV(1000) === 620, "RÁPIDA queda guardada y acorta los tiempos (msV)");
+  E.tocar(vel);
+  assert(s._velRapida === false && E.ls.getItem("pampa_velocidad") === null && E.textos().indexOf("VELOCIDAD: NORMAL") >= 0, "otro toque vuelve a NORMAL y borra la marca");
+  assert(s.estado === "PAUSA", "tocar VELOCIDAD no cierra la pausa");
   /* ENTER confirma lo que tiene el cursor: lo devolvemos a SEGUIR.
      OJO (revisión L04): en el partido de VERDAD esta repetición ni llega,
      porque ENTER tiene objeto Key y Phaser no emite keydown-ENTER para una

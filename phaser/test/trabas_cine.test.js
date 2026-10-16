@@ -400,7 +400,10 @@ W.PampaAvatar.setCatalogoManifest && W.PampaAvatar.setCatalogoManifest({ caras: 
   var m = CA.match(/var CALMA = \{([^}]*)\}/);
   var calma = {};
   (m ? m[1].replace(/\s/g, "").split(",") : []).forEach(function (x) { var p = x.split(":"); calma[p[0]] = Number(p[1]); });
-  assert(calma.TEMPO_MENU === 2 && calma.PAUSA === 2 && calma.TUTORIAL === 2, "rato LARGO (2): el menú de tempo, la pausa y el tutorial (" + JSON.stringify(calma) + ")");
+  /* TANDA 1.0, TEMPO-1: el menú de tempo de antes de cada partido ya no
+     existe (decisión de Rodri, 13/oct: se elige al crear la carrera), así
+     que tampoco su rato largo */
+  assert(calma.PAUSA === 2 && calma.TUTORIAL === 2 && !("TEMPO_MENU" in calma), "rato LARGO (2): la pausa y el tutorial (" + JSON.stringify(calma) + ")");
   assert(calma.LIBRE === 1 && calma.MENU === 1 && calma.PASE === 1, "SÍNTOMA: LIBRE, la cruz del duelo y el pase son rato CORTO (1): antes eran iguales que un menú y lo de una pieza corría entero ahí");
   assert(!calma.ESCENA && !calma.CINE && !calma.DEFINICION, "nunca en la escena, el cine ni la Definición");
   assert(/PampaPrecalentarEnganchar\(game\)/.test(leer("phaser/index.html")), "el postBoot del juego arma la cola");
