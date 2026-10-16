@@ -579,7 +579,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this._split) {
       const j = this.portadorActual().j;
       const wj = this.aRender(j.x, j.y);
-      const hint = this.add.text(wj.x, wj.y + 70, "tocá la cancha (o flechas) para correr",
+      const hint = this.add.text(wj.x, wj.y + 70, this.sys.game.device.input.touch ? "tocá la cancha para correr" : "tocá la cancha (o flechas) para correr",
         { fontFamily: window.PF.texto, fontSize: Math.round(11 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
       this.mundoLayer.add(hint);
       this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
@@ -2183,9 +2183,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       else visto = localStorage.getItem("pampa_tutorial_partido") === "1";
     } catch (e) { }
     if (visto || !this.FLAGS.e3_menus) return;
+    /* textos-tactiles: las teclas, solo donde hay teclado */
+    const tactil = this.sys.game.device.input.touch;
     const PASOS = [
-      "1/3 · Movés con el DEDO sobre la cancha\n(o con las flechas / WASD)",
-      "2/3 · ⚡ ACCIÓN abre el menú de jugadas\n(en teclado: ESPACIO)",
+      "1/3 · Movés con el DEDO sobre la cancha" + (tactil ? "" : "\n(o con las flechas / WASD)"),
+      "2/3 · ⚡ ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
       this._split ? "3/3 · Te movés y pasás TOCANDO\nEL MAPA de abajo" : (this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
     const ANILLOS = [null, { x: 838, y: 456, w: 210, h: 90 },   /* R1: el botón se movió a 838 */
@@ -4973,13 +4975,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V7-1: el destino del pase se toca EN EL MAPA; sin split, sobre la cancha */
     const hx = this._split ? this.radar.x + this.radar.w / 2 : (this._vista4 ? 480 : this.radar.x + this.radar.w / 2);
     const hy = this._split ? this.radar.y - 14 : (this._vista4 ? 528 : this.radar.y - 26);
+    /* textos-tactiles: en el teléfono, a quién se la pasás y nada de teclas.
+       L09: a 13 px, que es la ayuda de una decisión (iba a 10) */
+    const dondeToca = this._split ? "en el mapa" : (this._vista4 ? "sobre la cancha" : "en el radar");
     const hint = this.add.text(hx, hy,
-      this._split
-        ? "➡ PASE: tocá el DESTINO en el MAPA (□ = receptores; más allá = AL VACÍO · ◄► + ENTER, ▲ = al vacío, ESC = volver)"
-        : this._vista4
-          ? "➡ PASE: tocá el DESTINO sobre la cancha (□ = receptores; más allá = AL VACÍO · ◀▶ + ENTER, ▲ = al vacío, ESC = volver)"
-          : "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
-      { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
+      this.sys.game.device.input.touch
+        ? "➡ PASE: tocá " + dondeToca + " a quién se la pasás · más allá de un compañero, AL VACÍO"
+        : this._split
+          ? "➡ PASE: tocá el DESTINO en el MAPA (□ = receptores; más allá = AL VACÍO · ◄► + ENTER, ▲ = al vacío, ESC = volver)"
+          : this._vista4
+            ? "➡ PASE: tocá el DESTINO sobre la cancha (□ = receptores; más allá = AL VACÍO · ◀▶ + ENTER, ▲ = al vacío, ESC = volver)"
+            : "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
+      { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
     this._paseCancelar = () => {
       if (this._paseOrigen.libre) this.reanudarLibre(); else this.abrirMenuAtaque(this._paseOrigen.rivalIdx, false);
     };

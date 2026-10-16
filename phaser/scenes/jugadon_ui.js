@@ -81,7 +81,8 @@
       var b = this.add.rectangle(x, y, wpx, 54, bg, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       /* L09: 13 px y en dos renglones si hace falta ("◀ SALIR POR IZQUIERDA"
          mide 197 y con cinco gestos el botón deja 162) */
-      var t = this.add.text(x, y, num + "·" + texto, { fontFamily: window.PF.display, fontSize: this.BAL.legibilidad.texto_decision_min + "px", color: "#0a1f13", align: "center", wordWrap: { width: wpx - 12 } }).setOrigin(0.5);
+      /* textos-tactiles: el número es la tecla; en el teléfono no va */
+      var t = this.add.text(x, y, (this.sys.game.device.input.touch ? "" : num + "·") + texto, { fontFamily: window.PF.display, fontSize: this.BAL.legibilidad.texto_decision_min + "px", color: "#0a1f13", align: "center", wordWrap: { width: wpx - 12 } }).setOrigin(0.5);
       this.cineContent.add(b); this.cineContent.add(t);
       var self = this;
       var disparar = function () { self._uiTocado = self.time.now; cb(); };
@@ -233,7 +234,8 @@
          y en el jugadon lleva un titulo largo ("🌟 GAMBETA-TIRO · encará,
          esquivalos y definí"). Los dos textos de ayuda encimados, ilegibles los
          dos. Se ve en la captura REV_pasillo_lectura. */
-      var ayuda = this.add.text(W / 2, H - 46, "esquivá con el DEDO o con las FLECHAS · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 8, y: 2 } }).setOrigin(0.5).setAlpha(0.9);
+      /* textos-tactiles: las FLECHAS, solo donde hay teclado */
+      var ayuda = this.add.text(W / 2, H - 46, (this.sys.game.device.input.touch ? "esquivá con el DEDO" : "esquivá con el DEDO o con las FLECHAS") + " · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 8, y: 2 } }).setOrigin(0.5).setAlpha(0.9);
       this.cineContent.add(ayuda);
       this._jgMini.ayuda = ayuda;
       /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */

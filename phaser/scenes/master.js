@@ -1413,7 +1413,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* la respuesta DICHA reemplaza al rótulo, pero el subtítulo original
          queda: es lo que le dice al jugador qué tipo de jugador está eligiendo */
       const dicha = qe && qe.respuestas && qe.respuestas[i];
-      this.add.text(W / 2, y - 9, (i + 1) + " · " + (dicha || o.t), { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13", align: "center", wordWrap: { width: 680 } }).setOrigin(0.5);
+      /* textos-tactiles: el número es el atajo de teclado; en el teléfono no va */
+      this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + (dicha || o.t), { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13", align: "center", wordWrap: { width: 680 } }).setOrigin(0.5);
       this.add.text(W / 2, y + 13, o.sub || "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
       const elegir = () => {
         const nuevas = elegidas.concat([i]);
@@ -1718,7 +1719,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   const ctxL = { stats: this.statsDeHoy(), stat_techo: ((this.game.registry.get("balance") || {}).semana || {}).stat_techo, marcas: (this.save.origen && this.save.origen.marcas) || [],
     origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctxL);
-    this.add.text(W / 2, 286, hechas >= 3 ? "LA SEMANA ESTÁ ARMADA · a la cancha" : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3 (teclas 1 a 0)",
+    /* textos-tactiles: "(teclas 1 a 0)" salía en el teléfono, en la primera
+       semana de toda carrera */
+    this.add.text(W / 2, 286, hechas >= 3 ? "LA SEMANA ESTÁ ARMADA · a la cancha"
+      : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3" + (this.sys.game.device.input.touch ? "" : " (teclas 1 a 0)"),
       { fontFamily: window.PF.display, fontSize: "12px", color: hechas >= 3 ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
     /* O1 · las opciones van en la FRANJA DE DECISIÓN, ubicadas con el helper —
        no clavadas a mano. Tres filas: dos de acciones y la del botón de jugar,
@@ -1788,7 +1792,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.add.text(W / 2, 240, window.PampaSemanaUI.repaso(sem.elegidas, D.opciones),
         { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
     }
-    this.add.text(W / 2, 264, "🗓 " + llega.resumen + " · con " + llega.aguanteInicial + " de aguante y " + llega.envionInicial + " de envión",
+    /* textos-tactiles: decía "con 1000 de aguante y 30 de envión", números
+       crudos que nada presentó todavía en la primera semana */
+    this.add.text(W / 2, 264, "🗓 " + llega.resumen + " · las piernas al " + Math.round(llega.aguanteFrac * 100) + "%",
       { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
     if (sem.espiado) this.add.text(W / 2, 136, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
 
@@ -2058,7 +2064,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (o.energia_costo) t.push("−" + o.energia_costo + " energía");
     if (o.energia_recupera) t.push("+" + o.energia_recupera + " energía");
     if (o.animo) t.push((o.animo > 0 ? "+" : "") + o.animo + " ánimo");
-    if (o.stat) t.push("+" + (o.stat_mas || 1) + " " + (o.stat === "azar" ? "a una stat al azar" : o.stat));
+    if (o.stat) t.push("+" + (o.stat_mas || 1) + " " + (o.stat === "azar" ? "a una cualidad al azar" : o.stat));
     if (o.cura_molestia) t.push("cura la molestia");
     if (o.espia_rival) t.push("ves cómo juega el rival");
     if (o.evita) t.push("te sacás el problema de encima");
@@ -2215,7 +2221,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const items = ev.opciones.map((o, i) => {
       const y = Math.round(window.PampaPiel.yDeOpcion(i, ev.opciones.length, 72, pielEv));
       const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(W / 2, y, (i + 1) + " · " + o.texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(W / 2, y, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
       const elegir = () => {
         this.save.modFecha = V.aplicarEleccion(ev, i);
         this._semEventoResuelto = true;

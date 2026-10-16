@@ -112,7 +112,9 @@ function armar(opts) {
     s.scale = { width: 960, height: 540 };
     s.textures = { exists: function () { return false; } };
     s.cameras = { main: { setBackgroundColor: function () { return this; } } };
-    s.sys = { settings: { status: 5 } };
+    /* L09 (textos-tactiles): el Master pregunta si hay pantalla táctil para
+       no mostrar teclas en el teléfono; opts.tactil es el teléfono */
+    s.sys = { settings: { status: 5 }, game: { device: { input: { touch: !!opts.tactil } } } };
     s._tweens = []; s._timers = []; s._restarts = 0; s._irA = [];
     s.tweens = { add: function (c) { var t = { cfg: c, stop: function () { }, pause: function () { }, remove: function () { } }; s._tweens.push(t); return t; },
       killTweensOf: function () { } };
