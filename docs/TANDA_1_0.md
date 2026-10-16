@@ -5218,3 +5218,338 @@ verde (93 archivos; `deudas_ola2.test.js` pasa de 84 a 95 asserts,
   las palabras ("▶ JUGAR LA FECHA"), pero los ítems de legibilidad (L09 y
   L10) traen la misma regla del estudio, y `_cmap.js` sirve para hacer
   ahí un guardián de todos los textos.
+
+---
+
+## Ola 3 · Que se lea, se toque, cuide a quien juega y sea solo carrera — lote L09-legible-partido
+
+Tres ítems, cada uno en su commit, y uno más para las etiquetas del HUD:
+`TEMPO-1` (el tempo se elige una vez, al crear la carrera),
+`legibilidad-partido` (lo que decide el partido, a 13 px y adentro de su
+botón) y `textos-tactiles` (en el teléfono no se nombran teclas). Base:
+8fa36d1. El lote había quedado empezado el 15/oct en
+un `git stash` ("L09 a medias"): `tempoDe`, `minutosPorMomento` y
+`balConTempo` en `logic/save_master.js`, el bloque `balance.tempo.opciones`
+y el medidor `phaser/test/_metricas.js`. Lo recuperé y seguí desde ahí;
+lo que cambié de eso está en cada ítem.
+
+**Cómo se probó en pantalla.** En el navegador integrado, mudo (el arnés
+del oído) y con el reloj virtual. Todo en `127.0.0.1:8123`, el origen de
+prueba, que estaba vacío (sin localStorage, sin worker y sin cachés): ahí
+creé las carreras de prueba y al terminar lo dejé vacío otra vez. El save
+de Rodri, en `localhost:8123`, no se tocó. Las capturas del lienzo van en
+`.claude/shots/l09_*` (960x540, lo lógico); las de 800x360 y 740x360 son
+capturas de la pantalla del navegador con ese tamaño emulado (la de
+740x360 emula un Android: `device.input.touch` da `true`). Antes de cada
+recarga se borraron el worker y las cachés. Los ayudantes están en
+`.claude/l09_ayuda.js`.
+
+### TEMPO-1 · El tempo se elige una vez, al crear la carrera
+
+**Qué estaba mal (medido).** Antes de cada partido se abría
+`menuTempoSiCorresponde` ("⏱ ¿QUÉ PARTIDO JUGAMOS?"): tres presets en la
+jerga del código ("5' por momento", "≈35 momentos por tiempo · el clásico
+entero"), a 10 px, 18 veces por temporada. Lo elegido iba a `pampa_tempo`
+(afuera de la carrera) y se escribía en `balance.tempo.minutos_por_momento`,
+el balance compartido del registry: el tempo de un partido quedaba puesto
+para el siguiente.
+
+**Qué se hizo.**
+- `logic/save_master.js`: `tempoDe(x)` (de un save, de un `masterPartido`
+  o de una clave; sin dato o con uno que no existe, `intermedio`),
+  `minutosPorMomento` y `balConTempo(bal, tempo)`, que arma una copia del
+  balance con el preset puesto. Cambié dos cosas de lo que había en el
+  stash: `sanear` ya no le escribe `tempo` a un save viejo (rompía "un
+  save sano sale igual que entró" en `save_corrupto` y la ida y vuelta del
+  código de carrera; ahora lo resuelve `tempoDe`), y `balConTempo` no sale
+  temprano devolviendo el argumento (el guardián de `desconectados.test.js`
+  lo marcaba como guarda de migración sin llamador) ni inventa un 2,2 de
+  respaldo.
+- `scenes/match.js`: se fue `menuTempoSiCorresponde` entera y el estado
+  `TEMPO_MENU` de todos lados (`logic/atras.js`, la calma de la cola de
+  precalentamiento en `cine_arte.js`, los estados que esperan en
+  `index.html`). El partido se crea con
+  `balConTempo(this.BAL, masterPartido)`; sin carrera (el amistoso, hasta
+  ENTRADA-1) juega INTERMEDIO sin preguntar. El tutorial y la ficha de la
+  fecha salen en el mismo orden que antes: el tutorial primero, la ficha
+  1,4 s después, esperando detrás del velo.
+- La VELOCIDAD (RÁPIDA acorta animaciones, `msV`) vivía en ese menú. Pasó
+  a la PAUSA, al lado del SONIDO, y queda guardada en el aparato
+  (`pampa_velocidad`). Ver decisión 1.
+- `scenes/master.js`, el paso del mapa: debajo, "¿CUÁNTO DURA CADA
+  PARTIDO?" con CORTO / NORMAL / LARGO y "unos 3 / 6 / 9 min"
+  (`balance.tempo.opciones`). NORMAL viene marcado con borde de 5 px, un
+  tilde dibujado con Graphics y la palabra ELEGIDO debajo. Cada opción es
+  una zona transparente con `pisoTactil` antes de `setInteractive` (61 de
+  alto) y está en el cursor del mapa. El tempo viaja en
+  `carreraPendiente.tempo` por el editor y la entrevista hasta
+  `_crearCarrera` (`save.tempo`), y de ahí a cada fecha en
+  `masterPartido.tempo`. No hay forma de cambiarlo después.
+- Para que entre sin achicar ningún botón: el mapa bajó de 254 a 242 de
+  alto, la nota "mapa por zonas…" pasó debajo de la ficha, y con una
+  carrera del clásico para importar, ARRANCAR e IMPORTAR van lado a lado y
+  el renglón del respaldo (10 px, con el nombre de la clave de
+  localStorage) pasó adentro del botón. Los rótulos de zona se ubican
+  después de los pueblos, en la primera esquina de su caja que no pisa a
+  nadie y queda adentro del contorno (si ninguna sirve, esa zona va sin
+  rótulo), y la estrella del elegido va a la izquierda del anillo y no
+  arriba.
+
+**Cómo se verificó.**
+- `tempo_carrera.test.js` (nuevo, 34 asserts): la lógica (sin dato da
+  INTERMEDIO, "largo" da 1,2 del balance, el balance compartido no se
+  toca, sin `minutos_por_momento` el tempo no aplica, el save viejo no se
+  reescribe, uno desconocido se repara); la creación con `master.js` de
+  verdad (la pregunta, las tres opciones a 13 px o más, ELEGIDO debajo de
+  NORMAL, piso táctil y cursor, ARRANCAR solo lleva INTERMEDIO con un
+  toque, CORTO viaja hasta el save; ningún texto dice "momento" ni
+  "clásico", tampoco con IMPORTAR a la vista); y 18 fechas seguidas por el
+  Master real, cada una con el `create()` REAL del partido sobre un stub
+  universal de Phaser (`_create_de_mentira.js`): 0 menús de tempo, las 18
+  en LARGO (1,2), el balance compartido en 2,2. Contra el `match.js` de la
+  base falla con el síntoma: 18 menús, la jerga, 2,2 en vez de 1,2.
+- Tests viejos que chocaban con la decisión, actualizados diciendo cuál:
+  `atras.test.js` (la fila de TEMPO_MENU; ahora una fecha recién
+  arrancada + atrás abre la PAUSA), `d_decisiones.test.js` (el pendiente
+  lleva el tempo), `desconectados.test.js` (el aviso espera detrás del
+  tutorial; el orden tutorial→ficha se mira en `create()`),
+  `o1_franja.test.js` (las opciones del tempo caen en la franja),
+  `pausa.test.js` (cuatro botones, y la VELOCIDAD se prende, se guarda y
+  se apaga) y `trabas_cine.test.js` (sin TEMPO_MENU en la calma).
+- **En pantalla** (127.0.0.1, localStorage vacío): el paso del mapa a
+  960x540 (`l09_t1_paso1_960.png`) y a 800x360 (captura del navegador): las
+  tres opciones legibles, NORMAL con tilde, borde y ELEGIDO. Tocar CORTO
+  mudó la marca y el cursor (`l09_t1_paso1_corto.png`). El script de cruces
+  de `getBounds` (textos y tocables) dio 0 a 960x540 y a 800x360, también
+  con una carrera del clásico (`l09_t1_paso1_con_clasico.png`). Creé la
+  carrera con CORTO (ARRANCAR → editor → entrevista): `save.tempo` quedó
+  `relampago`. Del JUGAR de la semana se pasó directo a la cancha, sin
+  menú (`l09_t1_cancha_f1_tutorial.png`, `l09_t1_cancha_f1_libre.png`),
+  con `minutos_por_momento` 5 en el partido y 2,2 en el registry. Con un
+  piloto que contesta cada decisión a los 2,5 s, el partido CORTO duró
+  **2,7 min** de reloj de juego hasta el pitazo
+  (`l09_t1_final_corto.png`).
+
+### legibilidad-partido · Lo que decide el partido, a 13 px y adentro de su botón
+
+**Qué estaba mal (medido).** Los rótulos de la cruz iban a 10 px (7,2 px
+reales en 844x390, 6,7 en 800x360), los de la Definición a 9 y 10, los del
+jugadón a 10. Los botones de la cruz medían 176x50 y el centro 150, con
+los costados a 1 px del centro: en la captura del duelo de la ola 2 EL
+FOGONAZO se montaba sobre PASE y TIRO y el subtítulo de MEGACORRIDA se
+salía. El motivo de una opción bloqueada iba en #c76a5e sobre #333d36:
+3,04:1 (2,49 con protanopía, simulada con Viénot 1999). El megatiro se
+cortaba a 15 letras ("DISPARO DEL CAL").
+
+**Qué se hizo.**
+- `balance.legibilidad.texto_decision_min = 13` y
+  `balance.legibilidad.cruz`, la geometría de la cruz medida contra los
+  retratos (el marco más ancho, el de Nelda, ocupa hasta x 178 y desde
+  x 782) y la fila de las fichas (y 482), contando el canto de 7 px de los
+  botones vestidos: N y S de 230x44, W y E de 200x46, el centro de 180x46.
+- `match.js`, `abrirMenuCruz`: todo a 13 px, con
+  `encajarTexto(t, ancho)`: si un rótulo armado con datos no entra, se le
+  sacan de atrás para adelante los tramos después de " · " y, si todavía
+  no entra, el ícono del principio. La letra no se achica nunca. Lo
+  bloqueado lleva un rayado dibujado con Graphics (el glifo ▨ no está en
+  las tipografías del juego), el nombre en #b9c3bc y el motivo en
+  #f6efdc: 9,83:1 (9,61 con protanopía). Los retratos (nombre y aguante)
+  también a 13.
+- Textos que se acortaron para entrar: MEGACORRIDA "300 aguante · los
+  dejás atrás"; la carta del centro dice solo su costo (la frase se lee al
+  jugarla); el megatiro va con el nombre entero y "ficha de tiro · quedan
+  N", con la lectura del rival adelante si te tienen leído (los ojos se
+  quedan); GAMBETA-TIRO "encarás y definís de frente al arco"; SÚPER QUITE
+  "leé su movida y cerrale el camino".
+- `jugadon_ui.js`: el botón de la ficha a 248 de ancho y 13 px; los
+  botones de la plataforma a 13 px en dos renglones si hace falta; los
+  cierres del quite a 224; el subtítulo de arriba a 13; el nombre del
+  rival nunca por debajo de 13 (escalaba hasta 0,6). La ayuda de la
+  corrida (y H-46) quedaba debajo de la fila de botones y se asomaba por
+  los costados: se va cuando aparecen los botones.
+- `definicion_ui.js`: los botones a 13 px con `encajarTexto`, "⚠ TU
+  ARCO", los avisos y la consigna de la fase 2 a 13; el aviso de gambeta
+  bloqueada ya no lleva ▨. La consigna de la fase 1 iba en el rótulo del
+  cine, abajo a la izquierda, y pasaba por debajo de TIRO (visto a
+  800x360): ahora va arriba de la fila, como la de la fase 2.
+- El HUD: las etiquetas AGUANTE y ENVIÓN de 10 a 13 (commit aparte); a 13
+  la de ENVIÓN quedaba debajo del canto del ⚡ ACCIÓN (que llega a y 498),
+  así que las dos filas de medidores bajaron 7 y 5 px (AGUANTE termina en
+  y 535). El pie del tutorial de 11 a 13; la ayuda del PASE de 10 a 13 (va
+  con textos-tactiles).
+- `legibilidad.test.js` informa los dos teléfonos (844x390 y 800x360) y
+  exige que el texto de decisión en el chico no quede por debajo del piso
+  de información en el grande (8,7 y 8,7). La deuda bajó: el registro
+  decía 36 y la suite contaba 33; quedan **16** (match 7, master 6,
+  editor 3), y `_legibilidad_deuda.json` quedó en 16.
+- `_metricas.js` (del stash) mide el ancho con la tabla de avances de los
+  .ttf. Contra Phaser en el navegador: "🌠 MEGACORRIDA" 130 y 130,
+  "🌟 GAMBETA-TIRO (quedan 2)" 212,6 y 213, "👁👁👁 te la vieron toda" 163
+  y 149. Mide igual o de más. Le saqué una opción `pf` que no usaba nadie
+  y una referencia a un "[7]" que no existía.
+
+**Cómo se verificó.**
+- `legibilidad_partido.test.js` (nuevo, 19 asserts): arma la cruz con
+  `abrirMenuAtaque` y `abrirMenuDefensa` de verdad (más cartas y jugadón)
+  en cuatro situaciones con los rótulos más largos (MEGACORRIDA, TORNADO
+  PAMPEANO leído, todo bloqueado, QUITE PAMPERO, BLOQUEO MÉDANO, la carta
+  sin aguante) y mide cada texto con la tipografía real: 68 textos a 13 px
+  o más, cada rótulo adentro de su botón con 6 de aire, ningún botón ni
+  retrato se pisa (con el canto), todo en el lienzo, "🌟 GAMBETA-TIRO
+  (quedan 2)" entero (213 en 236), el contraste calculado de los colores
+  que pintó la cruz, y la Definición y el jugadón sin textos debajo de 13.
+  Contra el código de la base fallan 11 de 19, con el síntoma (el
+  FOGONAZO encima, 3,04:1, 10 px).
+- `definicion.test.js`: su escena de mentira ahora trae
+  `BAL.legibilidad` y `encajarTexto` (dependencias nuevas de
+  `defBotonEn`; lo que mide no cambió).
+- **En pantalla**, a 800x360: la cruz de ataque en el área con
+  MEGACORRIDA, TORNADO PAMPEANO "👁👁👁 te la vieron toda", UNO-DOS
+  bloqueado y GAMBETA-TIRO (`l09_lp_cruz_ataque.png` y la captura del
+  navegador); la de defensa rendida, con QUITE y BLOQUEO rayados y "SIN
+  AGUANTE" en crema (`l09_lp_cruz_defensa_rendida.png`); la Definición en
+  sus dos fases (`l09_lp_definicion_of.png`, `l09_lp_definicion_zonas.png`);
+  la corrida del jugadón (`l09_lp_jugadon_gestos.png`) y los cierres del
+  quite (`l09_lp_jugadon_quite.png`). Ningún rótulo se sale ni pisa PASE o
+  TIRO; los anchos que dio Phaser coinciden con los del test. El HUD con
+  AGUANTE y ENVIÓN a 13, enteros debajo del botón (`l09_lp_hud_libre.png`).
+
+### textos-tactiles · En el teléfono no se nombran teclas ni números crudos
+
+**Qué estaba mal (medido en la captura `l09_tt_antes_semana_f1.png`).** La
+primera semana de toda carrera decía "(teclas 1 a 0)" y "con 1000 de
+aguante y 30 de envión"; el picadito, "+1 a una stat al azar". El PASE se
+explicaba con "◄► + ENTER, ▲ = al vacío, ESC = volver", el tutorial con
+"(o con las flechas / WASD)" y "(en teclado: ESPACIO)", la corrida del
+jugadón con "con las FLECHAS"; los botones del jugadón, la entrevista y el
+evento de la semana llevaban el número de la tecla adelante.
+
+**Qué se hizo.** Con `this.sys.game.device.input.touch` (la guarda que ya
+usaban la pausa y "ESPACIO = ACCIÓN"):
+- `master.js`: "(teclas 1 a 0)" solo con teclado; la entrevista y el
+  evento sin el número adelante en el teléfono; "🗓 … · las piernas al
+  100%" en vez de los números (siempre: es lo mismo dicho sin jerga); "+1 a
+  una cualidad al azar".
+- `match.js`: el tutorial sin las teclas en el teléfono; la guía "tocá la
+  cancha para correr" (sin pantalla partida) sin "(o flechas)"; el PASE
+  "➡ PASE: tocá en el mapa a quién se la pasás · más allá de un
+  compañero, AL VACÍO" (o "sobre la cancha" / "en el radar", según la
+  vista).
+- `jugadon_ui.js`: la ayuda sin "las FLECHAS" y los botones sin "1·".
+- `_escena_de_mentira.js` sabe si es un teléfono (`armar({ tactil })`);
+  el `create()` de verdad pasó a `_create_de_mentira.js`, que ahora
+  comparten `tempo_carrera.test.js` y este ítem.
+
+**Cómo se verificó.**
+- `textos_tactiles.test.js` (nuevo, 21 asserts), con `touch = true`:
+  la semana de la fecha 1, su evento y la entrevista (Master de verdad);
+  el `create()` del partido (tutorial y guía), el PASE y la corrida del
+  jugadón con sus botones. Ningún texto contiene teclas, ENTER, ESC, WASD,
+  flechas, ESPACIO ni el número de la tecla; no aparecen 1000, "de envión"
+  ni "stat". Y con teclado las ayudas siguen (la guarda es del aparato).
+  Contra el código de la base fallan 11, con el síntoma.
+- **En pantalla**, con el navegador emulando un Android a 740x360
+  (`device.input.touch` = true): la entrevista sin números
+  (`l09_tt_entrevista_tactil.png`), el evento (`l09_tt_evento_tactil.png`),
+  la semana de la fecha 1 sin teclas, sin 1000 ni 30 y con "las piernas al
+  100%" (`l09_tt_semana_f1_tactil.png`), el tutorial sin teclas
+  (`l09_tt_tutorial2_tactil.png`) y el PASE (`l09_tt_pase_tactil.png`).
+
+### Decisiones que tomé yo (L09-legible-partido)
+
+1. **La VELOCIDAD pasó a la PAUSA.** Vivía en el menú de tempo, que se
+   fue; borrarla era sacar algo que funcionaba, y el ítem de MOVIMIENTO
+   SUAVE (más adelante) la da por existente. Queda en el aparato como
+   antes quedaba en `pampa_tempo`, ahora en `pampa_velocidad`.
+   *Revertir:* sacar la opción `velocidad` de `abrirPausa` y la lectura
+   de `pampa_velocidad` en `init()` (y `pausa.test.js` vuelve a tres).
+2. **El tempo se dice en dos renglones** ("NORMAL" / "unos 6 min") y no
+   "NORMAL · unos 6 min": en un botón de 200 se lee mejor y no suma otro
+   "·". ELEGIDO va debajo de la opción, en amarillo. *Revertir:*
+   `balance.tempo.opciones` tiene `n` y `d` separados; el armado está en
+   `vistaElegir`.
+3. **El paso del mapa se reacomodó** (mapa de 242, nota debajo de la
+   ficha, rótulos de zona por esquina, estrella a la izquierda). Con
+   Winifreda, ESTE queda sin rótulo: no hay esquina libre adentro del
+   contorno. *Revertir:* `mapaCaja` y el bloque "las zonas, nombradas" de
+   `dibujarMapa`.
+4. **El respaldo del clásico se dice adentro de IMPORTAR** ("tu carrera de
+   antes queda guardada, sin tocar"), sin el nombre de la clave
+   `pampa_star_v1_backup_pre_v7`, que es jerga. *Revertir:* el séptimo
+   argumento de `boton()`.
+5. **Un save viejo no se reescribe con el tempo.** Juega INTERMEDIO por
+   `tempoDe`. *Revertir:* completar `s.tempo` en `sanear` (y aceptar que el
+   save sano deja de salir igual que entró).
+6. **TEMPO_MENU se fue de todos lados**, no solo de `match.js`: dejarlo en
+   `atras.js`, en la calma o en `ESPERAN` era código viejo por
+   compatibilidad con un estado que ya nadie pone.
+7. **El glifo ▨ se reemplazó por un rayado dibujado.** El ítem decía
+   "con ▨ adelante"; la regla del estudio de diseño dice que ninguna
+   información viaja en glifos que no están en las tipografías (medido con
+   `_cmap.js`: ▨ no está en Pixelify ni en VT323). Manda la regla.
+   *Revertir:* el bloque `if (op.bloqueada)` de `abrirMenuCruz`.
+8. **Medidas de la cruz:** N y S de 230, W y E de 200, centro de 180, la
+   ficha del jugadón de 248, los cierres de 224. Son las que entran entre
+   los retratos con 6 de aire y dejan 3 entre filas. *Revertir:*
+   `balance.legibilidad.cruz`.
+9. **`encajarTexto` recorta, no achica.** Primero lo que viene después de
+   " · ", después el ícono del principio. *Revertir:* sacar las llamadas.
+10. **Textos acortados** (MEGACORRIDA, la carta del centro, el megatiro,
+    las fichas del jugadón): ver el ítem. *Revertir:* los strings.
+11. **Las filas de AGUANTE y ENVIÓN bajaron** (507 y 527 en vez de 500 y
+    522) para que las etiquetas a 13 no queden debajo del canto del ⚡
+    ACCIÓN. *Revertir:* `MEDIDORES` en `buildHUD`.
+12. **La consigna de la Definición, arriba de los botones**, y la ayuda
+    de la corrida del jugadón se apaga con la primera decisión.
+    *Revertir:* `cineLabel.setText` en `entrarDefinicionOf`; `m.ayuda` en
+    `jugadon_ui.js`.
+13. **"una cualidad al azar" y no "una de tus cualidades, al azar".** La
+    segunda pasa la tarjeta del picadito a cuatro renglones y se sale
+    (medido con la tipografía); con la primera quedan tres, como antes.
+14. **"las piernas al N%" también con teclado**, y sin el envión: el
+    resumen de la semana ya dice cómo llega la cabeza. *Revertir:* el texto
+    de "🗓" en `vistaSemana`.
+15. **El número de tecla adelante de la entrevista, el evento y el
+    jugadón** se saca en el teléfono. Con teclado sigue (en el evento no
+    hay atajo numérico: ver deudas).
+16. **La versión sube a `v17-1.0-l09`** (index.html y sw.js). *Revertir:*
+    `v17-1.0-l08cr`.
+
+### Pendiente (L09)
+
+- **La duración de NORMAL y LARGO en el navegador.** Medí CORTO (2,7 min).
+  Para NORMAL el piloto del arnés avanzaba a menos de medio minuto de
+  juego por cada 40 s reales en esta máquina y no llegué al pitazo; las
+  duraciones de la etiqueta salen de la medición de la auditoría con la
+  lógica pura (5,8 y 9,3 min), anotada en `balance.tempo._tempo_1`.
+- **La cola de precalentamiento sin el menú de tempo** (la deuda que dejó
+  L08c). Medido: en la primera fecha de una carrera la vacía el tutorial
+  (0 pendientes, cuadro más largo 32 ms en los primeros 3,5 s); de la
+  segunda en adelante, a los 10 s de LIBRE quedan 9 trabajos de una pieza
+  esperando (pies, ensayo de la toma, pinturas del cine: 5 a 50 ms cada
+  uno), que corren en una pausa o en su primer uso, como antes de L06. No
+  la moví: la cola necesita la escena del partido viva y la tabla del
+  Master no la tiene. Va con un ítem de rendimiento.
+- **Un teléfono de verdad.** Todo lo de este lote se vio emulado.
+
+### Deudas que vi y no son de este lote
+
+- **El sistema tipográfico no se aplica.** `index.html:1565` re-registra
+  la fábrica `text` de Phaser para sumar interletrado y sombra, pero
+  `GameObjectFactory.register` no pisa un nombre que existe. Medido en el
+  partido: el marcador tiene `letterSpacing` 0 y sombra 0, con
+  `balance.tipografia.letras` en 1 y `sombra.x` en 2.
+- **El mapa del paso 1 con otra localidad elegida.** Con Eduardo Castex,
+  General Pico, Intendente Alvear, Realicó o Victorica, el nombre de la
+  de arriba o de abajo toca el anillo o el nombre del elegido (1 a 3
+  cruces). Pasaba igual con el mapa de 254 (medido). El selector de
+  localidades (más adelante) lo reemplaza.
+- **El evento de la semana numera sus opciones con teclado** ("1 · Lo
+  llevo") y no tiene atajo numérico: solo el cursor.
+- **Textos del HUD debajo del piso** (`txtFichas` y `txtMano` a 11,
+  `txtDivision`, "◄ TU ARCO", `txtEnvionEstado` y "cargando aguante…" a
+  10) y los de Master y editor: la deuda de 16 que muestra la suite.
+- **Con la emulación de Android (DPR 2,6) el partido corre a 50-67 ms por
+  cuadro en el navegador de la compu.** Es el lienzo a 2,6 veces de
+  resolución dibujado sin la GPU del teléfono; no lo tomo como medida de
+  un teléfono, pero conviene mirarlo en uno de gama baja.
