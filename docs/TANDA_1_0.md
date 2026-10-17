@@ -5940,3 +5940,124 @@ Pendiente:
 - La pose del quite del rival (`poseR_quite`) trae dibujada su propia
   pelota blanca y negra, distinta de la del juego. Es la ilustración; no
   la toqué.
+
+### (1) y (2), segunda parte: los efectos grabados
+
+Qué estaba mal. Después del arreglo de la mañana los efectos ya no eran de
+onda cuadrada, pero seguían saliendo del sintetizador: la patada era ruido
+filtrado con una senoidal, la red dos ruidos, la hinchada un ruido de banda.
+
+Qué hice:
+
+- Las catorce grabaciones de `.claude/nuevos/sonidos/` (ver su LEEME) están
+  en `assets/sonidos/`, al lado de la música. Pesan 288 KB las catorce; la
+  más pesada es la cama de hinchada, 107 KB. Entraron en la huella del
+  service worker (`sw.js`, generada con `sw_precache.test.js --escribir`).
+- `audio/sfx.js` las baja una vez, con la compuerta de la intro ya a la
+  vista (`intro.js`, create), y las decodifica en el contexto de los
+  efectos cuando nace, que sigue siendo con el primer toque. Suenan por el
+  mismo bus, con la mezcla, el pasabajos y el limitador. Si una muestra no
+  llegó, ese efecto no suena y la consola dice qué archivo faltó: no hay
+  síntesis de reserva.
+- Qué suena con cada una: `patada` es kick(); `patada_fuerte` es
+  kickFuerte(), nueva, en el plano del pie del súper tiro y en la toma
+  especial; `red`, `guantes`; `palo` es palo(), nueva; `silbato` es
+  whistle() y con "final" suena `silbato_final`, los tres pitazos del
+  final; `viento_remate` es whoosh(), que ya no recibe duración;
+  `hinchada_uh` es afuera(); `hinchada_gol` es festejo(), nueva, en el gol
+  propio, el atajadón, la atajada de la Definición, el envión y el gol de
+  la intro; `hinchada_loop` es crowd(), el rumor que crece en la tensión, y
+  la cama nueva. Borré la síntesis de todos esos. Siguen sintetizados
+  SFX.goal(), que es el motivo y no un golpe, el cambio de posesión, el
+  cruce de campo, el tictac, el lamento del gol en contra y los risers.
+- La cama: la hinchada de fondo suena en loop todo el partido, por debajo
+  de la música. Baja junto con la música (musicaDuck: el freeze del
+  arquero, los golpes de cámara), se calla con la pausa de la música
+  (pestaña oculta, teléfono en vertical) y con el mute, y se apaga con el
+  silencio del final.
+- La interfaz: mover, confirmar y volver son los toques de madera. Abrir y
+  cerrar son el de mover una cuarta arriba y una cuarta abajo, bloqueado es
+  el de volver una cuarta abajo y cartel el de confirmar una quinta arriba
+  (playbackRate). Cada uno tiene su ganancia relativa en `sfx.js` (VOZ).
+- El palo. En el juego la pelota no pegaba nunca en el palo. El rebote del
+  súper tiro de `logic/jugadon.js` es la pelota que se le escapa de las
+  manos al arquero ("¡LE REVENTASTE LAS MANOS!") y vive en código sin
+  llamador (jugadonTirar). [DECISIÓN MÍA] En el cine del remate, el tiro
+  que iba al palo (la zona "palo" de `logic/tiro.js`) y se va afuera ahora
+  pega en el palo: la pelota llega al palo a media altura y sale
+  despedida, el cartel dice "¡AL PALO!" y suena el palo y después el uhhh
+  de la hinchada. Los demás afuera siguen pasando por arriba del travesaño.
+
+La mezcla, medida igual que a la mañana: el `sfx.js` real renderizado en un
+OfflineAudioContext, RMS de la ventana más fuerte de 50 ms, contra la música
+del partido en -21,7. Con ganancia 1 y el mismo pico, el silbato medía -9,3,
+el uhhh -10,0, el festejo -10,6, la patada -12,9 y los guantes -18,0. Las
+ganancias nuevas están en `balance.audio_mezcla`:
+
+| efecto | muestra | ganancia | offline | en el partido |
+|---|---|---|---|---|
+| patada | patada | 0,46 | -19,2 | -18,8 a -19,2 |
+| súper tiro | patada_fuerte | 0,46 | -18,9 | -19,0 |
+| red | red | 0,59 | -18,9 | -18,7 |
+| guantes | guantes | 0,83 | -19,5 | -19,1 y -19,3 |
+| palo | palo | 0,46 | -19,5 | -19,1 |
+| festejo | hinchada_gol | 0,21 | -24,1 | -23,8 |
+| silbato | silbato | 0,16 | -25,1 | -24,6 |
+| silbato final | silbato_final | 0,16 | -23,7 | -23,3 |
+| afuera | hinchada_uh | 0,15 | -26,5 | -26,3 |
+| rumor de tensión | hinchada_loop | 0,40 | -27 a -30 | -24,5 a -30,4 |
+| whoosh | viento_remate | 0,15 | -29,0 | -27,6 a -28,1 |
+| cama (mediana de 400 ms) | hinchada_loop | 0,24 | -34,3 | -34,1 a -35,3 |
+| interfaz | ui_* | 0,11 | -33,4 a -38,5 | mover -35,5 y -37,9 |
+
+En dBFS. "En el partido" es la salida del bus grabada con el juego andando;
+la música medida ahí dio -21,5 y -21,0. En la interfaz el número del
+partido es neto, descontando la cama que suena debajo. El rumor varía
+según qué pedazo del loop toque.
+
+Tests. `muestras` es nuevo (115 asserts): cada muestra declarada existe en
+`assets/sonidos/` y cada archivo de la carpeta está declarado; cada efecto
+con muestra la nombra y no tiene tone() ni noise(); y con el reproductor de
+verdad en node y un contexto de mentira, sin muestras no suena nada,
+cargadas suenan por el bus con la ganancia de balance, el mute las calla,
+la cama se va con la pausa y vuelve, cerrar sale de mover, y una muestra
+que no baja no suena y avisa. `audio_un_tema` [8] pedía ganancia mayor que
+1 para patada, red y guantes, sobre la síntesis; como pedido tuyo del
+17/oct, ahora pide que cada golpe (patada, súper tiro, red, guantes, palo)
+tenga más ganancia que cualquier efecto que va debajo de la música, y que
+todos tengan su perilla. `partitura` y `toma_remate` pedían kick() en el
+plano del pie y en el contacto de la toma especial; ahora piden la patada
+fuerte, con la misma nota.
+
+Cómo lo verifiqué. Navegador integrado, con service worker y caché
+borrados. Las catorce se piden a los 688 ms, con el logo de la compuerta ya
+bajado (532 ms), y antes del toque no hay contexto ni decodificación. Al
+toque, 14 de 14 decodificadas en 60 ms. Partido directo contra Espejo de
+Sal, con el oído enganchado y la salida del bus grabada: la cama arranca
+con el partido; en el menú de jugadas las flechas suenan con el toque de
+madera y Enter con el de confirmar; el remate suena patada, whoosh, rumor y
+guantes en la atajada, o red y festejo en el gol; el remate al palo,
+forzado, suena el palo y el uhhh con "¡AL PALO!" y la pelota saliendo del
+palo (capturas); el súper tiro (Disparo del Caldén) suena la patada fuerte
+en el plano del pie; el entretiempo, el silbato; el final, los tres
+pitazos, y la cama se apaga con el silencio. La intro (VER INTRO) suena el
+rumor en el primer plano, el festejo en el gol y la red en el logo, y no
+vuelve a pedir las muestras. Después de jugar, el service worker tenía las
+catorce en `pampa-assets` con su huella. Sin errores en consola. Suite
+verde. El sonido no lo escuché: está medido.
+
+Lo que vi y no toqué:
+
+- En la intro, el rumor del primer plano se pide 60 ms después del toque,
+  lo mismo que tarda acá en decodificarse todo. En un teléfono lento ese
+  primer rumor puede salir mudo (la música suena igual). Evitarlo pide
+  crear el contexto antes del toque, y eso deja afuera al arnés de
+  medición, que se engancha antes de que nazca.
+- El árbitro pita el entretiempo y el final; el comienzo del partido no
+  tiene silbato.
+- Lo que el LEEME deja para confirmar de oído: que la hinchada no tenga
+  palabras entendibles, que el palo suene a metal y que la patada común no
+  quede sorda.
+- La física del súper tiro de `logic/jugadon.js` sigue sin llamador (ya
+  anotado en HANDOFF_CIERRE.md). Le puse la patada fuerte para que, si
+  vuelve, suene como el súper tiro de hoy.
