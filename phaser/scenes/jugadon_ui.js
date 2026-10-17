@@ -175,8 +175,8 @@
       var cab = (this._jgMega ? "★ " + String(this._jgMega.n || "MEGATIRO").toUpperCase() : "★ GAMBETA-TIRO") +
         " · rival " + (g.paso + 1) + " de " + g.defensores.length + " · " +
         (tactil ? "tocá por dónde lo pasás" : "flechas o tocá: por dónde lo pasás");
-      this.cineContent.add(this.add.text(W / 2, 20, cab, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 } }).setOrigin(0.5));
-      this.cineContent.add(this.add.text(W / 2, 56, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 12) + " TE SALE AL CRUCE", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(1), fontStyle: "bold", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 12, y: 4 } }).setOrigin(0.5));
+      this.cineContent.add(this.add.text(W / 2, 20, cab, { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 } }).setOrigin(0.5));
+      this.cineContent.add(this.add.text(W / 2, 56, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 12) + " TE SALE AL CRUCE", { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 12, y: 4 } }).setOrigin(0.5));
       /* lo que hay que leer, en palabras además de en el dibujo */
       this.jugadonGlobo(W / 2, 118, post.dice);
 
@@ -219,7 +219,7 @@
         self.cineContent.add(self.add.text(W / 2, 52, texto, { fontFamily: window.PF.display, fontSize: "34px", color: color, stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5));
       };
       var bajada = function (texto) {
-        self.cineContent.add(self.add.text(W / 2, H - 36, texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(2), fontStyle: "bold", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 860 } }).setOrigin(0.5));
+        self.cineContent.add(self.add.text(W / 2, H - 36, texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(2), color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 860 } }).setOrigin(0.5));
       };
       var kRival = (this.poseRivalNaranja && this.poseRivalNaranja(post.pose)) || this.poseKey(post.pose);
 
@@ -239,7 +239,7 @@
         if (sr.setTint) sr.setTint(0xb4b4b4);
         this.cineContent.add(sr);
         this.tweens.add({ targets: sr, x: xR - 50, duration: this.msV(B.paso_ms || 950), ease: "Quad.easeOut" });
-        this.cineContent.add(this.add.text(xR, H * 0.8 - sr.displayHeight - 14, "▲ " + nombre, { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5));
+        this.cineContent.add(this.add.text(xR, H * 0.8 - sr.displayHeight - 14, "▲ " + nombre, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5));
         /* VOS, en primer plano: la pose quieta, el corte seco */
         var kH = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_gana")) || this.poseKey("gambeta_gana");
         var sh = kH ? this.add.image(xH, H * 0.53, kH) : this.add.rectangle(xH, H * 0.53, 200, 380, 0x4fc3f7);

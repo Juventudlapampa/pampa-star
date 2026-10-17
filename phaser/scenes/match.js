@@ -1062,7 +1062,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* marca de control clara: ▼ + nombre (forma + etiqueta, no solo color).
        En la vista elevada el texto del mundo se agranda para leerse igual. */
     const fsM = this._vista4 ? 22 : 11;
-    this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: window.PF.texto, fontSize: fsM + "px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: this._vista4 ? 6 : 4 })
+    this.marker = this.add.text(0, 0, "▼ VOS", { fontFamily: window.PF.display, fontSize: fsM + "px", color: "#ffffff", stroke: "#0a1f13", strokeThickness: this._vista4 ? 6 : 4 })
       .setOrigin(0.5).setDepth(12);
     this.trailG = this.add.graphics().setDepth(8);   // estelas de velocidad (E4)
     this._trail = [];
@@ -1154,7 +1154,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        adentro de su máscara fija, o sea que se come ~29 px de cada costado
        mientras hay un menú abierto. A 14 px la etiqueta del portador quedaba
        en x=-14 y se leía "0 · VOS". 36 la deja adentro con margen. */
-    this.panelNombre = this.add.text(36, yFranja, "", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
+    this.panelNombre = this.add.text(36, yFranja, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0, 0.5);
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
     /* ARTE · la luz del partido también en el panel (cine_arte.js): cielo y
@@ -2131,7 +2131,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const esc = 132 / img.height; img.setScale(esc);
     const marco = this.add.rectangle(x, 386, img.width * esc + 10, 142, 0x0a1f13, 0.55).setStrokeStyle(2, esRival ? 0xff8a50 : 0x4fc3f7);
     /* L09: el nombre y el aguante de los retratos también son de la cruz: 13 px */
-    const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", fontStyle: "bold" }).setOrigin(0.5);
+    const nom = this.add.text(x, 464, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)), { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
     /* §6: nombre + BARRA de aguante (color por umbral) + número SIEMPRE */
     const max = this.BAL.aguante.max, frac = Phaser.Math.Clamp(gutsVal / max, 0, 1);
     const barCol = frac > 0.5 ? 0x2e7d32 : frac > 0.25 ? 0xf9a825 : 0xc62828;
@@ -4554,7 +4554,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* nombres con placa del bando (celeste vs naranja + texto: forma y palabra, no solo color) */
     const placa = (x, j, esRival) => {
       const t = this.add.text(x, H * 0.84, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)),
-        { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+        { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
       this.cineContent.add(t);
     };
     placa(W * 0.3, cfg.prota.j, cfg.prota.esRival);

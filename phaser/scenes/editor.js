@@ -77,7 +77,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     let tx0 = W / 2 - (this.personajes.length * (tw + 8) - 8) / 2 + tw / 2;
     this.personajes.forEach((p, i) => {
       const r = this.add.rectangle(tx0, 78, tw, 40, 0x0d2a18, 1).setStrokeStyle(2, 0xf6c11d, 0.7).setInteractive({ useHandCursor: true });
-      const t = this.add.text(tx0, 78, (i === 0 ? "★ " : "♥ ") + p.nombre.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+      const t = this.add.text(tx0, 78, (i === 0 ? "★ " : "♥ ") + p.nombre.toUpperCase(), { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
       r.on("pointerdown", () => { this.sel = i; this.refrescar(); });
       this.tabs.push({ r, t });
       tx0 += tw + 8;

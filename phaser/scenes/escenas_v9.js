@@ -111,7 +111,7 @@
     /* placa con el nombre (forma + palabra, nunca solo el color) */
     placaDePlano(x, y, j, esRival) {
       var t = this.add.text(x, y, (j && j.esVos ? "VOS" : ((j && j.nombre) || "RIVAL").toUpperCase().slice(0, 12)),
-        { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+        { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
       this.cineContent.add(t);
       return t;
     },
