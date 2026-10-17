@@ -5791,3 +5791,74 @@ en la camiseta se lee al revés; arreglarlo pide una versión de la ilustración
 mirando al otro lado o no espejar, y las dos cosas son decisión tuya. La
 zancada del latido inclina la figura 3,5 grados adelante y atrás, alternando;
 es de V8 y no la cambié.
+
+### (6) El pase, el no pase y demasiados botones
+
+Qué estaba mal. Medido en la cruz de un duelo contra Espejo de Sal, nivel 3,
+con la pelota en mitad de cancha: seis botones. Arriba MEGACORRIDA, abajo
+COMBINADA, a la izquierda PASE, a la derecha TIRO (rayado), en el centro la
+carta EL FOGONAZO y una fila más abajo con GAMBETA-TIRO. Dos de las cuatro
+acciones de siempre no estaban: con nivel y aguante, la GAMBETA se volvía
+MEGACORRIDA y el UNO-DOS COMBINADA en su mismo lugar, así que el mismo botón
+cambiaba de nombre y de efecto según el partido. En la Definición el orden
+era otro (TIRO primero, PASE último). Sin rival encima, el botón GAMBETA decía
+"seguís corriendo": el de encarar era el de no hacer nada. El PASE abría un
+modo con dos pases adentro: tocabas el mapa y, si el dedo caía "más allá" de
+quien recibía, salía un pase AL VACÍO (con teclado, la flecha arriba); los
+receptores se marcaban con un cuadrado de 18 px adentro de una ficha de 26,
+así que no se veían, y no había ningún nombre en pantalla. Con la pantalla
+partida, un toque en el panel de arriba durante el pase le daba la pelota a
+quien estuviera más cerca de un punto que no estaba a la vista. En defensa eran
+cinco: QUITE (o ¡PAMPERO!), CORTE, BLOQUEO (o ¡MÉDANO!), NO MOVERSE, la carta
+en el centro y la ficha de SÚPER QUITE abajo.
+
+Qué hice. En ataque, cuatro acciones siempre en el mismo lugar y con el mismo
+nombre: GAMBETA arriba, PASE a la izquierda, TIRO a la derecha, PARED abajo.
+Lo que no se puede usar se ve rayado y dice por qué (sin rival, GAMBETA dice
+"nadie te marca"; si no hay a quién dársela, PASE dice "SIN COMPAÑERO CERCA").
+Seguir corriendo es el ✕. Todo lo especial (el megatiro, GAMBETA-TIRO,
+MEGACORRIDA, COMBINADA, la carta y el pase al vacío) se juntó atrás de un solo
+botón, ★ ESPECIAL, en el centro, que aparece solo cuando hay algo para usar y
+dice cuántas cosas hay. Al tocarlo se abre una grilla de dos columnas con cada
+especial por su nombre, su costo y, si te tienen leído, los ojos; la última
+opción es VOLVER. En defensa, las tres en el lugar de la acción que le ganan:
+QUITE arriba (le gana a la gambeta), CORTE a la izquierda (al pase), BLOQUEO a
+la derecha (al tiro); las megadefensas, la carta, el SÚPER QUITE y NO MOVERSE
+van atrás de ★ ESPECIAL. El pase es un solo camino: cada camiseta que puede
+recibir tiene su botón a la derecha del mapa (número, nombre, chance y si está
+más adelante o de apoyo), su ficha en el mapa lleva un cuadrado que ahora se
+ve, el del botón enfocado más grueso, y tocar el botón o la ficha es lo mismo.
+El pase al vacío es una opción con nombre adentro de ★ ESPECIAL. ESC en el pase
+vuelve a la cruz. La fila de la Definición quedó en el orden de la cruz leída
+de izquierda a derecha: PASE, GAMBETA, PARED, TIRO. El cursor de la cruz
+arranca en la primera opción que se puede usar. Se borró `botonJugadon()` de
+jugadon_ui.js, que era la fila de fichas y quedó sin llamador. Ninguna
+mecánica se borró: todas siguen alcanzables. La geometría de la grilla y de
+la columna del pase está en balance.legibilidad.cruz (lista y pase).
+
+Tests. `d_decisiones` exigía que el centro de la defensa fuera la carta: lo
+actualicé diciendo que es este pedido; ahora exige que la carta esté adentro
+de ★ ESPECIAL en ataque y en defensa y que la megadefensa no vuelva al centro.
+`legibilidad_partido` suma dos situaciones que abren ★ ESPECIAL tocando el
+centro y busca GAMBETA-TIRO ahí; como el botón de la grilla mide 290 y no
+180, el nombre del especial entra con su ícono, y el assert pide lo mismo de
+antes (el nombre entero y los ojos de la lectura) aceptando el ícono.
+
+Cómo lo verifiqué. Navegador integrado, caché y service worker borrados,
+partido directo contra Espejo de Sal, con capturas. Cruz del duelo: GAMBETA,
+PASE, PARED, TIRO (rayado, "desde campo propio no llega") y ★ ESPECIAL "5 para
+elegir"; la grilla mostró GAMBETA-TIRO, MEGACORRIDA, COMBINADA, EL FOGONAZO,
+PASE AL VACÍO y VOLVER, con flechas el cursor recorrió la grilla y ESC volvió
+a la cruz. Con teclado, izquierda y ENTER abrieron el pase: cuatro botones
+(9 MATEO, 11 JUAN, 6 FACU, 7 NICO), abajo movió el cursor y engrosó el
+cuadrado de esa ficha en el mapa, ENTER le dio la pelota a ese número.
+Cruz de defensa: QUITE, CORTE, BLOQUEO y ★ ESPECIAL con QUITE PAMPERO,
+BLOQUEO MÉDANO, LA PRESIÓN, SÚPER QUITE, NO MOVERSE y VOLVER. Sin rival: la
+GAMBETA rayada con "nadie te marca" y el cursor arrancando en PASE. La
+Definición con PASE, GAMBETA, PARED, TIRO de izquierda a derecha. Suite verde.
+
+Decisiones mías, para revisar: NO MOVERSE quedó adentro de ★ ESPECIAL
+(no es especial, pero la defensa pedida era de tres botones y no lo quise
+borrar), así que en defensa ★ ESPECIAL aparece siempre. El título del duelo
+sigue diciendo qué le gana a qué. El botón ⚡ ACCIÓN, el ⇄ y el del ENVIÓN
+están fuera de la cruz y no los toqué.
