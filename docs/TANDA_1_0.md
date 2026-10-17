@@ -5553,3 +5553,48 @@ usaban la pausa y "ESPACIO = ACCIÓN"):
   cuadro en el navegador de la compu.** Es el lienzo a 2,6 veces de
   resolución dibujado sin la GPU del teléfono; no lo tomo como medida de
   un teléfono, pero conviene mirarlo en uno de gama baja.
+
+## Pedido de Rodri del 17/oct
+
+### (4) Las animaciones 3D rompieron el juego
+
+Qué estaba mal: las dos cosas de la tanda del 12/oct
+(`docs/AUDIO_SINCRONIA_Y_TOMA.md`). La toma del remate monta la pose en
+una malla 3D, gira la cámara y dobla la pierna; la cámara viva acerca y
+corre las capas de todas las viñetas.
+
+Qué hice:
+
+- Las dos quedan apagadas por perilla, sin borrar el código:
+  `balance.flags.toma_remate: false` y `balance.cine.camara_viva.activa:
+  false`. Vuelven la viñeta EL REMATE y, en el súper tiro, la carga y el
+  plano del pie. Los tests `camara_viva` y `toma_remate` pedían la versión
+  encendida; ahora fijan que la perilla la apaga y dicen que es pedido
+  tuyo del 17/oct.
+- Al apagarlas apareció el plano del pie roto. Desde B3 agrandaba la pose
+  de remate entera 5,2 veces desde su centro: se veía el short pixelado y
+  ni el pie ni la pelota. La toma lo tapaba. Ahora encuadra el botín
+  (tobillo y punta medidos en `poses_manifest.json`) con la pelota del
+  juego donde la pose la declara. La pose queda quieta: entra con un golpe
+  de cámara y lo que se va es la pelota.
+- En el viaje de la pelota, el zoom del final centraba la cámara en el
+  punto de fuga y dejaba ver una franja negra de 58 px arriba de la
+  pintura. El centro ahora no se pasa del cuadro.
+- El anuncio del súper tiro mostraba abajo a la izquierda el rótulo de la
+  jugada anterior ("· el desenlace ·"). Ahora arranca vacío.
+
+Cómo lo verifiqué: partido directo contra Espejo de Sal en el navegador
+integrado, con capturas cuadro por cuadro del remate común (EL REMATE,
+viaje, arquero, gol), el súper tiro (anuncio, carga, plano del pie, viaje,
+desenlace), la chilena y una gambeta ganada. En todas, la escala del
+contenido del cine queda en 1 (sin cámara viva) y no aparece la malla.
+Suite verde.
+
+Lo que vi y no toqué, porque es de otro punto de la lista:
+
+- En la viñeta de la chilena el arquero está en la pose de atajar desde
+  que entra, con las manos vacías (la pelota de esa pose está recortada y
+  la del juego queda en el pie de quien remata). Es del punto (5), el
+  arquero.
+- Los nombres en las placas van en Pixelify Sans, cuya E mayúscula es
+  redondeada: "EZE" se lee como "383".
