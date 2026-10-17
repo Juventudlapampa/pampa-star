@@ -5862,3 +5862,81 @@ Decisiones mías, para revisar: NO MOVERSE quedó adentro de ★ ESPECIAL
 borrar), así que en defensa ★ ESPECIAL aparece siempre. El título del duelo
 sigue diciendo qué le gana a qué. El botón ⚡ ACCIÓN, el ⇄ y el del ENVIÓN
 están fuera de la cruz y no los toqué.
+
+### (8) La gambeta del súper tiro eran dos conos
+
+Qué estaba mal: el GAMBETA-TIRO (y el megatiro, que entra por el mismo
+lado) era la corrida en profundidad de V9 C2. Los dos rivales aparecían
+chiquitos al fondo con la pose de bloqueo, te corrías de costado con las
+flechas o el dedo y, si te alcanzaban, se abría un menú de hasta cinco
+botones con la jerga de las cinco clases de obstáculo ("¿con qué lo
+pasás?", "las dos te cuestan", el reloj). De lejos se leían como dos conos.
+
+Qué hice (scenes/jugadon_ui.js, logic/jugadon.js, balance.jugadon):
+
+- Cada rival es una viñeta en dos golpes. Golpe 1: te sale al cruce,
+  grande, sobre la cancha en fuga con el arco al fondo, con su nombre
+  ("▲ EZE TE SALE AL CRUCE") y cómo se para en palabras y en el dibujo: te
+  cierra la izquierda (parado a tu izquierda), te cierra la derecha, se
+  planta abierto de piernas, o se tira al piso (pose de barrida). Elegís
+  por dónde lo pasás con cuatro botones puestos donde pasa la pelota: ◀ y
+  ▶ a los costados, ▲ POR ARRIBA sobre su cabeza, ▼ CAÑO entre sus piernas.
+  Las flechas del teclado eligen lo mismo; tocar el botón también.
+- Golpe 2, corte seco: VOS en primer plano con la pose de gambeta ganada y
+  la pelota del juego al pie, él atrás, más chico y quedándose, fondo de
+  golpe con líneas de velocidad y rayas que corren. El título dice lo que
+  hiciste (¡CAÑO!, ¡SOMBRERO!, ¡LO DEJASTE PAGANDO!) y abajo "EZE QUEDA
+  ATRÁS". En el caño y el sombrero la pelota sale de entre sus piernas o de
+  arriba de su cabeza. Después del último, "¡QUEDASTE DE FRENTE AL ARCO!"
+  y el remate de siempre (EL REMATE, o el cut-in del megatiro).
+- Si te la saca: él en primer plano con el quite, vos trastabillando, y el
+  aviso dice qué había que hacer ("se planta abierto de piernas: había que
+  pasarlo ▲ POR ARRIBA o ▼ CAÑO"). Si leíste bien y te la sacó igual por
+  stats, lo dice: "lo leíste bien, pero te leyó el cuerpo igual".
+- La lógica es la de lectura mutua de V8 que ya estaba (crearGambeta,
+  cruceGambeta, el desempate acotado por gambeta contra quite). Sumé
+  `venceA` (qué pasadas le ganan a cada cierre, en un solo lugar: la usan
+  la resolución y el aviso) y `PASADAS` (las cuatro, una flecha cada una).
+  El rival siguiente no se para igual que el que acabás de pasar.
+- Dura menos que antes: la corrida eran unos 2,7 s de correr más los
+  avisos; ahora son las dos decisiones más 0,95 s por rival pasado
+  (`balance.jugadon.paso_ms`) o 1,1 s si te la saca (`caida_ms`). Salieron
+  las seis perillas de la corrida (vel_avance, vel_lateral, meta_d,
+  contacto_d, contacto_lx, vel_rival_lat). Con eso se fue también lo que
+  la clase "envenenada" cobraba en el ángulo del remate.
+
+Tests. `jugadon.test.js` suma que venceA dice lo mismo que resolverMovida,
+que hay cuatro pasadas con cuatro flechas distintas, que contra cada cierre
+hay al menos una que gana y que el segundo rival no repite postura (0 en
+200 corridas). `textos_tactiles` buscaba "esquivá con el DEDO"; ahora busca
+"tocá por dónde lo pasás" y dice que es este pedido. Suite verde.
+
+Cómo lo verifiqué. Navegador integrado, caché y service worker borrados,
+partido directo contra Espejo de Sal, capturas de cada paso: se planta
+abierto, flecha abajo, ¡CAÑO! con la pelota saliendo de sus piernas; se
+tira al piso, flecha arriba, ¡SOMBRERO!; te cierra la derecha, flecha
+izquierda, ¡LO DEJASTE PAGANDO! con "¡QUEDASTE DE FRENTE AL ARCO!" y
+después la viñeta EL REMATE; te cierra la izquierda, flecha derecha. Y la
+falla: se planta abierto, flecha derecha, "¡TE LA SACÓ AXEL!" con la
+salida correcta escrita, y el partido volvió con la pelota del rival.
+
+Decisiones mías, para revisar:
+
+- La pose de gambeta ganada no se espeja: espejada muestra el 10 al revés
+  (01). Por eso los cuatro lados usan la misma composición.
+- Sin líneas de velocidad en el golpe 1: se dibujan encima de todo y
+  tachaban los botones. Están en el golpe 2 y en la falla.
+- Los botones conservan el número (1 a 4) como en el resto del jugadón.
+
+Pendiente:
+
+- No vi en pantalla la entrada por megatiro: en el partido de prueba no
+  había megatiro disponible. El código del remate del megatiro no cambió.
+- La lógica del pasillo de cinco clases (OBSTACULOS, secuenciaObstaculos,
+  resolverObstaculo, declaracionDe, opcionesDeObstaculo, gestosDe,
+  pasaObstaculo) y `balance.jugadon.obstaculos` quedaron sin llamador en
+  el juego. No los borré porque tienen su test (`p7_obstaculos`) y borrar
+  un test es decisión tuya.
+- La pose del quite del rival (`poseR_quite`) trae dibujada su propia
+  pelota blanca y negra, distinta de la del juego. Es la ilustración; no
+  la toqué.
