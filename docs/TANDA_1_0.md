@@ -5686,3 +5686,59 @@ errores en consola. Suite verde. El sonido no lo escuché: está medido.
 
 Lo que vi y no toqué: el renglón de la intro dice "En algún pueblo de La
 Pampa…" (`balance.intro.t_pueblo`). Ya figura como deuda de la ola 2.
+
+### (5) La animación del arquero estaba repetida
+
+Qué estaba mal. En el cine del remate el arquero salía dos veces:
+planoArquero lo mostraba estirándose en su arco y, después de un corte,
+planoDesenlace lo volvía a poner estirado en el mismo lugar, con el mismo
+fondo y la pelota viajando otra vez hacia él. Se leía como la misma toma
+repetida.
+
+Qué hice. Borré planoArquero. La cadena queda el viaje, el esfuerzo y el
+arquero (planoDesenlace), que ahora es un solo momento: el salto en cámara
+lenta (1,3 s, `balance.cine.plano_arquero_ms`), de cerca, con la cancha
+apagada detrás y líneas de velocidad que corren al revés del salto, y la
+pelota que viene desde la cámara hacia sus guantes (atajada y córner), al
+ángulo a medio metro de la mano (gol) o por arriba del palo (afuera). Al 86%
+del salto todo se clava: corte seco a los guantes y la pelota, un destello y
+medio segundo de silencio con la música bajada. El contacto vuelve a
+velocidad real y se resuelve en la misma toma. En el gol corta a la toma
+abierta y la red se hunde donde entró la pelota; en la atajada el arquero
+pasa a su pose de rodillas con la pelota en las manos, de cerca; en el
+córner la toca con la punta de los dedos junto al palo y se va por afuera;
+en el afuera la pelota sigue y se pierde. El arquero salta para el lado del
+tiro (`zona.gy`) y se espeja cuando va a la izquierda.
+
+Las poses son las que ya estaban (arquero_vuela y arquero_ataja del rival:
+este cine es siempre tu remate). No edité imágenes y la pose no se anima: se
+mueven la figura entera, la cámara y lo demás. La escena de tu arquero
+cuando te rematan es otro código y no la toqué. Saqué impacto_gol_ms,
+impacto_atajada_ms e impacto_afuera_ms de balance.json y del respaldo de
+index.html porque ya nadie los lee. Salteado, el cine sigue cayendo en este
+plano, con el salto más corto.
+
+Tests. Tres fijaban la estructura de dos planos y los actualicé diciendo que
+es pedido tuyo del 17/oct: `arte_cine` (planoArquero ya no pide su pintura
+porque no existe), `ojos` (en vez de exigir que planoArquero diga el bando,
+exige que no vuelva) y `p2_arquero` (contaba dos arqueros con el origen en
+los pies; queda uno, el de planoDesenlace). En `ojos` sumé que el momento
+arma un solo arquero. La prueba de que la pelota va a los guantes en la
+atajada y el córner pasa sin cambios.
+
+Cómo lo verifiqué. Navegador integrado, caché y service worker borrados,
+partido directo contra Espejo de Sal, y forcé cada desenlace con capturas
+en el salto, en el freeze y en la revelación: gol (al ángulo derecho y al
+izquierdo, con la red hundida adentro de los palos), atajada (la pelota
+llega a los guantes por afuera del cuerpo y después queda en sus manos, de
+rodillas, con el cartel debajo), córner (la toca junto al palo y sale) y
+afuera (pasa por arriba del palo). La cadena completa desde el viaje muestra
+"el viaje", "el esfuerzo" y "el arquero" una vez cada uno y vuelve al
+partido a los 4,5 s; salteada, a los 2,7 s. Con el oído enganchado, la
+hinchada suena durante el salto y termina antes del freeze, la música se
+baja 800 ms en el freeze y los guantes suenan en el contacto. Sin errores en
+consola. Suite verde.
+
+Lo que vi y no toqué: la pelota del cine es la textura de 16 px agrandada y
+de cerca se ve borrosa (también en el viaje), y el arquero del gol queda
+suspendido en el aire durante el festejo porque no hay pose de caída.
