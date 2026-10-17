@@ -6061,3 +6061,120 @@ Lo que vi y no toqué:
 - La física del súper tiro de `logic/jugadon.js` sigue sin llamador (ya
   anotado en HANDOFF_CIERRE.md). Le puse la patada fuerte para que, si
   vuelve, suene como el súper tiro de hoy.
+
+### Los pendientes de claridad de la tarde
+
+Todo verificado en el navegador integrado, con service worker y caché
+borrados en cada recarga, partido directo contra Espejo de Sal. Suite verde
+al cerrar cada punto.
+
+**(a) "Pueblo" y "pibe".** La intro dice "En alguna localidad de La
+Pampa…" (`balance.intro.t_pueblo`, el respaldo de index.html y el texto de
+reserva de intro.js). Barrí data/, phaser/data/ y las escenas: 38 cambios en
+16 archivos, en eventos de la semana, entrevista, relator, tribuna y semana.
+"Los pibes de la escuela" quedó "la chiquilinada", el asado es "con la
+barra", el jugador por defecto del relator es "la figura" y el nombre de
+reserva de tu club pasó de "Los Pibes de" a "El Viento de" más la localidad.
+Las claves de datos (`pueblo`, `clubes_por_pueblo`, `categoria: "pueblo"`,
+`fiesta_pueblo`, `t_pueblo`) no se tocaron: no se ven y cambiarlas rompe las
+partidas guardadas. Verificado con la captura de la intro.
+
+**(b) La tipografía de los nombres.** Medí las cuatro del juego: Pixelify
+Sans, VT323, Press Start 2P y Archivo Black, que es la `display` de
+`balance.tipografia`. Cada glifo rasterizado en negrita y binarizado, y la
+distancia de Jaccard entre pares que se confunden (0 es idéntico). A 9,4 px
+reales, que es lo que dan 13 lógicos en un 844x390:
+
+| tipografía | letra contra número (E3, Z2, Z8, E8, S5, B8, O0) | el peor | letra contra letra | el peor |
+|---|---|---|---|---|
+| Pixelify Sans | 0,16 | 0 (B y 8, O y 0) | 0,33 | 0,08 |
+| VT323 | 0,29 | 0,15 | 0,18 | 0 |
+| Press Start 2P | 0,31 | 0,19 | 0,23 | 0,10 |
+| Archivo Black | 0,37 | 0,15 | 0,25 | 0,13 |
+
+A 13 px lógicos el orden es el mismo; Pixelify da 0,10 en letra contra
+número. Gana Archivo Black: Press Start 2P separa bien pero es 1,4 veces más
+ancha ("JOAQUÍN" mide 91 px contra 66) y la habías descartado por ancho.
+Pasaron a `PF.display` solo los lugares con nombre suelto o cartel corto:
+las placas de las viñetas, la etiqueta del portador en el panel, la marca
+sobre el portador, el nombre del duelo, las pestañas del editor y, en el
+jugadón, "TE SALE AL CRUCE", la placa del rival, la cabecera ("rival 1 de 2"
+se leía "1 de 8") y la bajada ("EZE QUEDA ATRÁS" se leía "383"). El resto
+sigue en Pixelify. Test nuevo `nombres_tipografia`; con el código de antes
+falla en cada lugar. Verificado con capturas ampliadas del cruce, del golpe
+ganado, de la falla y de las placas VOS, ZOE y EZE de la viñeta del pase.
+
+**(c) La zancada.** `balance.vista.zancada: false` apaga la inclinación de
+3,5 grados al latido y también el rebote de 4 px con vaivén de 2 px de la
+figura grande; la pelota al pie sigue rodando. Medido corriendo: con la
+perilla en true, ángulos -3,5 y 3,5, la y entre 274 y 278 y la x de 398 a 402; en
+false, 420 cuadros de carrera sostenida (con la marca que deja el latido)
+con ángulo 0, la y en 278 y la x en 400 fijas. El cambio de
+portador cambia la textura en un cuadro, sin tween y con alpha 1. Dos
+capturas en latidos distintos muestran la figura idéntica. `panel_mira`
+suma [6].
+
+**(d) Los botones fuera de la cruz.** Inventario medido en juego libre
+(lo tocable a la vista):
+
+- Antes, en ataque con el envión lleno, cinco: el parlante (26x26, solo
+  ícono), PAUSA, PANTALLA, POTENCIAR (150x48, gasta el envión lleno: +10 a
+  cada duelo durante 20 s de simulación; salía solo con la pelota) y ACCIÓN
+  (188x68, congela y abre la cruz de ataque). En defensa, cinco: el
+  parlante, PAUSA, PANTALLA, ACCIÓN (a la vista y sin efecto:
+  `onBotonAccion` solo abre el ataque) y ⇄ OTRO (92x48, en la vista
+  elevada, cambia a quien marcás por el más cercano).
+- Ahora, tres en cada fase y todos con palabra. Ataque: PAUSA, PANTALLA y
+  ACCIÓN. Defensa: PAUSA, PANTALLA y ⇄ MARCAR CON OTRO.
+
+POTENCIAR está adentro de ★ ESPECIAL cuando el envión está lleno ("+10 a
+cada duelo · gasta el envión"); al usarlo vuelve a la cruz, así la jugada
+que elijas ya sale potenciada. Con la pelota, el aviso ENVIÓN LLENO va de
+segundo renglón de ACCIÓN: antes quedaba tapado por ese botón. ACCIÓN se ve
+solo con la pelota. El ✕ de la cruz sin rival dice "✕ SEGUIR / corriendo".
+[DECISIÓN MÍA] El parlante se fue: era el único botón sin palabra y el
+sonido ya se prende y se apaga en la PAUSA ("SONIDO: SÍ / NO"). Test nuevo
+`botones_claros`. Verificado con el inventario antes y después y capturas
+del HUD en ataque y en defensa, de la cruz libre, de ESPECIAL con POTENCIAR
+y de la vuelta a la cruz con el envión en 0 y el equipo encendido.
+
+**(e) NO MOVERSE.** Es el ✕ de la defensa: "✕ NO MOVERSE / +30 aguante ·
+el rival sigue", gris como el ✕, abajo en la cruz, y sale también con ESC.
+Va abajo porque es el lugar libre (en defensa son tres acciones); arriba a
+la derecha, con su palabra, se montaba sobre tu retrato y
+`legibilidad_partido` lo marcó. ★ ESPECIAL aparece solo si hay algo: con
+fichas en 0 y sin aguante la cruz quedó sin ESPECIAL; con fichas y nivel 3
+dijo "4 para elegir" y ya sin NO MOVERSE. ESC resolvió NO MOVERSE.
+
+**(f) El pase en `accionesAtaque`.** Quedó "PASE", sin `submenu` (nadie lo
+leía). `partido.test` suma el assert. Verificado: PASE desde la cruz abre la
+columna de receptores y ENTER le dio la pelota a 6 FACU.
+
+**(g) El pasillo de obstáculos.** Borré de `logic/jugadon.js` OBSTACULOS,
+CLASES, GESTOS, claseDe, obstaculoPorId, gestosDe, obstaculosDe,
+secuenciaObstaculos, resolverObstaculo, declaracionDe, opcionesDeObstaculo y
+pasaObstaculo (350 renglones), `balance.jugadon.obstaculos` con su nota y
+`p7_obstaculos.test.js`. La toma 3D y la cámara viva quedan. Verificado:
+GAMBETA-TIRO con los dos rivales pasados termina en EL REMATE, sin errores
+en consola.
+
+**(h) El arquero de la chilena.** Entra estirándose sin mirar el desenlace.
+Si la retuvo, en la revelación pasa en seco a su pose de rodillas con la
+pelota del juego, la misma que estaba en el pie de quien remata, donde el
+manifiesto la declara y detrás de la pose. Vale también para el cabezazo,
+la volea y el remate por viñeta, que pasan por la misma escena. Test nuevo
+`arquero_vinieta`; con el código de antes fallan 6 de 7. Verificado
+forzando el desenlace: en la atajada entra estirado y queda de rodillas con
+la pelota en las manos ("¡LA AGARRÓ!"); en el gol, estirado y vencido.
+
+Lo que vi y no toqué:
+
+- Los números de las fichas del mapa van en Pixelify a 16 px y el 5 se ve
+  como S. En Archivo Black "10" pasa de 16 a 21 px adentro de una ficha de
+  26. Queda para que lo mires.
+- En el modo pase, el ✕ para volver sigue siendo solo el ícono. Es un menú,
+  no juego libre, y el título dice "ESC vuelve".
+- En la grilla de ★ ESPECIAL el botón dibujado es más angosto que su caja de
+  290: un renglón de 265 px se salía por los costados y `legibilidad_partido`
+  lo daba adentro. Acorté el de POTENCIAR.
+- En el gol de la chilena la pelota sigue en el pie de quien remata.
