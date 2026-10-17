@@ -151,7 +151,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._zonaTema = null;        // el tema del avance (propio/rival) arranca de cero
     this._megaRival = null;
     this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = null;   // caches del HUD: el restart los recrea vacíos
-    this._btnEnvion = null;
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null;
     this._escSkip = null;                                    // V6 R4: el skip, limpio por partido
@@ -2154,7 +2153,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        838 + (94+5)*1.06 = 943, o sea 17px de aire. */
     const cont = this.add.container(838, 456);
     const r = this.add.rectangle(0, 0, 188, 68, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13" }).setOrigin(0.5);
+    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13", align: "center" }).setOrigin(0.5);
     cont.add([r, this.txtBotonAccion]);
     /* PIEL P2: canto sólido + sombra difusa. El rect sigue siendo el que recibe
        el toque; solo deja de pintarse (ver vestirBoton en scenes/piel_ui.js). */
@@ -2173,8 +2172,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
     /* Anime A: botón secundario CHICO de ciclado manual en defensa (48px, mobile) */
     if (this._vista4) {
-      const bc = this.add.rectangle(838, 396, 92, 48, 0xdcd6c2, 0.92).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bct = this.add.text(838, 396, "⇄ OTRO", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
+      const bc = this.add.rectangle(838, 396, 150, 48, 0xdcd6c2, 0.92).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const bct = this.add.text(838, 396, "⇄ MARCAR CON OTRO", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
       this.hudLayer.add([bc, bct]);
       this._btnCambiar = [bc, bct];
       bc.on("pointerdown", (p, x, y, ev) => {
@@ -2548,10 +2547,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* en la grilla, VOLVER es una opción más de la lista (el ✕ de arriba a la
        derecha se monta sobre el retrato del rival) */
     if (cfg.volver) this._menuVolver = cfg.volver;
-    if (cfg.volver && !cfg.lista) {
-      const v = this.add.rectangle(906, 306, 64, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const vt = this.add.text(906, 306, "✕", { fontFamily: window.PF.texto, fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
-      this.menuLayer.add([v, vt]);
+    /* Pedido de Rodri del 17/oct: el ✕ dice qué hace (cfg.salida). Va pegado
+       al borde derecho y mide lo que mide su palabra. */
+    if (cfg.salida) {
+      const vt = this.add.text(0, 297, cfg.salida[0], { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5);
+      const vs = this.add.text(0, 317, cfg.salida[1], { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5);
+      const vw = Math.ceil(Math.max(vt.width, vs.width)) + 4 * CZ.aire;
+      vt.x = vs.x = 952 - vw / 2;
+      const v = this.add.rectangle(vt.x, 306, vw, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      this.menuLayer.add([v, vt, vs]);
       v.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.volver(); });
     }
     /* ══════════════════════════════════════════════════════════════════════
@@ -2719,6 +2723,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       });
     }
 
+    /* Pedido de Rodri del 17/oct ("un juego CLARO"): el envión lleno se gasta
+       acá y no en un botón suelto del HUD. Encendido el equipo, vuelve a la
+       cruz: la jugada que elijas ya sale potenciada. */
+    if (P.envionLleno(st)) {
+      especiales.push({
+        texto: "🌟 POTENCIAR", sub: "+" + this.BAL.envion.potencia_bonus + " a cada duelo · gasta el envión",
+        cb: () => {
+          if (P.gastarEnvionPotencia(st)) {
+            this.avisar("🌟 ¡EQUIPO ENCENDIDO! (+bonus un rato)");
+            this.SFX && this.SFX.festejo(900);
+          }
+          volverCruz();
+        }
+      });
+    }
+
     const volverCruz = () => this.abrirMenuAtaque(rivalIdx, libre);
     const listos = especiales.filter(o => !o.bloqueada).length;
     this.abrirMenuCruz({
@@ -2746,13 +2766,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           volver: volverCruz
         })
       } : null,
-      volver: libre ? () => this.reanudarLibre() : null
+      volver: libre ? () => this.reanudarLibre() : null,
+      salida: libre ? ["✕ SEGUIR", "corriendo"] : null
     });
   }
   /* En defensa, las tres de siempre en el lugar de la acción que le ganan:
      QUITE arriba (le gana a la gambeta), CORTE a la izquierda (al pase),
-     BLOQUEO a la derecha (al tiro). Las megadefensas, la carta, el SÚPER
-     QUITE y el NO MOVERSE van atrás de ★ ESPECIAL. */
+     BLOQUEO a la derecha (al tiro). Las megadefensas, la carta y el SÚPER
+     QUITE van atrás de ★ ESPECIAL, que aparece solo si hay alguna. NO
+     MOVERSE es el ✕ de la defensa, como seguir corriendo en ataque, y sale
+     también con ESC (pedido de Rodri del 17/oct: estaba en ESPECIAL y lo
+     hacía aparecer siempre). Va abajo, el lugar libre de la cruz: el ✕ de
+     la derecha se montaba sobre tu retrato. */
   abrirMenuDefensa() {
     const st = this.st, P = window.PampaPartido;
     const rival = st.rivales[st.portadorRival];
@@ -2796,7 +2821,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         cb: () => { if (window.PampaJugadon.gastarFicha(F, "quites")) this.entrarJugadonQuite(); }
       });
     }
-    especiales.push({ texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", cb: () => this.resolverNoMoverse() });
 
     const volverCruz = () => this.abrirMenuDefensa();
     const listos = especiales.filter(o => !o.bloqueada).length;
@@ -2806,7 +2830,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       opciones: {
         N: { texto: "🦶 QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
         W: { texto: "✂ CORTE", sub: sub(cor), bloqueada: cor.bloqueada, motivo: cor.motivo, cb: () => this.resolverAccionDefensa(cor) },
-        E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) }
+        E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
+        S: { texto: "✕ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", fondo: 0xdcd6c2, cb: () => this.resolverNoMoverse() }
       },
       centro: listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
@@ -2816,7 +2841,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           lista: especiales.concat([{ texto: "✕ VOLVER", sub: "quite, corte o bloqueo", fondo: 0xdcd6c2, cb: volverCruz }]),
           volver: volverCruz
         })
-      } : null
+      } : null,
+      volver: () => this.resolverNoMoverse()
     });
   }
   /* qué MEGADEFENSA está disponible para ese jugador (data + nivel + aguante) */
@@ -4923,7 +4949,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     apagar.forEach(o => o && o.setVisible(false));
     (this.radarNumsMios || []).forEach(t => t.setVisible(false));
     (this.radarNumsRiv || []).forEach(t => t.setVisible(false));
-    if (this._btnEnvion) this._btnEnvion.forEach(o => o.setVisible(false));
     if (this._btnCambiar) this._btnCambiar.forEach(o => o.setVisible(false));
     if (this._btnPausa) this._btnPausa.forEach(o => o.setVisible(false));   // L04: no hay nada que pausar
     if (this.radarMarco) this.radarMarco.setVisible(false);
@@ -4956,7 +4981,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._btnAccionCont && this._btnAccionCont.setVisible) this._btnAccionCont.setVisible(false);
     if (this._hintEspacio && this._hintEspacio.setVisible) this._hintEspacio.setVisible(false);
     if (this._btnCambiar && this._btnCambiar.setVisible) this._btnCambiar.setVisible(false);
-    if (this._btnEnvion && this._btnEnvion.setVisible) this._btnEnvion.setVisible(false);
     this.cerrarMusica();       // P5: motivo de cierre y traba — no se reenciende
     if (this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(false);
     this.SFX && this.SFX.whistle("final");
@@ -5556,19 +5580,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        texto, no color, porque el color solo no alcanza para leerlo */
     this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#ffd84d" }).setOrigin(0, 0.5);
     this.hudLayer.add([this.envionG, this.lblEnvion, this.txtEnvion, this.txtEnvionEstado]);
-    const be = this.add.rectangle(838, 396, 150, 48, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.vestirBoton(be);   /* PIEL P2 */
-    const bet = this.add.text(838, 396, "🌟 POTENCIAR", { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#0a1f13" }).setOrigin(0.5);
-    this.hudLayer.add([be, bet]);
-    this._btnEnvion = [be, bet];
-    be.on("pointerdown", (p, x, y, ev) => {
-      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
-      const P = window.PampaPartido;
-      if (P.gastarEnvionPotencia(this.st)) {
-        this.avisar("🌟 ¡EQUIPO ENCENDIDO! (+bonus un rato)");
-        this.SFX && this.SFX.festejo(900);
-      }
-    });
     /* ANIME E: el ticker del RELATOR · V9 §8: SUBIDO. En y=520 pisaba la banda
        de abajo del mapa (el radar en pantalla partida llega a y≈521) justo
        donde se dibujan las fichas pegadas a la línea de fondo. Ahora vive en
@@ -5577,23 +5588,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const REL = this.BAL.relator || {};
     this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
     this.hudLayer.add(this.tickerTxt);
-    /* PIEL P6 · EL BOTÓN DE SONIDO, ADENTRO DE LA BARRA DEL MARCADOR.
-       Era una caja de 48x48 con borde crema en (36,62): quedaba flotando ENCIMA
-       de la ilustración del panel (que arranca en y=30) y se leía como una caja
-       blanca enorme tapando el dibujo. Ahora vive en el hueco libre de la
-       izquierda de la barra del marcador (que ocupa y 0..30), sin caja propia.
-       El ÁREA TÁCTIL sigue siendo de 44px aunque el dibujo mida 26: en celular
-       un blanco de 26px no se acierta. */
-    const mb = this.add.rectangle(24, 15, 26, 26, 0x0a1f13, 0)
-      .setInteractive(new Phaser.Geom.Rectangle(-9, -9, 44, 44), Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
-    this._muteTxt = this.add.text(24, 15, (this.SFX && this.SFX.isMuted()) ? "🔇" : "🔊", { fontSize: "15px" }).setOrigin(0.5);
-    this.hudLayer.add([mb, this._muteTxt]);
-    mb.on("pointerdown", (p, x, y, ev) => {
-      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
-      if (!this.SFX) return;
-      this.SFX.setMuted(!this.SFX.isMuted());
-      this._muteTxt.setText(this.SFX.isMuted() ? "🔇" : "🔊");
-    });
+    /* Pedido de Rodri del 17/oct ("un juego CLARO"): el 🔊 suelto de la barra,
+       que era solo un ícono, se fue. El sonido se prende y se apaga en la
+       PAUSA, con su palabra (🔊 SONIDO: SÍ). */
     this.buildBotonPausa();
     this.buildBotonPantalla();
   }
@@ -5778,7 +5775,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           if (!this.SFX) return;
           this.SFX.setMuted(!this.SFX.isMuted());
           t.setText(sonidoTxt());
-          if (this._muteTxt) this._muteTxt.setText(this.SFX.isMuted() ? "🔇" : "🔊");
         };
       }
       if (op.k === "velocidad") {
@@ -5992,8 +5988,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._btnAccionCont) {
       const conMenu = this.estado === "MENU" || this.estado === "PASE" ||
         this.estado === "PAUSA" || this.estado === "FINAL" || this._finalApagado;
-      this._btnAccionCont.setVisible(!conMenu);
-      if (this._hintEspacio) this._hintEspacio.setVisible(!conMenu);
+      /* en defensa ⚡ ACCIÓN no hacía nada (onBotonAccion solo abre el ataque) */
+      const verAccion = !conMenu && st.posesion === "mia";
+      this._btnAccionCont.setVisible(verAccion);
+      if (this._hintEspacio) this._hintEspacio.setVisible(verAccion);
     }
     /* Anime A: el ⇄ de ciclado manual solo aparece cuando defendés */
     if (this._btnCambiar) {
@@ -6015,10 +6013,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const etxt = String(Math.round(st.envion || 0));
       if (this._hudEnvion !== etxt) { this._hudEnvion = etxt; this.txtEnvion.setText(etxt); }
       const estado = P6.envionActivo(st) ? "⚡ ENVIÓN EN USO" : (fracE >= 1 ? "🌟 ENVIÓN LLENO" : "");
-      if (this._hudEnvionEst !== estado) { this._hudEnvionEst = estado; this.txtEnvionEstado.setText(estado); }
-      if (this._btnEnvion) {
-        const verE = this.estado === "LIBRE" && st.posesion === "mia" && P6.envionLleno(st);
-        this._btnEnvion.forEach(o => o.setVisible(verE));
+      /* con la pelota, ⚡ ACCIÓN tapa esa línea: el estado va de segundo
+         renglón del botón, que es por donde se llega a POTENCIAR (★ ESPECIAL) */
+      const conPelota = st.posesion === "mia";
+      const abajo = conPelota ? "" : estado;
+      if (this._hudEnvionEst !== abajo) { this._hudEnvionEst = abajo; this.txtEnvionEstado.setText(abajo); }
+      if (this.txtBotonAccion) {
+        const rotulo = conPelota && estado ? "⚡ ACCIÓN\n" + estado : "⚡ ACCIÓN";
+        if (this.txtBotonAccion.text !== rotulo) this.txtBotonAccion.setText(rotulo);
       }
     }
     /* E6: los ÚLTIMOS 5 MINUTOS se anuncian (tictac + reloj marcado con ⏰, no solo color).
