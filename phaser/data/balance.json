@@ -46,6 +46,8 @@
     "imprecision_ms": 750,
     "imprecision_radio": 60,
     "radio_silueta": 260,
+    "zancada": false,
+    "_zancada": "Pedido de Rodri del 17/oct. zancada = la figura grande del panel se mueve mientras corre: se inclina 3,5 grados adelante y atrás en latidos alternados (V8 §3) y rebota 4 px con un vaivén de 2 px (A4). Se leía como que iba y venía. false = la pose queda quieta y lo que se mueve es la pelota al pie; al cambiar de acción la pose cambia con corte seco. true vuelve a la de V8.",
     "_v7": "CORRECCIÓN V7-1 (flag pantalla_partida): se elimina la cancha estilo simulador moderno. ARRIBA la escena (portador grande en ilustración con parallax), ABAJO el mapa de cancha completa — LA superficie de navegación. La ceguera MUERE: la reemplaza la IMPRECISIÓN — los rivales se ven en el mapa pero su posición se actualiza cada imprecision_ms con desvío de hasta imprecision_radio px; los tuyos y la pelota, precisos. radio_silueta: a esa distancia los rivales entran a la escena como SILUETAS (se revelan en el cruce).",
     "parallax_pasto": 1.4,
     "parallax_pasto_y": 0.7,

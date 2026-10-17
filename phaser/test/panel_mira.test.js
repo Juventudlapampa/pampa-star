@@ -25,7 +25,11 @@
      [4] lo que se reacomoda detrás de un menú (un hueco de cuadros) no da
          vuelta a nadie;
      [5] el nuevo portador arranca mirando hacia donde ataca su equipo, en
-         los dos tiempos.
+         los dos tiempos;
+     [6] la figura grande corriendo queda quieta en pose: sin la zancada
+         de V8 (inclinarse 3,5 grados en latidos alternados) ni el rebote.
+         También pedido de Rodri del 17/oct: se leía como que iba y venía.
+         Con balance.vista.zancada en true vuelve.
 
    Corré:  node phaser/test/panel_mira.test.js
    ========================================================================== */
@@ -44,7 +48,8 @@ function sprite() {
     setPosition: function (x, y) { this.x = x; if (y != null) this.y = y; return this; },
     setVisible: function (v) { this.visible = v; return this; },
     setFlipX: function (f) { this.flipX = !!f; return this; },
-    setAngle: function () { return this; },
+    angle: 0,
+    setAngle: function (a) { this.angle = a; return this; },
     setTintFill: function () { return this; },
     setAlpha: function () { return this; },
     clearTint: function () { return this; }
@@ -147,6 +152,28 @@ var miraDerecha = function (spr) { return !spr.flipX; };
     assert(miraDerecha(T.s.panelJug) === (lv === 1), "[5] " + lv + "T: el tuyo que la recupera mira hacia el arco rival");
   });
   console.log("[5] cambio de portador · arranca mirando hacia donde ataca su equipo, los dos tiempos");
+})();
+
+/* ---------- [6] corriendo, la pose queda quieta ---------- */
+(function () {
+  function medir(zancada) {
+    var T = armar(1);
+    T.s.VI = Object.assign({}, T.s.VI, { zancada: zancada });
+    T.s._pulsoMovioHasta = Infinity;
+    var ang = {}, ys = {}, xs = {};
+    for (var n = 0; n < 120; n++) {
+      T.s.time.now += 16; T.s.updatePanelEscena(16);
+      ang[T.s.panelJug.angle] = 1; ys[Math.round(T.s.panelJug.y)] = 1; xs[Math.round(T.s.panelJug.x)] = 1;
+    }
+    return { ang: Object.keys(ang), ys: Object.keys(ys), xs: Object.keys(xs) };
+  }
+  assert(require("../data/balance.json").vista.zancada === false, "[6] la zancada viene apagada en balance");
+  var q = medir(false);
+  assert(q.ang.length === 1 && q.ang[0] === "0", "[6] apagada, la figura no se inclina (ángulos: " + q.ang + ")");
+  assert(q.ys.length === 1 && q.xs.length === 1, "[6] apagada, la figura no rebota ni se hamaca");
+  var z = medir(true);
+  assert(z.ang.indexOf("3.5") >= 0 && z.ang.indexOf("-3.5") >= 0, "[6] con la perilla en true vuelve la zancada de V8");
+  console.log("[6] corriendo, la pose queda quieta; la perilla la vuelve");
 })();
 
 console.log(mal === 0 ? "\nTODOS OK: " + ok + " asserts, 0 fallaron." : "\n" + mal + " FALLARON (" + ok + " ok)");

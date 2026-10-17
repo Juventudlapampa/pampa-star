@@ -1795,16 +1795,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (Math.abs(vxP) > 0.02) this._panelFlip = vxP < 0;
     this.panelJug.setFlipX(!!this._panelFlip);
     /* V8 §3: la ZANCADA al latido — la pose se inclina alternando con el
-       tuc-tuc (animación limitada estilo consola vieja: dos cuadros) */
+       tuc-tuc. Pedido de Rodri del 17/oct: se leía como que iba y venía;
+       con balance.vista.zancada en false la pose queda quieta. */
+    const zancada = corriendo && this.VI.zancada === true;
     const latidoMs = (this.BAL.pulso && this.BAL.pulso.latido_ms) || 380;
-    this.panelJug.setAngle(corriendo ? (Math.floor(this.time.now / latidoMs) % 2 ? 3.5 : -3.5) : 0);
+    this.panelJug.setAngle(zancada ? (Math.floor(this.time.now / latidoMs) % 2 ? 3.5 : -3.5) : 0);
     /* A4: la figura se ancla por los PIES a la línea del suelo; el bob de
        carrera es un rebote chico de esa línea, no un salto del centro */
     const Vp = this.VI || {};
     const suelo = Vp.panel_suelo_y != null ? Vp.panel_suelo_y : 300;
     const cx = Vp.panel_figura_x != null ? Vp.panel_figura_x : 400;
-    this.panelJug.y = suelo + (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * -4 : 0);
-    this.panelJug.x = cx + (corriendo ? Math.cos(this.time.now * 0.013) * 2 : 0);
+    this.panelJug.y = suelo + (zancada ? Math.abs(Math.sin(this.time.now * 0.02)) * -4 : 0);
+    this.panelJug.x = cx + (zancada ? Math.cos(this.time.now * 0.013) * 2 : 0);
     /* la pelota del juego al pie (a escala de la figura nueva) */
     const dir = this.panelJug.flipX ? -1 : 1;
     const anchoFig = this.panelJug.displayWidth || 120;
