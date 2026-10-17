@@ -97,7 +97,10 @@ function semanaDeLaFecha1(tactil) {
   s.entrarJugadonGambeta(ri, { marcadores: 2 });
   s.jugadonBoton(480, 480, 200, "◀ SALIR POR IZQUIERDA", 0xf6efdc, function () { });
   var jug = P.textos.slice(n1);
-  assert(jug.some(function (t) { return /esquivá con el DEDO/.test(t); }) && jug.indexOf("◀ SALIR POR IZQUIERDA") >= 0,
+  /* pedido de Rodri del 17/oct: la corrida de esquivar se cambió por los
+     cruces, y la ayuda dice "tocá por dónde lo pasás" en vez de "esquivá con
+     el DEDO". Lo que se fija es lo mismo: en el teléfono, ni una tecla. */
+  assert(jug.some(function (t) { return /tocá por dónde lo pasás/.test(t); }) && jug.indexOf("◀ SALIR POR IZQUIERDA") >= 0,
     "control: la corrida escribió su ayuda y su botón (" + jug.join(" | ") + ")");
   assert(malos(jug).length === 0, "SÍNTOMA: la corrida del jugadón habla de teclas: " + malos(jug).join(" | "));
   /* con teclado: las ayudas siguen */

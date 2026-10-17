@@ -567,14 +567,9 @@
     "ata_abre": 70
   },
   "jugadon": {
-    "_nota": "_nota\": \"V9 C2 · OJO: acá vivía la nota de V8, cuando el jugadón era una plataforma HORIZONTAL en px/s (vel_jugador, vel_rival, contacto, meta_y). Esas cuatro claves NO EXISTEN MÁS: la corrida pasó a la vista en profundidad (arco al fondo) y todo se mide en fracciones 0..1 de profundidad, no en píxeles. Se dejó este renglón en vez de borrarlo porque las cuatro viejas todavía están copiadas en el fallback de phaser/index.html y son letra muerta —jugadon_ui.js no las abre y cae a sus defaults—, así que si las ves ahí no las revivas: borralas o migralas. Las que manda hoy son las seis del _doc de abajo, todas leídas en scenes/jugadon_ui.js (vel_avance→velD, vel_lateral→velLx, meta_d→meta, vel_rival_lat, contacto_d y contacto_lx).",
-    "_doc": "V9 C2 · LA CORRIDA VERTICAL: el jugadón pasó a la vista en profundidad (arco al fondo). vel_avance = cuánta profundidad ganás por segundo (0..1); vel_lateral = qué tan rápido te corrés de lado; meta_d = la profundidad a la que rematás; contacto_d / contacto_lx = qué tan cerca tiene que estar un rival (en profundidad y de costado) para salirte al cruce; vel_rival_lat = cuánto te sigue de lado.",
-    "vel_avance": 0.34,
-    "vel_lateral": 1.5,
-    "meta_d": 0.92,
-    "contacto_d": 0.055,
-    "contacto_lx": 0.3,
-    "vel_rival_lat": 0.5,
+    "_doc": "Pedido de Rodri del 17/oct · LOS CRUCES DEL GAMBETA-TIRO: la corrida en profundidad (vel_avance, vel_lateral, meta_d, contacto_d, contacto_lx, vel_rival_lat) se fue con la corrida. Cada rival es una viñeta: te sale al cruce, elegís por dónde lo pasás, y corte seco al resultado. paso_ms = cuánto queda en pantalla la viñeta de lo dejaste atrás antes del rival siguiente o del remate; caida_ms = cuánto queda la de te la sacó antes de volver al partido. Las dos pasan por msV (la velocidad rápida las acorta).",
+    "paso_ms": 950,
+    "caida_ms": 1100,
     "obstaculos": {
       "bluff_prob": 0.35,
       "proteger_costo": 90,

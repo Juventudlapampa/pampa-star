@@ -78,12 +78,27 @@
     }
     return CIERRES[0];
   }
+  /* la tabla de la lectura en un solo lugar: la resolución y el aviso de por
+     qué perdiste (scenes/jugadon_ui.js) leen la misma y no se contradicen */
+  var VENCE = {
+    cierra_izq: ["der", "canio"],
+    cierra_der: ["izq", "canio"],
+    firme: ["canio", "sombrerito"],
+    se_tira: ["sombrerito", "enganche"]
+  };
+  function venceA(cierreId) { return VENCE[cierreId] || []; }
+  /* Pedido de Rodri del 17/oct: en el cruce del gambeta-tiro se elige POR
+     DÓNDE lo pasás, una flecha cada una, y están siempre las cuatro (contra
+     cada cierre hay al menos una que le gana). El enganche queda en MOVIDAS
+     para el duelo de la cancha, no en el cruce. */
+  var PASADAS = [
+    { id: "izq", n: "◀ POR LA IZQUIERDA", tecla: "LEFT" },
+    { id: "der", n: "POR LA DERECHA ▶", tecla: "RIGHT" },
+    { id: "sombrerito", n: "▲ POR ARRIBA", tecla: "UP" },
+    { id: "canio", n: "▼ CAÑO", tecla: "DOWN" }
+  ];
   function resolverMovida(movida, cierre, atacante, defensor, r) {
-    var gana;   // ¿lo pasás?
-    if (cierre.id === "cierra_izq") gana = movida === "der" || movida === "canio";
-    else if (cierre.id === "cierra_der") gana = movida === "izq" || movida === "canio";
-    else if (cierre.id === "firme") gana = movida === "canio" || movida === "sombrerito";
-    else gana = movida === "sombrerito" || movida === "enganche";   // se_tira
+    var gana = venceA(cierre.id).indexOf(movida) >= 0;   // ¿lo pasás?
     /* el desempate fino: stats + azar ACOTADO (±18%) — leer bien manda */
     var g = (atacante && atacante.gambeta) || 50, q = (defensor && defensor.quite) || 50;
     var margen = (g - q) / 100 + (r() - 0.5) * 0.36;
@@ -471,7 +486,12 @@
     else {
       g.paso++;
       if (g.paso >= g.defensores.length) { g.terminado = true; g.exito = true; }
-      else g.defensores[g.paso].cierre = elegirCierre(g.defensores[g.paso], g._r);
+      else {
+        /* el siguiente no se para igual que el que acabás de pasar: dos
+           iguales seguidos se juegan de memoria y no se leen */
+        var sig = g.defensores[g.paso];
+        do { sig.cierre = elegirCierre(sig, g._r); } while (sig.cierre.id === d.cierre.id);
+      }
     }
     return res;
   }
@@ -567,6 +587,7 @@
     fichasNuevas: fichasNuevas, gastarFicha: gastarFicha,
     MOVIDAS: MOVIDAS, CIERRES: CIERRES, opcionesDe: opcionesDe,
     elegirCierre: elegirCierre, resolverMovida: resolverMovida,
+    venceA: venceA, PASADAS: PASADAS,
     crearGambeta: crearGambeta, cruceGambeta: cruceGambeta,
     crearQuite: crearQuite, resolverQuite: resolverQuite,
     OBSTACULOS: OBSTACULOS, GESTOS: GESTOS, gestosDe: gestosDe, obstaculosDe: obstaculosDe,

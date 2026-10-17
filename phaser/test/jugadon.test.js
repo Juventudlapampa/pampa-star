@@ -85,5 +85,37 @@ const d1 = J.resolverSuperTiro({ fuerza: 80, precision: 80, zona: { x: 100, y: 5
 const d2 = J.resolverSuperTiro({ fuerza: 80, precision: 80, zona: { x: 100, y: 50 }, arquero: { reflejos: 70, manos: 70 }, semilla: 77 });
 assert(JSON.stringify(d1) === JSON.stringify(d2), "misma semilla → mismo resultado (testeable)");
 
+/* --- el CRUCE del gambeta-tiro (pedido de Rodri del 17/oct) --- */
+/* 8) la tabla de venceA es la misma que resuelve: con stats parejas y el azar
+   en el medio (margen 0) gana exactamente lo que venceA dice */
+let desacuerdos = 0;
+J.CIERRES.forEach(function (c) {
+  J.MOVIDAS.forEach(function (m) {
+    const gana = J.resolverMovida(m.id, c, { gambeta: 50 }, { quite: 50 }, function () { return 0.5; }).gana;
+    if (gana !== (J.venceA(c.id).indexOf(m.id) >= 0)) desacuerdos++;
+  });
+});
+assert(desacuerdos === 0, "venceA y resolverMovida dicen lo mismo (" + desacuerdos + " desacuerdos)");
+/* 9) las cuatro pasadas, una flecha cada una, y ningún cierre sin salida */
+assert(J.PASADAS.length === 4, "cuatro pasadas en el cruce (hay " + J.PASADAS.length + ")");
+const teclas = J.PASADAS.map(function (p) { return p.tecla; });
+assert(new Set(teclas).size === 4 && ["LEFT", "RIGHT", "UP", "DOWN"].every(function (t) { return teclas.indexOf(t) >= 0; }),
+  "cada pasada es una flecha distinta (" + teclas.join(",") + ")");
+J.CIERRES.forEach(function (c) {
+  const salen = J.PASADAS.filter(function (p) { return J.venceA(c.id).indexOf(p.id) >= 0; });
+  assert(salen.length >= 1, "contra " + c.id + " hay al menos una pasada que gana");
+});
+/* 10) el segundo rival no se para igual que el primero que pasaste */
+let repetidos = 0, pasados = 0;
+for (let s = 1; s <= 200; s++) {
+  const gc = J.crearGambeta({ semilla: s, marcadores: 2, atacante: { gambeta: 60 }, defensores: [{ quite: 60 }, { quite: 60 }] });
+  const primero = gc.defensores[0].cierre.id;
+  const r = J.cruceGambeta(gc, J.venceA(primero)[0]);
+  if (!r.gana) continue;
+  pasados++;
+  if (gc.defensores[1].cierre.id === primero) repetidos++;
+}
+assert(pasados > 150 && repetidos === 0, "después de pasar a uno, el siguiente se para distinto (" + repetidos + " repetidos en " + pasados + ")");
+
 if (mal === 0) console.log("✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

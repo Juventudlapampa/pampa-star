@@ -9,6 +9,14 @@
 (function () {
   "use strict";
   var W = 960, H = 540;
+  /* cómo se para cada cierre de logic/jugadon.js en el cruce: qué pose, dónde
+     y qué dice. Pedido de Rodri del 17/oct (ver entrarJugadonGambeta). */
+  var POSTURAS = {
+    cierra_izq: { pose: "bloqueo", x: 0.36, alto: 290, dice: "TE CIERRA LA IZQUIERDA" },
+    cierra_der: { pose: "bloqueo", x: 0.64, alto: 290, dice: "TE CIERRA LA DERECHA" },
+    firme: { pose: "bloqueo", x: 0.5, alto: 290, dice: "SE PLANTA ABIERTO DE PIERNAS" },
+    se_tira: { pose: "barrida", x: 0.5, alto: 200, dice: "SE TIRA AL PISO" }
+  };
 
   Object.assign(window.PampaMatch.prototype, {
 
@@ -95,18 +103,23 @@
       return t;
     },
 
-    /* ============ C2 · LA CORRIDA VERTICAL (el entorno épico) ============
-       El minijuego dejó de ser una cancha acostada: ahora es LA VISTA EN
-       PROFUNDIDAD —la misma del cine— con el arco al fondo. Venís corriendo
-       hacia el arco, los rivales crecen desde el fondo saliéndote al cruce,
-       los esquivás moviéndote a los lados, y si llegás, REMATÁS. Gambeta y
-       remate en un solo entorno: si te sale, sos el crack; si no, te la sacan.
+    /* ============ LOS CRUCES DEL GAMBETA-TIRO ============
+       Pedido de Rodri del 17/oct: "ahora solo esquivás más o menos dos
+       conos". Era cierto: la corrida en profundidad mostraba a los rivales
+       chiquitos a lo lejos, se esquivaban corriéndose de costado, y encima
+       cada choque abría un menú de cinco clases de obstáculo con su jerga.
 
-       La profundidad la calcula logic/perspectiva.js (la misma pura de
-       siempre): d en [0,1], 0 = cerca de la cámara (abajo, grande), 1 = el
-       arco al fondo (arriba, chico). lx en [-1,1] es el corrimiento lateral. */
+       Ahora cada rival que te sale es una VIÑETA GRANDE en dos golpes:
+         1. te sale al cruce, enorme, y se le ve CÓMO SE PARA (te cierra un
+            lado, se planta abierto de piernas, se tira al piso). Elegís por
+            dónde lo pasás: una flecha o tocar ese lado.
+         2. corte seco: VOS en primer plano con la gambeta ganada, él quedando
+            atrás, líneas de velocidad. O él con la pelota, si te la sacó, y
+            el aviso dice qué había que hacer.
+       Después del último, el remate. La lectura y el desempate por stats son
+       los de logic/jugadon.js (crearGambeta, cruceGambeta, venceA). */
     entrarJugadonGambeta(rivalIdx, opts) {
-      var st = this.st, J = window.PampaJugadon, self = this;
+      var st = this.st, J = window.PampaJugadon;
       var yo = st.mios[st.ctrl];
       opts = opts || {};
       var cuantos = opts.marcadores || 2;
@@ -131,331 +144,154 @@
         defensores: defs.map(function (d) { return { quite: window.PampaPartido.quiteDe(d.stats), nombre: d.nombre }; })
       });
       this._jgMega = opts.mega || null;
-      this.jugadonAbrir(opts.mega
-        ? "🔥 " + String(opts.mega.n || "MEGATIRO").toUpperCase() + " · encará y definí"
-        : "🌟 GAMBETA-TIRO · encará, esquivalos y definí");
-
-      var B = this.BAL.jugadon || {};
-      var C = this.BAL.cine || {};
-      var vp = { x: W / 2, y: H * 0.22 }, nearY = H * 0.95;
-      this._jgMini = {
-        vertical: true, d: 0, lx: 0, vp: vp, nearY: nearY,
-        k: (C.persp && C.persp.k) || 3,
-        velD: B.vel_avance != null ? B.vel_avance : 0.34,
-        velLx: B.vel_lateral != null ? B.vel_lateral : 1.5,
-        meta: B.meta_d != null ? B.meta_d : 0.92,
-        rivales: [], duelo: null, terminado: false, t: 0, target: null
-      };
-      /* el fondo: la cancha en fuga con el arco arriba (la del cine) */
-      this.dibujarCanchaProfunda(vp, nearY);
-
-      var kYo = this.poseHeroeTenida ? (this.poseHeroeTenida(yo) || this.poseKey("corriendo")) : this.poseKey("corriendo");
-      var sy = kYo ? this.add.image(W / 2, nearY, kYo) : this.add.rectangle(W / 2, nearY, 40, 90, 0x4fc3f7);
-      sy._altoBase = sy.height || 90;
-      this.cineContent.add(sy);
-      this._jgMini.spr = sy;
-      var bola = this.add.sprite(W / 2, nearY, "ball").setScale(2.2);
-      this.cineContent.add(bola);
-      this._jgMini.bola = bola;
-
-      /* P7 · LA SECUENCIA DE OBSTÁCULOS. Antes los rivales eran todos el mismo
-         objeto y la única respuesta era esquivar de costado. Ahora cada uno
-         trae su TIPO —te cierra un lado, se tira al piso, se planta, vienen dos,
-         o directamente es un pozo del potrero— y cada tipo pide un gesto
-         distinto. La secuencia sale de logic/jugadon.js: determinista por
-         semilla y sin dos iguales seguidos. */
-      var statG = (yo.stats && yo.stats.gambeta) || 55;
-      var CFGO = (this.BAL.jugadon && this.BAL.jugadon.obstaculos) || {};
-      this._jgMini.cfgObs = CFGO;
-      this._jgMini.obstaculos = J.secuenciaObstaculos(
-        this._jgLogica.defensores.length, statG,
-        (st.golesMio + 1) * 7919 + Math.floor(st.minuto * 100) + st.ctrl + 13, CFGO);
-      /* P1 · lo que la corrida ARRASTRA de un obstaculo al siguiente. Sin esto
-         los tres obstaculos son tres preguntas sueltas; con esto son una
-         jugada. lateral se cobra al final, en el angulo del remate. */
-      this._jgMini.ctx = { arrastre: null, lateral: 0 };
-      this._jgMini.statG = statG;
-      this._jgMini.gestos = J.gestosDe(statG);
-      var OBS = this._jgMini.obstaculos;
-      /* los rivales te esperan escalonados hacia el arco */
-      var kR = this.poseRivalNaranja ? (this.poseRivalNaranja("bloqueo") || this.poseKey("bloqueo")) : this.poseKey("bloqueo");
-      this._jgLogica.defensores.forEach(function (d, i) {
-        var obs = OBS[i] || OBS[0];
-        var sr = kR ? self.add.image(0, 0, kR) : self.add.rectangle(0, 0, 40, 90, 0xff8a50);
-        sr._altoBase = sr.height || 90;
-        self.cineContent.add(sr);
-        var nom = self.add.text(0, 0, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5);
-        self.cineContent.add(nom);
-        /* P7 · el POZO no es un rival: no lleva figura ni nombre de jugador.
-           Es la cancha jugando, y se tiene que ver distinto o no se entiende. */
-        if (obs && obs.pose === null) {
-          sr.setVisible(false);
-          nom.setText("▬ " + obs.n);
-        } else {
-          nom.setText("▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 10));
-        }
-        self._jgMini.rivales.push({
-          spr: sr, nom: nom, idx: i, vivo: true, obs: obs,
-          d: 0.34 + i * 0.26,
-          lx: i % 2 === 0 ? -0.35 : 0.4,
-          vel: (B.vel_rival_lat != null ? B.vel_rival_lat : 0.5) + i * 0.1
-        });
-      });
-
-      /* controles: DEDO (arrastre lateral) y FLECHAS — el avance es solo */
-      var zona = this.add.rectangle(W / 2, H / 2, W, H, 0xffffff, 0.001).setInteractive();
-      this.cineContent.add(zona);
-      zona.on("pointerdown", function (pp) { self._jgMini.target = pp.x; });
-      zona.on("pointermove", function (pp) { if (pp.isDown && self._jgMini) self._jgMini.target = pp.x; });
-      this._jgMini.cursores = this.input.keyboard ? this.input.keyboard.createCursorKeys() : null;
-      /* H-46 y no H-20: en H-20 se cruzaba con cineLabel, que vive en (16, H-24)
-         y en el jugadon lleva un titulo largo ("🌟 GAMBETA-TIRO · encará,
-         esquivalos y definí"). Los dos textos de ayuda encimados, ilegibles los
-         dos. Se ve en la captura REV_pasillo_lectura. */
-      /* textos-tactiles: las FLECHAS, solo donde hay teclado */
-      var ayuda = this.add.text(W / 2, H - 46, (this.sys.game.device.input.touch ? "esquivá con el DEDO" : "esquivá con el DEDO o con las FLECHAS") + " · avanzás solo hacia el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 8, y: 2 } }).setOrigin(0.5).setAlpha(0.9);
-      this.cineContent.add(ayuda);
-      this._jgMini.ayuda = ayuda;
-      /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */
+      this.jugadonAbrir("");
+      this._jgCruce = { resuelto: false, lineas: null };
       this.pedirMusica("jugadon");
-      this.pintarCorridaVertical(0);
+      this.jugadonCruce();
     },
 
-    /* dibuja el cuadro: cada figura en su profundidad, con su escala */
-    pintarCorridaVertical(delta) {
-      var m = this._jgMini, P = window.PampaPersp;
-      if (!m || !m.vertical || !m.spr || !m.spr.active) return;
-      var cfg = { k: m.k, vpX: m.vp.x, vpY: m.vp.y, nearY: m.nearY };
-      var anchoEn = function (s) { return 60 + 300 * s.escala; };
-      var yo = P.aPantalla(m.d, cfg);
-      var xYo = yo.x + m.lx * anchoEn(yo);
-      m.spr.setPosition(xYo, yo.y);
-      m.spr.setScale((150 * yo.escala) / m.spr._altoBase);
-      if (m.spr.setDepth) m.spr.setDepth(20);
-      if (m.bola && m.bola.active) {
-        m.bola.setPosition(xYo + 26 * yo.escala, yo.y + 42 * yo.escala);
-        m.bola.setScale(2.4 * yo.escala);
-        m.bola.rotation += 0.12;
-        m.bola.setDepth(21);
-      }
-      m.rivales.forEach(function (r) {
-        if (!r.spr || !r.spr.active) return;
-        var s = P.aPantalla(r.d, cfg);
-        var x = s.x + r.lx * anchoEn(s);
-        r.spr.setPosition(x, s.y);
-        r.spr.setScale((150 * s.escala) / r.spr._altoBase);
-        if (r.spr.setDepth) r.spr.setDepth(Math.round((1 - r.d) * 10));
-        if (r.nom && r.nom.active) {
-          r.nom.setPosition(x, s.y - 78 * s.escala);
-          /* L09: el nombre crece con la cercanía pero no baja de 13 px (con
-             el 0,6 de antes, a lo lejos quedaba en 7,8) */
-          r.nom.setScale(Math.max(1, s.escala));
-          r.nom.setVisible(r.vivo);
-        }
-      });
-    },
-
-    /* el latido del minijuego (lo llama el update: el partido está quieto) */
-    updateJugadonMini(delta) {
-      var m = this._jgMini, self = this;
-      if (!m || m.terminado || m.duelo || !m.spr || !m.spr.active || !m.vertical) return;
-      var dt = Math.min(0.05, delta / 1000);
-      m.t += delta;
-      var vx = 0;
-      if (m.cursores) {
-        if (m.cursores.left.isDown) vx -= 1;
-        if (m.cursores.right.isDown) vx += 1;
-        if (vx) m.target = null;
-      }
-      if (!vx && m.target != null) {
-        var dxT = (m.target - W / 2) / (W / 2) - m.lx;
-        if (Math.abs(dxT) > 0.03) vx = dxT > 0 ? 1 : -1; else m.target = null;
-      }
-      m.lx = Math.max(-1, Math.min(1, m.lx + vx * m.velLx * dt));
-      /* la corrida no se frena: siempre vas hacia el arco */
-      m.d = Math.min(1, m.d + m.velD * dt);
-      var B = this.BAL.jugadon || {};
-      m.rivales.forEach(function (r) {
-        if (!r.vivo) return;
-        var dif = m.lx - r.lx;
-        r.lx += Math.max(-1, Math.min(1, dif)) * r.vel * dt;
-        var cerca = Math.abs(m.d - r.d) < (B.contacto_d != null ? B.contacto_d : 0.055);
-        var encima = Math.abs(m.lx - r.lx) < (B.contacto_lx != null ? B.contacto_lx : 0.3);
-        if (cerca && encima) self.jugadonDuelo(r);
-      });
-      this.pintarCorridaVertical(delta);
-      if (!m.duelo && !m.terminado && m.d >= m.meta) this.jugadonRemate();
-    },
-
-    jugadonDuelo(r) {
-      var self = this, g = this._jgLogica, m = this._jgMini;
-      if (!m || m.duelo || m.terminado) return;
-      m.duelo = r;
-      /* el aviso del obstaculo ANTERIOR ("¡LO DEJASTE PAGANDO!") se quedaba en
-         pantalla encima del siguiente: se ve en la captura de la primera
-         vuelta. Al abrir un duelo nuevo, lo viejo se va. */
-      if (this._jgAviso && this._jgAviso.destroy) { this._jgAviso.destroy(); this._jgAviso = null; }
-      var d = g.defensores[Math.min(r.idx, g.defensores.length - 1)];
-      /* P7 · SE ANUNCIA EL OBSTÁCULO, no el cierre genérico. Lo que aparece es
-         qué se te viene encima, y los botones son los GESTOS que sabés hacer.
-         Sin el anuncio esto sería adivinar; con el anuncio es leer y reaccionar. */
-      var obs = r.obs || null;
-      var J2 = window.PampaJugadon, CFGO = m.cfgObs || {};
-      var clase = obs ? (obs.clase || "gesto") : "gesto";
-
-      /* ══════════════════════════════════════════════════════════════════
-         P1 · LO QUE SE MUESTRA DEPENDE DE LA CLASE.
-
-         Antes se anunciaba el obstaculo y se ofrecian los gestos, siempre
-         igual. Ahora cada clase se presenta distinto, porque si el jugador no
-         ve QUE CLASE DE PREGUNTA le estan haciendo, la variedad no existe
-         aunque este implementada. Arriba de todo va lo que pide la clase
-         (CLASES[x].n), que es la unica manera de que se entienda sin tutorial.
-         ══════════════════════════════════════════════════════════════════ */
-      var dec = obs ? J2.declaracionDe(obs, CFGO, null, m.statG) : null;
-      r.dec = dec;
-      var titulo = obs ? obs.n : d.cierre.n;
-      this._jg.sprites.push(this.jugadonGlobo(r.spr.x || W / 2, (r.spr.y || H / 2) - 84, titulo));
-
-      /* la etiqueta de CLASE: que te estan pidiendo */
-      var cl = J2.CLASES && J2.CLASES[clase];
-      if (cl) {
-        var tc = this.add.text(W / 2, 34, "· " + cl.n.toUpperCase() + " ·", {
-          fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d",
-          backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }
-        }).setOrigin(0.5);
-        this.cineContent.add(tc); this._jg.sprites.push(tc);
-      }
-
-      /* LA DECLARACION del que te lee, y EL CANTITO si se lo viste */
-      if (dec && dec.declarado) {
-        var td = this.add.text(W / 2, 66, "amaga para " + (dec.declarado === "izq" ? "SU IZQUIERDA ◀" : "▶ SU DERECHA"), {
-          fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#f6efdc",
-          backgroundColor: "#2a0b0bcc", padding: { x: 8, y: 3 }
-        }).setOrigin(0.5);
-        this.cineContent.add(td); this._jg.sprites.push(td);
-        if (dec.pista) {
-          /* el cantito: se ve porque tenes gambeta. Lleva FORMA (el ojo) ademas
-             de color, que es la regla del proyecto. */
-          var tp = this.add.text(W / 2, 94, "👁 LE VISTE EL AMAGUE: va para el otro lado", {
-            fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#0a1f13",
-            backgroundColor: "#7ee08a", padding: { x: 8, y: 3 }
-          }).setOrigin(0.5);
-          this.cineContent.add(tp); this._jg.sprites.push(tp);
-          this.SFX && this.SFX.temaCampo && this.SFX.temaCampo("rival");
-        }
-      }
-
-      this.SFX && this.SFX.whoosh && this.SFX.whoosh(220);
-      /* L09: la ayuda de la corrida (H-46) queda debajo de la fila de
-         botones (H-60, 54 de alto): con los botones a la vista se asomaba
-         por los costados. Ya se usó: se va */
-      if (m.ayuda) m.ayuda.setVisible(false);
-      var ops = obs ? J2.opcionesDeObstaculo(obs, m.statG)
-                    : ((m.gestos && m.gestos.length) ? m.gestos : g.opciones);
-      var wpx = Math.min(200, (W - 40) / ops.length - 10);
-      var _foco = [];
-      ops.forEach(function (mv, i) {
-        var x = W / 2 + (i - (ops.length - 1) / 2) * (wpx + 10);
-        var b = self.jugadonBoton(x, H - 60, wpx, mv.n, 0xf6efdc, function () { self.jugadonMovida(mv.id, r); });
-        if (b) _foco.push({ obj: b, cb: function () { self.jugadonMovida(mv.id, r); } });
-        /* el subtitulo de las clases que tienen dos salidas: sin el, "POR
-           AFUERA" y "POR EL MEDIO" no dicen que te cuesta cada una */
-        if (mv.sub) {
-          /* ARRIBA del botón, no abajo: medido en vivo, abajo caía en y=512 y
-             el renglón de ayuda de la corrida vive en y=520 — se pisaban y el
-             subtítulo no se leía. Y sin el subtítulo, "POR AFUERA" no dice qué
-             te cuesta, que es toda la gracia de la clase. */
-          var ts = self.add.text(x, H - 104, mv.sub, {
-            fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2",
-            align: "center", wordWrap: { width: wpx + 8 }
-          }).setOrigin(0.5);
-          self.cineContent.add(ts); self._jg.sprites.push(ts);
-        }
-      });
-
-      /* ══════════════════════════════════════════════════════════════════
-         P1 · EL RELOJ. La unica clase con tiempo, y por eso la unica que sale
-         como mucho una vez por corrida y solo al final (ver la advertencia en
-         logic/jugadon.js). Si se acaba, NO elige el juego por vos al azar: te
-         cierra el lado y perdes, que es la consecuencia de no decidir.
-         Con balance.jugadon.obstaculos.reloj_ms en 0 no existe. */
-      /* EL CURSOR EN EL PASILLO. Los botones eran atajos numericos sueltos: en
-         una jugada que te cuesta una ficha, no poder elegir con las flechas es
-         obligarte a soltar el teclado justo cuando estas apurado. El foco
-         arranca en la primera salida y NO en la "correcta": en la clase lectura
-         no hay correcta, y en las otras dos elegir es la gracia. */
-      if (self.grupoFoco && _foco.length) self.grupoFoco(_foco, { inicial: 0 });
-
-      if (clase === "reloj") {
-        var ms = CFGO.reloj_ms != null ? CFGO.reloj_ms : 1200;
-        if (ms > 0) {
-          var barra = this.add.rectangle(W / 2, H - 96, 320, 12, 0xe3503e, 1).setOrigin(0.5);
-          this.cineContent.add(barra); this._jg.sprites.push(barra);
-          this.tweens.add({ targets: barra, scaleX: 0, duration: this.msV(ms), ease: "Linear" });
-          r._relojTimer = this.time.delayedCall(this.msV(ms), function () {
-            if (m.terminado || !m.duelo) return;
-            self.jugadonMovida(null, r);
-          });
-        }
-      }
-    },
-
-    jugadonMovida(movidaId, r) {
-      var st = this.st, J = window.PampaJugadon, self = this, m = this._jgMini;
-      /* P7 · con obstáculo tipado, la LECTURA manda y no hay azar: el gesto
-         correcto pasa siempre y el equivocado nunca. El azar sigue viviendo en
-         el duelo cara a cara de cruceGambeta, que es otro momento del juego.
-         Sin obstáculo (corridas viejas) cae al camino de antes. */
-      /* P1 · TODO pasa por resolverObstaculo, que es la puerta unica de las
-         cinco clases. Antes esto llamaba a pasaObstaculo, que solo sabe de la
-         clase gesto: con las clases nuevas habria devuelto false siempre y el
-         pasillo se habria vuelto imposible sin un solo error visible. */
-      var res;
-      if (r && r._relojTimer) { r._relojTimer.remove(false); r._relojTimer = null; }
-      if (r && r.obs) {
-        var ctx = Object.assign({}, (m && m.ctx) || {}, r.dec || {});
-        var ro = J.resolverObstaculo(r.obs, movidaId, ctx, (m && m.cfgObs) || {});
-        res = { gana: ro.pasa, obstaculo: r.obs, motivo: ro.motivo, clase: ro.clase };
-        /* lo que la corrida se lleva al obstaculo siguiente */
-        if (m) m.ctx = { arrastre: ro.arrastre, lateral: ro.lateral };
-        if (ro.costo) {
-          var jy = st.mios[st.ctrl];
-          if (jy) jy.aguante = Math.max(0, jy.aguante - ro.costo);
-        }
-        if (ro.pasa) this._jgLogica.paso = Math.min(this._jgLogica.paso + 1, this._jgLogica.defensores.length);
-        else { this._jgLogica.terminado = true; this._jgLogica.exito = false; }
-      } else {
-        res = J.cruceGambeta(this._jgLogica, movidaId);
-      }
-      if (!res) return;
-      /* el cursor se va con los botones: si no, queda una escuadra dibujada
-         sobre la pantalla siguiente (ya paso una vez con el menu de tempo) */
-      if (this.cerrarFoco) this.cerrarFoco();
+    /* golpe 1: el rival te sale al cruce y se le ve cómo se para */
+    jugadonCruce() {
+      var self = this, J = window.PampaJugadon, g = this._jgLogica, c = this._jgCruce;
+      var d = g.defensores[g.paso];
+      var post = POSTURAS[d.cierre.id];
       this.jugadonLimpiarBotones();
-      (this._jg.sprites || []).forEach(function (o) { if (o && o.destroy) o.destroy(); });
+      this.limpiarContenido();
       this._jg.sprites = [];
-      this.SFX && this.SFX.whoosh && this.SFX.whoosh(300);
-      if (res.gana) {
-        /* P1 · el aviso dice QUE paso, no "lo pasaste". Con cinco clases,
-           pasar por proteger la pelota y pasar por leerle el amague son dos
-           cosas distintas y tienen que leerse distinto. */
-        this.avisoJugadon(res.motivo ? "¡" + String(res.motivo).toUpperCase() + "!" : "¡LO PASASTE!", 0x7ee08a);
-        if (r) {
-          r.vivo = false;
-          this.tweens.add({ targets: [r.spr, r.nom], y: "+=170", alpha: 0.25, angle: -60, duration: 420 });
+      c.resuelto = false;
+      /* la cancha en fuga con el arco al fondo: vas hacia allá y él está en el medio */
+      this.dibujarCanchaProfunda({ x: W / 2, y: H * 0.22 }, H * 0.95);
+      var rx = W * post.x, piso = H - 70;
+      var kR = (this.poseRivalNaranja && this.poseRivalNaranja(post.pose)) || this.poseKey(post.pose);
+      var sr = kR ? this.add.image(rx, piso, kR) : this.add.rectangle(rx, piso, post.alto * 0.6, post.alto, 0xff8a50);
+      sr.setOrigin(0.5, 1).setScale(post.alto / (sr.height || post.alto));
+      if (this.sombraBajoPies) this.sombraBajoPies(sr, rx);
+      this.cineContent.add(sr);
+      /* sin líneas de velocidad acá: van por encima de todo y tachaban los
+         botones. Este golpe es para leer; las líneas son del golpe 2. */
+      c.lineas = null;
+
+      var tactil = this.sys.game.device.input.touch;
+      var cab = (this._jgMega ? "★ " + String(this._jgMega.n || "MEGATIRO").toUpperCase() : "★ GAMBETA-TIRO") +
+        " · rival " + (g.paso + 1) + " de " + g.defensores.length + " · " +
+        (tactil ? "tocá por dónde lo pasás" : "flechas o tocá: por dónde lo pasás");
+      this.cineContent.add(this.add.text(W / 2, 20, cab, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 } }).setOrigin(0.5));
+      this.cineContent.add(this.add.text(W / 2, 56, "▲ " + String(d.nombre || "RIVAL").toUpperCase().slice(0, 12) + " TE SALE AL CRUCE", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(1), fontStyle: "bold", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 12, y: 4 } }).setOrigin(0.5));
+      /* lo que hay que leer, en palabras además de en el dibujo */
+      this.jugadonGlobo(W / 2, 118, post.dice);
+
+      /* los botones están DONDE pasa la pelota: a los costados, sobre la
+         cabeza y entre las piernas. Tocar el lado es elegirlo. */
+      J.PASADAS.forEach(function (p) {
+        var pos = p.id === "izq" ? [110, 330, 200] : p.id === "der" ? [W - 110, 330, 200]
+          : p.id === "sombrerito" ? [rx, piso - post.alto - 30, 180] : [rx, H - 34, 180];
+        self.jugadonBoton(pos[0], pos[1], pos[2], p.n, 0xf6efdc, function () { self.jugadonMovida(p.id); });
+        if (self.input.keyboard) {
+          var ev = "keydown-" + p.tecla;
+          var fn = function () { if (self.estado === "JUGADON") self.jugadonMovida(p.id); };
+          self.input.keyboard.on(ev, fn);
+          (self._jg.teclas = self._jg.teclas || []).push({ ev: ev, fn: fn });
         }
-        if (m) m.duelo = null;
-        if (m && m.rivales.every(function (x) { return !x.vivo; })) this.time.delayedCall(this.msV(520), function () { self.jugadonRemate(); });
+      });
+      this.uiCam.flash(80, 255, 255, 220);
+      this.SFX && this.SFX.whoosh && this.SFX.whoosh(220);
+    },
+
+    /* golpe 2: lo dejaste atrás, o te la sacó */
+    jugadonMovida(movidaId) {
+      var self = this, st = this.st, J = window.PampaJugadon, g = this._jgLogica, c = this._jgCruce;
+      if (!c || c.resuelto || g.terminado) return;
+      c.resuelto = true;
+      var d = g.defensores[g.paso];
+      var post = POSTURAS[d.cierre.id];
+      var vence = J.venceA(d.cierre.id);
+      var bienLeido = vence.indexOf(movidaId) >= 0;
+      var res = J.cruceGambeta(g, movidaId);
+      var yo = st.mios[st.ctrl], B = this.BAL.jugadon || {};
+      var nombre = String(d.nombre || "RIVAL").toUpperCase().slice(0, 12);
+      this.jugadonLimpiarBotones();
+      this.limpiarContenido();
+      var bg = this.cineBG; bg.clear();
+      if (!this.fondoCine || !this.fondoCine("golpe", { bando: res.gana ? "mio" : "rival", cx: 0.5, cy: 0.5 })) {
+        bg.fillStyle(res.gana ? 0x0b1c2a : 0x2a0b0b, 1); bg.fillRect(0, 0, W, H);
+      }
+      var titulo = function (texto, color) {
+        self.cineContent.add(self.add.text(W / 2, 52, texto, { fontFamily: window.PF.display, fontSize: "34px", color: color, stroke: "#0a1f13", strokeThickness: 6, align: "center" }).setOrigin(0.5));
+      };
+      var bajada = function (texto) {
+        self.cineContent.add(self.add.text(W / 2, H - 36, texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(2), fontStyle: "bold", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 860 } }).setOrigin(0.5));
+      };
+      var kRival = (this.poseRivalNaranja && this.poseRivalNaranja(post.pose)) || this.poseKey(post.pose);
+
+      if (res.gana) {
+        /* una sola composición para los cuatro lados: la pose espejada muestra
+           el 10 al revés (01), y después de pasarlo el lado ya no importa */
+        var xH = W * 0.62, xR = W * 0.22;
+        /* el fondo corre al revés de para donde vas */
+        for (var i = 0; i < 5; i++) {
+          var ry = this.add.rectangle(W + 300, 110 + i * 78, 380 + (i % 2) * 220, 6 + (i % 3) * 5, 0xffffff, 0.22);
+          this.cineContent.add(ry);
+          this.tweens.add({ targets: ry, x: -300, duration: 420 + i * 70, repeat: -1 });
+        }
+        /* él, atrás y más chico, quedándose */
+        var sr = kRival ? this.add.image(xR, H * 0.8, kRival) : this.add.rectangle(xR, H * 0.8, 100, 170, 0xff8a50);
+        sr.setOrigin(0.5, 1).setScale(post.alto * 0.6 / (sr.height || post.alto));
+        if (sr.setTint) sr.setTint(0xb4b4b4);
+        this.cineContent.add(sr);
+        this.tweens.add({ targets: sr, x: xR - 50, duration: this.msV(B.paso_ms || 950), ease: "Quad.easeOut" });
+        this.cineContent.add(this.add.text(xR, H * 0.8 - sr.displayHeight - 14, "▲ " + nombre, { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5));
+        /* VOS, en primer plano: la pose quieta, el corte seco */
+        var kH = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_gana")) || this.poseKey("gambeta_gana");
+        var sh = kH ? this.add.image(xH, H * 0.53, kH) : this.add.rectangle(xH, H * 0.53, 200, 380, 0x4fc3f7);
+        sh.setScale(400 / (sh.height || 400));
+        this.cineContent.add(sh);
+        var pm = this.game.registry.get("poses");
+        var pp = kH && pm && pm.poses && pm.poses.gambeta_gana && pm.poses.gambeta_gana.pelota;
+        if (pp && this.textures.exists("ball")) {
+          var dW = sh.displayWidth, dH = sh.displayHeight;
+          var bx = sh.x + (pp.x - 0.5) * dW, by = sh.y + (pp.y - 0.5) * dH;
+          var TP = this.texPelota(Math.max(25.6, pp.r * 2 * dH));
+          var bola = this.add.sprite(bx, by, TP.key).setScale(TP.esc);
+          this.cineContent.add(bola);
+          /* en el caño y el sombrero la pelota viene de donde pasó: entre sus
+             piernas o por arriba de su cabeza */
+          if (movidaId === "canio" || movidaId === "sombrerito") {
+            bola.setPosition(sr.x, movidaId === "sombrerito" ? sr.y - sr.displayHeight - 40 : sr.y - 24);
+            this.tweens.add({ targets: bola, x: bx, y: by, duration: this.msV(380), ease: "Quad.easeIn" });
+          }
+        }
+        c.lineas = { x: xH, y: H * 0.5, inten: 1.2, tinte: 0xffd84d };
+        titulo(!bienLeido ? "¡DE PURA GAMBETA!" : movidaId === "canio" ? "¡CAÑO!" : movidaId === "sombrerito" ? "¡SOMBRERO!" : "¡LO DEJASTE PAGANDO!", "#ffd84d");
+        bajada(nombre + " QUEDA ATRÁS · " + (g.terminado ? "¡QUEDASTE DE FRENTE AL ARCO!" : "viene el otro"));
+        this.uiCam.flash(90, 255, 255, 230);
+        this.uiCam.shake(160, 0.006);
+        this.SFX && this.SFX.kick && this.SFX.kick();
+        this.SFX && this.SFX.whoosh && this.SFX.whoosh(400);
+        this.time.delayedCall(this.msV(B.paso_ms || 950), function () {
+          if (g.terminado) self.jugadonRemate(); else self.jugadonCruce();
+        });
         return;
       }
-      if (m) m.terminado = true;
-      /* P7 · decir POR QUÉ no pasó: con obstáculos tipados el error es de
-         lectura, así que el aviso tiene que nombrar el gesto que hacía falta. */
-      this.avisoJugadon(res.motivo
-        ? "¡" + String(res.motivo).toUpperCase() + "!"
-        : (res.obstaculo ? "¡" + res.obstaculo.n + "!" : "¡TE LO LEYÓ!"), 0xe3503e);
-      this.time.delayedCall(this.msV(900), function () {
+
+      /* te la sacó: él en primer plano con el quite, vos trastabillando atrás */
+      var kQ = (this.poseRivalNaranja && this.poseRivalNaranja("quite")) || this.poseKey("quite");
+      var sq = kQ ? this.add.image(W * 0.62, H * 0.52, kQ) : this.add.rectangle(W * 0.62, H * 0.52, 200, 360, 0xff8a50);
+      sq.setScale(380 / (sq.height || 380));
+      var kP = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_pierde")) || this.poseKey("gambeta_pierde");
+      var sp = kP ? this.add.image(W * 0.26, H * 0.56, kP) : this.add.rectangle(W * 0.26, H * 0.56, 130, 240, 0x4fc3f7);
+      sp.setScale(260 / (sp.height || 260));
+      if (sp.setTint) sp.setTint(0xb4b4b4);
+      this.cineContent.add(sp); this.cineContent.add(sq);
+      c.lineas = { x: W * 0.62, y: H * 0.5, inten: 1, tinte: 0xff8a50 };
+      var salidas = J.PASADAS.filter(function (p) { return vence.indexOf(p.id) >= 0; }).map(function (p) { return p.n; });
+      titulo("¡TE LA SACÓ " + nombre + "!", "#f6efdc");
+      bajada(bienLeido
+        ? "lo leíste bien, pero te leyó el cuerpo igual"
+        : post.dice.toLowerCase() + ": había que pasarlo " + salidas.join(" o "));
+      this.uiCam.shake(200, 0.008);
+      this.SFX && this.SFX.gloves && this.SFX.gloves();
+      this.time.delayedCall(this.msV(B.caida_ms || 1100), function () {
+        self._jgCruce = null; self._jgMega = null;
         self.jugadonCerrar(function () {
           window.PampaPartido.perderPelota(st);
           self.relatar && self.relatar("gambeta_lose");
@@ -463,61 +299,33 @@
       });
     },
 
-    /* C2: llegaste al fondo de la corrida → EL REMATE, en el mismo envión.
-       Si la jugada era el MEGATIRO, remata con la mega animación (cut-in,
-       impacto, viaje, arquero volando); si era la GAMBETA-TIRO, remate normal.
-       En los dos casos NO hay pantalla de zonas: la ubicación manda. */
+    /* el ritmo del cruce: las líneas de velocidad se redibujan cada cuadro (la
+       pose no se mueve, lo que se mueve es lo demás). Lo llama el update. */
+    updateJugadonMini() {
+      var c = this._jgCruce;
+      if (c && c.lineas) this.lineasVelocidad(c.lineas.x, c.lineas.y, c.lineas.inten, c.lineas.tinte);
+    },
+
+    /* pasaste al último: EL REMATE, en el mismo envión. Si la jugada era el
+       MEGATIRO, remata con la mega animación (cut-in, impacto, viaje, arquero
+       volando); si era la GAMBETA-TIRO, remate normal. En los dos casos NO
+       hay pantalla de zonas: la ubicación manda. */
     jugadonRemate() {
-      var self = this, m = this._jgMini, st = this.st;
-      if (!m || m.terminado) return;
-      m.terminado = true;
-      this.jugadonLimpiarBotones();
-      var mega = this._jgMega;
-      this.avisoJugadon(mega ? "¡SE ARMA EL " + String(mega.n || "MEGATIRO").toUpperCase() + "!" : "¡QUEDÓ DE FRENTE AL ARCO!", 0xffd84d);
-      /* ══════════════════════════════════════════════════════════════════
-         P1 · LA ENVENENADA SE COBRA ACA.
-
-         Salir por afuera te corrio hacia la linea, y eso NO se cobro en el
-         obstaculo: se cobra ahora, en el angulo del remate. logic/tiro.js ya
-         sabia leerlo (usa centrado), solo faltaba que algo lo moviera.
-
-         Medido: con lateral 0 la calidad del remate es 0,86; con 0,42 baja a
-         0,72 y con 0,84 a 0,54. Salir dos veces por afuera te cuesta un tercio
-         del remate — que es exactamente lo que la clase promete. */
-      var latFinal = (m && m.ctx && m.ctx.lateral) || 0;
-      this.time.delayedCall(this.msV(820), function () {
-        st.mios[st.ctrl].x = Math.min(st.W - 60, st.W - 130);   // quedaste en el área
-        if (latFinal > 0) {
-          var haciaAbajo = (st.mios[st.ctrl].y || st.H / 2) >= st.H / 2;
-          st.mios[st.ctrl].y = Math.max(24, Math.min(st.H - 24,
-            st.H / 2 + (haciaAbajo ? 1 : -1) * latFinal * (st.H * 0.42)));
+      var self = this, st = this.st, mega = this._jgMega;
+      this._jgCruce = null; this._jgMega = null;
+      st.mios[st.ctrl].x = Math.min(st.W - 60, st.W - 130);   // quedaste en el área
+      this.jugadonCerrar(function () {
+        if (mega && self.dispararConCine) {
+          self.cutInEspecial("¡" + String(mega.n).toUpperCase() + "!", mega.sub || "todo lo que le queda", function () {
+            self.dispararConCine(mega, self.ejDeLaSituacion(mega));
+          });
+        } else {
+          self.tiroPorComandos(null);
         }
-        self._jgMini = null;
-        self._jgMega = null;
-        self.jugadonCerrar(function () {
-          if (mega && self.dispararConCine) {
-            self.cutInEspecial("¡" + String(mega.n).toUpperCase() + "!", mega.sub || "todo lo que le queda", function () {
-              self.dispararConCine(mega, self.ejDeLaSituacion(mega));
-            });
-          } else {
-            self.tiroPorComandos(null);
-          }
-        });
       });
     },
     jugadonPintarDefensores() { /* V8 C: los rivales viven en updateJugadonMini */ },
     jugadonPintarOpciones() { /* V8 C: las movidas aparecen SOLO en el duelo */ },
-
-    avisoJugadon(texto, color) {
-      /* uno por vez: el aviso queda guardado para que el duelo siguiente lo
-         pueda barrer. Sin esto se apilaban y el de la jugada anterior tapaba
-         al nuevo (visto en la captura de P1). */
-      if (this._jgAviso && this._jgAviso.destroy) this._jgAviso.destroy();
-      var t = this.add.text(W / 2, 250, texto, { fontFamily: window.PF.display, fontSize: "22px", color: "#" + color.toString(16).padStart(6, "0"), stroke: "#0a1f13", strokeThickness: 4, align: "center", wordWrap: { width: 760 } }).setOrigin(0.5).setScale(0.3);
-      this.cineContent.add(t);
-      this._jgAviso = t;
-      this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
-    },
 
     /* ============ EL SÚPER QUITE (2 fichas) ============ */
     entrarJugadonQuite() {
