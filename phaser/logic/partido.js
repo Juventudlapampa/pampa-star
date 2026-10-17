@@ -519,7 +519,7 @@
     var A = st.bal.aguante, puedeT = puedeTirar(st), rend = rendido(st);
     var acc = [
       { id: "gambeta", n: "GAMBETA", ico: "🌀", costo: A.costo_gambeta, poder: statCtrl(st, "gambeta"), bloqueada: rend },
-      { id: "pase", n: "PASE ▸", ico: "➡️", costo: A.costo_pase, poder: statCtrl(st, "pase"), bloqueada: false, submenu: true },
+      { id: "pase", n: "PASE", ico: "➡️", costo: A.costo_pase, poder: statCtrl(st, "pase"), bloqueada: false },
       { id: "pared", n: "PARED (1-2)", ico: "🔁", costo: A.costo_pared, poder: statCtrl(st, "pase") * 0.8 + mejorVinculo(st) * 0.2, bloqueada: rend || !hayCompaCerca(st), motivo: rend ? "SIN AGUANTE" : (!hayCompaCerca(st) ? "SIN COMPAÑERO CERCA" : null) },
       { id: "tiro", n: "TIRO", ico: "🎯", costo: A.costo_tiro, poder: statCtrl(st, "tiro"), bloqueada: rend || !puedeT, motivo: !puedeT ? "LEJOS DEL ARCO" : (rend ? "SIN AGUANTE" : null) }
     ];

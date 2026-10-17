@@ -93,6 +93,7 @@ function partidoNuevo(rng) {
   var gam = acc.find(function (a) { return a.id === "gambeta"; }), pas = acc.find(function (a) { return a.id === "pase"; });
   ok(gam.bloqueada, "rendido: gambeta bloqueada");
   ok(!pas.bloqueada, "rendido: el pase sigue disponible");
+  ok(pas.n === "PASE" && !("submenu" in pas), "el pase es de un solo camino, sin submenú (pedido de Rodri del 17/oct)");
   /* E5: RECUPERACIÓN sin pelota — un compañero que no marca ni conduce respira */
   var st2 = partidoNuevo();
   st2.cooldown = 999999;
