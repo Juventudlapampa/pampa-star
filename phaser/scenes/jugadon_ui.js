@@ -16,31 +16,9 @@
       if (!this.st.fichas) this.st.fichas = window.PampaJugadon.fichasNuevas();
       return this.st.fichas;
     },
-    /* el botón EXTRA sobre el menú de cruz — fila 0 y fila 1 (V8 fix 1: las
-       fichas se OFRECEN SIEMPRE que queden, así que puede haber dos) */
-    botonJugadon(texto, sub, cb, fila) {
-      /* D1 · ESTABA EN y=66 Y y=118, o sea ARRIBA DE TODO, mientras el menú en
-         cruz de la misma pantalla vive en 352/405/458. En el mismo cuadro había
-         opciones arriba y abajo: era el caso más flagrante de O1, y el guardián
-         no lo veía porque busca coordenadas literales y acá la Y salía de una
-         cuenta.
-         Ahora las fichas son una FILA al pie de la franja de decisión, debajo
-         de la opción S del menú (458 + 25 de alto = 483). Dos fichas entran
-         lado a lado; nunca hubo más de dos. */
-      var P = window.PampaPiel, cfg = (this.game.registry.get("balance") || {}).piel;
-      var F = P ? P.franja(cfg) : { y1: 528 };
-      var y = Math.round(F.y1 - 24);
-      /* L09: a 13 px, con 248 de ancho entra "🌟 GAMBETA-TIRO (quedan 2)"
-         (213 medido con la tipografía); con 228 y a 10 px no se leía */
-      var col = (fila || 0), L = this.BAL.legibilidad, px = L.texto_decision_min + "px";
-      var ancho = 248, x = 480 + (col === 0 ? -(ancho / 2 + 6) : (ancho / 2 + 6));
-      var b = this.add.rectangle(x, y, ancho, 44, 0xffd84d, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      var t = this.encajarTexto(this.add.text(x, y - 9, texto, { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5), ancho - 2 * L.cruz.aire);
-      var s = this.encajarTexto(this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), ancho - 2 * L.cruz.aire);
-      this.menuLayer.add([b, t, s]);
-      var self = this;
-      b.on("pointerdown", function (p, x, y2, ev) { ev && ev.stopPropagation && ev.stopPropagation(); self._uiTocado = self.time.now; cb(); });
-    },
+    /* Pedido de Rodri del 17/oct: botonJugadon() (la fila de fichas debajo de
+       la cruz) se fue. Las fichas se ofrecen adentro de ★ ESPECIAL, que arma
+       match.js con el resto de lo especial. */
 
     /* ---- armado común de la plataforma (cancha ANCHA arriba, botones abajo) ---- */
     jugadonAbrir(titulo) {

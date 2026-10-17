@@ -326,7 +326,11 @@
          centra sobre el lienzo, que es donde está mirando el jugador. */
       var paso = 160, cuantos = 4;
       var xs = 480 - (paso * (cuantos - 1)) / 2;
-      this.defBoton(xs, "🎯 TIRO", A.costo_tiro + " de aguante", 0xffd84d, function () { self.defElegirTiro("remate", A.costo_tiro); });
+      /* Pedido de Rodri del 17/oct: el mismo orden que la cruz leída de
+         izquierda a derecha (PASE a la izquierda, TIRO a la derecha) y los
+         mismos nombres. Antes el TIRO iba primero y el PASE último: el mismo
+         botón cambiaba de punta según la pantalla. */
+      this.defBoton(xs, "➡ PASE", "salir del momento", 0xdcd6c2, function () { self.salirDefinicion(function () { self.iniciarPaseDirigido(null, true); }); });
       var alta = P.pelotaAltaVigente(st);
       if (alta) {
         var accA = P.accionesAereas(st);
@@ -335,10 +339,10 @@
         if (cab && !cab.bloqueada) this.defBoton(xs + paso, "🎯 CABEZA", cab.costo + " de aguante", 0xf6efdc, function () { self.defElegirTiro("cabezazo", cab.costo); });
         if (chi && !chi.bloqueada) this.defBoton(xs + paso * 2, "🌪 CHILENA", chi.costo + " · ¡la gloria!", 0xff8c3a, function () { self.defElegirTiro("chilena", chi.costo); });
       } else {
-        this.defBoton(xs + paso, "🌀 GAMBETA", A.costo_gambeta + " · saca a uno", 0xf6efdc, function () { self.defGambeta(); });
+        this.defBoton(xs + paso, "⚡ GAMBETA", A.costo_gambeta + " · saca a uno", 0xf6efdc, function () { self.defGambeta(); });
         this.defBoton(xs + paso * 2, "🔁 PARED", A.costo_pared + " · barata", 0xf6efdc, function () { self.defPared(); });
       }
-      this.defBoton(xs + paso * 3, "➡ PASE", "salir del momento", 0xdcd6c2, function () { self.salirDefinicion(function () { self.iniciarPaseDirigido(null, true); }); });
+      this.defBoton(xs + paso * 3, "🎯 TIRO", A.costo_tiro + " de aguante", 0xffd84d, function () { self.defElegirTiro("remate", A.costo_tiro); });
     },
     /* ============ V9 §6 · UNA DECISIÓN, NO UNA CHECKLIST ============
        Había cinco botones (PLANTARSE / BARRIDA / ACHICAR / LÍNEA / QUIETO):

@@ -694,8 +694,11 @@
       "W": [284, 395, 200, 46],
       "E": [676, 395, 200, 46],
       "C": [480, 395, 180, 46],
-      "aire": 6
+      "aire": 6,
+      "lista": { "x": [332, 628], "y": [340, 395, 450, 505], "w": 290, "h": 44 },
+      "pase": { "x": 845, "y0": 356, "paso": 50, "w": 200, "h": 40 }
     },
+    "_cruz_lista": "Pedido de Rodri del 17/oct: lista = la pantalla de ESPECIAL, dos columnas entre los retratos (que ocupan hasta x 178 y desde x 782) y hasta cuatro filas en las alturas de la cruz; la cuarta (y 505, con el canto termina en 534) es para VOLVER. pase = la columna de compañeros del PASE, a la derecha del mapa (que termina en x 728), debajo del ✕ (que termina en y 330).",
     "_cruz": "L09 · la cruz del partido, [x, y, ancho, alto] de cada opción (C = el centro: la carta o el especial). Medido contra lo que la rodea: los retratos van centrados en x 104 y 856 y su marco más ancho mide 147 (retrato_nelda, 1600x1542 a 132 de alto, +10), o sea que ocupan hasta x 178 y desde x 782; W y E dejan 6 de aire con ellos y con el centro. Arriba está el título (y 306, hasta y 317) y abajo la fila de las fichas del jugadón (y 482 a 526); cada botón vestido suma 7 de canto debajo (piel.canto_px), así que entre filas quedan 3. aire = el margen de cada lado para el texto adentro del botón. Antes eran 176x50 y el centro 150, con los rótulos a 10 px: el centro se montaba sobre PASE y TIRO."
   },
   "lectura": {

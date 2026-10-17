@@ -517,7 +517,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* V7 §1: el cine de 5 planos del megatiro también se saltea con un toque */
       if (this.estado === "CINE") { this._cineSkip && this._cineSkip(); return; }
       /* Anime A: sin radar, el PASE se toca DIRECTO sobre la cancha */
-      if (this._vista4 && this.estado === "PASE") { this.onCanchaTapPase(p); return; }
+      /* con la pantalla partida la cancha no se ve: ahí el pase se elige en el
+         mapa o en los botones, y un toque en el panel de arriba no pasa la
+         pelota a nadie (antes se la daba a quien estuviera más cerca de un punto
+         que no estaba a la vista) */
+      if (this.estado === "PASE") { if (this._vista4 && !this._split) this.onCanchaTapPase(p); return; }
       this.apuntar(p);
     });
     this.input.on("pointermove", (p) => { if (p.isDown && this._punteroListo) this.apuntar(p); });
@@ -1930,8 +1934,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const jx = Phaser.Math.Clamp((wx - xi - 16) / (this.V2.MUNDO_W - 2 * xi - 32), 0, 1) * this.st.W;
     return { x: this.fx(jx), y: t * this.st.H };   // V9 §10: la inversa también espeja
   }
-  /* PASE DIRIGIBLE sobre la cancha (Anime A): mismo criterio que el radar de la v2 —
-     receptor más cercano al toque; MÁS ALLÁ de él (hacia el arco) = AL VACÍO */
+  /* PASE sobre la cancha (Anime A): mismo criterio que el radar, el receptor
+     más cercano al toque */
   onCanchaTapPase(pointer) {
     if (this.time.now - (this._uiTocado || 0) < 80) return;
     const st = this.st;
@@ -1942,9 +1946,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const j = st.mios[r.idx], d = Math.hypot(j.x - w.x, j.y - w.y);
       if (d < md) { md = d; mejor = r; }
     });
-    if (!mejor) return;
-    const alVacio = mejor.adelante && w.x > st.mios[mejor.idx].x + 40;
-    this.confirmarPase(mejor, alVacio);
+    if (mejor) this.confirmarPase(mejor, false);
   }
   /* receptores marcados SOBRE la cancha: CUADRADO amarillo (grueso = elegido con teclado) */
   dibujarPaseCancha() {
@@ -1955,7 +1957,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const j = this.st.mios[r.idx], w = this.aRender(j.x, j.y);
       g.lineStyle(k === this._recSel ? 6 : 3, 0xffd84d, 1);
       g.strokeRect(w.x - 34, w.y - 34, 68, 68);
-      if (r.adelante) { g.lineStyle(3, 0xffffff, 0.9); g.strokeTriangle(w.x + 44, w.y - 8, w.x + 44, w.y + 8, w.x + 56, w.y); }   // ▶ = puede ir al vacío
     });
   }
 
@@ -2018,16 +2019,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       return;
     }
     if (this.estado === "PASE") {
-      /* PASE DIRIGIBLE (doc §7): tocás el destino en el radar. El receptor es el
-         más cercano al punto; si tocaste MÁS ALLÁ de él (hacia el arco), es AL VACÍO. */
+      /* PASE (doc §7): se la das al receptor más cercano al toque. El pase al
+         vacío ya no sale de tocar "más allá": vive en ★ ESPECIAL (pedido de
+         Rodri del 17/oct). */
       let mejor = null, md = 1e9;
       this._receptores.forEach(r => {
         const j = st.mios[r.idx], d = Math.hypot(j.x - w.x, j.y - w.y);
         if (d < md) { md = d; mejor = r; }
       });
-      if (!mejor) return;
-      const alVacio = mejor.adelante && w.x > st.mios[mejor.idx].x + 40;
-      this.confirmarPase(mejor, alVacio);
+      if (mejor) this.confirmarPase(mejor, false);
     } else if (this.estado === "LIBRE" && st.posesion === "rival") {
       /* en defensa: tap en el radar elige a quién controlás */
       let mejor = -1, md = 1e9;
@@ -2484,12 +2484,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.menuLayer.add(s ? [t, s] : [t]);
     };
     this._menuOps = {}; this._menuSel = null; this._menuBtns = {};
-    ["N", "S", "W", "E"].forEach(dir => {
-      const op = cfg.opciones[dir];
+    /* Pedido de Rodri del 17/oct: la pantalla de ESPECIAL (y cualquier menú de
+       más de cuatro cosas) no usa la cruz, usa la grilla de CZ.lista: dos
+       columnas, de arriba abajo. Si la última fila queda con una sola opción,
+       va al medio. */
+    const LI = CZ.lista;
+    const lugares = cfg.lista
+      ? cfg.lista.map((op, k) => {
+        const solo = k === cfg.lista.length - 1 && k % 2 === 0;
+        return ["L" + k, op, [solo ? 480 : LI.x[k % 2], LI.y[Math.floor(k / 2)], LI.w, LI.h]];
+      })
+      : ["N", "S", "W", "E"].map(dir => [dir, cfg.opciones[dir], CZ[dir]]);
+    const geo = {};
+    lugares.forEach(([dir, op, caja]) => {
       if (!op) return;
-      this._menuOps[dir] = op;
-      const [x, y, w, h] = CZ[dir];
-      const bg = op.bloqueada ? 0x333d36 : 0xf6efdc;
+      this._menuOps[dir] = op; geo[dir] = caja;
+      const [x, y, w, h] = caja;
+      const bg = op.bloqueada ? 0x333d36 : (op.fondo || 0xf6efdc);
       const r = this.add.rectangle(x, y, w, h, bg, 0.97).setStrokeStyle(2, 0x0a1f13);
       /* B2 · la apertura del menú también lleva anticipación y rebote */
       if (window.PampaFeel) window.PampaFeel.aparecer(this, r, { x: x, y: y, scale: 1, desdeX: 480 }, 2);
@@ -2525,8 +2536,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       c.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.centro.cb(); });
       centroRect = c;
     }
-    if (cfg.volver) {
-      this._menuVolver = cfg.volver;
+    /* en la grilla, VOLVER es una opción más de la lista (el ✕ de arriba a la
+       derecha se monta sobre el retrato del rival) */
+    if (cfg.volver) this._menuVolver = cfg.volver;
+    if (cfg.volver && !cfg.lista) {
       const v = this.add.rectangle(906, 306, 64, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
       const vt = this.add.text(906, 306, "✕", { fontFamily: window.PF.texto, fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([v, vt]);
@@ -2561,12 +2574,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          y medirlos ahora es medirlos en vuelo. Acá sabemos exactamente dónde
          van a quedar: balance.legibilidad.cruz. */
       const caja = ([bx, by, bw, bh]) => ({ x: bx - bw / 2, y: by - bh / 2, w: bw, h: bh });
-      ["N", "W", "E", "S"].forEach(dir => {
+      (cfg.lista ? Object.keys(geo) : ["N", "W", "E", "S"]).forEach(dir => {
         const r = this._menuBtns[dir], op = this._menuOps[dir];
         if (!r || !op) return;
         items.push({
           obj: r, bloqueada: !!op.bloqueada, motivo: op.motivo,
-          caja: caja(CZ[dir]),
+          caja: caja(geo[dir]),
           cb: () => { this._uiTocado = this.time.now; op.cb(); }, _dir: dir
         });
       });
@@ -2576,7 +2589,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       });
       if (items.length) {
         this.grupoFoco(items, {
-          inicial: 0, volver: cfg.volver || null,
+          /* el cursor arranca en la primera que se puede usar: sin rival, la
+             GAMBETA está rayada y no es donde uno tiene que estar parado */
+          inicial: Math.max(0, items.findIndex(it => !it.bloqueada)), volver: cfg.volver || null,
           /* `_menuSel` sigue existiendo y sigue al día: lo lee el teclado viejo
              y cualquier cosa que pregunte dónde está parado el jugador */
           alMover: (i, it) => { this._menuSel = (it && it._dir) || null; }
@@ -2598,11 +2613,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   teclasDeMenu() {
     if (!this.cursors) return;
     const JD = Phaser.Input.Keyboard.JustDown;
+    /* con el cursor puesto manda él: si los dos leen las flechas, cada
+       pulsación cuenta dos veces y el foco salta de a dos casilleros. El
+       camino viejo queda como red por si grupoFoco no está. */
+    if (this._foco && this._foco.vivo) return;
     if (this.estado === "MENU") {
-      /* con el cursor puesto manda él: si los dos leen las flechas, cada
-         pulsación cuenta dos veces y el foco salta de a dos casilleros. El
-         camino viejo queda como red por si grupoFoco no está. */
-      if (this._foco && this._foco.vivo) return;
       if (JD(this.cursors.left)) this.menuSeleccionar("W");
       if (JD(this.cursors.right)) this.menuSeleccionar("E");
       if (JD(this.cursors.up)) this.menuSeleccionar("N");
@@ -2614,12 +2629,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     } else if (this.estado === "PASE" && this._receptores) {
       if (JD(this.cursors.left)) { this._recSel = (this._recSel + this._receptores.length - 1) % this._receptores.length; }
       if (JD(this.cursors.right)) { this._recSel = (this._recSel + 1) % this._receptores.length; }
-      if (JD(this.keyEnter)) { this.confirmarPase(this._receptores[this._recSel], false); return; }   // confirmado: no evaluar más teclas
-      if (JD(this.cursors.up)) { const r = this._receptores[this._recSel]; if (r && r.adelante) this.confirmarPase(r, true); }
+      if (JD(this.keyEnter)) this.confirmarPase(this._receptores[this._recSel], false);
     }
   }
 
   /* --- los menús por situación (doc §7) --- */
+  /* ══════════════════════════════════════════════════════════════════════
+     PEDIDO DE RODRI DEL 17/OCT: "están mezclados el pase y el no pase, hay
+     muchos botones de acciones cuando debería ser un sistema intuitivo".
+
+     Medido en la cruz de un duelo a nivel 3: seis botones, y dos de las
+     cuatro acciones de siempre ya no estaban — la GAMBETA se había vuelto
+     MEGACORRIDA y el UNO-DOS COMBINADA en su mismo lugar, el centro era la
+     carta, y abajo había una fila más con GAMBETA-TIRO. Sin rival, la
+     GAMBETA decía "seguís corriendo": el botón de encarar era el de NO hacer
+     nada, y el PASE abría un modo donde tocar más allá de quien recibía era
+     otro pase (AL VACÍO).
+
+     Ahora las cuatro de siempre están SIEMPRE en el mismo lugar y con el
+     mismo nombre: GAMBETA arriba, PASE a la izquierda, TIRO a la derecha,
+     PARED abajo. Lo que no se puede usar se ve rayado y dice por qué. Todo lo
+     especial va junto atrás de un solo botón, ★ ESPECIAL, en el centro, que
+     aparece solo cuando hay algo para usar. Seguir corriendo es el ✕.
+     ══════════════════════════════════════════════════════════════════════ */
   abrirMenuAtaque(rivalIdx, libre) {
     const st = this.st, P = window.PampaPartido;
     const rival = rivalIdx != null ? st.rivales[rivalIdx] : null;
@@ -2629,97 +2661,89 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st), this.BAL.duelo) * 100);
     const megaListo = this.megaDisponible(), puedeT = P.puedeTirar(st);
     const gam = A("gambeta"), par = A("pared"), tir = A("tiro");
+    const receptores = P.receptoresPase(st);
+    const izq = { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante };
+    const der = rival ? { j: rival, aguante: st.aguanteRival } : null;
+    const F = this.jugadonFichas ? this.jugadonFichas() : null;
+
+    /* lo especial, en el orden en que se lee la grilla */
+    const especiales = [];
+    if (megaListo && F && F.tiros > 0) {
+      /* N2 · EL AVISO: si te tienen leído el especial, se dice ACÁ, cuando lo
+         estás por elegir, no después de que falle */
+      const leido = this.avisoLectura(megaListo.id);
+      especiales.push({
+        texto: "🔥 " + megaListo.n.toUpperCase(),
+        sub: (leido ? leido + " · " : "") + "ficha de tiro · quedan " + F.tiros,
+        cb: () => {
+          if (!window.PampaJugadon.gastarFicha(F, "tiros")) return;
+          this.entrarJugadonGambeta(rivalIdx, { mega: megaListo, marcadores: 3 });
+        }
+      });
+    }
+    if (F && F.gambetas > 0) {
+      especiales.push({
+        texto: "🌟 GAMBETA-TIRO (quedan " + F.gambetas + ")", sub: "encarás y definís de frente al arco",
+        cb: () => { if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx, { marcadores: 2 }); }
+      });
+    }
+    const corrida = !libre && !gam.bloqueada ? this.secuenciaDisponible("megacorrida") : null;
+    if (corrida) especiales.push({ texto: "🌠 MEGACORRIDA", sub: corrida.costo + " aguante · los dejás atrás", cb: () => this.secuenciaMegacorrida() });
+    const combinada = !par.bloqueada ? this.secuenciaDisponible("combinada") : null;
+    if (combinada) especiales.push({ texto: "🤝 COMBINADA", sub: combinada.costo + " aguante · él define", cb: () => this.secuenciaCombinada() });
+    const carta = this.centroDeCarta ? this.centroDeCarta("ataque", () => {
+      const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "ataque");
+      if (!c) { this.reanudarLibre(); return; }
+      if (c.efecto === "poder_tiro" || c.efecto === "zona_segura") this.resolverTiro(false, rivalIdx, libre);
+      else if (c.efecto === "pase_seguro" || c.efecto === "pase_largo") this.iniciarPaseDirigido(rivalIdx, libre);
+      else this.reanudarLibre();
+    }) : null;
+    if (carta) especiales.push(carta);
+    /* el pase al vacío era un segundo modo escondido adentro del PASE (tocar
+       más allá del compañero); ahora es una opción con nombre */
+    const alVacio = receptores.find(r => r.adelante);
+    if (alVacio) {
+      especiales.push({
+        texto: "➡ PASE AL VACÍO",
+        sub: "a " + (st.mios[alVacio.idx].nombre || "").toUpperCase() + " · ~" + Math.max(10, alVacio.pct - this.BAL.partido.vacio_penal) + "% · deja vendido al arquero",
+        cb: () => this.confirmarPase(alVacio, true)
+      });
+    }
+
+    const volverCruz = () => this.abrirMenuAtaque(rivalIdx, libre);
+    const listos = especiales.filter(o => !o.bloqueada).length;
     this.abrirMenuCruz({
-      titulo: rival ? "⚔ ¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés?",
-      izq: { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante },
-      der: rival ? { j: rival, aguante: st.aguanteRival } : null,
+      titulo: rival ? "⚔ ¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ = seguir corriendo)",
+      izq, der,
       opciones: {
-        W: { texto: "➡ PASE", sub: "elegí destino en el radar", cb: () => this.iniciarPaseDirigido(rivalIdx, libre) },
-        N: (() => {
-          /* V6 §3.4, cableada recién en C4: igual que el uno-dos crece a
-             COMBINADA en el sur, la gambeta crece a MEGACORRIDA acá. Estaba
-             implementada entera (secuenciaMegacorrida, con sus tres perillas en
-             balance.secuencias) pero NADIE se la pedía nunca: el único llamador
-             de secuenciaDisponible() preguntaba solo por "combinada", así que
-             la rama "megacorrida" de esa misma función era inalcanzable. Lo
-             cazó la auditoría de huérfanos; no era código muerto, era un cable
-             suelto — una función declarada hecha que nunca se pudo ver jugando. */
-          const sec = !libre ? this.secuenciaDisponible("megacorrida") : null;
-          if (sec && !gam.bloqueada) {
-            return { texto: "🌠 MEGACORRIDA", sub: sec.costo + " aguante · los dejás atrás", cb: () => this.secuenciaMegacorrida() };
-          }
-          return {
-            texto: "⚡ GAMBETA", sub: libre ? "seguís corriendo" : "~" + pct(gam) + "% · " + gam.costo + " aguante", bloqueada: !libre && gam.bloqueada, motivo: gam.motivo,
-            cb: () => libre ? this.reanudarLibre() : this.resolverAccionAtaque(gam, rivalIdx)
-          };
-        })(),
-        S: (() => {
-          /* V6 §3.4: con la progresión, el uno-dos crece a JUGADA COMBINADA (el compa define) */
-          const sec = this.secuenciaDisponible("combinada");
-          if (sec && !par.bloqueada) return { texto: "🤝 COMBINADA", sub: sec.costo + " aguante · él define", cb: () => this.secuenciaCombinada() };
-          return { texto: "🔁 UNO-DOS", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) };
-        })(),
+        N: {
+          texto: "⚡ GAMBETA", sub: "~" + pct(gam) + "% · " + gam.costo + " aguante",
+          bloqueada: libre || gam.bloqueada, motivo: libre ? "nadie te marca" : gam.motivo,
+          cb: () => this.resolverAccionAtaque(gam, rivalIdx)
+        },
+        W: {
+          texto: "➡ PASE", sub: "elegís a quién", bloqueada: !receptores.length, motivo: "SIN COMPAÑERO CERCA",
+          cb: () => this.iniciarPaseDirigido(rivalIdx, libre)
+        },
+        S: { texto: "🔁 PARED", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
         E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
-      /* C3 · LAS TRES OPCIONES DE REMATE, no cuatro ni cinco:
-           TIRO (E, normal) · MEGATIRO (centro) · GAMBETA-TIRO (botón de arriba).
-         El MEGATIRO es la secuencia épica completa: corrida vertical en
-         perspectiva + remate con la mega animación. Gasta ficha de tiro. */
-      centro: (() => {
-        const F = this.jugadonFichas ? this.jugadonFichas() : null;
-        /* D1 · si el megatiro no está disponible, el centro es TU CARTA de
-           ataque. No compiten: el megatiro es la secuencia del jugadón (gasta
-           ficha y te lleva a otra pantalla) y la carta es un golpe adentro de
-           este menú. Cuando están los dos, manda el megatiro, que es el más
-           raro de ver. */
-        if ((!megaListo || !F || F.tiros <= 0) && this.centroDeCarta) {
-          const cc = this.centroDeCarta("ataque", () => {
-            const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "ataque");
-            if (!c) { this.reanudarLibre(); return; }
-            if (c.efecto === "poder_tiro") this.resolverTiro(false, rivalIdx, libre);
-            else if (c.efecto === "zona_segura") this.resolverTiro(false, rivalIdx, libre);
-            else if (c.efecto === "pase_seguro" || c.efecto === "pase_largo") this.iniciarPaseDirigido(rivalIdx, libre);
-            else this.reanudarLibre();
-          });
-          if (cc) return cc;
-        }
-        if (!megaListo || !F || F.tiros <= 0) return null;
-        /* N2 · EL AVISO. Lo que hace que la adaptación sea una decisión y no
-           una trampa: si te tienen leído el especial, lo decimos ACÁ, cuando
-           lo estás por elegir, no después de que falle. */
-        const leido = this.avisoLectura(megaListo.id);
-        return {
-          /* L09: el nombre entero (cortado a 15 letras quedaba "DISPARO DEL
-             CAL"); si no entra, encajarTexto le saca el ícono. Si te tienen
-             leído, eso va primero: es lo último que se recorta */
-          texto: "🔥 " + megaListo.n.toUpperCase(),
-          sub: (leido ? leido + " · " : "") + "ficha de tiro · quedan " + F.tiros,
-          cb: () => {
-            if (!window.PampaJugadon.gastarFicha(F, "tiros")) return;
-            this.entrarJugadonGambeta(rivalIdx, { mega: megaListo, marcadores: 3 });
-          }
-        };
-      })(),
+      centro: listos ? {
+        texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
+        cb: () => this.abrirMenuCruz({
+          titulo: "★ ESPECIAL: elegí uno (VOLVER = a las cuatro de siempre)",
+          izq, der,
+          lista: especiales.concat([{ texto: "✕ VOLVER", sub: "gambeta, pase, pared o tiro", fondo: 0xdcd6c2, cb: volverCruz }]),
+          volver: volverCruz
+        })
+      } : null,
       volver: libre ? () => this.reanudarLibre() : null
     });
-    /* V8 fix 1 (auditoría de Rodri): las FICHAS se OFRECEN SIEMPRE que queden
-       — el recurso épico no depende del momento justo, no del momento ideal.
-
-       C4 · CORRECCIÓN DE ESTE COMENTARIO. Decía "pueden verse los DOS botones"
-       (gambeta y súper tiro) y hace rato que es UNO solo: el súper tiro suelto
-       se retiró en C3 —rematar sin encarar ya es el TIRO normal— y en V9 §5 se
-       le sacó la grilla de zonas. Un comentario que describe una pantalla que
-       no existe manda a buscar bugs donde no hay ninguno. */
-    /* C3 · la única ficha que se ofrece acá: GAMBETA-TIRO (encarar y definir). */
-    if (this.botonJugadon && this.jugadonFichas) {
-      const F = this.jugadonFichas();
-      if (F.gambetas > 0) {
-        this.botonJugadon("🌟 GAMBETA-TIRO (quedan " + F.gambetas + ")", "encarás y definís de frente al arco", () => {
-          if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx, { marcadores: 2 });
-        }, 0);
-      }
-    }
   }
+  /* En defensa, las tres de siempre en el lugar de la acción que le ganan:
+     QUITE arriba (le gana a la gambeta), CORTE a la izquierda (al pase),
+     BLOQUEO a la derecha (al tiro). Las megadefensas, la carta, el SÚPER
+     QUITE y el NO MOVERSE van atrás de ★ ESPECIAL. */
   abrirMenuDefensa() {
     const st = this.st, P = window.PampaPartido;
     const rival = st.rivales[st.portadorRival];
@@ -2729,73 +2753,62 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st) + 4, this.BAL.duelo) * 100);
     const qui = A("quite"), cor = A("corte"), blo = A("bloqueo");
     const sub = a => a.bloqueada ? null : "~" + pct(a) + "% · " + a.costo + " aguante";
-    /* el slot sube a MEGADEFENSA si hay una de ese tipo y la acción base no
-       está bloqueada; si no, queda la acción de siempre, igual que antes */
     const yo = st.mios[st.ctrl];
-    const megaDe = (tipo, base, texto) => {
-      const mg = this.megaDefensaDisponible([tipo], yo);
-      if (!mg || base.bloqueada) return { texto, sub: sub(base), bloqueada: base.bloqueada, motivo: base.motivo, cb: () => this.resolverAccionDefensa(base) };
-      return {
+    /* §6 literal: ATACANTE a la izquierda, defensor a la derecha */
+    const izq = { j: rival, esRival: true, aguante: st.aguanteRival };
+    const der = { j: yo, esRival: false, aguante: yo.aguante };
+
+    const especiales = [];
+    /* las MEGADEFENSAS (¡PAMPERO! es de quite, ¡MÉDANO! de bloqueo): cada una
+       con su acción de base, y solo si esa acción no está bloqueada */
+    [[this.megaDefensaDisponible(["quite"], yo), qui], [this.megaDefensaDisponible(["bloqueo"], yo), blo]].forEach(([mg, base]) => {
+      if (!mg || base.bloqueada) return;
+      especiales.push({
         texto: "🔥 " + mg.n.toUpperCase(),
         sub: mg.aguante + " aguante · +" + mg.bonus + " de poder",
         cb: () => this.cutInEspecial("¡" + mg.n.toUpperCase() + "!", mg.grito,
           () => this.resolverAccionDefensa({ id: base.id, poder: base.poder + mg.bonus, costo: mg.aguante }), yo, false)
-      };
-    };
+      });
+    });
+    /* D1 · la carta pregunta "¿quién sos?": el defensor tiene LA BARRIDA, el
+       volante LA PRESIÓN, y el delantero ninguna de recuperación. Elegir a
+       quién le pasás sigue significando algo. */
+    const carta = this.centroDeCarta ? this.centroDeCarta("recuperacion", () => {
+      const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "recuperacion");
+      const base = (c && c.efecto === "bonus_atajada") ? blo : qui;
+      this.resolverAccionDefensa({ id: base.id, poder: base.poder + ((c && c.valor) || 20), costo: 0 });
+    }) : null;
+    if (carta) especiales.push(carta);
+    /* V8 §3: el SÚPER QUITE del jugadón (ficha defensiva) */
+    const F = this.jugadonFichas ? this.jugadonFichas() : null;
+    if (F && F.quites > 0) {
+      especiales.push({
+        texto: "🌟 SÚPER QUITE (quedan " + F.quites + ")", sub: "leé su movida y cerrale el camino",
+        cb: () => { if (window.PampaJugadon.gastarFicha(F, "quites")) this.entrarJugadonQuite(); }
+      });
+    }
+    especiales.push({ texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", cb: () => this.resolverNoMoverse() });
+
+    const volverCruz = () => this.abrirMenuDefensa();
+    const listos = especiales.filter(o => !o.bloqueada).length;
     this.abrirMenuCruz({
       titulo: "🛡 ¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
-      /* §6 literal: ATACANTE a la izquierda, defensor a la derecha */
-      izq: { j: rival, esRival: true, aguante: st.aguanteRival },
-      der: { j: st.mios[st.ctrl], esRival: false, aguante: st.mios[st.ctrl].aguante },
+      izq, der,
       opciones: {
+        N: { texto: "🦶 QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
         W: { texto: "✂ CORTE", sub: sub(cor), bloqueada: cor.bloqueada, motivo: cor.motivo, cb: () => this.resolverAccionDefensa(cor) },
-        /* ══════════════════════════════════════════════════════════════════
-           LAS MEGADEFENSAS TENÍAN DATOS, GRITO, BONUS Y NIVEL — Y NINGUNA PUERTA.
-
-           En D1 el centro de esta cruz dejó de ser el SUPERBLOQUEO y pasó a ser
-           TU CARTA, con buen motivo. Pero ahí se quedaron sin llamador ¡PAMPERO!
-           (tipo quite) y ¡MÉDANO! (tipo bloqueo): el único sitio de todo el
-           juego que preguntaba por megaDefensaDisponible era la definición, y
-           preguntaba por "atajada". Dos de las tres, invisibles para siempre, y
-           encima escondidas atrás del nivel clavado en 1.
-
-           No vuelven al centro — la carta se lo ganó. SUBEN de nivel el mismo
-           slot, que es el idioma que ya usa el ataque: la gambeta crece a
-           MEGACORRIDA y el uno-dos a COMBINADA en su propio lugar de la cruz.
-           ══════════════════════════════════════════════════════════════════ */
-        N: megaDe("quite", qui, "🦶 QUITE"),
-        E: megaDe("bloqueo", blo, "🧱 BLOQUEO"),
-        S: { texto: "⏳ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", cb: () => this.resolverNoMoverse() }
+        E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) }
       },
-      /* ══════════════════════════════════════════════════════════════════
-         D1 · ACÁ ESTABA EL SUPERBLOQUEO Y AHORA ESTÁ TU CARTA.
-
-         La megadefensa preguntaba "¿tenés nivel y aguante?" — o sea, era del
-         EQUIPO, y el puesto del que controlabas no decía nada. La carta
-         pregunta "¿quién sos?": el defensor tiene LA BARRIDA, el volante LA
-         PRESIÓN, el arquero LA TRANQUERA, y el delantero no tiene ninguna de
-         recuperación, así que defendiendo con él el centro queda vacío.
-
-         Eso último no es una falta, es el punto entero: si querés la barrida,
-         tenés que estar en el defensor. Elegir a quién le pasás pasa a
-         significar algo.
-
-         El mismo lugar, otra ley. Es el centro de la cruz de siempre. */
-      centro: this.centroDeCarta ? this.centroDeCarta("recuperacion", () => {
-        const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "recuperacion");
-        const base = (c && c.efecto === "bonus_atajada") ? blo : qui;
-        this.resolverAccionDefensa({ id: base.id, poder: base.poder + ((c && c.valor) || 20), costo: 0 });
-      }) : null
+      centro: listos ? {
+        texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
+        cb: () => this.abrirMenuCruz({
+          titulo: "★ ESPECIAL: elegí uno (VOLVER = quite, corte o bloqueo)",
+          izq, der,
+          lista: especiales.concat([{ texto: "✕ VOLVER", sub: "quite, corte o bloqueo", fondo: 0xdcd6c2, cb: volverCruz }]),
+          volver: volverCruz
+        })
+      } : null
     });
-    /* V8 §3: el SÚPER QUITE del jugadón (ficha defensiva) */
-    if (this.botonJugadon && this.jugadonFichas) {
-      const F = this.jugadonFichas();
-      if (F.quites > 0) {
-        this.botonJugadon("🌟 SÚPER QUITE (quedan " + F.quites + ")", "leé su movida y cerrale el camino", () => {
-          if (window.PampaJugadon.gastarFicha(F, "quites")) this.entrarJugadonQuite();
-        });
-      }
-    }
   }
   /* qué MEGADEFENSA está disponible para ese jugador (data + nivel + aguante) */
   megaDefensaDisponible(tipos, j) {
@@ -5071,7 +5084,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return ok;
   }
 
-  /* --- PASE dirigido tocando el radar (doc §7/§8) --- */
+  /* --- PASE: elegís a quién, en una sola pantalla (doc §7/§8) ---
+     Pedido de Rodri del 17/oct. Antes el pase era un modo con dos pases
+     adentro: tocabas el mapa y, según si el dedo caía antes o "más allá" de un
+     compañero, salía un pase al pie o uno AL VACÍO. Los receptores eran un
+     cuadradito de 18 px adentro de una ficha de 26, o sea que no se veían, y
+     no había ningún nombre en pantalla. Ahora cada camiseta que puede
+     recibir tiene su botón con número, nombre y chance, y su ficha en el mapa
+     lleva un cuadrado que se ve; tocar uno u otro es lo mismo. El pase al
+     vacío es una opción con nombre adentro de ★ ESPECIAL. */
   iniciarPaseDirigido(rivalIdx, libre) {
     const st = this.st, P = window.PampaPartido;
     const rs = P.receptoresPase(st);
@@ -5080,25 +5101,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.estado = "PASE";
     this.apartarTicker();   // L04b: la ayuda del pase va en la franja del ticker
     this._receptores = rs; this._recSel = 0;
-    this._paseOrigen = { rivalIdx, libre };
     /* V7-1: el destino del pase se toca EN EL MAPA; sin split, sobre la cancha */
     const hx = this._split ? this.radar.x + this.radar.w / 2 : (this._vista4 ? 480 : this.radar.x + this.radar.w / 2);
     const hy = this._split ? this.radar.y - 14 : (this._vista4 ? 528 : this.radar.y - 26);
     /* textos-tactiles: en el teléfono, a quién se la pasás y nada de teclas.
        L09: a 13 px, que es la ayuda de una decisión (iba a 10) */
     const dondeToca = this._split ? "en el mapa" : (this._vista4 ? "sobre la cancha" : "en el radar");
+    const px = this.BAL.legibilidad.texto_decision_min + "px";
     const hint = this.add.text(hx, hy,
       this.sys.game.device.input.touch
-        ? "➡ PASE: tocá " + dondeToca + " a quién se la pasás · más allá de un compañero, AL VACÍO"
-        : this._split
-          ? "➡ PASE: tocá el DESTINO en el MAPA (□ = receptores; más allá = AL VACÍO · ◄► + ENTER, ▲ = al vacío, ESC = volver)"
-          : this._vista4
-            ? "➡ PASE: tocá el DESTINO sobre la cancha (□ = receptores; más allá = AL VACÍO · ◀▶ + ENTER, ▲ = al vacío, ESC = volver)"
-            : "➡ PASE: tocá el DESTINO en el radar\n(más allá del receptor = AL VACÍO · teclado: ◀▶ + ENTER, ▲ = al vacío, ESC = volver)",
-      { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
-    this._paseCancelar = () => {
-      if (this._paseOrigen.libre) this.reanudarLibre(); else this.abrirMenuAtaque(this._paseOrigen.rivalIdx, false);
-    };
+        ? "➡ PASE: tocá " + dondeToca + " a quién se la pasás, o su botón"
+        : "➡ PASE: ▲▼ elegís a quién · ENTER se la pasás · ESC vuelve (o tocalo " + dondeToca + ")",
+      { fontFamily: window.PF.texto, fontSize: px, color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
+    this._paseCancelar = () => this.abrirMenuAtaque(rivalIdx, libre);
     const cx = this._vista4 ? 906 : this.radar.x + this.radar.w + 36;
     const cy = this._vista4 ? 306 : this.radar.y + 24;
     const cancel = this.add.rectangle(cx, cy, 56, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
@@ -5108,6 +5123,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
       this._paseCancelar && this._paseCancelar();
     });
+    /* la columna de compañeros: balance.legibilidad.cruz.pase */
+    const CP = this.BAL.legibilidad.cruz.pase, aire = this.BAL.legibilidad.cruz.aire;
+    const items = rs.map((r, k) => {
+      const j = st.mios[r.idx], y = CP.y0 + k * CP.paso;
+      const b = this.add.rectangle(CP.x, y, CP.w, CP.h, 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
+      const t = this.encajarTexto(this.add.text(CP.x, y - 9, j.numero + " " + (j.nombre || "").toUpperCase(), { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5), CP.w - 2 * aire);
+      const s = this.encajarTexto(this.add.text(CP.x, y + 10, "~" + r.pct + "% · " + (r.adelante ? "más adelante" : "de apoyo"), { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), CP.w - 2 * aire);
+      this.menuLayer.add([b, t, s]);
+      const cb = () => { this._uiTocado = this.time.now; this.confirmarPase(r, false); };
+      b.on("pointerdown", (p, x, y2, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
+      return { obj: b, cb, caja: { x: CP.x - CP.w / 2, y: y - CP.h / 2, w: CP.w, h: CP.h } };
+    });
+    /* ESC lo atiende alAtras (_paseCancelar): el cursor no registra el suyo */
+    if (this.grupoFoco) this.grupoFoco(items, { inicial: 0, alMover: (i) => { this._recSel = i; } });
     this.selloMenu();
   }
   /* ============ FEEL B4 · LA TENSIÓN DEL PASE: nunca más instantáneo ============ */
@@ -5445,12 +5474,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (i === st.ctrl) { g.lineStyle(3, 0xffffff, 1); g.strokeCircle(x, y, RF + 3.5); }
       this.radarNumsMios[i].setPosition(x, y);
     });
-    /* apuntando el pase: CUADRADO (forma) alrededor de cada receptor; grueso = elegido con teclado */
+    /* apuntando el pase: CUADRADO (forma) alrededor de cada receptor; grueso =
+       el del botón enfocado. Medía 18 de lado alrededor de una ficha de 26:
+       quedaba ADENTRO de la ficha y no se veía (pedido de Rodri del 17/oct) */
     if (this.estado === "PASE" && this._receptores) {
       this._receptores.forEach((r, k) => {
-        const j = st.mios[r.idx], x = mx(j.x), y = my(j.y);
-        g.lineStyle(k === this._recSel ? 3 : 1.5, 0xffd84d, 1);
-        g.strokeRect(x - 9, y - 9, 18, 18);
+        const j = st.mios[r.idx], x = mx(j.x), y = my(j.y), lado = 2 * RF + 10;
+        g.lineStyle(k === this._recSel ? 5 : 2.5, 0xffd84d, 1);
+        g.strokeRect(x - lado / 2, y - lado / 2, lado, lado);
       });
     }
     /* pelota: ROMBO blanco con borde negro, arriba de todo */

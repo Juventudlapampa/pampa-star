@@ -76,10 +76,19 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   var init = MATCH.slice(MATCH.indexOf("  init() {"), MATCH.indexOf("  create() {"));
   assert(/_cartas = null/.test(init), "D1: las cartas se reinician en init() o llegan gastadas al partido siguiente");
 
-  /* el superbloqueo se fue del centro de la cruz */
-  assert(/centro: this\.centroDeCarta/.test(MATCH),
-    "D1: el centro del menú de defensa tiene que ser la carta, no la megadefensa");
-  console.log("[1] D1 · 2 cartas por puesto · el delantero no recupera · recarga en minutos · el centro es la carta");
+  /* el superbloqueo se fue del centro de la cruz.
+     Pedido de Rodri del 17/oct ("hay muchos botones de acciones cuando
+     debería ser un sistema intuitivo"): el centro de las dos cruces pasó a
+     ser ★ ESPECIAL, que junta la carta con el resto de lo especial. Lo que se
+     sigue exigiendo de D1 es que la carta esté ahí adentro, en ataque y en
+     defensa, y que la megadefensa no vuelva a ser el centro. */
+  var ataque = MATCH.slice(MATCH.indexOf("  abrirMenuAtaque(rivalIdx, libre) {"), MATCH.indexOf("  abrirMenuDefensa() {"));
+  var defensa = MATCH.slice(MATCH.indexOf("  abrirMenuDefensa() {"), MATCH.indexOf("\n  megaDefensaDisponible("));
+  assert(/this\.centroDeCarta\("ataque"/.test(ataque) && /this\.centroDeCarta\("recuperacion"/.test(defensa),
+    "D1: la carta tiene que estar en ★ ESPECIAL, en ataque y en defensa");
+  assert(/centro: listos \? \{\s*texto: "★ ESPECIAL"/.test(defensa) && !/centro: this\.megaDefensa/.test(defensa),
+    "D1: el centro del menú de defensa es ★ ESPECIAL, no la megadefensa");
+  console.log("[1] D1 · 2 cartas por puesto · el delantero no recupera · recarga en minutos · la carta está en ★ ESPECIAL");
 })();
 
 /* ---------- [2] D1 · CADA CARTA TIENE SU MOMENTO, Y SU POSE EXISTE ---------- */

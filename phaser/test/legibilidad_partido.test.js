@@ -24,6 +24,12 @@
      [5] el contraste del motivo bloqueado: 4,5:1 o más, también con protanopía
      [6] la Definición y el jugadón: sus botones a 13 px o más
 
+   Pedido de Rodri del 17/oct ("hay muchos botones de acciones"): lo
+   especial (el megatiro, las fichas del jugadón, la megacorrida, la
+   combinada, las megadefensas, la carta) salió de la cruz y vive atrás de
+   ★ ESPECIAL, en una grilla propia. Por eso se suman dos situaciones que
+   abren esa grilla tocando el centro, y [4] busca GAMBETA-TIRO ahí.
+
    Corré:  node phaser/test/legibilidad_partido.test.js
    ========================================================================== */
 "use strict";
@@ -74,6 +80,12 @@ function escena() {
   s.cameras.main.ignore = function () { };
   return E;
 }
+/* el botón del centro de la cruz (★ ESPECIAL), para abrir la grilla */
+function centro(s) {
+  return s.menuLayer.list.filter(function (o) {
+    return o.type === "Rectangle" && !o.destruido && o.input && o.input.enabled && o.x === CZ.C[0] && o.y === CZ.C[1] && o.width === CZ.C[2];
+  })[0];
+}
 function vos(s) { return s.st.mios.findIndex(function (j) { return j.pos === "ATA"; }); }
 
 /* las cajas de lo que se ve en la capa del menú */
@@ -115,6 +127,16 @@ var SITUACIONES = [
     s._nivelCarrera = 5;
     s.abrirMenuDefensa();
   } },
+  { n: "ataque en el área, nivel 5, ★ ESPECIAL abierto", armar: function (s, E) {
+    SITUACIONES[0].armar(s);
+    assert(!!centro(s), "la cruz de ataque con algo especial disponible tiene ★ ESPECIAL en el centro");
+    E.tocar(centro(s));
+  } },
+  { n: "defensa, nivel 5, ★ ESPECIAL abierto", armar: function (s, E) {
+    SITUACIONES[2].armar(s);
+    assert(!!centro(s), "la cruz de defensa tiene ★ ESPECIAL en el centro");
+    E.tocar(centro(s));
+  } },
   { n: "defensa rendida: la carta pide aguante", armar: function (s) {
     var st = s.st, i = st.mios.findIndex(function (j) { return j.pos === "DEF"; });
     st.ctrl = i; st.posesion = "rival"; st.portadorRival = 9; st.mios[i].aguante = 30;
@@ -126,7 +148,7 @@ var SITUACIONES = [
 var vistos = [], chicos = [], afuera = [], pisados = [], fueraLienzo = [], gambetaTiro = null, bloqueados = 0;
 SITUACIONES.forEach(function (sit) {
   var E = escena(), s = E.s;
-  sit.armar(s);
+  sit.armar(s, E);
   var T = textos(s), C = cajas(s);
   /* [1] el tamaño */
   T.forEach(function (t) {
@@ -160,25 +182,27 @@ SITUACIONES.forEach(function (sit) {
   if (sit.n.indexOf("rendido") >= 0) bloqueados += s.menuLayer.list.filter(function (o) { return o.type === "Graphics"; }).length;
 });
 
-assert(vistos.length > 40, "se armaron las cuatro cruces (" + vistos.length + " textos)");
+assert(vistos.length > 40, "se armaron las cuatro cruces y las dos grillas de ★ ESPECIAL (" + vistos.length + " textos)");
 assert(chicos.length === 0, "ningún texto de la cruz baja de " + PISO + " px:\n     " + chicos.join("\n     "));
-console.log("[1] " + vistos.length + " textos en 4 cruces, todos a " + PISO + " px o más");
+console.log("[1] " + vistos.length + " textos en 4 cruces y 2 grillas, todos a " + PISO + " px o más");
 assert(afuera.length === 0, "cada rótulo entra en su botón:\n     " + afuera.join("\n     "));
 console.log("[2] cada rótulo adentro de su botón, con " + CZ.aire + " de aire de cada lado");
 assert(pisados.length === 0, "SÍNTOMA DEL FOGONAZO ENCIMA DE PASE Y TIRO: botones o retratos que se pisan:\n     " + pisados.join("\n     "));
 assert(fueraLienzo.length === 0, "nada se sale del lienzo de 960x540:\n     " + fueraLienzo.join("\n     "));
 console.log("[3] ni los botones ni los retratos se pisan (con el canto de " + CANTO + " px), todo en el lienzo");
-assert(!!gambetaTiro, "la cruz de ataque ofrece \"🌟 GAMBETA-TIRO (quedan 2)\"");
+assert(!!gambetaTiro, "★ ESPECIAL ofrece \"🌟 GAMBETA-TIRO (quedan 2)\"");
 if (gambetaTiro) {
   assert(gambetaTiro.t.text === "🌟 GAMBETA-TIRO (quedan 2)" && adentro(gambetaTiro.b, gambetaTiro.caja, CZ.aire),
     "\"🌟 GAMBETA-TIRO (quedan 2)\" entra ENTERA (" + Math.round(gambetaTiro.t.width) + " en " + Math.round(gambetaTiro.caja.x1 - gambetaTiro.caja.x0 - 2 * CZ.aire) + ")");
   console.log("[4] \"🌟 GAMBETA-TIRO (quedan 2)\": " + Math.round(gambetaTiro.t.width) + " px en un botón que deja " + Math.round(gambetaTiro.caja.x1 - gambetaTiro.caja.x0 - 2 * CZ.aire));
 }
 /* lo que se recorta para que entre: nunca una palabra a la mitad, y la
-   lectura del rival ("👁👁👁 te la vieron toda") queda con sus ojos */
-assert(vistos.indexOf("TORNADO PAMPEANO") >= 0 && !vistos.some(function (t) { return /DISPARO DEL CAL$|TORNADO PAMPE$/.test(t); }),
+   lectura del rival ("👁👁👁 te la vieron toda") queda con sus ojos. Desde el
+   17/oct el botón de ★ ESPECIAL mide 290 y no 180: ahora entran el ícono y
+   el costo, y lo que se pide es lo mismo, el nombre entero y los ojos. */
+assert(vistos.some(function (t) { return /^(🔥 )?TORNADO PAMPEANO$/.test(t); }) && !vistos.some(function (t) { return /DISPARO DEL CAL$|TORNADO PAMPE$/.test(t); }),
   "el especial va con su nombre entero (sin el ícono si no entra), no cortado a 15 letras");
-assert(vistos.indexOf("👁👁👁 te la vieron toda") >= 0, "si te tienen leído, el centro lo dice con los ojos y la palabra (" + vistos.filter(function (t) { return /vieron|leído|ficha/.test(t); }).join(" | ") + ")");
+assert(vistos.some(function (t) { return t.indexOf("👁👁👁 te la vieron toda") === 0; }), "si te tienen leído, ★ ESPECIAL lo dice con los ojos y la palabra (" + vistos.filter(function (t) { return /vieron|leído|ficha/.test(t); }).join(" | ") + ")");
 assert(bloqueados >= 3, "las opciones bloqueadas llevan el rayado dibujado (" + bloqueados + " de 3)");
 assert(!vistos.some(function (t) { return /▨/.test(t); }), "el bloqueo no viaja en el glifo ▨, que no está en las tipografías del juego");
 assert(MET.ajenas("▨", "texto").length === 1, "control: ▨ no está en Pixelify Sans ni en VT323 (por eso se dibuja)");
