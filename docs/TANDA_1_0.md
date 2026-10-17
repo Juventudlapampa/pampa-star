@@ -5598,3 +5598,91 @@ Lo que vi y no toqué, porque es de otro punto de la lista:
   arquero.
 - Los nombres en las placas van en Pixelify Sans, cuya E mayúscula es
   redondeada: "EZE" se lee como "383".
+
+### (1), (2) y (3) El sonido: chillón, el chiptune de la intro y el tic del menú
+
+Qué estaba mal, medido. Cada efecto se renderizó en un OfflineAudioContext
+con el contexto ya andando (se dispara medio segundo después del arranque,
+por el limitador) y la música se decodificó de su OGG multiplicada por su
+volumen, 0,42. Nivel: RMS de la ventana más fuerte de 50 ms, en dBFS (en la
+música, la mediana de ventanas de 400 ms). Brillo: centroide del espectro
+pesado por magnitud, el mismo número que usa `data/audio.json` para los
+temas. Arriba de 2 kHz: qué parte de la energía cae ahí.
+
+La música del partido anda en -21,7 dBFS con brillo de 4.607 Hz; la del
+opening, en -24,0 y 4.657 Hz.
+
+- La tanda del 12/oct subió los efectos para que la música no los tapara y
+  quedaron todos por encima: la red en -15,9, la patada en -16,5, el gol en
+  -17,5, el silbato en -20,5. Casi todos eran onda cuadrada o diente de
+  sierra, el timbre de las consolas de 8 bits. La red tenía el 87% de su
+  energía arriba de 2 kHz (brillo 11.643 Hz).
+- La intro disparaba encima del tema la patada (en el primer plano y en
+  cada corte de la ráfaga), el riser grande en diente de sierra y la
+  fanfarria del gol en onda cuadrada. Ese era el chiptune.
+- El tic de mover el cursor era una cuadrada en 880 Hz con un chasquido de
+  ruido arriba de 3,2 kHz: 47% de la energía arriba de 2 kHz, brillo
+  10.219 Hz. El resto de la interfaz, cuadradas y diente de sierra.
+
+Qué hice (`phaser/audio/sfx.js`, `phaser/scenes/intro.js`,
+`phaser/data/balance.json`):
+
+- Ningún efecto usa ya onda cuadrada ni diente de sierra: van triangulares y
+  senoidales. El whoosh pasó a ser ruido de aire con el tono apenas debajo.
+  El silbato son dos senoidales a 60 Hz de distancia que baten entre sí, que
+  es el trino de la bolita. La fanfarria del gol bajó una octava.
+- El bus de efectos pasa por un pasabajos de 4 kHz antes del limitador.
+- Mezcla nueva en `balance.audio_mezcla`: los únicos que pasan la música son
+  los golpes (patada, red y guantes), de 2 a 3 dB. Todo lo demás vuelve por
+  debajo.
+- La interfaz suena con senoidales y triangulares una octava más abajo, con
+  las mismas notas del motivo, entre 13 y 17 dB debajo de la música.
+- La intro quedó sin patada, sin riser y sin fanfarria. Suenan la música, la
+  hinchada (en el primer plano y en el gol) y la red cuando cae el logo.
+
+| efecto | nivel antes | nivel después | brillo antes | brillo después | arriba de 2 kHz |
+|---|---|---|---|---|---|
+| patada | -16,5 | -19,9 | 453 | 305 | 0% y 0% |
+| red | -15,9 | -18,7 | 11.643 | 2.002 | 87% y 11% |
+| guantes | -17,6 | -19,2 | 4.544 | 2.116 | 19% y 11% |
+| gol (fanfarria) | -17,5 | -26,6 | 4.664 | 743 | 16% y 0% |
+| silbato | -20,5 | -25,2 | 5.903 | 2.135 | 16% y 100% (*) |
+| afuera | -20,8 | -26,7 | 634 | 623 | 0% y 0% |
+| whoosh | -22,5 | -29,8 | 5.256 | 2.229 | 9% y 13% |
+| hinchada | -25,5 | -26,8 | 4.914 | 2.213 | 32% y 17% |
+| riser | -25,6 | -28,4 | 4.610 | 881 | 11% y 0% |
+| riser grande | -21,5 | -26,2 | 2.760 | 396 | 1% y 0% |
+| cambio de posesión | -32,2 | -32,1 | 1.001 | 818 | 0% y 0% |
+| cruce de campo | -29,8 | -29,8 | 3.306 | 1.678 | 1% y 1% |
+| tictac final | -29,7 | -33,5 | 4.463 | 1.049 | 17% y 1% |
+| gol en contra | -20,7 | -27,5 | 3.188 | 356 | 3% y 0% |
+| menú: mover | -36,0 | -38,9 | 10.219 | 580 | 47% y 0% |
+| menú: confirmar | -29,6 | -34,5 | 3.965 | 724 | 13% y 0% |
+| menú: volver | -31,0 | -36,2 | 3.744 | 686 | 7% y 0% |
+| menú: bloqueado | -28,5 | -33,6 | 3.645 | 457 | 4% y 0% |
+| menú: abrir | -36,9 | -37,7 | 4.871 | 668 | 16% y 0% |
+| menú: cerrar | -39,2 | -38,8 | 5.208 | 492 | 16% y 0% |
+| menú: cartel | -36,7 | -36,8 | 2.014 | 633 | 1% y 0% |
+
+Niveles en dBFS, brillo en Hz. (*) El silbato nuevo es una senoidal en
+2,1 kHz: sigue siendo agudo, porque un silbato lo es, pero sin los
+armónicos de la cuadrada.
+
+Tests. `audio_un_tema` [8] pedía ganancia mayor que 1 para afuera, silbato,
+hinchada y whoosh; ahora la pide solo para los golpes, dice que es pedido
+tuyo del 17/oct, y suma dos controles: que no vuelvan la onda cuadrada ni el
+diente de sierra y que el bus pase por el pasabajos. `pausa_ocultar` arma un
+contexto de audio falso con lo mínimo que usa ensure(); le agregué el
+filtro, que ensure() ahora pide. Ninguna aserción se aflojó.
+
+Cómo lo verifiqué: la tabla, medida antes y después con el mismo
+procedimiento. En el navegador integrado, con caché y service worker
+borrados, la intro entera corrió con el oído enganchado y los únicos
+efectos que se dispararon fueron la hinchada al arrancar, la hinchada en el
+gol y la red en el logo. En el editor y en el menú de jugadas del partido,
+moverse con las flechas dispara el "mover" y Enter el "confirmar", y los
+osciladores que crea el juego en vivo son triangulares y senoidales. Sin
+errores en consola. Suite verde. El sonido no lo escuché: está medido.
+
+Lo que vi y no toqué: el renglón de la intro dice "En algún pueblo de La
+Pampa…" (`balance.intro.t_pueblo`). Ya figura como deuda de la ola 2.
