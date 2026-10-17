@@ -5,7 +5,7 @@
     {
       "id": "nelda",
       "nombre": "Nelda",
-      "caracter": "La que sabe. Jugó en la liga del pueblo y no se le escapa una: mira la línea, el pase corto, quién quedó solo. No se emociona hasta que la pelota entró. Le baja el precio a la euforia y también al drama.",
+      "caracter": "La que sabe. Jugó en la liga de la localidad y no se le escapa una: mira la línea, el pase corto, quién quedó solo. No se emociona hasta que la pelota entró. Le baja el precio a la euforia y también al drama.",
       "como_habla": "Frases secas y cortas, muchas en imperativo. Nombra la jugada, no el escándalo. Nunca grita primero. Le habla al Tuli de vos y lo manda a sentarse.",
       "retrato": "assets/retratos/retrato_nelda.webp"
     },
@@ -126,7 +126,7 @@
         },
         {
           "a": "Esa pelota era de nadie y la hizo nuestra.",
-          "b": "Ese pibe no afloja ni en la siesta."
+          "b": "Esa figura no afloja ni en la siesta."
         },
         {
           "a": "Esa la ganó con el hombro, no con el pie.",
@@ -143,7 +143,7 @@
         },
         {
           "a": "La quiso de taquito con el partido así.",
-          "b": "Guardá el taquito para el potrero, pibe."
+          "b": "Guardá el taquito para el potrero."
         },
         {
           "a": "Se durmió. Le pasaron por al lado.",

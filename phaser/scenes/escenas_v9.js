@@ -380,7 +380,7 @@
         return "no le llegó a nadie · pelota rival";
       }
       if (cortador) return m === "ajustado" ? "se la tiró y la pasó raspando" : "se tiró y no llegó";
-      if (alVacio) return "la dejó en el camino y el pibe pica";
+      if (alVacio) return "la dejó en el camino y pica al espacio";
       return m === "largo" ? "pase largo, justo al pie" : "toque y a seguir";
     },
 
@@ -719,7 +719,7 @@
           if (cort && cort.active) self.tweens.add({ targets: cort, y: "+=26", angle: -74, alpha: 0.45, duration: 320 });
           if (rec && rec.active) self.tweens.add({ targets: rec, scale: rec.scale * 1.12, duration: 260 });
           self.punch(cfg.titulo || (hayCorte ? "¡PASÓ ENTRE LAS PIERNAS!" : "¡LA PUSO JUSTO!"),
-            cfg.sub || (cfg.alVacio ? "la dejó en el camino y el pibe pica" : "toque y a seguir"), 0x7ee08a);
+            cfg.sub || (cfg.alVacio ? "la dejó en el camino y pica al espacio" : "toque y a seguir"), 0x7ee08a);
         } else {
           self.SFX && self.SFX.gloves && self.SFX.gloves();
           self.uiCam.shake(220, 0.006);

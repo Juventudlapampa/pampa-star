@@ -42,7 +42,7 @@
   }
   /* la ficha corta: "Thiago, el que aprendió en el potrero de Winifreda" */
   function fichaOrigen(nombre, origen, pueblo) {
-    var f = (origen && origen.frases && origen.frases[0]) || "el del pueblo";
+    var f = (origen && origen.frases && origen.frases[0]) || "el de la localidad";
     return (nombre || "VOS") + ", " + f + (pueblo ? " de " + pueblo : "");
   }
 

@@ -46,7 +46,7 @@
       ultima[situacion] = i;
       ctx = ctx || {};
       var f = String(lista[i])
-        .replace(/\{jugador\}/g, ctx.jugador || "el pibe")
+        .replace(/\{jugador\}/g, ctx.jugador || "la figura")
         .replace(/\{rival\}/g, ctx.rival || "el rival")
         .replace(/\{pueblo\}/g, ctx.pueblo || "La Pampa");
       for (var k = 0; k < oyentes.length; k++) { try { oyentes[k]({ situacion: situacion, frase: f }); } catch (e) { } }

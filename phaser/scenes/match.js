@@ -664,7 +664,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (!this.REL) return;
     const c = Object.assign({ rival: this.nombreRival, pueblo: this._puebloMio || "La Pampa" }, ctx || {});
-    if (!c.jugador) { const j = this.st && this.st.mios[this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "el pibe"; }
+    if (!c.jugador) { const j = this.st && this.st.mios[this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "la figura"; }
     if (!this.tickerTxt) return;
     const f = this.REL.frase(situacion, c);
     if (!f) return;

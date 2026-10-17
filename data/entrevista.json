@@ -2,8 +2,8 @@
   "_schema": "O2 · LA HISTORIA INICIAL COMO ENTREVISTA",
   "_doc": "Las mismas preguntas de origen de data/eventos_temporada.json, dichas en voz alta por alguien. MISMO contenido y MISMAS consecuencias: los ids y el ORDEN de las respuestas son los del original y la logica de stats no mira este archivo. Si agregas o sacas una respuesta aca, el test o2_entrevista.test.js corta.",
   "entrevistador": {
-    "nombre": "Nito Carrizo, de la FM del pueblo (\"Tercer Tiempo\", de la tarde)",
-    "quien_es": "Sesenta y pico, campera de la radio gastada en los codos. Hace treinta años que hace el programa de deportes de la tarde en la FM del pueblo, después de la siesta, cuando el aire todavía está caliente. Grabador viejo en una mano, mate en la otra, y una libretita donde anota todo aunque después no la mire. Conoce a todos: al padre, al abuelo, al que te dirigió en octava. Cuando un pibe o una piba del pueblo firma en Primera B, lo primero que hace es sentarse enfrente y preguntar de dónde salió. No pregunta por los números. Pregunta por la vida.",
+    "nombre": "Nito Carrizo, de la FM de la localidad (\"Tercer Tiempo\", de la tarde)",
+    "quien_es": "Sesenta y pico, campera de la radio gastada en los codos. Hace treinta años que hace el programa de deportes de la tarde en la FM de la localidad, después de la siesta, cuando el aire todavía está caliente. Grabador viejo en una mano, mate en la otra, y una libretita donde anota todo aunque después no la mire. Conoce a todos: al padre, al abuelo, al que te dirigió en octava. Cuando alguien joven de la localidad firma en Primera B, lo primero que hace es sentarse enfrente y preguntar de dónde salió. No pregunta por los números. Pregunta por la vida.",
     "como_habla": "Frases cortas y despacio. Nunca grita, no es relator: es de los que preguntan y después se callan y esperan, que es lo que hace hablar a la gente. Arranca cada pregunta con una observación chica antes de preguntar de verdad —el viento, la hora, el mate, lo que anotó— y recién ahí tira la pregunta. Muletillas propias: \"decime una cosa\", \"pará que anoto\", \"a ver\", \"vamos de atrás para adelante\", \"y bueno\". Vosea siempre. No adjetiva de más, no exagera, no dice \"increíble\" ni llama \"amigos\" a nadie. Cuando algo le gusta, lo único que hace es asentir y anotar."
   },
   "preguntas": {
@@ -13,7 +13,7 @@
         "En el potrero, contra los más grandes. Nunca me dieron ventaja.",
         "En la escuelita del club. Con botines prestados.",
         "Solo. Pateando contra la pared del galpón.",
-        "Con mi hermano mayor, que era el crack del pueblo."
+        "Con mi hermano mayor, que era el crack de la localidad."
       ]
     },
     "afuera": {

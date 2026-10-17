@@ -550,7 +550,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
         this.capa.add(tp);
       }
     }
-    this.letraPorLetra(480, 470, this.I.t_pueblo || "En algún pueblo de La Pampa…",
+    this.letraPorLetra(480, 470, this.I.t_pueblo || "En alguna localidad de La Pampa…",
       { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }, 34);
     /* 17/oct, Rodri: en la intro sonaba un chiptune que no tenía nada que
        ver. Eran los efectos sintetizados del partido (bombo, riser, la

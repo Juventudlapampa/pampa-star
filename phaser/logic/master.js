@@ -107,7 +107,7 @@
   function nombreDeTuClub(pueblo, roster) {
     var info = roster && roster.clubes_por_pueblo && roster.clubes_por_pueblo[pueblo];
     if (info && info.apodo) return info.apodo;
-    return "Los Pibes de " + (pueblo || "la Pampa");
+    return "El Viento de " + (pueblo || "La Pampa");
   }
   /* el nombre viejo, para reconocer una partida guardada antes del cambio */
   function esNombreViejoDeTuClub(club, pueblo) {

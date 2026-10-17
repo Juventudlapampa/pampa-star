@@ -289,7 +289,7 @@
    "archivo": "pose_festejo.webp",
    "quien": "heroe",
    "n": "La risa del festejo, saltando",
-   "_cruce": "OJOS (tanda 1.0): CRUZADA con 'festejo'. La pide solo el ASADO CON LOS PIBES de la semana (data/semana.json), y ahí la risa con los ojos en arquito tiene todo el sentido. Apunta a pose_festejo.webp con SUS tonos.",
+   "_cruce": "OJOS (tanda 1.0): CRUZADA con 'festejo'. La pide solo el ASADO CON LA BARRA de la semana (data/semana.json), y ahí la risa con los ojos en arquito tiene todo el sentido. Apunta a pose_festejo.webp con SUS tonos.",
    "tonos": {
     "piel": "#fcceb4",
     "camiseta": "#4bbff8"

@@ -4,7 +4,7 @@
  "_notas": "Voces y escenas FICTICIAS y ORIGINALES (Pichi el Bagual, El Profe, Delfina Roldan). NUNCA personas reales ni medios reales. Texto de sabor para intro, relato y momentos; data separada del codigo.",
  "narrador_inicio": [
   "PAMPA STAR.",
-  "No es la historia de una estrella. Es la de un pibe que patea contra el viento.",
+  "No es la historia de una estrella. Es la de alguien que patea contra el viento.",
   "Acá no nacés crack, te hacés.",
   "Bienvenido a La Pampa."
  ],
@@ -14,7 +14,7 @@
    "nombre": "Pichi el Bagual",
    "estilo": "grito de cancha, puro corazon",
    "gol": [
-    "¡GOL! ¡Goool del pibe de Winifreda!",
+    "¡GOL! ¡Goool de la figura de Winifreda!",
     "¡Se levantó el viento y se la llevó puesta!",
     "¡La clavó en el ángulo como si fuera un caldén!",
     "¡Qué patada, papá! ¡Se escuchó hasta en la ruta 35!",
@@ -39,8 +39,8 @@
    "estilo": "previa con mate, cercana",
    "previa": [
     "Buenas tardes desde General Pico, con el mate recién cebado.",
-    "Hoy juega el pibe que se vino a probar a Santa Rosa.",
-    "La tribuna está vacía pero el pueblo está escuchando.",
+    "Hoy juega la promesa que se vino a probar a Santa Rosa.",
+    "La tribuna está vacía pero la localidad está escuchando.",
     "¿Se puede soñar? Acá en La Pampa soñamos con viento en contra."
    ]
   }
@@ -203,7 +203,7 @@
    "Vos: Duro, pero nosotros tenemos más polvo en las rodillas."
   ],
   "chill_pueblo": [
-   "Vecina: Pibe, ¿no vas a entrenar?",
+   "Vecina: ¿Y? ¿No vas a entrenar?",
    "Vos: Ya entrené, ahora tomo mate abajo del caldén.",
    "Kiosquero: Así se hacen los cracks, tranquilo pero con hambre."
   ]

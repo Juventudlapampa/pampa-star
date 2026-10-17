@@ -43,7 +43,7 @@
   {
    "id": "picadito",
    "n": "🥅 PICADITO EN EL POTRERO",
-   "sub": "con los pibes del barrio",
+   "sub": "con la barra del barrio",
    "energia_costo": 15,
    "animo": 5,
    "stat": "azar",
@@ -68,13 +68,13 @@
   },
   {
    "id": "asado",
-   "n": "🔥 ASADO CON LOS PIBES",
+   "n": "🔥 ASADO CON LA BARRA",
    "sub": "el ritual de siempre",
    "energia_costo": 10,
    "animo": 15,
    "frase": "Asado, guitarra y campeonatos ganados de memoria.",
    "lugar": "patio",
-   "repaso": "hubo asado con los pibes",
+   "repaso": "hubo asado con la barra",
    "pose": "celebracion",
    "pose_falta": "nadie comiendo un asado: la de festejo alcanza para el clima pero no es la accion"
   },
@@ -148,7 +148,7 @@
   },
   {
    "id": "fiesta_pueblo",
-   "texto": "Hay fiesta en el pueblo: el asado levanta más el ánimo",
+   "texto": "Hay fiesta en la localidad: el asado levanta más el ánimo",
    "aplica": [
     "asado"
    ],

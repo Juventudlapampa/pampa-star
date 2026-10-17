@@ -35,7 +35,7 @@
      "frase": "el que le pegaba a la pared del galpón"
     },
     {
-     "t": "Con mi hermano mayor, que era el crack del pueblo",
+     "t": "Con mi hermano mayor, que era el crack de la localidad",
      "sub": "aprendiste mirándolo",
      "stats": {
       "caracter": 6,
@@ -66,7 +66,7 @@
       "velocidad": 5,
       "resistencia": -4
      },
-     "frase": "el pibe de la escuela",
+     "frase": "el de la escuela",
      "marca": "escuela"
     },
     {
@@ -243,14 +243,14 @@
   {
    "id": "micro",
    "categoria": "pueblo",
-   "texto": "Fletaron el micro de la hinchada. Van treinta del pueblo a verte.",
+   "texto": "Fletaron el micro de la hinchada. Van treinta de la localidad a verte.",
    "opciones": [
     {
      "texto": "Salgo a jugar para ellos",
      "efecto": {
       "envion": 40
      },
-     "frase_relator": "Con los treinta del pueblo en la tribuna, entra encendido."
+     "frase_relator": "Con la hinchada de la localidad en la tribuna, entra encendido."
     },
     {
      "texto": "Trato de no pensarlo",
@@ -434,7 +434,7 @@
    "id": "puntero",
    "categoria": "rival",
    "condicion": "rival_arriba",
-   "texto": "El rival viene puntero e invicto. En el pueblo dicen que es imposible.",
+   "texto": "El rival viene puntero e invicto. En la localidad dicen que es imposible.",
    "opciones": [
     {
      "texto": "Me guardo para el contragolpe",
@@ -547,7 +547,7 @@
   {
    "id": "fiesta",
    "categoria": "vida",
-   "texto": "Es la fiesta del pueblo el mismo día del partido.",
+   "texto": "Es la fiesta de la localidad el mismo día del partido.",
    "opciones": [
     {
      "texto": "Voy después del partido",
@@ -561,7 +561,7 @@
      "efecto": {
       "duelo": 5
      },
-     "frase_relator": "Se perdió la fiesta del pueblo por este partido."
+     "frase_relator": "Se perdió la fiesta de la localidad por este partido."
     }
    ]
   },
@@ -612,15 +612,15 @@
   {
    "id": "chicos",
    "categoria": "pueblo",
-   "texto": "Los pibes de la escuela te esperan en la puerta para que les firmes la pelota.",
+   "texto": "En la puerta de la escuela te espera la chiquilinada para que le firmes la pelota.",
    "opciones": [
     {
-     "texto": "Me quedo a jugar un rato con ellos",
+     "texto": "Me quedo a jugar un rato",
      "efecto": {
       "envion": 35,
       "aguante": -30
      },
-     "frase_relator": "Se quedó jugando con los pibes: se acordó de por qué juega."
+     "frase_relator": "Se quedó jugando con la chiquilinada: se acordó de por qué juega."
     },
     {
      "texto": "Firmo y sigo a entrenar",
@@ -634,7 +634,7 @@
   {
    "id": "radio",
    "categoria": "pueblo",
-   "texto": "La radio del pueblo te quiere hacer una nota en vivo el sábado a la tarde.",
+   "texto": "La radio de la localidad te quiere hacer una nota en vivo el sábado a la tarde.",
    "opciones": [
     {
      "texto": "Voy y hablo del equipo",
@@ -677,7 +677,7 @@
    "id": "racha",
    "categoria": "equipo",
    "condicion": "racha_buena",
-   "texto": "El equipo viene invicto y en el pueblo ya hablan de campeonato.",
+   "texto": "El equipo viene invicto y en la localidad ya hablan de campeonato.",
    "opciones": [
     {
      "texto": "Pido pies en la tierra",
