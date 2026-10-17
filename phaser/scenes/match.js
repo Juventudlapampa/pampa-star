@@ -165,6 +165,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._colorMapaMio = null;                               // V7 fix: el tono del mapa se recalcula por partido
     this._pulsoAcum = 0; this._pulsoMovioHasta = 0;          // V8 §1: el acumulador del latido, limpio por partido
     this._panelFlip = false;                                 // V8 §3: la memoria del flip del panel
+    this._silX = this._silMira = null; this._silCuadro = 0;  // hacia dónde corre cada silueta, limpio por partido
     this._hudFichas = null; this.txtFichas = null;           // V8 §3: las fichas del jugadón, limpias por partido
     /* ══════════════════════════════════════════════════════════════════════
        ESTA LÍNEA FALTABA Y CONGELABA EL SEGUNDO PARTIDO DE LA SESIÓN.
@@ -1775,6 +1776,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelJug.clearTint();
     /* V8 §3: el flip sigue la dirección REAL del movimiento y tiene MEMORIA —
        entre latidos (vx=0) conserva la última; nunca corre de espaldas */
+    /* Pedido de Rodri del 17/oct: cuando cambia el portador, la memoria era la
+       del anterior. Después de un robo el rival quedaba mirando a su propio
+       arco durante el arranque y se daba vuelta al primer paso. El nuevo
+       portador arranca mirando hacia donde ataca su equipo. */
+    if (!mismo) this._panelFlip = (p.esRival ? -espejo : espejo) < 0;
     if (Math.abs(vxP) > 0.02) this._panelFlip = vxP < 0;
     this.panelJug.setFlipX(!!this._panelFlip);
     /* V8 §3: la ZANCADA al latido — la pose se inclina alternando con el
@@ -1802,6 +1808,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.panelNombre.text !== nom) this.panelNombre.setText(nom);
     /* SILUETAS de rivales dentro de radio_silueta (posición relativa al portador) */
     const radio = this.VI.radio_silueta || 260;
+    /* Pedido de Rodri del 17/oct: "el jugador que está atrás corre para atrás
+       y para adelante". Medido: la silueta miraba siempre para el lado
+       contrario al portador (setFlipX(dx < 0)), corriera hacia donde
+       corriera. El que te persigue desde atrás se veía corriendo de espaldas
+       y, al cambiar de lado respecto de vos, se daba vuelta sin moverse.
+       Ahora mira hacia donde CORRE ese rival. La memoria va en coordenadas de
+       la simulación (el espejo del 2T se aplica al dibujar) y solo cuenta un
+       paso de más de 2 px entre dos cuadros dibujados seguidos: lo que se
+       reacomoda detrás de un menú o una escena no es una corrida que se vio. */
+    const silSeguido = this.time.now - (this._silCuadro || -1e9) < 100;
+    this._silCuadro = this.time.now;
+    const silX = this._silX || (this._silX = []), silMira = this._silMira || (this._silMira = []);
+    for (let i = 0; i < st.rivales.length; i++) {
+      const mov = silSeguido && silX[i] != null ? st.rivales[i].x - silX[i] : 0;
+      if (Math.abs(mov) > 2) silMira[i] = Math.sign(mov);
+      silX[i] = st.rivales[i].x;
+    }
     let usados = 0;
     for (let i = 0; i < st.rivales.length && usados < this.panelSil.length; i++) {
       const r = st.rivales[i];
@@ -1820,7 +1843,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       s.setTintFill(0x101820);
       s.setAlpha(0.85);
       s.setPosition(430 + Phaser.Math.Clamp(dx, -radio, radio) * 1.3, 236 + Phaser.Math.Clamp(dy * 0.25, -34, 40));
-      s.setFlipX(dx < 0);
+      /* el que todavía no corrió mira al portador */
+      s.setFlipX(silMira[i] ? silMira[i] * espejo < 0 : dx > 0);
       s.setVisible(true);
     }
     /* _teniaVis se LEIA en modoLateralVisible y no lo escribia nadie, asi que
