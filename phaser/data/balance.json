@@ -571,21 +571,7 @@
   "jugadon": {
     "_doc": "Pedido de Rodri del 17/oct · LOS CRUCES DEL GAMBETA-TIRO: la corrida en profundidad (vel_avance, vel_lateral, meta_d, contacto_d, contacto_lx, vel_rival_lat) se fue con la corrida. Cada rival es una viñeta: te sale al cruce, elegís por dónde lo pasás, y corte seco al resultado. paso_ms = cuánto queda en pantalla la viñeta de lo dejaste atrás antes del rival siguiente o del remate; caida_ms = cuánto queda la de te la sacó antes de volver al partido. Las dos pasan por msV (la velocidad rápida las acorta).",
     "paso_ms": 950,
-    "caida_ms": 1100,
-    "obstaculos": {
-      "bluff_prob": 0.35,
-      "proteger_costo": 90,
-      "seguir_riesgo": 0.35,
-      "arrastre_penal": 0.25,
-      "afuera_pasa": 0.86,
-      "medio_pasa": 0.55,
-      "afuera_lateral": 0.42,
-      "reloj_ms": 1200,
-      "reloj_max_por_corrida": 1,
-      "cantito_min": 0.1,
-      "cantito_max": 0.75
-    },
-    "_obstaculos": "P1 · LAS CINCO CLASES DEL PASILLO. Antes habia seis obstaculos y los seis pedian lo mismo: leer una etiqueta y tocar el boton que le gana. Ahora cada clase pide otra cosa. bluff_prob: cada cuanto el de clase LECTURA declara un lado y va para el otro (en 0 deja de mentir y vuelve a ser una tabla). proteger_costo: el aguante que cuesta meter el cuerpo en la clase AGUANTE, que ademas te deja lento para el siguiente (arrastre_penal es cuanto pesa esa lentitud). seguir_riesgo: la moneda de seguir de largo en vez de proteger. afuera_pasa / medio_pasa: las dos salidas de la ENVENENADA, y afuera_lateral es cuanto te corre hacia la linea — eso se cobra DESPUES, en el angulo del remate, no en el obstaculo. reloj_ms: la ventana de la clase RELOJ; reloj_max_por_corrida en 1 y solo al final, a proposito (ver la advertencia en logic/jugadon.js: el proyecto ya saco dos QTE y esta clase es la unica que puede desandarlo). En 0 el reloj no sale nunca. cantito_min/cantito_max: cada cuanto le VES el amague al que te esta mintiendo, segun tu gambeta (50 → cantito_min, 99 → cantito_max). Sin esto la clase LECTURA era una moneda: contra un bluff del 35% la mejor estrategia posible es creerle siempre y comerte el 35% igual, y era de lejos donde mas se caia todo el mundo. Con cantito, adivinar pasa a ser leer, y quien sos decide cuanto ves."
+    "caida_ms": 1100
   },
   "escena_pase": {
     "_doc": "V9 §2 · LA ESCENA DEL PASE: se acomoda, le pega, la pelota viaja y —si hay alguien en la línea— el rival se tira a cortarla (freeze + silencio antes de saber). entrada_ms: el que la toca entra al plano. viaje_ms: cuánto tarda la pelota en cruzar. hold_ms: cuánto queda el desenlace en pantalla.",
