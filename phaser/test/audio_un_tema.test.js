@@ -174,10 +174,18 @@ var VOL = 0.42;
      se cruza contra los efectos que el reproductor exporta de verdad. */
   var huerfanas = claves.filter(function (k) { return k !== "bus" && typeof S[k] !== "function"; });
   assert(huerfanas.length === 0, "estas perillas de mezcla no corresponden a ningún efecto: " + huerfanas.join(", "));
-  /* los golpes que se tapaban tienen que quedar arriba de 1 */
-  ["kick", "net", "gloves", "afuera", "whistle", "crowd", "whoosh"].forEach(function (k) {
+  /* los golpes que se tapaban tienen que quedar arriba de 1. Hasta el 17/oct
+     la lista era también afuera, silbato, hinchada y whoosh: pedido de Rodri
+     del 17/oct ("el sonido es chillón en general"), esos vuelven por debajo
+     de la música y los únicos que la pasan son los golpes justos. */
+  ["kick", "net", "gloves"].forEach(function (k) {
     assert(MZ[k] > 1, "'" + k + "' sonaba tapado por la música: su ganancia tiene que ser mayor que 1 (es " + MZ[k] + ")");
   });
+  /* y lo chillón no vuelve: ni onda cuadrada ni diente de sierra (el timbre
+     de 8 bits, que no es el de la música), y el bus pasa por un pasabajos */
+  var FX = require("fs").readFileSync(path.join(__dirname, "..", "audio", "sfx.js"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  assert(!/"square"|"sawtooth"/.test(FX), "un efecto volvió a la onda cuadrada o al diente de sierra (lo chillón del 17/oct)");
+  assert(/master\.connect\(pb\)/.test(FX) && /type = "lowpass"; pb\.frequency\.value = PASABAJOS_HZ/.test(FX), "el bus de efectos tiene que pasar por el pasabajos");
   assert(typeof S.configurarMezcla === "function", "el reproductor tiene que aceptar la mezcla de balance");
   console.log("[8] mezcla: " + claves.length + " perillas, todas sobre efectos que existen");
 })();

@@ -109,6 +109,8 @@ FakeCtx.prototype.createDynamicsCompressor = function () {
   var p = function () { return { value: 0 }; };
   return { threshold: p(), knee: p(), ratio: p(), attack: p(), release: p(), connect: function () { } };
 };
+/* desde el 17/oct ensure() también arma el pasabajos del bus */
+FakeCtx.prototype.createBiquadFilter = function () { return { type: "", frequency: { value: 0 }, Q: { value: 0 }, connect: function () { } }; };
 FakeCtx.prototype.suspend = function () { this.state = "suspended"; this.suspensiones++; return { catch: function () { } }; };
 FakeCtx.prototype.resume = function () { this.state = "running"; this.reanudaciones++; return { catch: function () { } }; };
 var oyentesDoc = {};

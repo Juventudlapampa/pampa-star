@@ -43,13 +43,25 @@
      termina en un LIMITADOR: con los golpes más arriba, dos que coinciden
      (la red y la fanfarria) pasarían de 0 dBFS y el navegador los recortaría
      con distorsión. El limitador los aplana sin que se note.
+
+     17/OCT, RODRI: "EL SONIDO ES CHILLÓN EN GENERAL". Se pasó para el otro
+     lado. Medido igual que arriba (y además el brillo: centroide del
+     espectro y cuánta energía cae arriba de 2 kHz): la red tenía 87% de su
+     energía arriba de 2 kHz, el tic del menú 47%, la hinchada 32%, y casi
+     todo era onda cuadrada o diente de sierra, el timbre de las consolas de
+     8 bits, sonando ENCIMA de una música que no es de 8 bits. Ahora: ondas
+     triangulares y senoidales, un pasabajos de 4 kHz en el bus antes del
+     limitador, y de nuevo por debajo de la música todo lo que no es un golpe
+     (patada, red, guantes). Los números de antes y después están en
+     docs/TANDA_1_0.md, "Pedido de Rodri del 17/oct".
      ══════════════════════════════════════════════════════════════════════ */
   var MEZCLA = {
     bus: 0.8,
-    kick: 2.0, net: 1.6, gloves: 2.0, afuera: 2.6, goal: 1.4, whistle: 2.0,
-    crowd: 6.0, whoosh: 3.0, riser: 1.6, riserGrande: 1.3,
+    kick: 1.15, net: 2.4, gloves: 1.6, afuera: 1, goal: 1, whistle: 1,
+    crowd: 1, whoosh: 1, riser: 1, riserGrande: 1,
     temaPosesion: 1, temaCampo: 1, temaUrgente: 1, golEnContra: 1, ui: 1
   };
+  var PASABAJOS_HZ = 4000;
   var ganancia = 1;          // la del efecto que está sonando ahora (ver con())
   function configurarMezcla(cfg) {
     if (!cfg || typeof cfg !== "object") return;
@@ -70,13 +82,16 @@
     ctx = new AC();
     master = ctx.createGain();
     master.gain.value = MEZCLA.bus;
+    var pb = ctx.createBiquadFilter();
+    pb.type = "lowpass"; pb.frequency.value = PASABAJOS_HZ; pb.Q.value = 0.6;
+    master.connect(pb);
     /* el limitador: umbral -6 dBFS, relación 20:1, ataque de 3 ms */
     var lim = ctx.createDynamicsCompressor ? ctx.createDynamicsCompressor() : null;
     if (lim) {
       lim.threshold.value = -6; lim.knee.value = 3; lim.ratio.value = 20;
       lim.attack.value = 0.003; lim.release.value = 0.12;
-      master.connect(lim); lim.connect(ctx.destination);
-    } else master.connect(ctx.destination);
+      pb.connect(lim); lim.connect(ctx.destination);
+    } else pb.connect(ctx.destination);
     return ctx;
   }
   function unlock() { var c = ensure(); if (c && c.state === "suspended") c.resume(); }
@@ -696,17 +711,24 @@
 
        DOS REGLAS QUE LOS MANTIENEN EN SU LUGAR:
 
-       1. NINGUNO PASA DE 220 ms NI DE 0,10 DE GANANCIA. La patada usa 0,35 y
-          el gol 0,15: la interfaz suena SEIS VECES mas bajo que el juego,
+       1. NINGUNO PASA DE 220 ms NI DE 0,10 DE GANANCIA. La patada usa 0,35:
+          la interfaz suena varias veces mas bajo que el juego,
           porque suena todo el tiempo. Un menu que compite con un gol esta mal
           mezclado.
        2. ESTAN AFINADOS AL MOTIVO DEL JUEGO (balance.musica.motivo [0,7,9,12]
-          sobre La): tonica 440/880, quinta 660, sexta 1480. Asi la interfaz
+          sobre La): tonica 220/440, quinta 330/660, sexta 740. Asi la interfaz
           suena del mismo juego que la musica, no de otro.
 
        Y el bloqueado usa la SEGUNDA MENOR cayendo, que es el idioma que
        audio.json ya le tiene asignado al rival. El "no" del menu suena como
        el "no" del partido.
+
+       17/oct, Rodri: moverte entre botones con las teclas sonaba "como si
+       cambiaras de juego". Eran pitidos de onda cuadrada en 880 Hz con un
+       chasquido de ruido arriba de 3 kHz: 8 bits sobre una música que no lo
+       es. Ahora son senoidales y triangulares, una octava más abajo, y entre
+       13 y 17 dB por debajo de la música: se sienten en la mano más que en
+       el oído. Las notas siguen siendo las del motivo.
 
        Entran todos por UNA puerta: SFX.ui(nombre). Un solo lugar donde
        engancharlos y un solo lugar donde apagarlos.
@@ -728,39 +750,39 @@
              la posicion, moverse sonaria a melodia y distraeria de lo que
              estas leyendo. */
           case "mover":
-            tone("square", 880, 880, t, 0.028, 0.055);
-            noise(t, 0.018, 0.05, 3200, 2, "highpass");
+            tone("sine", 494, 440, t, 0.05, 0.05);
+            noise(t, 0.012, 0.02, 900, 0.7, "lowpass");
             return true;
           /* confirmar: dos notas SUBIENDO la quinta, con cuerpo abajo */
           case "confirmar":
-            tone("square", 660, 660, t, 0.045, 0.09);
-            tone("square", 880, 880, t + 0.045, 0.075, 0.09);
-            tone("triangle", 330, 330, t, 0.10, 0.05);
+            tone("triangle", 440, 440, t, 0.06, 0.055);
+            tone("triangle", 660, 660, t + 0.05, 0.11, 0.055);
+            tone("sine", 220, 220, t, 0.12, 0.04);
             return true;
           /* volver: la misma figura al reves y mas grave. Que sea la MISMA
              figura invertida es lo que hace que se entienda sin aprenderla. */
           case "volver":
-            tone("square", 587, 587, t, 0.040, 0.075);
-            tone("square", 392, 392, t + 0.040, 0.085, 0.075);
+            tone("triangle", 494, 494, t, 0.05, 0.06);
+            tone("triangle", 330, 330, t + 0.045, 0.10, 0.06);
             return true;
           /* bloqueado: segunda menor cayendo — el idioma del rival */
           case "bloqueado":
-            tone("square", 233, 220, t, 0.075, 0.10);
-            tone("square", 220, 208, t + 0.075, 0.11, 0.10);
-            noise(t, 0.06, 0.06, 300, 0.8, "lowpass");
+            tone("triangle", 233, 220, t, 0.075, 0.08);
+            tone("triangle", 220, 208, t + 0.075, 0.11, 0.08);
+            noise(t, 0.06, 0.05, 300, 0.8, "lowpass");
             return true;
           /* abrir un menu: el hermanito chico del riser del partido */
           case "abrir":
-            tone("sawtooth", 300, 760, t, 0.13, 0.055);
-            noise(t, 0.13, 0.03, 1200, 0.7, "bandpass");
+            tone("sine", 262, 523, t, 0.13, 0.035);
+            noise(t, 0.10, 0.02, 800, 0.7, "lowpass");
             return true;
           case "cerrar":
-            tone("sawtooth", 700, 260, t, 0.10, 0.05);
+            tone("sine", 523, 262, t, 0.10, 0.035);
             return true;
           /* el cartel que aparece: campanita tonica + sexta */
           case "cartel":
-            tone("triangle", 880, 880, t, 0.07, 0.06);
-            tone("triangle", 1480, 1480, t + 0.06, 0.16, 0.045);
+            tone("sine", 440, 440, t, 0.08, 0.045);
+            tone("sine", 740, 740, t + 0.06, 0.16, 0.035);
             return true;
         }
         return false;
@@ -768,32 +790,34 @@
     })(),
 
     /* patada seca: click grave + thump */
-    kick: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.06, 0.5, 220, 0.7, "lowpass"); tone("triangle", 180, 90, t, 0.09, 0.35); },
-    /* silbido del vuelo: sube de tono */
-    whoosh: function (ms) { var c = ensure(); if (!c) return; var t = now(); tone("sawtooth", 300, 900, t, (ms || 600) / 1000, 0.06); },
+    kick: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.06, 0.5, 220, 0.7, "lowpass"); tone("sine", 180, 90, t, 0.09, 0.35); },
+    /* el vuelo: aire que pasa (ruido) con el tono subiendo apenas debajo */
+    whoosh: function (ms) { var c = ensure(); if (!c) return; var t = now(), d = (ms || 600) / 1000; noise(t, d, 0.13, 700, 0.8, "bandpass"); tone("triangle", 220, 440, t, d, 0.05); },
     /* impacto en la RED: golpe + roce de la malla */
-    net: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.12, 0.45, 500, 0.8, "lowpass"); noise(t + 0.02, 0.22, 0.16, 2600, 3, "highpass"); },
+    net: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.12, 0.45, 500, 0.8, "lowpass"); noise(t + 0.02, 0.22, 0.12, 1500, 1.2, "bandpass"); },
     /* GUANTES del arquero: palmada + agarre */
-    gloves: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.05, 0.5, 1200, 1, "bandpass"); tone("square", 140, 120, t, 0.05, 0.18); },
+    gloves: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.05, 0.5, 900, 0.9, "bandpass"); tone("sine", 150, 110, t, 0.06, 0.2); },
     /* la pelota que se va afuera y pega en la tribuna */
-    afuera: function () { var c = ensure(); if (!c) return; var t = now(); tone("sine", 700, 240, t, 0.25, 0.08); },
-    /* GRITO de gol: fanfarria ascendente */
-    /* GRITO de gol: EL MOTIVO a toda potencia — rápido, alto y en MAYOR (brief B.3) */
+    afuera: function () { var c = ensure(); if (!c) return; var t = now(); tone("sine", 700, 240, t, 0.25, 0.1); },
+    /* GRITO de gol: EL MOTIVO a toda potencia — rápido y en MAYOR (brief B.3).
+       Una octava abajo y en triangular desde el 17/oct: en cuadrada era el
+       chiptune que Rodri escuchaba encima de la música. */
     goal: function () {
       var c = ensure(); if (!c) return; var t = now();
       var dur = 60 / (MUSICA.gol_bpm || 150);
       for (var i = 0; i < 4; i++) {
-        var f = 523.25 * Math.pow(2, MUSICA.motivo[i] / 12);
-        tone("square", f, f, t + i * dur * 0.5, dur * 0.8, 0.15);
-        tone("triangle", f / 2, f / 2, t + i * dur * 0.5, dur * 0.8, 0.08);
+        var f = 261.63 * Math.pow(2, MUSICA.motivo[i] / 12);
+        tone("triangle", f, f, t + i * dur * 0.5, dur * 0.8, 0.08);
+        tone("sine", f / 2, f / 2, t + i * dur * 0.5, dur * 0.8, 0.06);
       }
-      tone("square", 523.25 * 2, 523.25 * 2, t + 2 * dur, dur * 2.2, 0.12);   // la octava sostenida
-      noise(t, 0.5, 0.10, 1400, 0.6, "bandpass");
+      tone("triangle", 523.25, 523.25, t + 2 * dur, dur * 2.2, 0.06);   // la octava sostenida
+      noise(t, 0.5, 0.06, 900, 0.7, "lowpass");
     },
-    /* silbato del árbitro */
-    whistle: function () { var c = ensure(); if (!c) return; var t = now(); tone("square", 1900, 2100, t, 0.14, 0.12); },
+    /* silbato del árbitro: dos senoidales a 60 Hz de distancia baten entre
+       sí, que es el trino de la bolita del silbato */
+    whistle: function () { var c = ensure(); if (!c) return; var t = now(); tone("sine", 2100, 2200, t, 0.16, 0.11); tone("sine", 2160, 2260, t, 0.16, 0.08); },
     /* rumor de la tribuna (colita para la tensión) */
-    crowd: function (ms) { var c = ensure(); if (!c) return; var t = now(); noise(t, (ms || 700) / 1000, 0.05, 500, 0.4, "bandpass"); },
+    crowd: function (ms) { var c = ensure(); if (!c) return; var t = now(); noise(t, (ms || 700) / 1000, 0.34, 550, 0.8, "bandpass"); },
 
     /* ===== HOOKS DE MÚSICA (v2 §9) — motivos ORIGINALES cortos como placeholder.
        La música en loop por posesión es etapa posterior: el partido YA llama a
@@ -806,14 +830,14 @@
     /* RISER del beat de tensión (Feel B1): sube y se corta justo cuando abre el menú */
     riser: function (dur) {
       var c = ensure(); if (!c) return; var t = now();
-      tone("sawtooth", 160, 720, t, dur || 0.75, 0.07);
-      noise(t, dur || 0.75, 0.04, 900, 0.6, "bandpass");
+      tone("triangle", 160, 640, t, dur || 0.75, 0.07);
+      noise(t, dur || 0.75, 0.05, 800, 0.6, "lowpass");
     },
     /* RISER GRANDE (Feel B6): cuando el rival anuncia una MEGACOSA — más grave, más largo */
     riserGrande: function (dur) {
       var c = ensure(); if (!c) return; var t = now();
-      tone("sawtooth", 80, 500, t, dur || 1.4, 0.09);
-      tone("triangle", 55, 110, t, dur || 1.4, 0.08);
+      tone("triangle", 80, 400, t, dur || 1.4, 0.055);
+      tone("sine", 55, 110, t, dur || 1.4, 0.055);
       noise(t, dur || 1.4, 0.05, 400, 0.5, "lowpass");
     },
     /* Feel B8: el tema del avance — pausado y tenso en campo propio, CRECE al cruzar */
@@ -830,7 +854,7 @@
     },
     temaUrgente: function () {
       var c = ensure(); if (!c) return; var t = now();
-      for (var i = 0; i < 4; i++) tone("square", 880, 880, t + i * 0.12, 0.06, 0.12);   // tictac de los últimos 5'
+      for (var i = 0; i < 4; i++) tone("triangle", 660, 660, t + i * 0.12, 0.06, 0.11);   // tictac de los últimos 5'
     },
     /* gol EN CONTRA: EL MOTIVO INVERTIDO y lento, solo bajo — el lamento (brief B.3) */
     golEnContra: function () {
@@ -838,7 +862,7 @@
       var dur = 60 / (MUSICA.lamento_bpm || 70);
       for (var i = 0; i < 4; i++) {
         var f = 110 * Math.pow(2, MUSICA.motivo[3 - i] / 12);
-        tone("square", f, f, t + i * dur * 0.5, dur * 0.9, 0.12);
+        tone("triangle", f, f, t + i * dur * 0.5, dur * 0.9, 0.08);
       }
     }
   };
