@@ -194,7 +194,7 @@
         }
       });
       this.uiCam.flash(80, 255, 255, 220);
-      this.SFX && this.SFX.whoosh && this.SFX.whoosh(220);
+      this.SFX && this.SFX.whoosh && this.SFX.whoosh();
     },
 
     /* golpe 2: lo dejaste atrás, o te la sacó */
@@ -266,7 +266,7 @@
         this.uiCam.flash(90, 255, 255, 230);
         this.uiCam.shake(160, 0.006);
         this.SFX && this.SFX.kick && this.SFX.kick();
-        this.SFX && this.SFX.whoosh && this.SFX.whoosh(400);
+        this.SFX && this.SFX.whoosh && this.SFX.whoosh();
         this.time.delayedCall(this.msV(B.paso_ms || 950), function () {
           if (g.terminado) self.jugadonRemate(); else self.jugadonCruce();
         });
@@ -475,7 +475,7 @@
         if (karqV) { this._jg.arq.destroy(); this._jg.arq = this.add.image(ax, ayPiso - 60, karqV); this._jg.arq.setScale(150 / this._jg.arq.height); this.cineContent.add(this._jg.arq); }
         this.tweens.add({ targets: this._jg.arq, x: ax + d.arqX * 1.8, y: ayPiso - 90, duration: this.msV(460), ease: "Quad.easeOut" });
       }
-      this.SFX && this.SFX.kick && this.SFX.kick();
+      this.SFX && this.SFX.kickFuerte && this.SFX.kickFuerte();
       this.time.delayedCall(this.msV(560), function () {
         var msj, color, snd = self.SFX, hastaExplosion = 0;
         if (res.outcome === "gol") {

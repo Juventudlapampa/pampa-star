@@ -455,7 +455,7 @@
         this.tweens.add({ targets: d.spr, x: d.spr.x - 120, alpha: 0.25, angle: -70, duration: 420 });
         this._def.angulo = Math.min(1, this._def.angulo + 0.15);
         this.avisarDef("¡Lo dejaste pagando! Mejor ángulo");
-        this.SFX && this.SFX.whoosh && this.SFX.whoosh(300);
+        this.SFX && this.SFX.whoosh && this.SFX.whoosh();
       } else {
         P.perderPelota(st);
         this.salirDefinicion(function () {
@@ -830,7 +830,7 @@
       if (snd) {
         if (o.ofensiva && o.gol) { /* lo suena festejarGolPropio */ }
         else if (!o.ofensiva && o.gol) snd.golEnContra && snd.golEnContra();
-        else { snd.gloves(); if (!o.ofensiva) { snd.crowd && snd.crowd(1400); this.time.delayedCall(120, function () { snd.goal(); }); } }   // la atajada SE GRITA
+        else { snd.gloves(); if (!o.ofensiva) { snd.festejo && snd.festejo(1400); this.time.delayedCall(120, function () { snd.goal(); }); } }   // la atajada SE GRITA
       }
       if (esFiesta) { this.burst(W * 0.5, H * 0.4); if (!hastaExplosion) this.tribunaSaltando(); }   // V6 P5: la tribuna salta (la del gol, al estallar)
       this.relatar(o.ofensiva ? (o.gol ? "gol" : (o.bloqueado || o.res.outcome === "atajada" ? "atajada" : "afuera")) : (o.gol ? "gol_rival" : "arquero_mio"));

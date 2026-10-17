@@ -120,8 +120,10 @@ var B = PI.huesos(def, TW, TH);
   /* la patada: una sola, dentro de contacto() */
   var kicks = (TOMA.replace(/\/\*[\s\S]*?\*\//g, "").match(/\.kick\(\)/g) || []).length;
   assert(kicks === 1, "la toma suena UNA patada (hay " + kicks + ")");
-  assert(/var contacto = function \(\) \{\s*if \(est\.contacto\) return; est\.contacto = true;\s*snd && snd\.kick && snd\.kick\(\);/.test(TOMA),
-    "y es lo primero que pasa en el contacto");
+  /* pedido de Rodri del 17/oct: en la toma especial (el súper tiro) la
+     patada es la fuerte, con su propia muestra */
+  assert(/var contacto = function \(\) \{\s*if \(est\.contacto\) return; est\.contacto = true;\s*snd && \(especial \? snd\.kickFuerte\(\) : snd\.kick\(\)\);/.test(TOMA),
+    "y es lo primero que pasa en el contacto (la fuerte en el súper tiro)");
   /* las dos mallas comparten cámara (si no, la pelota proyecta 8 veces más chica) */
   assert(/plano\.setViewHeight\(th\)/.test(TOMA) && /bola\.setViewHeight\(th\)/.test(TOMA), "la pose y la pelota con la misma cámara");
   assert(!!BAL.toma && BAL.toma.ms > 0 && BAL.toma.especial_ms > BAL.toma.ms, "las perillas de la toma en balance.json");

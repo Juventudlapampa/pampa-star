@@ -174,13 +174,23 @@ var VOL = 0.42;
      se cruza contra los efectos que el reproductor exporta de verdad. */
   var huerfanas = claves.filter(function (k) { return k !== "bus" && typeof S[k] !== "function"; });
   assert(huerfanas.length === 0, "estas perillas de mezcla no corresponden a ningún efecto: " + huerfanas.join(", "));
-  /* los golpes que se tapaban tienen que quedar arriba de 1. Hasta el 17/oct
-     la lista era también afuera, silbato, hinchada y whoosh: pedido de Rodri
-     del 17/oct ("el sonido es chillón en general"), esos vuelven por debajo
-     de la música y los únicos que la pasan son los golpes justos. */
-  ["kick", "net", "gloves"].forEach(function (k) {
-    assert(MZ[k] > 1, "'" + k + "' sonaba tapado por la música: su ganancia tiene que ser mayor que 1 (es " + MZ[k] + ")");
+  /* los golpes tienen que quedar arriba de la música y todo lo demás por
+     debajo. Hasta el 17/oct a la mañana eso era "ganancia mayor que 1" sobre
+     la síntesis, y antes también para afuera, silbato, hinchada y whoosh.
+     Pedido de Rodri del 17/oct: los efectos son muestras grabadas, todas con
+     el pico en -3 dBFS, y con el mismo pico un golpe es corto y mide menos
+     que un silbato o una hinchada sostenidos (14 y 7 dB menos). Para quedar
+     arriba de la música, cada golpe necesita más ganancia que cualquier otro
+     efecto con muestra. Los niveles medidos, en docs/TANDA_1_0.md. */
+  var GOLPES = ["kick", "kickFuerte", "net", "gloves", "palo"];
+  var RESTO = ["whistle", "afuera", "festejo", "crowd", "cama", "whoosh", "ui"];
+  GOLPES.concat(RESTO).forEach(function (k) {
+    assert(typeof MZ[k] === "number", "'" + k + "' tiene muestra y le falta su perilla en balance.audio_mezcla");
   });
+  var masBajoGolpe = Math.min.apply(null, GOLPES.map(function (k) { return MZ[k]; }));
+  var masAltoResto = Math.max.apply(null, RESTO.map(function (k) { return MZ[k]; }));
+  assert(masBajoGolpe > masAltoResto, "un golpe quedó con menos ganancia que un efecto que va debajo de la música (golpe más bajo " +
+    masBajoGolpe + ", resto más alto " + masAltoResto + ")");
   /* y lo chillón no vuelve: ni onda cuadrada ni diente de sierra (el timbre
      de 8 bits, que no es el de la música), y el bus pasa por un pasabajos */
   var FX = require("fs").readFileSync(path.join(__dirname, "..", "audio", "sfx.js"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");

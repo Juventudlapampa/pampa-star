@@ -1,7 +1,10 @@
 /* ============================================================================
-   PAMPA STAR · phaser/audio/sfx.js — SFX ORIGINALES por WebAudio (sin archivos)
-   Cada beat del remate tiene su sonido, sintetizado en vivo. 100% original,
-   nada de terceros. Se desbloquea con el primer toque (política de audio móvil).
+   PAMPA STAR · phaser/audio/sfx.js — los efectos por WebAudio
+   Los golpes, el silbato, la hinchada y la interfaz son muestras grabadas
+   (assets/sonidos/, ver LAS MUESTRAS); los motivos musicales cortos (el gol,
+   el cambio de posesión, el cruce de campo, el tictac, el lamento y los
+   risers) se sintetizan en vivo. Se desbloquea con el primer toque (política
+   de audio móvil).
    ========================================================================== */
 (function (root, factory) {
   if (typeof module !== "undefined" && module.exports) module.exports = factory();
@@ -54,12 +57,28 @@
      limitador, y de nuevo por debajo de la música todo lo que no es un golpe
      (patada, red, guantes). Los números de antes y después están en
      docs/TANDA_1_0.md, "Pedido de Rodri del 17/oct".
+
+     17/OCT, MÁS TARDE: LAS MUESTRAS. Los golpes, el silbato, la hinchada,
+     el whoosh y la interfaz dejaron de sintetizarse: son grabaciones (LAS
+     MUESTRAS, más abajo), todas con el pico en -3 dBFS. Con el mismo pico no
+     suenan igual: un silbato sostenido mide 14 dB más que la patada y el
+     grito de gol 7 dB más. Estos números los nivelan, medidos igual que
+     arriba contra la música del partido (-21,7):
+
+       patada        -19,2    red      -18,9    festejo       -24,1
+       súper tiro    -18,9    palo     -19,5    silbato       -25,1
+       guantes       -19,5    rumor    -27/-30  afuera (uhhh) -26,5
+       whoosh        -29,0    cama de hinchada (mediana)      -34,3
+       interfaz      -33,4 a -38,5
+
+     Los cinco golpes quedan apenas arriba de la música; todo lo demás, por
+     debajo, y la cama es eso: una cama.
      ══════════════════════════════════════════════════════════════════════ */
   var MEZCLA = {
     bus: 0.8,
-    kick: 1.15, net: 2.4, gloves: 1.6, afuera: 1, goal: 1, whistle: 1,
-    crowd: 1, whoosh: 1, riser: 1, riserGrande: 1,
-    temaPosesion: 1, temaCampo: 1, temaUrgente: 1, golEnContra: 1, ui: 1
+    kick: 0.46, kickFuerte: 0.46, net: 0.59, gloves: 0.83, palo: 0.46,
+    whistle: 0.16, afuera: 0.15, festejo: 0.21, crowd: 0.4, cama: 0.24, whoosh: 0.15, ui: 0.11,
+    goal: 1, riser: 1, riserGrande: 1, temaPosesion: 1, temaCampo: 1, temaUrgente: 1, golEnContra: 1
   };
   var PASABAJOS_HZ = 4000;
   var ganancia = 1;          // la del efecto que está sonando ahora (ver con())
@@ -92,7 +111,97 @@
       lim.attack.value = 0.003; lim.release.value = 0.12;
       pb.connect(lim); lim.connect(ctx.destination);
     } else pb.connect(ctx.destination);
+    Object.keys(bytes).forEach(decodificar);
     return ctx;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LAS MUESTRAS (17/oct, Rodri: el sonido seguía siendo de sintetizador).
+
+     Catorce grabaciones en assets/sonidos/, OGG Vorbis mono a 44,1 kHz
+     (288 KB las catorce), todas con el pico en -3 dBFS. Qué reemplaza cada
+     una y cuánto mide en el juego, en docs/TANDA_1_0.md (Pedido de Rodri
+     del 17/oct).
+
+     Se bajan una vez, con la compuerta de la intro ya a la vista
+     (intro.js, create), y se decodifican en ESTE contexto apenas existe: el
+     contexto nace con el primer toque, como siempre, así que la
+     decodificación arranca ahí y termina mucho antes del primer partido.
+     Una muestra que todavía no llegó no suena: no hay síntesis de reserva.
+     Suenan por el mismo bus que todo lo demás (la mezcla, el pasabajos y el
+     limitador).
+     ══════════════════════════════════════════════════════════════════════ */
+  var MUESTRAS = {
+    patada: "patada.ogg", patada_fuerte: "patada_fuerte.ogg", red: "red.ogg",
+    guantes: "guantes.ogg", palo: "palo.ogg", silbato: "silbato.ogg",
+    silbato_final: "silbato_final.ogg", viento_remate: "viento_remate.ogg",
+    hinchada_loop: "hinchada_loop.ogg", hinchada_uh: "hinchada_uh.ogg",
+    hinchada_gol: "hinchada_gol.ogg",
+    ui_mover: "ui_mover.ogg", ui_confirmar: "ui_confirmar.ogg", ui_volver: "ui_volver.ogg"
+  };
+  var bytes = {}, buffers = {}, muestrasPedidas = false;
+  function cargarMuestras(base) {
+    if (muestrasPedidas) return false;
+    muestrasPedidas = true;
+    Object.keys(MUESTRAS).forEach(function (k) {
+      var ruta = base + MUESTRAS[k];
+      fetch(ruta).then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.arrayBuffer();
+      }).then(function (ab) {
+        bytes[k] = ab;
+        if (ctx) decodificar(k);
+      }).catch(function (e) { console.error("[SFX] no bajó " + ruta + ": " + e.message); });
+    });
+    return true;
+  }
+  function decodificar(k) {
+    var ab = bytes[k];
+    delete bytes[k];
+    var p = ctx.decodeAudioData(ab, function (b) { buffers[k] = b; },
+      function (e) { console.error("[SFX] no se pudo leer " + MUESTRAS[k] + ": " + (e && e.message)); });
+    if (p && p.catch) p.catch(function () { });   // el error ya lo dijo el callback
+  }
+  /* la muestra k por el bus, con la ganancia del efecto que suena (con()).
+     o: { gain, rate (playbackRate), desde (s), loop } */
+  function muestra(k, o) {
+    var b = buffers[k];
+    if (!ctx || muted || !b) return null;
+    o = o || {};
+    var s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = b;
+    s.loop = !!o.loop;
+    if (o.rate) s.playbackRate.value = o.rate;
+    g.gain.value = (o.gain != null ? o.gain : 1) * ganancia;
+    s.connect(g); g.connect(master);
+    s.start(now(), o.desde || 0);
+    return { src: s, g: g };
+  }
+
+  /* LA CAMA: la hinchada de fondo del partido, en loop (hinchada_loop, 12 s
+     que empalman sin clic). Va por debajo de la música y la sigue: baja con
+     musicaDuck, se calla con la pausa de la música y con el mute. */
+  var camaEstado = { quiere: false, nodo: null };
+  function ponerCama() {
+    var b = buffers.hinchada_loop, n = camaEstado.nodo, t = now();
+    if (!camaEstado.quiere || muted || musicaEnPausa() || !ctx || !b) {
+      if (n) {
+        camaEstado.nodo = null;
+        n.g.gain.cancelScheduledValues(t); n.g.gain.setValueAtTime(n.g.gain.value, t);
+        n.g.gain.linearRampToValueAtTime(0.0001, t + 0.3);
+        n.src.stop(t + 0.35);
+      }
+      return;
+    }
+    var nivel = MEZCLA.cama * (duck.el ? DUCK : 1);
+    if (!n) {
+      n = camaEstado.nodo = muestra("hinchada_loop", { gain: 0.0001, loop: true, desde: Math.random() * b.duration });
+      n.g.gain.setValueAtTime(0.0001, t);
+      n.g.gain.linearRampToValueAtTime(nivel, t + 1.2);
+      return;
+    }
+    n.g.gain.cancelScheduledValues(t); n.g.gain.setValueAtTime(n.g.gain.value, t);
+    n.g.gain.linearRampToValueAtTime(nivel, t + 0.2);
   }
   function unlock() { var c = ensure(); if (c && c.state === "suspended") c.resume(); }
   function now() { return ctx ? ctx.currentTime : 0; }
@@ -377,6 +486,7 @@
     if (musicaEnPausa()) return false;
     var el = pendiente, quieto = enElLugar;
     pendiente = null; enElLugar = null;
+    ponerCama();
     if (el && el !== archivoSonando) { rebobinar(el); el = null; }   // ya no es el tema
     if (quieto && quieto !== el) rebobinar(quieto);                  // se cambió o se calló en la pausa
     if (!el) return true;
@@ -389,8 +499,8 @@
   /* los EFECTOS (WebAudio) también: el contexto se suspende al ocultarse y
      vuelve al mostrarse, solo si lo suspendimos nosotros (si estaba
      suspendido porque todavía no hubo un toque, lo destraba unlock(), como
-     siempre). Con el mute puesto los efectos no suenan igual: tone() y
-     noise() lo miran. */
+     siempre). Con el mute puesto los efectos no suenan igual: tone(),
+     noise() y muestra() lo miran, y la cama se apaga (ponerCama). */
   var ctxSuspendidoPorOculto = false;
   function suspenderEfectos() {
     if (!ctx || ctx.state !== "running" || !ctx.suspend) return false;
@@ -645,6 +755,7 @@
   function soltarDuckYa() {
     if (duck.timer) { clearTimeout(duck.timer); duck.timer = null; }
     duck.el = null; duck.hasta = 0;
+    ponerCama();
   }
   function musicaDuck(ms) {
     var el = archivoSonando;
@@ -655,6 +766,7 @@
       soltarDuckYa();
       duck.el = el;
       rampa(el, el.volume, volArchivo * DUCK, 90);
+      ponerCama();
     }
     if (fin <= duck.hasta) return;         // la ventana ya cubre este pedido
     duck.hasta = fin;
@@ -664,6 +776,7 @@
       duck.timer = null;
       var e = duck.el; duck.el = null; duck.hasta = 0;
       if (e && e === archivoSonando && !e.__saliendo) rampa(e, e.volume, volArchivo, 320);
+      ponerCama();
     }, Math.max(80, ms - 200));
   }
 
@@ -676,11 +789,15 @@
       /* sobre TODOS los elementos: antes solo el que sonaba, y el resto
          quedaba con el mute viejo pegado para cuando volviera a entrar */
       elementos.forEach(function (el) { try { el.muted = muted; } catch (e) { } });
+      ponerCama();
       persistirMute();
     },
     isMuted: function () { return muted; },
     configurarMusica: configurarMusica,
     configurarMezcla: configurarMezcla,
+    cargarMuestras: cargarMuestras,
+    MUESTRAS: MUESTRAS,
+    muestrasListas: function () { return Object.keys(buffers); },
     musicaTema: musicaTema,
     musicaDuck: musicaDuck,
     /* L04: la pausa de la música (pestaña oculta, teléfono en vertical) */
@@ -705,103 +822,63 @@
        una opcion y no pasaba nada, que es lo que hace que una pantalla se
        sienta una pagina web en vez de un juego.
 
-       Siete, y ni uno mas. Todos sintetizados con tone()/noise() sobre el
-       master que ya existe (nada de archivos: son respuestas, tienen que salir
-       en el mismo cuadro que el toque).
-
-       DOS REGLAS QUE LOS MANTIENEN EN SU LUGAR:
-
-       1. NINGUNO PASA DE 220 ms NI DE 0,10 DE GANANCIA. La patada usa 0,35:
-          la interfaz suena varias veces mas bajo que el juego,
-          porque suena todo el tiempo. Un menu que compite con un gol esta mal
-          mezclado.
-       2. ESTAN AFINADOS AL MOTIVO DEL JUEGO (balance.musica.motivo [0,7,9,12]
-          sobre La): tonica 220/440, quinta 330/660, sexta 740. Asi la interfaz
-          suena del mismo juego que la musica, no de otro.
-
-       Y el bloqueado usa la SEGUNDA MENOR cayendo, que es el idioma que
-       audio.json ya le tiene asignado al rival. El "no" del menu suena como
-       el "no" del partido.
+       Siete, y ni uno mas. Entran todos por UNA puerta: SFX.ui(nombre). Un
+       solo lugar donde engancharlos y un solo lugar donde apagarlos. La
+       interfaz suena varias veces más bajo que el juego, porque suena todo el
+       tiempo: un menú que compite con un gol está mal mezclado.
 
        17/oct, Rodri: moverte entre botones con las teclas sonaba "como si
        cambiaras de juego". Eran pitidos de onda cuadrada en 880 Hz con un
        chasquido de ruido arriba de 3 kHz: 8 bits sobre una música que no lo
-       es. Ahora son senoidales y triangulares, una octava más abajo, y entre
-       13 y 17 dB por debajo de la música: se sienten en la mano más que en
-       el oído. Las notas siguen siendo las del motivo.
-
-       Entran todos por UNA puerta: SFX.ui(nombre). Un solo lugar donde
-       engancharlos y un solo lugar donde apagarlos.
+       es. A la mañana pasaron a senoidales; a la tarde, a madera: toques de
+       nudillo en un cajón hueco (ui_mover, ui_confirmar, ui_volver). Los
+       otros cuatro salen de esas mismas tres muestras, más agudas o más
+       graves, para que sean del mismo mundo:
+         abrir      el de mover, una cuarta arriba
+         cerrar     el de mover, una cuarta abajo
+         bloqueado  el de volver, una cuarta abajo: el "no", más sordo
+         cartel     el de confirmar, una quinta arriba
+       Confirmar son dos toques que suben y volver la misma figura al revés:
+       que sea la MISMA figura invertida es lo que hace que se entienda sin
+       aprenderla.
        ══════════════════════════════════════════════════════════════════════ */
     ui: (function () {
       /* anti-metralla: moviendo rapido el cursor, "mover" se dispara cada dos
          cuadros y suena a lluvia. Cada sonido tiene su propio piso. */
       var ultimo = {};
       var PISO = { mover: 45, bloqueado: 300, cartel: 120 };
+      /* nombre: [muestra, playbackRate, ganancia relativa] */
+      var VOZ = {
+        mover: ["ui_mover", 1, 0.48], confirmar: ["ui_confirmar", 1, 1], volver: ["ui_volver", 1, 0.89],
+        abrir: ["ui_mover", 1.335, 0.65], cerrar: ["ui_mover", 0.749, 0.43],
+        bloqueado: ["ui_volver", 0.749, 1.05], cartel: ["ui_confirmar", 1.498, 0.94]
+      };
       return function (nombre) {
-        var c = ensure(); if (!c) return false;
+        var v = VOZ[nombre];
+        if (!v || !ensure()) return false;
         var ahora = now() * 1000;
         var piso = PISO[nombre] || 0;
         if (piso && ultimo[nombre] != null && (ahora - ultimo[nombre]) < piso) return false;
         ultimo[nombre] = ahora;
-        var t = now();
-        switch (nombre) {
-          /* el tic de mover el cursor: SIEMPRE la misma nota. Si cambiara con
-             la posicion, moverse sonaria a melodia y distraeria de lo que
-             estas leyendo. */
-          case "mover":
-            tone("sine", 494, 440, t, 0.05, 0.05);
-            noise(t, 0.012, 0.02, 900, 0.7, "lowpass");
-            return true;
-          /* confirmar: dos notas SUBIENDO la quinta, con cuerpo abajo */
-          case "confirmar":
-            tone("triangle", 440, 440, t, 0.06, 0.055);
-            tone("triangle", 660, 660, t + 0.05, 0.11, 0.055);
-            tone("sine", 220, 220, t, 0.12, 0.04);
-            return true;
-          /* volver: la misma figura al reves y mas grave. Que sea la MISMA
-             figura invertida es lo que hace que se entienda sin aprenderla. */
-          case "volver":
-            tone("triangle", 494, 494, t, 0.05, 0.06);
-            tone("triangle", 330, 330, t + 0.045, 0.10, 0.06);
-            return true;
-          /* bloqueado: segunda menor cayendo — el idioma del rival */
-          case "bloqueado":
-            tone("triangle", 233, 220, t, 0.075, 0.08);
-            tone("triangle", 220, 208, t + 0.075, 0.11, 0.08);
-            noise(t, 0.06, 0.05, 300, 0.8, "lowpass");
-            return true;
-          /* abrir un menu: el hermanito chico del riser del partido */
-          case "abrir":
-            tone("sine", 262, 523, t, 0.13, 0.035);
-            noise(t, 0.10, 0.02, 800, 0.7, "lowpass");
-            return true;
-          case "cerrar":
-            tone("sine", 523, 262, t, 0.10, 0.035);
-            return true;
-          /* el cartel que aparece: campanita tonica + sexta */
-          case "cartel":
-            tone("sine", 440, 440, t, 0.08, 0.045);
-            tone("sine", 740, 740, t + 0.06, 0.16, 0.035);
-            return true;
-        }
-        return false;
+        return !!muestra(v[0], { rate: v[1], gain: v[2] });
       };
     })(),
 
-    /* patada seca: click grave + thump */
-    kick: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.06, 0.5, 220, 0.7, "lowpass"); tone("sine", 180, 90, t, 0.09, 0.35); },
-    /* el vuelo: aire que pasa (ruido) con el tono subiendo apenas debajo */
-    whoosh: function (ms) { var c = ensure(); if (!c) return; var t = now(), d = (ms || 600) / 1000; noise(t, d, 0.13, 700, 0.8, "bandpass"); tone("triangle", 220, 440, t, d, 0.05); },
-    /* impacto en la RED: golpe + roce de la malla */
-    net: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.12, 0.45, 500, 0.8, "lowpass"); noise(t + 0.02, 0.22, 0.12, 1500, 1.2, "bandpass"); },
-    /* GUANTES del arquero: palmada + agarre */
-    gloves: function () { var c = ensure(); if (!c) return; var t = now(); noise(t, 0.05, 0.5, 900, 0.9, "bandpass"); tone("sine", 150, 110, t, 0.06, 0.2); },
-    /* la pelota que se va afuera y pega en la tribuna */
-    afuera: function () { var c = ensure(); if (!c) return; var t = now(); tone("sine", 700, 240, t, 0.25, 0.1); },
+    kick: function () { if (ensure()) muestra("patada"); },
+    /* el contacto del súper tiro: más cuerpo y el chasquido del cuero */
+    kickFuerte: function () { if (ensure()) muestra("patada_fuerte"); },
+    whoosh: function () { if (ensure()) muestra("viento_remate"); },
+    /* el golpe en la RED y el roce de la malla */
+    net: function () { if (ensure()) muestra("red"); },
+    gloves: function () { if (ensure()) muestra("guantes"); },
+    /* el caño de metal: suena y vibra un instante */
+    palo: function () { if (ensure()) muestra("palo"); },
+    /* el "uhhh" de la hinchada cuando se va cerca */
+    afuera: function () { if (ensure()) muestra("hinchada_uh"); },
     /* GRITO de gol: EL MOTIVO a toda potencia — rápido y en MAYOR (brief B.3).
        Una octava abajo y en triangular desde el 17/oct: en cuadrada era el
-       chiptune que Rodri escuchaba encima de la música. */
+       chiptune que Rodri escuchaba encima de la música. No es un golpe, es
+       música: por eso sigue sintetizado. */
     goal: function () {
       var c = ensure(); if (!c) return; var t = now();
       var dur = 60 / (MUSICA.gol_bpm || 150);
@@ -813,11 +890,38 @@
       tone("triangle", 523.25, 523.25, t + 2 * dur, dur * 2.2, 0.06);   // la octava sostenida
       noise(t, 0.5, 0.06, 900, 0.7, "lowpass");
     },
-    /* silbato del árbitro: dos senoidales a 60 Hz de distancia baten entre
-       sí, que es el trino de la bolita del silbato */
-    whistle: function () { var c = ensure(); if (!c) return; var t = now(); tone("sine", 2100, 2200, t, 0.16, 0.11); tone("sine", 2160, 2260, t, 0.16, 0.08); },
-    /* rumor de la tribuna (colita para la tensión) */
-    crowd: function (ms) { var c = ensure(); if (!c) return; var t = now(); noise(t, (ms || 700) / 1000, 0.34, 550, 0.8, "bandpass"); },
+    /* silbato del árbitro: un pitazo, o con "final" los tres del final */
+    whistle: function (cual) { if (ensure()) muestra(cual === "final" ? "silbato_final" : "silbato"); },
+    /* el rumor de la tribuna que crece y se apaga en ms (la colita de la
+       tensión): un pedazo de la cama, desde cualquier lugar del loop */
+    crowd: function (ms) {
+      if (!ensure() || !buffers.hinchada_loop) return;
+      var d = (ms || 700) / 1000, t = now();
+      var m = muestra("hinchada_loop", { loop: true, desde: Math.random() * buffers.hinchada_loop.duration });
+      if (!m) return;
+      var pico = m.g.gain.value;
+      m.g.gain.setValueAtTime(0.0001, t);
+      m.g.gain.linearRampToValueAtTime(pico, t + d * 0.4);
+      m.g.gain.linearRampToValueAtTime(0.0001, t + d);
+      m.src.stop(t + d + 0.02);
+    },
+    /* la hinchada que explota (el gol, el atajadón): entera, o cortada en ms
+       con un fundido de salida */
+    festejo: function (ms) {
+      if (!ensure()) return;
+      var m = muestra("hinchada_gol");
+      if (!m || !ms) return;
+      var d = ms / 1000, t = now(), v = m.g.gain.value;
+      m.g.gain.setValueAtTime(v, t + d * 0.6);
+      m.g.gain.linearRampToValueAtTime(0.0001, t + d);
+      m.src.stop(t + d + 0.02);
+    },
+    /* la cama de hinchada del partido: prendida o apagada (ver ponerCama) */
+    cama: function (on) {
+      camaEstado.quiere = !!on;
+      if (on) ensure();
+      ponerCama();
+    },
 
     /* ===== HOOKS DE MÚSICA (v2 §9) — motivos ORIGINALES cortos como placeholder.
        La música en loop por posesión es etapa posterior: el partido YA llama a
@@ -867,9 +971,11 @@
     }
   };
   /* LA MEZCLA, aplicada en un solo lugar: cada efecto suena con su ganancia
-     de MEZCLA (arriba de todo) sin tocar los números de su síntesis */
-  ["kick", "whoosh", "net", "gloves", "afuera", "goal", "whistle", "crowd", "temaPosesion",
-    "riser", "riserGrande", "temaCampo", "temaUrgente", "golEnContra", "ui"].forEach(function (k) {
+     de MEZCLA (arriba de todo) sin tocar los números de su síntesis ni la
+     muestra. La cama no pasa por acá: lee MEZCLA.cama en ponerCama, porque
+     su nivel cambia mientras suena (el duck). */
+  ["kick", "kickFuerte", "whoosh", "net", "gloves", "palo", "afuera", "goal", "whistle", "crowd",
+    "festejo", "temaPosesion", "riser", "riserGrande", "temaCampo", "temaUrgente", "golEnContra", "ui"].forEach(function (k) {
     var f = SFX[k]; if (typeof f !== "function") return;
     SFX[k] = function () { var a = arguments, self = this; return con(k, function () { return f.apply(self, a); }); };
   });

@@ -218,6 +218,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        tres temas, ~1 MB) le peleaba la señal a lo del opening, que baja con
        la compuerta a la vista (index.html, LA RED) */
     if (window.PampaCartel) window.PampaCartel.sacar();
+    /* 17/oct: las muestras de los efectos (audio/sfx.js, LAS MUESTRAS), una
+       vez por sesión y con la compuerta ya a la vista */
+    const S = window.PampaSFX;
+    if (S && S.cargarMuestras) S.cargarMuestras("../assets/sonidos/");
     this.entrarDesdeNegro();
     const BAL = this.game.registry.get("balance") || {};
     this.I = BAL.intro || {};
@@ -679,7 +683,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const s = this.poseImg("festejo", 480, 280, 430);
     this.temblor(s);
     this.flashBlanco();
-    this.SFX && this.SFX.crowd && this.SFX.crowd(1800);
+    this.SFX && this.SFX.festejo && this.SFX.festejo(1800);
   }
   p8(dur) {   // EL LOGO: el nombre del juego, la bajada letra por letra, acorde final
     /* I1 · el cierre SÍ se queda en negro, y a propósito: es el único plano

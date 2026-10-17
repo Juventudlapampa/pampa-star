@@ -519,7 +519,7 @@
           if (bola.active) { bola.setPosition(806, H * 0.5); if (conDespeje) bola.setVisible(false); }
           self.punch("¡ATAJADÓN!", self.porQueRemateRival(lectura, res), 0x5bb8e8);
           if (self.tribunaSaltando) self.tribunaSaltando();
-          self.SFX && self.SFX.crowd && self.SFX.crowd(900);
+          self.SFX && self.SFX.festejo && self.SFX.festejo(900);
         } else {
           self.uiCam.shake(280, 0.01);
           self.SFX && self.SFX.net && self.SFX.net();
@@ -697,7 +697,7 @@
           cort = self.figuraDePlano("barrida", cfg.cortador, true, W + 120, cruce.y - 40, 250, true);
           self.placaDePlano(W - 150, H * 0.9, cfg.cortador, true);
           self.tweens.add({ targets: cort, x: cruce.x + 96, angle: -18, duration: Math.round(tViaje * 0.42), ease: "Quad.easeIn" });
-          self.SFX && self.SFX.whoosh && self.SFX.whoosh(240);
+          self.SFX && self.SFX.whoosh && self.SFX.whoosh();
         });
         this.time.delayedCall(tEntrada + Math.round(tViaje * 0.55), function () {
           if (self.pararDolly) self.pararDolly();
@@ -714,7 +714,7 @@
         if (self.golpeDeCamara) self.golpeDeCamara(0.8);
         if (cfg.win) {
           self.uiCam.flash(60, 255, 255, 255);
-          self.SFX && self.SFX.whoosh && self.SFX.whoosh(300);
+          self.SFX && self.SFX.whoosh && self.SFX.whoosh();
           if (bola.active) self.tweens.add({ targets: bola, x: destino.x, y: destino.y, angle: 1080, duration: self.msV(320), ease: "Sine.easeOut" });
           if (cort && cort.active) self.tweens.add({ targets: cort, y: "+=26", angle: -74, alpha: 0.45, duration: 320 });
           if (rec && rec.active) self.tweens.add({ targets: rec, scale: rec.scale * 1.12, duration: 260 });

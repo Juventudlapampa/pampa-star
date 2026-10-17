@@ -271,7 +271,7 @@
       this.musicaDuck(T + 300);
       var snd = this.SFX;
       if (snd) {
-        snd.whoosh && snd.whoosh(Math.round(T * 0.14));
+        snd.whoosh && snd.whoosh();
         this.time.delayedCall(Math.round(T * 0.12), function () {
           if (est.cerrado) return;
           var ris = especial ? snd.riserGrande : snd.riser;
@@ -307,7 +307,7 @@
       /* --- EL CONTACTO --- */
       var contacto = function () {
         if (est.contacto) return; est.contacto = true;
-        snd && snd.kick && snd.kick();
+        snd && (especial ? snd.kickFuerte() : snd.kick());
         self.uiCam.flash(especial ? 140 : 90, 255, 255, 235);
         self.uiCam.shake(especial ? 300 : 200, especial ? 0.014 : 0.009);
         if (FE && FE.hitstop) FE.hitstop(self, "fuerte", especial ? 3 : 2);

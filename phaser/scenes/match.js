@@ -624,6 +624,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     } else {
       this.pedirMusica("partido");
     }
+    /* 17/oct: la hinchada de fondo, por debajo de la música, todo el partido */
+    if (this.SFX) {
+      this.SFX.cama(true);
+      this.events.once("shutdown", () => this.SFX.cama(false));
+    }
 
     /* ANIME E: EL RELATOR — el partido se cuenta solo (data/relatos.json → relator) */
     this.REL = (this.FLAGS.v4_relator && window.PampaRelator)
@@ -833,11 +838,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this._musicaTrabada = false;
         this.pedirMusica("silencio");
         this._musicaTrabada = true;
+        this.SFX.cama(false);
       });
     } else {
       this._musicaTrabada = false;
       this.pedirMusica("silencio");
       this._musicaTrabada = true;
+      this.SFX && this.SFX.cama(false);
     }
   }
   musicaDuck(ms) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaDuck) this.SFX.musicaDuck(ms); }
@@ -1385,7 +1392,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const ms = window.PampaPersp.frenoDelCorte(accion, V);
       if (window.PampaFeel.hitstop) window.PampaFeel.hitstop(this, ms);
     }
-    this.SFX && this.SFX.whoosh && this.SFX.whoosh(260);
+    this.SFX && this.SFX.whoosh && this.SFX.whoosh();
     this._profUltimo = accion;
     return true;
   }
@@ -3387,7 +3394,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineContent.add(foco);
     this.tweens.add({ targets: foco, scale: 1, duration: 260, ease: "Back.easeOut" });
     this.tweens.add({ targets: bola, x: bx + 640, y: by - 170, scale: TP.esc * 0.35, angle: 240, delay: 140, duration: this.msV(C.plano_pie_ms), ease: "Quad.easeIn" });
-    this.SFX && this.SFX.kick();
+    this.SFX && this.SFX.kickFuerte();
     this.uiCam.flash(90, 255, 255, 220);
     this.lineasVelocidad(W * 0.45, H * 0.5, 1, 0xffd84d);
     this._cineTimer = this.time.delayedCall(this.msV(C.plano_pie_ms + 240), () => this.corte(() => this.planoViaje()));
@@ -3400,7 +3407,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.dibujarCanchaProfunda(vp, nearY);
     const ball = this.add.sprite(W / 2, nearY, "ball").setScale(4.2); this.cineContent.add(ball);
     const trail = this.add.particles(0, 0, "spark_sol", { lifespan: 300, speed: 0, scale: { start: 1.2, end: 0 }, alpha: { start: 0.6, end: 0 }, frequency: 18, follow: ball }); this.cineContent.add(trail);
-    this.SFX && this.SFX.whoosh(C.plano_viaje_ms);
+    this.SFX && this.SFX.whoosh();
     const cfg = { k: C.persp.k, vpX: vp.x, vpY: vp.y, nearY, driftX: (this.zona.gy || 0) * C.drift_mult };
     this.viajeState = { activo: true, elapsed: 0, dur: this.msV(C.plano_viaje_ms), ball, trail, cfg, vp, zoomed: false };
     this._cineTimer = this.time.delayedCall(this.msV(C.plano_viaje_ms), () => {
@@ -3733,6 +3740,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           duration: EP.rebote_atajada_ms, ease: "Quad.easeOut"
         });
       };
+    } else if (this.zona.id === "palo") {
+      /* 17/oct · la que iba AL PALO y se fue, pegó en el palo: llega al palo
+         a media altura y sale despedida hacia afuera (el ruido de metal lo
+         pone desenlaceRemate) */
+      destino = { x: lado > 0 ? A.der + 4 : A.izq - 2, y: A.bocaY - 16 }; escFin = 1.0;
+      arq.setPosition(destino.x - lado * 95 - alcance, gy);
+      revelar = () => {
+        abierto();
+        ball.setPosition(destino.x, destino.y);
+        this.uiCam.shake(120, 0.005);
+        this.tweens.add({ targets: ball, x: destino.x + lado * 210, y: gy - 6, scale: 0.8, angle: lado * 300, duration: 520, ease: "Quad.easeOut" });
+        const d = this.desenlaceRemate(res, { palo: true });
+        this.punch(d.titulo, d.sub, d.color);
+      };
     } else {
       /* P2 · la que se va afuera pasa POR ARRIBA del travesaño, junto al palo,
          lejos de los guantes */
@@ -3870,9 +3891,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       P.saqueArquero(st, "atajada");
       d = { titulo: "¡LA AGARRÓ!", sub: "El arquero la abrazó. Saca él desde el fondo.", color: 0x5bb8e8, gana: false, saque: true };
     } else {
-      /* A4 · se fue: saque de arco, que es lo que pasa de verdad */
+      /* A4 · se fue: saque de arco, que es lo que pasa de verdad. Con
+         opts.palo pegó en el palo (17/oct: lo pide planoDesenlace, que es
+         donde se ve) */
       P.saqueArquero(st, "afuera");
-      d = { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
+      d = opts.palo
+        ? { titulo: "¡AL PALO!", sub: "Pegó en el palo y se fue. Saque de arco.", color: 0xe3503e, gana: false, saque: true, palo: true }
+        : { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
     }
     let sentido = false;
     d.sentir = (o) => {
@@ -3884,7 +3909,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const FE = window.PampaFeel;
       if (res.outcome === "gol") return this.festejarGolPropio(o);
       if (FE && (res.outcome === "atajada" || res.outcome === "corner")) FE.hitstop(this, "fuerte", this._escalonActual || 2);
-      if (res.outcome === "afuera") this.SFX && this.SFX.afuera();
+      if (res.outcome === "afuera") { if (this.SFX) { if (d.palo) this.SFX.palo(); this.SFX.afuera(); } }
       else this.SFX && this.SFX.gloves();
       return 0;
     };
@@ -4536,7 +4561,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (cfg.rival) placa(W * 0.72, cfg.rival.j, cfg.rival.esRival);
     this.lineasVelocidad(W / 2, H * 0.45, 0.9, rivProta ? 0xff8a50 : 0xffd84d);
     this.uiCam.flash(90, 255, 255, 220);
-    const snd = this.SFX; snd && snd.whoosh && snd.whoosh(F.entrada_ms || 420);
+    const snd = this.SFX; snd && snd.whoosh && snd.whoosh();
     /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall, idempotente:
        V6 R4 el SKIP —un toque durante la escena— adelanta a la revelación y cierra) */
     /* V8 D: cfg.rapida = viñeta corta (pases y robos, que pasan seguido) */
@@ -4869,7 +4894,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        pelota entrando (festejarGolPropio, el gol rival de escenas_v9). Cuando
        sonaba en los dos lados, cada gol tenía dos redes. */
     /* Feel B8: explosión de HINCHADA en el gol (y rumor apagado en el gol en contra) */
-    this.SFX && this.SFX.crowd && this.SFX.crowd(enContra ? 600 : 1600);
+    if (this.SFX) { if (enContra) this.SFX.crowd(600); else this.SFX.festejo(); }
     this.time.delayedCall(90, () => this.SFX && (enContra ? (this.SFX.golEnContra && this.SFX.golEnContra()) : this.SFX.goal()));
   }
   reanudarLibre() {
@@ -4932,7 +4957,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this._btnEnvion && this._btnEnvion.setVisible) this._btnEnvion.setVisible(false);
     this.cerrarMusica();       // P5: motivo de cierre y traba — no se reenciende
     if (this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(false);
-    this.SFX && this.SFX.whistle();
+    this.SFX && this.SFX.whistle("final");
     this.relatar("final");
     this.quitarDuelo();
     this.limpiarMenu();
@@ -5207,7 +5232,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* la cámara acompaña a la pelota en su viaje */
     const durVuelo = alVacio ? 850 : 650;
     cam.pan(wB.x, wB.y, durVuelo + (peligro ? 700 : 150), "Sine.easeInOut", true);
-    snd && snd.whoosh(durVuelo);
+    snd && snd.whoosh();
     const bola = this.sprPelota;
     bola.setPosition(wA.x, wA.y);
     const cerrar = () => {
@@ -5276,7 +5301,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* EL MOMENTO: la pelota llega al cruce… suspenso… y recién ahí se revela */
     this.time.delayedCall(tMedio + silencio, () => {
       if (win) {
-        snd && snd.whoosh(300);
+        snd && snd.whoosh();
         this.tweens.add({ targets: bola, x: wB.x, y: wB.y + 34, duration: Math.round(durVuelo * 0.45), ease: "Sine.easeOut" });
         if (this.sprDuelo) this.tweens.add({ targets: this.sprDuelo, alpha: 0.5, angle: 18, duration: 300 });   // se lanzó y pasó de largo
       } else {
@@ -5539,7 +5564,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const P = window.PampaPartido;
       if (P.gastarEnvionPotencia(this.st)) {
         this.avisar("🌟 ¡EQUIPO ENCENDIDO! (+bonus un rato)");
-        this.SFX && this.SFX.goal && this.SFX.crowd && this.SFX.crowd(900);
+        this.SFX && this.SFX.festejo(900);
       }
     });
     /* ANIME E: el ticker del RELATOR · V9 §8: SUBIDO. En y=520 pisaba la banda

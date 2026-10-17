@@ -118,7 +118,9 @@ function lineasCon(re) {
   var mega = cuerpo(MATCH, "dispararConCine(mega, ej) {");
   assert(!/\.kick\(\)/.test(mega) && !/sfx: "kick"/.test(mega),
     "el súper tiro no patea en la carga ni al cerrarla: la patada es del plano del pie (eran tres)");
-  assert(/\.kick\(\)/.test(cuerpo(MATCH, "planoPie() {")), "planoPie es el contacto y suena la patada");
+  /* pedido de Rodri del 17/oct: el súper tiro suena con su propia muestra,
+     la patada fuerte (audio/sfx.js, LAS MUESTRAS) */
+  assert(/\.kickFuerte\(\)/.test(cuerpo(MATCH, "planoPie() {")), "planoPie es el contacto del súper tiro y suena la patada fuerte");
   var bloq = cuerpo(MATCH, "escenaDelBloqueo(defensor, cfg) {");
   var guantes = (bloq.match(/\.gloves\(\)/g) || []).length;
   assert(guantes === 1, "el bloqueo suena los guantes una vez a mano (el cartel sin escena); con escena, en la revelación (hay " + guantes + ")");
