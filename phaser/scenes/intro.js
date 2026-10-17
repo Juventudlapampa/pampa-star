@@ -548,8 +548,11 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     }
     this.letraPorLetra(480, 470, this.I.t_pueblo || "En algún pueblo de La Pampa…",
       { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }, 34);
+    /* 17/oct, Rodri: en la intro sonaba un chiptune que no tenía nada que
+       ver. Eran los efectos sintetizados del partido (bombo, riser, la
+       fanfarria del gol en onda cuadrada) disparados encima del tema, que no
+       los acompaña. Quedan la música, la hinchada y la red del logo. */
     this.SFX && this.SFX.crowd && this.SFX.crowd(dur);   // el viento lejano
-    this.SFX && this.SFX.kick && this.SFX.kick();        // el bombo lejano
   }
   p2() {   // D1 · LA PELOTA QUIETA: antes de que empiece todo
     /* I1 · ERA EL PEOR PLANO DE LA INTRO: dos segundos de pantalla negra con
@@ -615,7 +618,6 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
         const s = this.poseImg(par[0], 480, 280, 400);
         this.temblor(s);
         this.flashBlanco();
-        this.SFX && this.SFX.kick && this.SFX.kick();   // el golpe sincronizado
       });
     });
   }
@@ -635,7 +637,6 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.capa.add(g);
     this.tweens.add({ targets: g, scale: 1.06, duration: 220, yoyo: true, repeat: 2 });
     this.cameras.main.shake(280, 0.012);
-    this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(1.4);
   }
   p5() {   // EL SILENCIO: todo se detiene — el recurso del juego, enseñado antes de jugar
     /* I1 · el silencio es a propósito, pero con TODO en negro no se leía como
@@ -678,7 +679,6 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const s = this.poseImg("festejo", 480, 280, 430);
     this.temblor(s);
     this.flashBlanco();
-    this.SFX && this.SFX.goal && this.SFX.goal();
     this.SFX && this.SFX.crowd && this.SFX.crowd(1800);
   }
   p8(dur) {   // EL LOGO: el nombre del juego, la bajada letra por letra, acorde final
