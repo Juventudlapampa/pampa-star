@@ -3331,15 +3331,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ARTE: el golpe — degradé radial y líneas de foco (antes, marrón liso) */
     if (!this.fondoCine || !this.fondoCine("golpe", { bando: "oro", cx: 0.5, cy: 0.5 })) { this.cineBG.fillStyle(0x2a130b, 1); this.cineBG.fillRect(0, 0, W, H); }
     this.cineLabel.setText("· el pie ·");
-    /* B3: era "cine_pie", bloques. Ahora el primer plano del pie es la pose de
-       remate ilustrada, encuadrada abajo para que se lea la pierna. */
-    const pie = this.add.sprite(W / 2, H / 2 + 10, this.figuraCine("remate", "planoPie"));
-    pie.setScale((H * 0.72) / pie.height).setAngle(-8);
-    this.cineContent.add(pie);
-    this.tweens.add({ targets: pie, scale: 5.2, duration: 260, ease: "Back.easeOut" });
+    /* El primer plano del botín contra la pelota. Desde B3 era la pose de
+       remate entera agrandada 5,2 veces desde su centro: se veía el short
+       pixelado y ni el pie ni la pelota. Lo tapó la toma 3D y apareció al
+       apagarla (17/oct). Ahora el foco es el botín (tobillo y punta medidos en
+       el manifest) con la pelota del juego donde la pose la declara. La pose
+       queda quieta: entra con un golpe de cámara y lo que se va es la pelota. */
+    const j = this.st.mios[this.st.ctrl];
+    const def = this.game.registry.get("poses").poses.remate, pi = def.pierna, pel = def.pelota;
+    const pie = this.add.sprite(0, 0, (j && j.esVos && this.poseHeroeTenida(j, "remate")) || this.figuraCine("remate", "planoPie"));
+    const fx = (pi.tobillo[0] + pi.punta[0] + pel.x) / 3, fy = (pi.tobillo[1] + pi.punta[1] + pel.y) / 3;
+    const s = (H * 2.2) / pie.height, dW = pie.width * s, dH = pie.height * s;
+    pie.setOrigin(fx, fy).setScale(s);
+    const TP = this.texPelota(pel.r * 2 * dH);
+    const bx = (pel.x - fx) * dW, by = (pel.y - fy) * dH;
+    const bola = this.add.sprite(bx, by, TP.key).setScale(TP.esc);
+    const foco = this.add.container(W * 0.45, H * 0.56, [pie, bola]).setScale(0.82);
+    this.cineContent.add(foco);
+    this.tweens.add({ targets: foco, scale: 1, duration: 260, ease: "Back.easeOut" });
+    this.tweens.add({ targets: bola, x: bx + 640, y: by - 170, scale: TP.esc * 0.35, angle: 240, delay: 140, duration: this.msV(C.plano_pie_ms), ease: "Quad.easeIn" });
     this.SFX && this.SFX.kick();
     this.uiCam.flash(90, 255, 255, 220);
-    this.lineasVelocidad(W / 2, H / 2, 1, 0xffd84d);
+    this.lineasVelocidad(W * 0.45, H * 0.5, 1, 0xffd84d);
     this._cineTimer = this.time.delayedCall(this.msV(C.plano_pie_ms + 240), () => this.corte(() => this.planoViaje()));
   }
   planoViaje() {
@@ -3408,7 +3421,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!vs.zoomed && d > C.slowmo_desde) {
       vs.zoomed = true;
       this.uiCam.zoomTo(C.zoom_viaje, C.camara_pan_ms, "Sine.easeInOut");
-      this.uiCam.pan(vs.vp.x, vs.vp.y + 40, C.camara_pan_ms, "Sine.easeInOut");
+      /* el centro no se pasa del cuadro: con el zoom del viaje, centrar en la
+         fuga dejaba ver lo que hay arriba de la pintura (una franja negra de
+         58 px, vista en la captura del 17/oct) */
+      const mx = 480 / C.zoom_viaje, my = 270 / C.zoom_viaje;
+      this.uiCam.pan(Phaser.Math.Clamp(vs.vp.x, mx, 960 - mx), Phaser.Math.Clamp(vs.vp.y + 40, my, 540 - my), C.camara_pan_ms, "Sine.easeInOut");
       this.SFX && this.SFX.crowd(500);
     }
     if (raw >= 1) vs.activo = false;
@@ -4660,6 +4677,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineLayer.setVisible(true);
     this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
     this.limpiarContenido();
+    this.cineLabel.setText("");   // si no, quedaba el rótulo de la jugada anterior ("· el desenlace ·")
     const j = jRet || this.st.mios[this.st.ctrl];
     const g = this.cineBG; g.clear();
     /* ARTE: el golpe del anuncio, con el juego de colores del dueño */

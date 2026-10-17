@@ -140,6 +140,12 @@ var B = PI.huesos(def, TW, TH);
   assert(/this\.escenaCine\(\{\s*etiqueta: "· EL REMATE ·"[^]*?pose: "remate"/.test(rem), "sin la toma, el remate común vuelve a la viñeta EL REMATE");
   var mega = MATCH.slice(MATCH.indexOf("  dispararConCine(mega, ej) {"), MATCH.indexOf("  texturaEscena(j, esRival, anim, frame) {"));
   assert(/pose: "remate", especial: true[^]*?this\.planoPie\(\)/.test(mega), "y el súper tiro a la carga y el plano del pie");
+  /* lo que apareció al apagarla, visto en las capturas del 17/oct */
+  var pie = MATCH.slice(MATCH.indexOf("  planoPie() {"), MATCH.indexOf("  planoViaje() {"));
+  assert(!/scale: 5\.2/.test(pie) && /pi\.tobillo\[0\] \+ pi\.punta\[0\] \+ pel\.x/.test(pie),
+    "el plano del pie encuadra el botín y la pelota (agrandar la pose entera 5,2 veces mostraba el short)");
+  var viaje = MATCH.slice(MATCH.indexOf("  updateViaje(delta) {"), MATCH.indexOf("  fugaDelViaje() {"));
+  assert(/this\.uiCam\.pan\(Phaser\.Math\.Clamp\(/.test(viaje), "el zoom del viaje no deja ver arriba de la pintura (franja negra)");
   console.log("[6] la toma apagada por perilla · los caminos de antes siguen");
 })();
 
