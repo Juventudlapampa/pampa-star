@@ -5742,3 +5742,52 @@ consola. Suite verde.
 Lo que vi y no toqué: la pelota del cine es la textura de 16 px agrandada y
 de cerca se ve borrosa (también en el viaje), y el arquero del gol queda
 suspendido en el aire durante el festejo porque no hay pose de caída.
+
+### (7) El jugador de atrás corría para atrás y para adelante
+
+Qué estaba mal. "El jugador que está atrás" son las siluetas oscuras que se
+ven detrás del portador en el panel de arriba. Miraban siempre para el lado
+contrario al portador (`setFlipX(dx < 0)`), corriera hacia donde corriera ese
+rival: el que te perseguía desde atrás se veía corriendo de espaldas, el que
+venía de frente se veía escapando, y cuando un rival pasaba de un lado al otro
+del portador se daba vuelta sin moverse. Medido con el partido corriendo:
+en 5 s de corrida al arco en el 1er tiempo hubo 27 latidos de silueta mirando
+al revés de hacia donde iba ese rival, y 22 en 4 s de defensa en el 2do. Había
+un segundo caso en la figura grande: al cambiar el portador heredaba hacia
+dónde miraba el anterior, así que después de un robo el rival quedaba mirando
+a su propio arco durante todo el arranque (unos 2,3 s) y se daba vuelta al
+primer paso. La figura grande, el pasto y la cancha de abajo ya iban bien en
+los dos tiempos, y la IA de los compañeros no oscila: en 12 s de jugada
+siguen al portador y solo cambian de sentido cuando él cambia.
+
+Qué hice. En `updatePanelEscena` (match.js) cada silueta mira hacia donde
+corre su rival. La memoria va en coordenadas de la simulación y el espejo del
+2do tiempo se aplica al dibujar, así que en el 2T todo se da vuelta junto.
+Solo cuenta un paso de más de 2 px entre dos cuadros dibujados seguidos: lo
+que se reacomoda detrás de un menú o una escena no gira a nadie. El que
+todavía no se movió mira al portador. La figura grande, cuando cambia el
+portador, arranca mirando hacia donde ataca su equipo; desde el primer paso
+manda el movimiento real, como antes. No toqué la simulación ni las
+ilustraciones.
+
+Test nuevo, `panel_mira`: corre el `updatePanelEscena` real con el perseguidor
+y el que viene de frente en los dos tiempos, el rival quieto, el reacomodo
+detrás de un menú y el cambio de portador en los dos tiempos (17 asserts).
+Con el match.js de antes fallan 10.
+
+Cómo lo verifiqué. Navegador integrado, caché y service worker borrados,
+partido directo contra Espejo de Sal, con capturas y medición cuadro a cuadro
+en tres momentos. 1er tiempo, corrida al arco: 0 latidos de silueta mirando al
+revés (antes 27), las siluetas que te siguen miran a la derecha con vos. 2do
+tiempo en defensa: el rival que saca mira hacia tu arco (a la derecha) desde
+el primer cuadro y no se da vuelta (antes miraba a su arco), sus compañeros
+miran para el mismo lado, 0 al revés (antes 22). 2do tiempo en ataque: tu
+figura mira a la izquierda, hacia el arco rival, y después de un robo el
+rival mira a la derecha desde el primer cuadro hasta que arranca. Suite verde.
+
+Lo que vi y no toqué: cuando la figura grande mira a la izquierda (todo tu
+ataque del 2do tiempo) la ilustración se espeja entera y el número horneado
+en la camiseta se lee al revés; arreglarlo pide una versión de la ilustración
+mirando al otro lado o no espejar, y las dos cosas son decisión tuya. La
+zancada del latido inclina la figura 3,5 grados adelante y atrás, alternando;
+es de V8 y no la cambié.
