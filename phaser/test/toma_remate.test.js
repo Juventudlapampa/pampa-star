@@ -128,5 +128,20 @@ var B = PI.huesos(def, TW, TH);
   console.log("[5] la toma en el remate y en el súper tiro · una patada, en el contacto");
 })();
 
+/* ---------- [6] APAGADA POR PERILLA (pedido de Rodri del 17/oct) ----------
+   "Las animaciones 3D rompieron el juego": la toma queda apagada con
+   flags.toma_remate = false y vuelven la viñeta EL REMATE y, en el súper
+   tiro, la carga y el plano del pie. Se fija que la perilla corte la toma y
+   que los dos caminos de antes sigan detrás. */
+(function () {
+  assert(BAL.flags && BAL.flags.toma_remate === false, "balance.flags.toma_remate queda en false (pedido de Rodri del 17/oct)");
+  assert(/if \(this\.FLAGS && this\.FLAGS\.toma_remate === false\) return false;/.test(TOMA), "puedeTomaDelRemate respeta la perilla");
+  var rem = MATCH.slice(MATCH.indexOf("this.puedeTomaDelRemate && this.puedeTomaDelRemate()"), MATCH.indexOf("  dispararConCine(mega, ej) {"));
+  assert(/this\.escenaCine\(\{\s*etiqueta: "· EL REMATE ·"[^]*?pose: "remate"/.test(rem), "sin la toma, el remate común vuelve a la viñeta EL REMATE");
+  var mega = MATCH.slice(MATCH.indexOf("  dispararConCine(mega, ej) {"), MATCH.indexOf("  texturaEscena(j, esRival, anim, frame) {"));
+  assert(/pose: "remate", especial: true[^]*?this\.planoPie\(\)/.test(mega), "y el súper tiro a la carga y el plano del pie");
+  console.log("[6] la toma apagada por perilla · los caminos de antes siguen");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

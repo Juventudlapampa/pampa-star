@@ -515,7 +515,7 @@
     "drift_mult": 1.4,
     "pelota_escala_base": 0.5,
     "pelota_escala_span": 3.7,
-    "camara_viva": { "_nota": "oct 2026, LA CÁMARA VIVA (match.js dollyCine): mientras la pose se sostiene la cámara se acerca; las figuras más que el fondo pintado, que además se corre al revés (paralaje de dos planos). Se clava en el silencio y en la revelación golpea con un zoom que entra y vuelve. acercar_* son fracciones de escala (0,035 = 3,5% más grande al final de la pose), corrida_fondo_px cuánto se desliza la pintura, golpe_zoom el golpe de la revelación. activa:false la apaga y las viñetas quedan como antes.", "activa": true, "acercar_figuras": 0.035, "acercar_fondo": 0.02, "corrida_fondo_px": 6, "golpe_zoom": 0.045 },
+    "camara_viva": { "_nota": "oct 2026, LA CÁMARA VIVA (match.js dollyCine): mientras la pose se sostiene la cámara se acerca; las figuras más que el fondo pintado, que además se corre al revés (paralaje de dos planos). Se clava en el silencio y en la revelación golpea con un zoom que entra y vuelve. acercar_* son fracciones de escala (0,035 = 3,5% más grande al final de la pose), corrida_fondo_px cuánto se desliza la pintura, golpe_zoom el golpe de la revelación. activa:false la apaga y las viñetas quedan como antes. 17/oct, pedido de Rodri: las animaciones 3D rompieron el juego; queda APAGADA (el código sigue, no se borra todavía).", "activa": false, "acercar_figuras": 0.035, "acercar_fondo": 0.02, "corrida_fondo_px": 6, "golpe_zoom": 0.045 },
     "impacto_gol_ms": 340,
     "impacto_atajada_ms": 320,
     "impacto_afuera_ms": 420,
@@ -814,6 +814,8 @@
     "tope_excepto": ["fondo_tribuna"]
   },
   "flags": {
-    "a3_bloqueo": true
+    "a3_bloqueo": true,
+    "_toma_remate": "17/oct, pedido de Rodri: las animaciones 3D rompieron el juego. La toma del remate (scenes/toma_remate.js) queda APAGADA: vuelven la viñeta EL REMATE y, en el súper tiro, la carga y el plano del pie. El código sigue, no se borra todavía.",
+    "toma_remate": false
   }
 }

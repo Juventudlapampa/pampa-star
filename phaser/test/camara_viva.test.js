@@ -33,7 +33,14 @@ function cuerpo(txt, firma) {
 
 /* [1] las perillas */
 var CV = (BAL.cine || {}).camara_viva || {};
-assert(CV.activa === true, "balance.cine.camara_viva.activa tiene que existir");
+/* Pedido de Rodri del 17/oct ("las animaciones 3D rompieron el juego"): la
+   cámara viva queda apagada por perilla. Antes este assert pedía activa:true.
+   El código sigue; lo que se fija es que la perilla la apague de verdad. */
+assert(CV.activa === false, "balance.cine.camara_viva.activa queda en false (pedido de Rodri del 17/oct)");
+assert(/if \(CV\.activa === false \|\| !this\.cineContent\) return;/.test(cuerpo(SRC, "  dollyCine(ms, fuerza) {")),
+  "con activa:false dollyCine no mueve nada");
+assert(/if \(CV\.activa === false \|\| !this\.uiCam\) return;/.test(cuerpo(SRC, "  golpeDeCamara(fuerza) {")),
+  "con activa:false golpeDeCamara no hace el golpe de zoom");
 assert(CV.acercar_figuras > CV.acercar_fondo, "las figuras se acercan MÁS que el fondo: eso es el paralaje");
 console.log("[1] perillas: figuras " + CV.acercar_figuras + " · fondo " + CV.acercar_fondo + " · corrida " + CV.corrida_fondo_px + " px");
 
