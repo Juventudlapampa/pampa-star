@@ -3211,8 +3211,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         pose: id === "chilena" ? "chilena" : (id === "cabezazo" ? "cabezazo" : "remate"),
         protaAngle: id === "chilena" ? -115 : 0,       // la vuelta en el aire
         especial: id === "chilena",
-        /* V6 §1 F2: ante todo tiro al arco el arquero vuela, sin excepciones */
-        rival: arqR ? { j: arqR, esRival: true, anim: res.outcome === "atajada" ? "atajada" : "estirada" } : null,
+        /* V6 §1 F2: ante todo tiro al arco el arquero vuela, sin excepciones.
+           Pedido de Rodri del 17/oct: entra estirándose y, si la retuvo, la
+           ataja en la revelación (poseFinalRival) */
+        rival: arqR ? { j: arqR, esRival: true, anim: "estirada" } : null,
+        poseFinalRival: res.outcome === "atajada" ? "atajada" : undefined,
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : undefined,
@@ -4076,8 +4079,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.escenaCine({
         etiqueta: "· el remate ·", accion: "remate",
         prota: { j: tirador, esRival: false, anim: "tiro" },
-        /* V6 §1 F2: el arquero SIEMPRE se estira — también cuando la pelota se va afuera */
-        rival: arqR ? { j: arqR, esRival: true, anim: res.outcome === "atajada" ? "atajada" : "estirada" } : null,
+        /* V6 §1 F2: el arquero SIEMPRE se estira — también cuando la pelota se va
+           afuera. Si la retuvo, la ataja en la revelación (poseFinalRival) */
+        rival: arqR ? { j: arqR, esRival: true, anim: "estirada" } : null,
+        poseFinalRival: res.outcome === "atajada" ? "atajada" : undefined,
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : "tiro",
@@ -4510,7 +4515,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        la pelota es SIEMPRE la del juego. El manifest declara dónde iba
        (pelota:{x,y,r}) y acá se dibuja el sprite "ball" ahí, con ese tamaño,
        espejado si la pose va en flip, entrando pegado a la pose. */
-    let posePel = null;
+    let posePel = null, bolaProta = null;
     if (sp._esPose) {
       const pm = this.game.registry.get("poses");
       const defP = pm && pm.poses && pm.poses[poseId];
@@ -4523,7 +4528,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* ARTE: el alto en pantalla manda; texPelota elige la de 16 o la de 128 */
       const altoB = posePel && posePel.r ? Math.max(1.6 * 16, posePel.r * 2 * dH) : 2.4 * 16;
       const TP = this.texPelota(altoB);
-      const bb = this.add.sprite(-200 + offX, H * 0.52 + offY, TP.key).setScale(TP.esc);
+      const bb = bolaProta = this.add.sprite(-200 + offX, H * 0.52 + offY, TP.key).setScale(TP.esc);
       this.cineContent.add(bb);
       this.tweens.add({ targets: bb, x: W * 0.3 + offX, duration: F.entrada_ms || 420, ease: "Quad.easeOut" });
     }
@@ -4657,6 +4662,26 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       } else if (sr) {
         if (sr._esPose) sr.setScale(sr.scaleX * GOLPE);
         else sr.setScale((F.escala_rival || 2.9) * GOLPE);
+      }
+      /* Pedido de Rodri del 17/oct: el arquero ilustrado entraba ya en la pose
+         de atajar, con las manos vacías. Ahora entra estirándose y, si la
+         retuvo, pasa en seco a su pose final con la pelota del juego donde la
+         pose la declara, detrás de la pose, como en el remate común
+         (ponerArqueroQueAtaja). */
+      if (sr && sr.active && sr._esPose && cfg.poseFinalRival) {
+        const rivFin = Object.assign({}, cfg.rival, { anim: cfg.poseFinalRival });
+        const pm = this.game.registry.get("poses");
+        const defF = pm.poses[this.poseParaEscena(rivFin)];
+        const alto = sr.displayHeight;
+        sr.setTexture(this.poseDelAntagonista({ rival: rivFin })).setScale(alto / sr.height);
+        if (defF.pelota && bolaProta && bolaProta.active) {
+          const dW = sr.displayWidth, dH = sr.displayHeight;
+          const TP = this.texPelota(Math.max(16, defF.pelota.r * 2 * dH));
+          this.tweens.killTweensOf(bolaProta);
+          bolaProta.setTexture(TP.key).setScale(TP.esc)
+            .setPosition(sr.x + (defF.pelota.x - 0.5) * dW * (sr.flipX ? -1 : 1), sr.y + (defF.pelota.y - 0.5) * dH);
+          this.cineContent.moveBelow(bolaProta, sr);
+        }
       }
       if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
       if (cfg.hinchada) this.tribunaSaltando();   // V6 P5: la tribuna SALTA en el gol
