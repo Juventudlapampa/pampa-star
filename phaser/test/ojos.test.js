@@ -234,7 +234,10 @@ function escenaConPoses() {
   assert(e.figuraArquero("vuela", "texturaEscena(tu arquero)") === "pose_arquero_vuela_celeste", "y vuela con la estirada celeste");
   /* los dos planos del remate dicen el bando (la regresión con nombre) */
   var M = leer("phaser/scenes/match.js");
-  assert(/figuraArquero\("vuela", "planoArquero \(arquero rival\)", true\)/.test(M), "SÍNTOMA: planoArquero no le dice a figuraArquero que el arquero es el rival");
+  /* 17/oct, pedido de Rodri: el arquero salía dos veces estirado en el mismo
+     lugar (planoArquero y planoDesenlace). Ahora es un solo momento, en
+     planoDesenlace; planoArquero no puede volver. */
+  assert(!/planoArquero\(\)/.test(M), "SÍNTOMA: volvió planoArquero, la misma toma del arquero antes del desenlace");
   assert(/figuraArquero\("vuela", "planoDesenlace \(arquero rival\)", true\)/.test(M),
     "SÍNTOMA: planoDesenlace no arranca con el arquero rival estirado (antes la pose de 'la agarró' estaba desde el primer cuadro y era la tuya)");
   assert(/if \(!corner && this\.ponerArqueroQueAtaja\(arq, ball\)\) return;/.test(M), "la atajada pasa a la pose de rodillas RECIÉN en la revelación");
@@ -332,6 +335,8 @@ function escenaConPoses() {
     var bola = creados.filter(function (s) { return s.k === "ball"; })[0];
     var tw = tweens.filter(function (t) { return t.targets === bola; })[0];
     if (!arqD || !bola || !tw) { assert(false, outcome + ": planoDesenlace no armó el arquero estirado, la pelota o su viaje"); return; }
+    assert(creados.filter(function (s) { return /^pose_arquero/.test(s.k); }).length === 1,
+      outcome + ": un solo arquero en el momento (17/oct, pedido de Rodri: la toma no se repite)");
     var dW = arqD.displayWidth, dH = arqD.displayHeight, top = arqD.y - dH, izq = arqD.x - dW / 2;
     var gx0 = izq + GUANTES.x0 * dW, gx1 = izq + GUANTES.x1 * dW, gy0 = top + GUANTES.y0 * dH, gy1 = top + GUANTES.y1 * dH;
     assert(tw.x >= gx0 && tw.x <= gx1 && tw.y >= gy0 && tw.y <= gy1,

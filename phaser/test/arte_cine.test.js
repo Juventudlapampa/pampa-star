@@ -122,9 +122,12 @@ var HEX = /^#[0-9a-f]{6}$/i;
     var s = re.exec(cod);
     return cod.slice(i, s ? s.index : i + 8000);
   }
+  /* 17/oct, pedido de Rodri ("la animación del arquero está como repetida"):
+     planoArquero se borró. El arquero es un solo momento y vive en
+     planoDesenlace, que sigue pidiendo el arco pintado con su respaldo. */
   var lugares = [
     [m, "escenaCine(cfg) {", "escena"], [m, "cutInEspecial(titulo", "golpe"], [m, "planoPie() {", "golpe"],
-    [m, "planoEsfuerzo() {", "golpe"], [m, "planoArquero() {", "arco"], [m, "planoDesenlace() {", "arco"],
+    [m, "planoEsfuerzo() {", "golpe"], [m, "planoDesenlace() {", "arco"],
     [m, "dibujarCanchaProfunda(vp, nearY) {", "profunda"], [e, "fondoDeCancha(conTribuna) {", "cancha_alta"],
     [d, "defFondo(esMiArco) {", "cancha_alta"], [d, "defTeatroFinal(o) {", "golpe"], [d, "defRevelacion(o) {", "golpe"]
   ];
@@ -135,7 +138,7 @@ var HEX = /^#[0-9a-f]{6}$/i;
   });
   /* el respaldo: si la pintura no está (sin datos, sin canvas), el plano
      dibuja lo de siempre. Se vigila en los que tenían fondo opaco propio */
-  ["escenaCine(cfg) {", "planoPie() {", "planoArquero() {", "planoDesenlace() {", "cutInEspecial(titulo"].forEach(function (f) {
+  ["escenaCine(cfg) {", "planoPie() {", "planoDesenlace() {", "cutInEspecial(titulo"].forEach(function (f) {
     assert(/if \(!(?:this\.fondoCine \|\| !this\.fondoCine|pintado)/.test(cuerpo(m, f)), f + " conserva el fondo viejo como respaldo");
   });
   /* limpiarContenido apaga la pintura: el que no la pide no hereda la del anterior */

@@ -68,8 +68,11 @@ var W = 960, H = 540;
   var conOrigenPie = SRC.split("\n").filter(function (l) {
     return l.indexOf("arq.setOrigin(0.5, 1)") >= 0;
   }).length;
-  assert(conOrigenPie >= 2,
-    "los dos arqueros del cine (desenlace y planoArquero) llevan el origen en los pies; encontre " + conOrigenPie);
+  /* 17/oct, pedido de Rodri: eran dos arqueros (planoArquero y el del
+     desenlace) y se leían como la misma animación dos veces. Queda uno solo,
+     el de planoDesenlace, y sigue con el origen en los pies. */
+  assert(conOrigenPie >= 1 && /arq\.setOrigin\(0\.5, 1\)/.test(SRC.slice(SRC.indexOf("  planoDesenlace() {"))),
+    "el arquero del cine (planoDesenlace) lleva el origen en los pies; encontre " + conOrigenPie);
   /* ninguna rama puede volver a poner al arquero con una coordenada de pantalla */
   assert(!/arq\.setPosition\([^)]*H \/ 2/.test(SRC),
     "ninguna rama puede posicionar al arquero con H/2 (coordenada de pantalla)");

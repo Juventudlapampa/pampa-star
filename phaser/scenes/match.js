@@ -3475,39 +3475,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineContent.add(jug);
     this.tweens.add({ targets: jug, scale: 3.4, angle: -3, duration: C.plano_esfuerzo_ms, ease: "Sine.easeOut" });
     this.SFX && this.SFX.crowd(400);
-    this._cineTimer = this.time.delayedCall(this.msV(C.plano_esfuerzo_ms), () => this.corte(() => this.planoArquero()));
-  }
-  planoArquero() {
-    const W = 960, H = 540, C = this.BAL.cine;
-    this.limpiarContenido();
-    const A = this.arcoCine();
-    this.cineBG.clear();
-    /* ARTE: detrás del arco, la cancha pintada (tribuna o estadio según la
-       división, el pasto con su fuga, las áreas y la sombra del arco) */
-    if (!this.fondoCine || !this.fondoCine("arco", { arco: A })) {
-      this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
-      this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, A.linea, W, H - A.linea);
-    }
-    this.cineLabel.setText("· el arquero ·");
-    /* B3: era "cine_arquero", el muñequito de bloques — ESTA es la figura que
-       Rodri capturó. Ahora es la pose ilustrada de estirada. */
-    /* P2 · ESTE es el (W/2 + 40, H/2) que marcó Rodri: una coordenada de
-       pantalla que no miraba nada. Ahora el plano tiene SU arco —el mismo de
-       arcoCine()— y el arquero se para en la línea, adentro de la boca. */
-    this.dibujarArcoCine(this.cineBG);
-    /* OJOS (tanda 1.0): este plano es SIEMPRE tu remate, así que el que vuela
-       es el arquero RIVAL. Pedía "planoArquero" a secas y figuraArquero lo
-       tomaba como propio: volaba con el buzo azul de tu arquero. */
-    const arq = this.add.sprite(A.cx + A.voladaX * 0.5, A.linea, this.figuraArquero("vuela", "planoArquero (arquero rival)", true));
-    arq.setOrigin(0.5, 1).setAngle(6)
-      .setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", A.h * 1.15, arq));
-    this.cineContent.add(arq);
-    this.tweens.add({ targets: arq, scale: arq.scale * 1.35, x: A.cx, angle: 0, duration: C.plano_arquero_ms, ease: "Quad.easeOut" });
-    const ball = this.add.sprite(A.izq - 120, A.travesano - 40, "ball").setScale(0.8);
-    this.cineContent.add(ball);
-    this.tweens.add({ targets: ball, x: A.cx + A.voladaX, y: A.bocaY, scale: 1.9, duration: C.plano_arquero_ms, ease: "Sine.easeIn" });
-    this.SFX && this.SFX.crowd(500);
-    this._cineTimer = this.time.delayedCall(this.msV(C.plano_arquero_ms), () => this.corte(() => this.planoDesenlace()));
+    this._cineTimer = this.time.delayedCall(this.msV(C.plano_esfuerzo_ms), () => this.corte(() => this.planoDesenlace()));
   }
   /* ══════════════════════════════════════════════════════════════════════
      P2 · LA GEOMETRÍA DEL ARCO DEL CINE, EN UN SOLO LUGAR.
@@ -3562,117 +3530,216 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V7 §1: acá se RESUELVE el remate — el skip muere (un toque no puede
        re-entrar y duplicar el gol) */
     this._cineSkip = null; this._cineTimer = null;
-    const W = 960, H = 540, C = this.BAL.cine, EP = this.BAL.epica, res = this.res, st = this.st, P = window.PampaPartido;
+    const W = 960, H = 540, C = this.BAL.cine, EP = this.BAL.epica, res = this.res;
     this.limpiarContenido();
-    /* P2: el pasto arranca en la LÍNEA del arco — el arco se apoya en la
-       cancha en vez de flotar 86 px por encima como antes */
+    /* 17/oct, pedido de Rodri: "la animación del arquero está como repetida".
+       Lo estaba: planoArquero lo mostraba estirándose en su arco y este plano,
+       con el mismo fondo, lo volvía a poner estirado en el mismo lugar con la
+       pelota viajando otra vez. Ahora el arquero es UN solo momento, acá: el
+       salto en cámara lenta, de cerca y contra líneas de velocidad, con la
+       pelota yendo a sus manos o al ángulo; freeze a un paso del contacto,
+       silencio, y el contacto a velocidad real resuelve en la misma toma (la
+       red que se hunde, la pelota en sus manos, la que se va). */
     const A = this.arcoCine();
-    this.cineBG.clear();
-    if (!this.fondoCine || !this.fondoCine("arco", { arco: A })) {
-      this.cineBG.fillStyle(0x0b2416, 1); this.cineBG.fillRect(0, 0, W, H);
-      this.cineBG.fillStyle(0x1f7a3c, 1); this.cineBG.fillRect(0, A.linea, W, H - A.linea);
-    }
-    this.cineLabel.setText("· el desenlace ·");
-    this.dibujarArcoCine(this.cineBG);
-    const gx = A.cx, gy = A.linea, gw = A.w, gh = A.h;
+    const gx = A.cx, gy = A.linea;
+    /* ARTE: detrás del arco, la cancha pintada (tribuna o estadio según la
+       división, el pasto con su fuga); si no está, el fondo de siempre */
+    const pintado = this.fondoCine && this.fondoCine("arco", { arco: A });
+    const lado = this.zona.gy < 0 ? -1 : 1;
+    const dur = this.msV(C.plano_arquero_ms) * (this._cineSaltado ? 0.45 : 1);
+    const tFreeze = Math.round(dur * 0.86);
+    const silencio = (this.BAL.feel && this.BAL.feel.silencio_ms) || 500;
+    /* el fondo de cada cuadro: en la cámara lenta (p > 0) la cancha se apaga
+       y quedan líneas que corren al revés del salto; el arco va siempre encima */
+    const pintarArco = (p) => {
+      const g = this.cineBG;
+      g.clear();
+      if (!pintado) {
+        g.fillStyle(0x0b2416, 1); g.fillRect(0, 0, W, H);
+        g.fillStyle(0x1f7a3c, 1); g.fillRect(0, A.linea, W, H - A.linea);
+      }
+      if (p > 0) {
+        g.fillStyle(0x08131d, 0.62 * Math.min(1, p * 5)); g.fillRect(0, 0, W, H);
+        const corre = p * dur * 0.9;
+        for (let i = 0; i < 26; i++) {
+          const largo = 140 + (i * 71) % 220, ancho = i % 5 === 0 ? 5 : 2;
+          const u = ((i * 389 + corre) % (W + 2 * largo)) - largo;
+          const cx = lado > 0 ? W - u : u, cy = 16 + (i * 197) % (H - 32);
+          const mx = lado * largo / 2, my = -largo * 0.06;
+          g.fillStyle(i % 5 === 0 ? 0xffffff : 0xdfeef6, i % 5 === 0 ? 0.5 : 0.26);
+          g.fillTriangle(cx + mx, cy + my, cx - mx, cy - my - ancho, cx - mx, cy - my + ancho);
+        }
+      }
+      this.dibujarArcoCine(g);
+    };
+    pintarArco(0);
+    this.cineLabel.setText("· el arquero ·");
     /* P2: los carteles bajan al pasto, debajo del arco. Antes ¡GOOOL! caía en
-       el centro de la pantalla, o sea adentro de la boca y justo donde
-       aterriza el cuerpo del arquero. */
+       el centro de la pantalla, o sea adentro de la boca. */
     this.cineBig.setY(A.carteles);
     this.cineSub.setY(A.carteles + 42);
-    /* B3: el otro "cine_arquero".
-       OJOS (tanda 1.0): dos cosas estaban mal acá. (1) EL BANDO: el plano es
-       SIEMPRE tu remate y pedía "planoDesenlace" a secas, así que
-       figuraArquero lo tomaba como TU arquero: el rival te retenía el remate
-       con tu buzo azul, de rodillas y con los ojos cerrados
-       (arquero_ataja_celeste). (2) EL ADELANTO: la pose de "la agarró" estaba
-       desde el primer cuadro, antes del silencio, y contaba el final; y la
-       pelota del juego volaba a sus manos mientras él abrazaba el hueco del
-       webp. Ahora el arquero rival entra SIEMPRE estirado, y recién en la
-       revelación de la atajada pasa a su pose de rodillas con la pelota del
-       juego en el hueco que dice el manifiesto. */
+    /* OJOS (tanda 1.0): el plano es SIEMPRE tu remate, así que el que vuela es
+       el arquero RIVAL con su arte, y entra estirado: la pose de "la agarró"
+       recién en la revelación de la atajada. P2: el origen en los pies, así la
+       Y es su piso y no se hunde por debajo de la línea de gol. */
     const arq = this.add.sprite(gx, gy, this.figuraArquero("vuela", "planoDesenlace (arquero rival)", true));
-    /* A3: idem — la estirada es mas ancha que alta */
-    arq.setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", gh * 1.15, arq));
-    /* P2 · LOS PIES EN LA LÍNEA. El origen baja al pie del sprite, así que la
-       Y que se le da es el PISO del arquero y no su ombligo: sea cual sea la
-       pose y la escala, no se hunde por debajo de la línea de gol. */
+    /* A3: la estirada es mas ancha que alta */
+    arq.setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", A.h * 1.15, arq));
     arq.setOrigin(0.5, 1);
+    arq.flipX = lado < 0;
     this.cineContent.add(arq);
-    const ball = this.add.sprite(gx - 260, A.bocaY, "ball").setScale(1.6); this.cineContent.add(ball);
-    const targetY = A.bocaY + (this.zona.gy || 0) * C.drift_mult;
-    /* Feel B8: SILENCIO antes de revelar (el vacío en el estómago) */
-    const silencio = (this.BAL.feel && this.BAL.feel.silencio_ms) || 500;
-    this.musicaDuck(silencio + 300);   // ANIME D: también calla la música del loop
+    const ball = this.add.sprite(gx, H, "ball").setScale(3.4);
+    this.cineContent.add(ball);
+    /* dónde quedan los guantes respecto de los pies: 'manos' del manifest,
+       medidas en el webp (revisión de OJOS); con el flip se espejan */
+    const poses = this.game.registry.get("poses");
+    const defV = poses && poses.poses && poses.poses[this._poseArqueroUltima];
+    const M0 = this.puntoDePose(arq, defV && defV.manos);
+    const alcance = M0 ? M0.x - gx : lado * A.voladaX, altoManos = M0 ? M0.y : A.bocaY;
+    /* la cámara del momento: escala las capas del cine alrededor de un punto,
+       sin mostrar nada fuera del lienzo; los carteles quedan quietos */
+    let ox = 0, oy = 0, z = 1;
+    const encuadrar = (fx, fy, zoom) => {
+      z = zoom;
+      fx = Phaser.Math.Clamp(fx, W / 2 / z, W - W / 2 / z);
+      fy = Phaser.Math.Clamp(fy, H / 2 / z, H - H / 2 / z);
+      ox = W / 2 - fx * z; oy = H / 2 - fy * z;
+      this.cineContent.setScale(z).setPosition(ox, oy);
+      this.cineBG.setScale(z).setPosition(ox, oy);
+      if (pintado) this.cineFondo.setScale(z).setPosition(ox + W / 2 * z, oy + H / 2 * z);
+    };
+    /* el corte seco a la toma abierta, con la cancha de verdad */
+    const abierto = () => { pintarArco(0); encuadrar(gx, H / 2, 1); };
+    let destino, escFin, revelar;
     if (res.outcome === "gol") {
-      /* P2 · se tiró para el otro lado: el desvío sale del ANCHO DEL ARCO
-         (voladaX), no de un 90 clavado, y los pies siguen en la línea */
-      arq.setPosition(gx + (this.zona.gy < 0 ? 1 : -1) * A.voladaX, gy);
-      this.tweens.add({ targets: ball, x: gx + (this.zona.gy || 0) * 1.2, y: targetY, scale: 1.2, duration: C.impacto_gol_ms, ease: "Quad.easeIn" });
-      this.time.delayedCall(C.impacto_gol_ms + silencio, () => {
-        ball.setPosition(gx + (this.zona.gy || 0) * 1.2, targetY);
+      /* al ángulo, más cruzado cuanto más abierto vino el tiro, y los guantes
+         se quedan a medio metro */
+      const tx = gx + lado * Math.min(A.w / 2 - 34, 40 + Math.abs(this.zona.gy || 0) * 2);
+      arq.setPosition(tx - lado * 50 - alcance, gy);
+      destino = { x: tx, y: A.travesano + 32 }; escFin = 1.2;
+      revelar = () => {
+        abierto();
+        /* la red se hunde donde entró la pelota y vuelve: los hilos de la
+           malla (el mismo paso que dibujarArcoCine) se tiran hacia el punto
+           del impacto, sobre un hueco oscuro que tapa los hilos rectos */
+        const red = this.add.graphics();
+        this.cineContent.add(red); this.cineContent.moveBelow(red, arq);
+        const R = 46, hondo = { v: 0 };
+        const tirar = (x, y) => {
+          const dx = x - destino.x, dy = y - destino.y, d = Math.hypot(dx, dy) / R;
+          const k = d < 1 ? 1 - hondo.v * 0.55 * (1 - d) : 1;
+          return { x: destino.x + dx * k, y: destino.y + dy * k };
+        };
+        const dibujarRed = () => {
+          red.clear();
+          /* el hueco no se sale de los palos ni del travesaño */
+          const rx = Math.min(R * 0.95, destino.x - A.izq, A.der - destino.x), ry = Math.min(R * 0.8, destino.y - A.travesano, A.linea - destino.y);
+          red.fillStyle(0x0b1a12, 0.35 * hondo.v); red.fillEllipse(destino.x, destino.y, rx * 2, ry * 2);
+          red.lineStyle(2, 0xdfeef6, 0.75);
+          const y0 = Math.max(A.travesano, destino.y - R), y1 = Math.min(A.linea, destino.y + R);
+          const x0 = Math.max(A.izq, destino.x - R), x1 = Math.min(A.der, destino.x + R);
+          for (let x = A.izq; x <= A.der; x += 16) {
+            if (x < x0 || x > x1) continue;
+            red.beginPath();
+            for (let y = y0; y <= y1; y += 4) { const p = tirar(x + 1, y); if (y === y0) red.moveTo(p.x, p.y); else red.lineTo(p.x, p.y); }
+            red.strokePath();
+          }
+          for (let y = A.travesano; y <= A.linea; y += 14) {
+            if (y < y0 || y > y1) continue;
+            red.beginPath();
+            for (let x = x0; x <= x1; x += 4) { const p = tirar(x, y + 1); if (x === x0) red.moveTo(p.x, p.y); else red.lineTo(p.x, p.y); }
+            red.strokePath();
+          }
+        };
+        this.tweens.add({ targets: hondo, v: 1, duration: 140, ease: "Quad.easeOut", onUpdate: dibujarRed });
+        this.tweens.add({ targets: hondo, v: 0.55, delay: 140, duration: 420, ease: "Sine.easeInOut", onUpdate: dibujarRed });
+        this.tweens.add({ targets: ball, scale: escFin * 0.75, y: destino.y + 10, duration: 140, ease: "Quad.easeOut" });
+        this.tweens.add({ targets: ball, y: gy - 10, delay: 300, duration: 420, ease: "Bounce.easeOut" });
         this.uiCam.shake(EP.shake_ms, EP.shake_intensidad);
         this.uiCam.flash(EP.flash_ms, 255, 255, 210);
         this.burst(ball.x, ball.y);
         this.punch(this._megaGrito || "¡GOOOL!", "¡La clavaste donde el viento no la saca!", 0xffd84d);
         /* V9: la fiesta completa (tribuna + efecto + saque relatado). Acá
            decidir y ver son el mismo instante: anota y festeja junto. La red
-           y la fanfarria son SUYAS; antes sonaban acá también, y el gol del
-           cine tenía dos redes y dos fanfarrias. */
+           y la fanfarria son SUYAS. La escena se queda abierta hasta ver la
+           explosión y un respiro. */
         const hastaLaExplosion = this.golPropio() || 0;
-        /* la escena se queda abierta hasta ver la explosión y un respiro:
-           antes se cerraba 600 ms después del impacto, con la fanfarria
-           todavía sonando sobre la cancha */
         this.time.delayedCall(hastaLaExplosion + this.msV(C.desenlace_hold_ms), () => this.salirCine());
-      });
+      };
     } else if (res.outcome === "atajada" || res.outcome === "corner") {
-      /* G1: los dos son "el arquero llegó", pero terminan distinto — la que
-         agarra queda en sus manos, la del córner se le escapa por el costado */
+      /* G1: los dos son "el arquero llegó", pero terminan distinto: la que
+         agarra queda en sus manos, la del córner la toca con la punta de los
+         dedos junto al palo y se le va por el costado */
       const corner = res.outcome === "corner";
-      arq.setPosition(gx - A.voladaX * (corner ? 0.8 : 0.35), gy);
-      /* LAS MANOS DE LA ESTIRADA (revisión de OJOS). El destino era un punto
-         fijo de la boca (P2, "a la altura de las manos") pensado para la pose
-         de rodillas, que antes estaba desde el primer cuadro. Desde OJOS el
-         arquero entra estirado, y en el cuadro que más se sostiene (el
-         impacto más el silencio, unos 800 ms) la pelota quedaba clavada en
-         su cadera, 447,262, con los guantes 90 px más arriba y a la derecha
-         (ojos_8). Ahora va a las manos que declara el manifest ('manos' de
-         la estirada, medidas en el webp); sin ese dato, al punto de antes. */
-      const man = this.game.registry.get("poses");
-      const M = this.puntoDePose(arq, man && man.poses && man.poses[this._poseArqueroUltima] && man.poses[this._poseArqueroUltima].manos);
-      const manosX = M ? M.x : gx - A.voladaX * 0.5, manosY = M ? M.y : A.bocaY + 10;
-      this.tweens.add({ targets: ball, x: manosX, y: manosY, scale: 1.7, duration: C.impacto_atajada_ms, ease: "Quad.easeIn" });
-      this.time.delayedCall(C.impacto_atajada_ms + silencio, () => {
-        ball.setPosition(manosX, manosY);
+      arq.setPosition(gx + lado * (corner ? A.w / 2 - 40 : 40) - alcance, gy);
+      /* LAS MANOS DE LA ESTIRADA (revisión de OJOS): la pelota viaja a los
+         guantes, no a un punto fijo de la boca */
+      destino = { x: arq.x + alcance, y: altoManos }; escFin = 1.6;
+      revelar = () => {
+        ball.setPosition(destino.x, destino.y);
+        pintarArco(0);
         this.uiCam.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
-        this.dust(gx - 30, gy - 20);
         const d = this.desenlaceRemate(res);
         this.punch(d.titulo, d.sub, d.color);
+        /* la atajada se queda cerca, en las manos; el córner abre para verla irse */
+        if (corner) abierto(); else encuadrar(arq.x + lado * 20, gy - 80, 1.35);
+        this.dust(ox + destino.x * z, oy + destino.y * z);
         /* OJOS: la que agarra se ve RECIÉN ACÁ: el arquero rival pasa a su
            pose de rodillas y la pelota del juego queda en sus manos */
         if (!corner && this.ponerArqueroQueAtaja(arq, ball)) return;
-        /* la del córner sale DISPARADA al costado; la agarrada queda cerca */
+        /* la del córner sale DISPARADA por afuera del palo */
         this.tweens.add({
           targets: ball,
-          x: corner ? gx + (d.arriba ? -1 : 1) * (gw / 2 + 140) : gx - 260,
+          x: corner ? gx + lado * (A.w / 2 + 140) : gx - 260,
           y: corner ? A.travesano - 20 : gy - 30,
           alpha: corner ? 0.35 : 1,
           duration: EP.rebote_atajada_ms, ease: "Quad.easeOut"
         });
-      });
+      };
     } else {
-      /* P2 · la que se va afuera pasa POR ARRIBA del travesaño, y el arquero
-         la mira irse desde su palo */
-      arq.setPosition(gx + (this.zona.gy < 0 ? -1 : 1) * A.voladaX * 0.7, gy);
-      this.tweens.add({ targets: ball, x: gx + (this.zona.gy < 0 ? -1 : 1) * (gw / 2 + 60), y: A.travesano - 40, scale: 1.0, alpha: 0.3, duration: C.impacto_afuera_ms, ease: "Quad.easeIn" });
-      this.time.delayedCall(C.impacto_afuera_ms + silencio - 120, () => {
+      /* P2 · la que se va afuera pasa POR ARRIBA del travesaño, junto al palo,
+         lejos de los guantes */
+      destino = { x: gx + lado * (A.w / 2 + 56), y: A.travesano - 34 }; escFin = 1.0;
+      arq.setPosition(destino.x - lado * 95 - alcance, gy);
+      revelar = () => {
+        abierto();
+        this.tweens.add({ targets: ball, x: destino.x + lado * 170, y: destino.y - 60, scale: 0.7, alpha: 0.3, duration: 460, ease: "Quad.easeOut" });
         const d = this.desenlaceRemate(res);
         this.punch(d.titulo, d.sub, d.color);
-      });
+      };
     }
-    /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda).
-       El gol programa su propia salida: espera a la explosión del festejo. */
-    if (res.outcome !== "gol") this.time.delayedCall(C.impacto_gol_ms + silencio + this.msV(C.desenlace_hold_ms), () => this.salirCine());
+    /* EL SALTO: sale del medio del arco y llega estirado justo en el freeze.
+       La pose no se anima: lo que se mueve es la figura entera y lo demás. */
+    this.tweens.add({ targets: arq, x: { from: arq.x - lado * 110, to: arq.x }, angle: { from: lado * 10, to: 0 }, duration: tFreeze, ease: "Sine.easeOut" });
+    const F = { x: (arq.x + destino.x) / 2, y: A.bocaY };
+    const prog = { p: 0, quieto: false };
+    this.tweens.add({
+      targets: prog, p: 1, duration: tFreeze, ease: "Linear",
+      onUpdate: () => { if (!prog.quieto) { pintarArco(prog.p); encuadrar(F.x, F.y, 1.35 + 0.25 * prog.p); } }
+    });
+    /* la pelota viene desde la cámara y se achica hacia el arco, pareja: la
+       cámara lenta es esa velocidad que no cambia. Entra por el lado del
+       salto, así llega a los guantes por afuera del cuerpo y no por la cara */
+    ball.setPosition(destino.x + lado * 90, F.y + H / 2 / 1.35 + 30);
+    const twBola = this.tweens.add({
+      targets: ball, x: destino.x, y: destino.y, scale: escFin, angle: lado * 160, duration: dur, ease: "Linear",
+      onComplete: () => {
+        revelar();
+        /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */
+        if (res.outcome !== "gol") this.time.delayedCall(this.msV(C.desenlace_hold_ms), () => this.salirCine());
+      }
+    });
+    this.SFX && this.SFX.crowd(Math.round(tFreeze * 0.9));
+    /* FREEZE + SILENCIO (Feel B8, el vacío en el estómago): todo se clava a un
+       paso del contacto, con un corte seco a los guantes y la pelota */
+    this.time.delayedCall(tFreeze, () => {
+      twBola.pause(); prog.quieto = true;
+      encuadrar((destino.x + ball.x) / 2, (destino.y + ball.y) / 2 + 30, 1.9);
+      this.uiCam.flash(70, 255, 255, 255);
+      this.musicaDuck(silencio + 300);   // ANIME D: también calla la música del loop
+    });
+    /* y el contacto vuelve a velocidad real */
+    this.time.delayedCall(tFreeze + silencio, () => { twBola.timeScale = 3; twBola.resume(); });
   }
   /* OJOS (tanda 1.0) · EL ARQUERO RIVAL QUE LA AGARRA, en la revelación del
      remate común (planoDesenlace). Pasa de la estirada a arquero_ataja (de
@@ -4081,8 +4148,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          → LA CARGA Y EL IMPACTO: escena especial, pose de remate, doble flash,
            líneas gruesas y las siluetas de contra cuántos la está pateando
          → EL VIAJE: la pelota con líneas de velocidad (planoPie → planoViaje)
-         → EL ARQUERO VOLANDO (planoArquero)
-         → FREEZE + medio segundo de silencio + desenlace (planoDesenlace). */
+         → EL ARQUERO (planoDesenlace): el salto en cámara lenta, FREEZE a un
+           paso del contacto, medio segundo de silencio y el desenlace. */
     const j = st.mios[st.ctrl];
     const enCamino = this.rivalesEnElCamino(j);
     /* oct 2026 · LA TOMA ESPECIAL: la carga (que era esta viñeta) y el plano
