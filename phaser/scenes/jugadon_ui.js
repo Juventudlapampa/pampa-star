@@ -329,7 +329,7 @@
         ? "lo leíste bien, pero te leyó el cuerpo igual"
         : post.dice.toLowerCase() + ": había que pasarlo " + salidas.join(" o "));
       this.uiCam.shake(200, 0.008);
-      this.SFX && this.SFX.gloves && this.SFX.gloves();
+      this.SFX && this.SFX.choque && this.SFX.choque();
       this.time.delayedCall(this.msV(B.caida_ms || 1100), function () {
         self._jgCruce = null;
         self.jugadonCerrar(function () {
@@ -388,7 +388,7 @@
       var res = J.resolverQuite(this._jgLogica, cierreId);
       if (!res) return;
       this.jugadonLimpiarBotones();
-      this.SFX && this.SFX.gloves && this.SFX.gloves();
+      this.SFX && this.SFX.choque && this.SFX.choque();
       this.avisoJugadon(res.gana ? "¡SE LA SACASTE!" : "¡TE HIZO LA " + res.movidaRival.n + "!", res.gana ? 0x7ee08a : 0xe3503e);
       this.time.delayedCall(this.msV(1000), function () {
         self.jugadonCerrar(function () {

@@ -6483,7 +6483,8 @@ como brief.
 
 Los guantes suenan solo cuando un arquero toca la pelota. Quites, cortes,
 bloqueos, paredes leídas, gambetas perdidas, la megacorrida frenada, la
-barrida de la definición y el bloqueo del remate rival suenan `choque`: la
+barrida de la definición, los quites del jugadón y el bloqueo del remate
+rival suenan `choque`: la
 patada a 0,23 (6 dB debajo de la patada). La cruz y ★ ESPECIAL suenan
 "abrir": `limpiarMenu` recibe el sonido y `abrirMenuCruz` le pasa "abrir".
 
