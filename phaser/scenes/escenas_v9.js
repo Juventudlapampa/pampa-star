@@ -92,6 +92,13 @@
     },
     figuraDePlano(poseId, j, esRival, x, y, alto, flip) {
       var k = this.poseDePlano(poseId, j, esRival), sp;
+      /* quien corre en la viñeta (el que recibe el pase) lleva su identidad,
+         con su número; antes era tu ilustración espejada y se leía "01" */
+      if (poseId === "corriendo" && j && !j.esVos && this.identidadDe) {
+        var ki = this.identidadDe(j, esRival);
+        if (ki && flip && this.textures.exists(ki + "_izq")) { k = ki + "_izq"; flip = false; }
+        else if (ki) k = ki;
+      }
       if (k) {
         sp = this.add.image(x, y, k);
         /* A3: por alto_rel del manifiesto — las figuras acostadas (el arquero

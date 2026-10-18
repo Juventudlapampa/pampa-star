@@ -1461,14 +1461,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (t >= 1) this.salirProfundo();
   }
   /* V7-1 §3: qué ilustración corre arriba — VOS llevás la pose del héroe;
-     compañeros y rivales llevan SU identidad, determinista por nombre
+     compañeros y rivales llevan SU identidad. Revisión del 17/oct: la
+     ilustración trae el número cosido, así que primero va la que tiene el
+     dorsal del jugador; si ninguna lo tiene, una determinista por nombre
      (mismo nombre, misma cara siempre). Fallback: pose_corriendo. */
   identidadDe(j, esRival) {
     const man = this._identMan;
     if (!man || !Array.isArray(man.identidades)) return null;
     const del = man.identidades.filter(d => d.equipo === (esRival ? "rival" : "mio"));
     if (!del.length) return null;
-    const d = del[window.PampaAvatar.hashSemilla(j.nombre || "x") % del.length];
+    const d = del.find(x => x.dorsal === j.numero) || del[window.PampaAvatar.hashSemilla(j.nombre || "x") % del.length];
     return this.textures.exists("ident_" + d.id) ? "ident_" + d.id : null;
   }
   /* TANDA DE ARTE A3 · EL CICLO DE CORRIDA. Si el manifest declara "ciclo"
@@ -2230,7 +2232,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const PASOS = [
       "1/3 · Movés con el DEDO sobre la cancha" + (tactil ? "" : "\n(o con las flechas / WASD)"),
       "2/3 · ⚡ ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
-      this._split ? "3/3 · Te movés y pasás TOCANDO\nEL MAPA de abajo" : (this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda")
+      this._split ? "3/3 · Tocá el MAPA de abajo y corrés hacia ahí.\nEl PASE está en el menú de jugadas" : (this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
     const ANILLOS = [null, { x: 838, y: 456, w: 210, h: 90 },   /* R1: el botón se movió a 838 */
       this._vista4 ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 }];
@@ -2697,10 +2699,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const leido = this.avisoLectura(megaListo.id);
       especiales.push({
         texto: "🔥 " + megaListo.n.toUpperCase(),
-        sub: (leido ? leido + " · " : "") + "ficha de tiro · quedan " + F.tiros,
+        sub: (leido ? leido + " · " : "") + "le pegás desde acá · quedan " + F.tiros,
+        /* Revisión del 17/oct: abría el mismo cruce de gambetas que
+           GAMBETA-TIRO y eran dos botones para lo mismo. Ahora es el remate
+           con todo desde donde estás, contra el bloqueo de quien te marca. */
         cb: () => {
           if (!window.PampaJugadon.gastarFicha(F, "tiros")) return;
-          this.entrarJugadonGambeta(rivalIdx, { mega: megaListo, marcadores: 3 });
+          this.resolverTiro(megaListo, rivalIdx, libre);
         }
       });
     }
@@ -2728,7 +2733,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (alVacio) {
       especiales.push({
         texto: "➡ PASE AL VACÍO",
-        sub: "a " + (st.mios[alVacio.idx].nombre || "").toUpperCase() + " · ~" + Math.max(10, alVacio.pct - this.BAL.partido.vacio_penal) + "% · deja vendido al arquero",
+        sub: "a " + (st.mios[alVacio.idx].nombre || "").toUpperCase() + " · " + Math.max(10, alVacio.pct - this.BAL.partido.vacio_penal) + "% · deja vendido al arquero",
         cb: () => this.confirmarPase(alVacio, true)
       });
     }
@@ -2756,7 +2761,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       izq, der,
       opciones: {
         N: {
-          texto: "⚡ GAMBETA", sub: "~" + pct(gam) + "% · " + gam.costo + " aguante",
+          texto: "⚡ GAMBETA", sub: pct(gam) + "% · " + gam.costo + " aguante",
           bloqueada: libre || gam.bloqueada, motivo: libre ? "nadie te marca" : gam.motivo,
           cb: () => this.resolverAccionAtaque(gam, rivalIdx)
         },
@@ -2764,8 +2769,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           texto: "➡ PASE", sub: "elegís a quién", bloqueada: !receptores.length, motivo: "SIN COMPAÑERO CERCA",
           cb: () => this.iniciarPaseDirigido(rivalIdx, libre)
         },
-        S: { texto: "🔁 PARED", sub: par.bloqueada ? null : "~" + pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
-        E: { texto: "🎯 TIRO", sub: puedeT ? "~" + pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "desde campo propio no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+        S: { texto: "🔁 PARED", sub: par.bloqueada ? null : pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
+        E: { texto: "🎯 TIRO", sub: puedeT ? pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
       centro: listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
@@ -2796,7 +2801,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
     const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st) + 4, this.BAL.duelo) * 100);
     const qui = A("quite"), cor = A("corte"), blo = A("bloqueo");
-    const sub = a => a.bloqueada ? null : "~" + pct(a) + "% · " + a.costo + " aguante";
+    const sub = a => a.bloqueada ? null : pct(a) + "% · " + a.costo + " aguante";
     const yo = st.mios[st.ctrl];
     /* §6 literal: ATACANTE a la izquierda, defensor a la derecha */
     const izq = { j: rival, esRival: true, aguante: st.aguanteRival };
@@ -3169,7 +3174,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const acc = P.accionesAereas(st);
     const A = id => acc.find(a => a.id === id) || { bloqueada: true, motivo: "no disponible", poder: 0, costo: 0 };
     const cab = A("cabezazo"), vol = A("volea"), chi = A("chilena");
-    const sub = a => a.bloqueada ? null : "~" + Math.round(a.poder) + " de poder · " + a.costo + " aguante";
+    const sub = a => a.bloqueada ? null : Math.round(a.poder) + " de poder · " + a.costo + " aguante";
     this.abrirMenuCruz({
       titulo: "☁ ¡LA PELOTA VIENE ALTA! ¿Cómo la resolvés? (ventanas más exigentes)",
       izq: { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante },
@@ -5231,7 +5236,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const j = st.mios[r.idx], y = CP.y0 + k * CP.paso;
       const b = this.add.rectangle(CP.x, y, CP.w, CP.h, 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
       const t = this.encajarTexto(this.add.text(CP.x, y - 9, j.numero + " " + (j.nombre || "").toUpperCase(), { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5), CP.w - 2 * aire);
-      const s = this.encajarTexto(this.add.text(CP.x, y + 10, "~" + r.pct + "% · " + (r.adelante ? "más adelante" : "de apoyo"), { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), CP.w - 2 * aire);
+      const s = this.encajarTexto(this.add.text(CP.x, y + 10, r.pct + "% · " + (r.adelante ? "más adelante" : "de apoyo"), { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), CP.w - 2 * aire);
       this.menuLayer.add([b, t, s]);
       const cb = () => { this._uiTocado = this.time.now; this.confirmarPase(r, false); };
       b.on("pointerdown", (p, x, y2, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
