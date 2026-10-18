@@ -337,7 +337,9 @@ pasos.push(async function () {
   /* revisión L07: pegado al reloj MÁS ANCHO, medido, y no a un x fijo */
   assert(/desdeDerecha: true, xDe: \(\) => this\.bordeIzqDelReloj\(\) - 8/.test(bp), "el borde derecho sale del reloj medido, con 8 px de aire");
   var ED = leer("phaser/scenes/editor.js");
-  assert(/this\.botonPantalla\(100, 22, \{ largo: true/.test(ED), "el editor lo dibuja al lado de VER INTRO");
+  /* Pedido de Rodri del 17/oct: VER INTRO pasó de 11 a 13 px y ya no termina
+     antes de x=100; la pastilla arranca 8 px después de donde termina */
+  assert(/this\.botonPantalla\(Math\.ceil\(vi\.x \+ vi\.width\) \+ 8, 22, \{ largo: true/.test(ED), "el editor lo dibuja al lado de VER INTRO");
   var B = JSON.parse(leer("phaser/data/balance.json"));
   assert(B.pantalla && E.AUTO.indexOf(B.pantalla.auto) >= 0 && /0,659/.test(B.pantalla._nota || ""), "balance.pantalla.auto es una opción válida, con su _nota");
   console.log("[6] cableado: index.html, sw.js, partido, editor y balance");

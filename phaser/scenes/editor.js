@@ -119,7 +119,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     let fy = 122;
     CATS.forEach((c, ci) => {
       const cx = 690;
-      const lbl = this.add.text(cx - 235, fy - 1, c.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6c11d" }).setOrigin(0, 0.5);
+      const lbl = this.add.text(cx - 235, fy - 1, c.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(0, 0.5);
       const mk = (x, d) => {
         const r = this.add.rectangle(x, fy, 52, 44, 0xf6efdc, 1).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
         const g = this.add.graphics();
@@ -195,11 +195,11 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.irA("match"); });
       /* V7 §2: la CARRERA vive en el Phaser — el Modo Master con temporada y escalera */
       const bc = this.add.rectangle(W - 110, 12 + 22, 200, 44, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
       bc.on("pointerdown", () => { this.guardar(); this.irA("master"); });
     }
     /* Addendum v6 A.2: repetir el opening a gusto */
-    const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
+    const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
     vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.irA("intro"); });
     /* L07 · PANTALLA COMPLETA (scenes/pantalla_ui.js), al lado de VER INTRO:
        los dos son de la pantalla, no de la pinta. Medido en captura a
@@ -210,7 +210,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        renglón de y=56 arrancando en 278, el área (de y=0 a tap_min) solo
        roza el principio de ese renglón, que no se toca. Sin API (iPhone) o
        con la app instalada, no aparece. */
-    if (this.botonPantalla) this.botonPantalla(100, 22, { largo: true, desdeArriba: true, desdeIzquierda: true });
+    if (this.botonPantalla) this.botonPantalla(Math.ceil(vi.x + vi.width) + 8, 22, { largo: true, desdeArriba: true, desdeIzquierda: true });
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
     /* TANDA 1.0 · LA VERSIÓN A LA VISTA. Si alguien de una localidad avisa
        "se me trabó", lo primero que hay que saber es qué versión tenía, y no

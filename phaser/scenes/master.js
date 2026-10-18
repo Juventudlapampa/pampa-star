@@ -489,7 +489,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ---- botón grande accesible (texto + borde, no solo color) ---- */
   boton(x, y, w, texto, bg, cb, sub) {
     const r = this.add.rectangle(x, y, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.add.text(x, sub ? y - 9 : y, texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+    this.add.text(x, sub ? y - 9 : y, texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
     if (sub) this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
     r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
     return r;
@@ -1177,7 +1177,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     try { clasico = JSON.parse(localStorage.getItem("pampa_star_v1")); } catch (e) { }
     /* TEMPO-1: con IMPORTAR, los dos arranques van lado a lado en la misma fila */
     const hayClasico = !!(clasico && clasico.name);
-    this.boton(hayClasico ? W / 2 - 195 : W / 2, H - 102, hayClasico ? 360 : 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id));
+    this.boton(hayClasico ? W / 2 - 205 : W / 2, H - 102, hayClasico ? 400 : 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id));
     /* el gate era `clasico.nivel`, un campo que el clasico no guarda nunca:
        el boton no aparecio jamas y la mudanza entera era inalcanzable. El nivel
        se CALCULA (logic/master.nivelDeCarreraClasica). Gate nuevo: que haya
@@ -1189,7 +1189,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* TEMPO-1: lo del respaldo va adentro del botón (era un renglón de
          10 px abajo, con el nombre de la clave de localStorage, y ya no
          entraba entre esta fila y la de abajo) */
-      this.boton(W / 2 + 195, H - 102, 360, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
+      this.boton(W / 2 + 205, H - 102, 400, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
         "tu carrera de antes queda guardada, sin tocar");
     }
     /* tanda 1.0: el código de carrera se pega acá, donde se empieza. Va al
@@ -1414,8 +1414,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          queda: es lo que le dice al jugador qué tipo de jugador está eligiendo */
       const dicha = qe && qe.respuestas && qe.respuestas[i];
       /* textos-tactiles: el número es el atajo de teclado; en el teléfono no va */
-      this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + (dicha || o.t), { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13", align: "center", wordWrap: { width: 680 } }).setOrigin(0.5);
-      this.add.text(W / 2, y + 13, o.sub || "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
+      this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + (dicha || o.t), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 680 } }).setOrigin(0.5);
+      this.add.text(W / 2, y + 13, o.sub || "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
       const elegir = () => {
         const nuevas = elegidas.concat([i]);
         if (paso < D.origen.length - 1) this.vistaOrigen(divId, paso + 1, nuevas);
@@ -1610,7 +1610,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
        te estás preparando. El título de la pantalla pasa a apoyo. */
-    this.add.text(W / 2, 16, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
+    this.add.text(W / 2, 16, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
     this.add.text(W / 2, 42, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
 
     /* --- LOS DOS MEDIDORES: barra Y número, siempre --- */
@@ -2092,15 +2092,19 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     this.add.text(W / 2, 34, ["LUNES", "MIÉRCOLES", "VIERNES"][ranura] + " · ¿qué hacés?", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 60, "te quedan " + sem.energia + " de energía", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
-    const porFila = 2, ancho = 380, alto = 74;
+    /* Pedido de Rodri del 17/oct: todo a 13 px. Con 74 de alto el efecto del
+       PICADITO, que va en dos renglones, se salía por abajo; con 88 entra
+       (arranca en cy+8 y dos renglones terminan en cy+41). Sin energía, la
+       caja es gris oscura y el texto va claro: el rojo sobre gris no se leía. */
+    const porFila = 2, ancho = 380, alto = 88;
     ops.slice(0, 8).forEach((o, i) => {
       const cx = W / 2 + (i % porFila === 0 ? -ancho / 2 - 10 : ancho / 2 + 10);
-      const cy = 118 + Math.floor(i / porFila) * (alto + 12);
+      const cy = 118 + Math.floor(i / porFila) * (alto + 6);
       const alcanza = (o.energia_costo || 0) <= sem.energia;
       const r = this.add.rectangle(cx, cy, ancho, alto, alcanza ? 0xf6efdc : 0x555f57, alcanza ? 0.97 : 0.6).setStrokeStyle(3, 0x0a1f13);
-      this.add.text(cx, cy - 16, o.n, { fontFamily: window.PF.display, fontSize: "10px", color: "#0a1f13" }).setOrigin(0.5);
-      this.add.text(cx, cy + 6, o.sub, { fontFamily: window.PF.texto, fontSize: "12px", color: "#365a41" }).setOrigin(0.5);
-      this.add.text(cx, cy + 26, this.textoEfecto(o), { fontFamily: window.PF.texto, fontSize: "12px", color: alcanza ? "#0a1f13" : "#e3503e", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5);
+      this.add.text(cx, cy - 26, o.n, { fontFamily: window.PF.display, fontSize: "13px", color: alcanza ? "#0a1f13" : "#f6efdc" }).setOrigin(0.5);
+      this.add.text(cx, cy - 6, o.sub, { fontFamily: window.PF.texto, fontSize: "13px", color: alcanza ? "#365a41" : "#dcd6c2" }).setOrigin(0.5);
+      this.add.text(cx, cy + 8, this.textoEfecto(o), { fontFamily: window.PF.texto, fontSize: "13px", color: alcanza ? "#0a1f13" : "#f6efdc", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5, 0);
       if (!alcanza) return;
       r.setInteractive({ useHandCursor: true });
       r.on("pointerdown", (pp, xx, yy, e2) => {
@@ -2213,7 +2217,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._atrasVista = () => this.scene.restart();
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     /* E · acá el PRINCIPAL es lo que pasó: el resto es marco. */
-    this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#9fb3a5" }).setOrigin(0.5);
+    this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
     this.add.text(W / 2, 140, ev.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);
     /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
        franja. Lo cazó el guardián ampliado, no el ojo. */
@@ -2221,7 +2225,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const items = ev.opciones.map((o, i) => {
       const y = Math.round(window.PampaPiel.yDeOpcion(i, ev.opciones.length, 72, pielEv));
       const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(W / 2, y, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(W / 2, y, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
       const elegir = () => {
         this.save.modFecha = V.aplicarEleccion(ev, i);
         this._semEventoResuelto = true;
@@ -2442,7 +2446,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           const escR = window.PampaEscudosUI.deClub(this, rival, pos.map(p => p.equipo), t.division);
           window.PampaEscudosUI.dibujar(this, tFecha.x - tFecha.width / 2 - 24, H - 150, 30, escR);
         }
-        this.add.text(W / 2, H - 128, "un equipo " + perfil.n, { fontFamily: window.PF.texto, fontSize: "11px", color: "#7ee08a" }).setOrigin(0.5);
+        this.add.text(W / 2, H - 128, "un equipo " + perfil.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5);
         /* TANDA 1.0 · SALISTE A LA CANCHA Y VOLVISTE SIN RESULTADO (recargaste,
            se cerró la pestaña en medio del partido): la semana ya está jugada
            y no se rehace —ni se vuelven a sumar sus mejoras—. Se repite el
@@ -2484,7 +2488,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* A4 · con todas las letras: se dice que se descendió y a dónde */
       else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás a " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#e3503e"; }
       else { msj = "Terminaste " + v.posicion + "º — otra temporada en " + div.n; color = "#f6efdc"; }
-      this.add.text(W / 2, H - 140, msj, { fontFamily: window.PF.display, fontSize: "11px", color }).setOrigin(0.5);
+      this.add.text(W / 2, H - 140, msj, { fontFamily: window.PF.display, fontSize: "13px", color }).setOrigin(0.5);
       this.boton(W / 2 - 170, H - 80, 320, "▶ NUEVA TEMPORADA", 0x7ee08a, () => {
         if (v.campeon) this.save.titulos.push({ division: this.save.division, temporada: this.save.temporadaN });
         this.save.division = v.proximaDivision;

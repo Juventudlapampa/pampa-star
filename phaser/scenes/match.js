@@ -2177,7 +2177,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          medidores (ENVIÓN en 500, AGUANTE en 522) y este chip las pisaba: se
          acomodó una cosa y se destapó el choque con la otra. Va pegado debajo
          del botón ⚡ACCIÓN, que es a lo que se refiere. */
-      this._hintEspacio = this.add.text(838, 428, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
+      this._hintEspacio = this.add.text(838, 428, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
       this.hudLayer.add(this._hintEspacio);
     }
     r.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.onBotonAccion(); });
@@ -4920,7 +4920,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Feel B5: CARGA DE AGUANTE VISIBLE — la barra se llena mientras el anuncio dura */
     const cargaBg = this.add.rectangle(620, 320, 340, 14, 0x0a1f13, 0.9).setStrokeStyle(2, 0xf6efdc, 0.8);
     const carga = this.add.rectangle(620 - 168, 320, 4, 10, 0xffd84d, 1).setOrigin(0, 0.5);
-    const cargaTxt = this.add.text(620, 340, "cargando aguante…", { fontFamily: window.PF.texto, fontSize: "10px", color: "#ffd84d" }).setOrigin(0.5);
+    const cargaTxt = this.add.text(620, 340, "cargando aguante…", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.cineContent.add(cargaBg); this.cineContent.add(carga); this.cineContent.add(cargaTxt);
     this.tweens.add({ targets: carga, width: 336, duration: this.msV(820), ease: "Sine.easeIn" });
     this.uiCam.flash(120, 255, 216, 77);
@@ -5482,7 +5482,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V9 §10: con el cambio de lado hay que DECIR cuál arco defendés — texto y
        posición, nunca solo el color. Sin esto, darse vuelta se lee como un bug. */
     if (!this._radarTuArco) {
-      this._radarTuArco = this.add.text(0, 0, "◄ TU ARCO", { fontFamily: window.PF.texto, fontSize: "10px", color: "#0a1f13", backgroundColor: "#4FC3F7", padding: { x: 4, y: 1 } }).setOrigin(0, 0).setDepth(30);
+      this._radarTuArco = this.add.text(0, 0, "◄ TU ARCO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#4FC3F7", padding: { x: 4, y: 1 } }).setOrigin(0, 0).setDepth(30);
       this.hudLayer.add(this._radarTuArco);
     }
     const izq = st.ladoVisual !== 2;
@@ -5605,10 +5605,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        y el reloj (14px) terminaba siendo más grande que el resultado: el ojo no
        tenía dónde agarrarse. Ahora son tres cosas distintas:
          RESULTADO  display 17px, crema — lo más grande de la barra
-         división   texto 10px, apagado — abajo, que informa y no compite
-         reloj      display 14px, acento — a la derecha, su esquina de siempre */
+         división   texto 13px — debajo del reloj, que informa y no compite
+         reloj      display 14px, acento — a la derecha, su esquina de siempre
+       Pedido de Rodri del 17/oct: la división iba a 10 px y gris debajo del
+       resultado, y lo pisaba. Ahora cuelga de la barra con fondo propio. */
     this.txtMarcador = this.add.text(480, 13, "", { fontFamily: window.PF.display, fontSize: "17px", color: "#f6efdc" }).setOrigin(0.5);
-    this.txtDivision = this.add.text(480, 26, "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#9fb3a5" }).setOrigin(0.5);
+    this.txtDivision = this.add.text(948, 39, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", backgroundColor: "#0a1f13dd", padding: { x: 4, y: 1 } }).setOrigin(1, 0.5);
     this.txtReloj = this.add.text(948, 15, "", { fontFamily: window.PF.display, fontSize: "14px", color: "#ffd84d" }).setOrigin(1, 0.5);
     /* PIEL P5 · LOS DOS MEDIDORES, CADA COSA EN SU LUGAR.
        Antes el número de AGUANTE estaba en y=512 y la barra de ENVIÓN en
@@ -5632,7 +5634,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.txtEnvion = this.add.text(MD.xNum, MD.yEnvion, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
     /* el estado del envión (LLENO / EN USO) va en su propia línea arriba: es
        texto, no color, porque el color solo no alcanza para leerlo */
-    this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "10px", color: "#ffd84d" }).setOrigin(0, 0.5);
+    this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0, 0.5);
     this.hudLayer.add([this.envionG, this.lblEnvion, this.txtEnvion, this.txtEnvionEstado]);
     /* ANIME E: el ticker del RELATOR · V9 §8: SUBIDO. En y=520 pisaba la banda
        de abajo del mapa (el radar en pantalla partida llega a y≈521) justo
@@ -5972,7 +5974,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
              barrido de solapes del partido en vivo. */
           /* L04 · y de 52 a 136: entre el 🔊 y las fichas entró ⏸ PAUSA,
              cuya área táctil termina en x=129 (buildBotonPausa). */
-          this.txtFichas = this.add.text(136, 15, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#ffd84d" }).setOrigin(0, 0.5);
+          /* Pedido de Rodri del 17/oct: de 11 a 13 px. A 13 en la barra
+             llegaba hasta x 345 y el resultado de un club de nombre largo
+             arranca en 296: bajan a una fila propia, colgada de la barra, con
+             fondo oscuro para no quedar sobre el cielo del panel. */
+          this.txtFichas = this.add.text(136, 39, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 4, y: 1 } }).setOrigin(0, 0.5);
           this.hudLayer.add(this.txtFichas);
         }
         this.txtFichas.setText(fTxt);
@@ -5997,12 +6003,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this._hudMano !== mTxt) {
         this._hudMano = mTxt;
         if (!this.txtMano) {
-          /* L04: de x=52 a 136, alineada con las fichas (ver buildBotonPausa) */
-          this.txtMano = this.add.text(136, 31, "", { fontFamily: window.PF.texto, fontSize: "11px", color: "#dcd6c2" }).setOrigin(0, 0.5);
+          /* L04: de x=52 a 136, alineada con las fichas (ver buildBotonPausa).
+             17/oct: a 13 px, en la fila de las fichas y a continuación */
+          this.txtMano = this.add.text(136, 39, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", backgroundColor: "#0a1f13dd", padding: { x: 4, y: 1 } }).setOrigin(0, 0.5);
           this.hudLayer.add(this.txtMano);
         }
-        this.txtMano.setText(mTxt);
+        this.txtMano.setText(mTxt).setVisible(!!mTxt);
       }
+      /* el ancho de las fichas cambia con sus números: se acomoda cada cuadro */
+      if (this.txtMano) this.txtMano.x = this.txtFichas ? this.txtFichas.x + this.txtFichas.width + 8 : 136;
     }
     /* ══════════════════════════════════════════════════════════════════════
        NELDA Y EL TULI HABLANDO DEL CANSANCIO.

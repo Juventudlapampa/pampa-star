@@ -307,7 +307,10 @@ function espiarTick(E) {
   /* el 🔊 vive en (24,15), 26x26, con área de 44 centrada: termina en x=46 */
   assert(x0 > 46, "no pisa el área del 🔊, que termina en x=46 (el ⏸ arranca en " + x0 + ")");
   var x1 = x0 + h.width;
-  assert(/this\.add\.text\(136, 15,/.test(SRC) && /this\.add\.text\(136, 31,/.test(SRC) && x1 <= 136,
+  /* Pedido de Rodri del 17/oct: fichas y mano pasaron de 11 a 13 px y bajaron
+     a una fila propia (y 39), la mano a continuación de las fichas; las dos
+     siguen arrancando en x=136 */
+  assert((SRC.match(/this\.add\.text\(136, 39,/g) || []).length === 2 && x1 <= 136,
     "las fichas y la mano arrancan en x=136, después del área del ⏸ (" + x1 + ")");
   assert(/⏸ PAUSA/.test(E.textos(s.hudLayer).join("|")), "el botón dice PAUSA, no solo el ícono");
   E.tocar(zona);
