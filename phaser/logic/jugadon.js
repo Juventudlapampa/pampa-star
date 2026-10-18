@@ -58,7 +58,7 @@
      - cierra_izq pierde contra "der" (y viceversa): leíste el cierre.
      - se_tira (barrida) pierde contra "sombrerito" (salta) y "enganche"
        (frenás y la barrida pasa de largo); gana contra izq/der.
-     - cierra el medio (firme) pierde contra "canio"; gana contra enganche.
+     - cierra el medio (firme, abierto de piernas) pierde contra "canio".
      El desempate fino: tu gambeta vs su quite (+azar acotado). */
   var CIERRES = [
     { id: "cierra_izq", n: "TE CIERRA LA IZQUIERDA" },
@@ -79,11 +79,16 @@
     return CIERRES[0];
   }
   /* la tabla de la lectura en un solo lugar: la resolución y el aviso de por
-     qué perdiste (scenes/jugadon_ui.js) leen la misma y no se contradicen */
+     qué perdiste (scenes/jugadon_ui.js) leen la misma y no se contradicen.
+     Pedido de Rodri del 17/oct: el caño le ganaba a tres de los cuatro y
+     casi no había que leer. Ahora cada cierre tiene UNA pasada del cruce
+     que le gana y cada pasada le gana a uno solo: al azar se pasa uno de
+     cada cuatro, leyendo se pasa siempre (salvo el desempate por stats).
+     El enganche no es pasada del cruce; queda para el súper quite. */
   var VENCE = {
-    cierra_izq: ["der", "canio"],
-    cierra_der: ["izq", "canio"],
-    firme: ["canio", "sombrerito"],
+    cierra_izq: ["der"],
+    cierra_der: ["izq"],
+    firme: ["canio"],
     se_tira: ["sombrerito", "enganche"]
   };
   function venceA(cierreId) { return VENCE[cierreId] || []; }

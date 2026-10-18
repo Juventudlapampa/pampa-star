@@ -116,6 +116,35 @@ for (let s = 1; s <= 200; s++) {
   if (gc.defensores[1].cierre.id === primero) repetidos++;
 }
 assert(pasados > 150 && repetidos === 0, "después de pasar a uno, el siguiente se para distinto (" + repetidos + " repetidos en " + pasados + ")");
+/* 11) pedido de Rodri del 17/oct: el caño le ganaba a tres de los cuatro
+   cierres y casi no había que leer. Cada cierre tiene una sola pasada que le
+   gana, ninguna pasada le gana a más de uno, y al azar se pasa uno de cada
+   cuatro mientras que leyendo se pasa siempre (stats parejas). */
+J.CIERRES.forEach(function (c) {
+  const salen = J.PASADAS.filter(function (p) { return J.venceA(c.id).indexOf(p.id) >= 0; });
+  assert(salen.length === 1, "contra " + c.id + " gana una sola pasada (ganan " + salen.length + ")");
+});
+J.PASADAS.forEach(function (p) {
+  const leGana = J.CIERRES.filter(function (c) { return J.venceA(c.id).indexOf(p.id) >= 0; });
+  assert(leGana.length === 1, p.id + " le gana a un solo cierre (le gana a " + leGana.length + ")");
+});
+function tasaCruce(leer, gamb, quite) {
+  const r = J.rng(17), N = 20000;
+  let gan = 0;
+  for (let i = 0; i < N; i++) {
+    const c = J.elegirCierre({ quite: quite }, r);
+    const m = leer ? J.PASADAS.filter(function (p) { return J.venceA(c.id).indexOf(p.id) >= 0; })[0].id
+      : J.PASADAS[Math.floor(r() * J.PASADAS.length)].id;
+    if (J.resolverMovida(m, c, { gambeta: gamb }, { quite: quite }, r).gana) gan++;
+  }
+  return gan / N;
+}
+const azar = tasaCruce(false, 60, 60), leyendo = tasaCruce(true, 60, 60);
+assert(azar > 0.22 && azar < 0.28, "al azar se pasa cerca de uno de cada cuatro (" + (azar * 100).toFixed(1) + "%)");
+assert(leyendo > 0.99, "leyendo bien se pasa casi siempre (" + (leyendo * 100).toFixed(1) + "%)");
+console.log("[11] cruces ganados con stats parejas: al azar " + (azar * 100).toFixed(1) + "% · leyendo " + (leyendo * 100).toFixed(1) +
+  "% · con gambeta 85 contra quite 50: al azar " + (tasaCruce(false, 85, 50) * 100).toFixed(1) + "% · leyendo " + (tasaCruce(true, 85, 50) * 100).toFixed(1) +
+  "% · con gambeta 50 contra quite 85: al azar " + (tasaCruce(false, 50, 85) * 100).toFixed(1) + "% · leyendo " + (tasaCruce(true, 50, 85) * 100).toFixed(1) + "%");
 
 if (mal === 0) console.log("✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

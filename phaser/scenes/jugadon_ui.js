@@ -10,10 +10,18 @@
   "use strict";
   var W = 960, H = 540;
   /* cómo se para cada cierre de logic/jugadon.js en el cruce: qué pose, dónde
-     y qué dice. Pedido de Rodri del 17/oct (ver entrarJugadonGambeta). */
+     y qué dice. Pedido de Rodri del 17/oct (ver entrarJugadonGambeta).
+     Cada cierre es un dibujo distinto que se lee sin el color: los dos que
+     cierran un lado usan el quite del rival con la pierna estirada hacia ese
+     lado y corrido hacia él; el que se planta, el bloqueo de piernas
+     abiertas; el que se tira, la barrida. En poseR_quite_sin_pelota (alfa >
+     128) el torso está al 44% del ancho, el pie de apoyo al 35% y la punta
+     de la pierna estirada al 100%: con 290 de alto, en x 0,65 la pierna
+     llega a 0,76 del ancho de pantalla y del otro lado el cuerpo arranca en
+     0,54. Espejada no muestra número: el quite es de perfil. */
   var POSTURAS = {
-    cierra_izq: { pose: "bloqueo", x: 0.36, alto: 290, dice: "TE CIERRA LA IZQUIERDA" },
-    cierra_der: { pose: "bloqueo", x: 0.64, alto: 290, dice: "TE CIERRA LA DERECHA" },
+    cierra_izq: { pose: "r_quite", espejo: true, x: 0.35, alto: 290, dice: "TE CIERRA LA IZQUIERDA" },
+    cierra_der: { pose: "r_quite", x: 0.65, alto: 290, dice: "TE CIERRA LA DERECHA" },
     firme: { pose: "bloqueo", x: 0.5, alto: 290, dice: "SE PLANTA ABIERTO DE PIERNAS" },
     se_tira: { pose: "barrida", x: 0.5, alto: 200, dice: "SE TIRA AL PISO" }
   };
@@ -176,9 +184,10 @@
       /* la cancha en fuga con el arco al fondo: vas hacia allá y él está en el medio */
       this.dibujarCanchaProfunda({ x: W / 2, y: H * 0.22 }, H * 0.95);
       var rx = W * post.x, piso = H - 70;
-      var kR = (this.poseRivalNaranja && this.poseRivalNaranja(post.pose)) || this.poseKey(post.pose);
+      var kR = this.poseKey(post.pose);
       var sr = kR ? this.add.image(rx, piso, kR) : this.add.rectangle(rx, piso, post.alto * 0.6, post.alto, 0xff8a50);
       sr.setOrigin(0.5, 1).setScale(post.alto / (sr.height || post.alto));
+      if (kR && post.espejo) sr.setFlipX(true);
       if (this.sombraBajoPies) this.sombraBajoPies(sr, rx);
       this.cineContent.add(sr);
       /* 17/oct, pedido de Rodri: VOS encarándolo, en primer plano abajo a la
@@ -237,6 +246,7 @@
       var post = POSTURAS[d.cierre.id];
       var vence = J.venceA(d.cierre.id);
       var bienLeido = vence.indexOf(movidaId) >= 0;
+      var salidas = J.PASADAS.filter(function (p) { return vence.indexOf(p.id) >= 0; }).map(function (p) { return p.n; });
       var res = J.cruceGambeta(g, movidaId);
       var yo = st.mios[st.ctrl], B = this.BAL.jugadon || {};
       var nombre = String(d.nombre || "RIVAL").toUpperCase().slice(0, 12);
@@ -252,7 +262,7 @@
       var bajada = function (texto) {
         self.cineContent.add(self.add.text(W / 2, H - 36, texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(2), color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 860 } }).setOrigin(0.5));
       };
-      var kRival = (this.poseRivalNaranja && this.poseRivalNaranja(post.pose)) || this.poseKey(post.pose);
+      var kRival = this.poseKey(post.pose);
 
       if (res.gana) {
         /* una sola composición para los cuatro lados: la pose espejada muestra
@@ -294,7 +304,8 @@
         }
         c.lineas = { x: xH, y: H * 0.5, inten: 1.2, tinte: 0xffd84d };
         titulo(!bienLeido ? "¡DE PURA GAMBETA!" : movidaId === "canio" ? "¡CAÑO!" : movidaId === "sombrerito" ? "¡SOMBRERO!" : "¡LO DEJASTE PAGANDO!", "#ffd84d");
-        bajada(nombre + " QUEDA ATRÁS · " + (g.terminado ? "¡QUEDASTE DE FRENTE AL ARCO!" : "viene el otro"));
+        bajada(post.dice.toLowerCase() + (bienLeido ? " y fuiste " : ": la buena era ") + salidas.join(" o ") +
+          "\n" + nombre + " QUEDA ATRÁS · " + (g.terminado ? "¡QUEDASTE DE FRENTE AL ARCO!" : "viene el otro"));
         this.uiCam.flash(90, 255, 255, 230);
         this.uiCam.shake(160, 0.006);
         this.SFX && this.SFX.kick && this.SFX.kick();
@@ -323,7 +334,6 @@
         this.cineContent.add(this.add.sprite(sq.x + (pq.x - 0.5) * sq.displayWidth, sq.y + (pq.y - 0.5) * sq.displayHeight, TPq.key).setScale(TPq.esc));
       }
       c.lineas = { x: W * 0.62, y: H * 0.5, inten: 1, tinte: 0xff8a50 };
-      var salidas = J.PASADAS.filter(function (p) { return vence.indexOf(p.id) >= 0; }).map(function (p) { return p.n; });
       titulo("¡TE LA SACÓ " + nombre + "!", "#f6efdc");
       bajada(bienLeido
         ? "lo leíste bien, pero te leyó el cuerpo igual"
