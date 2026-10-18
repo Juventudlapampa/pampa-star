@@ -6296,3 +6296,76 @@ Lo que vi y no toqué:
   para la música; hoy la música va por `<audio>` y no pasa por el bus de
   efectos.
 - `poseR_quite.webp` queda en `assets/` sin uso.
+
+### Revisión final: una carrera jugada desde la portada
+
+Navegador integrado, service worker, caché y partida borrados. Jugué la
+portada, la intro entera en tiempo real, el editor, el Modo Master, la
+entrevista, dos semanas, la fecha 1 entera (0-0, los dos tiempos y el cambio
+de lado) y media fecha 2 (1-0 con el Disparo del Caldén). Salieron el
+gambeta-tiro ganado y perdido, el súper tiro, la atajada, "te rematan", el
+pase y la vuelta a la tabla. La Definición no salió: en Primera B no aparece
+COMBINADA. No toqué código. Suite verde, sin errores en consola, nunca dos
+temas a la vez fuera del fundido de 300 ms.
+
+Lo que rompe o confunde:
+
+- Pixelify Sans dibuja las ligaduras "fi" y "fl" como una A: "Acha de tiro"
+  (ficha), "deAnís" (definís), "Aechas" en el tutorial (flechas). Pasa en
+  todo texto en minúscula con esas letras.
+- En Pixelify el 5 se lee S y la B se lee 8 ("-2S energía", "+1S ánimo",
+  "PRIMERA 8", "8AGUAL"), y la tilde de "~58%" sale como guion: la cruz
+  muestra porcentajes negativos ("-S8%").
+- Después de un jugadón (gambeta-tiro o Disparo del Caldén) queda sonando el
+  tema del tramo final hasta el pitazo: nadie vuelve a pedir "partido"
+  (jugadon_ui.js pide "jugadon" y no lo devuelve; definicion_ui.js sí).
+  Medido: en la fecha 1 sonó desde el minuto 3 del primer tiempo.
+- El número de la camiseta no es el del jugador: identidadDe() elige la
+  ilustración por el nombre y no mira el "dorsal" del manifiesto. "9 ·
+  MATEO" corre con el 7, "2 · LAUTARO" con el 8, "2 · EZE" remata con el 10.
+  En la viñeta del pase, quien recibe es tu ilustración espejada con "01".
+- El jugadón dice "▼ VOS" y dibuja al 10 aunque la lleve otro (LAUTARO).
+- Al arrancar la carrera, el editor monta "PASO 1 DE 2 · ARMÁ TU PINTA" y
+  "después te van a entrevistar" encima del título TU PINTA, y deja a la
+  vista CARRERA y ¡A LA CANCHA!, que llevan a otro lado.
+- El tutorial dice "Te movés y pasás TOCANDO EL MAPA"; el pase ya no sale
+  del mapa en juego libre, solo de PASE.
+
+Lo que se nota y molesta:
+
+- La música de banda es tan brillante como el chiptune que reemplazó.
+  Centroide del espectro con el volumen del juego: opening 4.478 Hz (antes
+  4.657), partido alternativo 4.413, entrada 3.887, partido 3.453; entre 46%
+  y 58% de la energía arriba de 2 kHz. Los efectos pasan por el pasabajos de
+  4 kHz y la música no.
+- Siguen sintetizados en triangular el riser antes de cada duelo, el motivo
+  del gol (arpegio de cuatro notas en Do, fijo, sobre un tema en otra
+  tonalidad), el cambio de posesión, el cruce y el tictac.
+- Los cuatro cierres del gambeta-tiro usan la misma pose de bloqueo (abierto
+  de piernas); solo cambia x. Y el caño gana contra tres de los cuatro.
+- Disparo del Caldén dice "ficha de tiro" y abre el mismo cruce de gambeta
+  que GAMBETA-TIRO; en ★ ESPECIAL quedan dos botones para lo mismo. En el
+  súper tiro la pose del remate sale tres veces seguidas (carga, viñeta,
+  cut-in) antes del pie.
+- En "te rematan", "mano a mano, cara a cara · 1 tuyo en el camino" pisa las
+  placas EZE y BENJA, y el arquero que ataja trae su pelota blanca y negra.
+- El texto de la cruz de TIRO ("~48% de zafar · 90 aguante") se sale del
+  botón. En el editor la pestaña VOS tapa media línea de la bajada.
+- El Modo Master muestra una nota de desarrollo: "mapa por zonas · las
+  ubicaciones exactas van cuando estén los datos". Nada dice que se puede
+  tocar otra localidad.
+- Textos chicos: opciones de la entrevista a 10 px, de la semana a 11 px.
+
+Detalles: "el que te enseñó a jugar" y "al que duda" en la entrevista son
+masculino genérico; los guantes suenan en cortes, quites y gambetas
+perdidas; abrir ★ ESPECIAL suena "cerrar"; la tribuna sigue comentando
+después del pitazo; el plano 5 de la intro es un círculo blanco plano.
+
+Lo que se entiende bien: la cruz de cuatro en el mismo lugar con su
+porcentaje y costo; el pase con nombre, número y chance en la columna; el
+aviso de la falla del gambeta-tiro ("había que pasarlo ▲ POR ARRIBA o ▼
+CAÑO"); el arquero en un solo momento, de la estirada a "¡LA AGARRÓ!" de
+rodillas o al piso en el gol; el plano del pie; la pausa con palabras; el
+cambio de lado anunciado y la figura mirando para donde corre en el 2T;
+efectos por debajo de la música (red -18,8, patada -19,1, festejo -24,8,
+silbato -25, interfaz -33 dBFS, medidos sueltos por el bus).
