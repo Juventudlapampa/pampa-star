@@ -6369,3 +6369,71 @@ rodillas o al piso en el gol; el plano del pie; la pausa con palabras; el
 cambio de lado anunciado y la figura mirando para donde corre en el 2T;
 efectos por debajo de la música (red -18,8, patada -19,1, festejo -24,8,
 silbato -25, interfaz -33 dBFS, medidos sueltos por el bus).
+
+### Los arreglos de la revisión final
+
+Qué cambié, de los hallazgos altos primero:
+
+- Pixelify. Las ligaduras "fi" y "fl" salían como una A. Se apagó la
+  función `liga` dentro de `PixelifySans-Regular.ttf` (la OFL lo permite y
+  la fuente no tiene nombre reservado; queda anotado en
+  `assets/fonts/README.md` y la huella nueva en `sw.js`). El 5, el 8, la B,
+  la E y la tilde se leían mal por el dibujo de la fuente: esos signos salen
+  ahora de VT323 con un `@font-face` de `unicode-range`, agrandada al 140%
+  para que calce con la altura de Pixelify. Además se sacó la tilde de los
+  porcentajes de la cruz, del pase y del pase al vacío.
+- El jugadón pide de vuelta el tema del partido al cerrar (o el del tramo
+  final si ya había entrado).
+- La ilustración de un compañero o un rival se elige primero por el dorsal.
+  En la viñeta del pase, quien recibe es su identidad con su número, ya no
+  tu 10 espejado. El jugadón dice el número y el nombre de quien la lleva y
+  lo dibuja con su identidad en los dos golpes y en la falla.
+- Editor con carrera pendiente: "PASO 1 DE 2 · ARMÁ TU PINTA" es el título,
+  la bajada va debajo y la única salida es LISTO, A LA ENTREVISTA (no
+  aparecen CARRERA ni ¡A LA CANCHA!). La pestaña de VOS bajó y ya no tapa la
+  bajada.
+- Tutorial 3/3: "Tocá el MAPA de abajo y corrés hacia ahí. El PASE está en
+  el menú de jugadas".
+- El Disparo del Caldén (y los otros megatiros) ya no abre el cruce de
+  gambetas: es el remate con todo desde donde estás, contra el bloqueo de
+  quien te marca ("le pegás desde acá"). Del jugadón se borró el camino del
+  megatiro. La pose de remate sale dos veces (cut-in y carga) y no tres.
+- La cruz deja 12 px de aire por lado (`legibilidad.cruz.aire`) y el motivo
+  de TIRO bloqueado es "de tu campo no llega".
+- Entrevista y eventos sin masculino genérico: "De quien te enseñó a
+  jugar", "¿Qué te dijo quien te enseñó?" y "Que si dudás te pasan por
+  arriba".
+
+Cómo lo verifiqué: navegador integrado con service worker y caché borrados,
+partido directo contra Espejo de Sal y capturas de cada cosa. El tutorial
+lee "flechas"; la cruz lee "47% · 90 aguante" y "29% · 120 aguante"; la
+grilla de ESPECIAL lee "definís". GAMBETA-TIRO con VOS y con MATEO: el
+registro de la música da "jugadon" al entrar y "partido" al cerrar; con
+MATEO el cruce dice "▼ 9 · MATEO" y el golpe 2 y la falla lo muestran con
+el 9. Pase a NICO: la viñeta lo muestra con el 7 derecho y el panel queda
+en "▼ 7 · NICO" con su ilustración. El Tiro del Atuel desde campo rival:
+una vez lo tapó el bloqueo y otra entró (cut-in, carga, pie, viaje,
+arquero) y el partido siguió 1 a 0. El editor con carrera pendiente quedó
+con título, bajada, pestaña y dos botones sin pisarse. Los textos de la
+entrevista los revisé en los JSON y no en pantalla. Suite verde.
+
+Lo que queda:
+
+- Las poses de acción (remate, pared, gambeta) existen solo dibujadas como
+  el 10. Un compañero que patea un pase o un rival que remata siguen con el
+  10 (en la viñeta del pase, LAUTARO patea con el 10). Y los números sin
+  ilustración propia (2 a 6 de los tuyos, casi todos los rivales) toman una
+  identidad por nombre, con otro número. Hace falta arte.
+- La nota "mapa por zonas · las ubicaciones exactas van cuando estén los
+  datos" del Modo Master no la toqué: `d_decisiones` la fija como decisión
+  D4 (decir que el mapa no es exacto). Cambiarla es decisión tuya. Tampoco
+  agregué el aviso de que se toca otra localidad.
+- Sin hacer, por tope de uso: pasabajos para la música de banda, los
+  sintetizados en triangular (riser, arpegio del gol en Do fijo), las poses
+  y la regla del caño en la súper gambeta, el subtítulo de "te rematan"
+  sobre las placas, los textos de menos de 13 px, los guantes en cortes y
+  quites, el "cerrar" al abrir la cruz, la tribuna después del pitazo, la
+  pelota propia del arquero del atajadón, las fichas encimadas del mapa y el
+  plano 5 de la intro.
+- Las letras mayúsculas de Pixelify tienen alturas desparejas (la T y la C
+  bajas, la I y la E altas) y eso no se arregla sin cambiar la fuente.
