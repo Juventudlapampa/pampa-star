@@ -130,7 +130,7 @@ const PRECACHE = [
 const ASSETS_HUELLA = {
   "assets/fonts/ArchivoBlack-Regular.ttf": "90988-dd9a89a019b4",
   "assets/fonts/BowlbyOne-Regular.ttf": "59856-c46a806d7b51",
-  "assets/fonts/PixelifySans-Regular.ttf": "79160-9ba86cd010a4",
+  "assets/fonts/PixelifySans-Regular.ttf": "79160-c1d231bf8963",
   "assets/fonts/PressStart2P-Regular.ttf": "118204-034c77f1f05e",
   "assets/fonts/VT323-Regular.ttf": "153116-cf4de751ada7",
   "assets/musica/After_the_Rain_Stops.ogg": "29880-d00a20d3c137",

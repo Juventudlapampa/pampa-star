@@ -36,6 +36,10 @@ https://openfontlicense.org
   (https://github.com/vernnobile/BowlbyFont), Reserved Font Name "Bowlby".
   Fuente: https://github.com/google/fonts/tree/main/ofl/bowlbyone
 
-Los TTF se descargaron sin modificar del repositorio oficial de Google Fonts
-(directorio `ofl/`). Si se reemplaza alguna fuente, mantener este README al
-día con la licencia de la nueva.
+Los TTF se descargaron del repositorio oficial de Google Fonts (directorio
+`ofl/`). Uno solo está modificado: a `PixelifySans-Regular.ttf` se le vació la
+función `liga` (17/oct), porque dibujaba "fi" y "fl" como una A. La OFL
+permite modificar y Pixelify Sans no tiene nombre reservado. Los números, la
+B, la E y la tilde de los textos en Pixelify salen de VT323 (ver el
+`@font-face` con `unicode-range` en `phaser/index.html`). Si se reemplaza alguna fuente, mantener este README
+al día con la licencia de la nueva.

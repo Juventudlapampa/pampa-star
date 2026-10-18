@@ -42,6 +42,11 @@
      Familias configurables en balance.json → tipografia. */
   @font-face{font-family:'Press Start 2P';src:url('../assets/fonts/PressStart2P-Regular.ttf') format('truetype');font-display:swap;}
   @font-face{font-family:'Pixelify Sans';src:url('../assets/fonts/PixelifySans-Regular.ttf') format('truetype');font-display:swap;}
+  /* En Pixelify el 5 se lee S, el 8 y la B son iguales, la E parece un 3 y la tilde
+     un guion (revisión del 17/oct). Esos signos salen de VT323, agrandada para
+     que calce con la altura de Pixelify. Va después: con rangos que se pisan,
+     manda la última cara declarada. */
+  @font-face{font-family:'Pixelify Sans';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');unicode-range:U+30-39,U+42,U+45,U+7E;size-adjust:140%;font-display:swap;}
   @font-face{font-family:'VT323';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');font-display:swap;}
   /* TANDA DE PIEL P3: las dos candidatas de DISPLAY, pesadas y anchas. Cuál se
      usa lo decide balance.tipografia.display — están las dos cableadas. */
@@ -2036,7 +2041,7 @@
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
      RE-RASTERIZA todos los textos vivos. */
   const pFuentes = Promise.race([
-    Promise.all([document.fonts.load("12px 'Press Start 2P'"), document.fonts.load("12px 'Pixelify Sans'"), document.fonts.load("12px 'VT323'")]),
+    Promise.all([document.fonts.load("12px 'Press Start 2P'"), document.fonts.load("12px 'Pixelify Sans'", "aB5"), document.fonts.load("12px 'VT323'")]),
     new Promise(r=>setTimeout(r, 8000))
   ]).catch(()=>null).then((v)=>{ unDatoMas(); return v; });
   /* la red del fix: cuando las fuentes terminan de llegar (aunque sea tarde),
