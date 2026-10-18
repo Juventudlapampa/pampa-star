@@ -91,7 +91,7 @@
   },
   {
    "id": "consejo",
-   "pregunta": "¿Qué te dijo el que te enseñó?",
+   "pregunta": "¿Qué te dijo quien te enseñó?",
    "opciones": [
     {
      "t": "Que la pelota se acaricia",
@@ -103,7 +103,7 @@
      "frase": "al que le enseñaron a acariciarla"
     },
     {
-     "t": "Que al que duda lo pasan por arriba",
+     "t": "Que si dudás te pasan por arriba",
      "sub": "encarar siempre",
      "stats": {
       "gambeta": 7

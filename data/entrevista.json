@@ -26,10 +26,10 @@
       ]
     },
     "consejo": {
-      "dice": "Y última, que a las siete entra el informativo y me corren. El que te enseñó a jugar, la frase que te quedó. ¿Qué te dijo?",
+      "dice": "Y última, que a las siete entra el informativo y me corren. De quien te enseñó a jugar, la frase que te quedó. ¿Qué te dijo?",
       "respuestas": [
         "Que la pelota se acaricia. Eso me dijo.",
-        "Que al que duda lo pasan por arriba.",
+        "Que si dudás te pasan por arriba.",
         "Que el equipo primero. Y punto.",
         "Que si no te tienen miedo, no existís."
       ]
