@@ -123,7 +123,7 @@
       var j = st.mios[st.ctrl];
       var FE = window.PampaFeel;
       if (FE) FE.hitstop(this, "fuerte", 3);
-      this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(0.9);
+      this.SFX && this.SFX.riser && this.SFX.riser(0.9);
       var seguir = function () { if (alFinal) alFinal(); };
       if (!this.hayEscenas()) {
         this.mostrarResolucion((carta.grito || "¡" + carta.n + "!") + "\n" + (carta.sub || ""),

@@ -123,8 +123,11 @@ var CARPETA = path.join(RAIZ, "assets/sonidos");
   ["mover", "confirmar", "volver", "abrir", "cerrar", "bloqueado", "cartel"].forEach(function (n) {
     assert(new RegExp(n + ': \\["ui_(mover|confirmar|volver)"').test(ui), "el sonido de interfaz '" + n + "' tiene que salir de una muestra de madera");
   });
-  /* el gol (el motivo) sigue siendo música sintetizada */
-  assert(/\btone\(/.test(cuerpo("goal: function")), "SFX.goal() es el motivo musical: sigue sintetizado");
+  /* Pedido de Rodri del 17/oct: el arpegio del gol en onda triangular sonaba
+     a consola vieja y se fue (hasta hoy este test pedía que siguiera
+     sintetizado). Ya no queda síntesis en sfx.js: ni osciladores ni ruido */
+  assert(cuerpo("goal: function") === "", "SFX.goal() era el arpegio sintetizado del gol: no tiene que volver");
+  assert(!/createOscillator|function tone\(|function noise\(/.test(sinComentarios), "volvió la síntesis a los efectos (lo que sonaba a 8 bits)");
   console.log("[2] " + Object.keys(EFECTOS).length + " efectos con muestra, ninguno con síntesis de reserva");
 })();
 

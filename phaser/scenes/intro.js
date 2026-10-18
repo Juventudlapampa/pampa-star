@@ -241,7 +241,6 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this._fin = false;
     this._arranco = false;
     this.SFX = window.PampaSFX;
-    if (this.SFX && this.SFX.configurarMusica) this.SFX.configurarMusica(BAL.musica);
     this.cameras.main.setBackgroundColor("#000000");
     this.capa = this.add.container(0, 0);
     this.fxG = this.add.graphics().setDepth(50);

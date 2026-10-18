@@ -71,13 +71,16 @@ function lineasCon(re) {
   /* efectoGol es la explosión: ya no toca la red (si la toca, cada gol tiene dos) */
   var ef = cuerpo(MATCH, "efectoGol(arcoIzquierdo) {");
   assert(ef.length > 0 && !/\.net\(\)/.test(ef), "efectoGol es la EXPLOSIÓN y no puede tocar la red");
-  /* la fanfarria del gol propio: solo efectoGol (y la atajada que se grita en la definición) */
-  var fanfarrias = lineasCon(/\.goal\(\)/).filter(function (l) { return !/^definicion_ui/.test(l); });
-  assert(fanfarrias.length === 1, "la fanfarria del gol propio suena en un solo lugar del partido (efectoGol). Hay: " + fanfarrias.join(", "));
+  /* Pedido de Rodri del 17/oct: la fanfarria sintetizada (SFX.goal) se fue
+     porque sonaba a consola vieja; hasta hoy este test pedía que sonara en un
+     solo lugar, efectoGol. El grito del gol propio es el festejo grabado. */
+  var fanfarrias = lineasCon(/\.goal\(\)/);
+  assert(fanfarrias.length === 0, "la fanfarria sintetizada del gol no tiene que volver. Hay: " + fanfarrias.join(", "));
+  assert(/SFX\.festejo\(\)/.test(ef), "efectoGol hace explotar el festejo grabado");
   /* escenaCine ya no sabe hacer sonar un gol */
   assert(!/sfx === "goal"/.test(MATCH) && !/sfx: (gol \? )?"goal"/.test(MATCH),
     "escenaCine no puede volver a sonar red+fanfarria por su cuenta (era la segunda de tres)");
-  console.log("[1] red: festejo propio + gol rival · fanfarria: efectoGol · escenaCine no suena goles");
+  console.log("[1] red: festejo propio + gol rival · grito: el festejo de efectoGol · escenaCine no suena goles");
 })();
 
 /* ---------- [2] LA VERDAD AL DECIDIR, LA FIESTA AL VER ---------- */
@@ -122,8 +125,12 @@ function lineasCon(re) {
      la patada fuerte (audio/sfx.js, LAS MUESTRAS) */
   assert(/\.kickFuerte\(\)/.test(cuerpo(MATCH, "planoPie() {")), "planoPie es el contacto del súper tiro y suena la patada fuerte");
   var bloq = cuerpo(MATCH, "escenaDelBloqueo(defensor, cfg) {");
-  var guantes = (bloq.match(/\.gloves\(\)/g) || []).length;
-  assert(guantes === 1, "el bloqueo suena los guantes una vez a mano (el cartel sin escena); con escena, en la revelación (hay " + guantes + ")");
+  /* Pedido de Rodri del 17/oct: los guantes son solo del arquero; el bloqueo
+     de un defensor suena el choque (la patada más baja). Hasta hoy este test
+     contaba guantes acá. Sigue sonando una vez a mano (el cartel sin escena);
+     con escena, en la revelación. */
+  var choques = (bloq.match(/\.choque\(\)/g) || []).length;
+  assert(choques === 1 && !/\.gloves\(\)|sfx: "gloves"/.test(bloq), "el bloqueo suena el choque una vez a mano y nunca los guantes (choques: " + choques + ")");
   console.log("[3] una patada por remate: comandos, súper tiro, bloqueo");
 })();
 

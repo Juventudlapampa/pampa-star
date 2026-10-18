@@ -470,7 +470,7 @@
             etiqueta: "· la gambeta ·",
             prota: { j: st.rivales[st.portadorRival], esRival: true, anim: "pase" },
             rival: { j: yo, esRival: false, anim: "gambeta" },
-            gana: true, color: 0xe3503e, sfx: "gloves",
+            gana: true, color: 0xe3503e, sfx: "choque",
             titulo: "TE LA SACARON", sub: "quisiste una de más en el área",
             alFinal: function () { self.relatar("gambeta_lose"); }
           });
@@ -504,7 +504,7 @@
             etiqueta: "· la barrida ·",
             prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
             rival: { j: self._def && self._def.tirador ? self._def.tirador : st.rivales[0], esRival: true, anim: "tiro" },
-            gana: true, sfx: "gloves", poseIlustrada: "barrida",
+            gana: true, sfx: "choque", poseIlustrada: "barrida",
             titulo: "¡SE LA SACASTE!", sub: "barrida heroica antes del remate",
             alFinal: function () { self.relatar("gambeta_win"); }
           });
@@ -837,7 +837,7 @@
       if (snd) {
         if (o.ofensiva && o.gol) { /* lo suena festejarGolPropio */ }
         else if (!o.ofensiva && o.gol) snd.golEnContra && snd.golEnContra();
-        else { snd.gloves(); if (!o.ofensiva) { snd.festejo && snd.festejo(1400); this.time.delayedCall(120, function () { snd.goal(); }); } }   // la atajada SE GRITA
+        else { snd.gloves(); if (!o.ofensiva) { snd.festejo && snd.festejo(1400); } }   // la atajada SE GRITA
       }
       if (esFiesta) { this.burst(W * 0.5, H * 0.4); if (!hastaExplosion) this.tribunaSaltando(); }   // V6 P5: la tribuna salta (la del gol, al estallar)
       this.relatar(o.ofensiva ? (o.gol ? "gol" : (o.bloqueado || o.res.outcome === "atajada" ? "atajada" : "afuera")) : (o.gol ? "gol_rival" : "arquero_mio"));
@@ -915,7 +915,7 @@
                 self.escenaCine({
                   etiqueta: "· te apretaron ·",
                   prota: { j: st.rivales[st.portadorRival], esRival: true, anim: "pase" },
-                  rival: null, gana: true, color: 0xe3503e, sfx: "gloves",
+                  rival: null, gana: true, color: 0xe3503e, sfx: "choque",
                   titulo: "¡TE LA QUITARON!", sub: "esperaste de más y te comieron el ángulo",
                   alFinal: function () { self.relatar("gambeta_lose"); }
                 });

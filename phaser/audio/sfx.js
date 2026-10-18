@@ -76,9 +76,9 @@
      ══════════════════════════════════════════════════════════════════════ */
   var MEZCLA = {
     bus: 0.8,
-    kick: 0.46, kickFuerte: 0.46, net: 0.59, gloves: 0.83, palo: 0.46,
+    kick: 0.46, kickFuerte: 0.46, net: 0.59, gloves: 0.83, palo: 0.46, choque: 0.23,
     whistle: 0.16, afuera: 0.15, festejo: 0.21, crowd: 0.4, cama: 0.24, whoosh: 0.15, ui: 0.11,
-    goal: 1, riser: 1, riserGrande: 1, temaPosesion: 1, temaCampo: 1, temaUrgente: 1, golEnContra: 1
+    golEnContra: 0.15
   };
   var PASABAJOS_HZ = 4000;
   var ganancia = 1;          // la del efecto que está sonando ahora (ver con())
@@ -87,7 +87,7 @@
     Object.keys(cfg).forEach(function (k) { if (k.charAt(0) !== "_" && typeof cfg[k] === "number") MEZCLA[k] = cfg[k]; });
     if (master) master.gain.value = MEZCLA.bus;
   }
-  /* corre fn con la ganancia del efecto `nombre`: tone() y noise() la leen */
+  /* corre fn con la ganancia del efecto `nombre`: muestra() la lee */
   function con(nombre, fn) {
     var antes = ganancia;
     ganancia = MEZCLA[nombre] != null ? MEZCLA[nombre] : 1;
@@ -206,63 +206,6 @@
   function unlock() { var c = ensure(); if (c && c.state === "suspended") c.resume(); }
   function now() { return ctx ? ctx.currentTime : 0; }
 
-  /* osc simple con envolvente ADSR corta */
-  function tone(type, f0, f1, t0, dur, gain) {
-    if (!ctx || muted) return;
-    gain = gain * ganancia;
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(f0, t0);
-    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t0 + dur);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(master);
-    o.start(t0); o.stop(t0 + dur + 0.02);
-  }
-  /* ruido blanco filtrado (para impactos / red / multitud) */
-  function noise(t0, dur, gain, freq, q, type) {
-    if (!ctx || muted) return;
-    gain = gain * ganancia;
-    var n = Math.floor(ctx.sampleRate * dur), buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-    for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
-    var s = ctx.createBufferSource(); s.buffer = buf;
-    var bp = ctx.createBiquadFilter(); bp.type = type || "bandpass"; bp.frequency.value = freq || 900; bp.Q.value = q || 1;
-    var g = ctx.createGain(); g.gain.value = gain;
-    s.connect(bp); bp.connect(g); g.connect(master);
-    s.start(t0); s.stop(t0 + dur);
-  }
-
-  /* ===== ANIME v4 Bloque D · MÚSICA CHIPTUNE EN LOOP (secuenciador propio) =====
-     Dos temas de 16 pasos 100% originales: PROPIA (pausado, mayor, respirado) y
-     RIVAL (tenso, menor, pulso corto). Un timer JS programa notas por delante
-     en el reloj de WebAudio (no se traba con el frame rate). El silencio
-     pre-desenlace se logra con musicaDuck (baja el bus de música y vuelve). */
-  /* ============================================================================
-     ADDENDUM v6 Parte B (REEMPLAZA al §6): música CON DIRECCIÓN, no "que suene
-     mejor". EL MOTIVO de 4 notas ascendente (tónica→quinta→sexta→octava)
-     aparece en TODOS los temas transformado: insinuado en campo propio,
-     completo al cruzar, INVERTIDO cuando la tiene el rival, a toda máquina en
-     el opening. Tres capas mínimo (bajo + melodía + percusión), progresiones
-     heroicas del anime ochentoso (i–VI–III–VII), y la capa de VIENTO pampeano
-     apenas audible. Los parámetros llegan de balance.json → musica
-     (configurarMusica); este default es el mismo brief.
-     ========================================================================== */
-  var MUSICA = {
-    vol: 0.5,
-    viento: 0.014,
-    motivo: [0, 7, 9, 12],                       // tónica → quinta → sexta → octava
-    temas: {
-      propia_propio: { tonica: 220, modo: "menor", bpm: 92, prog: [0, 8, 3, 10], percusion: 0.35, motivo: "insinuado" },
-      propia_rival: { tonica: 261.63, modo: "mayor", bpm: 112, prog: [0, 9, 5, 7], percusion: 1, motivo: "completo" },
-      rival: { tonica: 220, modo: "menor", bpm: 100, prog: [0, -1, -2, -3], percusion: 0.8, motivo: "invertido", segunda_menor: true },
-      urgente: { tonica: 220, modo: "menor", bpm: 138, prog: [0, 8, 3, 10], percusion: 1, motivo: "completo", tictac: true },
-      opening: { tonica: 220, modo: "menor_a_mayor", bpm: 140, prog: [0, 8, 3, 10], percusion: 1, motivo: "principal" }
-    },
-    gol_bpm: 150,
-    lamento_bpm: 70
-  };
-  function configurarMusica(cfg) { if (cfg && typeof cfg === "object") MUSICA = Object.assign({}, MUSICA, cfg); }
   /* M3 · lo que queda de 'mus': banderas, no un bus de audio. gain/paso/prox
      eran del secuenciador borrado; timer y viento se conservan porque
      musicaTema() los apaga por las dudas, y urgente porque la escena la
@@ -280,14 +223,15 @@
      SE QUEDA Y NO ES MÚSICA: los GOLPES CORTOS. Duran menos de medio segundo,
      acentúan un momento y suenan ENCIMA del tema que esté puesto, igual que
      un silbato o una patada. Ninguno hace loop y ninguno pasa por el bus que
-     se borró — todos usan tone()/noise() sobre el master, como el resto de los
-     efectos. Son estos cinco:
+     se borró. Hasta el 17/oct eran notas en onda triangular (sonaban a
+     consola vieja, pedido de Rodri) y desde entonces son la hinchada grabada:
 
-       temaPosesion(quien)  3 notas al cambiar de mano (sube la tuya, baja la de ellos)
-       temaCampo(zona)      3 notas al cruzar la mitad de la cancha
-       temaUrgente()        el tictac de los últimos 5 minutos
-       golEnContra()        el lamento de 4 notas: EL MOTIVO invertido y lento
-       goal()               EL MOTIVO a toda potencia cuando la metés
+       temaPosesion(quien)  el rumor que crece cuando la recuperás (la de ellos, nada)
+       temaCampo(zona)      el rumor que crece al cruzar a campo rival
+       temaUrgente()        el rumor largo de los últimos 5 minutos
+       golEnContra()        el "uhhh" de la hinchada, más grave
+
+     El grito de gol (goal()) se fue: el festejo grabado ya explota en el gol.
 
      Se quedan porque hacen falta: los doce OGG son loops de ambiente y no
      pueden reaccionar a un cambio de posesión sin cortar la pista. La regla
@@ -499,8 +443,8 @@
   /* los EFECTOS (WebAudio) también: el contexto se suspende al ocultarse y
      vuelve al mostrarse, solo si lo suspendimos nosotros (si estaba
      suspendido porque todavía no hubo un toque, lo destraba unlock(), como
-     siempre). Con el mute puesto los efectos no suenan igual: tone(),
-     noise() y muestra() lo miran, y la cama se apaga (ponerCama). */
+     siempre). Con el mute puesto los efectos no suenan igual: muestra() lo
+     mira, y la cama se apaga (ponerCama). */
   var ctxSuspendidoPorOculto = false;
   function suspenderEfectos() {
     if (!ctx || ctx.state !== "running" || !ctx.suspend) return false;
@@ -793,7 +737,6 @@
       persistirMute();
     },
     isMuted: function () { return muted; },
-    configurarMusica: configurarMusica,
     configurarMezcla: configurarMezcla,
     cargarMuestras: cargarMuestras,
     MUESTRAS: MUESTRAS,
@@ -870,38 +813,27 @@
     whoosh: function () { if (ensure()) muestra("viento_remate"); },
     /* el golpe en la RED y el roce de la malla */
     net: function () { if (ensure()) muestra("red"); },
+    /* los guantes son solo del arquero; el choque de un quite, un corte o un
+       bloqueo es la patada, 6 dB más baja (pedido de Rodri del 17/oct) */
     gloves: function () { if (ensure()) muestra("guantes"); },
+    choque: function () { if (ensure()) muestra("patada"); },
     /* el caño de metal: suena y vibra un instante */
     palo: function () { if (ensure()) muestra("palo"); },
     /* el "uhhh" de la hinchada cuando se va cerca */
     afuera: function () { if (ensure()) muestra("hinchada_uh"); },
-    /* GRITO de gol: EL MOTIVO a toda potencia — rápido y en MAYOR (brief B.3).
-       Una octava abajo y en triangular desde el 17/oct: en cuadrada era el
-       chiptune que Rodri escuchaba encima de la música. No es un golpe, es
-       música: por eso sigue sintetizado. */
-    goal: function () {
-      var c = ensure(); if (!c) return; var t = now();
-      var dur = 60 / (MUSICA.gol_bpm || 150);
-      for (var i = 0; i < 4; i++) {
-        var f = 261.63 * Math.pow(2, MUSICA.motivo[i] / 12);
-        tone("triangle", f, f, t + i * dur * 0.5, dur * 0.8, 0.08);
-        tone("sine", f / 2, f / 2, t + i * dur * 0.5, dur * 0.8, 0.06);
-      }
-      tone("triangle", 523.25, 523.25, t + 2 * dur, dur * 2.2, 0.06);   // la octava sostenida
-      noise(t, 0.5, 0.06, 900, 0.7, "lowpass");
-    },
     /* silbato del árbitro: un pitazo, o con "final" los tres del final */
     whistle: function (cual) { if (ensure()) muestra(cual === "final" ? "silbato_final" : "silbato"); },
     /* el rumor de la tribuna que crece y se apaga en ms (la colita de la
-       tensión): un pedazo de la cama, desde cualquier lugar del loop */
-    crowd: function (ms) {
+       tensión): un pedazo de la cama, desde cualquier lugar del loop. Con
+       subeMs, crece hasta ahí (el riser) y se apaga en lo que queda */
+    crowd: function (ms, subeMs) {
       if (!ensure() || !buffers.hinchada_loop) return;
       var d = (ms || 700) / 1000, t = now();
       var m = muestra("hinchada_loop", { loop: true, desde: Math.random() * buffers.hinchada_loop.duration });
       if (!m) return;
       var pico = m.g.gain.value;
       m.g.gain.setValueAtTime(0.0001, t);
-      m.g.gain.linearRampToValueAtTime(pico, t + d * 0.4);
+      m.g.gain.linearRampToValueAtTime(pico, t + (subeMs != null ? subeMs / 1000 : d * 0.4));
       m.g.gain.linearRampToValueAtTime(0.0001, t + d);
       m.src.stop(t + d + 0.02);
     },
@@ -923,59 +855,29 @@
       ponerCama();
     },
 
-    /* ===== HOOKS DE MÚSICA (v2 §9) — motivos ORIGINALES cortos como placeholder.
-       La música en loop por posesión es etapa posterior: el partido YA llama a
-       estos hooks; acá se decide qué suena (hoy: un motivo de 3 notas). ===== */
-    temaPosesion: function (quien) {
-      var c = ensure(); if (!c) return; var t = now();
-      var notas = quien === "mia" ? [392, 494, 587] : [440, 349, 294];   // sube con la tuya, baja con la de ellos
-      for (var i = 0; i < notas.length; i++) tone("triangle", notas[i], notas[i], t + i * 0.07, 0.1, 0.1);
-    },
-    /* RISER del beat de tensión (Feel B1): sube y se corta justo cuando abre el menú */
+    /* ===== LOS GOLPES CORTOS (v2 §9): reaccionan a la jugada encima del tema
+       que esté puesto. Desde el 17/oct son la hinchada grabada, no notas: en
+       onda triangular sonaban a consola vieja (pedido de Rodri). Llaman al
+       crowd() de afuera, así suenan con su mezcla. ===== */
+    temaPosesion: function (quien) { if (quien === "mia") SFX.crowd(450); },
+    /* RISER del beat de tensión (Feel B1): el rumor crece durante el beat y
+       se apaga cuando abre el menú. Con megacosa el beat es más largo. */
     riser: function (dur) {
-      var c = ensure(); if (!c) return; var t = now();
-      tone("triangle", 160, 640, t, dur || 0.75, 0.07);
-      noise(t, dur || 0.75, 0.05, 800, 0.6, "lowpass");
+      var ms = (dur || 0.75) * 1000;
+      SFX.crowd(ms + 250, ms);
     },
-    /* RISER GRANDE (Feel B6): cuando el rival anuncia una MEGACOSA — más grave, más largo */
-    riserGrande: function (dur) {
-      var c = ensure(); if (!c) return; var t = now();
-      tone("triangle", 80, 400, t, dur || 1.4, 0.055);
-      tone("sine", 55, 110, t, dur || 1.4, 0.055);
-      noise(t, dur || 1.4, 0.05, 400, 0.5, "lowpass");
-    },
-    /* Feel B8: el tema del avance — pausado y tenso en campo propio, CRECE al cruzar */
-    temaCampo: function (zona) {
-      var c = ensure(); if (!c) return; var t = now();
-      if (zona === "rival") {
-        var arriba = [392, 440, 523];
-        for (var i = 0; i < arriba.length; i++) tone("triangle", arriba[i], arriba[i], t + i * 0.09, 0.14, 0.11);
-        noise(t, 0.4, 0.03, 700, 0.5, "bandpass");
-      } else {
-        tone("triangle", 220, 220, t, 0.22, 0.09);
-        tone("triangle", 262, 262, t + 0.16, 0.24, 0.08);
-      }
-    },
-    temaUrgente: function () {
-      var c = ensure(); if (!c) return; var t = now();
-      for (var i = 0; i < 4; i++) tone("triangle", 660, 660, t + i * 0.12, 0.06, 0.11);   // tictac de los últimos 5'
-    },
-    /* gol EN CONTRA: EL MOTIVO INVERTIDO y lento, solo bajo — el lamento (brief B.3) */
-    golEnContra: function () {
-      var c = ensure(); if (!c) return; var t = now();
-      var dur = 60 / (MUSICA.lamento_bpm || 70);
-      for (var i = 0; i < 4; i++) {
-        var f = 110 * Math.pow(2, MUSICA.motivo[3 - i] / 12);
-        tone("triangle", f, f, t + i * dur * 0.5, dur * 0.9, 0.08);
-      }
-    }
+    /* Feel B8: al cruzar a campo rival la tribuna empuja */
+    temaCampo: function (zona) { if (zona === "rival") SFX.crowd(900); },
+    temaUrgente: function () { SFX.crowd(1400); },
+    /* gol EN CONTRA: el "uhhh" de la hinchada, más grave */
+    golEnContra: function () { if (ensure()) muestra("hinchada_uh", { rate: 0.8 }); }
   };
   /* LA MEZCLA, aplicada en un solo lugar: cada efecto suena con su ganancia
-     de MEZCLA (arriba de todo) sin tocar los números de su síntesis ni la
-     muestra. La cama no pasa por acá: lee MEZCLA.cama en ponerCama, porque
-     su nivel cambia mientras suena (el duck). */
-  ["kick", "kickFuerte", "whoosh", "net", "gloves", "palo", "afuera", "goal", "whistle", "crowd",
-    "festejo", "temaPosesion", "riser", "riserGrande", "temaCampo", "temaUrgente", "golEnContra", "ui"].forEach(function (k) {
+     de MEZCLA (arriba de todo) sin tocar la muestra. La cama no pasa por acá:
+     lee MEZCLA.cama en ponerCama, porque su nivel cambia mientras suena (el
+     duck). */
+  ["kick", "kickFuerte", "choque", "whoosh", "net", "gloves", "palo", "afuera", "whistle", "crowd",
+    "festejo", "golEnContra", "ui"].forEach(function (k) {
     var f = SFX[k]; if (typeof f !== "function") return;
     SFX[k] = function () { var a = arguments, self = this; return con(k, function () { return f.apply(self, a); }); };
   });

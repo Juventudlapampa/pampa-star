@@ -602,7 +602,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this._vista4) this.st._noAutoHasta = 9e15;
 
     /* ANIME D + ADDENDUM B: la dirección musical llega de balance → el motor */
-    if (this.SFX && this.SFX.configurarMusica) this.SFX.configurarMusica(this.BAL.musica);
     /* ══════════════════════════════════════════════════════════════════════
        LA ENTRADA A LA CANCHA. "Under the Floodlights" es de UNA PASADA (no
        hace loop): es el tema de salir del túnel, no el del partido.
@@ -2297,7 +2296,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (st.posesion === "mia") { st.modo = "congelado"; this.abrirMenuAtaque(null, true); }
     /* V6 §1 F4: ESPACIO es SOLO ACCIÓN, NUNCA cambia de jugador (TAB/⇄ = manual) */
   }
-  limpiarMenu() {
+  limpiarMenu(sonido) {
     /* B6 · se resolvió: la cámara suelta el acercamiento */
     if (window.PampaFeel) window.PampaFeel.soltar(this);
     /* EL CURSOR SE VA CON EL MENÚ. Se le colgó al shutdown de la escena, pero
@@ -2306,7 +2305,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        midiendo a los pisotones no aparecía, porque el cursor se dibuja de una y
        lo que faltaba era ver la pantalla DESPUÉS. */
     if (this.cerrarFoco) this.cerrarFoco();
-    if (window.PampaSFX && window.PampaSFX.ui) window.PampaSFX.ui("cerrar");
+    /* abrir la cruz o ★ ESPECIAL también limpia el menú anterior: suena a abrir (pedido de Rodri del 17/oct) */
+    if (window.PampaSFX && window.PampaSFX.ui) window.PampaSFX.ui(sonido || "cerrar");
     this.menuLayer.removeAll(true); this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; }
   /* FEEL B1 · EL BEAT DE TENSIÓN: el cruce se anuncia 600-900ms ANTES del menú —
      zoom leve, riser, y el que entra al duelo aparece deslizándose al plano */
@@ -2358,10 +2358,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const extraBeat = (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1) * (this._vista4 ? (this.VI.zoom_beat_mult || 3) : 1);
       cam.zoomTo(this._zoomBase * (1 + extraBeat), durBeat, "Sine.easeInOut");
     }
-    if (this.FLAGS.e6_cine) {
-      if (megaViene) this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(durBeat / 1000);
-      else this.SFX && this.SFX.riser && this.SFX.riser(durBeat / 1000);
-    }
+    if (this.FLAGS.e6_cine) this.SFX && this.SFX.riser && this.SFX.riser(durBeat / 1000);
     this.time.delayedCall(durBeat, () => { if (this.estado === "BEAT") abrir(); });
   }
   /* P8 · LA ENTRADA DEL QUE VA A BUSCARLA.
@@ -2477,7 +2474,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* la cruz: opciones en W/N/E/S como el pad del original (doc §8) */
   abrirMenuCruz(cfg) {
     this.estado = "MENU";
-    this.limpiarMenu();
+    this.limpiarMenu("abrir");
     this.apartarTicker();   // L04b: el título va en la franja del ticker
     /* ── B6 · LA CÁMARA CON INTENCIÓN ──────────────────────────────────
        Un acercamiento lento y continuo MIENTRAS se decide algo. No es un zoom
@@ -2919,7 +2916,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           pose: "gambeta_gana", poseFlip: true,
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           poseRival: "gambeta_pierde",
-          gana: true, color: 0xe3503e, sfx: "gloves",
+          gana: true, color: 0xe3503e, sfx: "choque",
           titulo: megaR.grito || "¡TE LA SACÓ!",
           sub: "te la sacó con un movimiento especial · pelota rival",
           alFinal: () => this.relatar("gambeta_lose")
@@ -2937,7 +2934,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           pose: "barrida",
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           poseRival: "pared",
-          gana: true, color: 0xe3503e, sfx: "gloves",
+          gana: true, color: 0xe3503e, sfx: "choque",
           titulo: r.matriz === "leyeron" ? "¡TE LEYERON LA PARED!" : "¡TE CORTARON LA PARED!",
           sub: r.matriz === "leyeron" ? "sabían que la devolvían · pelota rival" : "se metió en el medio del 1-2 · pelota rival",
           alFinal: () => this.relatar("gambeta_lose")
@@ -2951,7 +2948,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
           pose: "gambeta_pierde",                              // ARTE 2: el trastabille
           rival: { j: rivalJ, esRival: true, anim: "pase" },
-          gana: false, color: 0xe3503e, sfx: "gloves",
+          gana: false, color: 0xe3503e, sfx: "choque",
           titulo: r.matriz === "leyeron" ? "¡TE LEYERON!" : "TE LA SACARON",
           sub: r.matriz === "leyeron" ? "el quite estaba preparado · pelota rival" : "se plantó justo · pelota rival",
           alFinal: () => this.relatar("gambeta_lose")
@@ -2989,7 +2986,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
              Va barrida, que además es lo que dice el subtítulo ("te tiraste al
              piso"). No hay pose de "quite" en assets/poses: ver pedidos de arte. */
           poseRival: "barrida",
-          gana: true, color: 0x7ee08a, sfx: "gloves",
+          gana: true, color: 0x7ee08a, sfx: "choque",
           titulo: "¡RECUPERASTE!",
           sub: this.subConPorQue(r.matriz === "leiste" ? "le leíste la intención y te tiraste al piso" : "llegaste primero a la pelota", r),
           alFinal: () => this.relatar("quite_win")   // V9 §8: recuperar ya no es mudo
@@ -3003,7 +3000,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           pose: "bloqueo",
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "tiro" } : null,
-          gana: true, sfx: "gloves",
+          gana: true, sfx: "choque",
           titulo: "¡BLOQUEADO!",
           sub: this.subConPorQue(r.matriz === "leiste" ? "sabías que venía el tiro" : "pusiste el cuerpo donde dolía", r),
           alFinal: () => this.relatar("quite_win")
@@ -3025,7 +3022,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           /* G2: los dos salían barriéndose. El que perdió el pase no se barre:
              queda descolocado. */
           poseRival: "gambeta_pierde",
-          gana: true, color: 0x7ee08a, sfx: "gloves",
+          gana: true, color: 0x7ee08a, sfx: "choque",
           titulo: "¡LA CORTASTE!",
           sub: this.subConPorQue(r.matriz === "leiste" ? "le leíste la línea de pase" : "metiste la pierna a tiempo", r),
           alFinal: () => this.relatar("quite_win")
@@ -4395,7 +4392,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     if (!this.hayEscenas() || !defensor) {
       /* sin escenas (flags apagados) sigue habiendo cartel: nunca silencio */
-      this.SFX && this.SFX.gloves && this.SFX.gloves();
+      this.SFX && this.SFX.choque && this.SFX.choque();
       this.mostrarResolucion((cfg.titulo || "¡BLOQUEADO!") + "\n" + sub, "#e3503e",
         { anim: "bloqueo", gana: false });
       volver();
@@ -4410,7 +4407,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       titulo: cfg.titulo || "¡BLOQUEADO!",
       sub: sub,
       color: cfg.desenlace === "corner" ? 0x7ee08a : 0xe3503e,
-      sfx: "gloves",
+      sfx: "choque",
       alFinal: volver
     });
   }
@@ -4825,7 +4822,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           etiqueta: "· la corrida murió ·",
           prota: { j: rv.r, esRival: true, anim: "pase" },
           rival: { j, esRival: false, anim: "gambeta" },
-          gana: true, color: 0xe3503e, sfx: "gloves",
+          gana: true, color: 0xe3503e, sfx: "choque",
           titulo: "¡TE FRENARON!", sub: "la megacorrida murió en el eslabón " + (k + 1),
           alFinal: () => this.relatar("gambeta_lose")
         });
@@ -4844,7 +4841,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.escenaCine({
         etiqueta: "· la combinada ·",
         prota: { j: st.rivales[st.portadorRival], esRival: true, anim: "pase" }, rival: null,
-        gana: true, color: 0xe3503e, sfx: "gloves",
+        gana: true, color: 0xe3503e, sfx: "choque",
         titulo: "¡CORTARON LA PARED!", sub: "leyeron la jugada combinada",
         alFinal: () => this.relatar("corte")
       });
@@ -4928,7 +4925,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.tweens.add({ targets: carga, width: 336, duration: this.msV(820), ease: "Sine.easeIn" });
     this.uiCam.flash(120, 255, 216, 77);
     this.dollyCine(this.msV(1150), 1.6);   // LA CÁMARA VIVA: el anuncio se viene encima
-    this.SFX && this.SFX.riserGrande && this.SFX.riserGrande(this.msV(1050) / 1000);
+    this.SFX && this.SFX.riser && this.SFX.riser(this.msV(1050) / 1000);
     this.time.delayedCall(this.msV(1150), () => {
       /* corte seco y el flujo sigue (timing del megatiro / resolución de la megadefensa) */
       this.limpiarContenido();
@@ -4979,7 +4976,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        sonaba en los dos lados, cada gol tenía dos redes. */
     /* Feel B8: explosión de HINCHADA en el gol (y rumor apagado en el gol en contra) */
     if (this.SFX) { if (enContra) this.SFX.crowd(600); else this.SFX.festejo(); }
-    this.time.delayedCall(90, () => this.SFX && (enContra ? (this.SFX.golEnContra && this.SFX.golEnContra()) : this.SFX.goal()));
+    /* el arpegio sintetizado del gol se fue el 17/oct (sonaba a consola vieja): el festejo grabado es el grito */
+    if (enContra) this.time.delayedCall(90, () => this.SFX && this.SFX.golEnContra && this.SFX.golEnContra());
   }
   reanudarLibre() {
     this.st.modo = "juego";
@@ -5387,7 +5385,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.tweens.add({ targets: bola, x: wB.x, y: wB.y + 34, duration: Math.round(durVuelo * 0.45), ease: "Sine.easeOut" });
         if (this.sprDuelo) this.tweens.add({ targets: this.sprDuelo, alpha: 0.5, angle: 18, duration: 300 });   // se lanzó y pasó de largo
       } else {
-        snd && snd.gloves();
+        snd && snd.choque();
         bola.setPosition(wM.x, wM.y + 30);
         if (this.sprDuelo && this._dueloBase) this.reproducirAnim(this.sprDuelo, this._dueloBase, "gambeta", 700);   // se la queda
       }

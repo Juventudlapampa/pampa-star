@@ -499,7 +499,7 @@
         var quien = lectura.defensorMasCerca;
         if (lectura.bloqueado) {
           self.uiCam.flash(60, 255, 255, 255);
-          self.SFX && self.SFX.gloves && self.SFX.gloves();
+          self.SFX && self.SFX.choque && self.SFX.choque();
           if (figs[0] && figs[0].active) self.tweens.add({ targets: figs[0], scale: figs[0].scale * 1.14, duration: 240 });
           /* revisión L04b: decía "te tiraste", y la figura de quien juega es
              la pose "bloqueo" (de pie, brazos cruzados: el cuerpo en la
@@ -737,7 +737,7 @@
           self.punch(cfg.titulo || (hayCorte ? "¡PASÓ ENTRE LAS PIERNAS!" : "¡LA PUSO JUSTO!"),
             cfg.sub || (cfg.alVacio ? "la dejó en el camino y pica al espacio" : "toque y a seguir"), 0x7ee08a);
         } else {
-          self.SFX && self.SFX.gloves && self.SFX.gloves();
+          self.SFX && self.SFX.choque && self.SFX.choque();
           self.uiCam.shake(220, 0.006);
           if (cort && cort.active) {
             if (bola.active) bola.setPosition(cort.x - 30, cort.y + 60);

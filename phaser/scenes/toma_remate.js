@@ -274,8 +274,7 @@
         snd.whoosh && snd.whoosh();
         this.time.delayedCall(Math.round(T * 0.12), function () {
           if (est.cerrado) return;
-          var ris = especial ? snd.riserGrande : snd.riser;
-          ris && ris.call(snd, Math.max(0.3, (tGolpe - T * 0.12) / 1000));
+          snd.riser && snd.riser(Math.max(0.3, (tGolpe - T * 0.12) / 1000));
         });
       }
 
