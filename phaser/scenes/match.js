@@ -2041,16 +2041,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* PASE (doc §7): se la das al receptor más cercano al toque. El pase al
          vacío ya no sale de tocar "más allá": vive en ★ ESPECIAL (pedido de
          Rodri del 17/oct). */
+      /* la distancia se mide contra la ficha DIBUJADA (dibujarRadar las
+         separa cuando se pisan): se elige la que se tocó, no la de abajo */
+      const F = this._fichasMapa.mios;
       let mejor = null, md = 1e9;
       this._receptores.forEach(r => {
-        const j = st.mios[r.idx], d = Math.hypot(j.x - w.x, j.y - w.y);
+        const d = Math.hypot(F[r.idx].x - p.x, F[r.idx].y - p.y);
         if (d < md) { md = d; mejor = r; }
       });
       if (mejor) this.confirmarPase(mejor, false);
     } else if (this.estado === "LIBRE" && st.posesion === "rival") {
       /* en defensa: tap en el radar elige a quién controlás */
+      const F = this._fichasMapa.mios;
       let mejor = -1, md = 1e9;
-      st.mios.forEach((j, i) => { if (j.pos === "ARQ") return; const d = Math.hypot(j.x - w.x, j.y - w.y); if (d < md) { md = d; mejor = i; } });
+      st.mios.forEach((j, i) => { if (j.pos === "ARQ") return; const d = Math.hypot(F[i].x - p.x, F[i].y - p.y); if (d < md) { md = d; mejor = i; } });
       if (mejor >= 0 && P.cambiarA(st, mejor)) this.avisar("Marcás con " + st.mios[mejor].nombre.toUpperCase(), { clave: "marcacion", toque: true });
     }
   }
@@ -5219,17 +5223,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         : "➡ PASE: ▲▼ elegís a quién · ENTER se la pasás · ESC vuelve (o tocalo " + dondeToca + ")",
       { fontFamily: window.PF.texto, fontSize: px, color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
     this._paseCancelar = () => this.abrirMenuAtaque(rivalIdx, libre);
-    const cx = this._vista4 ? 906 : this.radar.x + this.radar.w + 36;
+    /* la columna de compañeros: balance.legibilidad.cruz.pase */
+    const CP = this.BAL.legibilidad.cruz.pase, aire = this.BAL.legibilidad.cruz.aire;
+    /* Pedido de Rodri del 17/oct: el ✕ solo no decía qué hace. Dice VOLVER,
+       mide lo que mide su palabra y cierra contra el borde derecho de la
+       columna de compañeros, arriba de ella */
+    const ct = this.add.text(0, 0, "✕ VOLVER", { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5);
+    const cw = Math.ceil(ct.width) + 4 * aire;
+    const cx = this._vista4 ? CP.x + CP.w / 2 - cw / 2 : this.radar.x + this.radar.w + 8 + cw / 2;
     const cy = this._vista4 ? 306 : this.radar.y + 24;
-    const cancel = this.add.rectangle(cx, cy, 56, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-    const ct = this.add.text(cx, cy, "✕", { fontFamily: window.PF.texto, fontSize: "18px", color: "#0a1f13" }).setOrigin(0.5);
+    ct.setPosition(cx, cy);
+    const cancel = this.add.rectangle(cx, cy, cw, 48, 0xdcd6c2, 0.95).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
     this.menuLayer.add([hint, cancel, ct]);
     cancel.on("pointerdown", (p, x, y, ev) => {
       ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
       this._paseCancelar && this._paseCancelar();
     });
-    /* la columna de compañeros: balance.legibilidad.cruz.pase */
-    const CP = this.BAL.legibilidad.cruz.pase, aire = this.BAL.legibilidad.cruz.aire;
     const items = rs.map((r, k) => {
       const j = st.mios[r.idx], y = CP.y0 + k * CP.paso;
       const b = this.add.rectangle(CP.x, y, CP.w, CP.h, 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
@@ -5527,10 +5536,33 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          se dibuja con las posiciones reales (nunca null) */
       posRiv = (this._imprec && this._imprec.pos.length === st.rivales.length) ? this._imprec.pos : st.rivales;
     }
+    const RF = (this.LEG && this.LEG.ficha_r != null) ? this.LEG.ficha_r : 13;
+    /* Pedido de Rodri del 17/oct: dos fichas en el mismo lugar se tapaban y
+       no se leía ningún número (el 8 sobre el 11, el 9 rival sobre el 6). Se
+       separa solo el DIBUJO, empujando de a pares hasta que entre cada centro
+       haya una ficha y 2 px; la simulación no se toca, y el toque en el mapa
+       busca en lo dibujado (onRadarTap). Primero los rivales, después los míos. */
+    const fichas = st.rivales.map((j, i) => { const p = posRiv[i] || j; return { x: mx(p.x), y: my(p.y) }; })
+      .concat(st.mios.map(j => ({ x: mx(j.x), y: my(j.y) })));
+    const sep = 2 * RF + 2;
+    for (let vuelta = 0; vuelta < 6; vuelta++) {
+      for (let a = 0; a < fichas.length; a++) for (let b = a + 1; b < fichas.length; b++) {
+        const A = fichas[a], B = fichas[b];
+        let dx = B.x - A.x, dy = B.y - A.y, d = Math.hypot(dx, dy);
+        if (d >= sep) continue;
+        if (d < 0.01) { dx = 1; dy = 0; d = 1; }
+        const em = (sep - d) / 2;
+        A.x -= dx / d * em; A.y -= dy / d * em; B.x += dx / d * em; B.y += dy / d * em;
+      }
+    }
+    fichas.forEach(f => {
+      f.x = Phaser.Math.Clamp(f.x, R.x + RF, R.x + R.w - RF);
+      f.y = Phaser.Math.Clamp(f.y, R.y + RF, R.y + R.h - RF);
+    });
+    this._fichasMapa = { riv: fichas.slice(0, st.rivales.length), mios: fichas.slice(st.rivales.length) };
     /* rivales: TRIÁNGULOS #FF8A50 */
     st.rivales.forEach((j, i) => {
-      const p = posRiv[i] || j;
-      const x = mx(p.x), y = my(p.y);
+      const x = this._fichasMapa.riv[i].x, y = this._fichasMapa.riv[i].y;
       /* L2 · el TRIÁNGULO es el caso peor: su área útil es la mitad que la de
          un círculo y el ancho crece hacia la base, así que el número va abajo,
          al 75% de la altura, donde el ancho disponible es base·0,75. */
@@ -5571,9 +5603,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        estimado. Sobre un círculo de radio 5,5 se pintaba AFUERA de su propia
        ficha. Para que entre centrado hace falta r ≥ 13,1: a la altura del
        texto (±8,5) el ancho disponible del círculo es 2·√(r²−8,5²). */
-    const RF = (this.LEG && this.LEG.ficha_r != null) ? this.LEG.ficha_r : 13;
     st.mios.forEach((j, i) => {
-      const x = mx(j.x), y = my(j.y);
+      const x = this._fichasMapa.mios[i].x, y = this._fichasMapa.mios[i].y;
       g.fillStyle(this._colorMapaMio, 1); g.fillCircle(x, y, RF);
       g.lineStyle(1.5, this._tintaMapaMio, 0.9); g.strokeCircle(x, y, RF);
       if (i === st.ctrl) { g.lineStyle(3, 0xffffff, 1); g.strokeCircle(x, y, RF + 3.5); }
@@ -5584,7 +5615,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        quedaba ADENTRO de la ficha y no se veía (pedido de Rodri del 17/oct) */
     if (this.estado === "PASE" && this._receptores) {
       this._receptores.forEach((r, k) => {
-        const j = st.mios[r.idx], x = mx(j.x), y = my(j.y), lado = 2 * RF + 10;
+        const x = this._fichasMapa.mios[r.idx].x, y = this._fichasMapa.mios[r.idx].y, lado = 2 * RF + 10;
         g.lineStyle(k === this._recSel ? 5 : 2.5, 0xffd84d, 1);
         g.strokeRect(x - lado / 2, y - lado / 2, lado, lado);
       });
