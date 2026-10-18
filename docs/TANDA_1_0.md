@@ -6178,3 +6178,121 @@ Lo que vi y no toqué:
   290: un renglón de 265 px se salía por los costados y `legibilidad_partido`
   lo daba adentro. Acorté el de POTENCIAR.
 - En el gol de la chilena la pelota sigue en el pie de quien remata.
+
+### La música y el arte nuevos, conectados
+
+Qué hice con la música (`assets/musica`, `data/audio.json`,
+`logic/musica.js`, `scenes/intro.js`, `scenes/match.js`):
+
+- Los diez temas de banda de `.claude/nuevos/musica/` pisan a los de 8 bits
+  con el mismo nombre de archivo, así no se movió ninguna ruta: el opening
+  (Victory_Lap_At_Dawn), la espera (The_Longest_Minute_loop, ahora un loop
+  de 56,9 s), el partido y su alternativo, el tramo final (que siguen
+  compartiendo la Definición y el jugadón), las dos de la semana, la
+  entrada, el ascenso y el cierre. `audio.json` dice el corte y el porqué
+  de cada uno.
+- El opening dura 20 s y los ocho planos 19,5. Se pide en el primer plano y
+  suena entero y de corrido hasta el logo; p6 ya no lo corta y lo vuelve a
+  arrancar. El bajón de p5 (musicaDuck de 1 s) sigue y vuelve en p6.
+- `derrota.ogg` es un momento nuevo, `derrota`: si perdiste, el cierre del
+  partido suena el golpe en menor y no el acorde en mayor
+  (`cerrarMusica`).
+- Salieron Cielo_de_victoria y Fuerza_de_un_Leon, los dos últimos chiptune,
+  que ningún momento pedía. La reserva es `intro_completo.ogg` (el opening
+  entero, 57,9 s). No quedó ningún tema viejo sonando: no hubo nada que
+  nivelar.
+- Volumen. Los nuevos vienen a -16 LUFS y los viejos del partido andaban
+  entre -11 y -13. Con la perilla de antes el partido quedaba 5,4 dB más
+  bajo (mediana de ventanas de 400 ms con el volumen del juego: -24,2
+  contra -18,8 dBFS) y los efectos, que se mezclaron a la mañana contra la
+  música vieja, le pasaban por encima. `balance.musica.vol_archivo` pasó de
+  0,42 a 0,78 y el partido vuelve a -18,8. Como los temas ahora están
+  parejos, la semana suena unos 7 dB más fuerte que antes.
+
+Qué hice con el arte (`data/poses_manifest.json`,
+`data/identidades_manifest.json`, `scenes/match.js`, `escenas_v9.js`,
+`jugadon_ui.js`, `definicion_ui.js`):
+
+- El salto lento del remate (planoDesenlace) usa la estirada nueva del
+  rival, de perfil (`r_arquero_estirada`), y la pelota viaja a sus guantes
+  con las `manos` medidas. En el gol, corte seco a `r_arquero_caido`:
+  tirado en el piso mirando hacia donde entró, en flip si entró a la
+  izquierda. Ya no queda en el aire durante el festejo.
+- Tu arquero, en "te rematan": vuela con `arquero_estirada_celeste` y, si
+  es gol, queda en el piso con `arquero_caido_celeste`, adelante a la
+  derecha. Las dos celestes no coincidían con `arquero_vuela_celeste`: medido
+  por la luz y la sombra de la camiseta (el número del LEEME era un
+  promedio), la estirada salió más gris y el caído más saturado. Las igualé
+  por canal: luz #8dbfda y #8dc0db contra #8dbfdb, sombra #4790b9 y #478fb9
+  contra #478fba.
+- La súper gambeta. Golpe 1: VOS encarando (`gambeta_encara`) abajo a la
+  izquierda, con la pelota del juego al pie y la placa "▼ VOS". Los botones
+  de los costados subieron de y=330 a 285 para no taparte, y quedan debajo
+  de los globos del relato. Golpe 2: el rival que pasaste, desparramado
+  (`r_superado`). La falla: el quite es el dibujo del rival a rayas sin la
+  pelota pintada (`poseR_quite_sin_pelota`) y la del juego va donde estaba.
+  Antes era tu quite teñido de naranja, con la pelota blanca y negra.
+- El panel. Cuando la figura grande mira a la izquierda va la versión
+  `_izq`, sin espejar, y el número se lee: `corriendo_izq` y las cinco
+  identidades con número (el colorado no tiene: el 8 se lee igual). La
+  pelota del pie queda del lado del que corre.
+- La pelota del cine (el viaje y el arquero) usa la textura en alta
+  (`ball_hd`, rasterizada de la pelota de 1500 px que ya se bajaba) cuando
+  se ve grande. No sumé `pelota_cine.webp`: es la misma pelota, el lienzo
+  mide 960x540 y en el cine la pelota no pasa de unos 100 px.
+- Peso. Webp q88 bajados al tamaño en que se ven (las figuras acostadas a
+  960 de ancho, las `_izq` de las identidades a 420 de alto) y los PNG en
+  `assets/_fuente/poses`. Lo que carga el juego pasó de 7,52 a 7,90 MB
+  (tope 8); para que entre, `r_arquero_vuela` quedó con `cargar: false`
+  (nadie la pedía, 81 KB). Las texturas en la placa, de 251,4 a 253,2 MB
+  (tope 270). La huella del service worker se regeneró; VERSION no se tocó.
+
+Tests:
+
+- `ojos` [4] corría planoDesenlace buscando `pose_arquero_vuela` y la
+  pelota de 16 px. Ahora busca `r_arquero_estirada`, con su caja de guantes
+  medida en el webp nuevo (x 832-955, y 71-237 de 960x369), y la pelota en
+  alta. La regla es la misma: la pelota va a los guantes. La regresión con
+  nombre pide `figuraArquero("estirada", ...)`. Los dos dicen que es tu
+  pedido del 17/oct.
+- `presupuesto_texturas`: las piezas nuevas van a AGREGADAS_DESPUES y las
+  que salieron a SACADAS_DESPUES, que es como el test sigue replicando la
+  medición de la auditoría.
+- `w1_peso` cuenta también las `_izq` de las identidades. Sin eso daba
+  7,72 MB: no las veía.
+- `p2_arquero` pide al arquero parado en la línea. Probé subirlo para que
+  los guantes quedaran a la altura de la pelota y lo volví a la línea.
+
+Cómo lo verifiqué. Navegador integrado, service worker y caché borrados en
+cada recarga. Con el oído: la intro en tiempo real pide el opening una sola
+vez a los 51 ms y en cada corte de plano el tema va 50 ms detrás del reloj
+de la escena (p2 a 3,08 s con el tema en 3,03; p8 a 15,58 con 15,53); a
+los 20 s está en 19,97 y la salida pide silencio. Pedidos por la puerta
+de la música, los once momentos con tema dan su archivo nuevo a 0,78 y
+el silencio deja todo callado. En el
+partido: entrada, partido a los 11 s, y al perder 2 a 1 el pitazo pide
+`derrota`. Nunca suenan dos temas a la vez fuera del fundido de 300 ms de
+cada cambio (el registro lo marca como 250 ms). Para el arte, partido
+directo contra Espejo de Sal y capturas del gol (salto, freeze, en el
+piso, al ángulo derecho y al izquierdo), la atajada, el afuera, el palo,
+el córner, "te rematan" con gol, los dos golpes y la falla de la súper
+gambeta, y el panel con un rival y con VOS mirando a la izquierda. La
+versión anterior se capturó igual desde un worktree del commit de la
+música; las once comparaciones lado a lado quedaron en
+`.claude/shots/comparar_*.png`. Sin errores en consola. Suite verde.
+
+Lo que vi y no toqué:
+
+- Las poses de acción con número que el panel espeja (gambeta_gana,
+  gambeta_pierde, remate, pared, barrida) siguen con el número al revés
+  cuando miran a la izquierda: no tienen versión `_izq`.
+- La Definición defensiva (`defTeatroFinal` con `ofensiva: false`) no tiene
+  llamador: `entrarDefinicionDef` va a "te rematan". Ahí no puse arte.
+- La Definición sigue sin tema propio.
+- Licencias, según el LEEME de la música: lo de Suno es del plan gratis,
+  sin derechos comerciales; las condiciones de Gemini no se leyeron
+  ([FALTA DATO]). Antes de publicar, decisión tuya.
+- Si los temas de banda se oyen brillantes, la perilla sería un pasabajos
+  para la música; hoy la música va por `<audio>` y no pasa por el bus de
+  efectos.
+- `poseR_quite.webp` queda en `assets/` sin uso.
