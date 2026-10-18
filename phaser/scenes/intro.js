@@ -201,11 +201,11 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
   }
 
   /* cuánto de lo del opening ya está: las imágenes pesan 1,36 MB y el tema
-     0,41 (medido en el disco: lo de listaDelOpening y Victory_Lap_At_Dawn.ogg, 422 KB),
-     así que el tema es el 23% de la barra; el loader da el avance de las
+     0,24 (medido en el disco: lo de listaDelOpening y Victory_Lap_At_Dawn.ogg, el
+     del 17/oct, 255 KB), así que el tema es el 15% de la barra; el loader da el avance de las
      imágenes y el tema suma entero cuando puede sonar (o vence su tope) */
   avanceDelOpening() {
-    const PESO_TEMA = 0.23;
+    const PESO_TEMA = 0.15;
     const vImg = this._imgsListas ? 1 : (this._cargaOpening ? this._cargaOpening.v : 0);
     return vImg * (1 - PESO_TEMA) + (this._temaListo ? PESO_TEMA : 0);
   }
@@ -557,6 +557,14 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        fanfarria del gol en onda cuadrada) disparados encima del tema, que no
        los acompaña. Quedan la música, la hinchada y la red del logo. */
     this.SFX && this.SFX.crowd && this.SFX.crowd(dur);   // el viento lejano
+    /* 17/oct: el tema del opening nuevo dura 20 s y los ocho planos 19,5:
+       arranca acá, con el primer plano, y suena entero y de corrido hasta el
+       logo. Antes arrancaba en p2 y p6 lo cortaba y lo volvía a empezar. */
+    this.pedirMusica("opening");
+    /* L06: las caras del editor, recién cuando el tema del opening tiene con
+       qué sonar hasta el final (antes se repartían la señal con él) */
+    if (this.SFX && this.SFX.cuandoSuenaListo) this.SFX.cuandoSuenaListo(() => this.calentarElEditor());
+    else this.calentarElEditor();
   }
   p2() {   // D1 · LA PELOTA QUIETA: antes de que empiece todo
     /* I1 · ERA EL PEOR PLANO DE LA INTRO: dos segundos de pantalla negra con
@@ -581,15 +589,6 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        Regla nueva para la intro: nada que tenga que verse depende de un tween.
        Los tweens quedan solo para el adorno — si corren, suma; si no, el plano
        se lee igual. */
-
-    /* M2 · por la puerta. Antes esto llamaba a SFX.musicaTema directo, y como
-       la intro nunca registraba archivos, sonaba el SINTETIZADOR — el "trailer
-       con música vieja" que reportó Rodri. */
-    this.pedirMusica("opening");
-    /* L06: las caras del editor, recién cuando el tema del opening tiene con
-       qué sonar hasta el final (antes se repartían la señal con él) */
-    if (this.SFX && this.SFX.cuandoSuenaListo) this.SFX.cuandoSuenaListo(() => this.calentarElEditor());
-    else this.calentarElEditor();
     this.flashBlanco();
   }
   /* ══════════════════════════════════════════════════════════════════════
@@ -659,7 +658,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const t = this.add.text(480, 420, "…", { fontFamily: window.PF.texto, fontSize: "26px", color: "#f6efdc" }).setOrigin(0.5);
     this.capa.add(t);
   }
-  p6() {   // EL ARQUERO: la estirada contra el blanco, la música vuelve de golpe
+  p6() {   // EL ARQUERO: la estirada contra el blanco, la música vuelve del bajón de p5
     /* I1 · era el ÚNICO plano con fondo crema claro y rayos gris verdoso, en
        una secuencia de negros y cálidos apagados. Con cortes secos ese cambio
        de valor pegaba como un flash, y no parecía intencional porque el
@@ -671,9 +670,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.radiales(0x0a1f13, 0.8);
     const s = this.poseImg("arquero_vuela", 480, 270, 380);
     this.temblor(s);
-    /* M2 · vuelve DE GOLPE: seco, sin fundido, que es el efecto del plano */
-    this.pedirMusica("silencio", { seco: true });
-    this.pedirMusica("opening", { seco: true });
+    /* la música vuelve sola: el musicaDuck de p5 dura lo que el plano */
   }
   p7() {   // EL GOL: festejo sobre explosión dorada, hinchada a todo volumen
     /* I1 · el mejor plano de los ocho ya era éste; solo le faltaba el lugar */

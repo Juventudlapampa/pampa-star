@@ -60,17 +60,15 @@
     entrada:   { tema: "entrada_partido", n: "La entrada a la cancha" },
     partido:   { tema: "partido",       n: "El partido", alterna: "partido_alt" },
     partido_final: { tema: "partido_final", n: "El tramo final del segundo tiempo" },
-    gol_festejo:   { tema: "gol_festejo",   n: "Después de un gol importante" },
+    gol_festejo:   { tema: "gol_festejo",   n: "El cierre del partido: ganaste o empataste" },
+    derrota:       { tema: "derrota",       n: "El cierre del partido: perdiste" },
 
     /* --- los momentos que ANTES caían al sintetizador --- */
     /* LA DEFINICIÓN (el pasillo) y EL JUGADÓN son los dos momentos de urgencia
        pura del juego: mano a mano con el arquero y la corrida con las fichas.
-       Los dos usan Last Ten Seconds, que es 161 BPM en Fa menor — "rápido y
-       oscuro, la combinación de la urgencia", según el propio audio.json.
+       Los dos usan el tema del tramo final, tenso y en menor a 152 BPM.
        DECISIÓN: comparten tema con el tramo final en vez de quedarse sin
-       música. Los dos temas de reserva (Cielo_de_victoria, Fuerza_de_un_Leon)
-       podrían ir acá, pero cortan en 18,5 compases y habría que recortarlos —
-       y recortar audio es exactamente lo que M1 prohíbe. */
+       música. La tanda del 17/oct no trajo un tema propio para la Definición. */
     definicion: { tema: "partido_final", n: "El pasillo: mano a mano con el arquero",
                   _comparte: "usa el tema del tramo final: los dos son urgencia pura" },
     jugadon:    { tema: "partido_final", n: "La corrida del jugadón",
@@ -133,11 +131,12 @@
     semana: ["entrada"],
     hype: ["espera"],
     entrada: ["partido"],
-    partido: ["partido_final", "gol_festejo"],
-    partido_final: ["gol_festejo"],
+    partido: ["partido_final", "gol_festejo", "derrota"],
+    partido_final: ["gol_festejo", "derrota"],
     gol_festejo: ["partido", "partido_final"],
     definicion: ["partido", "gol_festejo"],
-    jugadon: ["partido", "gol_festejo"]
+    jugadon: ["partido", "gol_festejo"],
+    derrota: ["espera"]                    // perdiste: lo que sigue es la tabla del Master
   };
   /* REVISIÓN DEL LOTE · EL TEMA DEL TÍTULO. Ninguna entrada de la tabla
      llevaba a 'hype' (el ascenso, el título, la gloria): el Master lo pide en

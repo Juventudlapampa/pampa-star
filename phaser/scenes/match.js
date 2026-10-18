@@ -829,9 +829,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (ms > 0 && this.SFX && this.SFX.musicaTema) {
       /* el tema de cierre: si hay uno declarado suena, si no baja el volumen */
       /* M2 · el cierre: el festejo suena una vez y después el silencio de
-         vestuario. Antes pedía "final", que no existía en el mapa. */
+         vestuario. Antes pedía "final", que no existía en el mapa.
+         17/oct: si perdiste, el golpe en menor y no el acorde en mayor. */
       this._musicaTrabada = false;
-      this.pedirMusica("gol_festejo");
+      if (this.st.golesMio < this.st.golesRival) this.pedirMusica("derrota");
+      else this.pedirMusica("gol_festejo");
       this._musicaTrabada = true;
       this.time.delayedCall(ms, () => {
         this._musicaTrabada = false;
