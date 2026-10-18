@@ -6500,3 +6500,21 @@ pases y paredes cortadas, "te apretaron" y remates bloqueados; 12 risers,
 cada uno con su rumor; 21 aperturas de menú con "abrir" y ninguna con
 "cerrar" al lado; ningún `goal`. El gol propio suena festejo solo; el gol en
 contra, rumor y el "uhhh" grave 100 ms después.
+
+### La súper gambeta con una lectura justa
+
+La revisión final encontró que tres de las cuatro posturas del rival usaban el
+mismo dibujo de piernas abiertas y que el CAÑO le ganaba a tres de las cuatro,
+así que casi no había que leer. Ahora cada postura tiene UNA pasada que le gana
+y cada pasada le gana a una sola (logic/jugadon.js, venceA): cierra la izquierda,
+por la derecha; cierra la derecha, por la izquierda; se planta, caño; se tira,
+por arriba. Al azar se pasa uno de cada cuatro cruces sin contar las stats.
+
+Los dibujos se distinguen sin el color (scenes/jugadon_ui.js, POSTURAS): los dos
+que cierran un lado usan el quite del rival sin pelota, con la pierna estirada
+hacia ese lado y el cuerpo corrido hacia él (medido sobre el alfa de
+poseR_quite_sin_pelota); el que se planta, el bloqueo de piernas abiertas; el que
+se tira, la barrida. El aviso dice la postura y la salida buena, en el acierto y
+en la falla. Los quites del jugadón suenan al choque y no a los guantes. Tests en
+jugadon.test.js. Verificado con capturas de las cuatro posturas, un acierto y
+una falla.
