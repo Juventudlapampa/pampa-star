@@ -6437,3 +6437,65 @@ Lo que queda:
   plano 5 de la intro.
 - Las letras mayúsculas de Pixelify tienen alturas desparejas (la T y la C
   bajas, la I y la E altas) y eso no se arregla sin cambiar la fuente.
+
+### Lo chillón que quedaba: agudos de la música, síntesis y guantes
+
+La música nueva no pasa por el pasabajos de los efectos y tenía entre 8 y
+19% de energía arriba de 2 kHz. Los ocho temas más brillantes se
+recodificaron con ffmpeg: estante agudo de -4 dB desde 3,8 kHz (`treble`,
+pendiente suave 0,5), el mismo Opus 96k VBR a 48 kHz, ganancia lineal para
+volver a -16 LUFS (quedan entre -16,0 y -16,2, pico real de -1,7 dBTP para
+abajo) y la misma cantidad de muestras. Se recodificó desde el OGG que ya
+estaba (segunda generación de Opus: rehacer desde los MP3 de `originales/`
+pide volver a cortar los loops). Los cuatro oscuros (Low_Light,
+Quiet_Morning, The_Longest_Minute, After_the_Rain) tienen menos de 1% arriba
+de 2 kHz y no se tocaron. Medido con una FFT de 4096 sobre el archivo entero:
+
+    tema                         >2 kHz antes  después   centroide antes  después
+    Beyond_the_Mushroom_Bridge   19,0%         13,8%     1429 Hz          1079 Hz
+    derrota                      22,5%         15,5%     1393 Hz           985 Hz
+    intro_completo               16,3%         12,1%     1304 Hz          1030 Hz
+    Victory_Lap_At_Dawn          16,4%         11,8%     1337 Hz          1028 Hz
+    Voltage_Breakaway_loop       16,3%         12,2%     1368 Hz          1102 Hz
+    Under_the_Floodlights        12,2%          9,0%     1012 Hz           824 Hz
+    Last_Ten_Seconds_loop         8,6%          6,0%      643 Hz           491 Hz
+    The_Winning_Strike_loop       8,0%          6,0%      841 Hz           724 Hz
+
+Los empalmes, medidos como en `.claude/nuevos/musica/LEEME.txt` (salto
+entre la última muestra y la primera contra todos los saltos del archivo; un
+clic cae arriba del percentil 99,9): Last_Ten 0,0343 (78,6) a 0,0234 (73,3),
+Winning_Strike 0,0257 (68,1) a 0,0472 (95,2), Voltage 0,0124 (19,8) a
+0,0168 (39,8). Se probó filtrar en círculo (el final del loop delante del
+principio) y Winning_Strike quedó peor (99,1): el salto lo mueve el códec,
+no el filtro. Las huellas nuevas están en `sw.js`.
+
+La síntesis que sonaba a consola vieja se fue toda de `audio/sfx.js`: ya no
+hay `tone()` ni `noise()`. El arpegio de `SFX.goal()` se borró (el festejo
+grabado ya explota en el gol, y la atajada de la definición se grita con el
+festejo). El riser del beat de tensión es el rumor de `hinchada_loop` que
+crece durante el beat y se apaga en 250 ms; el riser grande era el mismo con
+otra onda y se fundió en uno (el beat con megacosa ya es más largo).
+`temaPosesion` es un rumor corto cuando la recuperás (la de ellos, nada),
+`temaCampo` un rumor al cruzar a campo rival, `temaUrgente` un rumor largo, y
+`golEnContra` el "uhhh" de la hinchada a 0,8 de velocidad. El objeto MUSICA y
+`configurarMusica` quedaron sin uso y se borraron; `balance.musica` sigue
+como brief.
+
+Los guantes suenan solo cuando un arquero toca la pelota. Quites, cortes,
+bloqueos, paredes leídas, gambetas perdidas, la megacorrida frenada, la
+barrida de la definición y el bloqueo del remate rival suenan `choque`: la
+patada a 0,23 (6 dB debajo de la patada). La cruz y ★ ESPECIAL suenan
+"abrir": `limpiarMenu` recibe el sonido y `abrirMenuCruz` le pasa "abrir".
+
+Tres tests fijaban lo que se pidió cambiar y se actualizaron diciéndolo:
+`muestras.test.js` pedía que `goal()` siguiera sintetizado (ahora pide que
+no vuelva la síntesis), `partitura.test.js` contaba una fanfarria en
+`efectoGol` (ahora ninguna, y el festejo grabado) y los guantes del bloqueo
+(ahora un choque y ningún guante).
+
+En un partido real con el oído enganchado (240 s de reloj virtual, hasta el
+minuto 71): 8 guantes, los 8 en "te rematan" (atajadas); 12 choques en
+pases y paredes cortadas, "te apretaron" y remates bloqueados; 12 risers,
+cada uno con su rumor; 21 aperturas de menú con "abrir" y ninguna con
+"cerrar" al lado; ningún `goal`. El gol propio suena festejo solo; el gol en
+contra, rumor y el "uhhh" grave 100 ms después.
