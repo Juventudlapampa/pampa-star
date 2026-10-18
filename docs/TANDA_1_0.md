@@ -6518,3 +6518,69 @@ se tira, la barrida. El aviso dice la postura y la salida buena, en el acierto y
 en la falla. Los quites del jugadón suenan al choque y no a los guantes. Tests en
 jugadon.test.js. Verificado con capturas de las cuatro posturas, un acierto y
 una falla.
+
+### Textos que se pisaban y textos chicos (18/oct)
+
+En la grilla de ★ ESPECIAL la cara de cada botón quedaba hasta 30 px corrida de
+su caja de 290 y la columna derecha tapaba media izquierda ("a JUAN · 57%"
+salía cortado); en la cruz pasaba lo mismo con PASE, GAMBETA y TIRO. Los botones
+entran volando (PampaFeel.aparecer) y vestirPendientes los vestía en cualquier
+cuadro del vuelo, así que la cara quedaba pintada donde estaba el rect en ese
+cuadro. Ahora las capas de vestirBoton se dibujan alrededor de su propio centro
+y siguen al rect en cada cuadro (piel_ui.js). legibilidad_partido.test.js medía
+la caja declarada y no lo veía: suma [7], que viste la grilla en pleno vuelo,
+termina los tweens y mide la cara dibujada (con el código viejo falla con
+"caja 187..477, dibujado 217..507").
+
+En "te rematan" las placas con el nombre van sobre la cabeza de cada figura: a
+los pies quedaban debajo de "¡ATAJADÓN!" y de su bajada. Medido con getBounds:
+sin cruces entre textos.
+
+Los 16 textos de menos de 12 px que listaba la suite pasaron a 13 y la deuda
+quedó en cero (el registro de legibilidad.test.js bajó de 16 a 0, así que un
+texto nuevo de 11 px hace fallar el test). Lo que hubo que reacomodar:
+
+- Partido: las fichas del jugadón y la mano de cartas bajaron de la barra a una
+  fila propia colgada debajo (y 39, fondo oscuro), la mano a continuación de las
+  fichas. A 13 px las fichas llegaban hasta x 345 y el resultado contra un club
+  de nombre largo arranca en 296. La división ("PRIMERA B") dejó de estar debajo
+  del resultado, que lo pisaba, y cuelga debajo del reloj con fondo oscuro.
+  "◄ TU ARCO", "ESPACIO = ACCIÓN", "cargando aguante…" y el estado del envión, a 13.
+- Master: el botón común, las respuestas de la entrevista con su bajada, los
+  nombres de las acciones del día, las opciones del evento, "un equipo …" y el
+  veredicto de fin de temporada, a 13. Las tarjetas del día pasaron de 74 a 88 de
+  alto porque el efecto del PICADITO, en dos renglones, se salía por abajo; sin
+  energía, el texto va claro sobre el gris (antes rojo sobre gris). Los dos
+  botones de arranque con IMPORTAR pasaron de 360 a 400 de ancho: "⬆ IMPORTAR TU
+  CARRERA (nivel 10 → EL MUNDIAL)" mide 379 a 13 px. "LA SEMANA", a 13, en crema
+  sobre fondo oscuro.
+- Editor: los nombres de las filas, "🏆 CARRERA" y "▶ VER INTRO", a 13. VER
+  INTRO termina ahora en x 100 y PANTALLA COMPLETA arranca 8 px después de donde
+  termine, medido y no fijo.
+
+pausa.test.js y pantalla_completa.test.js fijaban las posiciones viejas
+(fichas en y 15, mano en 31, PANTALLA en x 100) y se actualizaron por este
+pedido de Rodri del 17/oct, con la nota en el test.
+
+En el pase, el ✕ dice "✕ VOLVER" y cierra contra el borde derecho de la columna
+de compañeros. En el mapa, las fichas que caen en el mismo lugar se separan solo
+en el dibujo hasta que haya una ficha y 2 px entre centros (en la captura, el 8
+y el 11 tuyos y el 9 y el 6 rivales se leen enteros); la simulación no cambia y
+el toque en el mapa elige por la ficha dibujada, probado con los cuatro
+receptores del pase.
+
+Verificado en el navegador integrado, sin service worker ni caché, partido
+directo contra Espejo de Sal, Master con una carrera nueva y editor: sin cruces
+de textos en la cruz, la grilla, "te rematan", el pase, la tabla, la entrevista,
+el evento y las acciones del día. Suite verde.
+
+Lo que vi y no toqué:
+
+- LA SEMANA, la grilla de diez acciones: la tarjeta del PICADITO no entra en
+  178x64 (nombre en dos renglones y efecto en tres); la franja de decisión no
+  deja más alto para dos filas y el botón de jugar. Hace falta decidir si se
+  acorta el texto del efecto o cambia la grilla. Esa grilla y la tabla de
+  posiciones siguen a 12 px, igual que los globos de Nelda y el Tuli.
+- En "te rematan", los globos de Nelda y el Tuli pueden tapar al arquero, que
+  vive arriba a la derecha.
+- La pelota propia del arquero en el atajadón sigue (es arte).
