@@ -55,6 +55,7 @@
       this.cineLayer.setVisible(false);
       this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
       window.PampaPartido.saltoReloj(this.st);   // el jugadón es un MOMENTO
+      this.pedirMusica(this._temaFinalPuesto ? "partido_final" : "partido");
       this.estado = "RESOLUCION";
       if (alFinal) alFinal();
       if (this.estado === "RESOLUCION") { this.st.modo = "juego"; this.estado = "LIBRE"; }
@@ -143,11 +144,24 @@
            con la division por PampaMaster.aplicar. */
         defensores: defs.map(function (d) { return { quite: window.PampaPartido.quiteDe(d.stats), nombre: d.nombre }; })
       });
-      this._jgMega = opts.mega || null;
       this.jugadonAbrir("");
       this._jgCruce = { resuelto: false, lineas: null };
       this.pedirMusica("jugadon");
       this.jugadonCruce();
+    },
+
+    /* Revisión del 17/oct: el jugadón dibujaba siempre al 10 aunque la
+       llevara un compañero. Un compañero va con su identidad (la del panel),
+       porque las poses de la jugada son solo tuyas; su ilustración no trae
+       pelota, así que la del juego va al pie como en el panel. */
+    jugadonFiguraPortador(yo, poseId) {
+      var ki = yo && !yo.esVos && this.identidadDe ? this.identidadDe(yo, false) : null;
+      if (ki) return { key: ki, pelota: { x: 0.84, y: 0.97, r: 0.04 } };
+      var pm = this.game.registry.get("poses"), def = pm && pm.poses && pm.poses[poseId];
+      return { key: (this.poseHeroeTenida && this.poseHeroeTenida(yo, poseId)) || this.poseKey(poseId), pelota: def && def.pelota };
+    },
+    jugadonRotulo(yo) {
+      return "▼ " + (yo && !yo.esVos ? yo.numero + " · " + String(yo.nombre || "").toUpperCase().slice(0, 10) : "VOS");
     },
 
     /* golpe 1: el rival te sale al cruce y se le ve cómo se para */
@@ -172,24 +186,24 @@
          Por eso los botones de los costados suben un poco, sin meterse
          debajo de los globos del relato (arriba a la derecha, hasta y=247). */
       var yo = this.st.mios[this.st.ctrl];
-      var kE = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_encara")) || this.poseKey("gambeta_encara");
+      var fE = this.jugadonFiguraPortador(yo, "gambeta_encara"), kE = fE.key;
       if (kE) {
         var se = this.add.image(150, H + 8, kE).setOrigin(0.5, 1);
         se.setScale(240 / se.height);
         this.cineContent.add(se);
-        var pmE = this.game.registry.get("poses"), pe = pmE && pmE.poses && pmE.poses.gambeta_encara && pmE.poses.gambeta_encara.pelota;
+        var pe = fE.pelota;
         if (pe) {
           var TPe = this.texPelota(pe.r * 2 * se.displayHeight);
           this.cineContent.add(this.add.sprite(se.x + (pe.x - 0.5) * se.displayWidth, se.y - se.displayHeight + pe.y * se.displayHeight, TPe.key).setScale(TPe.esc));
         }
-        this.cineContent.add(this.add.text(se.x + 150, se.y - se.displayHeight + 60, "▼ VOS", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#4FC3F7", padding: { x: 5, y: 2 } }).setOrigin(0.5));
+        this.cineContent.add(this.add.text(se.x + 150, se.y - se.displayHeight + 60, this.jugadonRotulo(yo), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#4FC3F7", padding: { x: 5, y: 2 } }).setOrigin(0.5));
       }
       /* sin líneas de velocidad acá: van por encima de todo y tachaban los
          botones. Este golpe es para leer; las líneas son del golpe 2. */
       c.lineas = null;
 
       var tactil = this.sys.game.device.input.touch;
-      var cab = (this._jgMega ? "★ " + String(this._jgMega.n || "MEGATIRO").toUpperCase() : "★ GAMBETA-TIRO") +
+      var cab = "★ GAMBETA-TIRO" +
         " · rival " + (g.paso + 1) + " de " + g.defensores.length + " · " +
         (tactil ? "tocá por dónde lo pasás" : "flechas o tocá: por dónde lo pasás");
       this.cineContent.add(this.add.text(W / 2, 20, cab, { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 } }).setOrigin(0.5));
@@ -260,12 +274,11 @@
         this.tweens.add({ targets: sr, x: xR - 50, duration: this.msV(B.paso_ms || 950), ease: "Quad.easeOut" });
         this.cineContent.add(this.add.text(xR, H * 0.8 - sr.displayHeight - 14, "▲ " + nombre, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#FF8A50", padding: { x: 5, y: 2 } }).setOrigin(0.5));
         /* VOS, en primer plano: la pose quieta, el corte seco */
-        var kH = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_gana")) || this.poseKey("gambeta_gana");
+        var fH = this.jugadonFiguraPortador(yo, "gambeta_gana"), kH = fH.key;
         var sh = kH ? this.add.image(xH, H * 0.53, kH) : this.add.rectangle(xH, H * 0.53, 200, 380, 0x4fc3f7);
         sh.setScale(400 / (sh.height || 400));
         this.cineContent.add(sh);
-        var pm = this.game.registry.get("poses");
-        var pp = kH && pm && pm.poses && pm.poses.gambeta_gana && pm.poses.gambeta_gana.pelota;
+        var pp = kH && fH.pelota;
         if (pp && this.textures.exists("ball")) {
           var dW = sh.displayWidth, dH = sh.displayHeight;
           var bx = sh.x + (pp.x - 0.5) * dW, by = sh.y + (pp.y - 0.5) * dH;
@@ -300,7 +313,7 @@
       var sq = kQ ? this.add.image(W * 0.62, H * 0.52, kQ) : this.add.rectangle(W * 0.62, H * 0.52, 200, 360, 0xff8a50);
       sq.setScale(380 / (sq.height || 380));
       var pmQ = this.game.registry.get("poses"), pq = kQ && pmQ && pmQ.poses && pmQ.poses.r_quite && pmQ.poses.r_quite.pelota;
-      var kP = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_pierde")) || this.poseKey("gambeta_pierde");
+      var kP = this.jugadonFiguraPortador(yo, "gambeta_pierde").key;
       var sp = kP ? this.add.image(W * 0.26, H * 0.56, kP) : this.add.rectangle(W * 0.26, H * 0.56, 130, 240, 0x4fc3f7);
       sp.setScale(260 / (sp.height || 260));
       if (sp.setTint) sp.setTint(0xb4b4b4);
@@ -318,7 +331,7 @@
       this.uiCam.shake(200, 0.008);
       this.SFX && this.SFX.gloves && this.SFX.gloves();
       this.time.delayedCall(this.msV(B.caida_ms || 1100), function () {
-        self._jgCruce = null; self._jgMega = null;
+        self._jgCruce = null;
         self.jugadonCerrar(function () {
           window.PampaPartido.perderPelota(st);
           self.relatar && self.relatar("gambeta_lose");
@@ -333,23 +346,13 @@
       if (c && c.lineas) this.lineasVelocidad(c.lineas.x, c.lineas.y, c.lineas.inten, c.lineas.tinte);
     },
 
-    /* pasaste al último: EL REMATE, en el mismo envión. Si la jugada era el
-       MEGATIRO, remata con la mega animación (cut-in, impacto, viaje, arquero
-       volando); si era la GAMBETA-TIRO, remate normal. En los dos casos NO
-       hay pantalla de zonas: la ubicación manda. */
+    /* pasaste al último: EL REMATE, en el mismo envión. No hay pantalla de
+       zonas: la ubicación manda. */
     jugadonRemate() {
-      var self = this, st = this.st, mega = this._jgMega;
-      this._jgCruce = null; this._jgMega = null;
+      var self = this, st = this.st;
+      this._jgCruce = null;
       st.mios[st.ctrl].x = Math.min(st.W - 60, st.W - 130);   // quedaste en el área
-      this.jugadonCerrar(function () {
-        if (mega && self.dispararConCine) {
-          self.cutInEspecial("¡" + String(mega.n).toUpperCase() + "!", mega.sub || "todo lo que le queda", function () {
-            self.dispararConCine(mega, self.ejDeLaSituacion(mega));
-          });
-        } else {
-          self.tiroPorComandos(null);
-        }
-      });
+      this.jugadonCerrar(function () { self.tiroPorComandos(null); });
     },
     jugadonPintarDefensores() { /* V8 C: los rivales viven en updateJugadonMini */ },
     jugadonPintarOpciones() { /* V8 C: las movidas aparecen SOLO en el duelo */ },
