@@ -69,15 +69,20 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
 
     /* ---- título + pestañas ---- */
     /* C2 · el PRINCIPAL del editor es TU PINTA: es de lo único que se trata la
-       pantalla. La explicación de abajo pasa a apoyo. */
-    this.add.text(W / 2, 30, "TU PINTA", { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 56, "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
+       pantalla. La explicación de abajo pasa a apoyo.
+       D5 · VENÍS A ARMAR LA PINTA ANTES DE LA ENTREVISTA: cuando el master te
+       manda para acá con una carrera pendiente, el editor es el paso 1 de
+       arrancar. El título lo dice en el mismo lugar (antes iba en otro renglón
+       encima de este y se pisaban) y abajo queda una sola salida. */
+    const pendiente = !!this.game.registry.get("carreraPendiente");
+    this.add.text(W / 2, 30, pendiente ? "PASO 1 DE 2 · ARMÁ TU PINTA" : "TU PINTA", { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 50, pendiente ? "después te van a entrevistar, y te van a ver así" : "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: pendiente ? "#7ee08a" : "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
     this.tabs = [];
     const tw = Math.min(170, (W - 40) / this.personajes.length - 8);
     let tx0 = W / 2 - (this.personajes.length * (tw + 8) - 8) / 2 + tw / 2;
     this.personajes.forEach((p, i) => {
-      const r = this.add.rectangle(tx0, 78, tw, 40, 0x0d2a18, 1).setStrokeStyle(2, 0xf6c11d, 0.7).setInteractive({ useHandCursor: true });
-      const t = this.add.text(tx0, 78, (i === 0 ? "★ " : "♥ ") + p.nombre.toUpperCase(), { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+      const r = this.add.rectangle(tx0, 80, tw, 36, 0x0d2a18, 1).setStrokeStyle(2, 0xf6c11d, 0.7).setInteractive({ useHandCursor: true });
+      const t = this.add.text(tx0, 80,(i === 0 ? "★ " : "♥ ") + p.nombre.toUpperCase(), { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
       r.on("pointerdown", () => { this.sel = i; this.refrescar(); });
       this.tabs.push({ r, t });
       tx0 += tw + 8;
@@ -181,32 +186,17 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       return r;
     };
     btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
-    btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.irA("match"); });
-    /* V7 §2: la CARRERA vive en el Phaser — el Modo Master con temporada y escalera */
-    const bc = this.add.rectangle(W - 110, 12 + 22, 200, 44, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
-    bc.on("pointerdown", () => { this.guardar(); this.irA("master"); });
-    /* ══════════════════════════════════════════════════════════════════════
-       D5 · VENÍS A ARMAR LA PINTA ANTES DE LA ENTREVISTA.
-
-       Cuando el master te manda para acá con una carrera pendiente, el editor
-       no es una parada opcional: es el paso 1 de arrancar. Se dice con todas
-       las letras y el botón de volver cambia de nombre, porque "🏆 CARRERA"
-       arriba a la derecha no se lee como "seguí por acá".
-       ══════════════════════════════════════════════════════════════════════ */
-    if (this.game.registry.get("carreraPendiente")) {
-      this.add.text(W / 2, 12, "PASO 1 DE 2 · ARMÁ TU PINTA", {
-        fontFamily: window.PF.display, fontSize: "12px", color: "#ffd84d"
-      }).setOrigin(0.5, 0);
-      this.add.text(W / 2, 34, "después te van a entrevistar, y te van a ver así", {
-        fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a"
-      }).setOrigin(0.5, 0).setAlpha(0.9);
-      const seg = this.add.rectangle(W / 2 + 170, 380, 300, 52, 0x7ee08a, 1)
-        .setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(W / 2 + 170, 380, "▶ LISTO, A LA ENTREVISTA", {
-        fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13"
-      }).setOrigin(0.5);
-      seg.on("pointerdown", () => { this.guardar(); this.irA("master"); });
+    if (pendiente) {
+      /* "🏆 CARRERA" arriba a la derecha no se lee como "seguí por acá", y
+         ¡A LA CANCHA! te sacaba de la carrera: con la carrera pendiente, la
+         única salida es esta */
+      btn(W / 2 + 170, 320, "▶ LISTO, A LA ENTREVISTA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
+    } else {
+      btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.irA("match"); });
+      /* V7 §2: la CARRERA vive en el Phaser — el Modo Master con temporada y escalera */
+      const bc = this.add.rectangle(W - 110, 12 + 22, 200, 44, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+      this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "11px", color: "#0a1f13" }).setOrigin(0.5);
+      bc.on("pointerdown", () => { this.guardar(); this.irA("master"); });
     }
     /* Addendum v6 A.2: repetir el opening a gusto */
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "11px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
