@@ -88,7 +88,11 @@ function loQueCargaAparte() {
   /* OJOS (tanda 1.0): la que está fuera de rotación no se baja, no pesa */
   (C.caras || []).forEach(function (c) { if (c && c.archivo && c.en_rotacion !== false) out.push({ f: (C.base || "assets/poses/caras/") + c.archivo, de: "caras" }); });
   var I = leerJson("data/identidades_manifest.json");
-  (I.identidades || []).forEach(function (d) { if (d && d.archivo) out.push({ f: (I.base || "assets/poses/identidades/") + d.archivo, de: "identidades" }); });
+  /* 17/oct: y las versiones mirando a la izquierda ('izq'), que el partido también baja */
+  (I.identidades || []).forEach(function (d) {
+    if (d && d.archivo) out.push({ f: (I.base || "assets/poses/identidades/") + d.archivo, de: "identidades" });
+    if (d && d.izq) out.push({ f: (I.base || "assets/poses/identidades/") + d.izq, de: "identidades" });
+  });
   /* OJOS (tanda 1.0): las poses de la semana se bajan POR DATO (master.js
      lee data/semana.json) sin mirar cargar:false; el caldén de DESCANSAR es
      la primera apagada que usa la semana, y sin esto su peso no se contaba */

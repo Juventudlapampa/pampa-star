@@ -69,6 +69,17 @@ vm.runInContext(leer("phaser/scenes/intro.js"), vm.createContext({ window: WI, P
 /* OJOS (tanda 1.0): lo que se dejó de bajar después de la auditoría */
 var AGREGADAS_DESPUES = ["assets/poses/calden.webp"];
 var SACADAS_DESPUES = ["assets/poses/caras/cara_tranqui.png", "assets/poses/pose_cabezazo_v2.webp", "assets/poses/pose_arquero_ataja_celeste.webp"];
+/* 17/oct, pedido de Rodri: el arte nuevo del arquero, la súper gambeta y las
+   figuras del panel mirando a la izquierda; salen el quite del rival con la
+   pelota pintada (lo reemplaza poseR_quite_sin_pelota) y la estirada vieja
+   del rival, que nadie pedía */
+AGREGADAS_DESPUES.push("assets/poses/poseR_arquero_estirada.webp", "assets/poses/pose_arquero_estirada_celeste.webp",
+  "assets/poses/poseR_arquero_caido.webp", "assets/poses/pose_arquero_caido_celeste.webp", "assets/poses/poseR_superado.webp",
+  "assets/poses/pose_gambeta_encara.webp", "assets/poses/poseR_quite_sin_pelota.webp", "assets/poses/pose_corriendo_izq.webp",
+  "assets/poses/identidades/jugador_rulos_izq.webp", "assets/poses/identidades/jugador_largo_izq.webp",
+  "assets/poses/identidades/jugador_rapado_izq.webp", "assets/poses/identidades/rival_flequillo_izq.webp",
+  "assets/poses/identidades/rival_mohicano_izq.webp");
+SACADAS_DESPUES.push("assets/poses/poseR_quite.webp", "assets/poses/poseR_arquero_vuela.webp");
 (function () {
   var tex = {};                       // clave → archivo
   var conflictos = [];

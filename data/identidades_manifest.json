@@ -12,7 +12,8 @@
       "tonos": {
         "piel": "#e7a56a",
         "camiseta": "#52c1f5"
-      }
+      },
+      "izq": "jugador_rulos_izq.webp"
     },
     {
       "id": "jugador_largo",
@@ -23,7 +24,8 @@
       "tonos": {
         "piel": "#f7c199",
         "camiseta": "#59bceb"
-      }
+      },
+      "izq": "jugador_largo_izq.webp"
     },
     {
       "id": "jugador_rapado",
@@ -34,7 +36,8 @@
       "tonos": {
         "piel": "#7d4d31",
         "camiseta": "#57b9e8"
-      }
+      },
+      "izq": "jugador_rapado_izq.webp"
     },
     {
       "id": "jugador_colorado",
@@ -56,7 +59,8 @@
       "tonos": {
         "piel": "#faccae",
         "camiseta": "#fe844a"
-      }
+      },
+      "izq": "rival_flequillo_izq.webp"
     },
     {
       "id": "rival_mohicano",
@@ -67,9 +71,11 @@
       "tonos": {
         "piel": "#968654",
         "camiseta": "#fe8349"
-      }
+      },
+      "izq": "rival_mohicano_izq.webp"
     }
   ],
   "_alineacion": "Las seis se recortaron con una CAJA COMÚN, no una por una: por eso los pies caen en la misma línea (pisos medidos: 618-619 de 620, 1px de diferencia). Si se reemplaza una sola, hay que recortarla con la misma caja o se va a ver saltar.",
-  "_arte": "TANDA DE ARTE (30/jul): llegaron con fondo magenta (chroma key); se procesaron offline a alpha real, recorte común y alto 620. 4 propios (camiseta celeste) + 2 rivales (naranja a rayas), como dicen los nombres de archivo."
+  "_arte": "TANDA DE ARTE (30/jul): llegaron con fondo magenta (chroma key); se procesaron offline a alpha real, recorte común y alto 620. 4 propios (camiseta celeste) + 2 rivales (naranja a rayas), como dicen los nombres de archivo.",
+  "_izq": "Pedido de Rodri del 17/oct. 'izq': la misma ilustración espejada con el número redibujado al derecho, para cuando el panel la muestra mirando a la izquierda (match.js la usa sin flip). En webp y bajada a 404x420 (la de siempre mide 596x620; en el panel se ve a unos 210 px de alto). El colorado no tiene: el 8 espejado se lee igual."
 }

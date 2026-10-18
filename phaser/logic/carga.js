@@ -252,6 +252,7 @@
       var bi = ID.base || "assets/poses/identidades/";
       ID.identidades.forEach(function (d) {
         if (d && d.id && d.archivo) out.push({ clave: "ident_" + d.id, ruta: "../" + bi + d.archivo });
+        if (d && d.id && d.izq) out.push({ clave: "ident_" + d.id + "_izq", ruta: "../" + bi + d.izq });
       });
     }
     return out;

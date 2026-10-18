@@ -85,6 +85,13 @@
     figuraArquero(accion, quienLaPide, esRival) {
       var ataja = accion === "ataja" || accion === "atajada" || accion === "retiene" || accion === "despeje";
       var rival = esRival != null ? !!esRival : (quienLaPide || "").indexOf("rival") >= 0;
+      /* 17/oct, pedido de Rodri: el salto lento del remate ("estirada") y el
+         que quedó en el piso después del gol ("caido") tienen arte propio
+         para los dos bandos: r_arquero_* el rival, arquero_*_celeste el tuyo */
+      if (accion === "estirada" || accion === "caido") {
+        this._poseArqueroUltima = rival ? "r_arquero_" + accion : "arquero_" + accion + "_celeste";
+        return this.figuraCine(this._poseArqueroUltima, quienLaPide || "arquero", "arquero_vuela");
+      }
       var id = ataja ? "arquero_ataja" : "arquero_vuela";
       /* A3 · TU arquero usa las poses CELESTES nuevas; el rival, la suya. El
          escalador de mas abajo necesita saber QUE pose salio para leer su

@@ -408,12 +408,16 @@
     "camiseta": 95
    },
    "alto_rel": 0.51,
+   "cargar": false,
+   "_W2": "17/oct: NO SE CARGA. Ninguna escena la pide (el remate común usa r_arquero_estirada y la Definición y el jugadón, arquero_vuela) y pesaba 81 KB en cada partido. Iría como estirada del arquero rival en un plano más abierto que el salto lento, si alguno la necesita.",
    "_alto_rel": "A3: la figura es 1897x650, más ancha que alta. El juego escala por ALTURA, así que a alto completo su ancho se saldría de la pantalla. Con alto_rel=0.51 ocupa esa fracción del alto pedido y el ancho queda dentro del lienzo."
   },
   "r_quite": {
-   "archivo": "poseR_quite.webp",
+   "archivo": "poseR_quite_sin_pelota.webp",
    "quien": "defensor",
    "n": "El quite del RIVAL",
+   "pelota": { "x": 0.894, "y": 0.569, "r": 0.077 },
+   "_17oct": "Pedido de Rodri del 17/oct: poseR_quite.webp trae pintada una pelota blanca y negra, distinta de la de potrero del juego. poseR_quite_sin_pelota es el mismo dibujo con esa pelota borrada (era una mancha suelta, a 33 px del botín) y bajado de 1277x1722 a 564x760; 'pelota' es dónde estaba, y ahí el juego dibuja la suya. Lo usa la falla de la súper gambeta (scenes/jugadon_ui.js). poseR_quite.webp queda en assets/ sin uso.",
    "tonos": {
     "piel": "#fcb683",
     "camiseta": "#dc7c4a"
@@ -422,6 +426,69 @@
     "piel": 80,
     "camiseta": 95
    }
+  },
+  "r_arquero_estirada": {
+   "archivo": "poseR_arquero_estirada.webp",
+   "quien": "arquero",
+   "n": "El arquero RIVAL en el salto lento del remate",
+   "manos": { "x": 0.95, "y": 0.437 },
+   "alto_rel": 0.57,
+   "_17oct": "Pedido de Rodri del 17/oct. La estirada larga, de perfil, del único momento del arquero en el cine del remate (planoDesenlace). 960x369, más ancha que alta: alto_rel 1,48 / 2,60 = 0,57, la regla de A3. 'manos' medidas en el arte nuevo (.claude/nuevos/arte/LEEME.txt): la pelota viaja a los guantes."
+  },
+  "arquero_estirada_celeste": {
+   "archivo": "pose_arquero_estirada_celeste.webp",
+   "quien": "arquero",
+   "n": "TU arquero: el salto lento",
+   "manos": { "x": 0.955, "y": 0.223 },
+   "alto_rel": 0.76,
+   "tonos": { "piel": "#f8b894", "camiseta": "#8dbfda" },
+   "tolerancias": { "piel": 80, "camiseta": 95 },
+   "_17oct": "Pedido de Rodri del 17/oct. La misma estirada con tu arquero: la usa la Definición cuando te rematan. 960x490: alto_rel 1,48 / 1,96 = 0,76. El celeste salió más gris que el de arquero_vuela_celeste y se igualó por canal (la sombra y la luz de la camiseta y las medias a las de esa pose: luz #8dbfda contra #8dbfdb, sombra #4790b9 contra #478fba)."
+  },
+  "r_arquero_caido": {
+   "archivo": "poseR_arquero_caido.webp",
+   "quien": "arquero",
+   "n": "El arquero RIVAL vencido, en el piso",
+   "alto_rel": 0.57,
+   "cabeza": { "x": 0.795, "y": 0.389 },
+   "_17oct": "Pedido de Rodri del 17/oct: en el gol el arquero quedaba suspendido en el aire durante el festejo. Esta es la pose que va después: tirado, apoyado en un antebrazo, mirando hacia la derecha (hacia la pelota adentro del arco). Apoya en el borde de abajo: con origen (0.5, 1) queda en el piso. Si la pelota entró a su izquierda, va en flip."
+  },
+  "arquero_caido_celeste": {
+   "archivo": "pose_arquero_caido_celeste.webp",
+   "quien": "arquero",
+   "n": "TU arquero vencido, en el piso",
+   "alto_rel": 0.57,
+   "cabeza": { "x": 0.794, "y": 0.392 },
+   "tonos": { "piel": "#feae7e", "camiseta": "#8dc0db" },
+   "tolerancias": { "piel": 80, "camiseta": 95 },
+   "_17oct": "Pedido de Rodri del 17/oct. El gol en contra de la Definición: antes tu arquero quedaba estirado en el aire. Mismo encuadre que r_arquero_caido. El celeste salió más saturado que el de arquero_vuela_celeste y se igualó como en arquero_estirada_celeste."
+  },
+  "r_superado": {
+   "archivo": "poseR_superado.webp",
+   "quien": "defensor",
+   "n": "El rival desparramado: lo pasaste",
+   "tonos": { "piel": "#fdb483", "camiseta": "#f67329" },
+   "tolerancias": { "piel": 80, "camiseta": 95 },
+   "_17oct": "Pedido de Rodri del 17/oct: el segundo golpe de cada cruce de la súper gambeta (scenes/jugadon_ui.js). El cuerpo se le va a la izquierda, una pierna al aire, los brazos abiertos buscando el piso. Sin pelota."
+  },
+  "gambeta_encara": {
+   "archivo": "pose_gambeta_encara.webp",
+   "quien": "heroe",
+   "n": "Encarando: el amague, la pelota con la de afuera",
+   "pelota": { "x": 0.68, "y": 0.896, "r": 0.099 },
+   "tonos": { "piel": "#fecba6", "camiseta": "#55bbed" },
+   "tolerancias": { "piel": 80, "camiseta": 95 },
+   "_17oct": "Pedido de Rodri del 17/oct: VOS en el primer golpe de cada cruce de la súper gambeta, encarando al rival que te sale. La pelota está recortada: la dibuja el juego donde dice 'pelota' (medida en .claude/nuevos/arte/LEEME.txt). Sin número en la camiseta: se puede espejar."
+  },
+  "corriendo_izq": {
+   "archivo": "pose_corriendo_izq.webp",
+   "quien": "heroe",
+   "n": "La corrida a fondo, mirando a la izquierda",
+   "tonos": { "pelo": "#0c2424", "piel": "#fccca4", "camiseta": "#54bcec" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.724, "y": 0.908, "r": 0.099 },
+   "_17oct": "Pedido de Rodri del 17/oct: cuando la figura grande del panel mira a la izquierda, la ilustración se espejaba y el 10 se leía al revés. Esta es pose_corriendo espejada con el 10 redibujado al derecho; el panel la usa SIN flip (match.js, poseDelPanel). Tonos, pelo_y1 y 'pelota' son los de corriendo, con la x espejada."
   },
   "pelota_vieja": {
    "archivo": "pelota_vieja.webp",

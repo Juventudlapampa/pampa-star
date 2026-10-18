@@ -110,6 +110,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const baseI = man.base || "assets/poses/identidades/";
       man.identidades.forEach(d => {
         if (d && d.id && d.archivo) this.load.image("ident_" + d.id, "../" + baseI + d.archivo);
+        if (d && d.id && d.izq) this.load.image("ident_" + d.id + "_izq", "../" + baseI + d.izq);
       });
     });
   }
@@ -1540,7 +1541,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       duration: 90, yoyo: true, ease: "Quad.easeOut" });
     return true;
   }
+  /* Pedido de Rodri del 17/oct: cuando la figura mira a la izquierda
+     (_panelFlip), el espejo dejaba el número de la camiseta al revés; las que
+     tienen número traen su versión _izq (el número al derecho), que se dibuja
+     sin flip. */
   poseDelPanel(p, corriendo) {
+    const izq = !!this._panelFlip;
     /* P3: mientras dura el trámite, la pose de la acción manda sobre todo lo
        demás — si no, el update la pisa en el cuadro siguiente. */
     if (this._poseForzada) {
@@ -1555,16 +1561,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (!p.j.esVos) {
       const k = this.identidadDe(p.j, p.esRival);
-      if (k) return k;
+      if (k) return izq && this.textures.exists(k + "_izq") ? k + "_izq" : k;
     }
+    const id = izq && this.poseKey("corriendo_izq") ? "corriendo_izq" : "corriendo";
     /* V7-1 §4: el que corre arriba TENÉS QUE SER VOS — la pose del héroe
        teñida con tu pinta guardada (piel/pelo del catálogo + tono de camiseta
        del editor v2). Fallback: la pose tal cual. */
     if (p.j.esVos) {
-      const k = this.poseHeroeTenida(p.j);
+      const k = this.poseHeroeTenida(p.j, id);
       if (k) return k;
     }
-    return this.poseKey("corriendo");
+    return this.poseKey(id);
   }
   /* ══════════════════════════════════════════════════════════════════════
      A3 · EL ESCALADO DE LAS FIGURAS ACOSTADAS.
@@ -1764,6 +1771,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const pel = st.pelota, caliente = pel && (pel.x > st.W * 0.74 || pel.x < st.W * 0.26);
       this.latirHinchada(delta, !!caliente);
     }
+    /* V8 §3: el flip sigue la dirección REAL del movimiento y tiene MEMORIA —
+       entre latidos (vx=0) conserva la última; nunca corre de espaldas */
+    /* Pedido de Rodri del 17/oct: cuando cambia el portador, la memoria era la
+       del anterior. Después de un robo el rival quedaba mirando a su propio
+       arco durante el arranque y se daba vuelta al primer paso. El nuevo
+       portador arranca mirando hacia donde ataca su equipo. */
+    if (!mismo) this._panelFlip = (p.esRival ? -espejo : espejo) < 0;
+    if (Math.abs(vxP) > 0.02) this._panelFlip = vxP < 0;
     /* la ilustración del portador (rival sin revelar = SILUETA) */
     const key = this.poseDelPanel(p, corriendo);
     if (key && this.panelJug.texture.key !== key) {
@@ -1786,15 +1801,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        drama. Sea tuyo o rival: su identidad, su cara y su nombre. Las
        siluetas quedan SOLO para los rivales SIN pelota (el pool de abajo). */
     this.panelJug.clearTint();
-    /* V8 §3: el flip sigue la dirección REAL del movimiento y tiene MEMORIA —
-       entre latidos (vx=0) conserva la última; nunca corre de espaldas */
-    /* Pedido de Rodri del 17/oct: cuando cambia el portador, la memoria era la
-       del anterior. Después de un robo el rival quedaba mirando a su propio
-       arco durante el arranque y se daba vuelta al primer paso. El nuevo
-       portador arranca mirando hacia donde ataca su equipo. */
-    if (!mismo) this._panelFlip = (p.esRival ? -espejo : espejo) < 0;
-    if (Math.abs(vxP) > 0.02) this._panelFlip = vxP < 0;
-    this.panelJug.setFlipX(!!this._panelFlip);
+    /* la versión _izq ya mira a la izquierda: va sin espejar */
+    this.panelJug.setFlipX(!!this._panelFlip && !(key && key.indexOf("_izq") >= 0));
     /* V8 §3: la ZANCADA al latido — la pose se inclina alternando con el
        tuc-tuc. Pedido de Rodri del 17/oct: se leía como que iba y venía;
        con balance.vista.zancada en false la pose queda quieta. */
@@ -1809,7 +1817,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.panelJug.y = suelo + (zancada ? Math.abs(Math.sin(this.time.now * 0.02)) * -4 : 0);
     this.panelJug.x = cx + (zancada ? Math.cos(this.time.now * 0.013) * 2 : 0);
     /* la pelota del juego al pie (a escala de la figura nueva) */
-    const dir = this.panelJug.flipX ? -1 : 1;
+    const dir = this._panelFlip ? -1 : 1;
     const anchoFig = this.panelJug.displayWidth || 120;
     this.panelPelota.setPosition(cx + anchoFig * 0.34 * dir, suelo - 8 - (corriendo ? Math.abs(Math.sin(this.time.now * 0.02)) * 7 : 0));
     if (corriendo) this.panelPelota.rotation += 0.14 * dir;
@@ -3438,7 +3446,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineLabel.setText("· el viaje ·");
     const { vp, nearY } = this.fugaDelViaje();
     this.dibujarCanchaProfunda(vp, nearY);
-    const ball = this.add.sprite(W / 2, nearY, "ball").setScale(4.2); this.cineContent.add(ball);
+    const TB0 = this.texPelota(16 * 4.2);
+    const ball = this.add.sprite(W / 2, nearY, TB0.key).setScale(TB0.esc); this.cineContent.add(ball);
     const trail = this.add.particles(0, 0, "spark_sol", { lifespan: 300, speed: 0, scale: { start: 1.2, end: 0 }, alpha: { start: 0.6, end: 0 }, frequency: 18, follow: ball }); this.cineContent.add(trail);
     this.SFX && this.SFX.whoosh();
     const cfg = { k: C.persp.k, vpX: vp.x, vpY: vp.y, nearY, driftX: (this.zona.gy || 0) * C.drift_mult };
@@ -3466,11 +3475,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        único que comunica altura sin dibujarla. */
     const FE = window.PampaFeel;
     const escBase = C.pelota_escala_base + C.pelota_escala_span * s.escala;
+    /* 17/oct: de cerca va la textura en alta y de lejos la de 16 px (la de 16
+       agrandada se veía borrosa); TP.esc es la escala de la que tocó */
+    const TP = this.texPelota(16 * escBase);
+    if (vs.ball.texture.key !== TP.key) vs.ball.setTexture(TP.key);
     if (FE) {
       const vx = (s.x - (vs._px != null ? vs._px : s.x)) / Math.max(0.001, delta / 1000);
       const vy = (s.y - (vs._py != null ? vs._py : s.y)) / Math.max(0.001, delta / 1000);
-      vs.ball._escBase = escBase;
-      vs.ball.setPosition(s.x, s.y).setScale(escBase);
+      vs.ball._escBase = TP.esc;
+      vs.ball.setPosition(s.x, s.y).setScale(TP.esc);
       FE.pelotaEstirar(this, vs.ball, vx, vy);
       const veloc = Math.hypot(vx, vy);
       const O = FE.cfg(this);
@@ -3491,7 +3504,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         .setAlpha(0.34 * (1 - Math.min(0.7, alto / 700)));
       vs._px = s.x; vs._py = s.y;
     } else {
-      vs.ball.setPosition(s.x, s.y).setScale(escBase);
+      vs.ball.setPosition(s.x, s.y).setScale(TP.esc);
       vs.ball.rotation += 0.3;
     }
     this.lineasVelocidad(vs.vp.x, vs.vp.y, 0.4 + 0.6 * d, 0xffd84d);
@@ -3658,14 +3671,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* OJOS (tanda 1.0): el plano es SIEMPRE tu remate, así que el que vuela es
        el arquero RIVAL con su arte, y entra estirado: la pose de "la agarró"
        recién en la revelación de la atajada. P2: el origen en los pies, así la
-       Y es su piso y no se hunde por debajo de la línea de gol. */
-    const arq = this.add.sprite(gx, gy, this.figuraArquero("vuela", "planoDesenlace (arquero rival)", true));
+       Y es su piso y no se hunde por debajo de la línea de gol.
+       17/oct: la estirada larga de perfil (r_arquero_estirada). */
+    const arq = this.add.sprite(gx, gy, this.figuraArquero("estirada", "planoDesenlace (arquero rival)", true));
     /* A3: la estirada es mas ancha que alta */
     arq.setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", A.h * 1.15, arq));
     arq.setOrigin(0.5, 1);
     arq.flipX = lado < 0;
     this.cineContent.add(arq);
-    const ball = this.add.sprite(gx, H, "ball").setScale(3.4);
+    /* 17/oct: de cerca, la pelota en alta (ball_hd): la de 16 px agrandada se
+       veía borrosa. kB pasa las escalas pensadas para la de 16 px a la que tocó. */
+    const TB = this.texPelota(16 * 3.4), kB = TB.esc / 3.4;
+    const ball = this.add.sprite(gx, H, TB.key).setScale(TB.esc);
     this.cineContent.add(ball);
     /* dónde quedan los guantes respecto de los pies: 'manos' del manifest,
        medidas en el webp (revisión de OJOS); con el flip se espejan */
@@ -3696,6 +3713,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       destino = { x: tx, y: A.travesano + 32 }; escFin = 1.2;
       revelar = () => {
         abierto();
+        /* 17/oct, pedido de Rodri: el arquero quedaba colgado en el aire
+           durante el festejo. Corte seco a él tirado en el piso, mirando
+           hacia donde entró (la pose mira a la derecha: el flip del salto
+           sirve igual) */
+        this.tweens.killTweensOf(arq);
+        arq.setTexture(this.figuraArquero("caido", "planoDesenlace (arquero rival)", true)).setAngle(0);
+        arq.setScale(this.escalaDePose(this._poseArqueroUltima, A.h * 1.15, arq));
         /* la red se hunde donde entró la pelota y vuelve: los hilos de la
            malla (el mismo paso que dibujarArcoCine) se tiran hacia el punto
            del impacto, sobre un hueco oscuro que tapa los hilos rectos */
@@ -3730,7 +3754,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         };
         this.tweens.add({ targets: hondo, v: 1, duration: 140, ease: "Quad.easeOut", onUpdate: dibujarRed });
         this.tweens.add({ targets: hondo, v: 0.55, delay: 140, duration: 420, ease: "Sine.easeInOut", onUpdate: dibujarRed });
-        this.tweens.add({ targets: ball, scale: escFin * 0.75, y: destino.y + 10, duration: 140, ease: "Quad.easeOut" });
+        this.tweens.add({ targets: ball, scale: escFin * 0.75 * kB, y: destino.y + 10, duration: 140, ease: "Quad.easeOut" });
         this.tweens.add({ targets: ball, y: gy - 10, delay: 300, duration: 420, ease: "Bounce.easeOut" });
         this.uiCam.shake(EP.shake_ms, EP.shake_intensidad);
         this.uiCam.flash(EP.flash_ms, 255, 255, 210);
@@ -3783,7 +3807,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         abierto();
         ball.setPosition(destino.x, destino.y);
         this.uiCam.shake(120, 0.005);
-        this.tweens.add({ targets: ball, x: destino.x + lado * 210, y: gy - 6, scale: 0.8, angle: lado * 300, duration: 520, ease: "Quad.easeOut" });
+        this.tweens.add({ targets: ball, x: destino.x + lado * 210, y: gy - 6, scale: 0.8 * kB, angle: lado * 300, duration: 520, ease: "Quad.easeOut" });
         const d = this.desenlaceRemate(res, { palo: true });
         this.punch(d.titulo, d.sub, d.color);
       };
@@ -3794,7 +3818,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       arq.setPosition(destino.x - lado * 95 - alcance, gy);
       revelar = () => {
         abierto();
-        this.tweens.add({ targets: ball, x: destino.x + lado * 170, y: destino.y - 60, scale: 0.7, alpha: 0.3, duration: 460, ease: "Quad.easeOut" });
+        this.tweens.add({ targets: ball, x: destino.x + lado * 170, y: destino.y - 60, scale: 0.7 * kB, alpha: 0.3, duration: 460, ease: "Quad.easeOut" });
         const d = this.desenlaceRemate(res);
         this.punch(d.titulo, d.sub, d.color);
       };
@@ -3813,7 +3837,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        salto, así llega a los guantes por afuera del cuerpo y no por la cara */
     ball.setPosition(destino.x + lado * 90, F.y + H / 2 / 1.35 + 30);
     const twBola = this.tweens.add({
-      targets: ball, x: destino.x, y: destino.y, scale: escFin, angle: lado * 160, duration: dur, ease: "Linear",
+      targets: ball, x: destino.x, y: destino.y, scale: escFin * kB, angle: lado * 160, duration: dur, ease: "Linear",
       onComplete: () => {
         revelar();
         /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */

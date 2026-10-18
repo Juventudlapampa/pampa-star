@@ -167,6 +167,23 @@
       sr.setOrigin(0.5, 1).setScale(post.alto / (sr.height || post.alto));
       if (this.sombraBajoPies) this.sombraBajoPies(sr, rx);
       this.cineContent.add(sr);
+      /* 17/oct, pedido de Rodri: VOS encarándolo, en primer plano abajo a la
+         izquierda, con la pelota del juego al pie (la pose la trae recortada).
+         Por eso los botones de los costados suben un poco, sin meterse
+         debajo de los globos del relato (arriba a la derecha, hasta y=247). */
+      var yo = this.st.mios[this.st.ctrl];
+      var kE = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_encara")) || this.poseKey("gambeta_encara");
+      if (kE) {
+        var se = this.add.image(150, H + 8, kE).setOrigin(0.5, 1);
+        se.setScale(240 / se.height);
+        this.cineContent.add(se);
+        var pmE = this.game.registry.get("poses"), pe = pmE && pmE.poses && pmE.poses.gambeta_encara && pmE.poses.gambeta_encara.pelota;
+        if (pe) {
+          var TPe = this.texPelota(pe.r * 2 * se.displayHeight);
+          this.cineContent.add(this.add.sprite(se.x + (pe.x - 0.5) * se.displayWidth, se.y - se.displayHeight + pe.y * se.displayHeight, TPe.key).setScale(TPe.esc));
+        }
+        this.cineContent.add(this.add.text(se.x + 150, se.y - se.displayHeight + 60, "▼ VOS", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#4FC3F7", padding: { x: 5, y: 2 } }).setOrigin(0.5));
+      }
       /* sin líneas de velocidad acá: van por encima de todo y tachaban los
          botones. Este golpe es para leer; las líneas son del golpe 2. */
       c.lineas = null;
@@ -183,7 +200,7 @@
       /* los botones están DONDE pasa la pelota: a los costados, sobre la
          cabeza y entre las piernas. Tocar el lado es elegirlo. */
       J.PASADAS.forEach(function (p) {
-        var pos = p.id === "izq" ? [110, 330, 200] : p.id === "der" ? [W - 110, 330, 200]
+        var pos = p.id === "izq" ? [110, 285, 200] : p.id === "der" ? [W - 110, 285, 200]
           : p.id === "sombrerito" ? [rx, piso - post.alto - 30, 180] : [rx, H - 34, 180];
         self.jugadonBoton(pos[0], pos[1], pos[2], p.n, 0xf6efdc, function () { self.jugadonMovida(p.id); });
         if (self.input.keyboard) {
@@ -233,9 +250,11 @@
           this.cineContent.add(ry);
           this.tweens.add({ targets: ry, x: -300, duration: 420 + i * 70, repeat: -1 });
         }
-        /* él, atrás y más chico, quedándose */
-        var sr = kRival ? this.add.image(xR, H * 0.8, kRival) : this.add.rectangle(xR, H * 0.8, 100, 170, 0xff8a50);
-        sr.setOrigin(0.5, 1).setScale(post.alto * 0.6 / (sr.height || post.alto));
+        /* él, atrás y más chico, quedándose. 17/oct: desparramado
+           (r_superado), ya no parado como en el golpe 1 */
+        var kSup = this.poseKey("r_superado") || kRival;
+        var sr = kSup ? this.add.image(xR, H * 0.8, kSup) : this.add.rectangle(xR, H * 0.8, 100, 170, 0xff8a50);
+        sr.setOrigin(0.5, 1).setScale(190 / (sr.height || 190));
         if (sr.setTint) sr.setTint(0xb4b4b4);
         this.cineContent.add(sr);
         this.tweens.add({ targets: sr, x: xR - 50, duration: this.msV(B.paso_ms || 950), ease: "Quad.easeOut" });
@@ -273,15 +292,23 @@
         return;
       }
 
-      /* te la sacó: él en primer plano con el quite, vos trastabillando atrás */
-      var kQ = (this.poseRivalNaranja && this.poseRivalNaranja("quite")) || this.poseKey("quite");
+      /* te la sacó: él en primer plano con el quite, vos trastabillando atrás.
+         17/oct, pedido de Rodri: el quite era el tuyo teñido de naranja, con
+         su pelota blanca y negra pintada. Ahora es el dibujo del rival
+         (r_quite, a rayas) sin esa pelota, y la del juego va donde estaba. */
+      var kQ = this.poseKey("r_quite");
       var sq = kQ ? this.add.image(W * 0.62, H * 0.52, kQ) : this.add.rectangle(W * 0.62, H * 0.52, 200, 360, 0xff8a50);
       sq.setScale(380 / (sq.height || 380));
+      var pmQ = this.game.registry.get("poses"), pq = kQ && pmQ && pmQ.poses && pmQ.poses.r_quite && pmQ.poses.r_quite.pelota;
       var kP = (this.poseHeroeTenida && this.poseHeroeTenida(yo, "gambeta_pierde")) || this.poseKey("gambeta_pierde");
       var sp = kP ? this.add.image(W * 0.26, H * 0.56, kP) : this.add.rectangle(W * 0.26, H * 0.56, 130, 240, 0x4fc3f7);
       sp.setScale(260 / (sp.height || 260));
       if (sp.setTint) sp.setTint(0xb4b4b4);
       this.cineContent.add(sp); this.cineContent.add(sq);
+      if (pq) {
+        var TPq = this.texPelota(pq.r * 2 * sq.displayHeight);
+        this.cineContent.add(this.add.sprite(sq.x + (pq.x - 0.5) * sq.displayWidth, sq.y + (pq.y - 0.5) * sq.displayHeight, TPq.key).setScale(TPq.esc));
+      }
       c.lineas = { x: W * 0.62, y: H * 0.5, inten: 1, tinte: 0xff8a50 };
       var salidas = J.PASADAS.filter(function (p) { return vence.indexOf(p.id) >= 0; }).map(function (p) { return p.n; });
       titulo("¡TE LA SACÓ " + nombre + "!", "#f6efdc");

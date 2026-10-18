@@ -238,7 +238,10 @@ function escenaConPoses() {
      lugar (planoArquero y planoDesenlace). Ahora es un solo momento, en
      planoDesenlace; planoArquero no puede volver. */
   assert(!/planoArquero\(\)/.test(M), "SÍNTOMA: volvió planoArquero, la misma toma del arquero antes del desenlace");
-  assert(/figuraArquero\("vuela", "planoDesenlace \(arquero rival\)", true\)/.test(M),
+  /* 17/oct, pedido de Rodri: el salto lento usa la estirada nueva
+     (r_arquero_estirada), que se pide como "estirada"; sigue siendo el
+     arquero rival estirado desde el primer cuadro */
+  assert(/figuraArquero\("estirada", "planoDesenlace \(arquero rival\)", true\)/.test(M),
     "SÍNTOMA: planoDesenlace no arranca con el arquero rival estirado (antes la pose de 'la agarró' estaba desde el primer cuadro y era la tuya)");
   assert(/if \(!corner && this\.ponerArqueroQueAtaja\(arq, ball\)\) return;/.test(M), "la atajada pasa a la pose de rodillas RECIÉN en la revelación");
   /* nadie pide la de los ojos cerrados, y está apagada */
@@ -309,8 +312,13 @@ function escenaConPoses() {
   var man = POSES.poses.arquero_vuela.manos;
   assert(man && man.x > 0.5 && man.y < 0.3 && typeof POSES.poses.arquero_vuela._manos === "string" && POSES.poses.arquero_vuela._manos.length > 100,
     "arquero_vuela declara 'manos' (arriba a la derecha) y cómo se midieron");
-  /* los guantes medidos en el webp (900x748), con el puño: x 703-897, y 1-259 */
-  var GUANTES = { x0: 703 / 900, x1: 897 / 900, y0: 1 / 748, y1: 259 / 748 };
+  /* 17/oct, pedido de Rodri: el salto lento usa la estirada nueva del rival
+     (r_arquero_estirada). Sus guantes, medidos igual en su webp (960x369: lo
+     opaco, gris o negro y poco saturado, de x 832 en adelante, que es donde
+     termina el pelo): x 832-955, y 71-237 */
+  dV = medidas("assets/poses/" + POSES.poses.r_arquero_estirada.archivo);
+  assert(POSES.poses.r_arquero_estirada.manos && POSES.poses.r_arquero_estirada.manos.x > 0.5, "r_arquero_estirada declara 'manos'");
+  var GUANTES = { x0: 832 / 960, x1: 955 / 960, y0: 71 / 369, y1: 237 / 369 };
   ["atajada", "corner"].forEach(function (outcome) {
     var e2 = escenaConPoses(), creados = [], tweens = [];
     function spr(x, y, k) {
@@ -331,11 +339,12 @@ function escenaConPoses() {
     e2.time = { delayedCall: function () { } };
     e2.musicaDuck = function () { }; e2.msV = function (v) { return v; };
     e2.planoDesenlace();
-    var arqD = creados.filter(function (s) { return s.k === "pose_arquero_vuela"; })[0];
-    var bola = creados.filter(function (s) { return s.k === "ball"; })[0];
+    var arqD = creados.filter(function (s) { return s.k === "pose_r_arquero_estirada"; })[0];
+    /* 17/oct: de cerca la pelota va en alta (ball_hd) */
+    var bola = creados.filter(function (s) { return /^ball/.test(s.k); })[0];
     var tw = tweens.filter(function (t) { return t.targets === bola; })[0];
     if (!arqD || !bola || !tw) { assert(false, outcome + ": planoDesenlace no armó el arquero estirado, la pelota o su viaje"); return; }
-    assert(creados.filter(function (s) { return /^pose_arquero/.test(s.k); }).length === 1,
+    assert(creados.filter(function (s) { return /^pose_(r_)?arquero/.test(s.k); }).length === 1,
       outcome + ": un solo arquero en el momento (17/oct, pedido de Rodri: la toma no se repite)");
     var dW = arqD.displayWidth, dH = arqD.displayHeight, top = arqD.y - dH, izq = arqD.x - dW / 2;
     var gx0 = izq + GUANTES.x0 * dW, gx1 = izq + GUANTES.x1 * dW, gy0 = top + GUANTES.y0 * dH, gy1 = top + GUANTES.y1 * dH;

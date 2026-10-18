@@ -460,8 +460,9 @@
         figs.push(f);
         if (jd) this.placaDePlano(560, H * 0.9, jd, false);
       }
-      /* el arquero, al fondo */
-      var arqSpr = this.figuraDePlano("arquero_vuela", arqM, false, 840, Math.round(H * 0.46), 190, true);
+      /* el arquero, al fondo. 17/oct: con la estirada larga de perfil, la
+         misma del salto lento de tu remate (planoDesenlace) */
+      var arqSpr = this.figuraDePlano("arquero_estirada_celeste", arqM, false, 840, Math.round(H * 0.46), 190, true);
 
       var esc = { revelado: false, cerrado: false };
       /* la pelota sale disparada hacia el arco */
@@ -524,6 +525,14 @@
           self.uiCam.shake(280, 0.01);
           self.SFX && self.SFX.net && self.SFX.net();
           if (bola.active) self.tweens.add({ targets: bola, x: 880, y: H * 0.42, duration: 220 });
+          /* 17/oct, pedido de Rodri: tu arquero quedaba colgado en el aire.
+             Corte seco a él tirado en el piso, mirando la pelota adentro */
+          var kCaido = self.poseDePlano("arquero_caido_celeste", arqM, false);
+          if (kCaido && arqSpr && arqSpr.active && arqSpr.setTexture) {
+            self.tweens.killTweensOf(arqSpr);
+            arqSpr.setTexture(kCaido).setFlipX(false).setAngle(0).setOrigin(0.5, 1).setPosition(850, Math.round(H * 0.65));
+            arqSpr.setScale(self.escalaDePose("arquero_caido_celeste", 160, arqSpr));
+          }
           self.punch("GOL DE " + String(self.nombreRival || "ELLOS").toUpperCase(), self.porQueRemateRival(lectura, res), 0xe3503e);
           if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
           if (self.efectoGol) self.efectoGol(true);
