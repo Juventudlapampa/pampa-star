@@ -453,7 +453,9 @@
 
       /* el rematador rival, grande, pegándole */
       var rem = this.figuraDePlano("remate", tirador, true, 300, Math.round(H * 0.66), 300, false);
-      this.placaDePlano(300, H * 0.92, tirador, true);
+      /* las placas van sobre la cabeza: a los pies quedaban debajo del cartel
+         ("¡ATAJADÓN!" en y 452) y de su bajada (y 492), que las pisaban */
+      this.placaDePlano(300, rem.y - rem.displayHeight / 2 - 16, tirador, true);
       var bola = this.add.sprite(360, H * 0.66 + 70, "ball").setScale(2.4);
       this.cineContent.add(bola);
       this.tweens.add({ targets: rem, x: 260, duration: tEntrada, ease: "Quad.easeOut" });
@@ -465,7 +467,7 @@
         var jd = lectura.defensorMasCerca && k === 0 ? lectura.defensorMasCerca : null;
         var f = this.figuraDePlano(k === 0 ? "bloqueo" : "barrida", jd, false, 560 + k * 90, Math.round(H * 0.6) - k * 20, 230 - k * 22, true);
         figs.push(f);
-        if (jd) this.placaDePlano(560, H * 0.9, jd, false);
+        if (jd) this.placaDePlano(560, f.y - f.displayHeight / 2 - 16, jd, false);
       }
       /* el arquero, al fondo. 17/oct: con la estirada larga de perfil, la
          misma del salto lento de tu remate (planoDesenlace) */

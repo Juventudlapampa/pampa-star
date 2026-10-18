@@ -23,6 +23,7 @@
      [4] la etiqueta más larga, "🌟 GAMBETA-TIRO (quedan 2)", entra entera
      [5] el contraste del motivo bloqueado: 4,5:1 o más, también con protanopía
      [6] la Definición y el jugadón: sus botones a 13 px o más
+     [7] el botón DIBUJADO cae en su caja aunque se vista en pleno vuelo
 
    Pedido de Rodri del 17/oct ("hay muchos botones de acciones"): lo
    especial (el megatiro, las fichas del jugadón, la megacorrida, la
@@ -46,11 +47,11 @@ var ok = 0, mal = 0;
 function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); } }
 
 /* el partido de mentira con lo que la cruz necesita, y los textos MEDIDOS */
-function escena() {
+function escena(mixinsExtra) {
   var E = PM.escena({
     logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
     logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js"],
-    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js"]
+    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js"].concat(mixinsExtra || [])
   });
   var s = E.s, W = E.W;
   W.PF = { texto: BAL.tipografia.texto, display: BAL.tipografia.display };
@@ -264,6 +265,54 @@ function contrasteProt(a, b) {
   var largo = tj.reduce(function (a, t) { return t.width > a.width ? t : a; }, { width: 0 });
   assert(largo.width <= 224 - 12, "\"" + largo.text + "\" entra en su botón de 224 (" + Math.round(largo.width) + ")");
   console.log("[6] Definición, jugadón y cartas sin textos debajo de " + PISO + " px · el cierre más largo, \"" + largo.text + "\", mide " + Math.round(largo.width));
+})();
+
+/* ---------- [7] EL BOTÓN DIBUJADO, EN SU CAJA ----------
+   Revisión final del 17/oct: en la grilla de ★ ESPECIAL los botones se
+   veían corridos y la columna derecha tapaba media izquierda ("a JUAN ·
+   57%" salía cortado). Los botones entran volando (PampaFeel.aparecer) y
+   vestirPendientes los viste en cualquier cuadro del vuelo: la cara quedaba
+   pintada donde estaba el rect en ese cuadro. [1] a [3] miden la caja
+   declarada y no lo veían. Esto viste los botones recién abiertos, en pleno
+   vuelo, termina los tweens, corre un cuadro y mide la cara dibujada. */
+(function () {
+  var E = escena(["phaser/scenes/feel_ui.js", "phaser/scenes/piel_ui.js"]), s = E.s;
+  Object.keys(E.W.PampaPielUI).forEach(function (k) { s[k] = E.W.PampaPielUI[k]; });
+  s.game.registry.set("balance", BAL);
+  var crearG = s.add.graphics;
+  s.add.graphics = function () {
+    var g = crearG();
+    g.fillRoundedRect = function (x, y, w, h) { g.dibujo = { x: x, y: y, w: w, h: h }; return g; };
+    return g;
+  };
+  SITUACIONES[3].armar(s, E);
+  var botones = s.menuLayer.list.filter(function (o) {
+    return o.type === "Rectangle" && !o.destruido && o.input && o.input.enabled && o.width === CZ.lista.w && o.height === CZ.lista.h;
+  });
+  var alAbrir = botones.map(function (r) { return { x: r.x, y: r.y }; });
+  botones.forEach(function (r) { s.vestirBoton(r); });
+  for (var i = 0; i < E.tweens.length; i++) {
+    var c = E.tweens[i].cfg;
+    [].concat(c.targets).forEach(function (t) {
+      if (botones.indexOf(t) < 0) return;
+      ["x", "y", "scale"].forEach(function (k) { if (typeof c[k] === "number") t[k] = c[k]; });
+    });
+    if (c.onComplete) c.onComplete();
+  }
+  s.events.emit("postupdate");
+  var corridos = [];
+  botones.forEach(function (r) {
+    var cara = r._pielCapas[2], d = cara.dibujo;
+    var x0 = cara.x + d.x * cara.scale, x1 = x0 + d.w * cara.scale, y0 = cara.y + d.y * cara.scale;
+    var cx0 = r.x - r.width / 2, cy0 = r.y - r.height / 2;
+    if (Math.abs(x0 - cx0) > 0.5 || Math.abs(x1 - (cx0 + r.width)) > 0.5 || Math.abs(y0 - cy0) > 0.5)
+      corridos.push("caja " + Math.round(cx0) + ".." + Math.round(cx0 + r.width) + ", dibujado " + Math.round(x0) + ".." + Math.round(x1));
+  });
+  assert(botones.length >= 4, "la grilla de ★ ESPECIAL tiene sus botones de " + CZ.lista.w + " (" + botones.length + ")");
+  assert(botones.some(function (r, k) { return r.x !== alAbrir[k].x; }),
+    "los botones salen de su lugar al abrir (si no vuelan, [7] no prueba nada)");
+  assert(corridos.length === 0, "SÍNTOMA DE LA COLUMNA TAPADA: la cara del botón no cae en su caja:\n     " + corridos.join("\n     "));
+  console.log("[7] " + botones.length + " botones de ★ ESPECIAL vestidos en vuelo: la cara cae en su caja de " + CZ.lista.w + " al aterrizar");
 })();
 
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");

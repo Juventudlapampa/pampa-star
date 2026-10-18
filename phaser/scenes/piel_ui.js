@@ -231,9 +231,10 @@
       /* el rect puede vivir en un container: las capas van a SU mismo padre y
          en SUS coordenadas locales */
       var padre = rect.parentContainer;
-      var x = rect.x, y = rect.y;
+      /* las capas se dibujan alrededor de su propio (0,0) y se paran donde
+         está el rect: ver `seguir` más abajo */
       var ox = (rect.originX != null ? rect.originX : 0.5), oy = (rect.originY != null ? rect.originY : 0.5);
-      var x0 = x - w * ox, y0 = y - h * oy;
+      var x0 = -w * ox, y0 = -h * oy;
 
       var som = this.add.graphics();
       var pasos = 4, sa = cfg.sombra.alpha / pasos;
@@ -272,8 +273,24 @@
       /* las capas siguen la suerte del botón */
       var visOrig = rect.setVisible.bind(rect);
       rect.setVisible = function (v) { capas.forEach(function (o) { o.setVisible(v); }); return visOrig(v); };
+      /* Revisión final del 17/oct: los botones de la cruz y de ★ ESPECIAL
+         entran volando (PampaFeel.aparecer, hasta 30 px corridos y al 86%) y
+         vestirPendientes los agarra en cualquier cuadro del vuelo. La cara
+         quedaba pintada donde estaba el rect en ese cuadro: corrida, y en la
+         grilla la columna derecha tapaba media izquierda. Ahora las capas
+         siguen al rect en cada cuadro, vuelo incluido. */
+      var seguir = function () {
+        capas.forEach(function (o) { o.setPosition(rect.x, rect.y); o.setScale(rect.scale); });
+      };
+      seguir();
+      var escena = this;
+      escena.events.on("postupdate", seguir);
       var destOrig = rect.destroy.bind(rect);
-      rect.destroy = function () { capas.forEach(function (o) { o.destroy(); }); return destOrig(); };
+      rect.destroy = function () {
+        escena.events.off("postupdate", seguir);
+        capas.forEach(function (o) { o.destroy(); });
+        return destOrig();
+      };
 
       /* y el hundido, que es lo que se lee como "lo apreté" */
       rect.on("pointerdown", function () { pintar(cfg.hunde); });
