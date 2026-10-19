@@ -590,7 +590,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const j = this.portadorActual().j;
       const wj = this.aRender(j.x, j.y);
       const hint = this.add.text(wj.x, wj.y + 70, this.sys.game.device.input.touch ? "tocá la cancha para correr" : "tocá la cancha (o flechas) para correr",
-        { fontFamily: window.PF.texto, fontSize: Math.round(11 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
+        { fontFamily: window.PF.texto, fontSize: Math.round(13 * this._fsMundo) + "px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(0.5).setDepth(5000);
       this.mundoLayer.add(hint);
       this.uiCam.ignore(hint);   // el ignore del container no cubre hijos agregados después
       this.tweens.add({ targets: hint, alpha: 0, delay: 4000, duration: 600, onComplete: () => hint.destroy() });

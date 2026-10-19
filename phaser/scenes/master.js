@@ -1290,7 +1290,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       }
       /* el nombre siempre visible: son diez, entran */
       const nom = this.add.text(x, y + (esSel ? 16 : 11), p.nombre,
-        { fontFamily: window.PF.texto, fontSize: esSel ? "13px" : "12px",
+        { fontFamily: window.PF.texto, fontSize: "13px",
           fontStyle: esSel ? "bold" : "normal", color: esSel ? "#ffd84d" : "#dcd6c2",
           backgroundColor: "#0a1f13cc", padding: { x: 3, y: 1 } }).setOrigin(0.5, 0);
       capa.add(nom);
@@ -1623,36 +1623,31 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     };
     medidor(W / 2 - 320, 80, "⚡ ENERGÍA", sem.energia, 0x7ee08a);
     medidor(W / 2 + 20, 80, "🧠 ÁNIMO", sem.animo, 0x4fc3f7);
-    /* la molestia y el evento se dibujaban LOS DOS en y=116, uno encima del
-       otro: con molestia arrastrada las dos líneas quedaban ilegibles. Se
-       apilan, midiendo la de arriba (el evento envuelve a dos renglones). */
-    let ySup = 108;
-    if (sem.molestia) {
-      const tm = this.add.text(W / 2, ySup, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }).setOrigin(0.5, 0);
-      ySup += tm.height + 4;
-    }
-
-    /* --- EL EVENTO DE LA SEMANA: el titular, y qué decidiste --- */
+    /* la molestia, el titular del evento y lo que elegiste van entre los
+       medidores (terminan en y=98) y la tira de los días (arranca en y=134):
+       entran dos renglones de 14. Cada renglón junta lo que entra a lo ancho,
+       centrado; el titular y lo elegido van juntos antes que la molestia.
+       La flecha separa lo elegido del titular por forma, no solo por color. */
+    const sup = [];
     const ev = this._semEvento;
-    if (ev && ev.texto) {
-      const te = this.add.text(W / 2, ySup, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
-      ySup += te.height + 2;
-      /* lo que ELEGISTE queda a la vista mientras armás la semana: es la mitad
-         de la decisión que antes no existía */
-      const md = this.save.modFecha;
-      if (md && md.opcion) {
-        const tl = this.add.text(W / 2, ySup, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
-        /* abajo del titular pisaba el borde de la tira de los días (arranca en
-           y=134). Si entra a lo ancho, va en el MISMO renglón que el titular:
-           los dos se corren para quedar centrados juntos. La flecha lo separa
-           del titular por forma, no solo por color. */
-        const junto = te.width + 14 + tl.width;
-        if (ySup + tl.height > 130 && te.height < 24 && junto <= W - 60) {
-          te.setOrigin(0, 0).setX(W / 2 - junto / 2);
-          tl.setOrigin(0, 0).setPosition(te.x + te.width + 14, te.y + (te.height - tl.height) / 2);
-        }
-      }
-    }
+    const md = this.save.modFecha;
+    const tm = sem.molestia ? this.add.text(0, 0, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }) : null;
+    const te = ev && ev.texto ? this.add.text(0, 0, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 860 } }) : null;
+    /* lo que ELEGISTE queda a la vista mientras armás la semana: es la mitad
+       de la decisión que antes no existía */
+    const tl = te && md && md.opcion ? this.add.text(0, 0, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }) : null;
+    const cabe = (f) => f.every(o => o.height < 24) && f.reduce((a, o) => a + o.width, 0) + 14 * (f.length - 1) <= W - 60;
+    if (tm) sup.push([tm]);
+    if (te) sup.push(tl && cabe([te, tl]) ? [te, tl] : [te]);
+    if (tl && sup[sup.length - 1].indexOf(tl) < 0) sup.push([tl]);
+    if (sup.length > 2 && cabe([tm, te])) sup.splice(0, 2, [tm, te]);
+    let ySup = sup.length > 1 ? 103 : 108;
+    sup.forEach(f => {
+      const alto = Math.max(...f.map(o => o.height));
+      let x = W / 2 - (f.reduce((a, o) => a + o.width, 0) + 14 * (f.length - 1)) / 2;
+      f.forEach(o => { o.setPosition(x, ySup + (alto - o.height) / 2); x += o.width + 14; });
+      ySup += alto + 1;
+    });
 
     /* ══════════════════════════════════════════════════════════════════════
        D2 · LA SEMANA SE ELIGE POR ACCIÓN, NO POR DÍA.

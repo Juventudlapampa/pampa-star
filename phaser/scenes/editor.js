@@ -76,7 +76,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        encima de este y se pisaban) y abajo queda una sola salida. */
     const pendiente = !!this.game.registry.get("carreraPendiente");
     this.add.text(W / 2, 30, pendiente ? "PASO 1 DE 2 · ARMÁ TU PINTA" : "TU PINTA", { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 50, pendiente ? "después te van a entrevistar, y te van a ver así" : "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(4), color: pendiente ? "#7ee08a" : "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
+    this.add.text(W / 2, 50, pendiente ? "después te van a entrevistar, y te van a ver así" : "la cara que elijas es la que aparece en los primeros planos del partido", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: pendiente ? "#7ee08a" : "#f6efdc" }).setOrigin(0.5).setAlpha(0.8);
     this.tabs = [];
     const tw = Math.min(170, (W - 40) / this.personajes.length - 8);
     let tx0 = W / 2 - (this.personajes.length * (tw + 8) - 8) / 2 + tw / 2;

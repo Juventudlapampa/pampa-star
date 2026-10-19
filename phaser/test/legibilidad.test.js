@@ -135,18 +135,29 @@ const EXENTOS = [
   /* decorativos o de una sola vez, que no llevan dato que haya que leer al vuelo */
   "22px", "26px", "40px", "44px", "48px"
 ];
+/* 19/oct · el barrido solo veía fontSize: "NNpx" y se le escapaban los
+   tamaños de un ternario (esSel ? "13px" : "12px"), los de la jerarquía de
+   la piel (PampaPiel.nivel(4) da 12) y los del mundo que se multiplican por
+   la vista (Math.round(11 * this._fsMundo)). Ahora mira toda la expresión.
+   Los que salen de una variable (fontSize: px) no se pueden leer desde acá. */
+const JERARQUIA = require(path.join(RAIZ, "phaser/logic/piel.js")).JERARQUIA;
 const escenas = fs.readdirSync(path.join(RAIZ, "phaser/scenes")).filter(f => f.endsWith(".js"));
 const bajos = [];
 escenas.forEach(f => {
   const src = fs.readFileSync(path.join(RAIZ, "phaser/scenes", f), "utf8");
-  const re = /fontSize:\s*"(\d+)px"/g;
+  const re = /fontSize:\s*([^,}\n]+)/g;
   let mt;
   while ((mt = re.exec(src)) !== null) {
-    const px = parseInt(mt[1], 10);
-    if (px >= PISO_TEXTOS) continue;
-    if (EXENTOS.indexOf(px + "px") >= 0) continue;
+    const tams = [];
+    for (const m of mt[1].matchAll(/"(\d+)px"/g)) tams.push(parseInt(m[1], 10));
+    for (const m of mt[1].matchAll(/nivel\((\d)\)/g)) tams.push(JERARQUIA[m[1]]);
+    for (const m of mt[1].matchAll(/Math\.round\((\d+)\s*\*/g)) tams.push(parseInt(m[1], 10));
     const linea = src.slice(0, mt.index).split("\n").length;
-    bajos.push({ archivo: f, linea, px });
+    tams.forEach(px => {
+      if (px >= PISO_TEXTOS) return;
+      if (EXENTOS.indexOf(px + "px") >= 0) return;
+      bajos.push({ archivo: f, linea, px });
+    });
   }
 });
 /* Esto NO falla: hoy hay 60+ textos de 10-11px y subirlos todos es una tanda
@@ -156,12 +167,15 @@ const TOPE_DEUDA = bajos.length;
 const REGISTRO = path.join(__dirname, "_legibilidad_deuda.json");
 let previo = null;
 try { previo = JSON.parse(fs.readFileSync(REGISTRO, "utf8")); } catch (e) { }
-if (previo && typeof previo.textosBajoElPiso === "number") {
+/* una cuenta hecha con otro piso no se compara con esta: se vuelve a anotar */
+const mismoPiso = previo && previo.piso === PISO_TEXTOS && typeof previo.textosBajoElPiso === "number";
+if (mismoPiso) {
   assert(bajos.length <= previo.textosBajoElPiso,
     "hay " + bajos.length + " textos por debajo del piso de " + PISO_TEXTOS + " lógicos y antes había " +
     previo.textosBajoElPiso + ". SÍNTOMA: se sumó texto que en un teléfono no se lee. " +
     "Los nuevos: revisá los fontSize agregados en phaser/scenes/.");
-} else {
+}
+if (!mismoPiso || bajos.length < previo.textosBajoElPiso) {
   fs.writeFileSync(REGISTRO, JSON.stringify({ textosBajoElPiso: bajos.length, piso: PISO_TEXTOS }, null, 1));
 }
 console.log("[5] textos por debajo de " + PISO_TEXTOS + " lógicos: " + bajos.length +
