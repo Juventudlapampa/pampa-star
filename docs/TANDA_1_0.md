@@ -6584,3 +6584,7 @@ Lo que vi y no toqué:
 - En "te rematan", los globos de Nelda y el Tuli pueden tapar al arquero, que
   vive arriba a la derecha.
 - La pelota propia del arquero en el atajadón sigue (es arte).
+
+Más tarde, el 18/oct: el marcador dejaba el nombre del rival en 10 letras ("GENERAL PI"); ahora se mide en el hueco entre ⏸ PAUSA y PANTALLA con goles de dos cifras, baja hasta 13 px y, si no entra, se abrevia con nombreCorto, que usa GRAL., ING., STA. y COL.
+El chip "ESPACIO = ACCIÓN" va 4 px arriba del botón latiendo (y 402 a 416; el botón llega a 420), y en "te rematan" los globos de Nelda y el Tuli se corren al lugar libre más cercano a su sitio (90 px más arriba, sobre el arquero).
+El README nombra en los créditos a Suno y Gemini (música) y a ElevenLabs (efectos de sonido).
