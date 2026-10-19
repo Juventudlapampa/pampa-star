@@ -102,9 +102,14 @@ preparación para la 1.0.
 - **Tipografías:** Archivo Black, Bowlby One, Pixelify Sans, Press Start 2P
   y VT323, SIL Open Font License 1.1 (detalle en
   [`assets/fonts/README.md`](assets/fonts/README.md)).
-- **Música:** generada con Suno (plan gratuito, sin derechos de uso
-  comercial) y con Gemini.
-- **Efectos de sonido:** generados con ElevenLabs (plan gratuito).
+- **Música:** generada con Suno y con Gemini. Lo de Suno es del plan
+  gratuito, sin derechos de uso comercial. Las condiciones de Gemini para
+  la música generada no se leyeron [FALTA DATO].
+- **Efectos de sonido:** generados con ElevenLabs (plan gratuito). La tabla
+  de ElevenLabs para música dice que el plan gratuito es solo para uso
+  personal; para efectos de sonido no hay dato anotado [FALTA DATO].
+- **Licencia de música y efectos:** a confirmar por la Subsecretaría antes
+  de la difusión institucional.
 - **Código, ilustraciones y logo:** el repositorio todavía no tiene un
   archivo de licencia. Hasta que la Subsecretaría la defina, no hay un
   permiso escrito para reutilizarlos.
