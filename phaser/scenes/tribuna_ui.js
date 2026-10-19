@@ -22,7 +22,10 @@
 (function () {
   "use strict";
 
-  var ANCHO = 226, X = 726, Y0 = 122, ALTO_GLOBO = 58;
+  /* 19/oct · 234 y no 226: a 13 px dos frases pasaban a tres renglones y se
+     salían del globo; con 174 de texto entran todas en dos. El borde derecho
+     sigue en 952. */
+  var ANCHO = 234, X = 718, Y0 = 122, ALTO_GLOBO = 58;
   /* P4 · cuánto entra cada caja para distinguirse por LUGAR (ver pintar).
      La de arriba se corre a la IZQUIERDA y la de abajo se queda en su sitio:
      correrla a la derecha la sacaba de pantalla (726 + 14 + 226 = 966 sobre un
@@ -56,10 +59,10 @@
         var cara = sc.add.image(X + dx + 26, y + ALTO_GLOBO / 2, "__WHITE")
           .setVisible(false);
         var quien = sc.add.text(X + dx + 50, y + 4, "", {
-          fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#f5c400"
+          fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f5c400"
         });
         var dice = sc.add.text(X + dx + 50, y + 20, "", {
-          fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc",
+          fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc",
           wordWrap: { width: ANCHO - 60 }, lineSpacing: 1
         });
         t.cont.add([g, cara, quien, dice]);

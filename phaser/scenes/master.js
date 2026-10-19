@@ -1331,7 +1331,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     };
     Object.keys(M.ZONAS).forEach(z => {
       const Z = M.ZONAS[z];
-      const t = this.add.text(0, 0, Z.n, { fontFamily: window.PF.texto, fontSize: "12px", color: "#2f5c40" });
+      const t = this.add.text(0, 0, Z.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#2f5c40" });
       const esquina = [[aX(Z.x0) + 4, aY(Z.y0) + 2, 0, 0], [aX(Z.x1) - 4, aY(Z.y0) + 2, 1, 0],
         [aX(Z.x0) + 4, aY(Z.y1) - 2, 0, 1], [aX(Z.x1) - 4, aY(Z.y1) - 2, 1, 1]].find(([x, y, ox, oy]) => {
           t.setPosition(x, y).setOrigin(ox, oy);
@@ -2364,7 +2364,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       { k: "dg",  n: "DG",  x: 486 },
       { k: "pts", n: "PTS", x: 534 }
     ];
-    var estiloCab = { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" };
+    var estiloCab = { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" };
     this.add.text(x0, y0 - 2, "#", estiloCab);
     this.add.text(x0 + 34, y0 - 2, "EQUIPO", estiloCab);
     COLS.forEach(function (c) {
@@ -2401,12 +2401,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          de arriba en vez de separarla. Verificado en captura. */
       if (enZona && zona.indexOf(i) < 0) this.add.rectangle(x0 + 230, y - 4, 470, 1, 0xe3503e).setOrigin(0.5, 0.5).setAlpha(0.7);
       /* ── la fila, columna por columna ── */
-      const est = { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: negrita, color: tinta };
+      const est = { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: negrita, color: tinta };
       /* el puesto, alineado a la derecha: 1 y 10 caen en la misma raya */
       this.add.text(x0 + 16, y, String(i + 1), est).setOrigin(1, 0);
       /* las marcas por FORMA, no por color: ► sos vos, ▼ zona de descenso */
       this.add.text(x0 + 20, y, (enZona ? "▼" : "") + (mio ? "►" : ""),
-        { fontFamily: window.PF.texto, fontSize: "12px", color: mio ? "#ffd84d" : "#e3503e" });
+        { fontFamily: window.PF.texto, fontSize: "13px", color: mio ? "#ffd84d" : "#e3503e" });
       this.add.text(x0 + 34, y, nomClub, est);
       const vals = { pj: f.pj, g: f.g, e: f.e, p: f.p, gf: f.gf, gc: f.gc, dg: dg, pts: f.pts };
       COLS.forEach(function (c) {
