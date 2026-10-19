@@ -153,7 +153,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._megaRival = null;
     this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = null;   // caches del HUD: el restart los recrea vacíos
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
-    this.ringG = this.paseG = null; this._btnCambiar = null;
+    this.ringG = this.paseG = null; this._btnCambiar = null; this._figurasCine = null;
     this._escSkip = null;                                    // V6 R4: el skip, limpio por partido
     /* TEMPO-1: la VELOCIDAD vivía en el menú de tempo; ahora se cambia en la
        PAUSA y queda guardada en el aparato, como antes (pampa_velocidad) */

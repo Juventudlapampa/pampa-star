@@ -88,6 +88,7 @@
       var P = t.data.personajes;
       pintar(sc, t, 0, P[0], inter.a);
       pintar(sc, t, 1, P[1], inter.b);
+      if (!this.esquivar(sc)) return false;
       t.cont.setAlpha(1);
       if (t._irse) t._irse.remove();
       t._irse = sc.time.delayedCall(6000, function () {
@@ -107,6 +108,45 @@
       if (t._irse) { t._irse.remove(); t._irse = null; }
       if (sc.tweens && sc.tweens.killTweensOf) sc.tweens.killTweensOf(t.cont);
       t.cont.setAlpha(0);
+      return true;
+    },
+
+    /* 18/oct · LOS GLOBOS NO TAPAN FIGURAS. En "te rematan" el arquero va
+       arriba a la derecha (x 699-981, y 176-320) y los globos (x 698-952,
+       y 122-248) le caían encima. Con las figuras de la escena, la franja se
+       corre al lugar libre más cercano al suyo, medido sobre la caja de cada
+       figura (tamaño en pantalla y origen) en una grilla de 10 px, con aire
+       para el acercamiento de la cámara viva. Si
+       no hay lugar se callan. Las figuras las anota la escena en
+       sc._figurasCine; sin figuras, la franja vuelve a su sitio. */
+    esquivar: function (sc) {
+      var t = sc && sc._tribuna;
+      if (!t) return false;
+      var lugar = { dx: 0, dy: 0 };
+      if (sc._figurasCine) {
+        var AIRE = 10, MARGEN = 8, W = 960, H = 540;
+        var x0 = X - SANGRIA, y0 = Y0, w = ANCHO + SANGRIA, h = 2 * ALTO_GLOBO + 10;
+        var cajas = sc._figurasCine.map(function (f) {
+          var izq = f.x - f.displayWidth * f.originX, arriba = f.y - f.displayHeight * f.originY;
+          return { left: izq, top: arriba, right: izq + f.displayWidth, bottom: arriba + f.displayHeight };
+        });
+        var libres = [];
+        for (var dy = Math.ceil((MARGEN - y0) / 10) * 10; y0 + dy + h <= H - MARGEN; dy += 10) {
+          for (var dx = Math.ceil((MARGEN - x0) / 10) * 10; x0 + dx + w <= W - MARGEN; dx += 10) {
+            var x = x0 + dx, y = y0 + dy;
+            var choca = cajas.some(function (b) {
+              return x < b.right + AIRE && x + w > b.left - AIRE && y < b.bottom + AIRE && y + h > b.top - AIRE;
+            });
+            if (!choca) libres.push({ dx: dx, dy: dy });
+          }
+        }
+        if (!libres.length) { this.callar(sc); return false; }
+        libres.sort(function (a, b) { return (Math.abs(a.dx) + Math.abs(a.dy)) - (Math.abs(b.dx) + Math.abs(b.dy)); });
+        lugar = libres[0];
+      }
+      t.cont.setPosition(lugar.dx, lugar.dy);
+      /* la máscara redonda de cada cara no vive en la franja: se corre aparte */
+      t.cont.list.forEach(function (o) { if (o.mask) o.mask.geometryMask.setPosition(lugar.dx, lugar.dy); });
       return true;
     },
 

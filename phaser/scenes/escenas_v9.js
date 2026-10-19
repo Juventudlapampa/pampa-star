@@ -472,6 +472,11 @@
       /* el arquero, al fondo. 17/oct: con la estirada larga de perfil, la
          misma del salto lento de tu remate (planoDesenlace) */
       var arqSpr = this.figuraDePlano("arquero_estirada_celeste", arqM, false, 840, Math.round(H * 0.46), 190, true);
+      /* los globos de Nelda y el Tuli le caían encima al arquero: se corren
+         adonde no tapen a nadie (tribuna_ui.js), los que ya están a la vista
+         y los que salgan durante la escena */
+      this._figurasCine = [rem, bola, arqSpr].concat(figs);
+      if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(this);
 
       var esc = { revelado: false, cerrado: false };
       /* la pelota sale disparada hacia el arco */
@@ -550,6 +555,8 @@
       var cerrarYa = function () {
         if (esc.cerrado) return; esc.cerrado = true;
         self._escSkip = null;
+        self._figurasCine = null;
+        if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(self);
         self.cerrarEscena(function () {
           self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
         });
