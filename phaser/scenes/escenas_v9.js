@@ -555,9 +555,11 @@
       var cerrarYa = function () {
         if (esc.cerrado) return; esc.cerrado = true;
         self._escSkip = null;
-        self._figurasCine = null;
-        if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(self);
+        /* los globos vuelven a su sitio recién después del negro: antes saltaban
+           encima del arquero mientras la escena se iba */
         self.cerrarEscena(function () {
+          self._figurasCine = null;
+          if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(self);
           self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
         });
       };
