@@ -102,8 +102,9 @@ preparación para la 1.0.
 - **Tipografías:** Archivo Black, Bowlby One, Pixelify Sans, Press Start 2P
   y VT323, SIL Open Font License 1.1 (detalle en
   [`assets/fonts/README.md`](assets/fonts/README.md)).
-- **Música:** autoría y licencia a confirmar por la Subsecretaría antes de la
-  difusión institucional.
+- **Música:** generada con Suno (plan gratuito, sin derechos de uso
+  comercial) y con Gemini.
+- **Efectos de sonido:** generados con ElevenLabs (plan gratuito).
 - **Código, ilustraciones y logo:** el repositorio todavía no tiene un
   archivo de licencia. Hasta que la Subsecretaría la defina, no hay un
   permiso escrito para reutilizarlos.
