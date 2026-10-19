@@ -320,11 +320,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       : this.BAL;
     this.st = window.PampaPartido.crearPartido({ bal: balPartido, mios: plantel.mios, rivales: plantel.rivales });
     this.nombreRival = plantel.nombreRival;
+    this.rivalEntero = plantel.rivalEntero;
     /* FUSIÓN (flag partido_phaser): si la carrera clásica pidió este partido,
        el rival lleva el nombre del club del clásico y el final ofrece volver con el resultado */
     this._pedido = null;
     try { const r = localStorage.getItem("pampa_pedido_phaser"); if (r) this._pedido = JSON.parse(r); } catch (e) { }
-    if (this._pedido && this._pedido.rival) this.nombreRival = this.nombreCorto(this._pedido.rival);
+    if (this._pedido && this._pedido.rival) {
+      this.rivalEntero = this._pedido.rival;
+      this.nombreRival = this.nombreCorto(this._pedido.rival);
+    }
     /* Feel B5: MEGACOSAS de data (nombres pampeanos, costo, nivel) + nivel de carrera */
     this.MEGA = this.game.registry.get("megacosas") || {
       megatiros: [{ id: "calden", n: "Disparo del Caldén", grito: "¡CALDENAZO!", sub: "la fuerza del árbol eterno", aguante: 300, nivel: 1, mult: 1.3, x_min: 680 }],
@@ -350,6 +354,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        carrera (fecha real del fixture) — pisa al pedido del clásico */
     this._masterPartido = this.game.registry.get("masterPartido") || null;
     if (this._masterPartido && this._masterPartido.rival) {
+      this.rivalEntero = this._masterPartido.rival;
       this.nombreRival = this.nombreCorto(this._masterPartido.rival);
       this._pedido = null;   // la carrera Phaser manda; el puente clásico no aplica acá
     }
@@ -880,10 +885,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const k = pool.findIndex(j => j.posicion_motor === s);
       if (k >= 0) { const j = pool.splice(k, 1)[0]; mios[i] = { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
     });
-    let pueblo = "RIVAL";
+    let pueblo = "RIVAL", entero = "RIVAL";
     const rivales = slots.map(s => {
       const k = pool.findIndex(j => j.posicion_motor === s);
-      if (k >= 0) { const j = pool.splice(k, 1)[0]; pueblo = this.nombreCorto(j.pueblo); return { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
+      if (k >= 0) { const j = pool.splice(k, 1)[0]; pueblo = this.nombreCorto(j.pueblo); entero = j.pueblo; return { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
       return {};
     });
     /* looks del editor (Bloque C): VOS/amigos del save, NPCs procedurales */
@@ -897,7 +902,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       else j.look = A.lookProcedural((j.nombre || "compa") + "|" + i);
     });
     rivales.forEach((j, i) => { j.look = A.lookProcedural((j.nombre || "rival") + "|" + pueblo + i); });
-    return { mios, rivales, nombreRival: pueblo };
+    return { mios, rivales, nombreRival: pueblo, rivalEntero: entero };
   }
 
   /* ============ LA CANCHA COMPLETA en el mundo 2400×1200 ============
@@ -5696,17 +5701,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        pastilla de PANTALLA (sin pastilla, el reloj más ancho), y se mide con
        goles de dos cifras para que no cambie de tamaño con un gol. Primero
        baja de 17 px hasta el piso de 13; si ni así entra, se abrevia con
-       nombreCorto (piel.js), una letra de tope menos por vuelta. */
+       nombreCorto (piel.js), una letra de tope menos por vuelta. Se mide el
+       nombre ENTERO: nombreRival ya viene cortado a 14 para avisos y relato. */
     const tm = this.txtMarcador;
     const der = (pantalla ? pantalla.zona.getBounds().left : this.bordeIzqDelReloj()) - 8;
     const izq = this._btnPausa[2].getBounds().right + 8;
     const anchoMarc = 2 * Math.min(480 - izq, der - 480);
-    let tam = 17, tope = this.nombreRival.length;
-    this.rivalMarcador = this.nombreRival;
+    const entero = this.rivalEntero.toUpperCase().trim();
+    let tam = 17, tope = entero.length;
+    this.rivalMarcador = entero;
     tm.setText("VOS 10 - 10 " + this.rivalMarcador);
     while (tm.width > anchoMarc && tam > 13) tm.setFontSize(--tam);
     while (tm.width > anchoMarc && tope > 4) {
-      this.rivalMarcador = window.PampaPiel.nombreCorto(this.nombreRival, --tope);
+      this.rivalMarcador = window.PampaPiel.nombreCorto(entero, --tope);
       tm.setText("VOS 10 - 10 " + this.rivalMarcador);
     }
   }
@@ -5733,9 +5740,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      (758 a 854), que se dibuja encima. Ahora el borde derecho de la
      pastilla sale del ancho MEDIDO del reloj más ancho que puede salir
      (bordeIzqDelReloj), con 8 px de aire: queda de 744 a 840. El marcador
-     más largo, medido igual con el nombre corto de cada rival de
-     data/divisiones.json (nombreCorto) y goles de dos cifras ("VOS 10 - 10
-     PUERTO CENTRAL"), termina en 623: entra con 121 px de aire. Si la
+     más largo, medido igual con el nombre entero del rival más largo de
+     data/divisiones.json y goles de dos cifras ("VOS 10 - 10 ESTRELLA DE
+     GENERAL PICO", 17 px), termina en 676: entra con 68 px de aire. Si la
      tipografía todavía no bajó al armar el HUD, se vuelve a ubicar cuando
      baja. */
   buildBotonPantalla() {

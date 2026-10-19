@@ -212,8 +212,10 @@
        1. si entra, no se toca
        2. se sacan los conectores: "Union de Realico" → "UNION REALICO"
        3. se abrevian las palabras desde la IZQUIERDA, dejando la ULTIMA
-          entera: "Estrella de General Pico" → "EST. GEN. PICO"
-          (la ultima palabra suele ser el pueblo, que es lo que identifica
+          entera: "Estrella de General Pico" → "ESTR. GENERAL PICO" (18);
+          GENERAL, INGENIERO, SANTA y COLONIA van siempre como en los
+          carteles de ruta, y a 14 queda "GRAL. PICO"
+          (la ultima palabra suele ser la localidad, que es lo que identifica
           al club: perderla es peor que abreviar todo lo demas)
        4. recien al final, si nada alcanzo, se corta — pero por PALABRA
 
@@ -221,8 +223,7 @@
      sin abrir el navegador.
      ══════════════════════════════════════════════════════════════════════ */
   var CONECTORES = ["DE", "DEL", "LA", "EL", "LOS", "LAS", "Y", "DA"];
-  /* las de los carteles de ruta ("GRAL. PICO", no "GENE. PICO"); en el paso 3
-     van solo si no son más largas que el corte de esa vuelta */
+  /* las de los carteles de ruta ("GRAL. PICO", nunca "GEN. PICO") */
   var ABREVIATURAS = { GENERAL: "GRAL.", INGENIERO: "ING.", SANTA: "STA.", COLONIA: "COL." };
   function nombreCorto(nombre, tope) {
     var n = String(nombre == null ? "" : nombre).toUpperCase().trim();
@@ -241,9 +242,9 @@
     for (var corte = 4; corte >= 3; corte--) {
       for (var cuantas = 1; cuantas < sinCon.length; cuantas++) {
         var w = sinCon.map(function (x, k) {
-          if (k >= cuantas || x.length <= corte + 1) return x;
-          var a = ABREVIATURAS[x];
-          return a && a.length <= corte + 1 ? a : x.slice(0, corte) + ".";
+          if (k >= cuantas) return x;
+          if (ABREVIATURAS[x]) return ABREVIATURAS[x];
+          return x.length <= corte + 1 ? x : x.slice(0, corte) + ".";
         });
         var cand = w.join(" ");
         if (cand.length <= tope) return cand;
@@ -251,12 +252,12 @@
     }
 
     /* 4 · lo ultimo: las palabras enteras que entren, priorizando la ULTIMA
-       (el pueblo). Si ni la ultima sola entra, ahi si se corta. */
+       (la localidad). Si ni la ultima sola entra, ahi si se corta. */
     var ultima = sinCon[sinCon.length - 1];
     if (ultima.length > tope) return ultima.slice(0, tope);
     var out = ultima;
     for (var k = sinCon.length - 2; k >= 0; k--) {
-      var abrev = sinCon[k].length > 4 ? sinCon[k].slice(0, 3) + "." : sinCon[k];
+      var abrev = ABREVIATURAS[sinCon[k]] || (sinCon[k].length > 4 ? sinCon[k].slice(0, 3) + "." : sinCon[k]);
       if ((abrev + " " + out).length > tope) break;
       out = abrev + " " + out;
     }
