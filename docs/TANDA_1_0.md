@@ -6586,5 +6586,6 @@ Lo que vi y no toqué:
 - La pelota propia del arquero en el atajadón sigue (es arte).
 
 Más tarde, el 18/oct: el marcador dejaba el nombre del rival en 10 letras ("GENERAL PI"); ahora se mide en el hueco entre ⏸ PAUSA y PANTALLA con goles de dos cifras, baja hasta 13 px y, si no entra, se abrevia con nombreCorto, que usa GRAL., ING., STA. y COL.
+Revisión del mismo día: el marcador medía, pero recibía el nombre ya cortado a 14 letras para avisos y relato ("EST. GEN. PICO"); ahora mide el nombre entero (rivalEntero) y "VOS 0 - 0 ESTRELLA DE GENERAL PICO" entra a 17 px. nombreCorto usa GRAL., ING., STA. y COL. siempre que abrevia esas palabras (antes, en la vuelta de corte 3 salía "GEN."); a 14 letras queda "GRAL. PICO" y "GRAL. ACHA".
 El chip "ESPACIO = ACCIÓN" va 4 px arriba del botón latiendo (y 402 a 416; el botón llega a 420), y en "te rematan" los globos de Nelda y el Tuli se corren al lugar libre más cercano a su sitio (90 px más arriba, sobre el arquero).
-El README nombra en los créditos a Suno y Gemini (música) y a ElevenLabs (efectos de sonido).
+El README nombra en los créditos a Suno y Gemini (música) y a ElevenLabs (efectos de sonido), con lo que falta saber de cada licencia ([FALTA DATO] para Gemini y para los efectos de ElevenLabs) y el aviso de licencia a confirmar. La página de créditos del sitio (index.html#creditos) nombra las tres herramientas y mantiene ese aviso.
