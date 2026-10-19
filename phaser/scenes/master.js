@@ -1692,7 +1692,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          MIÉRCOLES"; la figura chica no la toca, así que para ella no cambia
          nada. La ranura, adentro del trazo de 3 px del marco. */
       if (op) this.figuraDeAccion(op, x + anchoR * 0.32, y + 34, 54, { x: x - anchoR / 2 + 2, y: y - 40, w: anchoR - 4, h: 80 });
-      this.add.text(x, y - 30, n.toUpperCase(), { fontFamily: window.PF.display, fontSize: "12px",
+      this.add.text(x, y - 30, n.toUpperCase(), { fontFamily: window.PF.display, fontSize: "13px",
         color: op ? "#ffd84d" : "#9fb3a5", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
       if (op) {
         this.add.rectangle(x - 22, y + 22, anchoR - 66, 32, 0x0a1f13, 0.86);
@@ -1723,12 +1723,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        semana de toda carrera */
     this.add.text(W / 2, 286, hechas >= 3 ? "LA SEMANA ESTÁ ARMADA · a la cancha"
       : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3" + (this.sys.game.device.input.touch ? "" : " (teclas 1 a 0)"),
-      { fontFamily: window.PF.display, fontSize: "12px", color: hechas >= 3 ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
+      { fontFamily: window.PF.display, fontSize: "13px", color: hechas >= 3 ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
     /* O1 · las opciones van en la FRANJA DE DECISIÓN, ubicadas con el helper —
        no clavadas a mano. Tres filas: dos de acciones y la del botón de jugar,
        que es la tercera decisión de esta pantalla. */
     const pielCfgS = (this.game.registry.get("balance") || {}).piel;
-    const porFila = 5, anchoO = 178, altoO = 64;
+    /* 19/oct · a 13 px el nombre y el efecto juntos llegan a cuatro renglones
+       (el PICADITO: nombre en uno y efecto en tres) y en 64 de alto no
+       entraban. Con 66 las filas quedan a 7 px; el nombre va pegado arriba y
+       el efecto pegado abajo. */
+    const porFila = 5, anchoO = 178, altoO = 66;
     /* EL CURSOR EN LA SEMANA. Eran diez tarjetas con atajos numericos sueltos:
        sin flechas, sin nadie enfocado. Y los atajos se apilaban — apretabas 1 y
        te llenaba media semana de una. Ahora se navega la grilla 5x2 con las
@@ -1747,23 +1751,24 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          texto siga leyéndose — antes quedaba texto oscuro sobre fondo oscuro. */
       const r = this.add.rectangle(cx, cy, anchoO, altoO, alcanza ? 0xf6efdc : 0xc9c3b2, alcanza ? 0.97 : 0.9)
         .setStrokeStyle(usada ? 4 : (alcanza ? 3 : 1), usada ? 0x7ee08a : 0x0a1f13, alcanza ? 1 : 0.55);
-      this.add.text(cx, cy - 18, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
-        color: "#0a1f13", align: "center", wordWrap: { width: anchoO - 12 } }).setOrigin(0.5);
+      this.add.text(cx, cy - altoO / 2 + 5, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
+        color: "#0a1f13", align: "center", wordWrap: { width: anchoO - 6 } }).setOrigin(0.5, 0);
       /* PASADA DE COHERENCIA · una vez armada la semana, las SIETE tarjetas
          decian "la semana ya esta armada". Siete veces el mismo renglon en
          rojo es ruido, y encima tapa el efecto de cada accion, que es lo unico
          que te sirve mirar mientras decidis si sacar una y poner otra.
          Ahora: el motivo se dice UNA vez, arriba del grupo (ver el titulo de la
          lista), y la tarjeta sigue mostrando SU efecto. */
-      this.add.text(cx, cy + 14, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
-        { fontFamily: window.PF.texto, fontSize: "12px",
+      this.add.text(cx, cy + altoO / 2 - 3, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
+        { fontFamily: window.PF.texto, fontSize: "13px",
           color: sinEnergia ? "#8a3226" : (alcanza ? "#365a41" : "#5a6b60"),
-          fontStyle: sinEnergia ? "italic" : "normal", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5);
+          fontStyle: sinEnergia ? "italic" : "normal", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5, 1);
       /* se puede repetir una acción: son tres días distintos. La marca dice
          cuántas veces ya la elegiste, para que no haya que contarlas a ojo. */
       const veces = sem.elegidas.filter(e => e === o.id).length;
-      if (veces) this.add.text(cx + anchoO / 2 - 12, cy - altoO / 2 + 9, "×" + veces,
-        { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 4, y: 1 } }).setOrigin(0.5);
+      /* sobre el borde de arriba: adentro tapaba la punta de los nombres de un renglón */
+      if (veces) this.add.text(cx + anchoO / 2 - 14, cy - altoO / 2 - 2, "×" + veces,
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 4, y: 0 } }).setOrigin(0.5);
       /* la bloqueada TAMBIEN entra al grupo: se puede enfocar y te dice por que
          no se puede. Saltearla seria peor — no te enterarias de que existe. */
       _focoSem.push({ obj: r, bloqueada: !alcanza,
@@ -2067,7 +2072,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (o.stat) t.push("+" + (o.stat_mas || 1) + " " + (o.stat === "azar" ? "a una cualidad al azar" : o.stat));
     if (o.cura_molestia) t.push("cura la molestia");
     if (o.espia_rival) t.push("ves cómo juega el rival");
-    if (o.evita) t.push("te sacás el problema de encima");
+    if (o.evita) t.push("te sacás el problema");
     if (o.riesgo_golpe) t.push("riesgo de llegar golpeado");
     return t.join(" · ");
   }
