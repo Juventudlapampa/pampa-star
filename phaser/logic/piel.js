@@ -221,6 +221,9 @@
      sin abrir el navegador.
      ══════════════════════════════════════════════════════════════════════ */
   var CONECTORES = ["DE", "DEL", "LA", "EL", "LOS", "LAS", "Y", "DA"];
+  /* las de los carteles de ruta ("GRAL. PICO", no "GENE. PICO"); en el paso 3
+     van solo si no son más largas que el corte de esa vuelta */
+  var ABREVIATURAS = { GENERAL: "GRAL.", INGENIERO: "ING.", SANTA: "STA.", COLONIA: "COL." };
   function nombreCorto(nombre, tope) {
     var n = String(nombre == null ? "" : nombre).toUpperCase().trim();
     tope = tope || 14;
@@ -238,8 +241,9 @@
     for (var corte = 4; corte >= 3; corte--) {
       for (var cuantas = 1; cuantas < sinCon.length; cuantas++) {
         var w = sinCon.map(function (x, k) {
-          if (k >= cuantas) return x;
-          return x.length > corte + 1 ? x.slice(0, corte) + "." : x;
+          if (k >= cuantas || x.length <= corte + 1) return x;
+          var a = ABREVIATURAS[x];
+          return a && a.length <= corte + 1 ? a : x.slice(0, corte) + ".";
         });
         var cand = w.join(" ");
         if (cand.length <= tope) return cand;

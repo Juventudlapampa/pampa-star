@@ -883,7 +883,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     let pueblo = "RIVAL";
     const rivales = slots.map(s => {
       const k = pool.findIndex(j => j.posicion_motor === s);
-      if (k >= 0) { const j = pool.splice(k, 1)[0]; pueblo = j.pueblo.toUpperCase().slice(0, 10); return { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
+      if (k >= 0) { const j = pool.splice(k, 1)[0]; pueblo = this.nombreCorto(j.pueblo); return { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
       return {};
     });
     /* looks del editor (Bloque C): VOS/amigos del save, NPCs procedurales */
@@ -5679,7 +5679,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        que era solo un ícono, se fue. El sonido se prende y se apaga en la
        PAUSA, con su palabra (🔊 SONIDO: SÍ). */
     this.buildBotonPausa();
-    this.buildBotonPantalla();
+    const pantalla = this.buildBotonPantalla();
+    /* EL NOMBRE DEL RIVAL NO SE CORTA A CIEGAS (era slice(0, 10): "GENERAL PI").
+       El resultado va centrado en 480 en el hueco medido entre ⏸ PAUSA y la
+       pastilla de PANTALLA (sin pastilla, el reloj más ancho), y se mide con
+       goles de dos cifras para que no cambie de tamaño con un gol. Primero
+       baja de 17 px hasta el piso de 13; si ni así entra, se abrevia con
+       nombreCorto (piel.js), una letra de tope menos por vuelta. */
+    const tm = this.txtMarcador;
+    const der = (pantalla ? pantalla.zona.getBounds().left : this.bordeIzqDelReloj()) - 8;
+    const izq = this._btnPausa[2].getBounds().right + 8;
+    const anchoMarc = 2 * Math.min(480 - izq, der - 480);
+    let tam = 17, tope = this.nombreRival.length;
+    this.rivalMarcador = this.nombreRival;
+    tm.setText("VOS 10 - 10 " + this.rivalMarcador);
+    while (tm.width > anchoMarc && tam > 13) tm.setFontSize(--tam);
+    while (tm.width > anchoMarc && tope > 4) {
+      this.rivalMarcador = window.PampaPiel.nombreCorto(this.nombreRival, --tope);
+      tm.setText("VOS 10 - 10 " + this.rivalMarcador);
+    }
   }
   /* ══════════════════════════════════════════════════════════════════════
      TANDA 1.0 (L07) · EL BOTÓN PANTALLA, EN LA BARRA DEL MARCADOR.
@@ -5946,7 +5964,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st;
     const m = Math.floor(st.minuto), lim = st.tiempo === 1 ? 45 : 90;
     /* PIEL: el RESULTADO va solo y grande; la división abajo, chica */
-    const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival;
+    const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.rivalMarcador;
     if (this._hudMarc !== marcador) { this._hudMarc = marcador; this.txtMarcador.setText(marcador); }
     const division = this._division ? this._division.n : "";
     if (this._hudDiv !== division) { this._hudDiv = division; this.txtDivision.setText(division); }
