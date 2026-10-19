@@ -2175,12 +2175,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.vestirBoton(r);
     this.hudLayer.add(cont);
     this._btnAccionCont = cont;
-    this._btnPulso = this.tweens.add({ targets: cont, scale: 1.06, duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut", paused: true });
+    const PULSO = 1.06;
+    this._btnPulso = this.tweens.add({ targets: cont, scale: PULSO, duration: 560, yoyo: true, repeat: -1, ease: "Sine.easeInOut", paused: true });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
       /* PIEL P5: subido de y=498. Ahí abajo ahora viven las dos filas de
          medidores (ENVIÓN en 500, AGUANTE en 522) y este chip las pisaba: se
-         acomodó una cosa y se destapó el choque con la otra. Va pegado debajo
-         del botón ⚡ACCIÓN, que es a lo que se refiere. */
+         acomodó una cosa y se destapó el choque con la otra. Va pegado al
+         botón ⚡ACCIÓN, que es a lo que se refiere; la y se mide al final. */
       this._hintEspacio = this.add.text(838, 428, "ESPACIO = ACCIÓN", { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d" }).setOrigin(0.5);
       this.hudLayer.add(this._hintEspacio);
     }
@@ -2197,6 +2198,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         window.PampaPartido.cambiarAlMasCercano(this.st);
         this.avisar("Marcás con " + this.st.mios[this.st.ctrl].nombre.toUpperCase(), { clave: "marcacion", toque: true });
       });
+    }
+    if (this._hintEspacio) {
+      /* El chip iba en y 428, montado sobre el borde de arriba del botón, que
+         con el pulso sube hasta 420. Va encima con 4 px de aire, medido con el
+         botón latiendo. ⇄ MARCAR CON OTRO ocupa ese lugar solo en defensa, y
+         en defensa el chip no se muestra (refrescarHUD). */
+      cont.setScale(PULSO);
+      const techo = r.getBounds().top;
+      cont.setScale(1);
+      this._hintEspacio.setY(techo - 4 - this._hintEspacio.height / 2);
     }
   }
   /* V6 §2 R4: la VELOCIDAD (Normal/Rápida) solo acorta animaciones y tiempos muertos */
