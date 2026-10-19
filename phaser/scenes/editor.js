@@ -93,7 +93,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        molestaba. Queda SOLO la cara ilustrada, grande y centrada. */
     this.imgCara = this.add.image(250, 240, "__WHITE").setScale(1.5);
     this.imgCancha = null;
-    this.txtLabel = this.add.text(210, 372, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#cfe9d4", align: "center", wordWrap: { width: 320 }, backgroundColor: "#0a1f13e6", padding: { x: 10, y: 6 } }).setOrigin(0.5);
+    this.txtLabel = this.add.text(210, 372, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#cfe9d4", align: "center", wordWrap: { width: 320 }, backgroundColor: "#0a1f13e6", padding: { x: 10, y: 6 } }).setOrigin(0.5);
 
     /* ---- steppers (derecha) ----
        EDITOR v2: el creador de caras por rectángulos SE RETIRA — stepper grande
@@ -180,7 +180,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* ---- abajo: guardar + a la cancha ---- */
     const btn = (x, w, texto, bg, cb) => {
       const r = this.add.rectangle(x, H - 40, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(x, H - 40, texto, { fontFamily: window.PF.display, fontSize: "12px", color: "#0a1f13" }).setOrigin(0.5);
+      this.add.text(x, H - 40, texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
       r.on("pointerdown", cb);
       this._botones.push({ obj: r, cb: cb });
       return r;
@@ -218,7 +218,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        derecha: la esquina libre a la derecha de ¡A LA CANCHA! (que termina
        en x=810). Sale de window.PAMPA_VERSION, la misma que lleva el informe. */
     if (window.PAMPA_VERSION) {
-      this.add.text(W - 10, H - 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" })
+      this.add.text(W - 10, H - 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" })
         .setOrigin(1, 1).setAlpha(0.85);
     }
 

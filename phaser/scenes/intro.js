@@ -293,7 +293,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.tweens.add({ targets: toca, alpha: 0.35, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
       const tk = this.add.text(480, Q.compuerta_tecla_y || 392, Q.t_compuerta_teclado || "(o apretá cualquier tecla)",
-        { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc99" }).setOrigin(0.5);
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc99" }).setOrigin(0.5);
       this.capa.add(tk);
       this._teclaTxt = tk;   // L06: la espera usa su renglón (visto en captura: la barra le quedaba encima)
     }
@@ -366,7 +366,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        de una intro de 20 segundos, tiene que verse siempre: ahora va con su
        propia cajita oscura, que funciona sobre cualquier fondo. */
     this.add.text(948, 526, "tocá para saltear ▸", {
-      fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc",
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc",
       backgroundColor: "#0a1f13cc", padding: { x: 7, y: 3 }
     }).setOrigin(1, 1).setDepth(99);
   }

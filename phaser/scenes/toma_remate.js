@@ -257,7 +257,7 @@
       this.cineContent.add(velo);
       this.cineContent.bringToTop(plano); this.cineContent.bringToTop(bola);
       if (cfg.siluetas) {
-        var tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
+        var tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
         (this.cineInfo || this.cineContent).add(tS);
       }
       if (especial) {

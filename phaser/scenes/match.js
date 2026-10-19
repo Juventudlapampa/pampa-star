@@ -2194,7 +2194,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Anime A: botón secundario CHICO de ciclado manual en defensa (48px, mobile) */
     if (this._vista4) {
       const bc = this.add.rectangle(838, 396, 150, 48, 0xdcd6c2, 0.92).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const bct = this.add.text(838, 396, "⇄ MARCAR CON OTRO", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
+      const bct = this.add.text(838, 396, "⇄ MARCAR CON OTRO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", fontStyle: "bold" }).setOrigin(0.5);
       this.hudLayer.add([bc, bct]);
       this._btnCambiar = [bc, bct];
       bc.on("pointerdown", (p, x, y, ev) => {
@@ -2300,9 +2300,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cameras.main.fadeIn(700, 6, 18, 11);
     const banda = this.add.rectangle(480, 200, 960, 84, 0x0a1f13, 0.9);
     const t = this.add.text(480, 190, "⏸ ENTRETIEMPO", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
-    const m = this.add.text(480, 218, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival + " · el descanso recupera aguante", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    const m = this.add.text(480, 218, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival + " · el descanso recupera aguante", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
     /* V9 §10: el cambio de lado SE ANUNCIA — si no, darse vuelta se lee como un bug */
-    const c = this.add.text(480, 242, "⇄ CAMBIO DE LADO · ahora atacás para el otro arco", { fontFamily: window.PF.texto, fontSize: "12px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+    const c = this.add.text(480, 242, "⇄ CAMBIO DE LADO · ahora atacás para el otro arco", { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 8, y: 3 } }).setOrigin(0.5);
     this.hudLayer.add([banda, t, m, c]);
     this.cameras.main.ignore([banda, t, m, c]);
     /* la cancha se da vuelta a la vista: medio segundo de giro y ya está */
@@ -3287,7 +3287,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.cineInfo = this.add.container(0, 0); this.cineLayer.add(this.cineInfo);
     this.cineBig = this.add.text(W / 2, H / 2 - 20, "", { fontFamily: window.PF.display, fontSize: "48px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 4 }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineBig);
     this.cineSub = this.add.text(W / 2, H / 2 + 34, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0); this.cineLayer.add(this.cineSub);
-    this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
+    this.cineLabel = this.add.text(16, H - 24, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdcaa" }); this.cineLayer.add(this.cineLabel);
     this.cineBlack = this.add.rectangle(W / 2, H / 2, W, H, 0x000000).setAlpha(0); this.cineLayer.add(this.cineBlack);
   }
   /* ══════════════════════════════════════════════════════════════════════
@@ -4529,7 +4529,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         g.fillStyle(pintado ? 0x14202e : 0x0a1f13, pintado ? 0.62 : 0.75);
         g.fillEllipse(sx, sy - 58 * e, 24 * e, 24 * e); g.fillRoundedRect(sx - 15 * e, sy - 46 * e, 30 * e, 60 * e, 8);
       }
-      const tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
+      const tS = this.add.text(W - 16, 40, "entre vos y el arco: " + cfg.siluetas + " + el arquero", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
       (this.cineInfo || this.cineContent).add(tS);
     }
     this.cineLabel.setText(cfg.etiqueta || "");
@@ -5689,7 +5689,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        la franja libre entre el panel de escena (termina en 122) y el marco del
        mapa (arranca en 320), que además es donde está mirando el ojo. */
     const REL = this.BAL.relator || {};
-    this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
+    this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
     this.hudLayer.add(this.tickerTxt);
     /* Pedido de Rodri del 17/oct ("un juego CLARO"): el 🔊 suelto de la barra,
        que era solo un ícono, se fue. El sonido se prende y se apaga en la

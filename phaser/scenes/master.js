@@ -634,7 +634,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        nadie cuanto vale lo que esta por tirar. */
     const caja = this.add.rectangle(W / 2, 210, 560, 150, 0x0a1f13, 0.8).setStrokeStyle(3, 0xe3503e, 0.9);
     this.add.text(W / 2, 152, "LO QUE SE PIERDE", {
-      fontFamily: window.PF.texto, fontSize: "12px", color: "#e3503e" }).setOrigin(0.5);
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }).setOrigin(0.5);
     const lineas = [
       r.club + " · " + r.division,
       r.linea,
@@ -670,7 +670,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        le quedaba encima (se ve en SALIDA_02). Y aca ademas se lee ANTES de
        elegir, que es cuando sirve. */
     this.add.text(W / 2, 297, "el respaldo queda guardado en el navegador, pero no se puede volver desde acá", {
-      fontFamily: window.PF.texto, fontSize: "12px", color: "#7a8a80" }).setOrigin(0.5);
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#7a8a80" }).setOrigin(0.5);
 
     /* el cursor arranca en SEGUIR, nunca en borrar: si te equivocaste de tecla
        al llegar acá, el Enter de reflejo no te tiene que costar la carrera */
@@ -872,7 +872,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.add.text(W / 2, 192, this.lineaDeLaTemporada(this.save.temporadaN | 0, t) +
       " · " + (nTit === 1 ? "1 título" : nTit + " títulos"), { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5);
     this.add.text(W / 2, 220, codigo.length.toLocaleString("es-AR") + " letras · empieza con " + codigo.slice(0, 20) + "…", {
-      fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0.5);
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5);
     /* el resultado de copiar o compartir, con su signo (no solo color) */
     const estado = this.add.text(W / 2, 258, "", { fontFamily: window.PF.texto, fontSize: "14px", color: "#7ee08a", align: "center", wordWrap: { width: 780 } }).setOrigin(0.5);
     const decir = (txt) => { if (estado.scene) estado.setText(txt).setColor(/^✗/.test(txt) ? "#e3503e" : "#7ee08a"); };
@@ -1351,14 +1351,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const fichaY = C.y + 14;
     const ficha = this.add.rectangle(fx + medioF, fichaY + 66, anchoF, 148, 0x0a1f13, 0.72).setStrokeStyle(3, 0xffd84d, 0.9);
     capa.add(ficha);
-    capa.add(this.add.text(fx + medioF, fichaY + 12, "★ TU CLUB", { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6c11d" }).setOrigin(0.5));
+    capa.add(this.add.text(fx + medioF, fichaY + 12, "★ TU CLUB", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(0.5));
     /* Sección 11: el nombre del club ES el apodo (antes: "Club " + localidad
        arriba y el apodo entre comillas abajo). Abajo va la localidad. */
     capa.add(this.add.text(fx + medioF, fichaY + 44, this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
-    capa.add(this.add.text(fx + medioF, fichaY + 82, "de " + sel, { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
-    capa.add(this.add.text(fx + medioF, fichaY + 112, "arranca en " + divN, { fontFamily: window.PF.texto, fontSize: "12px", color: "#dcd6c2" }).setOrigin(0.5));
+    capa.add(this.add.text(fx + medioF, fichaY + 82, "de " + sel, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    capa.add(this.add.text(fx + medioF, fichaY + 112, "arranca en " + divN, { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5));
     const zN = (M.ZONAS[info.zona] || {}).n || "—";
-    capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "12px", color: "#9fb3a5" }).setOrigin(0.5));
+    capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5));
 
     /* --- y se dice que el mapa es esquemático --- */
     if (this.grupoFoco && _focoMapa.length) {
@@ -1371,7 +1371,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     capa.add(this.add.text(fx + medioF, fichaY + 152,
       exactos === ubic.length ? "ubicaciones exactas"
         : "mapa por zonas · las ubicaciones exactas van cuando estén los datos",
-      { fontFamily: window.PF.texto, fontSize: "12px", color: "#7a8a80", align: "center", wordWrap: { width: anchoF } }).setOrigin(0.5, 0));
+      { fontFamily: window.PF.texto, fontSize: "13px", color: "#7a8a80", align: "center", wordWrap: { width: anchoF } }).setOrigin(0.5, 0));
   }
 
   /* ============ V8 A1 · PARTE 1: DE DÓNDE SALÍS (3 pantallas, una vez) ============
@@ -1484,7 +1484,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     globo.lineStyle(3, 0x0a1f13, 1);
     globo.strokeRoundedRect(bx, y - 52, bw, 104, 12);
     this.add.text(bx + 16, y - 40, (E.entrevistador && E.entrevistador.nombre) || "", {
-      fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: "#365a41", wordWrap: { width: bw - 32 }
+      fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#365a41", wordWrap: { width: bw - 32 }
     });
     this.add.text(bx + 16, y - 18, dice, {
       fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", wordWrap: { width: bw - 32 }, lineSpacing: 2
@@ -1641,7 +1641,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          de la decisión que antes no existía */
       const md = this.save.modFecha;
       if (md && md.opcion) {
-        const tl = this.add.text(W / 2, ySup, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "12px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
+        const tl = this.add.text(W / 2, ySup, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }).setOrigin(0.5, 0);
         /* abajo del titular pisaba el borde de la tira de los días (arranca en
            y=134). Si entra a lo ancho, va en el MISMO renglón que el titular:
            los dos se corren para quedar centrados juntos. La flecha lo separa
@@ -2308,7 +2308,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* revisión L04b: con un título decía "★ 1 títulos"; el singular como en
        el código de la carrera (vistaCodigo) */
     const nTitClub = this.save.titulos.length;
-    const clubTxt = this.add.text(W / 2, 78, this.save.club + (nTitClub ? " · ★".repeat(Math.min(5, nTitClub)) + " " + (nTitClub === 1 ? "1 título" : nTitClub + " títulos") : ""), { fontFamily: window.PF.texto, fontSize: "12px", color: "#f6efdc" }).setOrigin(0.5);
+    const clubTxt = this.add.text(W / 2, 78, this.save.club + (nTitClub ? " · ★".repeat(Math.min(5, nTitClub)) + " " + (nTitClub === 1 ? "1 título" : nTitClub + " títulos") : ""), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* resultado de la última fecha jugada (si venimos del partido) */
     /* L04b · EL RESULTADO PISABA AL CLUB. Iba centrado en y=84 y el club en
@@ -2323,7 +2323,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this._ultimo) {
       const gano = this._ultimo.golesMio > this._ultimo.golesRival;
       const empate = this._ultimo.golesMio === this._ultimo.golesRival;
-      const resTxt = this.add.text(W / 2, 78, (gano ? "✔ GANASTE " : empate ? "= EMPATASTE " : "✘ PERDISTE ") + this._ultimo.golesMio + "-" + this._ultimo.golesRival, { fontFamily: window.PF.texto, fontSize: "12px", fontStyle: "bold", color: gano ? "#7ee08a" : empate ? "#f6c11d" : "#e3503e" }).setOrigin(0, 0.5);
+      const resTxt = this.add.text(W / 2, 78, (gano ? "✔ GANASTE " : empate ? "= EMPATASTE " : "✘ PERDISTE ") + this._ultimo.golesMio + "-" + this._ultimo.golesRival, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: gano ? "#7ee08a" : empate ? "#f6c11d" : "#e3503e" }).setOrigin(0, 0.5);
       const aire = 22, total = clubTxt.width + aire + resTxt.width;
       const x0 = Math.round(W / 2 - total / 2);
       clubTxt.setOrigin(0, 0.5).setX(x0);
@@ -2461,7 +2461,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         const repetir = !!(SemT && SemT.semanaCerrada && SemT.semanaCerrada(this.save));
         if (repetir) {
           this.add.text(W / 2, H - 172, "↺ volviste sin terminar el partido: la semana ya está jugada y entrás como llegaste",
-            { fontFamily: window.PF.texto, fontSize: "12px", color: "#ffd84d" }).setOrigin(0.5);
+            { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
         }
         this.boton(W / 2 - 170, H - 80, 300, repetir ? "↺ REPETIR EL PARTIDO" : "▶ JUGAR LA FECHA", 0x7ee08a, () => {
           if (repetir) { this.irALaCancha(rival); return; }

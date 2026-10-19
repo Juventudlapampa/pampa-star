@@ -126,6 +126,11 @@ console.log("[4] piso táctil: " + LEG.tap_min + " lógicos = " + real(LEG.tap_m
 /* ---------- [5] LOS TEXTOS DE INFORMACIÓN DEL CÓDIGO ----------
    Barre los fontSize literales de las escenas y avisa de los que llevan
    INFORMACIÓN por debajo del piso. Los decorativos se declaran exentos acá. */
+/* Pedido de Rodri del 17/oct: el piso de este barrido sube de 12 a 13 para
+   que no vuelvan los textos de 12 que se subieron el 18 y el 19/oct. El de
+   balance (legibilidad.texto_info_min) sigue en 12 porque con él se calculan
+   los criterios de [1] a [4]. */
+const PISO_TEXTOS = 13;
 const EXENTOS = [
   /* decorativos o de una sola vez, que no llevan dato que haya que leer al vuelo */
   "22px", "26px", "40px", "44px", "48px"
@@ -138,7 +143,7 @@ escenas.forEach(f => {
   let mt;
   while ((mt = re.exec(src)) !== null) {
     const px = parseInt(mt[1], 10);
-    if (px >= LEG.texto_info_min) continue;
+    if (px >= PISO_TEXTOS) continue;
     if (EXENTOS.indexOf(px + "px") >= 0) continue;
     const linea = src.slice(0, mt.index).split("\n").length;
     bajos.push({ archivo: f, linea, px });
@@ -153,13 +158,13 @@ let previo = null;
 try { previo = JSON.parse(fs.readFileSync(REGISTRO, "utf8")); } catch (e) { }
 if (previo && typeof previo.textosBajoElPiso === "number") {
   assert(bajos.length <= previo.textosBajoElPiso,
-    "hay " + bajos.length + " textos por debajo del piso de " + LEG.texto_info_min + " lógicos y antes había " +
+    "hay " + bajos.length + " textos por debajo del piso de " + PISO_TEXTOS + " lógicos y antes había " +
     previo.textosBajoElPiso + ". SÍNTOMA: se sumó texto que en un teléfono no se lee. " +
     "Los nuevos: revisá los fontSize agregados en phaser/scenes/.");
 } else {
-  fs.writeFileSync(REGISTRO, JSON.stringify({ textosBajoElPiso: bajos.length, piso: LEG.texto_info_min }, null, 1));
+  fs.writeFileSync(REGISTRO, JSON.stringify({ textosBajoElPiso: bajos.length, piso: PISO_TEXTOS }, null, 1));
 }
-console.log("[5] textos por debajo de " + LEG.texto_info_min + " lógicos: " + bajos.length +
+console.log("[5] textos por debajo de " + PISO_TEXTOS + " lógicos: " + bajos.length +
   " (el test no falla por ellos; falla si el número CRECE)");
 /* La línea DEUDA: la levanta test.sh y la muestra al final de CADA corrida de
    la suite. Una deuda enterrada en un HANDOFF no se paga: esta se ve siempre. */
@@ -169,9 +174,9 @@ if (bajos.length > 0) {
   bajos.forEach(b => { porArchivo[b.archivo] = (porArchivo[b.archivo] || 0) + 1; });
   const detalle = Object.entries(porArchivo).sort((a, b) => b[1] - a[1])
     .map(([f, n]) => f.replace(".js", "") + " " + n).join(", ");
-  console.log("DEUDA: " + bajos.length + " textos por debajo de " + LEG.texto_info_min +
-    " px lógicos (" + (real(LEG.texto_info_min)).toFixed(1) + " reales en un " + TEL.w + "x" + TEL.h + ", " +
-    realChico(LEG.texto_info_min).toFixed(1) + " en un " + CHICO.w + "x" + CHICO.h + "). " +
+  console.log("DEUDA: " + bajos.length + " textos por debajo de " + PISO_TEXTOS +
+    " px lógicos (" + (real(PISO_TEXTOS)).toFixed(1) + " reales en un " + TEL.w + "x" + TEL.h + ", " +
+    realChico(PISO_TEXTOS).toFixed(1) + " en un " + CHICO.w + "x" + CHICO.h + "). " +
     "El más chico: " + peor.px + "px en " + peor.archivo + ":" + peor.linea + ". Por archivo: " + detalle);
 }
 
