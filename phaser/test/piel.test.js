@@ -103,5 +103,50 @@ VERDES_DE_CANCHA.forEach(v => {
 });
 console.log("[6] la paleta del marco no pisa ninguno de los " + VERDES_DE_CANCHA.length + " verdes de cancha");
 
+/* ---------- [7] nombreCorto contra los clubes del juego ----------
+   A 14 letras (avisos, relato, marcador) y a 18 (tabla): GENERAL, INGENIERO,
+   SANTA y COLONIA se abrevian como en los carteles de ruta, la localidad queda
+   entera y ningún club queda escrito igual que otro. */
+const DIV = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/divisiones.json"), "utf8")).divisiones;
+const CLUBES = [].concat.apply([], Object.keys(DIV).map(k => DIV[k].rivales));
+assert(CLUBES.length >= 45, "control: los clubes de las divisiones (vinieron " + CLUBES.length + ")");
+const CARTEL = { GENERAL: "GRAL.", INGENIERO: "ING.", SANTA: "STA.", COLONIA: "COL." };
+/* ING. y COL. no aparecen en las divisiones: van dos localidades pampeanas de verdad */
+const PRUEBA = CLUBES.concat(["Atlético Ingeniero Luiggi", "Deportivo Colonia Barón"]);
+[14, 18].forEach(tope => {
+  const vistos = {};
+  PRUEBA.forEach(club => {
+    const largo = club.toUpperCase().split(/\s+/);
+    const corto = P.nombreCorto(club, tope);
+    const palabras = corto.split(" ");
+    assert(corto.length <= tope, club + " a " + tope + ": \"" + corto + "\" tiene " + corto.length + " letras");
+    assert(palabras[palabras.length - 1] === largo[largo.length - 1],
+      club + " a " + tope + ": \"" + corto + "\" perdió la localidad. SÍNTOMA: el club no se reconoce");
+    Object.keys(CARTEL).forEach(w => {
+      if (largo.indexOf(w) < 0 || palabras.indexOf(w) >= 0) return;
+      const raiz = w.slice(0, 3);
+      const malAbreviada = palabras.some(p => p !== CARTEL[w] && p.endsWith(".") && p.startsWith(raiz));
+      assert(!malAbreviada, club + " a " + tope + ": \"" + corto + "\" abrevia " + w + " distinto de " + CARTEL[w]);
+    });
+    if (vistos[corto]) assert(false, "a " + tope + " letras \"" + corto + "\" es " + vistos[corto] + " y también " + club);
+    vistos[corto] = club;
+  });
+});
+assert(P.nombreCorto("Estrella de General Pico", 14) === "GRAL. PICO", "a 14, \"GRAL. PICO\" (vino " + P.nombreCorto("Estrella de General Pico", 14) + ")");
+assert(P.nombreCorto("Capital de Santa Rosa", 14) === "CAP. STA. ROSA", "a 14, \"CAP. STA. ROSA\" (vino " + P.nombreCorto("Capital de Santa Rosa", 14) + ")");
+[13, 12, 11, 10, 9].forEach(tope => {
+  const r = P.nombreCorto("Capital de Santa Rosa", tope);
+  assert(r === "STA. ROSA", "Capital de Santa Rosa a " + tope + ": \"STA. ROSA\" y nunca \"SAN. ROSA\" (vino " + r + ")");
+});
+assert(P.nombreCorto("Atlético Ingeniero Luiggi", 14) === "ING. LUIGGI" && P.nombreCorto("Deportivo Colonia Barón", 14) === "COL. BARÓN",
+  "a 14, \"ING. LUIGGI\" y \"COL. BARÓN\" (vinieron " + P.nombreCorto("Atlético Ingeniero Luiggi", 14) + " y " + P.nombreCorto("Deportivo Colonia Barón", 14) + ")");
+/* un par unido por Y va entero o no va: "CAL MACACHÍN" se lee como otro club */
+assert(P.nombreCorto("Sal y Cal de Macachín", 18) === "SAL Y CAL MACACHÍN", "a 18, \"SAL Y CAL MACACHÍN\" (vino " + P.nombreCorto("Sal y Cal de Macachín", 18) + ")");
+[14, 13].forEach(tope => {
+  const r = P.nombreCorto("Sal y Cal de Macachín", tope);
+  assert(r === "MACACHÍN", "Sal y Cal de Macachín a " + tope + ": la mitad del par sola confunde (vino " + r + ")");
+});
+console.log("[7] nombreCorto: " + CLUBES.length + " clubes a 14 y 18 letras, carteles de ruta, localidad entera, sin repetidos");
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

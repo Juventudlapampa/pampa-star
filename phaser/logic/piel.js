@@ -222,7 +222,8 @@
      Es logica pura y por eso se puede probar contra los 45 clubes del juego
      sin abrir el navegador.
      ══════════════════════════════════════════════════════════════════════ */
-  var CONECTORES = ["DE", "DEL", "LA", "EL", "LOS", "LAS", "Y", "DA"];
+  /* la Y no se saca: "SAL Y CAL" es un nombre, "SAL CAL" no (ver el paso 4) */
+  var CONECTORES = ["DE", "DEL", "LA", "EL", "LOS", "LAS", "DA"];
   /* las de los carteles de ruta ("GRAL. PICO", nunca "GEN. PICO") */
   var ABREVIATURAS = { GENERAL: "GRAL.", INGENIERO: "ING.", SANTA: "STA.", COLONIA: "COL." };
   function nombreCorto(nombre, tope) {
@@ -252,12 +253,16 @@
     }
 
     /* 4 · lo ultimo: las palabras enteras que entren, priorizando la ULTIMA
-       (la localidad). Si ni la ultima sola entra, ahi si se corta. */
+       (la localidad). Si ni la ultima sola entra, ahi si se corta. Un par
+       unido por Y entra entero o no entra: a 14 letras "Sal y Cal de
+       Macachin" daba "CAL MACACHIN", que se lee como otro club. */
     var ultima = sinCon[sinCon.length - 1];
     if (ultima.length > tope) return ultima.slice(0, tope);
     var out = ultima;
     for (var k = sinCon.length - 2; k >= 0; k--) {
-      var abrev = ABREVIATURAS[sinCon[k]] || (sinCon[k].length > 4 ? sinCon[k].slice(0, 3) + "." : sinCon[k]);
+      var abrev;
+      if (k >= 2 && sinCon[k - 1] === "Y") { abrev = sinCon.slice(k - 2, k + 1).join(" "); k -= 2; }
+      else abrev = ABREVIATURAS[sinCon[k]] || (sinCon[k].length > 4 ? sinCon[k].slice(0, 3) + "." : sinCon[k]);
       if ((abrev + " " + out).length > tope) break;
       out = abrev + " " + out;
     }
