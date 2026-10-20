@@ -568,7 +568,9 @@
     "vol_sigue": 0.7,
     "ata_descuelga": 120,
     "ata_baja": 140,
-    "ata_abre": 70
+    "ata_abre": 70,
+    "corre_linea": 0.5,
+    "_corre_linea": "20/oct: cuánto se corre cada línea hacia la altura de la pelota (0 = cada uno en el medio de su franja, 1 = la línea entera a la altura de la pelota). Cada jugador queda siempre adentro de su franja, así que dos de la misma línea no se pisan. Antes iban a la altura de la pelota recortada a su franja y los de dos franjas vecinas caían en el mismo punto (medido: distancia 0, casi dos pares por latido)."
   },
   "jugadon": {
     "_doc": "Pedido de Rodri del 17/oct · LOS CRUCES DEL GAMBETA-TIRO: la corrida en profundidad (vel_avance, vel_lateral, meta_d, contacto_d, contacto_lx, vel_rival_lat) se fue con la corrida. Cada rival es una viñeta: te sale al cruce, elegís por dónde lo pasás, y corte seco al resultado. paso_ms = cuánto queda en pantalla la viñeta de lo dejaste atrás antes del rival siguiente o del remate; caida_ms = cuánto queda la de te la sacó antes de volver al partido. Las dos pasan por msV (la velocidad rápida las acorta).",

@@ -206,11 +206,21 @@
     var empuje = (st.pelota.x - st.W / 2);
     var IA = bal.ia || {};
     function moverPosicional(j, esMio, i) {
-      var tx, ty;
+      var tx;
+      /* 20/oct, Rodri: "se ven amontonados". Medido en node (600 latidos
+         de un partido con crearPartido y tick): dos de la misma línea uno
+         ENCIMA del otro casi dos veces por latido, a distancia 0. Era la altura: cada
+         uno iba a la de la pelota recortada a su franja, y con la pelota en
+         y=340 el de la franja de arriba se pegaba a su borde de abajo y el de
+         la de abajo a su borde de arriba, que es el mismo punto. Ahora la
+         línea entera se corre hacia la pelota (balance.ia.corre_linea) y cada
+         uno se queda en su franja, a una franja del de al lado. */
+      var mitad = (j.banda[0] + j.banda[1]) / 2;
+      var ty = clamp(mitad + (st.pelota.y - st.H / 2) * (IA.corre_linea != null ? IA.corre_linea : 0.5), j.banda[0], j.banda[1])
+        + Math.sin(st._t * 0.003 + j.idle) * 3;
       if (IA.v8 === false || (j.pos !== "DEF" && j.pos !== "VOL" && j.pos !== "ATA")) {
         var el = P.elasticidad[j.pos] != null ? P.elasticidad[j.pos] : 0.4;
         tx = clamp(j.ax + empuje * el, 20, st.W - 20);
-        ty = clamp(st.pelota.y, j.banda[0], j.banda[1]) + Math.sin(st._t * 0.003 + j.idle) * 3;
       } else {
         var ataco = esMio ? (st.posesion === "mia") : (st.posesion === "rival");
         /* coordenadas DE EQUIPO: adelante = hacia el arco rival (espejo limpio) */
@@ -237,7 +247,6 @@
           else txE = Math.max(axE - (IA.ata_baja || 140), st.W * 0.42);
         }
         tx = clamp(eq(txE), 20, st.W - 20);
-        ty = clamp(st.pelota.y, j.banda[0], j.banda[1]) + Math.sin(st._t * 0.003 + j.idle) * 3;
         if (j.pos === "ATA" && ataco) {
           var abre = (i % 2 === 0 ? -1 : 1) * (IA.ata_abre || 70);   // se ofrecen a las bandas
           ty = clamp(ty + abre, j.banda[0], j.banda[1]);
