@@ -83,7 +83,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.personajes.forEach((p, i) => {
       const r = this.add.rectangle(tx0, 80, tw, 36, 0x0d2a18, 1).setStrokeStyle(2, 0xf6c11d, 0.7).setInteractive({ useHandCursor: true });
       const t = this.add.text(tx0, 80,(i === 0 ? "★ " : "♥ ") + p.nombre.toUpperCase(), { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
-      r.on("pointerdown", () => { this.sel = i; this.refrescar(); });
+      r.on("pointerdown", () => { const S = window.PampaSFX; if (S && S.ui) S.ui("mover"); this.sel = i; this.refrescar(); });
       this.tabs.push({ r, t });
       tx0 += tw + 8;
     });
@@ -178,7 +178,8 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     }
 
     /* ---- abajo: guardar + a la cancha ---- */
-    const btn = (x, w, texto, bg, cb) => {
+    const btn = (x, w, texto, bg, accion) => {
+      const cb = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("confirmar"); accion(); };
       const r = this.add.rectangle(x, H - 40, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       this.add.text(x, H - 40, texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
       r.on("pointerdown", cb);
@@ -247,6 +248,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     return true;
   }
   mover(campo, d) {
+    /* 20/oct, Rodri: cambiar la pinta no sonaba. Suena como el cursor del
+       resto del juego, más agudo hacia adelante y más grave hacia atrás */
+    const S = window.PampaSFX; if (S && S.ui) S.ui(d > 0 ? "abrir" : "cerrar");
     const A = window.PampaAvatar;
     const p = this.personajes[this.sel];
     /* V7 §0.2 (v2): los TINTES son opcionales — ciclan n+1 valores con el 0 =
