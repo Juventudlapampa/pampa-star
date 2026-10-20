@@ -367,6 +367,17 @@
     jugadonPintarDefensores() { /* V8 C: los rivales viven en updateJugadonMini */ },
     jugadonPintarOpciones() { /* V8 C: las movidas aparecen SOLO en el duelo */ },
 
+    /* El súper quite y el resultado del súper tiro lo usan. La corrida del
+       17/oct lo borró y el súper quite se colgaba (llamadas_existen.test.js). */
+    avisoJugadon(texto, color) {
+      /* uno por vez: si se apilaban, el de la jugada anterior tapaba al nuevo */
+      if (this._jgAviso && this._jgAviso.destroy) this._jgAviso.destroy();
+      var t = this.add.text(W / 2, 250, texto, { fontFamily: window.PF.display, fontSize: "22px", color: "#" + color.toString(16).padStart(6, "0"), stroke: "#0a1f13", strokeThickness: 4, align: "center", wordWrap: { width: 760 } }).setOrigin(0.5).setScale(0.3);
+      this.cineContent.add(t);
+      this._jgAviso = t;
+      this.tweens.add({ targets: t, scale: 1, duration: 260, ease: "Back.easeOut" });
+    },
+
     /* ============ EL SÚPER QUITE (2 fichas) ============ */
     entrarJugadonQuite() {
       var st = this.st, J = window.PampaJugadon, self = this;
