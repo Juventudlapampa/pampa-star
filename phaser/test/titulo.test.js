@@ -27,12 +27,14 @@ var BAL = JSON.parse(leer("phaser/data/balance.json"));
     "de fábrica: volúmenes al tope (la mezcla medida), FOLKLORE e INTERMEDIO");
   var est = O.estilos(BAL, JSON.parse(leer("data/audio.json")));
   assert(est.map(function (e) { return e.n; }).join() === "FOLKLORE,CUARTETO,ROCK,RAP", "la perilla lista los cuatro estilos en orden (" + est.map(function (e) { return e.n; }).join() + ")");
-  assert(est.filter(function (e) { return e.disponible; }).map(function (e) { return e.k; }).join() === "folklore", "hoy solo FOLKLORE tiene temas");
+  assert(est.filter(function (e) { return e.disponible; }).map(function (e) { return e.k; }).join() === "folklore,cuarteto,rock,rap", "desde el 20/oct los cuatro estilos traen el tema del partido y se pueden elegir");
   var raro = O.sanear({ musica: 11, efectos: -1, estilo: "rock", duracion: "eterno" }, BAL, null);
   assert(raro.musica === 10 && raro.efectos === 10 && raro.estilo === "folklore" && raro.duracion === "intermedio",
     "valores fuera de rango, un estilo sin temas y una duración que no existe vuelven a fábrica");
-  var conRock = O.sanear({ estilo: "rock", musica: 3 }, BAL, { estilos: { rock: { opening: { archivo: "x.ogg" } } } });
-  assert(conRock.estilo === "rock" && conRock.musica === 3, "con un tema de ROCK en audio.json, ROCK se puede elegir (el lote de música solo suma temas)");
+  var sinPartido = O.sanear({ estilo: "rock", musica: 3 }, BAL, { estilos: { rock: { opening: { archivo: "x.ogg" } } } });
+  assert(sinPartido.estilo === "folklore" && sinPartido.musica === 3, "un ROCK sin tema del partido no se puede elegir: es el que cubre los momentos que el estilo no tiene");
+  var conRock = O.sanear({ estilo: "rock", musica: 3 }, BAL, { estilos: { rock: { partido: { archivo: "x.ogg" } } } });
+  assert(conRock.estilo === "rock" && conRock.musica === 3, "con el tema del partido de ROCK en audio.json, ROCK se puede elegir (el lote de música solo suma temas)");
   var store = {};
   var ls = { getItem: function (k) { return store[k] == null ? null : store[k]; }, setItem: function (k, v) { store[k] = String(v); }, removeItem: function (k) { delete store[k]; } };
   store[O.CLAVE] = "{roto";
@@ -145,6 +147,21 @@ function centro(s, texto) {
   assert(Z.s.op.musica === 7 && Z.s.op.duracion === "largo", "al volver a abrir el juego, las opciones siguen");
   Z.s.partidoRapido();
   assert(Z.A.registry.get("partidoRapido").tempo === "largo", "y el partido rápido juega con la duración elegida");
+
+  /* con data/audio.json en el registro (como en el juego): ► en ESTILO elige
+     CUARTETO, lo guarda y vuelve a registrar la música con el estilo nuevo */
+  var E = armarTitulo();
+  E.A.registry.set("audio", JSON.parse(leer("data/audio.json")));
+  var registros = [];
+  E.s.registrarMusicaGlobal = function (forzar) { registros.push(forzar); };
+  E.s.vistaOpciones();
+  assert(E.s.textos().indexOf("próximamente") < 0, "con los temas del 20/oct ningún estilo dice próximamente");
+  E.s._fila = 3; E.sonidos.length = 0; E.s.teclas("RIGHT");
+  assert(JSON.parse(E.A.store[O.CLAVE]).estilo === "cuarteto" && E.s.textos().indexOf("✔ CUARTETO") >= 0 && registros.join() === "true" && E.sonidos.join() === "confirmar",
+    "► en ESTILO: CUARTETO, guardado, con su sonido y la música registrada de nuevo (" + E.sonidos.join() + ")");
+  var cr = centro(E.s, "RAP");
+  E.s.tocar(cr[0], cr[1]);
+  assert(JSON.parse(E.A.store[O.CLAVE]).estilo === "rap" && registros.length === 2, "tocar RAP lo elige y vuelve a registrar la música");
   console.log("[3] JUGAR CARRERA (dedo), PARTIDO RÁPIDO (teclado), OPCIONES (las seis filas, guardadas)");
 })();
 

@@ -8,7 +8,7 @@
 
      musica, efectos   volumen de 0 a NIVELES (10 = la mezcla medida de
                        audio/sfx.js tal cual; menos, la atenúa)
-     estilo            una clave de balance.musica.estilos que tenga temas
+     estilo            una clave de balance.musica.estilos con tema del partido
      duracion          una clave de balance.tempo.presets (la del partido
                        rápido y la que la carrera nueva trae marcada)
 
@@ -34,12 +34,13 @@
   }
 
   /* los estilos de la perilla, con `disponible`: el de fábrica siempre; los
-     demás cuando data/audio.json trae algún tema suyo en estilos[k] */
+     demás cuando data/audio.json trae el tema del partido en estilos[k]: es
+     el que suena en todo momento que el estilo no tenga (logic/musica.js) */
   function estilos(bal, audio) {
     var def = estiloPorDefecto(bal);
     return bal.musica.estilos.map(function (e) {
       var temas = audio && audio.estilos && audio.estilos[e.k];
-      var tiene = !!temas && Object.keys(temas).some(function (id) { return id.charAt(0) !== "_"; });
+      var tiene = !!(temas && temas.partido && temas.partido.archivo);
       return { k: e.k, n: e.n, d: e.d || "", disponible: e.k === def || tiene };
     });
   }

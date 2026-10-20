@@ -313,5 +313,44 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   console.log("    0 desconocidos · 0 mudos · 0 llamadas por atrás · 0 mapas paralelos · sintetizador retirado");
 })();
 
+/* ---------- [8] LOS ESTILOS DE OPCIONES SUENAN ENTEROS ---------- */
+(function () {
+  /* 20/oct: cuarteto, rock y rap traen dos temas cada uno (partido y semana).
+     Un momento que el estilo no tiene suena el partido del mismo estilo, nunca
+     el FOLKLORE: un tema de otro estilo en medio suena a error. */
+  var O = require(path.join(RAIZ, "phaser/logic/opciones.js"));
+  var BAL = JSON.parse(fs.readFileSync(path.join(RAIZ, "phaser/data/balance.json"), "utf8"));
+  var B = "../assets/musica/";
+  var folklore = Object.keys(A.temas).filter(function (k) { return A.temas[k] && A.temas[k].archivo; }).map(function (k) { return B + A.temas[k].archivo; });
+  var estilos = Object.keys(A.estilos).filter(function (k) { return k.charAt(0) !== "_"; });
+  assert(estilos.join() === "cuarteto,rock,rap", "audio.json trae cuarteto, rock y rap (" + estilos.join() + ")");
+  var habilitados = O.estilos(BAL, A).filter(function (e) { return e.disponible; }).map(function (e) { return e.k; });
+  estilos.forEach(function (k) {
+    var E = A.estilos[k];
+    assert(habilitados.indexOf(k) >= 0, k + " trae el tema del partido: OPCIONES lo deja elegir");
+    Object.keys(E).forEach(function (id) {
+      var f = E[id].archivo;
+      assert(/^[a-z]+_[a-z]+_loop\.ogg$/.test(f) && fs.existsSync(path.join(RAIZ, "assets/musica", f)), k + "." + id + ": " + f + " existe, en ASCII");
+      assert(MUS.MOMENTOS[id] || Object.keys(MUS.MOMENTOS).some(function (m) { return MUS.MOMENTOS[m].tema === id; }), k + "." + id + " es un id de tema que algún momento pide");
+    });
+    [0, 1].forEach(function (fecha) {
+      var mapa = MUS.mapaCompleto(A, fecha, B, k);
+      var momentos = MUS.lista().filter(function (m) { return m !== "silencio"; });
+      var mudos = momentos.filter(function (m) { return !mapa[m]; });
+      var mezclados = momentos.filter(function (m) { return mapa[m] && folklore.indexOf(mapa[m].archivo) >= 0; });
+      assert(mudos.length === 0, k + ", fecha " + fecha + ": estos momentos quedan mudos: " + mudos.join(", "));
+      assert(mezclados.length === 0, k + ", fecha " + fecha + ": estos momentos suenan FOLKLORE en medio de " + k + ": " + mezclados.join(", "));
+      assert(mapa.partido.archivo === B + E.partido.archivo && mapa.semana.archivo === B + E.semana.archivo && mapa.espera.archivo === B + E.espera.archivo,
+        k + ", fecha " + fecha + ": partido, semana y espera son los suyos (la alternancia por fecha no lo saca del estilo)");
+      assert(["entrada", "partido_final", "definicion", "jugadon", "opening", "hype", "gol_festejo", "derrota"].every(function (m) { return mapa[m].archivo === B + E.partido.archivo && mapa[m].loop; }),
+        k + ", fecha " + fecha + ": lo que el estilo no trae suena el partido del mismo estilo, en loop");
+    });
+  });
+  var fol = MUS.mapaCompleto(A, 0, B, "folklore");
+  assert(MUS.lista().every(function (m) { return !fol[m] || folklore.indexOf(fol[m].archivo) >= 0; }) && fol.partido.archivo === B + A.temas.partido.archivo,
+    "FOLKLORE sigue sonando lo de audio.json → temas");
+  console.log("[8] cuarteto, rock y rap: 6 archivos, elegibles, sin un momento mudo ni uno en FOLKLORE, en las dos fechas");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

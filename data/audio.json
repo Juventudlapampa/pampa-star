@@ -88,6 +88,24 @@
    "_nota_nombres": "X1 (20/ago/2026): el archivo se llamaba Fuerza_de_un_León.ogg, con o acentuada. En disco y en git el nombre estaba bien (UTF-8), pero al DESCOMPRIMIR EL ZIP EN WINDOWS salia como Fuerza_de_un_Le#U00f3n.ogg — el zip no marca el flag UTF-8 y el Explorador lo reescribe. Entonces audio.json no lo encontraba y ese tema no podia sonar. Renombrado a ASCII. REGLA: ningun archivo del proyecto usa acentos ni caracteres no ASCII en el nombre; los acentos en rutas web traen este problema y otros peores (URL-encoding, servidores que normalizan distinto, Git en macOS con NFD). Lo verifica m_musica.test.js."
   }
  },
+ "estilos": {
+  "_doc": "20/oct, los estilos de OPCIONES (balance.musica.estilos). Cada estilo trae sus temas con los mismos ids de 'temas'. Un momento que el estilo no tenga suena el tema base del momento (de semana_alt pasa a semana) y, si tampoco está, el 'partido' del mismo estilo: nunca el FOLKLORE de 'temas' en medio de otro estilo (logic/musica.js, mapaCompleto). Un estilo se puede elegir cuando trae 'partido' (logic/opciones.js). Los seis salieron de Gemini, 'Crear música', instrumental, una conversación por tema; los cortes, los prompts y la licencia [FALTA DATO] están en .claude/nuevos/musica/LEEME.txt, sección del 20/10/2026. Mismo formato que los de 'temas': Opus 48 kHz estéreo 96k, -16,0 LUFS.",
+  "cuarteto": {
+   "partido": { "archivo": "cuarteto_partido_loop.ogg", "loop": true, "n": "El partido (cuarteto)", "_corte": "16 compases a 138,7 por minuto = 27,69 s." },
+   "semana": { "archivo": "cuarteto_semana_loop.ogg", "loop": true, "n": "La semana (cuarteto)", "_corte": "24 compases a 110 por minuto = 52,38 s." },
+   "espera": { "archivo": "cuarteto_semana_loop.ogg", "loop": true, "n": "La espera (cuarteto)", "_comparte": "el de la semana: la generación trajo dos temas por estilo y el de la semana es también el del menú. Mismo archivo, mismo elemento: de la tabla a la semana sigue sin cortarse." }
+  },
+  "rock": {
+   "partido": { "archivo": "rock_partido_loop.ogg", "loop": true, "n": "El partido (rock)", "_corte": "16 compases a 160 por minuto = 24,00 s." },
+   "semana": { "archivo": "rock_semana_loop.ogg", "loop": true, "n": "La semana (rock)", "_corte": "16 compases a 85 por minuto = 45,18 s. El empalme más flojo de los seis (similitud 0,828) y un tramo unos 2,5 dB más bajo adentro." },
+   "espera": { "archivo": "rock_semana_loop.ogg", "loop": true, "n": "La espera (rock)", "_comparte": "el de la semana, como en cuarteto" }
+  },
+  "rap": {
+   "partido": { "archivo": "rap_partido_loop.ogg", "loop": true, "n": "El partido (rap)", "_corte": "20 compases a 93 por minuto = 51,57 s." },
+   "semana": { "archivo": "rap_semana_loop.ogg", "loop": true, "n": "La semana (rap)", "_corte": "16 compases a 84 por minuto = 45,71 s." },
+   "espera": { "archivo": "rap_semana_loop.ogg", "loop": true, "n": "La espera (rap)", "_comparte": "el de la semana, como en cuarteto" }
+  }
+ },
  "_reglas": {
   "corte_al_terminar": "La música del partido para al terminar y NO sigue en la pantalla de final.",
   "cambio_sin_silencio": "Al pasar de un momento a otro, fundir 300ms en vez de cortar seco, salvo en el gol donde el silencio previo es el efecto.",
