@@ -120,6 +120,19 @@ const quieto = jugada(6);
 while (!quieto.fin) T.paso(quieto, DT, null);
 assert(quieto.fin.motivo === "se_paso" && quieto.fin.calidad === 0, "si no le pegás, se pasa");
 assert(T.textoDeContacto(quieto.fin, C) === "la dejaste pasar", "y se dice");
+/* revisión del 20/oct: sin tocarla salía gol 47 de cada 100 contra la Primera B */
+const Duel = require(path.join(__dirname, "..", "logic", "duel.js"));
+const pifia = { contacto: false, calidad: 0, tecnica: "remate", pie: "habil", motivo: "pifia", bola: { z: 2 } };
+let golesSin = 0;
+[pifia, quieto.fin].forEach(function (res) {
+  const z = T.zonaDeContacto(res, C), rr = T.rng(77);
+  for (let i = 0; i < 3000; i++) {
+    const r = Duel.resolveShot({ rng: rr, shotPower: 70, keeperSkill: 40, zone: z, cfg: BAL.duelo, distancia: 120, tiro: BAL.tiro });
+    if (r.outcome === "gol") golesSin++;
+  }
+});
+assert(golesSin === 0, "pifiar o dejarla pasar nunca es gol (" + golesSin + " de 6000)");
+assert(T.zonaDeContacto(quieto.fin, C).dice !== T.zonaDeContacto(pifia, C).dice, "se_paso y pifia no dicen lo mismo");
 const g1 = T.pegar(jugada(9)), e9 = jugada(9); T.pegar(e9);
 assert(g1 && T.pegar(e9) === null, "un solo golpe por jugada");
 let mono = true, prev = -99;

@@ -170,6 +170,11 @@
 
   /* el contacto, traducido a la zona que ya entiende duel.resolveShot */
   function zonaDeContacto(res, cfg) {
+    /* sin tocarla no hay gol: la pifia y la que se pasa van por su zona */
+    if (res.contacto === false) {
+      var sc = cfg.sin_contacto;
+      return { id: sc.id, n: sc.n, dice: res.motivo === "se_paso" ? sc.dice_se_paso : sc.dice, bonus: sc.bonus, fuera: sc.fuera, gy: 0 };
+    }
     var z = cfg.zonas[cfg.zonas.length - 1];
     for (var i = 0; i < cfg.zonas.length; i++) if (res.calidad >= cfg.zonas[i].q) { z = cfg.zonas[i]; break; }
     var tec = res.tecnica ? cfg.tecnicas[res.tecnica] : null, otro = res.pie === "otro";

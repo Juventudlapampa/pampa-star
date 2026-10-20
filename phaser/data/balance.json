@@ -1043,13 +1043,22 @@
       {
         "q": 0,
         "id": "medio",
-        "n": "pifiada",
-        "dice": "¡LA PIFIASTE!",
+        "n": "al medio, sin fuerza",
+        "dice": "¡SIN FUERZA!",
         "bonus": -8,
         "fuera": 0.35,
         "gy": 0
       }
-    ]
+    ],
+    "sin_contacto": {
+      "_nota": "Revisión del 20/oct: pifiar o dejarla pasar salía gol 47 de cada 100. Sin contacto no hay gol: fuera 1 manda afuera lo que le ganaba al arquero, y lo otro lo agarra o lo saca al córner.",
+      "id": "pifia",
+      "n": "pifiada",
+      "dice": "¡LA PIFIASTE!",
+      "dice_se_paso": "¡SE TE PASÓ!",
+      "bonus": -8,
+      "fuera": 1
+    }
   },
   "flags": {
     "a3_bloqueo": true,
