@@ -538,7 +538,7 @@
   "tipografia": {
     "_nota": "V8 F + TANDA DE PIEL: EL SISTEMA TIPOGRÁFICO, todo desde acá. display = resultado, minuto, títulos de escena y nombres de jugada; texto = cuerpo y datos. stroke_display/stroke_texto = grosor del contorno (0 = sin contorno). sombra = {x,y,blur,color,alpha} o null. letras = espaciado normal (px); el de las MAYÚSCULAS sale de piel.tracking_mayus (em). Cambiá acá y recargá: no hay que tocar código.",
     "display": "'Archivo Black','Pixelify Sans',sans-serif",
-    "texto": "'Pixelify Sans','VT323',monospace",
+    "texto": "'VT323',monospace",
     "stroke_display": 0,
     "stroke_texto": 0,
     "stroke_color": "#0a1f13",

@@ -42,18 +42,18 @@
      Familias configurables en balance.json → tipografia. */
   @font-face{font-family:'Press Start 2P';src:url('../assets/fonts/PressStart2P-Regular.ttf') format('truetype');font-display:swap;}
   @font-face{font-family:'Pixelify Sans';src:url('../assets/fonts/PixelifySans-Regular.ttf') format('truetype');font-display:swap;}
-  /* En Pixelify el 5 se lee S, el 8 y la B son iguales, la E parece un 3 y la tilde
-     un guion (revisión del 17/oct). Esos signos salen de VT323, agrandada para
-     que calce con la altura de Pixelify. Va después: con rangos que se pisan,
-     manda la última cara declarada. */
-  @font-face{font-family:'Pixelify Sans';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');unicode-range:U+30-39,U+42,U+45,U+7E;size-adjust:140%;font-display:swap;}
-  @font-face{font-family:'VT323';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');font-display:swap;}
+  /* TEXTO = VT323 desde el 20/oct. En Pixelify, medido a 13 y 18 px, la C y la O
+     difieren en 2 a 9% de sus pixeles, la c y la o en 6 a 12%, la a y la o en
+     6 a 10% y el 0 y la O en 0%: "Carrizo" se leía "Oarrizo". En VT323 ningún
+     par baja de 30%. Al 125% ocupa el mismo ancho que Pixelify al mismo tamaño
+     (839 contra 836 px en una frase de prueba), así que no se mueve el armado. */
+  @font-face{font-family:'VT323';src:url('../assets/fonts/VT323-Regular.ttf') format('truetype');size-adjust:125%;font-display:swap;}
   /* TANDA DE PIEL P3: las dos candidatas de DISPLAY, pesadas y anchas. Cuál se
      usa lo decide balance.tipografia.display — están las dos cableadas. */
   @font-face{font-family:'Archivo Black';src:url('../assets/fonts/ArchivoBlack-Regular.ttf') format('truetype');font-display:swap;}
   @font-face{font-family:'Bowlby One';src:url('../assets/fonts/BowlbyOne-Regular.ttf') format('truetype');font-display:swap;}
   html,body{margin:0;height:100%;background:#06120b;overflow:hidden;
-    font-family:'Pixelify Sans','VT323',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
+    font-family:'VT323',ui-monospace,monospace;color:#f6efdc;-webkit-tap-highlight-color:transparent;}
   /* EL ATRÁS Y LOS GESTOS (tanda 1.0, L04). Phaser cancela el toque solo
      cuando el blanco es el lienzo ("e.capture&&t.cancelable&&t.target===s&&
      t.preventDefault()" en vendor/phaser.min.js): las bandas negras de
@@ -73,7 +73,7 @@
      editor, en la intro y también arriba del "Girá el celular" (50) */
   #atras-aviso{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;max-width:90vw;box-sizing:border-box;
     background:#0A1F13;color:#F6EFDC;border:3px solid #F5C400;border-radius:10px;padding:10px 18px;
-    font-family:'Pixelify Sans','VT323',ui-monospace,monospace;font-size:18px;text-align:center;pointer-events:none;}
+    font-family:'VT323',ui-monospace,monospace;font-size:18px;text-align:center;pointer-events:none;}
   #atras-aviso[hidden]{display:none;}
   /* ?perf=1 (L05): cuánto vino de la red en la sesión. Es para medir, no
      para quien juega: chico, abajo a la izquierda y sin tomar toques. */
@@ -195,7 +195,7 @@
      vertical también se puede pegar. La arma scenes/master.js (cajaDeTexto). */
   #cajacodigo{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
     background:rgba(6,18,11,.9);padding:12px;box-sizing:border-box;overflow:auto;
-    font-family:"Pixelify Sans",system-ui,sans-serif;color:#F6EFDC;}
+    font-family:'VT323',ui-monospace,monospace;color:#F6EFDC;}
   #cajacodigo .caja{max-width:640px;width:100%;max-height:100%;overflow:auto;box-sizing:border-box;
     background:#0A1F13;border:3px solid #F5C400;border-radius:12px;padding:14px 18px;text-align:center;}
   #cajacodigo h1{margin:0 0 6px;font-size:20px;color:#FFD84D;font-weight:normal;}
@@ -512,7 +512,7 @@
      de sw.js: informe.test.js lo controla. Se sube junto con la de sw.js en
      CADA publicación que toque phaser/, para que el informe diga de qué build
      viene. Subirla ya no barre el caché de assets (eso es CACHE, en sw.js). */
-  window.PAMPA_VERSION = "v18e-1.0-claro";
+  window.PAMPA_VERSION = "v18f-1.0-claro";
   (function () {
     "use strict";
     var R = window.PampaRed = {
@@ -1554,7 +1554,7 @@
      leen en runtime). El balance puede pisarlas (tipografia.display/texto). */
   window.PF = {
     display: "'Pixelify Sans','Press Start 2P',monospace",
-    texto: "'Pixelify Sans','VT323',monospace",
+    texto: "'VT323',monospace",
     strokeDisplay: 0, strokeTexto: 0, strokeColor: "#0a1f13",
     sombra: { x: 2, y: 2, blur: 0, color: "#0a1f13", alpha: 0.55 }, letras: 1
   };
@@ -1973,7 +1973,7 @@
     definicion:{def_acercan_px_s:34,contacto_px:34,jugador_px_s:160,angulo_peso:16,zona_timing:0.2,dulce_bonus:8,floja_penal:22,pasada_fuera_mult:1.6,pasada_fuera_max:0.55,coincide:55,a_una:10,a_dos:-25,bloqueo_base:0.18,bloqueo_radio:120,bloqueo_cercania:0.25,bloqueo_max:0.6,achicar_bonus:14,achicar_vendido:18,carga_ms:4200},
     tempo:{minutos_por_momento:2.2,tramo_seg:15,goteo_seg_por_minuto:8,presets:{relampago:5,intermedio:2.2,largo:1.2},duracion_real_min:10},
     piel:{"_nota":"TANDA DE PIEL (7/ago): LA PALETA, en un solo lugar. Antes los ~250 tonos de marco estaban a mano en 9 archivos. OJO: el VERDE DE LA CANCHA no vive acá — el pasto es campo de juego, no marco, y no se toca desde este bloque.","fondo_centro":"#14301F","fondo_borde":"#060F0A","caja":"#0A1F13","marco":"#0E2A1A","acento":"#F5C400","calido":"#FF6B4A","texto":"#F6EFDC","texto_apagado":"#9FB3A5","_boton":"P2 · el CUERPO del botón: canto = capa sólida del propio color oscurecido canto_oscurece, a canto_px abajo; sombra difusa negra a sombra_alpha. Al presionar el botón baja hunde_px y el canto se achica eso mismo.","canto_px":7,"canto_oscurece":0.3,"sombra_alpha":0.45,"sombra_dy":6,"sombra_blur":10,"radio_caja":10,"hunde_px":4,"_tracking":"P4 · las MAYÚSCULAS llevan aire. tracking_mayus va en em y se aplica solo a los textos que están todos en mayúscula (el resto usa tipografia.letras).","tracking_mayus":0.16,"_escala":"P5 · los tamaños del HUD escalan con el ancho real de pantalla entre esc_min y esc_max. Con Scale.FIT el ancho lógico es fijo (960), así que esto sirve para la vista elevada y para pantallas futuras: el corte de ENVIÓN/AGUANTE se arregló acomodando la maqueta, no escalando.","esc_min":0.85,"esc_max":1.15},
-    tipografia:{display:"'Archivo Black','Pixelify Sans',sans-serif",texto:"'Pixelify Sans','VT323',monospace",stroke_display:0,stroke_texto:0,stroke_color:"#0a1f13",sombra:{x:2,y:2,blur:0,color:"#0a1f13",alpha:0.55},letras:1},
+    tipografia:{display:"'Archivo Black','Pixelify Sans',sans-serif",texto:"'VT323',monospace",stroke_display:0,stroke_texto:0,stroke_color:"#0a1f13",sombra:{x:2,y:2,blur:0,color:"#0a1f13",alpha:0.55},letras:1},
     pulso:{latido_ms:440,dt_ms:300},
     jugadon:{vel_jugador:320,vel_rival:118,contacto:78,meta_y:110},
     ia:{def_colchon:60,def_apoyo:90,vol_sigue:0.7,ata_descuelga:120,ata_baja:140,ata_abre:70},

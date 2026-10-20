@@ -6,8 +6,8 @@ anda offline). Familias y uso configurables en `phaser/data/balance.json → tip
 | Rol | Fuente | Archivo | Uso |
 |---|---|---|---|
 | **DISPLAY** | Press Start 2P | `PressStart2P-Regular.ttf` | Títulos, botones, nombres en duelos, "TOCÁ PARA EMPEZAR", marcador |
-| **TEXTO** | Pixelify Sans | `PixelifySans-Regular.ttf` | Relator, descripciones, tabla, cuerpo (pixel redondeada con peso — V8 §5) |
-| reserva | VT323 | `VT323-Regular.ttf` | Alternativa de cuerpo (cambiable en balance → tipografia) |
+| **TEXTO** | VT323 | `VT323-Regular.ttf` | Relator, descripciones, tabla, cuerpo. Al 125% (`size-adjust`) ocupa lo mismo que Pixelify |
+| reserva | Pixelify Sans | `PixelifySans-Regular.ttf` | Respaldo del DISPLAY. Dejó de ser TEXTO el 20/oct: C y O, c y o, a y o, 0 y O casi iguales a 13 px |
 
 **Acentos verificados EN PANTALLA (V8 §5):** á é í ó ú ñ ¿ ¡ renderizados y
 comparados por bitmap en las tres fuentes — todas los dibujan bien. El fix
@@ -39,7 +39,5 @@ https://openfontlicense.org
 Los TTF se descargaron del repositorio oficial de Google Fonts (directorio
 `ofl/`). Uno solo está modificado: a `PixelifySans-Regular.ttf` se le vació la
 función `liga` (17/oct), porque dibujaba "fi" y "fl" como una A. La OFL
-permite modificar y Pixelify Sans no tiene nombre reservado. Los números, la
-B, la E y la tilde de los textos en Pixelify salen de VT323 (ver el
-`@font-face` con `unicode-range` en `phaser/index.html`). Si se reemplaza alguna fuente, mantener este README
+permite modificar y Pixelify Sans no tiene nombre reservado. Si se reemplaza alguna fuente, mantener este README
 al día con la licencia de la nueva.
