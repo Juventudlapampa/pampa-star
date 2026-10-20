@@ -345,6 +345,17 @@ function cargarClase(archivo, global) {
   var antes = Object.keys(s5).length;
   s5.barraDeCarga("el partido");
   assert(Object.keys(s5).length === antes, "la barra no escribe campos en la escena (su estado vive en el cierre: P1)");
+  /* revisión del 20/oct: setText sobre el texto destruido tiraba "reading 'cut'" */
+  var s6 = escenaConBarra(clases.match);
+  s6.barraDeCarga("el partido");
+  s6.load.list.size = 3;
+  s6.load.emit("start", s6.load);
+  s6.dibujados.forEach(function (o) { o.destroy(); });
+  s6.load.emit("progress", 0.5);
+  var vivos = s6.dibujados.filter(function (o) { return o.type === "Text" && o.active; });
+  assert(vivos.length === 1 && /50%/.test(vivos[0].texto), "si la escena borró la barra, el avance la arma de nuevo y no escribe en la destruida");
+  s6.events.emit("shutdown");
+  assert(s6.load.cuantos("progress") === 0 && !vivos[0].active, "la escena cortada con el loader andando cierra la barra");
   console.log("[3] intro, editor, master y match escuchan 'progress'; la barra dice \"" + txt.texto + "\" y se va al terminar");
 })();
 

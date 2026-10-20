@@ -633,7 +633,10 @@
       }
       function dibujar(v) {
         var p = Math.max(0, Math.min(1, v || 0)), pct = Math.floor(p * 100);
-        if (!objs) {
+        /* revisión del 20/oct: setText sobre un texto destruido ("reading 'cut'")
+           tiraba el loop; si la escena borró la barra, se arma de nuevo */
+        if (!objs || !objs.txt.active) {
+          if (objs) objs.g.destroy();
           var P = self.piel ? self.piel() : {};
           var txt = self.add.text(480, 248, "", {
             fontFamily: window.PF.display, fontSize: "18px", color: P.texto || "#f6efdc"
@@ -664,12 +667,14 @@
         if (!activa) return;
         activa = false;
         load.off("start", alEmpezar); load.off("progress", alProgreso); load.off("complete", terminar);
+        if (self.events) { self.events.off("create", terminar); self.events.off("shutdown", terminar); }
         if (objs) { objs.txt.destroy(); objs.g.destroy(); objs = null; }
       }
       load.on("start", alEmpezar);
       load.on("progress", alProgreso);
       load.once("complete", terminar);
-      if (this.events && this.events.once) this.events.once("create", terminar);
+      /* la escena cortada con el loader andando también la cierra */
+      if (this.events && this.events.once) { this.events.once("create", terminar); this.events.once("shutdown", terminar); }
       return { terminar: terminar };
     },
 
