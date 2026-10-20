@@ -63,9 +63,12 @@
       var ayuda = this.add.text(18, H - 50, tactil ? "arrastrá para acomodarte · tocá ¡PEGALE! cuando llega" : "mouse o flechas: te acomodás · clic o ESPACIO: le pegás",
         { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0, 0.5);
       [info, tq.lectura, ayuda].forEach(function (o) { self.cineContent.add(o); });
-      this.jugadonBoton(W - 120, H - 34, 200, "¡PEGALE!", 0xffd84d, function () { self.toquePegar(); });
+      /* con mouse el clic pega en cualquier lado: el botón solo atraía al
+         jugador hacia la esquina, lejos de la pelota (revisión del 20/oct) */
+      if (tactil) this.jugadonBoton(W - 120, H - 34, 200, "¡PEGALE!", 0xffd84d, function () { self.toquePegar(); });
 
-      var mover = function (p) { if (self._tq === tq && (!p.wasTouch || p.isDown)) tq.obj = self.toqueAMundo(p.x, p.y); };
+      /* sobre un botón el puntero no es un lugar de la cancha */
+      var mover = function (p, sobre) { if (self._tq === tq && (!p.wasTouch || p.isDown) && !(sobre && sobre.length)) tq.obj = self.toqueAMundo(p.x, p.y); };
       var bajar = function (p) {
         if (self._tq !== tq) return;
         if (p.wasTouch) tq.obj = self.toqueAMundo(p.x, p.y);
