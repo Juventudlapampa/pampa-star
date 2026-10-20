@@ -808,9 +808,234 @@
     "chicas_prefijos": ["d_", "personaje_", "tribuna_", "retrato_"],
     "tope_excepto": ["fondo_tribuna"]
   },
+  "toque": {
+    "_nota": "Playtest de Rodri del 20/oct, punto 5 (logic/toque.js + scenes/toque_ui.js). LA CANCHA del jugadón con el posicionamiento como mecánica: la pelota viene con su curva y su gravedad, te acomodás para que caiga en el pie hábil (o saltás si viene alta) y le pegás en el momento justo. El contacto se traduce a una zona para duel.resolveShot (zonas: bonus y fuera como las de logic/tiro.js). Se prende con flags.toque: el súper tiro y el remate adentro del área (area) pasan por acá; apagado, todo sigue como antes. Medidas en metros y segundos. La volea usa la pose del remate: pose_volea trae pintada una pelota de otro dibujo y las ilustraciones no se tocan.",
+    "cancha": {
+      "L": 12,
+      "D": 5
+    },
+    "area": {
+      "largo_px": 165,
+      "ancho_medio_px": 200
+    },
+    "gravedad": 9.8,
+    "pique": {
+      "rebote": 0.5,
+      "roce": 0.75,
+      "minimo": 0.6
+    },
+    "origenes": [
+      {
+        "id": "atras",
+        "n": "TE LA TIRAN DE ATRÁS",
+        "x": [
+          -0.6,
+          0.2
+        ],
+        "z": [
+          1.5,
+          3.5
+        ],
+        "h": 0.3
+      },
+      {
+        "id": "fondo",
+        "n": "CENTRO DESDE EL FONDO",
+        "x": [
+          10.5,
+          12
+        ],
+        "z": [
+          -0.8,
+          -0.3
+        ],
+        "h": 0.3
+      },
+      {
+        "id": "cerca",
+        "n": "CENTRO DE ESTE LADO",
+        "x": [
+          9.5,
+          11.5
+        ],
+        "z": [
+          5.3,
+          5.8
+        ],
+        "h": 0.3
+      }
+    ],
+    "alturas": [
+      {
+        "p": 0.38,
+        "n": "baja",
+        "h": [
+          0.12,
+          0.45
+        ]
+      },
+      {
+        "p": 0.3,
+        "n": "media",
+        "h": [
+          0.7,
+          1.15
+        ]
+      },
+      {
+        "p": 0.32,
+        "n": "alta",
+        "h": [
+          1.85,
+          2.2
+        ]
+      }
+    ],
+    "llegada": {
+      "x": [
+        4.5,
+        8
+      ],
+      "z": [
+        1.2,
+        3.8
+      ]
+    },
+    "vuelo_s": [
+      1.1,
+      1.5
+    ],
+    "curva_max": 2,
+    "distancia_m": [
+      1.4,
+      3.4
+    ],
+    "reaccion_s": 0.3,
+    "vel_base": 4.6,
+    "vel_stat": 0.025,
+    "vel_cansancio": 0.25,
+    "salto_base": 0.42,
+    "salto_stat": 0.005,
+    "cabeza_m": 1.72,
+    "tecnicas": {
+      "remate": {
+        "pose": "remate",
+        "n": "REMATE",
+        "de": "de primera",
+        "dx": 0.45,
+        "dz": 0.28,
+        "h": [
+          0,
+          0.55
+        ],
+        "tol": 0.55,
+        "swing": 0.1,
+        "bonus": 0,
+        "stat": "tiro"
+      },
+      "volea": {
+        "pose": "remate",
+        "n": "VOLEA",
+        "de": "de volea",
+        "dx": 0.5,
+        "dz": 0.3,
+        "h": [
+          0.55,
+          1.3
+        ],
+        "tol": 0.47,
+        "swing": 0.1,
+        "bonus": 2,
+        "stat": "tiro"
+      },
+      "cabezazo": {
+        "pose": "cabezazo",
+        "n": "CABEZAZO",
+        "de": "de cabeza",
+        "dx": 0.15,
+        "dz": 0,
+        "h_cabeza": [
+          -0.32,
+          0.12
+        ],
+        "tol": 0.44,
+        "swing": 0.3,
+        "bonus": -2,
+        "stat": "aereo"
+      },
+      "chilena": {
+        "pose": "chilena",
+        "n": "CHILENA",
+        "de": "de chilena",
+        "dx": -0.3,
+        "dz": 0,
+        "h": [
+          1,
+          2
+        ],
+        "tol": 0.4,
+        "swing": 0.3,
+        "bonus": 4,
+        "stat": "aereo"
+      }
+    },
+    "chilena_detras": -0.1,
+    "tol_stat": [
+      0.85,
+      0.003
+    ],
+    "peso_altura": 0.8,
+    "pie_otro": {
+      "tol": 0.8,
+      "bonus": -3,
+      "fuera": 0.04
+    },
+    "contacto_max": 1.5,
+    "azar": 0.14,
+    "tope_pasada_s": 0.7,
+    "zonas": [
+      {
+        "q": 0.72,
+        "id": "angulo",
+        "n": "al ángulo",
+        "dice": "¡JUSTA!",
+        "bonus": 7,
+        "fuera": 0.06,
+        "gy": 42
+      },
+      {
+        "q": 0.45,
+        "id": "palo",
+        "n": "al palo",
+        "dice": "¡BIEN PEGADA!",
+        "bonus": 4,
+        "fuera": 0.06,
+        "gy": 34
+      },
+      {
+        "q": 0.18,
+        "id": "medio_alto",
+        "n": "alto al medio",
+        "dice": "MORDIDA",
+        "bonus": -2,
+        "fuera": 0.12,
+        "gy": 12
+      },
+      {
+        "q": 0,
+        "id": "medio",
+        "n": "pifiada",
+        "dice": "¡LA PIFIASTE!",
+        "bonus": -8,
+        "fuera": 0.35,
+        "gy": 0
+      }
+    ]
+  },
   "flags": {
     "a3_bloqueo": true,
     "_toma_remate": "17/oct, pedido de Rodri: las animaciones 3D rompieron el juego. La toma del remate (scenes/toma_remate.js) queda APAGADA: vuelven la viñeta EL REMATE y, en el súper tiro, la carga y el plano del pie. El código sigue, no se borra todavía.",
-    "toma_remate": false
+    "toma_remate": false,
+    "toque": true
   }
 }
