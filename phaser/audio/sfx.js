@@ -83,10 +83,14 @@
   var PASABAJOS_HZ = 4000;
   var ganancia = 1;          // la del efecto que está sonando ahora (ver con())
   var atenua = 1;            // el factor de debajo(): la intro pone sus golpes bajo el tema
+  /* 20/oct · OPCIONES: los volúmenes de quien juega (0 a 1, logic/opciones.js).
+     En 1 suena la mezcla medida tal cual; los efectos escalan el bus entero
+     y la música, el volumen de crucero de los archivos (setVolumenes) */
+  var volEfectos = 1, volMusica = 1;
   function configurarMezcla(cfg) {
     if (!cfg || typeof cfg !== "object") return;
     Object.keys(cfg).forEach(function (k) { if (k.charAt(0) !== "_" && typeof cfg[k] === "number") MEZCLA[k] = cfg[k]; });
-    if (master) master.gain.value = MEZCLA.bus;
+    if (master) master.gain.value = MEZCLA.bus * volEfectos;
   }
   /* corre fn con la ganancia del efecto `nombre`: muestra() la lee */
   function con(nombre, fn) {
@@ -101,7 +105,7 @@
     if (!AC) return null;
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = MEZCLA.bus;
+    master.gain.value = MEZCLA.bus * volEfectos;
     var pb = ctx.createBiquadFilter();
     pb.type = "lowpass"; pb.frequency.value = PASABAJOS_HZ; pb.Q.value = 0.6;
     master.connect(pb);
@@ -319,7 +323,8 @@
   var archivos = {};        // id -> { audio, loop }
   var elementos = [];       // todos los <audio> creados (uno por archivo)
   var archivoSonando = null;
-  var volArchivo = 0.5;     // el volumen "de crucero" de los archivos
+  var volBase = 0.5;        // el de la mezcla (balance.musica.vol_archivo)
+  var volArchivo = 0.5;     // el volumen "de crucero" de los archivos: volBase * volMusica
   var FUNDIDO_MS = 300;
   var DUCK = 0.6;           // "la música baja 40%" (audio.json _reglas)
 
@@ -501,7 +506,8 @@
   }
 
   function registrarArchivos(mapa, volumen) {
-    if (volumen != null) volArchivo = volumen;
+    if (volumen != null) volBase = volumen;
+    volArchivo = volBase * volMusica;
     /* UN ARCHIVO = UN ELEMENTO. definicion, jugadon y partido_final comparten
        pista (Last Ten Seconds); si cada uno tuviera su propio <audio>, entrar
        al pasillo en el minuto 88 REINICIARÍA el tema desde cero en vez de
@@ -738,6 +744,14 @@
       persistirMute();
     },
     isMuted: function () { return muted; },
+    setVolumenes: function (musica, efectos) {
+      volMusica = musica; volEfectos = efectos;
+      volArchivo = volBase * volMusica;
+      if (master) master.gain.value = MEZCLA.bus * volEfectos;
+      var el = archivoSonando;
+      if (el && !el.__saliendo) { detenerRampa(el); try { el.volume = duck.el === el ? volArchivo * DUCK : volArchivo; } catch (e) { } }
+    },
+    volumenes: function () { return { musica: volMusica, efectos: volEfectos }; },
     configurarMezcla: configurarMezcla,
     cargarMuestras: cargarMuestras,
     MUESTRAS: MUESTRAS,

@@ -43,7 +43,8 @@
 
   /* estado: lo que la escena a la vista cuenta de sí (estadoAtras() en cada
      escena; index.html completa `escena` con la clave de Phaser):
-       { escena: "match" | "master" | "editor" | "intro",
+       { escena: "match" | "master" | "titulo" | "editor" | "intro",
+         vista: la vista del título ("menu" u "opciones"),
          estado: el estado del partido ("LIBRE", "MENU", "PASE", "PAUSA",
                  "FINAL", "DEFINICION"…),
          menuConSalida: el menú abierto del partido se puede cerrar (la cruz
@@ -74,7 +75,9 @@
       if (e.cajaAbierta) return "cerrar_menu";
       return "volver";
     }
-    /* editor, intro, o una pantalla que no se presentó: dos atrás seguidos */
+    /* 20/oct: en OPCIONES vuelve al título; el título mismo pide confirmar */
+    if (e.escena === "titulo" && e.vista === "opciones") return "volver";
+    /* título, editor, intro, o una pantalla que no se presentó: dos atrás seguidos */
     var dentro = typeof ms === "number" && isFinite(ms) && ms >= 0 && ms < ventana;
     return dentro ? "salir" : "confirmar_salida";
   }

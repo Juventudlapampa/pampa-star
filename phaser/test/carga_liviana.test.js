@@ -594,7 +594,7 @@ var HTML = leer("phaser/index.html").replace(/\r\n/g, "\n");
     R4.load();
     assert(R4.regs() === 1, "con un worker que ya controla la página, se registra en \"load\" como antes");
     var srcI = leer("phaser/scenes/intro.js").replace(/\r\n/g, "\n");
-    assert(/window\.PampaRegistrarSW\("espera"\)/.test(srcI) && /salir\(\) \{[\s\S]{0,400}window\.PampaRegistrarSW\(\)/.test(srcI) && /PampaRegistrarSW\(\);\n\s*this\.irA\("editor"\)/.test(srcI),
+    assert(/window\.PampaRegistrarSW\("espera"\)/.test(srcI) && /salir\(\) \{[\s\S]{0,400}window\.PampaRegistrarSW\(\)/.test(srcI) && /PampaRegistrarSW\(\);\n\s*this\.irA\("titulo"\)/.test(srcI),
       "la intro avisa que espera al abrir, y que terminó al salir (o al ir directo al editor)");
     assert(!/se registra en "load", y\n/.test(leer("phaser/sw.js").replace(/\r\n/g, "\n")), "el comentario de sw.js ya no dice que se registra en \"load\"");
     console.log("[6] la cola baja de a 2 sin repetir y frena con la carga de verdad · el editor y el Master bajan lo del partido (" + lista.length + " archivos, " + mb(pesoP) + ", igual a lo que pide su preload) · el worker se registra cuando termina la intro");

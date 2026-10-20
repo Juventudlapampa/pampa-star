@@ -403,17 +403,20 @@
         var sv = JSON.parse(this.crudoDelMaster() || "null");
         fecha = (sv && sv.temporada && sv.temporada.fecha) | 0;
       } catch (e) { }
-      /* si cambio la fecha hay que re-registrar: la alternancia depende de ella */
-      if (MUSICA_REGISTRADA && !forzar && window.__PAMPA_MUSICA_FECHA === fecha) return -1;
       var audio = this.game.registry.get("audio");
       if (!audio) return 0;
       var bal = this.game.registry.get("balance") || {};
+      /* 20/oct: el estilo de OPCIONES (logic/opciones.js) */
+      var estilo = window.PampaOpciones ? window.PampaOpciones.leer(localStorage, bal, audio).estilo : null;
+      /* si cambio la fecha o el estilo hay que re-registrar: la alternancia depende de la fecha */
+      if (MUSICA_REGISTRADA && !forzar && window.__PAMPA_MUSICA_FECHA === fecha && window.__PAMPA_MUSICA_ESTILO === estilo) return -1;
       var vol = (bal.musica && bal.musica.vol_archivo != null) ? bal.musica.vol_archivo : 0.42;
-      var mapa = M.mapaCompleto(audio, fecha, "../assets/musica/");
+      var mapa = M.mapaCompleto(audio, fecha, "../assets/musica/", estilo);
       if (!mapa) return 0;
       var n = S.registrarArchivos(mapa, vol);
       MUSICA_REGISTRADA = true;
       window.__PAMPA_MUSICA_FECHA = fecha;
+      window.__PAMPA_MUSICA_ESTILO = estilo;
       return n;
     },
 

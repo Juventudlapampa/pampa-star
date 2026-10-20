@@ -297,13 +297,13 @@ var resumen = [];
   var titulo = tx.find(function (t) { return /^✗ /.test(t); });
   assert(!!titulo && tx.every(function (t) { return t === titulo || plano(t).indexOf(plano(titulo)) < 0; }),
     "el título (" + titulo + ") no repite la frase de abajo");
-  assert(tx.indexOf("▶ EMPEZAR OTRA") >= 0 && tx.indexOf("✎ VOLVER AL EDITOR") >= 0 && e3.tocables().length === 2, "con EMPEZAR OTRA y VOLVER AL EDITOR");
+  assert(tx.indexOf("▶ EMPEZAR OTRA") >= 0 && tx.indexOf("◀ VOLVER AL MENÚ") >= 0 && e3.tocables().length === 2, "con EMPEZAR OTRA y VOLVER AL MENÚ (pedido de Rodri del 20/oct: la entrada es la pantalla de título)");
   assert(A.localStorage.getItem("pampa_master_v1_corrupta") === cortado, "el texto quedó respaldado tal cual en pampa_master_v1_corrupta");
   assert(A.localStorage.getItem("pampa_master_v1") === cortado, "y el save no se tocó todavía");
-  assert(e3._foco && e3._foco.i === 1, "el cursor arranca en VOLVER AL EDITOR");
+  assert(e3._foco && e3._foco.i === 1, "el cursor arranca en VOLVER AL MENÚ");
   /* VOLVER no borra nada */
   e3.teclas("ENTER");
-  assert(e3._irA.indexOf("editor") >= 0 && A.localStorage.getItem("pampa_master_v1") === cortado, "VOLVER AL EDITOR no toca nada");
+  assert(e3._irA.indexOf("titulo") >= 0 && A.localStorage.getItem("pampa_master_v1") === cortado, "VOLVER AL MENÚ no toca nada");
   /* EMPEZAR OTRA: borra el roto (el respaldo queda) y vuelve a elegir club */
   var e4 = A.nueva(); e4.create();
   A.localStorage.setItem("pampa_master_v1_borrada", "{\"una\":\"carrera borrada antes\"}");

@@ -6,7 +6,7 @@
    Pestañas: VOS + tus 4 AMIGOS del save clásico (si existen). Se guarda
    RETROCOMPATIBLE en pampa_star_v1 (campo nuevo career.avatares; si no hay
    save, va a pampa_star_avatares). La cara elegida es la que aparece en el
-   ZOOM del modo cine. Al terminar: ¡A LA CANCHA! → escena match.
+   ZOOM del modo cine. Al terminar se vuelve a la carrera (o a la entrevista).
    ========================================================================== */
 window.PampaEditor = class PampaEditor extends Phaser.Scene {
   constructor() { super("editor"); }
@@ -193,11 +193,11 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
          única salida es esta */
       btn(W / 2 + 170, 320, "▶ LISTO, A LA ENTREVISTA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
     } else {
-      btn(W / 2 + 170, 320, "▶ ¡A LA CANCHA!", 0x7ee08a, () => { this.guardar(); this.irA("match"); });
-      /* V7 §2: la CARRERA vive en el Phaser — el Modo Master con temporada y escalera */
-      const bc = this.add.rectangle(W - 110, 12 + 22, 200, 44, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(W - 110, 34, "🏆 CARRERA", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
-      bc.on("pointerdown", () => { this.guardar(); this.irA("master"); });
+      /* 20/oct, Rodri: ¡A LA CANCHA! y 🏆 CARRERA sueltos acá eran la entrada
+         del juego, y "no es un juego así". La entrada es la pantalla de título
+         (scenes/titulo.js); al editor se llega desde la tabla de la carrera,
+         y se vuelve a ella */
+      btn(W / 2 + 170, 320, "▶ VOLVER A LA CARRERA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
     }
     /* Addendum v6 A.2: repetir el opening a gusto */
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
@@ -216,7 +216,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     /* TANDA 1.0 · LA VERSIÓN A LA VISTA. Si alguien de una localidad avisa
        "se me trabó", lo primero que hay que saber es qué versión tenía, y no
        se veía en ningún lado (vivía adentro de sw.js). Chica, abajo a la
-       derecha: la esquina libre a la derecha de ¡A LA CANCHA! (que termina
+       derecha: la esquina libre a la derecha del botón verde (que termina
        en x=810). Sale de window.PAMPA_VERSION, la misma que lleva el informe. */
     if (window.PAMPA_VERSION) {
       this.add.text(W - 10, H - 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" })

@@ -96,15 +96,18 @@
   }
 
   /* el mapa completo { momento: {archivo, loop} } para registrar de una sola
-     vez. `audio` es data/audio.json; `base` la carpeta de los archivos. */
-  function mapaCompleto(audio, fecha, base) {
+     vez. `audio` es data/audio.json; `base` la carpeta de los archivos.
+     `estilo` (OPCIONES, 20/oct): si audio.estilos[estilo] trae ese tema,
+     suena el suyo; si no, el de temas (FOLKLORE). */
+  function mapaCompleto(audio, fecha, base, estilo) {
     if (!audio || !audio.temas) return null;
     base = base || "../assets/musica/";
+    var propios = (estilo && audio.estilos && audio.estilos[estilo]) || {};
     var out = {};
     lista().forEach(function (momento) {
       var id = temaDe(momento, fecha);
       if (!id) return;
-      var t = audio.temas[id];
+      var t = propios[id] || audio.temas[id];
       if (!t || !t.archivo) return;
       out[momento] = { archivo: base + t.archivo, loop: !!t.loop, _tema: id };
     });

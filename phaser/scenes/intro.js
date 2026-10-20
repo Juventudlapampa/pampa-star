@@ -229,10 +229,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const pedida = this.game.registry.get("introPedida");
     /* L08: ¿ya se vio en este aparato? (VER INTRO lo pide igual) */
     const yaVisto = !pedida && this.openingVistoEnElAparato();
-    /* sin compuerta no hay gesto que cuidar: con la marca, directo al editor */
+    /* sin compuerta no hay gesto que cuidar: con la marca, directo al título */
     if (flagOff || (this.game.registry.get("introVista") && !pedida) || (yaVisto && this.I.compuerta === false)) {
       if (window.PampaRegistrarSW) window.PampaRegistrarSW();
-      this.irA("editor");
+      this.irA("titulo");
       return;
     }
     if (window.PampaRegistrarSW) window.PampaRegistrarSW("espera");
@@ -386,7 +386,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        pedirMusica siempre está. Si algún día no estuviera, quiero que reviente
        y no que se cuele música vieja por atrás. */
     this.pedirMusica("silencio");
-    this.irA("editor");
+    /* 20/oct, Rodri: la intro termina en la pantalla de título, no en el
+       editor de la pinta con dos salidas sueltas (scenes/titulo.js) */
+    this.irA("titulo");
   }
   flashBlanco() { this.cameras.main.flash(70, 255, 255, 255); }
   poseImg(id, x, y, altura) {

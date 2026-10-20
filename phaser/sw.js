@@ -88,6 +88,8 @@ const PRECACHE = [
   "./logic/save_master.js", "./logic/carrera.js",
   /* tanda 1.0 (L04): qué hace el atrás del teléfono en cada pantalla */
   "./logic/atras.js",
+  /* 20/oct: la pantalla de título y sus opciones */
+  "./logic/opciones.js", "./scenes/titulo.js",
   /* tanda 1.0 (L05): la carga con señal floja */
   "./logic/carga.js",
   /* tanda 1.0 (L06): el tope de las texturas en memoria */

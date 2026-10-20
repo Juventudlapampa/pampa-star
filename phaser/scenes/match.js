@@ -314,9 +314,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     /* --- estado del partido: los 22 como entidades lógicas (mismo save de siempre) --- */
     const plantel = this.armarPlanteles();
+    /* 20/oct: el PARTIDO RÁPIDO de la pantalla de título (scenes/titulo.js)
+       trae rival, división, nivel y duración, y no pasa por la carrera */
+    const rapido = this.game.registry.get("masterPartido") ? null : (this.game.registry.get("partidoRapido") || null);
     /* TEMPO-1: el tempo es de la carrera (masterPartido.tempo); sin dato, INTERMEDIO */
     const balPartido = this.FLAGS.v6_tempo
-      ? window.PampaSaveMaster.balConTempo(this.BAL, this.game.registry.get("masterPartido"))
+      ? window.PampaSaveMaster.balConTempo(this.BAL, this.game.registry.get("masterPartido") || rapido)
       : this.BAL;
     this.st = window.PampaPartido.crearPartido({ bal: balPartido, mios: plantel.mios, rivales: plantel.rivales });
     this.nombreRival = plantel.nombreRival;
@@ -340,7 +343,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        Ahora el Master lo manda por el registry y el clasico lo CALCULA. */
     this._nivelCarrera = 1;
     {
-      const mp0 = this.game.registry.get("masterPartido");
+      const mp0 = this.game.registry.get("masterPartido") || rapido;
       const Ma0 = window.PampaMaster;
       if (mp0 && mp0.nivel) this._nivelCarrera = mp0.nivel | 0;
       else if (Ma0) {
@@ -358,12 +361,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.nombreRival = this.nombreCorto(this._masterPartido.rival);
       this._pedido = null;   // la carrera Phaser manda; el puente clásico no aplica acá
     }
+    if (rapido && rapido.rival) {
+      this.rivalEntero = rapido.rival;
+      this.nombreRival = this.nombreCorto(rapido.rival);
+      this._pedido = null;
+    }
     /* V6 §8 MODO MASTER: dificultad FIJA por división + perfil de IA por rival
        (flag v6_master; sin carrera Phaser, la división sale del nivel del clásico) */
     this._division = null;
     if (this.FLAGS.v6_master !== false && window.PampaMaster) {
       const Ma = window.PampaMaster;
       this._division = (this._masterPartido && Ma.DIVISIONES.find(d => d.id === this._masterPartido.division))
+        || (rapido && Ma.DIVISIONES.find(d => d.id === rapido.division))
         || Ma.divisionPorNivel(this._nivelCarrera);
       this._perfilRival = Ma.perfilRival(this.nombreRival);
       Ma.aplicar(this.st, this._division, this._perfilRival);
@@ -5111,10 +5120,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        El único botón era "↺ OTRO PARTIDO" (scene.restart): con la PWA
        instalada, que no tiene barra ni botón de atrás, no había forma de
        volver al menú sin cerrar la app. Ahora hay dos, en la misma fila:
-       ◀ VOLVER AL MENÚ (el editor) a la izquierda, donde arranca el cursor, y
+       ◀ VOLVER AL MENÚ (la pantalla de título) a la izquierda, donde arranca el cursor, y
        ↺ OTRO PARTIDO a la derecha. Con el cursor: un toque o un Enter.
        ══════════════════════════════════════════════════════════════════════ */
-    const volverMenu = () => this.irA("editor");
+    const volverMenu = () => this.irA("titulo");   // 20/oct: el menú es la pantalla de título
     this.salidasDelFinal(() => {
       const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
       const items = [];
@@ -5982,7 +5991,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.irA("master");
       return;
     }
-    this.irA("editor");
+    this.irA("titulo");
   }
   refrescarHUD() {
     const st = this.st;

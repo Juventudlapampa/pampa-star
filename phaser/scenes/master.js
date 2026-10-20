@@ -46,7 +46,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._vestidasPedidas = false;
     /* TEMPO-1: el tempo que se marca en la creación (NORMAL de entrada) y el
        que viaja por el editor en carreraPendiente hasta _crearCarrera */
-    this._tempoElegido = window.PampaSaveMaster.TEMPO_POR_DEFECTO;
+    /* 20/oct: la carrera nueva trae marcada la duración de OPCIONES */
+    this._tempoElegido = window.PampaOpciones
+      ? window.PampaOpciones.leer(localStorage, this.game.registry.get("balance"), this.game.registry.get("audio")).duracion
+      : window.PampaSaveMaster.TEMPO_POR_DEFECTO;
     this._tempoDeLaCarrera = null;
     this._tempoFoco = null;
   }
@@ -111,7 +114,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      borra al cambiar: la semana y el evento vuelven a la tabla, el día
      suelto a la semana, la entrevista a la pregunta anterior, el código y
      ¿EMPEZAR OTRA CARRERA? a la tabla. La tabla, elegir club y el save roto
-     vuelven al editor, que es de donde se entra. Con la caja del código
+     vuelven a la pantalla de título, que es de donde se entra. Con la caja del código
      abierta, atrás la cierra (como su ✕ CANCELAR).
      ══════════════════════════════════════════════════════════════════════ */
   estadoAtras() {
@@ -123,7 +126,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this._caja && this._caja.el) { this.cerrarCaja(); return true; }
     const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
     if (this._atrasVista) this._atrasVista();
-    else this.irA("editor");
+    else this.irA("titulo");
     return true;
   }
 
@@ -202,9 +205,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.Ma = window.PampaMaster;
     this.DIV = this.game.registry.get("divisiones");
     if (!this.T || !this.Ma || !this.DIV || !this.DIV.divisiones) {
-      /* fallback tolerante: sin data no hay carrera — se vuelve al editor */
+      /* fallback tolerante: sin data no hay carrera — se vuelve al título */
       this.add.text(W / 2, H / 2, "La carrera no pudo cargar\n(faltó data/divisiones.json)\n\nTOCÁ PARA VOLVER", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center" }).setOrigin(0.5);
-      this.input.once("pointerdown", () => this.irA("editor"));
+      this.input.once("pointerdown", () => this.irA("titulo"));
       return;
     }
 
@@ -748,13 +751,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const yA = Math.round(window.PampaPiel.yDeOpcion(0, 2, 60, piel));
     const yB = Math.round(window.PampaPiel.yDeOpcion(1, 2, 60, piel));
     const empezar = this.boton(W / 2, yA, 420, "▶ EMPEZAR OTRA", 0x7ee08a, () => this.empezarDeCero());
-    const volver = this.boton(W / 2, yB, 420, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
+    const volver = this.boton(W / 2, yB, 420, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo"));
     /* el cursor arranca en VOLVER: empezar otra no se elige con un Enter de reflejo */
     if (this.grupoFoco) {
       this.grupoFoco([
         { obj: empezar, cb: () => this.empezarDeCero() },
-        { obj: volver, cb: () => this.irA("editor") }
-      ], { inicial: 1, volver: () => this.irA("editor") });
+        { obj: volver, cb: () => this.irA("titulo") }
+      ], { inicial: 1, volver: () => this.irA("titulo") });
     }
     this.vestirPendientes && this.vestirPendientes();
   }
@@ -1195,10 +1198,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* tanda 1.0: el código de carrera se pega acá, donde se empieza. Va al
        lado de VOLVER, del mismo tamaño: es la otra forma de entrar */
     if (window.PampaCarrera) {
-      this.boton(W / 2 - 160, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
+      this.boton(W / 2 - 160, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo"));
       this.boton(W / 2 + 160, H - 40, 300, "📋 PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo());
     } else {
-      this.boton(W / 2, H - 40, 300, "✎ VOLVER AL EDITOR", 0xf6efdc, () => this.irA("editor"));
+      this.boton(W / 2, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo"));
     }
     /* L07: si este navegador no guarda, se dice antes de empezar la carrera */
     this.marcaSinGuardar();
@@ -2318,6 +2321,19 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       lg.setScale(Math.min(230 / lg.width, 26 / lg.height));
       lg.setAlpha(0.9);
     }
+    /* 20/oct: la salida a la pantalla de título, arriba a la derecha (arriba
+       a la izquierda va la marca de "este navegador no guarda") */
+    const menu = this.add.text(W - 14, 12, "◀ MENÚ", {
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc",
+      backgroundColor: "#0a1f13aa", padding: { x: 8, y: 4 }
+    }).setOrigin(1, 0);
+    if (this.pisoTactil) this.pisoTactil(menu);
+    if (!menu.input) menu.setInteractive({ useHandCursor: true });
+    menu.on("pointerdown", (p, xx, yy, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation();
+      const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
+      this.irA("titulo");
+    });
     this.add.text(W / 2, 56, div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
     /* revisión L04b: con un título decía "★ 1 títulos"; el singular como en
        el código de la carrera (vistaCodigo) */

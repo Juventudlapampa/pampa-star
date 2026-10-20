@@ -368,7 +368,7 @@ function mundo(opts) {
   assert(Fm.irA.length === 0 && Fm.s.estado === "FINAL", "FINAL + atrás en el pitazo: nada todavía, primero se lee el resultado");
   Fm.correrTimers();
   Fm.s.alAtras(Fm.s.decidirAtras());
-  assert(Fm.irA.indexOf("editor") >= 0, "FINAL del amistoso + atrás, con los botones a la vista: VOLVER AL MENÚ");
+  assert(Fm.irA.indexOf("titulo") >= 0, "FINAL del amistoso + atrás, con los botones a la vista: VOLVER AL MENÚ (pedido de Rodri del 20/oct: la entrada es la pantalla de título)");
   /* el evento del juego: solo cumple si es para el partido */
   var G = PM.escena(), sg = G.s; sg.st.modo = "juego";
   var h = function (ev) { if (ev && ev.escena === "match") sg.alAtras(ev.decision); };
@@ -393,7 +393,7 @@ function mundo(opts) {
   /* la tabla → el editor */
   assert(s.textos().indexOf("PRIMERA B · TEMPORADA 1") >= 0, "control: la escena abre en la tabla");
   atras();
-  assert(s._irA.indexOf("editor") >= 0, "tabla + atrás: al editor, de donde se entra (" + s._irA.join(",") + ")");
+  assert(s._irA.indexOf("titulo") >= 0, "tabla + atrás: a la pantalla de título, de donde se entra desde el 20/oct (" + s._irA.join(",") + ")");
   /* la semana → la tabla */
   var s2 = A.nueva(); s2.create();
   var rival = (function () { var mp = W.PampaTemporada.miPartido(s2.save.temporada); return mp.local === s2.save.temporada.miClub ? mp.visita : mp.local; })();
@@ -402,7 +402,7 @@ function mundo(opts) {
   var r0 = s2._restarts;
   var d2 = AT.decidir(s2.estadoAtras(), Infinity);
   A.juegoEventos.emit("atras", { decision: d2, escena: "master" });
-  assert(s2._restarts === r0 + 1 && s2._irA.indexOf("editor") < 0, "LA SEMANA + atrás: vuelve a la tabla (restart), no al editor");
+  assert(s2._restarts === r0 + 1 && s2._irA.indexOf("titulo") < 0, "LA SEMANA + atrás: vuelve a la tabla (restart), no al título");
   /* el día suelto → la semana */
   s2.vistaElegirDia(0);
   var enDia = s2.textos().join(" | ");

@@ -81,7 +81,10 @@ function armar(opts) {
   Object.keys(ctx).forEach(function (k) { if (/^Pampa/.test(k)) window[k] = ctx[k]; });
   vm.runInContext(leer(opts.foco || "phaser/scenes/foco_ui.js"), ctx, { filename: "foco_ui.js" });
   vm.runInContext(leer(opts.master || "phaser/scenes/master.js"), ctx, { filename: "master.js" });
-  var Escena = window.PampaMasterScene;
+  /* otra escena en vez del Master (la pantalla de título): opts.escena es el
+     archivo, opts.clase su global y opts.key su clave de Phaser */
+  if (opts.escena) vm.runInContext(leer(opts.escena), ctx, { filename: opts.escena });
+  var Escena = window[opts.clase || "PampaMasterScene"];
   if (window.PampaFocoUI) Object.assign(Escena.prototype, window.PampaFocoUI);
 
   var datos = {
@@ -123,7 +126,7 @@ function armar(opts) {
       delayedCall: function (ms, fn) { var e = { ms: ms, fn: fn, remove: function () { this.quitado = true; } }; s._timers.push(e); return e; },
       addEvent: function (c) { var e = { cfg: c, remove: function () { this.quitado = true; } }; s._timers.push(e); return e; }
     };
-    s.scene = { key: "master", restart: function () { s._restarts++; }, start: function (k) { s._irA.push(k); } };
+    s.scene = { key: opts.key || "master", restart: function () { s._restarts++; }, start: function (k) { s._irA.push(k); } };
 
     /* ---- los objetos de juego ---- */
     function go(tipo, x, y, w, h, ox, oy) {

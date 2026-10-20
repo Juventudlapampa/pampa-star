@@ -154,7 +154,8 @@ var LISTA_OPENING = (function () { var q = abrir(); q.s.I = BAL.intro; return q.
   assert(A.ls._store[CLAVE] === "1", "cuando el opening ARRANCA, la marca del aparato queda en localStorage (" + A.ls._store[CLAVE] + ")");
   A.correr();
   assert(A.planos.length === 8, "la primera vez se dibujan los ocho planos (" + A.planos.length + ")");
-  assert(A.irA.join() === "editor", "y al terminar, el editor (" + A.irA.join(",") + ")");
+  /* pedido de Rodri del 20/oct: la entrada es la pantalla de título (scenes/titulo.js): la intro sale ahí y no al editor */
+  assert(A.irA.join() === "titulo", "y al terminar, el título (" + A.irA.join(",") + ")");
   var total = (BAL.intro.planos_ms || []).reduce(function (t, v) { return t + v; }, 0);
   assert(total === 19500, "los planos suman 19.500 ms (lo que costaba cada recarga): " + total);
   console.log("[1] la primera vez: compuerta, " + LISTA_OPENING.length + " archivos del opening, 8 planos (" + total + " ms) y la marca escrita al arrancar");
@@ -175,17 +176,17 @@ var LISTA_OPENING = (function () { var q = abrir(); q.s.I = BAL.intro; return q.
   B.s.input.emit("pointerup");
   assert(B.desbloqueos === 1, "el toque desbloquea el audio igual");
   assert(B.pantalla.join() === "compuerta", "y pide la pantalla completa igual (Android)");
-  assert(B.irA.join() === "editor", "SÍNTOMA: con la marca, el toque va directo al editor (" + B.irA.join(",") + ")");
+  assert(B.irA.join() === "titulo", "SÍNTOMA: con la marca, el toque va directo al título (" + B.irA.join(",") + ")");
   B.s.load.emit("complete");   // si algo del opening estuviera bajando, acá arrancaría
   B.correr();
   assert(B.planos.length === 0, "SÍNTOMA: en la segunda carga no se arma ningún plano (se armaron " + B.planos.length + ")");
-  assert(B.irA.length === 1, "y se va al editor una sola vez (" + B.irA.length + ")");
+  assert(B.irA.length === 1, "y se va al título una sola vez (" + B.irA.length + ")");
   assert(B.sw.indexOf("ya") >= 0, "al salir se avisa que se puede instalar el worker, como al terminar el opening");
   /* la tecla también (la compu) */
   var B2 = abrir({ almacen: almacen(mark) });
   B2.s.create();
   B2.s.input.keyboard.emit("keydown");
-  assert(B2.irA.join() === "editor" && B2.desbloqueos === 1, "con la marca, una tecla en la compuerta también va al editor");
+  assert(B2.irA.join() === "titulo" && B2.desbloqueos === 1, "con la marca, una tecla en la compuerta también va al título");
   console.log("[2] la segunda carga: compuerta, 0 archivos del opening, 0 planos y directo al editor con el toque");
 })();
 
@@ -196,7 +197,7 @@ var LISTA_OPENING = (function () { var q = abrir(); q.s.I = BAL.intro; return q.
   V.s.create();
   V.correr();
   assert(V.planos.length === 8, "SÍNTOMA: VER INTRO (introPedida) con la marca tiene que mostrar los ocho planos (" + V.planos.length + ")");
-  assert(V.irA.join() === "editor", "y volver al editor al terminar (" + V.irA.join(",") + ")");
+  assert(V.irA.join() === "titulo", "y volver al título al terminar (" + V.irA.join(",") + ")");
   /* VER INTRO en una página nueva con la marca (introPedida sin introVista: no pasa hoy, pero no tiene que romper) */
   var V2 = abrir({ almacen: almacen(mark), registry: [["introPedida", true]], todoEnMemoria: true });
   V2.s.create(); V2.correr();
@@ -212,7 +213,7 @@ var LISTA_OPENING = (function () { var q = abrir(); q.s.I = BAL.intro; return q.
   var tiro = null;
   try { Z.s.create(); Z.s.input.emit("pointerup"); Z.s.load.emit("complete"); Z.correr(); } catch (e) { tiro = e; }
   assert(!tiro, "con el almacenamiento bloqueado nada tira (" + (tiro && tiro.message) + ")");
-  assert(Z.planos.length === 8 && Z.irA.join() === "editor", "y el opening se ve como la primera vez (" + Z.planos.length + " planos)");
+  assert(Z.planos.length === 8 && Z.irA.join() === "titulo", "y el opening se ve como la primera vez (" + Z.planos.length + " planos)");
   /* la perilla en false: una vez por sesión, como antes */
   var BAL2 = JSON.parse(JSON.stringify(BAL)); BAL2.intro.una_vez_por_aparato = false;
   var P = abrir({ almacen: almacen(mark), balance: BAL2 });
@@ -227,18 +228,18 @@ var LISTA_OPENING = (function () { var q = abrir(); q.s.I = BAL.intro; return q.
   var BAL3 = JSON.parse(JSON.stringify(BAL)); BAL3.intro.compuerta = false;
   var S = abrir({ almacen: almacen(mark), balance: BAL3 });
   S.s.create();
-  assert(S.irA.join() === "editor" && S.s.load.pedidos.length === 0, "sin compuerta y con la marca, directo al editor sin bajar nada");
+  assert(S.irA.join() === "titulo" && S.s.load.pedidos.length === 0, "sin compuerta y con la marca, directo al título sin bajar nada");
   /* la misma sesión (lo de siempre): sin compuerta, al editor */
   var M = abrir({ registry: [["introVista", true]] });
   M.s.create();
-  assert(M.irA.join() === "editor" && M.textos.length === 0, "en la misma sesión, como antes: directo al editor, sin compuerta");
+  assert(M.irA.join() === "titulo" && M.textos.length === 0, "en la misma sesión, como antes: directo al título, sin compuerta");
   /* saltear mientras todavía bajaba: no lo vio, no hay marca */
   var Q = abrir();
   Q.s.create();
   Q.s.input.emit("pointerup");          // toca la compuerta: espera ("CARGANDO LA INTRO… NN%")
   Q.s.time.now += 1000;
   Q.s.input.emit("pointerdown");        // y saltea antes de que baje
-  assert(Q.irA.join() === "editor" && Q.planos.length === 0, "saltear mientras baja lleva al editor (" + Q.irA.join(",") + ")");
+  assert(Q.irA.join() === "titulo" && Q.planos.length === 0, "saltear mientras baja lleva al título (" + Q.irA.join(",") + ")");
   assert(Q.ls._store[CLAVE] == null, "saltear ANTES de que arranque no escribe la marca: no lo vio y la próxima vez le toca");
   console.log("[4] bloqueado, perilla en false, sin compuerta, misma sesión y salteo durante la espera: como corresponde");
 })();

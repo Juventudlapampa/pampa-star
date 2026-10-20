@@ -63,7 +63,8 @@ var ARRANQUE = scripts.filter(function (c) { return c.indexOf("function arrancar
   var lista = mLista ? mLista[1].replace(/[\s"]/g, "").split(",") : [];
   var mScene = ARRANQUE.match(/scene:\s*\[([^\]]*)\]/);
   var clases = mScene ? mScene[1].replace(/\s|window\./g, "").split(",") : [];
-  assert(clases.length === 4, "config.scene registra las 4 escenas (intro, editor, master, match)");
+  /* pedido de Rodri del 20/oct: la entrada es la pantalla de título: una escena más */
+  assert(clases.length === 5, "config.scene registra las 5 escenas (intro, título, editor, master, match)");
   clases.forEach(function (c) { assert(lista.indexOf(c) >= 0, "la lista de obligatorios tiene que traer " + c); });
   ["Phaser", "PampaPartido", "PampaTemporada", "PampaMaster", "PampaAvatar", "PampaSFX"].forEach(function (g) {
     assert(lista.indexOf(g) >= 0, "la lista de obligatorios tiene que traer " + g);
@@ -137,7 +138,8 @@ function juegoDeMentira(env) {
     return { flecha: { isDown: false }, resets: 0, resetKeys: function () { this.resets++; this.flecha.isDown = false; return this; } };
   }
   var match = { sys: { settings: { key: "match", status: 5 } }, input: { keyboard: teclado() }, estado: "LIBRE", st: { tiempo: 2, minuto: 85, golesMio: 1, golesRival: 0 } };
-  var editor = { sys: { settings: { key: "editor", status: 8 } }, input: { keyboard: teclado() } };
+  /* el menú: la pantalla de título desde el 20/oct (antes, el editor) */
+  var editor = { sys: { settings: { key: "titulo", status: 8 } }, input: { keyboard: teclado() } };
   g.romper = true; g.pasos = 0; g.isPaused = false; g.pausas = 0; g.isRunning = true;
   g.pause = function () { this.isPaused = true; this.pausas++; };
   g.resume = function () { this.isPaused = false; };
@@ -196,8 +198,8 @@ function juegoDeMentira(env) {
   env.el("tb-menu").click();
   assert(g.loop.running, "VOLVER AL MENÚ despierta el loop: el juego vuelve a pedir cuadros");
   assert(!g.isPaused, "y lo despausa");
-  assert(g.paradas.indexOf("match") >= 0 && g.arrancadas.indexOf("editor") >= 0, "frena el partido y arranca el editor");
-  assert(g.paradas.indexOf("editor") < 0, "el editor estaba apagado (SHUTDOWN): no hay nada que frenar, se arranca");
+  assert(g.paradas.indexOf("match") >= 0 && g.arrancadas.indexOf("titulo") >= 0, "frena el partido y arranca el título");
+  assert(g.paradas.indexOf("titulo") < 0, "el título estaba apagado (SHUTDOWN): no hay nada que frenar, se arranca");
   assert(g.sacados.indexOf("masterPartido") >= 0, "la fecha del Master no queda colgada en el registry");
   assert(env.store.pampa_master_v1 === saveAntes, "el save NO se toca");
   assert(env.el("trabado").hidden, "el aviso se va");
@@ -241,7 +243,7 @@ function juegoDeMentira(env) {
     return new Function("window", "Phaser", "localStorage", fuenteArranque + "\nreturn arrancarCon;")(envX.win, undefined, null);
   }
   var env4 = entorno(), R4 = env4.R;
-  ["Phaser", "PampaIntro", "PampaEditor", "PampaMasterScene", "PampaPartido", "PampaTemporada", "PampaMaster", "PampaAvatar", "PampaSFX"]
+  ["Phaser", "PampaIntro", "PampaTitulo", "PampaEditor", "PampaMasterScene", "PampaPartido", "PampaTemporada", "PampaMaster", "PampaAvatar", "PampaSFX"]
     .forEach(function (n) { env4.win[n] = {}; });
   /* un SyntaxError de lectura trae el stack sin renglones "at …" (visto en
      el navegador): el lugar sólo está en el evento */
@@ -360,7 +362,7 @@ function juegoDeMentira(env) {
 function juegoConEscenas(env, rotas) {
   var C = { PENDING: 0, INIT: 1, START: 2, LOADING: 3, CREATING: 4, RUNNING: 5, SHUTDOWN: 8 };
   var esc = {};
-  ["intro", "editor", "master", "match"].forEach(function (k) {
+  ["intro", "titulo", "editor", "master", "match"].forEach(function (k) {
     esc[k] = { creadas: 0, sys: { settings: { key: k, status: C.INIT, active: false } } };   // agregada, nunca arrancada
   });
   var sm = {
@@ -419,27 +421,27 @@ function parte5() {
   var errAntes = R.errores;
   env.el("tb-menu").click();
   for (var i = 0; i < 10; i++) g.step(0, 16);
-  assert(J.esc.editor.sys.settings.status === J.C.RUNNING,
-    "SÍNTOMA DE LA COLA VIEJA: después de VOLVER AL MENÚ y diez cuadros el editor tiene que seguir RUNNING (" + estados(J) + ")");
+  assert(J.esc.titulo.sys.settings.status === J.C.RUNNING,
+    "SÍNTOMA DE LA COLA VIEJA: después de VOLVER AL MENÚ y diez cuadros el título tiene que seguir RUNNING (" + estados(J) + ")");
   assert(J.esc.master.sys.settings.status !== J.C.CREATING && R.errores === errAntes,
     "y no se vuelve a la escena rota ni se repite el error (" + (R.errores - errAntes) + " errores nuevos)");
   assert(env.el("trabado").hidden && g.cuadros >= 10, "el aviso se fue y el juego pasa cuadros");
 
-  /* B · el que tiró es el propio editor, una vez (un save raro que VOLVER AL MENÚ ya sacó) */
-  env = entorno(); R = env.R; J = juegoConEscenas(env, { editor: 1 }); g = J.g;
+  /* B · el que tiró es el propio menú (el título), una vez (un save raro que VOLVER AL MENÚ ya sacó) */
+  env = entorno(); R = env.R; J = juegoConEscenas(env, { titulo: 1 }); g = J.g;
   g.scene.start("master"); g.step(0, 16);
-  g.irA("master", "editor");
+  g.irA("master", "titulo");
   g.step(0, 16);
-  assert(J.esc.editor.sys.settings.status === J.C.CREATING && !env.el("trabado").hidden, "el create del editor tira: queda en CREATING y sale el aviso");
+  assert(J.esc.titulo.sys.settings.status === J.C.CREATING && !env.el("trabado").hidden, "el create del título tira: queda en CREATING y sale el aviso");
   env.el("tb-menu").click();
-  assert(J.esc.editor.creadas === 2 && J.esc.editor.sys.settings.status === J.C.RUNNING,
-    "SÍNTOMA DEL EDITOR EN CREATING: VOLVER AL MENÚ tiene que frenarlo y arrancarlo de nuevo, no quedarse en el start que no hace nada (" + estados(J) + ", create x" + J.esc.editor.creadas + ")");
+  assert(J.esc.titulo.creadas === 2 && J.esc.titulo.sys.settings.status === J.C.RUNNING,
+    "SÍNTOMA DEL MENÚ EN CREATING: VOLVER AL MENÚ tiene que frenarlo y arrancarlo de nuevo, no quedarse en el start que no hace nada (" + estados(J) + ", create x" + J.esc.titulo.creadas + ")");
   assert(env.el("trabado").hidden, "y el aviso se va porque el menú arrancó");
 
-  /* C · el editor tira siempre: el aviso vuelve, ahora sólo con RECARGAR */
-  env = entorno(); R = env.R; J = juegoConEscenas(env, { editor: 99 }); g = J.g;
+  /* C · el menú (el título) tira siempre: el aviso vuelve, ahora sólo con RECARGAR */
+  env = entorno(); R = env.R; J = juegoConEscenas(env, { titulo: 99 }); g = J.g;
   g.scene.start("master"); g.step(0, 16);
-  g.irA("master", "editor");
+  g.irA("master", "titulo");
   g.step(0, 16);
   env.el("tb-menu").click();
   assert(!env.el("trabado").hidden, "si el menú tampoco arranca, el aviso NO desaparece en silencio");

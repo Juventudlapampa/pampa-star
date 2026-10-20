@@ -72,10 +72,11 @@ var datos = {
 };
 
 /* opts.tactil: un teléfono (device.input.touch de Phaser) · opts.flags: los
-   que pisan a balance.flags en este partido */
+   que pisan a balance.flags en este partido · opts.registro: más claves del
+   registry (el partidoRapido de la pantalla de título) */
 function jugar(masterPartido, opts) {
   opts = opts || {};
-  var reg = Object.assign({}, datos, { masterPartido: masterPartido });
+  var reg = Object.assign({}, datos, { masterPartido: masterPartido }, opts.registro || {});
   if (opts.flags) reg.balance = Object.assign({}, BAL, { flags: Object.assign({}, BAL.flags, opts.flags) });
   var textos = [], estados = [];
   /* lo que se escribe: al crear el texto y cada vez que se le cambia */

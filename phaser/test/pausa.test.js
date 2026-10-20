@@ -201,7 +201,7 @@ function espiarTick(E) {
   s.abrirPausa();
   var salir = E.botones().filter(function (b) { return /VOLVER AL MENÚ/.test(E.textoCerca(b)); })[0];
   E.tocar(salir);
-  assert(E.irA.indexOf("editor") >= 0, "amistoso: VOLVER AL MENÚ va al editor (" + E.irA.join(",") + ")");
+  assert(E.irA.indexOf("titulo") >= 0, "amistoso: VOLVER AL MENÚ va a la pantalla de título, por pedido de Rodri del 20/oct: la entrada es la pantalla de título (" + E.irA.join(",") + ")");
   assert(E.restarts === 0, "y no arranca otro partido");
 
   var M = PM.escena({ master: true }), sm = M.s, anotado = 0;
@@ -232,11 +232,11 @@ function espiarTick(E) {
     return !!r && r.fecha === 3 && r.golesMio === 2 && r.golesRival === 1 && E.W.location.href === "../clasico/index.html" && E.irA.length === 0;
   }
   var casos = [
-    { n: "amistoso", o: {}, sale: function (E) { return E.irA.indexOf("editor") >= 0; },
-      principal: function (E) { return E.irA.join(",") === "editor"; } },
+    { n: "amistoso", o: {}, sale: function (E) { return E.irA.indexOf("titulo") >= 0; },
+      principal: function (E) { return E.irA.join(",") === "titulo"; } },
     { n: "fecha del Master", o: { master: true }, sale: function (E) { return E.irA.indexOf("master") >= 0 && !!E.s.game.registry.get("masterResultado"); },
       principal: function (E) { return E.irA.join(",") === "master" && !!E.s.game.registry.get("masterResultado"); } },
-    { n: "partido pedido por el clásico", o: { pedido: true }, sale: function (E) { return E.irA.indexOf("editor") >= 0 || /index\.html/.test(E.W.location.href); },
+    { n: "partido pedido por el clásico", o: { pedido: true }, sale: function (E) { return E.irA.indexOf("titulo") >= 0 || /index\.html/.test(E.W.location.href); },
       principal: aplicado }
   ];
   var espera = E0().BAL.pausa.final_espera_ms;
