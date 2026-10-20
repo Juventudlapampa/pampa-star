@@ -595,7 +595,26 @@
     "_doc": "V9 §8 · EL RELATOR. y: la franja del ticker (subida de 520 a 300: en 520 pisaba la banda de abajo del mapa). hold_ms/fade_ms: cuánto queda la frase y cuánto tarda en irse.",
     "y": 300,
     "hold_ms": 2800,
-    "fade_ms": 500
+    "fade_ms": 500,
+    "_vinieta": "Playtest del 20/oct (punto 4): el relato chico 'ni te enterás'. ticker_px: el tamaño de los comentarios comunes (eran 13). fuertes: las situaciones que salen en VIÑETA grande con la cara del relator, a la izquierda del panel de escena, sobre la tribuna (la cara de x 15 a 117, el globo de x 134 a 330 y de y 104 a 280: la figura del panel arranca en x 348), con corte seco al entrar y al salir. vinieta_ms: cuánto queda. La cara sale de portraits_manifest.relator.",
+    "ticker_px": 16,
+    "fuertes": ["gol", "gol_rival", "atajada", "arquero_mio", "palo", "final"],
+    "vinieta_ms": 3400
+  },
+  "dialogo": {
+    "_doc": "Playtest del 20/oct (punto 3): los diálogos del Master (entrevista, evento de la semana, previa de la fecha) aparecen letra por letra; un toque los completa. ms_letra: cada cuánto sale una letra. La VOZ es la muestra de madera de la interfaz (ui_mover) más aguda o más grave según quién habla (rate) y bajita (gain); piso_voz_ms es el mínimo entre dos golpes, así que con 30 ms por letra suena una de cada dos y no hace metralla. vuelta: el tono sube y baja un poco cada tres letras. corte_ms: a los cuántos ms se apaga cada golpe.",
+    "ms_letra": 30,
+    "piso_voz_ms": 62,
+    "corte_ms": 70,
+    "vuelta": [1, 1.06, 0.95],
+    "voces": {
+      "nito": { "rate": 0.8, "gain": 0.2 },
+      "vos": { "rate": 1.12, "gain": 0.17 },
+      "semana": { "rate": 0.95, "gain": 0.17 },
+      "profe": { "rate": 0.72, "gain": 0.2 },
+      "delfina": { "rate": 1.3, "gain": 0.16 },
+      "pichi": { "rate": 1.18, "gain": 0.18 }
+    }
   },
   "semana": {
     "_doc": "LA VIDA v2 · LA SEMANA CON ENERGÍA. energia_max: el tope del medidor. animo_inicial: con cuánta cabeza empezás la carrera. aguante_piso_frac: con el tanque de energía en cero, qué fracción del aguante te queda igual (el piso jugable). envion_frac: cuánto del envión máximo puede darte el ánimo. permanente_max_semana: el tope de mejora permanente por semana (chiquito a propósito). penal_molestia: cuánta energía te come arrastrar un golpe. desgaste_max: cuánto puede cansarte un partido. animo_gana/empata/pierde/gol: cómo se mueve la cabeza el lunes.",

@@ -822,6 +822,24 @@
       };
     })(),
 
+    /* 20/oct · LA VOZ DE LOS DIÁLOGOS: la misma madera de mover el cursor,
+       bajita y cortada, con el tono de quien habla (balance.dialogo). El
+       piso evita la metralla cuando las letras salen más rápido que él. */
+    voz: (function () {
+      var ultimo = -1e9;
+      return function (t, pisoMs, corteMs) {
+        if (!ensure()) return false;
+        var ahora = now() * 1000;
+        if (ahora - ultimo < pisoMs) return false;
+        ultimo = ahora;
+        var m = muestra("ui_mover", { rate: t.rate, gain: t.gain });
+        if (!m) return false;
+        m.g.gain.setTargetAtTime(0, now() + corteMs / 1000, 0.012);
+        m.src.stop(now() + corteMs / 1000 + 0.08);
+        return true;
+      };
+    })(),
+
     kick: function () { if (ensure()) muestra("patada"); },
     /* el contacto del súper tiro: más cuerpo y el chasquido del cuero */
     kickFuerte: function () { if (ensure()) muestra("patada_fuerte"); },

@@ -72,7 +72,7 @@ const PRECACHE = [
   "./icon-512-maskable.png",
   "./vendor/phaser.min.js",
   "./logic/duel.js", "./logic/perspectiva.js", "./logic/partido.js",
-  "./logic/relator.js", "./logic/definicion.js", "./logic/master.js",
+  "./logic/relator.js", "./logic/dialogo.js", "./logic/definicion.js", "./logic/master.js",
   "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
   "./logic/jugadon.js", "./logic/toque.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
   "./logic/escudos.js", "./logic/ambiente.js", "./logic/vestir.js", "./logic/halo.js", "./logic/pierna.js", "./logic/lectura.js", "./logic/drama.js", "./logic/escalera.js",

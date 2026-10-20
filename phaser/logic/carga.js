@@ -222,6 +222,8 @@
     if (man && Array.isArray(man.retratos)) man.retratos.forEach(function (r, i) {
       if (r && r.archivo) out.push({ clave: "retrato_" + i, ruta: "../" + r.archivo });
     });
+    /* 20/oct · las caras de los relatores (la viñeta del partido y la previa) */
+    if (man && man.relator) out.push({ clave: "relatores", ruta: "../" + man.relator.archivo });
     var tri = R.tribuna;
     if (tri && Array.isArray(tri.personajes)) tri.personajes.forEach(function (p) {
       if (p && p.retrato && p.id) out.push({ clave: claveDeTribuna(p), ruta: "../" + p.retrato });

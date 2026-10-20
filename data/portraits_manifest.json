@@ -5,7 +5,16 @@
   "_seccion11": "SEPTIEMBRE 2026 · BARRIDA VISUAL DEL ARTE. Los cuatro retratos del arquetipo rival se sacaron del banco porque la barrida (dos revisores por imagen, y mirados de nuevo antes de sacarlos) encontró marcas deportivas reales: rival_1 y rival_2 con los chevrones registrados de una marca en hombros y mangas, y rival_1 además con un nombre de fabricante en el pecho; volante con la camiseta de una selección real (bastones, escudo con sol); delantero con las tiras de hombro y puño de otra marca. Los originales de assets_drive/PAMPA_STAR_PERSONAJES_TANDA2 (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist) traen lo mismo: NO volver a exportarlos. Con el grupo rival vacío, retratoKey() cae a la cara del avatar (match.js), que es lo que ya se veía con el flag v4_retratos64 prendido. Se revierte con git, pero solo con arte repintado sin marcas.",
   "_companeros": "SEPTIEMBRE 2026 · Los siete retratos del arquetipo companero salieron del grupo: pibe_1 a pibe_6 tienen el alfa ROTO (ojos, dientes y remeras transparentes, manchas beige opacas y damero alrededor: el recorte del fondo blanco se llevó los blancos de adentro), y juvenil es acuarela realista sin alfa, otro estilo. Con un grupo de uno solo, todos los compañeros sin look iban a tener la misma cara; con el grupo vacío, retratoKey() cae a la cara del avatar de cada jugador, que es lo que ya se ve con el flag v4_retratos64 prendido (default). Los archivos quedan en assets/retratos/ (no se descargan si no están acá). Para volver a usarlos: rehacer el recorte desde los originales de assets_drive y volver a listarlos.",
   "sugerencias_de_tu_banco": "cuando armes el manifest real: assets_drive/PAMPA_STAR_Assets/png_transparent/avatar_1..6.png (bustos transparentes) y PAMPA_STAR_PERSONAJES_TANDA2/*.webp (rival_footballer_poster, santa_rosa_defender_vector, pampean_midfielder_watercolor, pampean_footballer_minimalist, pampean_boy_watercolor); el DT y el utilero quedan para la presentación (H5).",
-  "_relator_visible": "V9 (pedido de Rodri): para que el relator o relatora SE VEA durante el partido, agregar acá una clave \"relator\" con {archivo, n, pos, bocas:[...] opcional}. Mientras no exista, el relator sigue siendo solo la franja de texto. Ver data/COMO_AGREGAR_ARTE.md §6.",
+  "relator": {
+    "_nota": "Playtest del 20/oct: las tres caras de relatores ya estaban en assets/ui/relatores.webp (1024x335, tres cuadros) y no se usaban. No se recorta el archivo: el juego toma un cuadro de cada cara al cargar (caras: x, y, ancho, alto en píxeles del archivo). Los nombres salen de data/relatos.json (relatores). partido: quién relata en la cancha; la previa de la fecha rota entre los que tienen frases de previa.",
+    "archivo": "assets/ui/relatores.webp",
+    "partido": "pichi",
+    "caras": {
+      "pichi": [40, 22, 280, 280],
+      "profe": [380, 30, 280, 280],
+      "delfina": [712, 22, 280, 280]
+    }
+  },
   "personajes": [
     {
       "archivo": "assets/retratos/retrato_nelda.webp",

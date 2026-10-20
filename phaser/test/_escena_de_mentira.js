@@ -71,7 +71,7 @@ function armar(opts) {
   vm.createContext(ctx);
   var LOGICA = ["phaser/logic/temporada.js", "phaser/logic/master.js", "phaser/logic/semana.js",
     "phaser/logic/vida.js", "phaser/logic/piel.js", "phaser/logic/foco.js", "phaser/logic/mapa.js",
-    "phaser/logic/save_master.js", "phaser/logic/carrera.js"]
+    "phaser/logic/save_master.js", "phaser/logic/carrera.js", "phaser/logic/dialogo.js"]
     .concat(opts.logicaExtra || []);
   LOGICA.forEach(function (f) {
     if (!fs.existsSync(path.join(RAIZ, f))) return;

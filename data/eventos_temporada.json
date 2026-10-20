@@ -10,6 +10,8 @@
     {
      "t": "En el potrero, contra los más grandes",
      "sub": "te pegaban y volvías",
+     "corto": "En el potrero",
+     "ico": "pelota",
      "stats": {
       "gambeta": 6,
       "resistencia": 5
@@ -19,6 +21,8 @@
     {
      "t": "En la escuelita del club, con botines prestados",
      "sub": "primero la técnica",
+     "corto": "En la escuelita del club",
+     "ico": "escudo",
      "stats": {
       "pase": 6,
       "tiro": 3
@@ -28,6 +32,8 @@
     {
      "t": "Solo, pateando contra la pared del galpón",
      "sub": "mil tiros por tarde",
+     "corto": "Solo, contra la pared",
+     "ico": "casa",
      "stats": {
       "tiro": 8,
       "pase": -3
@@ -37,6 +43,8 @@
     {
      "t": "Con mi hermano mayor, que era el crack de la localidad",
      "sub": "aprendiste mirándolo",
+     "corto": "Con mi hermano mayor",
+     "ico": "dos",
      "stats": {
       "caracter": 6,
       "aereo": 5
@@ -52,6 +60,8 @@
     {
      "t": "Laburo en el campo desde temprano",
      "sub": "manos duras, piernas hechas",
+     "corto": "Laburo en el campo",
+     "ico": "sol",
      "stats": {
       "resistencia": 8,
       "fisico": 4
@@ -62,6 +72,8 @@
     {
      "t": "Estoy en la escuela y me cuelgo con el celu",
      "sub": "descansado pero blando",
+     "corto": "Escuela y celu",
+     "ico": "libro",
      "stats": {
       "velocidad": 5,
       "resistencia": -4
@@ -72,6 +84,8 @@
     {
      "t": "Changas donde salga",
      "sub": "un poco de todo",
+     "corto": "Changas",
+     "ico": "pala",
      "stats": {
       "fisico": 3,
       "caracter": 3
@@ -81,6 +95,8 @@
     {
      "t": "Ayudo en el taller de mi viejo",
      "sub": "fuerza de tornillo",
+     "corto": "En el taller de mi viejo",
+     "ico": "llave",
      "stats": {
       "tiro": 6,
       "fisico": 3
@@ -96,6 +112,8 @@
     {
      "t": "Que la pelota se acaricia",
      "sub": "nunca se patea de bronca",
+     "corto": "La pelota se acaricia",
+     "ico": "corazon",
      "stats": {
       "pase": 5,
       "tiro": 3
@@ -105,6 +123,8 @@
     {
      "t": "Que si dudás te pasan por arriba",
      "sub": "encarar siempre",
+     "corto": "Si dudás, te pasan",
+     "ico": "flecha",
      "stats": {
       "gambeta": 7
      },
@@ -113,6 +133,8 @@
     {
      "t": "Que el equipo primero",
      "sub": "la pared antes que la gambeta",
+     "corto": "El equipo primero",
+     "ico": "dos",
      "stats": {
       "pase": 5,
       "caracter": 4
@@ -122,6 +144,8 @@
     {
      "t": "Que si no te tienen miedo, no existís",
      "sub": "que te sientan",
+     "corto": "Que te tengan miedo",
+     "ico": "rayo",
      "stats": {
       "caracter": 7,
       "fisico": 3

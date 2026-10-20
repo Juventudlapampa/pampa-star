@@ -69,6 +69,8 @@ vm.runInContext(leer("phaser/scenes/intro.js"), vm.createContext({ window: WI, P
 /* OJOS (tanda 1.0): lo que se dejó de bajar después de la auditoría */
 var AGREGADAS_DESPUES = ["assets/poses/calden.webp"];
 var SACADAS_DESPUES = ["assets/poses/caras/cara_tranqui.png", "assets/poses/pose_cabezazo_v2.webp", "assets/poses/pose_arquero_ataja_celeste.webp"];
+/* 20/oct: las caras de los relatores (assets/ui/relatores.webp, que ya estaba): la viñeta del partido y la previa de la fecha */
+AGREGADAS_DESPUES.push("assets/ui/relatores.webp");
 /* 17/oct, pedido de Rodri: el arte nuevo del arquero, la súper gambeta y las
    figuras del panel mirando a la izquierda; salen el quite del rival con la
    pelota pintada (lo reemplaza poseR_quite_sin_pelota) y la estirada vieja

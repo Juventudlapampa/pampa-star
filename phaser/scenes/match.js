@@ -59,6 +59,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (p && p.retrato && !this.textures.exists(k)) this.load.image(k, "../" + p.retrato);
       });
     }
+    /* 20/oct · la cara del relator para la viñeta de los momentos fuertes */
+    const manRel = this.game.registry.get("portraits");
+    if (manRel && manRel.relator && !this.textures.exists("relatores")) this.load.image("relatores", "../" + manRel.relator.archivo);
     /* V6 §3.2: las POSES ILUSTRADAS del manifest — fallback tolerante: se carga
        lo que exista; lo que falte cae al sprite heroico de código, nada crashea */
     const poses = this.game.registry.get("poses");
@@ -245,6 +248,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._relPendientePrio = false;
     this._tickerFijo = 0;
     this._tickerDesde = null;        // L04b: cuándo se pintó la frase a la vista (apartarTicker)
+    /* 20/oct · la viñeta del relator es de esta escena: se rearma en cada partido */
+    this._vin = null; this._vinTxt = null; this._vinPendiente = null; this._vinTiempo = null;
     /* ══════════════════════════════════════════════════════════════════
        TANDA 1.0 · LA MEMORIA DEL PARTIDO ARRANCA DE CERO.
 
@@ -680,9 +685,74 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const c = Object.assign({ rival: this.nombreRival, pueblo: this._puebloMio || "La Pampa" }, ctx || {});
     if (!c.jugador) { const j = this.st && this.st.mios[this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "la figura"; }
     if (!this.tickerTxt) return;
-    const f = this.REL.frase(situacion, c);
+    /* 20/oct · el remate que dio en el palo tiene sus propias frases */
+    const sit = situacion === "afuera" && c.palo ? "palo" : situacion;
+    const f = this.REL.frase(sit, c);
     if (!f) return;
+    if (this.BAL.relator.fuertes.indexOf(sit) >= 0 || c.mega) { this.vinietaRelator(f); return; }
     this.anunciarEnTicker(f, "🎙");
+  }
+  /* ══════════════════════════════════════════════════════════════════════
+     20/oct · EL RELATO A LA VISTA (playtest de Rodri, punto 4).
+
+     "Ni te enterás": el relato era una línea de 13 px en la franja. En los
+     momentos fuertes (balance.relator.fuertes, y todo remate del súper tiro)
+     sale en VIÑETA: la cara del relator (portraits_manifest.relator) y la
+     frase grande en un globo alto, a la izquierda del panel de escena, sobre
+     la tribuna pintada: la figura se para en x=400 (balance.arte.panel_figura_x)
+     y ocupa de 348 a 504, así que el globo termina en x=330; a la derecha están
+     los globos de la tribuna (x 698-952) y abajo, desde y=318, el mapa. Medido
+     en pantalla el 20/oct: la franja "libre" de 122 a 320 que dice el ticker
+     ya es panel de escena, y una viñeta ancha ahí tapaba las piernas y la
+     pelota. Entra y sale con corte seco, como el resto de la animación limitada. Espera con las
+     mismas reglas que el ticker (tickerSeLee) y, mientras está a la vista,
+     el ticker espera detrás.
+     ══════════════════════════════════════════════════════════════════════ */
+  vinietaRelator(f) {
+    if (!this.tickerSeLee()) { this._vinPendiente = f; return; }
+    this._pintarVinieta(f);
+  }
+  vinietaALaVista() { return !!(this._vin && this._vin.visible); }
+  armarVinieta() {
+    const man = this.game.registry.get("portraits").relator;
+    const quien = (this.game.registry.get("relatos").relatores || []).find(r => r.id === man.partido);
+    const tex = this.textures.get("relatores");
+    if (!tex.has(man.partido)) { const r = man.caras[man.partido]; tex.add(man.partido, 0, r[0], r[1], r[2], r[3]); }
+    const cx = 66, cy = 166, lado = 92, bx = 134, by = 104, bw = 196, bh = 176;
+    const g = this.add.graphics();
+    /* las líneas de velocidad detrás de la cara */
+    g.lineStyle(3, 0x0a1f13, 0.85);
+    for (let k = 0; k < 14; k++) {
+      const a = k * Math.PI * 2 / 14;
+      g.lineBetween(cx + Math.cos(a) * 54, cy + Math.sin(a) * 54, cx + Math.cos(a) * 66, cy + Math.sin(a) * 66);
+    }
+    g.fillStyle(0x0a1f13, 1); g.fillRect(cx - lado / 2 - 5, cy - lado / 2 - 5, lado + 10, lado + 10);
+    g.fillStyle(0xf6efdc, 0.98); g.fillRect(bx, by, bw, bh);
+    g.fillTriangle(bx + 2, cy - 10, bx + 2, cy + 10, bx - 14, cy);
+    g.lineStyle(3, 0x0a1f13, 1); g.strokeRect(bx, by, bw, bh);
+    const cara = this.add.image(cx, cy, "relatores", man.partido).setDisplaySize(lado, lado);
+    const marco = this.add.graphics();
+    marco.lineStyle(3, 0xf5c400, 1); marco.strokeRect(cx - lado / 2 - 5, cy - lado / 2 - 5, lado + 10, lado + 10);
+    const nombre = this.add.text(cx, cy + lado / 2 + 20, quien ? quien.nombre : "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", backgroundColor: "#f5c400", padding: { x: 6, y: 1 } }).setOrigin(0.5);
+    const txt = this.add.text(bx + 12, by + bh / 2, "", { fontFamily: window.PF.texto, fontSize: "24px", color: "#0a1f13", wordWrap: { width: bw - 24 }, lineSpacing: 2 }).setOrigin(0, 0.5);
+    this._vin = this.add.container(0, 0, [g, cara, marco, nombre, txt]).setVisible(false);
+    this._vinTxt = txt;
+    this.hudLayer.add(this._vin);
+  }
+  _pintarVinieta(f) {
+    if (!this._vin) this.armarVinieta();
+    this.tweens.killTweensOf(this.tickerTxt);
+    this.tickerTxt.setAlpha(0);
+    this._vinTxt.setText(f);
+    this._vin.setVisible(true);
+    /* el tiempo a la vista lo lleva un tween, como el del ticker: corre con
+       el delta del loop (scenes/reloj.js) y se corta seco al terminar */
+    if (this._vinTiempo) this._vinTiempo.remove();
+    this._vinTiempo = this.tweens.addCounter({ from: 0, to: 1, duration: this.BAL.relator.vinieta_ms, onComplete: () => { this._vin.setVisible(false); this._vinTiempo = null; } });
+  }
+  /* lo llama el update: sale la que esperaba */
+  atenderVinieta() {
+    if (this._vinPendiente && this.tickerSeLee()) { const f = this._vinPendiente; this._vinPendiente = null; this._pintarVinieta(f); }
   }
   /* TANDA 1.0: el carril del ticker, abierto a una frase que no sale del
      banco del relator. La ficha de la semana ("📋 por qué hoy te cuesta")
@@ -726,6 +796,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      siempre (la resolución del duelo tiene su frase). La que llega con el
      menú abierto espera igual (tickerSeLee). */
   apartarTicker() {
+    /* 20/oct · la viñeta del relator también ocupa la franja: con el menú
+       abierto se corta */
+    if (this.vinietaALaVista()) {
+      this._vin.setVisible(false);
+      if (this._vinTiempo) { this._vinTiempo.remove(); this._vinTiempo = null; }
+    }
     const t = this.tickerTxt;
     if (!t || !t.text || !(t.alpha > 0.05)) return;
     const hold = (this.BAL.relator || {}).hold_ms || 2800;
@@ -743,7 +819,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!f || !this.tickerTxt) return;
     const linea = (icono || "🎙") + " " + f, prio = !!(op && op.prioridad);
     const fichaALaVista = this._tickerFijo && this.time.now < this._tickerFijo;
-    if (!this.tickerSeLee() || (fichaALaVista && !prio)) {
+    if (!this.tickerSeLee() || this.vinietaALaVista() || (fichaALaVista && !prio)) {
       if (!(this._relPendiente && this._relPendientePrio && !prio)) {
         this._relPendiente = linea; this._relPendientePrio = prio;
       }
@@ -763,7 +839,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* lo llama el update: la frase guardada sale cuando la franja se lee y la
      ficha a la vista (si hay) terminó su tiempo */
   soltarRelatoPendiente() {
-    if (!this._relPendiente || !this.tickerSeLee()) return;
+    if (!this._relPendiente || !this.tickerSeLee() || this.vinietaALaVista()) return;
     if (!this._relPendientePrio && this._tickerFijo && this.time.now < this._tickerFijo) return;
     const f = this._relPendiente, prio = this._relPendientePrio;
     this._relPendiente = null; this._relPendientePrio = false;
@@ -890,6 +966,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* Anime E: tu pueblo (del origen de la carrera) para el grito de gol del relator */
     this._puebloMio = (career && career.origen && career.origen.localidad) ? String(career.origen.localidad).toUpperCase().slice(0, 16) : "LA PAMPA";
     let pool = (roster && roster.jugadores) ? roster.jugadores.slice() : [];
+    /* 20/oct · la estrella del rival que nombró la previa (masterPartido.estrella)
+       sale del pozo antes de armar tu equipo y juega en su puesto del rival */
+    const mpE = this.game.registry.get("masterPartido");
+    const kE = mpE && mpE.estrella != null ? pool.findIndex(j => j.id === mpE.estrella) : -1;
+    let estrella = kE >= 0 ? pool.splice(kE, 1)[0] : null;
     slots.forEach((s, i) => {
       if (mios[i].nombre) return;
       const k = pool.findIndex(j => j.posicion_motor === s);
@@ -897,6 +978,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     let pueblo = "RIVAL", entero = "RIVAL";
     const rivales = slots.map(s => {
+      if (estrella && estrella.posicion_motor === s) {
+        const j = estrella; estrella = null;
+        return { nombre: j.nombre, pos: s, stats: j.stats_auto };
+      }
       const k = pool.findIndex(j => j.posicion_motor === s);
       if (k >= 0) { const j = pool.splice(k, 1)[0]; pueblo = this.nombreCorto(j.pueblo); entero = j.pueblo; return { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
       return {};
@@ -3274,7 +3359,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         /* el contacto en la revelación; lo que pasó, un instante después */
         sfx: "kick", alRevelar: () => d.sentir(),
         alFinal: () => {
-          this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
+          this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre, palo: !!d.palo });
         }
       });
       return;
@@ -4166,7 +4251,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            desenlace se oía dos veces (al decidir y al revelar) */
         sfx: "kick", alRevelar: () => d.sentir(),
         alFinal: () => {
-          this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre });
+          this.relatar(gol ? "gol" : (atajo ? "atajada" : "afuera"), { jugador: tirador.esVos ? "VOS" : tirador.nombre, palo: !!d.palo, mega: !!mega });
         }
       });
       return;
@@ -5716,7 +5801,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        la franja libre entre el panel de escena (termina en 122) y el marco del
        mapa (arranca en 320), que además es donde está mirando el ojo. */
     const REL = this.BAL.relator || {};
-    this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
+    this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: REL.ticker_px + "px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
     this.hudLayer.add(this.tickerTxt);
     /* Pedido de Rodri del 17/oct ("un juego CLARO"): el 🔊 suelto de la barra,
        que era solo un ícono, se fue. El sonido se prende y se apaga en la
@@ -6295,6 +6380,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V9 §8: la frase emitida con el HUD apagado (cine, Definición, Jugadón)
        espera y sale acá, apenas la capa vuelve. Va ANTES de los returns por
        estado justo para que no dependa de en qué estado esté el partido. */
+    if (this._vinPendiente) this.atenderVinieta();
     if (this._relPendiente && this.soltarRelatoPendiente) this.soltarRelatoPendiente();
     /* TANDA 1.0: lo mismo para los avisos que esperaban al HUD (o a que se
        cierre el tutorial) */

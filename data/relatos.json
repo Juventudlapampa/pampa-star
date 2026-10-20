@@ -109,6 +109,11 @@
    "La tiró a las casuarinas. Habrá otra.",
    "Se fue arriba, a la altura de los pájaros."
   ],
+  "palo": [
+   "¡PALO! Sonó el caño y la pelota no quiso entrar.",
+   "¡En el palo! Todo el alambrado se agarró la cabeza.",
+   "¡Pegó en el palo y se fue! Faltó un dedo."
+  ],
   "_arquero_mio": "Revisión de OJOS (tanda 1.0): estas frases salen después de una atajada de tu arquero ('te rematan' y la Definición defensiva). Desde OJOS esa atajada se ve con arquero_despeje_celeste, un despeje de puño, y la lógica dice que la retuvo (resolverAtajada: retiene, salís jugando desde tu área). Por eso ninguna frase dice cómo fue ('la retuvo' contradecía el dibujo; 'la sacó' o 'manotazo' contradicen la lógica): '¡La retuvo el uno!' pasó a '¡Apareció el uno!' y '¡Manotazo salvador!' a '¡Mano salvadora!'. Cuando haya arte de tu arquero que la agarra con los ojos abiertos (pedido en el _pedido_arte de arquero_despeje_celeste, data/poses_manifest.json), pueden volver.",
   "arquero_mio": [
    "¡ATAJADÓN NUESTRO! Abrácenlo que no es de goma.",
@@ -180,6 +185,38 @@
    "La abrazó el arquero. Se la queda él y saca desde el fondo.",
    "Se fue afuera. Saque de arco para ellos y a empezar de nuevo.",
    "La tiene el arquero rival. Ahora hay que ir a buscarla otra vez."
+  ]
+ },
+ "previa_fecha": {
+  "_doc": "Playtest del 20/oct: la previa de la fecha, antes de salir a la cancha (scenes/master.js vistaPrevia, logic/dialogo.js previaDeLaFecha). Cuatro páginas: el rival, su estrella (del roster, con su historia), algo de la localidad y una frase de previa de un relator de la lista 'relatores'. {rival} {perfil} {tabla} (el puesto, o tabla_en_cero en la primera fecha) {localidad} {nombre} {apodo} {puesto_cancha} se reemplazan; si falta un dato la previa no arranca. 'localidad' va cuando el roster sabe de dónde es el club; 'sin_localidad' para la Primera B y la A sin ese dato; 'lejos' de la Regional para arriba.",
+  "puestos": { "DEF": "defensor", "VOL": "volante", "ATA": "delantero" },
+  "rival": [
+   "Hoy enfrente está {rival}, un equipo {perfil}. Llega {tabla}.",
+   "El rival de hoy es {rival}, un equipo {perfil} que viene {tabla}.",
+   "Juega {rival}, que viene {tabla}. Es un equipo {perfil}."
+  ],
+  "tabla_en_cero": "con la tabla en cero, como todos",
+  "estrella": [
+   "La figura de ellos es {nombre}, «{apodo}», {puesto_cancha}.",
+   "Ojo con {nombre}, el {puesto_cancha} al que le dicen «{apodo}».",
+   "Hay que mirar a {nombre}, «{apodo}», que juega de {puesto_cancha}."
+  ],
+  "localidad": [
+   "En {localidad} cierran el almacén temprano cuando juega {rival}.",
+   "La gente de {localidad} viene en camioneta y mira el partido apoyada en el alambrado.",
+   "En {localidad} el club es el bar, la pileta y la cancha. Hoy viajó toda la comisión.",
+   "Desde {localidad} vienen con el bombo y la radio pegada a la oreja."
+  ],
+  "sin_localidad": [
+   "A {rival} lo siguen dos colectivos y una chata con la bandera atada a la caja.",
+   "{rival} entrena de noche, con las luces del tinglado prendidas.",
+   "En la cancha de {rival} el viento sopla siempre hacia el mismo arco.",
+   "La radio de la localidad de {rival} transmite con dos micrófonos y un mate."
+  ],
+  "lejos": [
+   "{rival} viene de lejos, con muchas horas de ruta encima.",
+   "Los de {rival} nunca jugaron con este viento en contra.",
+   "{rival} llega con plantel largo y bolsos nuevos, y la cancha es la misma de siempre."
   ]
  },
  "escenas": {

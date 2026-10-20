@@ -133,26 +133,28 @@ Lo mismo para un salto: `"ciclo": { "cuadros": [...], "ms": 90, "unaVez": true }
 
 ---
 
-## 6 · EL RELATOR O RELATORA VISIBLE — PREPARADO, FALTA EL ARTE
+## 6 · EL RELATOR O RELATORA VISIBLE
 
-Hoy el relator es una línea de texto. Para que se vea la persona, el manifest
-de retratos ya tiene lugar:
+Desde el 20/oct el relator se ve. Las tres caras salen de
+`assets/ui/relatores.webp` (tres cuadros en un mismo archivo); el juego toma un
+cuadro de cada una al cargar, sin tocar el archivo.
 
 **Manifest:** `data/portraits_manifest.json`
 
 ```json
 {
   "relator": {
-    "archivo": "relator_delfina.png",
-    "n": "Delfina",
-    "pos": "esquina_derecha",
-    "bocas": ["relator_delfina_habla1.png", "relator_delfina_habla2.png"]
+    "archivo": "assets/ui/relatores.webp",
+    "partido": "pichi",
+    "caras": { "pichi": [40, 22, 280, 280], "profe": [380, 30, 280, 280], "delfina": [712, 22, 280, 280] }
   }
 }
 ```
 
-`bocas` es opcional: si están, la figura alterna cuadros mientras dura la frase;
-si no, se muestra quieta. Sin la entrada `relator`, todo sigue como hoy.
+`caras` es x, y, ancho y alto en píxeles del archivo. `partido` es quién relata
+en la cancha (la viñeta de los momentos fuertes); la previa de la fecha rota
+entre los relatores de `data/relatos.json` que tienen frases de previa. Para
+cambiar una cara: otro archivo en `archivo` y sus cuadros en `caras`.
 
 ---
 

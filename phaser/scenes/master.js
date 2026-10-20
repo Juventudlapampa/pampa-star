@@ -77,6 +77,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.soltarAtajos();
     this._atrasVista = null;   // L04: cada vista dice a dónde vuelve (ver alAtras)
     if (this._relojSem) { this._relojSem.remove(false); this._relojSem = null; }
+    this.cortarEscritura();
     this._mapaCapa = null;
     this.children.list.slice().forEach((o) => { if (o && o.destroy) o.destroy(); });
   }
@@ -174,6 +175,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         if (p && p.archivo && p.id) this.load.image("personaje_" + p.id, "../" + p.archivo);
       });
     }
+    /* 20/oct · las caras de los relatores, para la previa de la fecha */
+    if (man && man.relator && !this.textures.exists("relatores")) this.load.image("relatores", "../" + man.relator.archivo);
   }
 
   create() {
@@ -1408,10 +1411,22 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const E = this.game.registry.get("entrevista");
     const qe = E && E.preguntas && E.preguntas[p.id];
     this.add.text(W / 2, 34, "TU HISTORIA · " + (paso + 1) + " de 3", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    if (qe) this.entrevistador(E, qe.dice);
+    const tDice = qe ? this.entrevistador(E, qe.dice) : null;
     /* D5 · y de este lado estás vos, con la pinta que elegiste recién */
     if (qe) this.entrevistado();
     else this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
+    /* 20/oct · las respuestas en pantalla son cortas; lo que contestaste
+       DICHO (entrevista.json, respuestas) lo decís vos al arrancar la
+       pregunta siguiente, y recién después pregunta Nito */
+    if (qe) {
+      const qAntes = paso > 0 && E.preguntas[D.origen[paso - 1].id];
+      const dichaAntes = qAntes && qAntes.respuestas && qAntes.respuestas[elegidas[paso - 1]];
+      if (dichaAntes) {
+        tDice.setText("");
+        const tEco = this.add.text(W - 156, 196, "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 3 } }).setOrigin(1, 0.5);
+        this.escribir(tEco, "▼ VOS: «" + dichaAntes + "»", "vos", () => this.escribir(tDice, qe.dice, "nito"));
+      } else this.escribir(tDice, qe.dice, "nito");
+    }
     /* O1 · las cuatro respuestas estaban en columna desde y=150, o sea ARRIBA.
        Bajan a la franja de decisión: 4 de 52 px entran justo en los 212 útiles
        (piel.caben lo confirma). Arriba queda el que pregunta, que es lo que se
@@ -1423,10 +1438,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const r = this.add.rectangle(W / 2, y, 720, 52, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       /* la respuesta DICHA reemplaza al rótulo, pero el subtítulo original
          queda: es lo que le dice al jugador qué tipo de jugador está eligiendo */
-      const dicha = qe && qe.respuestas && qe.respuestas[i];
-      /* textos-tactiles: el número es el atajo de teclado; en el teléfono no va */
-      this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + (dicha || o.t), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 680 } }).setOrigin(0.5);
-      this.add.text(W / 2, y + 13, o.sub || "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
+      /* 20/oct · una línea corta (corto) y la bajada (sub) abajo, con su
+         dibujito. textos-tactiles: el número es el atajo de teclado; en el
+         teléfono no va */
+      this.dibujarIcono(W / 2 - 360 + 32, y, o.ico);
+      this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.corto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center" }).setOrigin(0.5);
+      this.add.text(W / 2, y + 13, o.sub, { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
       const elegir = () => {
         const nuevas = elegidas.concat([i]);
         if (paso < D.origen.length - 1) this.vistaOrigen(divId, paso + 1, nuevas);
@@ -1497,9 +1514,196 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.add.text(bx + 16, y - 40, (E.entrevistador && E.entrevistador.nombre) || "", {
       fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#365a41", wordWrap: { width: bw - 32 }
     });
-    this.add.text(bx + 16, y - 18, dice, {
+    return this.add.text(bx + 16, y - 18, dice, {
       fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", wordWrap: { width: bw - 32 }, lineSpacing: 2
     });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     20/oct · LETRA POR LETRA (playtest de Rodri, punto 3).
+
+     El texto se envuelve UNA vez con su ancho final y se va mostrando ese
+     texto ya envuelto: así una palabra no arranca en un renglón y salta al
+     otro a mitad de escribirse. Las letras salen por reloj (letrasA), no por
+     cuadro, y cada tanda nueva con letras suena con la voz de quien habla
+     (SFX.voz, la madera de la interfaz con su tono). Un toque en cualquier
+     lado de la pantalla lo completa. Uno a la vez: el que arranca corta al
+     anterior, y vaciarVista corta el que haya.
+     ══════════════════════════════════════════════════════════════════════ */
+  escribir(txt, texto, quien, alTerminar) {
+    this.cortarEscritura();
+    this.escucharToque();
+    const cfg = this.game.registry.get("balance").dialogo;
+    const D = window.PampaDialogo, S = window.PampaSFX;
+    const envuelto = txt.runWordWrap ? txt.runWordWrap(texto) : texto;
+    txt.setText("");
+    const t0 = this.time.now;
+    let n = 0, golpes = 0;
+    const e = {};
+    e.terminar = () => {
+      e.ev.remove(false);
+      this._escritura = null;
+      txt.setText(envuelto);
+      if (alTerminar) alTerminar();
+    };
+    e.ev = this.time.addEvent({
+      delay: cfg.ms_letra, loop: true, callback: () => {
+        const k = D.letrasA(this.time.now - t0, envuelto.length, cfg.ms_letra);
+        if (k <= n) return;
+        const nuevas = envuelto.slice(n, k);
+        n = k;
+        txt.setText(envuelto.slice(0, k));
+        if (S && S.voz && [...nuevas].some(D.conVoz)) S.voz(D.tono(cfg, quien, golpes++), cfg.piso_voz_ms, cfg.corte_ms);
+        if (k >= envuelto.length) e.terminar();
+      }
+    });
+    this._escritura = e;
+  }
+  /* true si había algo escribiéndose (y quedó completo) */
+  completarEscritura() {
+    if (!this._escritura) return false;
+    this._escritura.terminar();
+    return true;
+  }
+  cortarEscritura() {
+    if (!this._escritura) return;
+    this._escritura.ev.remove(false);
+    this._escritura = null;
+  }
+  /* el toque que completa: uno por escena. Los botones cortan la propagación,
+     así que tocar una opción elige y no completa */
+  escucharToque() {
+    if (this._toqueEscritura) return;
+    this._toqueEscritura = () => this.completarEscritura();
+    this.input.on("pointerdown", this._toqueEscritura);
+    this.events.once("shutdown", () => { this.input.off("pointerdown", this._toqueEscritura); this._toqueEscritura = null; });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     20/oct · EL DIBUJITO DE CADA OPCIÓN. Hecho con Graphics, sin arte nuevo
+     y sin baldosa ni círculo detrás: la figura sola, maciza, en el color del
+     texto. Se distinguen por FORMA. El de la entrevista lo declara
+     data/eventos_temporada.json (origen[].opciones[].ico); el del evento
+     sale de su efecto (logic/dialogo.js iconoDeEfecto).
+     ══════════════════════════════════════════════════════════════════════ */
+  dibujarIcono(x, y, id) {
+    const g = this.add.graphics({ x, y });
+    const c = 0x0a1f13;
+    g.fillStyle(c, 1); g.lineStyle(3, c, 1);
+    const flechaA = (x1, y1, x2, y2) => {
+      g.lineBetween(x1, y1, x2, y2);
+      const a = Math.atan2(y2 - y1, x2 - x1), L = 8;
+      g.fillTriangle(x2 + Math.cos(a) * 3, y2 + Math.sin(a) * 3,
+        x2 - Math.cos(a - 0.5) * L, y2 - Math.sin(a - 0.5) * L,
+        x2 - Math.cos(a + 0.5) * L, y2 - Math.sin(a + 0.5) * L);
+    };
+    const DIBUJO = {
+      pelota: () => { g.strokeCircle(0, 0, 12); g.fillCircle(0, 0, 4); g.lineBetween(0, -4, 0, -12); g.lineBetween(4, 1, 11, 4); g.lineBetween(-4, 1, -11, 4); },
+      escudo: () => { g.strokePoints([{ x: -11, y: -12 }, { x: 11, y: -12 }, { x: 11, y: 2 }, { x: 0, y: 13 }, { x: -11, y: 2 }], true); g.lineBetween(-11, -4, 11, -4); },
+      casa: () => { g.strokeRect(-12, -9, 24, 19); g.lineBetween(-12, -3, 12, -3); g.lineBetween(-12, 4, 12, 4); g.lineBetween(-3, -9, -3, -3); g.lineBetween(5, -3, 5, 4); g.lineBetween(-3, 4, -3, 10); },
+      dos: () => { g.fillCircle(-6, -6, 5); g.fillCircle(7, -6, 5); g.fillRoundedRect(-12, 1, 11, 12, 3); g.fillRoundedRect(2, 1, 11, 12, 3); },
+      sol: () => { g.fillCircle(0, -2, 6); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; g.lineBetween(Math.cos(a) * 9, -2 + Math.sin(a) * 9, Math.cos(a) * 13, -2 + Math.sin(a) * 13); } },
+      libro: () => { g.strokePoints([{ x: 0, y: -8 }, { x: -12, y: -11 }, { x: -12, y: 9 }, { x: 0, y: 12 }, { x: 12, y: 9 }, { x: 12, y: -11 }], true); g.lineBetween(0, -8, 0, 12); },
+      pala: () => { g.lineBetween(0, -13, 0, 3); g.lineBetween(-5, -13, 5, -13); g.fillRoundedRect(-6, 2, 12, 11, 3); },
+      llave: () => {
+        g.lineStyle(5, c, 1); g.lineBetween(-11, 11, 3, -3);
+        /* la boca abierta hacia afuera: sin ella se lee como una lupa */
+        g.lineStyle(4, c, 1); g.beginPath(); g.arc(6, -6, 6, -Math.PI / 4 + 0.8, -Math.PI / 4 - 0.8 + Math.PI * 2, false); g.strokePath();
+      },
+      corazon: () => { g.fillCircle(-5, -3, 6); g.fillCircle(5, -3, 6); g.fillTriangle(-11, -1, 11, -1, 0, 12); },
+      flecha: () => { g.lineStyle(5, c, 1); g.lineBetween(-12, 0, 4, 0); g.fillTriangle(2, -9, 13, 0, 2, 9); },
+      rayo: () => { g.fillPoints([{ x: 3, y: -13 }, { x: -8, y: 2 }, { x: -1, y: 2 }, { x: -4, y: 13 }, { x: 8, y: -3 }, { x: 1, y: -3 }], true); },
+      botin: () => { g.fillPoints([{ x: -12, y: -7 }, { x: -4, y: -7 }, { x: -2, y: 1 }, { x: 12, y: 3 }, { x: 12, y: 8 }, { x: -12, y: 8 }], true); g.fillRect(-10, 9, 3, 3); g.fillRect(-2, 9, 3, 3); g.fillRect(7, 9, 3, 3); },
+      pase: () => { g.fillCircle(-9, 7, 4); flechaA(-4, 4, 11, -7); },
+      gambeta: () => { g.lineBetween(-12, 8, -5, -6); g.lineBetween(-5, -6, 2, 8); flechaA(2, 8, 11, -7); },
+      pesa: () => { g.lineBetween(-8, 0, 8, 0); g.fillRect(-13, -7, 5, 14); g.fillRect(8, -7, 5, 14); },
+      cruz: () => { g.strokeCircle(0, 0, 13); g.fillRect(-3, -9, 6, 18); g.fillRect(-9, -3, 18, 6); },
+      reloj1: () => { g.strokeCircle(0, 0, 12); g.slice(0, 0, 12, -Math.PI / 2, Math.PI / 2, false); g.fillPath(); },
+      reloj2: () => { g.strokeCircle(0, 0, 12); g.slice(0, 0, 12, Math.PI / 2, Math.PI * 1.5, false); g.fillPath(); },
+      guante: () => { g.fillRoundedRect(-9, -2, 18, 14, 4); g.fillRect(-9, -11, 4, 10); g.fillRect(-4, -13, 4, 12); g.fillRect(1, -12, 4, 11); g.fillRect(6, -9, 4, 8); },
+      choque: () => { g.fillTriangle(-13, -9, -13, 9, -2, 0); g.fillTriangle(13, -9, 13, 9, 2, 0); },
+      igual: () => { g.fillRect(-11, -7, 22, 5); g.fillRect(-11, 3, 22, 5); }
+    };
+    if (!DIBUJO[id]) throw new Error("no hay dibujito '" + id + "'");
+    DIBUJO[id]();
+    return g;
+  }
+
+  /* 20/oct · la cara de un relator: un cuadro de assets/ui/relatores.webp
+     (portraits_manifest.relator.caras), sin tocar el archivo */
+  caraDeRelator(x, y, lado, id) {
+    const man = this.game.registry.get("portraits");
+    const tex = this.textures.get("relatores");
+    if (!tex.has(id)) { const r = man.relator.caras[id]; tex.add(id, 0, r[0], r[1], r[2], r[3]); }
+    return this.add.image(x, y, "relatores", id).setDisplaySize(lado, lado);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     20/oct · LA PREVIA DE LA FECHA (playtest de Rodri, punto 3).
+
+     Va después de cerrar la semana y antes de salir a la cancha. Un relator
+     de la previa cuenta, de a una página, quién es el rival, su estrella (que
+     después juega de verdad en la cancha: viaja en masterPartido.estrella),
+     algo de su localidad y su frase de previa. Todo sale de data
+     (relatos.previa_fecha, relatos.relatores, el roster); el armado, de
+     logic/dialogo.js. Un toque completa la página o pasa a la siguiente; A LA
+     CANCHA está siempre, para el que no quiere leer.
+
+     Atrás también va a la cancha: la semana ya se cerró y no se rehace.
+     ══════════════════════════════════════════════════════════════════════ */
+  vistaPrevia(rival, alSeguir) {
+    const W = this.scale.width, H = this.scale.height;
+    const D = window.PampaDialogo, REL = this.game.registry.get("relatos");
+    const t = this.save.temporada;
+    const puesto = this.T.posiciones(t).findIndex(f => f.equipo === rival) + 1;
+    const pv = D.previaDeLaFecha({
+      rival, division: this.save.division, roster: this.game.registry.get("roster"),
+      previa: REL.previa_fecha, relatores: REL.relatores, perfil: this.Ma.perfilRival(rival).n,
+      puesto: puesto + "º", fecha: t.fecha, hash: D.hash
+    });
+    this.vaciarVista();
+    this._atrasVista = () => alSeguir();
+    if (this.fondoDelMaster) this.fondoDelMaster();
+    this.add.text(W / 2, 16, "LA PREVIA · fecha " + ((t.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+    const tR = this.add.text(W / 2, 50, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
+    if (window.PampaEscudosUI && window.PampaEscudos) {
+      const esc = window.PampaEscudosUI.deClub(this, rival, this.T.posiciones(t).map(p => p.equipo), t.division);
+      window.PampaEscudosUI.dibujar(this, tR.x - tR.width / 2 - 26, 50, 22, esc);
+    }
+    /* el relator a la izquierda, con su nombre en placa */
+    const xc = 120, yc = 214, lado = 150;
+    const marco = this.add.graphics();
+    marco.fillStyle(0x0e2a1a, 1); marco.fillRect(xc - lado / 2 - 6, yc - lado / 2 - 6, lado + 12, lado + 12);
+    this.caraDeRelator(xc, yc, lado, pv.relator);
+    marco.lineStyle(3, 0xf5c400, 1); marco.strokeRect(xc - lado / 2 - 6, yc - lado / 2 - 6, lado + 12, lado + 12);
+    this.add.text(xc, yc + lado / 2 + 18, pv.nombre, { fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", backgroundColor: "#f5c400", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+    /* el globo, con la cola hacia la cara */
+    const bx = 216, by = 128, bw = W - 40 - bx, bh = 176;
+    const globo = this.add.rectangle(bx + bw / 2, by + bh / 2, bw, bh, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    const cola = this.add.graphics();
+    cola.fillStyle(0xf6efdc, 1); cola.fillTriangle(bx + 2, yc - 12, bx + 2, yc + 12, bx - 18, yc);
+    const txt = this.add.text(bx + 18, by + 16, "", { fontFamily: window.PF.texto, fontSize: "19px", color: "#0a1f13", wordWrap: { width: bw - 36 }, lineSpacing: 4 });
+    const pag = this.add.text(bx + bw - 12, by + bh - 10, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(1, 1);
+    let i = 0;
+    const mostrar = () => {
+      pag.setText((i + 1) + " de " + pv.paginas.length + (i < pv.paginas.length - 1 ? "  ▸ seguir" : ""));
+      this.escribir(txt, pv.paginas[i], pv.relator);
+    };
+    const seguir = () => {
+      if (this.completarEscritura()) return;
+      if (i < pv.paginas.length - 1) { i++; mostrar(); }
+    };
+    globo.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); seguir(); });
+    const irse = () => { this.cortarEscritura(); alSeguir(); };
+    const b = this.boton(W / 2, H - 70, 320, "▶ A LA CANCHA", 0x7ee08a, irse);
+    /* con teclado, ENTER y ESPACIO (los del cursor) leen de a una página y en
+       la última salen a la cancha; el botón, tocado, sale siempre */
+    const conTeclado = () => {
+      if (this.completarEscritura()) return;
+      if (i < pv.paginas.length - 1) { i++; mostrar(); } else irse();
+    };
+    if (this.grupoFoco) this.grupoFoco([{ obj: b, cb: conTeclado }], { inicial: 0 });
+    mostrar();
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -2240,14 +2444,23 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
     /* E · acá el PRINCIPAL es lo que pasó: el resto es marco. */
     this.add.text(W / 2, 44, "LA SEMANA", { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
-    this.add.text(W / 2, 140, ev.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);
+    const tEv = this.add.text(W / 2, 140, ev.texto, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc", align: "center", wordWrap: { width: 800 }, lineSpacing: 10 }).setOrigin(0.5);
+    /* 20/oct · el texto sale letra por letra: con el tamaño ya medido sobre
+       el texto entero, así el centro no baila mientras se escribe */
+    tEv.setFixedSize(tEv.width, tEv.height);
+    this.escribir(tEv, ev.texto, "semana");
+    const D = window.PampaDialogo;
     /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
        franja. Lo cazó el guardián ampliado, no el ojo. */
     const pielEv = (this.game.registry.get("balance") || {}).piel;
     const items = ev.opciones.map((o, i) => {
       const y = Math.round(window.PampaPiel.yDeOpcion(i, ev.opciones.length, 72, pielEv));
       const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(W / 2, y, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
+      /* 20/oct · el dibujito y la bajada salen de lo que la opción cambia,
+         dicho con palabras y sin números */
+      this.dibujarIcono(W / 2 - 350 + 32, y, D.iconoDeEfecto(o.efecto));
+      this.add.text(W / 2, y - 10, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 600 } }).setOrigin(0.5);
+      this.add.text(W / 2, y + 14, D.bajadaDeEfecto(o.efecto), { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
       const elegir = () => {
         this.save.modFecha = V.aplicarEleccion(ev, i);
         this._semEventoResuelto = true;
@@ -2289,7 +2502,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       origen: this.save.origen || null,
       semana: this.save.semanaResumen || null,
       mejoras: this.save.mejoras || null,
-      tempo: window.PampaSaveMaster.tempoDe(this.save)
+      tempo: window.PampaSaveMaster.tempoDe(this.save),
+      /* 20/oct · la estrella que nombró la previa juega de verdad (match.js armarPlanteles) */
+      estrella: this.estrellaDeLaFecha(rival)
     });
     this.save.enCancha = { temporadaN: c.temporadaN, fecha: c.fecha, rival };
     this.guardar();
@@ -2299,6 +2514,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        entrada. Probé poner "entrada" acá primero y se cortaba a los dos
        cuadros — vive en match.js, que es donde tiene lugar para sonar. */
     this.irA("match");
+  }
+
+  estrellaDeLaFecha(rival) {
+    const D = window.PampaDialogo;
+    const e = D.estrellaDe(rival, this.save.division, this.game.registry.get("roster"), D.hash);
+    return e ? e.id : null;
   }
 
   /* ============ VISTA 2: LA TEMPORADA ============ */
@@ -2496,7 +2717,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.boton(W / 2 - 170, H - 80, 300, repetir ? "↺ REPETIR EL PARTIDO" : "▶ JUGAR LA FECHA", 0x7ee08a, () => {
           if (repetir) { this.irALaCancha(rival); return; }
           /* V8 A1: primero LA SEMANA (dos toques), después la cancha */
-          this.vistaSemana(rival, () => this.irALaCancha(rival));
+          this.vistaSemana(rival, () => this.vistaPrevia(rival, () => this.irALaCancha(rival)));
         });
       } else {
         this.add.text(W / 2, H - 140, fechaTxt + " · FECHA LIBRE (descansás)", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
