@@ -151,6 +151,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._ladoTema = null;        // el motivo musical suena al cambiar el LADO, no en cada pase
     this._zonaTema = null;        // el tema del avance (propio/rival) arranca de cero
     this._megaRival = null;
+    this._tq = null; this._toqueN = 0; this._toqueRemate = null;   // EL TOQUE: la jugada abierta, la cuenta de semillas y lo que espera el remate
     this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = null;   // caches del HUD: el restart los recrea vacíos
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null; this._figurasCine = null;
@@ -3176,7 +3177,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const j = st.mios[st.ctrl];
       if (j) this.quizasProfundo("tiro", { distanciaArco: Math.abs(st.W - j.x) }, { rival: true });
     }
-    if (!mega && this.FLAGS.v8_tiro_comandos !== false) { this.tiroPorComandos(rivalIdx); return; }
+    /* 20/oct, punto 5: adentro del área, EL TOQUE (scenes/toque_ui.js) decide
+       la zona y el remate sigue por el camino de siempre */
+    if (!mega && this.FLAGS.v8_tiro_comandos !== false) {
+      if (this.toqueEnArea()) this.entrarToque(t => { this._toqueRemate = t; this.tiroPorComandos(rivalIdx); });
+      else this.tiroPorComandos(rivalIdx);
+      return;
+    }
     if (!mega && this.FLAGS.v6_definicion) {
       this.entrarDefinicionOf({ rivalIdx: rivalIdx, libre: libre });
       return;
@@ -3184,7 +3191,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (mega && this.FLAGS.e6_cine) {
       /* FEEL B5 · MEGATIRO: anuncio con cut-in y carga → ejecución exigente → CINE de 5 planos */
       this.cutInEspecial("¡" + mega.n.toUpperCase() + "!", (mega.sub || "") + " · " + mega.aguante + " aguante", () => {
-        this.dispararConCine(mega, this.ejDeLaSituacion(mega));
+        if (this.FLAGS.toque) this.entrarToque(t => this.dispararConCine(mega, this.ejDeLaSituacion(mega, null, t)));
+        else this.dispararConCine(mega, this.ejDeLaSituacion(mega));
       });
     } else {
       this.dispararSimple(mega, this.ejDeLaSituacion(mega));
@@ -4079,7 +4087,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      el camino. Mismo contrato de salida, cero input de precisión.
      penal: los remates difíciles (volea, chilena) pagan acá lo que antes
      pagaban con una ventana de aguja más chica. */
-  ejDeLaSituacion(mega, penal) {
+  ejDeLaSituacion(mega, penal, toque) {
     const st = this.st, j = st.mios[st.ctrl];
     const defs = this.rivalesEnElCamino ? this.rivalesEnElCamino(j) : 0;
     const auto = window.PampaTiro.tiroAuto({
@@ -4088,18 +4096,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       aguanteFrac: j.aguante / this.BAL.aguante.max,
       defensores: defs
     });
-    const zona = Object.assign({}, auto.zona);
+    /* con EL TOQUE la zona sale de cómo le pegaste, no de tiroAuto */
+    const zona = Object.assign({}, toque ? toque.zona : auto.zona);
     /* riesgoFuera se calculaba y no lo consumia NADIE: la punteria, el aguante
        y los rivales en el camino cambiaban a donde va la pelota pero no la
        chance de que se fuera afuera. Entra con multiplicador (logic/tiro). */
-    zona.fuera = window.PampaTiro.fueraConRiesgo(auto, this.BAL.tiro);
+    if (!toque) zona.fuera = window.PampaTiro.fueraConRiesgo(auto, this.BAL.tiro);
     if (penal) { zona.bonus -= (penal.bonus || 0); zona.fuera += (penal.fuera || 0); }
     if (mega) zona.bonus += ((this.BAL.epica || {}).mega_bonus_zona || 6);
     return {
       zona: zona, lectura: auto.lectura, ajustePoder: auto.ajustePoder,
-      enZona: auto.lectura.calidad >= 0.5,
+      enZona: toque ? toque.res.contacto : auto.lectura.calidad >= 0.5,
       /* la frase de LECTURA reemplaza al "la aguja se te escapó…" */
-      lecturaTexto: this.textoDeLectura(auto.lectura)
+      lecturaTexto: toque ? toque.texto : this.textoDeLectura(auto.lectura)
     };
   }
   textoDeLectura(L) {
@@ -4182,6 +4191,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      (la intriga) y el desenlace. Sin zonas ni barra: la ubicación manda. */
   tiroPorComandos(rivalIdx) {
     const st = this.st, P = window.PampaPartido, Tiro = window.PampaTiro;
+    const toque = this._toqueRemate; this._toqueRemate = null;
     const j = st.mios[st.ctrl];
     /* cuántos rivales están entre vos y el arco (los que "estorban") */
     const defs = st.rivales.filter(r => r.pos !== "ARQ" && r.x > j.x && Math.abs(r.y - j.y) < 150).length;
@@ -4198,13 +4208,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       shotPower: prep.shotPower + auto.ajustePoder,
       keeperSkill: prep.keeperSkill,
       /* idem: el riesgo de irse afuera entra por la via unica */
-      zone: Object.assign({}, auto.zona, { fuera: window.PampaTiro.fueraConRiesgo(auto, this.BAL.tiro) }),
+      zone: toque ? toque.zona : Object.assign({}, auto.zona, { fuera: window.PampaTiro.fueraConRiesgo(auto, this.BAL.tiro) }),
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
       /* G1: la distancia pesa acá, despues del tope del duelo */
       distancia: prep.distancia, especial: prep.especial, tiro: this.BAL.tiro,
       penalizaciones: prep.penalizaciones
     });
-    this.zona = auto.zona;
+    this.zona = toque ? toque.zona : auto.zona;
     this._megaGrito = "¡GOOOL!";
     /* ══════════════════════════════════════════════════════════════════════
        A3 · ALGUIEN CORTA EL REMATE.
@@ -4250,6 +4260,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         return;
       }
     }
+    /* con EL TOQUE el golpe ya se vio: directo al viaje */
+    if (toque) { this.entrarCine(); this.planoViaje(); return; }
     /* la ESCENA del remate (pose ilustrada + el rival que se tira) y recién
        después el viaje: primero se ve pegarle, después la intriga */
     const rival = rivalIdx != null ? st.rivales[rivalIdx] : null;
@@ -6294,6 +6306,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V8 C: el JUGADÓN es un MINIJUEGO — corre su propio latido (movimiento
        libre, rivales que vienen); el partido de abajo sigue congelado */
     if (this.estado === "JUGADON") { if (this.updateJugadonMini) this.updateJugadonMini(delta); return; }
+    if (this.estado === "TOQUE") { this.updateToque(delta); return; }
     if (this.estado === "DEFINICION") { this.updateDefinicion(delta); return; }   // V6 §4
     /* §9 EN SERIO: fuera de LIBRE la simulación NO corre (pausa → animación → pausa,
        estados realmente separados — si no, rivalTira/final pisan la resolución) */
