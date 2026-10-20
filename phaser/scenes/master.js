@@ -1331,14 +1331,22 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     };
     Object.keys(M.ZONAS).forEach(z => {
       const Z = M.ZONAS[z];
-      const t = this.add.text(0, 0, Z.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#2f5c40" });
-      const esquina = [[aX(Z.x0) + 4, aY(Z.y0) + 2, 0, 0], [aX(Z.x1) - 4, aY(Z.y0) + 2, 1, 0],
-        [aX(Z.x0) + 4, aY(Z.y1) - 2, 0, 1], [aX(Z.x1) - 4, aY(Z.y1) - 2, 1, 1]].find(([x, y, ox, oy]) => {
+      /* 20/oct: era #2f5c40 sobre el #14301f del mapa (1,8 a 1, no se leía);
+         #8fb89c da 6,4 a 1. Se distingue de los nombres de las localidades
+         por la forma, no solo por el color: va en mayúsculas y sin chapita.
+         CENTRO no entraba en ninguna esquina (le caen localidades en las
+         cuatro): después de las esquinas se busca un hueco en toda la caja,
+         de a 6 px */
+      const t = this.add.text(0, 0, Z.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#8fb89c" });
+      const lugares = [[aX(Z.x0) + 4, aY(Z.y0) + 2, 0, 0], [aX(Z.x1) - 4, aY(Z.y0) + 2, 1, 0],
+        [aX(Z.x0) + 4, aY(Z.y1) - 2, 0, 1], [aX(Z.x1) - 4, aY(Z.y1) - 2, 1, 1]];
+      for (let y = aY(Z.y0) + 8; y <= aY(Z.y1) - 8; y += 6) for (let x = aX(Z.x0) + 24; x <= aX(Z.x1) - 24; x += 6) lugares.push([x, y, 0.5, 0.5]);
+      const lugar = lugares.find(([x, y, ox, oy]) => {
           t.setPosition(x, y).setOrigin(ox, oy);
           const b = caja(t);
           return [[b.x, b.y], [b.x + b.w, b.y], [b.x, b.y + b.h], [b.x + b.w, b.y + b.h]].every(([px, py]) => enProvincia(px, py)) && !pisa(b);
         });
-      if (!esquina) { t.destroy(); return; }
+      if (!lugar) { t.destroy(); return; }
       ocupado.push(caja(t));
       capa.add(t);
     });
@@ -1746,7 +1754,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          texto siga leyéndose — antes quedaba texto oscuro sobre fondo oscuro. */
       const r = this.add.rectangle(cx, cy, anchoO, altoO, alcanza ? 0xf6efdc : 0xc9c3b2, alcanza ? 0.97 : 0.9)
         .setStrokeStyle(usada ? 4 : (alcanza ? 3 : 1), usada ? 0x7ee08a : 0x0a1f13, alcanza ? 1 : 0.55);
-      this.add.text(cx, cy - altoO / 2 + 5, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
+      /* 20/oct: con VT323 (más alta que Pixelify) el efecto del picadito
+         eran cuatro renglones y se le subía encima al nombre. El nombre va
+         3 px más arriba, el efecto 1 px más abajo y con los renglones 4 px
+         más juntos, y el riesgo se dice corto (textoEfecto): tres renglones
+         que entran */
+      this.add.text(cx, cy - altoO / 2 + 3, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
         color: "#0a1f13", align: "center", wordWrap: { width: anchoO - 6 } }).setOrigin(0.5, 0);
       /* PASADA DE COHERENCIA · una vez armada la semana, las SIETE tarjetas
          decian "la semana ya esta armada". Siete veces el mismo renglon en
@@ -1754,16 +1767,22 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          que te sirve mirar mientras decidis si sacar una y poner otra.
          Ahora: el motivo se dice UNA vez, arriba del grupo (ver el titulo de la
          lista), y la tarjeta sigue mostrando SU efecto. */
-      this.add.text(cx, cy + altoO / 2 - 3, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
-        { fontFamily: window.PF.texto, fontSize: "13px",
+      this.add.text(cx, cy + altoO / 2 - 2, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
+        { fontFamily: window.PF.texto, fontSize: "13px", lineSpacing: -4,
           color: sinEnergia ? "#8a3226" : (alcanza ? "#365a41" : "#5a6b60"),
           fontStyle: sinEnergia ? "italic" : "normal", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5, 1);
       /* se puede repetir una acción: son tres días distintos. La marca dice
          cuántas veces ya la elegiste, para que no haya que contarlas a ojo. */
       const veces = sem.elegidas.filter(e => e === o.id).length;
-      /* sobre el borde de arriba: adentro tapaba la punta de los nombres de un renglón */
-      if (veces) this.add.text(cx + anchoO / 2 - 14, cy - altoO / 2 - 2, "×" + veces,
-        { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 4, y: 0 } }).setOrigin(0.5);
+      /* adentro tapaba la punta de los nombres de un renglón, y sobre el
+         borde de arriba la de la segunda fila caía entre las dos filas (7 px
+         de canaleta para 18 de marca). 20/oct: en el borde derecho, a media
+         altura, angosta (15 px): entra en la canaleta de 8 px entre
+         columnas sin tocar a la vecina, y ahí no hay texto (el nombre va
+         arriba y el efecto abajo, centrados y más angostos que la tarjeta).
+         Encima de las tarjetas: la de al lado se dibuja después y la tapaba */
+      if (veces) this.add.text(cx + anchoO / 2, cy, "×" + veces,
+        { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 1, y: 0 } }).setOrigin(0.5).setDepth(1);
       /* la bloqueada TAMBIEN entra al grupo: se puede enfocar y te dice por que
          no se puede. Saltearla seria peor — no te enterarias de que existe. */
       _focoSem.push({ obj: r, bloqueada: !alcanza,
@@ -2068,7 +2087,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (o.cura_molestia) t.push("cura la molestia");
     if (o.espia_rival) t.push("ves cómo juega el rival");
     if (o.evita) t.push("te sacás el problema");
-    if (o.riesgo_golpe) t.push("riesgo de llegar golpeado");
+    if (o.riesgo_golpe) t.push("riesgo de golpe");
     return t.join(" · ");
   }
   /* la elección de UN día: las opciones disponibles, con su costo a la vista */
