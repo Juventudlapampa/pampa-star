@@ -78,10 +78,11 @@
     bus: 0.8,
     kick: 0.46, kickFuerte: 0.46, net: 0.59, gloves: 0.83, palo: 0.46, choque: 0.23,
     whistle: 0.16, afuera: 0.15, festejo: 0.21, crowd: 0.4, cama: 0.24, whoosh: 0.15, ui: 0.11,
-    golEnContra: 0.15
+    golEnContra: 0.15, riserRemate: 0.6
   };
   var PASABAJOS_HZ = 4000;
   var ganancia = 1;          // la del efecto que está sonando ahora (ver con())
+  var atenua = 1;            // el factor de debajo(): la intro pone sus golpes bajo el tema
   function configurarMezcla(cfg) {
     if (!cfg || typeof cfg !== "object") return;
     Object.keys(cfg).forEach(function (k) { if (k.charAt(0) !== "_" && typeof cfg[k] === "number") MEZCLA[k] = cfg[k]; });
@@ -90,7 +91,7 @@
   /* corre fn con la ganancia del efecto `nombre`: muestra() la lee */
   function con(nombre, fn) {
     var antes = ganancia;
-    ganancia = MEZCLA[nombre] != null ? MEZCLA[nombre] : 1;
+    ganancia = (MEZCLA[nombre] != null ? MEZCLA[nombre] : 1) * atenua;
     try { return fn(); } finally { ganancia = antes; }
   }
 
@@ -848,6 +849,28 @@
       m.g.gain.linearRampToValueAtTime(0.0001, t + d);
       m.src.stop(t + d + 0.02);
     },
+    /* 20/oct · EL RISER DEL REMATE, derivado de la cama de hinchada: un
+       pedazo del rumor que sube de volumen y de altura (playbackRate de 0,8
+       a 1,35) durante ms y se corta seco al final, que es donde el remate se
+       clava. La grabación del whoosh dura 0,48 s y no alcanza para el viaje. */
+    riserRemate: function (ms) {
+      if (!ensure() || !buffers.hinchada_loop) return;
+      var d = (ms || 1000) / 1000, t = now();
+      var m = muestra("hinchada_loop", { loop: true, rate: 0.8, desde: Math.random() * buffers.hinchada_loop.duration });
+      if (!m) return;
+      var pico = m.g.gain.value;
+      m.src.playbackRate.setValueAtTime(0.8, t);
+      m.src.playbackRate.exponentialRampToValueAtTime(1.35, t + d);
+      m.g.gain.setValueAtTime(0.0001, t);
+      m.g.gain.linearRampToValueAtTime(pico, t + d * 0.92);
+      m.g.gain.linearRampToValueAtTime(0.0001, t + d);
+      m.src.stop(t + d + 0.02);
+    },
+    /* corre fn con todos los efectos multiplicados por f */
+    debajo: function (f, fn) {
+      var antes = atenua; atenua = f;
+      try { return fn(); } finally { atenua = antes; }
+    },
     /* la cama de hinchada del partido: prendida o apagada (ver ponerCama) */
     cama: function (on) {
       camaEstado.quiere = !!on;
@@ -877,7 +900,7 @@
      lee MEZCLA.cama en ponerCama, porque su nivel cambia mientras suena (el
      duck). */
   ["kick", "kickFuerte", "choque", "whoosh", "net", "gloves", "palo", "afuera", "whistle", "crowd",
-    "festejo", "golEnContra", "ui"].forEach(function (k) {
+    "festejo", "golEnContra", "ui", "riserRemate"].forEach(function (k) {
     var f = SFX[k]; if (typeof f !== "function") return;
     SFX[k] = function () { var a = arguments, self = this; return con(k, function () { return f.apply(self, a); }); };
   });

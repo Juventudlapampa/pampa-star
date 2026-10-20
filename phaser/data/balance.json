@@ -119,6 +119,8 @@
       2000,
       4000
     ],
+    "golpes_ganancia": 0.5,
+    "_golpes": "20/oct: los efectos grabados de la intro (patada, súper tiro, whoosh, guantes, choque, red y la tribuna del grito, en p3, p4, p6, p7 y p8) suenan multiplicados por este número para quedar por debajo del tema del opening (scenes/intro.js, golpe). 0.5 = 6 dB menos que en el partido: la patada queda unos 3,5 dB debajo de la música. 1 = como en el partido.",
     "compuerta": true,
     "t_compuerta": "👆 TOCÁ PARA EMPEZAR",
     "t_compuerta_teclado": "(o apretá cualquier tecla)",

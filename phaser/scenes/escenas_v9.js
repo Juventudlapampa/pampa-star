@@ -483,6 +483,11 @@
       this.time.delayedCall(tEntrada, function () {
         self.uiCam.flash(70, 255, 200, 120);
         self.SFX && self.SFX.kick && self.SFX.kick();
+        /* 20/oct: el mismo sonido de tu remate mientras viaja: el aire, la
+           tribuna que sube hasta el freeze y la música abajo hasta saberlo */
+        self.SFX && self.SFX.whoosh && self.SFX.whoosh();
+        self.SFX && self.SFX.riserRemate && self.SFX.riserRemate(self.msV(520));
+        self.musicaDuck(self.msV(520) + silencio);
         self.lineasVelocidad(360, H * 0.6, 1.1, 0xff8a50);
         var destinoX = lectura.bloqueado ? 560 : 830;
         self.tweens.add({ targets: bola, x: destinoX, y: H * 0.5, angle: 900, duration: self.msV(520), ease: "Sine.easeIn" });

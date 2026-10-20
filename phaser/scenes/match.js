@@ -3472,6 +3472,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const ball = this.add.sprite(W / 2, nearY, TB0.key).setScale(TB0.esc); this.cineContent.add(ball);
     const trail = this.add.particles(0, 0, "spark_sol", { lifespan: 300, speed: 0, scale: { start: 1.2, end: 0 }, alpha: { start: 0.6, end: 0 }, frequency: 18, follow: ball }); this.cineContent.add(trail);
     this.SFX && this.SFX.whoosh();
+    /* 20/oct, Rodri: el remate tiene que sonar épico. Mientras la pelota
+       viaja la música baja (hasta el salto del arquero, donde el freeze la
+       vuelve a bajar) y la tribuna sube de volumen y de altura hasta él */
+    const tVuela = this.msV(C.plano_viaje_ms) + this.msV(C.plano_esfuerzo_ms);
+    this.musicaDuck(tVuela + this.msV(C.plano_arquero_ms));
+    this.SFX && this.SFX.riserRemate(tVuela);
     const cfg = { k: C.persp.k, vpX: vp.x, vpY: vp.y, nearY, driftX: (this.zona.gy || 0) * C.drift_mult };
     this.viajeState = { activo: true, elapsed: 0, dur: this.msV(C.plano_viaje_ms), ball, trail, cfg, vp, zoomed: false };
     this._cineTimer = this.time.delayedCall(this.msV(C.plano_viaje_ms), () => {

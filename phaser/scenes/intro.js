@@ -503,6 +503,17 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     return g;
   }
 
+  /* 20/oct, Rodri: la intro tenía la música, el viento y la red del logo, y
+     nada más. Ahora cada plano donde se patea, se ataja o pega la pelota
+     suena con su grabación (las del partido, assets/sonidos/), pero por
+     DEBAJO del tema: balance.intro.golpes_ganancia los multiplica a todos
+     (0,5 = 6 dB menos; en el partido la patada va 2,5 dB arriba de la
+     música y acá quedaría 3,5 dB abajo). */
+  golpe(nombre, ...args) {
+    const S = this.SFX;
+    if (!S || !S[nombre] || !S.debajo) return;
+    S.debajo(this.I.golpes_ganancia != null ? this.I.golpes_ganancia : 0.5, () => S[nombre](...args));
+  }
   /* --- los 8 planos (A.3) --- */
   p1(dur) {   // EL POTRERO: la tribuna LEJANA detrás, el pueblo delante (parallax de capas §3.1)
     if (this.textures.exists("fondo_tribuna")) {
@@ -605,7 +616,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
      primero.
      ══════════════════════════════════════════════════════════════════════ */
   p3(dur) {   // RÁFAGA DE HÉROES: 4 cortes de ~0,7s con flash y golpe
-    const orden = [["chilena", 0xffd84d], ["cabezazo", 0x4fc3f7], ["barrida", 0xff8a50], ["arquero_vuela", 0xf6efdc]];
+    const orden = [["chilena", 0xffd84d, "kickFuerte"], ["cabezazo", 0x4fc3f7, "kick"], ["barrida", 0xff8a50, "choque"], ["arquero_vuela", 0xf6efdc, "gloves"]];
     const paso = dur / orden.length;
     orden.forEach((par, k) => {
       this.time.delayedCall(k * paso, () => {
@@ -620,6 +631,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
         const s = this.poseImg(par[0], 480, 280, 400);
         this.temblor(s);
         this.flashBlanco();
+        this.golpe(par[2]);
       });
     });
   }
@@ -639,6 +651,10 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.capa.add(g);
     this.tweens.add({ targets: g, scale: 1.06, duration: 220, yoyo: true, repeat: 2 });
     this.cameras.main.shake(280, 0.012);
+    /* el remate: el golpe, el aire y la tribuna que se levanta con el grito */
+    this.golpe("kickFuerte");
+    this.golpe("whoosh");
+    this.golpe("crowd", 1900, 700);
   }
   p5() {   // EL SILENCIO: todo se detiene — el recurso del juego, enseñado antes de jugar
     /* I1 · el silencio es a propósito, pero con TODO en negro no se leía como
@@ -669,6 +685,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.radiales(0x0a1f13, 0.8);
     const s = this.poseImg("arquero_vuela", 480, 270, 380);
     this.temblor(s);
+    this.golpe("gloves");
     /* la música vuelve sola: el musicaDuck de p5 dura lo que el plano */
   }
   p7() {   // EL GOL: festejo sobre explosión dorada, hinchada a todo volumen
@@ -679,6 +696,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     const s = this.poseImg("festejo", 480, 280, 430);
     this.temblor(s);
     this.flashBlanco();
+    this.golpe("net");
     this.SFX && this.SFX.festejo && this.SFX.festejo(1800);
   }
   p8(dur) {   // EL LOGO: el nombre del juego, la bajada letra por letra, acorde final
@@ -696,7 +714,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       const l = this.add.image(480, 210, kL);
       l.setScale(Math.min(1, 620 / l.width, 300 / l.height));
       this.capa.add(l);
-      this.time.delayedCall(540, () => { if (!this._fin) { this.cameras.main.shake(200, 0.01); this.SFX && this.SFX.net && this.SFX.net(); } });
+      this.time.delayedCall(540, () => { if (!this._fin) { this.cameras.main.shake(200, 0.01); this.golpe("net"); } });
     } else {
       const t = this.add.text(480, 220, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "44px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.capa.add(t);
