@@ -36,7 +36,7 @@ function escena() {
   var E = PM.escena({
     logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
     logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js"],
-    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js"]
+    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js", "phaser/scenes/toque_ui.js"]   // 20/oct: el rótulo del TIRO pregunta toqueEnArea
   });
   var s = E.s;
   E.W.PF = { texto: BAL.tipografia.texto, display: BAL.tipografia.display };

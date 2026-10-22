@@ -2655,7 +2655,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       rotulos(x, y, w, op.texto, subTxt, op.bloqueada ? "#b9c3bc" : "#0a1f13", op.bloqueada ? "#f6efdc" : "#365a41");
       if (!op.bloqueada) {
         r.setInteractive({ useHandCursor: true });
-        r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; op.cb(); });
+        /* 20/oct, Rodri: elegir con el dedo o el mouse no sonaba (el cursor
+           se mueve callado); con teclado ya sonaba "confirmar" */
+        r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.SFX && this.SFX.ui && this.SFX.ui("confirmar"); op.cb(); });
       }
       this._menuBtns[dir] = r;
     });
@@ -2666,7 +2668,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const c = this.add.rectangle(cx, cy, cw, ch, 0xff8c3a, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
       this.menuLayer.add(c);
       rotulos(cx, cy, cw, cfg.centro.texto, cfg.centro.sub || "", "#0a1f13", "#5a2d12");
-      c.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; cfg.centro.cb(); });
+      c.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; this.SFX && this.SFX.ui && this.SFX.ui("confirmar"); cfg.centro.cb(); });
       centroRect = c;
     }
     /* en la grilla, VOLVER es una opción más de la lista (el ✕ de arriba a la
@@ -2883,7 +2885,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           cb: () => this.iniciarPaseDirigido(rivalIdx, libre)
         },
         S: { texto: "🔁 PARED", sub: par.bloqueada ? null : pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
-        E: { texto: "🎯 TIRO", sub: puedeT ? pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante" : null, bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+        /* 20/oct, Rodri: adentro del área el porcentaje no es lo que decide, decide EL TOQUE */
+        E: { texto: "🎯 TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
       centro: listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),

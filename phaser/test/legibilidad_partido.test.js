@@ -51,7 +51,7 @@ function escena(mixinsExtra) {
   var E = PM.escena({
     logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
     logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js"],
-    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js"].concat(mixinsExtra || [])
+    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js", "phaser/scenes/toque_ui.js"].concat(mixinsExtra || [])   // 20/oct: el rótulo del TIRO pregunta toqueEnArea
   });
   var s = E.s, W = E.W;
   W.PF = { texto: BAL.tipografia.texto, display: BAL.tipografia.display };
@@ -183,7 +183,18 @@ SITUACIONES.forEach(function (sit) {
   if (sit.n.indexOf("rendido") >= 0) bloqueados += s.menuLayer.list.filter(function (o) { return o.type === "Graphics"; }).length;
 });
 
-assert(vistos.length > 40, "se armaron las cuatro cruces y las dos grillas de ★ ESPECIAL (" + vistos.length + " textos)");
+/* 20/oct, Rodri: en el área el TIRO decía "39% de zafar" y después decidía EL TOQUE */
+(function () {
+  var E = escena(), s = E.s, st = s.st, i = vos(s), A = s.BAL.toque.area;
+  st.ctrl = i; st.posesion = "mia"; st.mios[i].esVos = true; st.mios[i].aguante = 1000;
+  st.mios[i].x = st.W - A.largo_px / 2; st.mios[i].y = st.H / 2;
+  s.abrirMenuAtaque(1, false);
+  var t = textos(s).filter(function (o) { return /TOQUE|zafar/.test(o.text); })[0];
+  var CE = CZ.E;
+  assert(s.toqueEnArea() && t && t.text === "EL TOQUE: acomodate y pegá" && t.width <= CE[2] - 2 * CZ.aire,
+    "en el área, el TIRO dice EL TOQUE entero, sin recortar (" + (t && t.text) + ", " + (t && Math.round(t.width)) + " de " + (CE[2] - 2 * CZ.aire) + ")");
+})();
+assert(vistos.length > 40,"se armaron las cuatro cruces y las dos grillas de ★ ESPECIAL (" + vistos.length + " textos)");
 assert(chicos.length === 0, "ningún texto de la cruz baja de " + PISO + " px:\n     " + chicos.join("\n     "));
 console.log("[1] " + vistos.length + " textos en 4 cruces y 2 grillas, todos a " + PISO + " px o más");
 assert(afuera.length === 0, "cada rótulo entra en su botón:\n     " + afuera.join("\n     "));
