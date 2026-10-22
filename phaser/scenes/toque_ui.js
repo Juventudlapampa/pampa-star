@@ -77,6 +77,7 @@
         tq.boton = this.jugadonBoton(W - 120, H - 34, 200, "¡PEGALE!", 0xffd84d, function () { self.toquePegar(); });
         var queHace = this.add.text(W - 120, H - 67, "le pegás cuando llega", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5, 1);
         this.cineContent.add(queHace);
+        tq.zonaBoton = Phaser.Geom.Rectangle.Union(tq.boton.getBounds(), queHace.getBounds());
       }
 
       /* sobre un botón el puntero no es un lugar de la cancha */
@@ -193,9 +194,11 @@
       tq.anillo.lineStyle(4, 0xffffff, e.golpe ? 0.3 : 0.95);
       tq.anillo.strokeEllipse(ps.x, ps.y, 46 * ps.s, 18 * ps.s);
       tq.marca.setOrigin(0.5, 0).setPosition(ps.x, ps.y + 10 * ps.s);
-      /* en el teléfono, si la marca cae debajo de ¡PEGALE!, va arriba del anillo */
-      if (tq.boton && Phaser.Geom.Rectangle.Overlaps(tq.marca.getBounds(), tq.boton.getBounds())) {
-        tq.marca.setOrigin(0.5, 1).setPosition(ps.x, ps.y - 10 * ps.s);
+      /* en el teléfono, si la marca cae debajo de ¡PEGALE! o de su renglón,
+         va arriba del anillo, y si el anillo también está ahí, arriba de los dos */
+      if (tq.zonaBoton && Phaser.Geom.Rectangle.Overlaps(tq.marca.getBounds(), tq.zonaBoton)) {
+        tq.marca.setOrigin(0.5, 1).setPosition(ps.x, Math.min(ps.y - 10 * ps.s, tq.zonaBoton.y - 2));
+        this.cineContent.bringToTop(tq.marca);   // ahí queda sobre las piernas del jugador
       }
 
       tq.mira.clear();
