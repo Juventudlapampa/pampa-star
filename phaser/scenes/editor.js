@@ -178,26 +178,36 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     }
 
     /* ---- abajo: guardar + a la cancha ---- */
-    const btn = (x, w, texto, bg, accion) => {
-      const cb = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("confirmar"); accion(); };
+    const btn = (x, w, texto, bg, accion, sonido) => {
+      const cb = () => { const S = window.PampaSFX; if (S && S.ui) S.ui(sonido || "confirmar"); accion(); };
       const r = this.add.rectangle(x, H - 40, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       this.add.text(x, H - 40, texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
       r.on("pointerdown", cb);
       this._botones.push({ obj: r, cb: cb });
       return r;
     };
-    btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
+    let volver;
     if (pendiente) {
+      /* 20/oct, Rodri: con la carrera recién elegida no había cómo volver y
+         ESC no hacía nada. VOLVER guarda la pinta y deja el pendiente como
+         está: JUGAR CARRERA, en el título, trae de vuelta a este paso */
+      volver = btn(105, 170, "◀ VOLVER", 0xf6efdc, () => { this.guardar(); this.irA("titulo"); }, "volver");
+      btn(W / 2 - 145, 250, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
       /* "🏆 CARRERA" arriba a la derecha no se lee como "seguí por acá", y
          ¡A LA CANCHA! te sacaba de la carrera: con la carrera pendiente, la
-         única salida es esta */
+         salida hacia adelante es esta */
       btn(W / 2 + 170, 320, "▶ LISTO, A LA ENTREVISTA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
     } else {
+      btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
       /* 20/oct, Rodri: ¡A LA CANCHA! y 🏆 CARRERA sueltos acá eran la entrada
          del juego, y "no es un juego así". La entrada es la pantalla de título
          (scenes/titulo.js); al editor se llega desde la tabla de la carrera,
          y se vuelve a ella */
-      btn(W / 2 + 170, 320, "▶ VOLVER A LA CARRERA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
+      volver = btn(W / 2 + 170, 320, "▶ VOLVER A LA CARRERA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
+    }
+    if (this.input.keyboard) {
+      const alEsc = this._botones.find(b => b.obj === volver).cb;
+      this.input.keyboard.on("keydown-ESC", alEsc);
     }
     /* Addendum v6 A.2: repetir el opening a gusto */
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
@@ -215,12 +225,13 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
     /* TANDA 1.0 · LA VERSIÓN A LA VISTA. Si alguien de una localidad avisa
        "se me trabó", lo primero que hay que saber es qué versión tenía, y no
-       se veía en ningún lado (vivía adentro de sw.js). Chica, abajo a la
-       derecha: la esquina libre a la derecha del botón verde (que termina
-       en x=810). Sale de window.PAMPA_VERSION, la misma que lleva el informe. */
+       se veía en ningún lado (vivía adentro de sw.js). Chica, arriba a la
+       derecha. Abajo, al lado del botón verde, "versión v19-1.0-playtest"
+       se metía en el botón (20/oct). Sale de window.PAMPA_VERSION, la misma
+       que lleva el informe. */
     if (window.PAMPA_VERSION) {
-      this.add.text(W - 10, H - 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" })
-        .setOrigin(1, 1).setAlpha(0.85);
+      this.add.text(W - 10, 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" })
+        .setOrigin(1, 0).setAlpha(0.85);
     }
 
     /* el cursor, sin teclado: las flechas las maneja el editor (ver arriba).

@@ -125,7 +125,8 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
 
   jugarCarrera() {
     this.game.registry.remove("partidoRapido");
-    this.irA("master");
+    /* volviste del editor con la carrera a medio crear: se sigue en la pinta */
+    this.irA(this.game.registry.get("carreraPendiente") ? "editor" : "master");
   }
 
   /* un rival de la Primera B al azar, con el nivel de la Primera B y la
