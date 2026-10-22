@@ -200,9 +200,16 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   ubic.forEach(function (u) {
     assert(u.x >= 0 && u.x <= 1 && u.y >= 0 && u.y <= 1, "D4: " + u.nombre + " tiene que caer en 0..1");
   });
+  /* pedido de Rodri del 20/oct: la nota "mapa por zonas · las ubicaciones
+     exactas van cuando estén los datos" sonaba a pendiente de desarrollo y se
+     fue. La decisión sigue: el mapa es por zonas, la ficha dice la zona de
+     la localidad elegida y nada en pantalla presenta el esquema como exacto */
   var exactos = Mapa.cuantosExactos(ubic);
-  assert(/mapa por zonas · las ubicaciones exactas van cuando estén los datos/.test(MASTER),
-    "D4: mientras no haya coordenadas, la pantalla lo tiene que DECIR — un esquema que se presenta como exacto miente");
+  assert(exactos === 0, "D4: hoy ninguna localidad trae coordenadas: el mapa es por zonas");
+  assert(!/las ubicaciones exactas van cuando/.test(MASTER) && !/"ubicaciones exactas"/.test(MASTER),
+    "D4: la pantalla no habla de ubicaciones exactas (ni la nota vieja ni el cartel de exactas)");
+  assert(/"zona " \+ zN\.toLowerCase\(\)/.test(MASTER), "D4: la ficha dice la zona de la localidad elegida");
+  assert(/"tocá otra localidad para cambiar"/.test(MASTER), "D4: debajo de la ficha, cómo se cambia de localidad");
   /* estable: el mismo roster da siempre el mismo mapa */
   var otra = Mapa.ubicar(pueblos.map(function (p) {
     return Object.assign({ nombre: p }, ROS.clubes_por_pueblo[p]);

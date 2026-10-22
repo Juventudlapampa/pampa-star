@@ -1374,18 +1374,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const zN = (M.ZONAS[info.zona] || {}).n || "—";
     capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5));
 
-    /* --- y se dice que el mapa es esquemático --- */
     if (this.grupoFoco && _focoMapa.length) {
       const iSel = ubic.findIndex(p => p.nombre === sel);
       this.grupoFoco(_focoMapa.concat(this._tempoFoco || []), { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
     }
     /* TEMPO-1: va debajo de la ficha y no debajo del mapa, donde ahora está
-       la pregunta del tempo */
-    const exactos = M.cuantosExactos(ubic);
-    capa.add(this.add.text(fx + medioF, fichaY + 152,
-      exactos === ubic.length ? "ubicaciones exactas"
-        : "mapa por zonas · las ubicaciones exactas van cuando estén los datos",
-      { fontFamily: window.PF.texto, fontSize: "13px", color: "#7a8a80", align: "center", wordWrap: { width: anchoF } }).setOrigin(0.5, 0));
+       la pregunta del tempo. 20/oct, Rodri: la nota "mapa por zonas · las
+       ubicaciones exactas van cuando estén los datos" sonaba a pendiente de
+       desarrollo; la zona ya la dice la ficha, y acá va cómo se cambia */
+    capa.add(this.add.text(fx + medioF, fichaY + 152, "tocá otra localidad para cambiar",
+      { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5", align: "center", wordWrap: { width: anchoF } }).setOrigin(0.5, 0));
   }
 
   /* ============ V8 A1 · PARTE 1: DE DÓNDE SALÍS (3 pantallas, una vez) ============
