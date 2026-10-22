@@ -493,5 +493,48 @@ function partidoNuevo(rng, balDe) {
   console.log("[17] salir al cruce en defensa (pedido del 22/oct): ok");
 })();
 
+/* ---- 18) pedido de Rodri del 22/oct: el ataque era monótono ----
+   Cada gambeta ganada avanzaba lo mismo (212, 302, 392, 482) y después de
+   cada atajada la pelota arrancaba en (212, 340). Medido en 400 jugadas
+   (simulación de la tanda): antes 1 avance y 1 salida; ahora el avance va
+   de 83 a 162 px y la salida cambia casi siempre. */
+(function () {
+  function conGambeta(g) {
+    var mios = [{ nombre: "Arquero", pos: "ARQ" }];
+    for (var i = 0; i < 10; i++) mios.push({ nombre: "Compa " + i, pos: "X" });
+    mios[8] = { nombre: "Vos", esVos: true, stats: { gambeta: g, pase: 50, tiro: 50 } };
+    return P.crearPartido({ bal: bal, mios: mios, rivales: [], rng: seq([0.5]) });
+  }
+  function avance(g, r) {
+    var st = conGambeta(g), x0 = st.mios[st.ctrl].x;
+    P.ganarAtaque(st, "gambeta", 9, r);
+    return st.mios[st.ctrl].x - x0;
+  }
+  ok(avance(80) > avance(50) && avance(50) > avance(40), "el gambeteador avanza más (" + Math.round(avance(40)) + " < " + Math.round(avance(50)) + " < " + Math.round(avance(80)) + ")");
+  ok(avance(50, { chancePct: 90, roll: 0.1, matriz: "zafaste" }) > avance(50, { chancePct: 55, roll: 0.5, matriz: "leyeron" }) + 30,
+    "ganar holgado y esquivando su lectura avanza más que ganarla por poco");
+  var vistos = {};
+  [40, 55, 70, 85].forEach(function (g) { [0.05, 0.3, 0.6].forEach(function (roll) { vistos[Math.round(avance(g, { chancePct: 70, roll: roll, matriz: "leyeron" }))] = 1; }); });
+  ok(Object.keys(vistos).length >= 10, "SÍNTOMA: cada gambeta ganada avanza lo mismo (" + Object.keys(vistos).length + " valores en 12 jugadas)");
+  /* el costado: salís hacia el lado contrario al que dejaste atrás */
+  var st2 = conGambeta(60), y0 = st2.mios[st2.ctrl].y;
+  st2.rivales[9].y = y0 + 30;
+  P.ganarAtaque(st2, "gambeta", 9, { chancePct: 70, roll: 0.2 });
+  ok(st2.mios[st2.ctrl].y < y0, "la gambeta sale hacia el costado contrario al del rival");
+  /* la salida del arquero */
+  var lugares = {};
+  for (var s = 0; s < 30; s++) {
+    var st3 = partidoNuevo(seq([0.0]));
+    st3.posesion = "rival"; st3.portadorRival = 9; st3.rivales[9].y = s % 2 ? 120 : 560;
+    var vals = [0.0, (s % 7) / 7, (s % 5) / 5, (s % 3) / 3], k = 0;
+    var res = P.resolverAtajada(st3, "atajar", function () { return vals[k++ % vals.length]; });
+    ok(res.retiene && st3.mios[st3.ctrl].pos === "DEF", "atajó y retiene: sale un defensor");
+    ok(Math.abs(st3.mios[st3.ctrl].y - st3.rivales[9].y) > 150, "sale por el lado contrario al remate");
+    lugares[Math.round(st3.pelota.x) + "," + Math.round(st3.pelota.y)] = 1;
+  }
+  ok(Object.keys(lugares).length >= 8, "SÍNTOMA: después de cada atajada la pelota arranca en el mismo lugar (" + Object.keys(lugares).length + " lugares en 30)");
+  console.log("[18] avance y salida que cambian con la jugada (pedido del 22/oct): ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);

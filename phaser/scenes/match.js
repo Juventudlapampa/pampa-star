@@ -3005,7 +3005,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ANIME B (P2): la GAMBETA se VE — el que encara en pose, el que queda atrás */
     const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
     if (r.win) {
-      P.ganarAtaque(st, a.id, rivalIdx);   // R2: el gambeteado queda pagando atrás
+      P.ganarAtaque(st, a.id, rivalIdx, r);   // R2: el gambeteado queda pagando atrás
       /* V9 §3: la gambeta ganada SIEMPRE tiene su viñeta (antes, si el rival
          venía con megacosa, se comía la escena y quedaba un cartel), y la
          PARED tiene la suya en vez de resolverse en texto */

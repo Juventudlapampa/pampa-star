@@ -730,10 +730,26 @@
   /* efectos de mundo tras el duelo de ataque.
      V6 §2 R2: SEPARACIÓN POST-DUELO — el perdedor queda NOTABLEMENTE lejos,
      como el gambeteado del anime que queda tirado metros atrás. */
-  function ganarAtaque(st, accion, rivalIdx) {
+  /* r: lo que devolvió resolverDuelo, si lo hay. 22/oct, Rodri: cada gambeta
+     ganada avanzaba lo mismo (212, 302, 392, 482). Ahora la base de la acción
+     se estira con tu stat de esa acción (50 = la base), con lo holgado que
+     ganaste el duelo y con haber esquivado su lectura; y salís hacia el
+     costado contrario al que dejaste atrás. Perillas en balance.partido.avance. */
+  function ganarAtaque(st, accion, rivalIdx, r) {
     var c = st.mios[st.ctrl];
-    var sep = st.bal.partido.separacion_duelo || 90;
-    c.x = clamp(c.x + (accion === "pared" ? sep * 0.7 : accion === "gambeta" ? sep : sep * 0.4), 14, st.W - 14);
+    var sep = st.bal.partido.separacion_duelo || 90, AV = st.bal.partido.avance || {};
+    var base = accion === "pared" ? sep * 0.7 : accion === "gambeta" ? sep : sep * 0.4;
+    var stat = statCtrl(st, accion === "gambeta" ? "gambeta" : "pase");
+    var holgura = r && r.chancePct != null ? clamp(r.chancePct / 100 - r.roll, 0, 1) : 0;
+    var mult = 1 + (stat - 50) * (AV.por_punto_stat != null ? AV.por_punto_stat : 0.008)
+      + holgura * (AV.por_holgura != null ? AV.por_holgura : 0.6)
+      + (r && r.matriz === "zafaste" ? (AV.por_zafar != null ? AV.por_zafar : 0.15) : 0);
+    c.x = clamp(c.x + base * clamp(mult, AV.min_mult || 0.7, AV.max_mult || 1.8), 14, st.W - 14);
+    var dejado = rivalIdx != null ? st.rivales[rivalIdx] : null;
+    if (dejado) {
+      var lado = c.y >= dejado.y ? 1 : -1;
+      c.y = clamp(c.y + lado * (AV.costado_px != null ? AV.costado_px : 40) * (0.4 + holgura), 20, st.H - 20);
+    }
     if (rivalIdx != null && st.rivales[rivalIdx])
       st.rivales[rivalIdx].x = clamp(st.rivales[rivalIdx].x + sep * 0.8, 20, st.W - 20);   // queda pagando, atrás
     st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
@@ -1132,11 +1148,25 @@
       else { st.posesion = "rival"; st.portadorRival = st.rivales.length - 2; st.rivales[st.portadorRival].x = st.W / 2; st.rivales[st.portadorRival].y = st.H / 2; st.pelota.x = st.W / 2; st.pelota.y = st.H / 2; st.ctrl = masCercanoAPelota(st); st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; }   // auto-switch: marcás con el más cercano a la dividida
       return { golRival: false, dividida: true, mia: mia, eleccion: eleccion };
     }
-    /* atajó y retiene: salís jugando desde tu área */
+    /* atajó y retiene: salís jugando desde tu área. 22/oct, Rodri: arrancaba
+       siempre en el mismo lugar (200, al medio). El arquero se la da a uno de
+       los dos defensores del lado contrario al remate, donde hay espacio, y
+       la saca más larga cuanto mejor es: el físico del arquero corre la
+       salida y el resto lo pone cómo quedó la jugada. Perillas en
+       balance.partido.salida_arquero. */
     st.posesion = "mia";
-    st.ctrl = st.mios.findIndex(function (j) { return j.pos === "DEF"; });
-    var d0 = st.mios[st.ctrl]; d0.x = 200; d0.y = st.H / 2;
-    st.pelota.x = 212; st.pelota.y = st.H / 2;
+    var SA = st.bal.partido.salida_arquero || {};
+    var tirador = st.rivales[st.portadorRival] || { y: st.H / 2 };
+    var defs = [];
+    st.mios.forEach(function (j, i) { if (j.pos === "DEF") defs.push(i); });
+    defs.sort(function (a, b) { return Math.abs(st.mios[b].y - tirador.y) - Math.abs(st.mios[a].y - tirador.y); });
+    st.ctrl = defs.length ? defs[Math.floor(rng() * Math.min(2, defs.length))] : st.ctrl;
+    var arqM = st.mios.find(function (j) { return j.pos === "ARQ"; }) || { stats: {} };
+    var d0 = st.mios[st.ctrl];
+    var xs = SA.x || [160, 300];
+    d0.x = clamp(xs[0] + ((arqM.stats.fisico || 50) - 50) * (SA.por_fisico != null ? SA.por_fisico : 1.2) + rng() * (xs[1] - xs[0]), 120, st.W / 2 - 40);
+    d0.y = clamp((d0.banda[0] + d0.banda[1]) / 2 + (rng() - 0.5) * (SA.y_juego || 60), 30, st.H - 30);
+    st.pelota.x = d0.x + 12; st.pelota.y = d0.y;
     st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     return { golRival: false, retiene: true, eleccion: eleccion };
   }

@@ -442,6 +442,24 @@
     "pase_radio": 380,
     "pase_penal_lejano": 0.05,
     "separacion_duelo": 90,
+    "avance": {
+      "_nota": "Pedido de Rodri del 22/oct: cada gambeta ganada avanzaba lo mismo (separacion_duelo, 212, 302, 392, 482). Ahora la base de la acción (gambeta 1, pared 0,7, el resto 0,4 de separacion_duelo) se multiplica por 1 + (stat - 50) x por_punto_stat + holgura x por_holgura (cuánto sobró de chance al ganar el duelo, 0 a 1) + por_zafar si esquivaste su lectura, entre min_mult y max_mult. costado_px: cuánto salís hacia el lado contrario al que dejaste atrás.",
+      "por_punto_stat": 0.008,
+      "por_holgura": 0.6,
+      "por_zafar": 0.15,
+      "min_mult": 0.7,
+      "max_mult": 1.8,
+      "costado_px": 40
+    },
+    "salida_arquero": {
+      "_nota": "Pedido de Rodri del 22/oct: después de cada atajada la pelota arrancaba siempre en x 200, al medio. Ahora el arquero se la da a uno de los dos defensores del lado contrario al remate; x sale entre x[0] y x[1] (más por_fisico por cada punto de físico del arquero sobre 50) y la altura, de la franja de ese defensor más o menos y_juego / 2.",
+      "x": [
+        160,
+        300
+      ],
+      "por_fisico": 1.2,
+      "y_juego": 60
+    },
     "matriz_bonus": 12,
     "cpu_pesos": {
       "quite": 0.4,
