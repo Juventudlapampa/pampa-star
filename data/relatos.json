@@ -191,11 +191,12 @@
   "_doc": "Playtest del 20/oct: la previa de la fecha, antes de salir a la cancha (scenes/master.js vistaPrevia, logic/dialogo.js previaDeLaFecha). Cuatro páginas: el rival, su estrella (del roster, con su historia), algo de la localidad y una frase de previa de un relator de la lista 'relatores'. {rival} {perfil} {tabla} (el puesto, o tabla_en_cero en la primera fecha) {localidad} {nombre} {apodo} {puesto_cancha} se reemplazan; si falta un dato la previa no arranca. 'localidad' va cuando el roster sabe de dónde es el club; 'sin_localidad' para la Primera B y la A sin ese dato; 'lejos' de la Regional para arriba.",
   "puestos": { "DEF": "defensor", "VOL": "volante", "ATA": "delantero" },
   "rival": [
-   "Hoy enfrente está {rival}, un equipo {perfil}. Llega {tabla}.",
-   "El rival de hoy es {rival}, un equipo {perfil} que viene {tabla}.",
-   "Juega {rival}, que viene {tabla}. Es un equipo {perfil}."
+   "Hoy enfrente está {rival}, un equipo {perfil}. {tabla}",
+   "El rival de hoy es {rival}, un equipo {perfil}. {tabla}",
+   "Juega {rival}, un equipo {perfil}. {tabla}"
   ],
-  "tabla_en_cero": "con la tabla en cero, como todos",
+  "tabla": "Llega {puesto} en la tabla.",
+  "tabla_en_cero": "Es la primera fecha: todos los equipos arrancan sin puntos.",
   "estrella": [
    "La figura de ellos es {nombre}, «{apodo}», {puesto_cancha}.",
    "Ojo con {nombre}, el {puesto_cancha} al que le dicen «{apodo}».",

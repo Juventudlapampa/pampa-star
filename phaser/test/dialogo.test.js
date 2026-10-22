@@ -83,6 +83,9 @@ var DIBUJOS = (bloque.match(/^ {6}(\w+): \(\) =>/gm) || []).map(function (l) { r
       n++;
       ok(pv.paginas.every(function (p) { return p.length > 10 && p.indexOf("{") < 0; }), rival + ": las páginas están completas");
       ok(pv.paginas[0].indexOf(rival) >= 0, rival + ": la primera página dice quién es el rival");
+      /* 20/oct, Rodri: el puesto (o la tabla en cero) va en una oración aparte del perfil */
+      ok(k === 0 ? /\. Es la primera fecha: todos los equipos arrancan sin puntos\.$/.test(pv.paginas[0])
+        : /\. Llega \d+º en la tabla\.$/.test(pv.paginas[0]), rival + ": la tabla en su propia oración (" + pv.paginas[0] + ")");
       var baja = div === "primera_b" || div === "primera_a";
       ok(baja ? !!pv.estrella : pv.estrella === null, rival + ": estrella del roster en la B y la A, ninguna inventada más arriba");
       ok(pv.paginas.length === (pv.estrella ? 4 : 3), rival + ": rival, estrella si hay, localidad y relator");

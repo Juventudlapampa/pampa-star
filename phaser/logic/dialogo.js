@@ -111,8 +111,10 @@
     var loc = localidadDe(o.rival, o.roster);
     var est = estrellaDe(o.rival, o.division, o.roster, h);
     var de = function (lista, sal) { return lista[(h(o.rival) + sal + (o.fecha | 0)) % lista.length]; };
-    /* en la primera fecha la tabla está en cero y el puesto no dice nada */
-    var tabla = (o.fecha | 0) > 0 ? o.puesto + " en la tabla" : P.tabla_en_cero;
+    /* en la primera fecha la tabla está en cero y el puesto no dice nada.
+       Va en su propia oración: pegada al perfil, el 20/oct se leía "un equipo
+       con una ESTRELLA que viene con la tabla en cero, como todos" */
+    var tabla = (o.fecha | 0) > 0 ? llenar(P.tabla, { puesto: o.puesto }) : P.tabla_en_cero;
     var datos = { rival: o.rival, perfil: o.perfil, tabla: tabla, localidad: loc };
     var paginas = [llenar(de(P.rival, 0), datos)];
     if (est) {
