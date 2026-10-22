@@ -15,9 +15,11 @@
    LAS FRASES SON DATA (data/tribuna.json). Agregar un intercambio es agregar
    un {a, b} a la lista, sin tocar una línea de código.
 
-   NO SE REPITE dos veces seguidas: se lleva el índice del último intercambio
-   usado POR EVENTO, y si el evento vuelve a salir se elige otro. Con seis por
-   evento eso alcanza para que no cante.
+   NO SE REPITE: un intercambio no vuelve hasta que salieron todos los otros
+   de su evento (22/oct, Rodri: la misma frase salía tres veces en un
+   partido). Cada partido baraja el orden de cada evento una vez y lo recorre
+   en rueda: es la única forma de que eso valga siempre, también al dar la
+   vuelta.
    ========================================================================== */
 (function () {
   "use strict";
@@ -41,7 +43,9 @@
       if (!D || !D.dialogos || !D.personajes) return null;
       var t = {
         data: D,
-        usados: {},          // último intercambio por evento
+        orden: {},           // el orden barajado de cada evento
+        dichos: {},          // cuántos dijo cada evento en este partido
+        ultimo: {},          // el último intercambio de cada evento
         cont: sc.add.container(0, 0),
         globos: []
       };
@@ -87,10 +91,15 @@
       var bloque = t.data.dialogos.find(function (d) { return d.evento === evento; });
       if (!bloque || !bloque.intercambios.length) return false;
       var n = bloque.intercambios.length;
-      var prev = t.usados[evento];
-      var i = Math.floor(Math.random() * n);
-      if (n > 1 && i === prev) i = (i + 1) % n;      // nunca el mismo dos veces seguidas
-      t.usados[evento] = i;
+      var orden = t.orden[evento];
+      if (!orden || orden.length !== n) {
+        orden = t.orden[evento] = [];
+        for (var k = 0; k < n; k++) orden.splice(Math.floor(Math.random() * (k + 1)), 0, k);
+      }
+      var dichos = t.dichos[evento] || 0;
+      var i = orden[dichos % n];
+      t.dichos[evento] = dichos + 1;
+      t.ultimo[evento] = i;
       var inter = bloque.intercambios[i];
       var P = t.data.personajes;
       pintar(sc, t, 0, P[0], inter.a);

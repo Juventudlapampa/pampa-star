@@ -159,5 +159,25 @@ const EVENTO = TRIBUNA.dialogos[0].evento;
   console.log("[6] durante EL TOQUE se callan y al volver comentan");
 })();
 
+/* ---------- [7] pedido de Rodri del 22/oct: la misma frase tres veces en un partido ----------
+   Un intercambio no vuelve hasta que salieron todos los otros de su evento:
+   en cualquier tramo de n seguidos (n = los de ese evento) no hay dos iguales. */
+(function () {
+  const sc = escena();
+  sc.estado = "LIBRE";
+  T.montar(sc);
+  let malos = [];
+  TRIBUNA.dialogos.forEach(function (d) {
+    const n = d.intercambios.length, vistos = [];
+    for (let k = 0; k < n * 4; k++) { T.comentar(sc, d.evento); vistos.push(sc._tribuna.ultimo[d.evento]); }
+    for (let k = 0; k + n <= vistos.length; k++) {
+      if (new Set(vistos.slice(k, k + n)).size !== n) malos.push(d.evento + " desde " + k + ": " + vistos.slice(k, k + n).join(","));
+    }
+    for (let k = 1; k < vistos.length; k++) if (n > 1 && vistos[k] === vistos[k - 1]) malos.push(d.evento + " seguido en " + k);
+  });
+  assert(malos.length === 0, "SÍNTOMA: una frase de la tribuna vuelve antes de usar las otras de su grupo (" + malos.slice(0, 4).join(" | ") + ")");
+  console.log("[7] la tribuna no repite una frase hasta haber usado las otras de su evento (" + TRIBUNA.dialogos.length + " eventos)");
+})();
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }
