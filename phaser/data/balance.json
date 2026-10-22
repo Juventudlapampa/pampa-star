@@ -1069,6 +1069,15 @@
     "a3_bloqueo": true,
     "_toma_remate": "17/oct, pedido de Rodri: las animaciones 3D rompieron el juego. La toma del remate (scenes/toma_remate.js) queda APAGADA: vuelven la viñeta EL REMATE y, en el súper tiro, la carga y el plano del pie. El código sigue, no se borra todavía.",
     "toma_remate": false,
-    "toque": true
+    "toque": true,
+    "_poda": "22/oct, pedido de Rodri (si creés que hay cosas para sacar, sacalas, pero dame algo para probar medio definitivo): LA PODA del partido. Lo sacado se APAGA acá, el código queda y cada sistema vuelve poniendo su perilla en true. cartas: las cartas por puesto y su fila en la barra de arriba. envion: la barra del ENVIÓN, POTENCIAR, la súper defensa de te rematan y lo que los eventos de la carrera sumaban al envión. v6_secuencias: MEGACORRIDA y COMBINADA. megadefensas: las tuyas y las del rival (QUITE PAMPERO, BLOQUEO MÉDANO); LA PRESIÓN es una carta y se va con cartas. jugadon: las fichas del jugadón, su fila arriba, el SÚPER QUITE y el GAMBETA-TIRO; el SÚPER TIRO conserva sus 2 por partido (fichasNuevas().tiros). v6_definicion: LA DEFINICIÓN; el pase alto cerca del arco pasa a ser un remate común, con EL TOQUE si es en el área. megatiros_con_nombre: los megatiros de data/megacosas.json (Caldén, Atuel, Tornado) se ven como un único SÚPER TIRO con los números del nivel. pase_al_vacio: vivía en la grilla de ★ ESPECIAL, que con todo esto queda con un solo botón, el SÚPER TIRO; con más de un especial prendido vuelve la grilla.",
+    "cartas": false,
+    "envion": false,
+    "v6_secuencias": false,
+    "megadefensas": false,
+    "jugadon": false,
+    "v6_definicion": false,
+    "megatiros_con_nombre": false,
+    "pase_al_vacio": false
   }
 }

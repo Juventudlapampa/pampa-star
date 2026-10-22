@@ -17,6 +17,9 @@
          ESC; ★ ESPECIAL no lo tiene y no aparece si no hay nada especial
      [2] ataque: con el envión lleno, POTENCIAR está en ★ ESPECIAL; usarlo
          gasta el envión y vuelve a la cruz; sin envión lleno no está
+     La poda pedida por Rodri el 22/oct apaga las megadefensas y el envión
+     (balance.flags): [1] y [2] fijan primero que no están y después que su
+     perilla los vuelve a prender, con las comprobaciones de siempre.
      [3] ataque sin rival: el ✕ dice SEGUIR; con rival no hay ✕
      [4] el HUD: ⚡ ACCIÓN solo con la pelota; no queda el botón suelto del
          envión ni el 🔊; el ⇄ dice qué hace
@@ -83,6 +86,11 @@ function ataque(s, rivalIdx, libre) {
   s._menuVolver();
   assert(s.noMoverse === 2, "[1] ESC (volver) también es NO MOVERSE, como seguir corriendo en ataque");
   defensa(s, 5, 1000);
+  assert(!centro(s) && !hayTexto(s, "★ ESPECIAL"), "[1] poda 22/oct: con balance.flags.megadefensas y jugadon en false, a nivel 5 la cruz de defensa no tiene centro");
+  /* las perillas los vuelven a prender; este partido de mentira no trae la
+     data de las megadefensas, así que lo que aparece es el SÚPER QUITE */
+  s.FLAGS.megadefensas = true; s.FLAGS.jugadon = true;
+  defensa(s, 5, 1000);
   assert(!!centro(s), "[1] nivel 5: hay megadefensas, aparece ★ ESPECIAL");
   E.tocar(centro(s));
   assert(!vivos(s, "Text").some(function (o) { return /NO MOVERSE/.test(o.text); }), "[1] ★ ESPECIAL ya no tiene NO MOVERSE");
@@ -95,7 +103,14 @@ function ataque(s, rivalIdx, libre) {
 
 /* ---------- [2] el envión, adentro de ★ ESPECIAL ---------- */
 (function () {
+  var E0 = escena(), s0 = E0.s;
+  s0.MEGA = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "data", "megacosas.json"), "utf8"));
+  s0.st.envion = BAL.envion.max;
+  ataque(s0, 1, false);
+  assert(!hayTexto(s0, "🌟 POTENCIAR") && !hayTexto(s0, "★ ESPECIAL"), "[2] poda 22/oct: con balance.flags.envion en false no hay POTENCIAR ni ★ ESPECIAL, aunque el envión venga cargado");
+  assert(hayTexto(s0, "★ SÚPER TIRO"), "[2] poda 22/oct: el centro de la cruz es el SÚPER TIRO solo");
   var E = escena(), s = E.s;
+  s.BAL.flags.envion = true;   // la perilla lo vuelve a prender
   s.st.envion = BAL.envion.max;
   ataque(s, 1, false);
   assert(!!centro(s), "[2] con el envión lleno hay ★ ESPECIAL");
@@ -108,9 +123,12 @@ function ataque(s, rivalIdx, libre) {
   assert(s.st.envion === 0 && E.W.PampaPartido.envionActivo(s.st), "[2] usarlo gasta el envión y enciende al equipo");
   assert(s.estado === "MENU" && s._menuOps.N && s._menuOps.N.texto === "⚡ GAMBETA", "[2] y vuelve a la cruz para elegir la jugada");
   var E2 = escena(), s2 = E2.s;
+  s2.BAL.flags.envion = true;
   s2.st.envion = BAL.envion.max - 1;
   ataque(s2, 1, false);
-  if (centro(s2)) E2.tocar(centro(s2));
+  /* con un solo especial el centro es ese botón (el SÚPER TIRO) y tocarlo
+     patea: la grilla se abre solo si el centro es ★ ESPECIAL */
+  if (centro(s2) && hayTexto(s2, "★ ESPECIAL")) E2.tocar(centro(s2));
   assert(!hayTexto(s2, "🌟 POTENCIAR"), "[2] sin el envión lleno no se ofrece");
   console.log("[2] POTENCIAR vive en ★ ESPECIAL y vuelve a la cruz");
 })();

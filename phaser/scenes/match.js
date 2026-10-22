@@ -156,6 +156,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._megaRival = null;
     this._tq = null; this._toqueN = 0; this._toqueRemate = null;   // EL TOQUE: la jugada abierta, la cuenta de semillas y lo que espera el remate
     this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = null;   // caches del HUD: el restart los recrea vacíos
+    this.envionG = this.lblEnvion = this.txtEnvion = this.txtEnvionEstado = null;   // la poda del 22/oct: sin envión no se arman
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null; this._figurasCine = null;
     this._escSkip = null;                                    // V6 R4: el skip, limpio por partido
@@ -2817,8 +2818,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          estás por elegir, no después de que falle */
       const leido = this.avisoLectura(megaListo.id);
       especiales.push({
-        texto: "🔥 " + megaListo.n.toUpperCase(),
-        sub: (leido ? leido + " · " : "") + "le pegás desde acá · quedan " + F.tiros,
+        texto: (this.FLAGS.megatiros_con_nombre === false ? "★ " : "🔥 ") + megaListo.n.toUpperCase(), superTiro: true,
+        sub: (leido ? leido + " · " : "") + "quedan " + F.tiros + " · " + megaListo.aguante + " aguante",
         /* Revisión del 17/oct: abría el mismo cruce de gambetas que
            GAMBETA-TIRO y eran dos botones para lo mismo. Ahora es el remate
            con todo desde donde estás, contra el bloqueo de quien te marca. */
@@ -2828,7 +2829,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         }
       });
     }
-    if (F && F.gambetas > 0) {
+    if (F && F.gambetas > 0 && this.FLAGS.jugadon !== false) {
       especiales.push({
         texto: "🌟 GAMBETA-TIRO (quedan " + F.gambetas + ")", sub: "encarás y definís de frente al arco",
         cb: () => { if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx, { marcadores: 2 }); }
@@ -2848,7 +2849,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (carta) especiales.push(carta);
     /* el pase al vacío era un segundo modo escondido adentro del PASE (tocar
        más allá del compañero); ahora es una opción con nombre */
-    const alVacio = receptores.find(r => r.adelante);
+    const alVacio = this.FLAGS.pase_al_vacio !== false && receptores.find(r => r.adelante);
     if (alVacio) {
       especiales.push({
         texto: "➡ PASE AL VACÍO",
@@ -2875,6 +2876,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     const volverCruz = () => this.abrirMenuAtaque(rivalIdx, libre);
     const listos = especiales.filter(o => !o.bloqueada).length;
+    /* la poda del 22/oct: si el único especial es el SÚPER TIRO, el centro
+       es ese botón, sin grilla; la grilla vuelve si se prende otro */
+    const unico = especiales.length === 1 && especiales[0].superTiro ? especiales[0] : null;
     this.abrirMenuCruz({
       titulo: rival ? "⚔ ¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ = seguir corriendo)",
       izq, der,
@@ -2894,7 +2898,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            van el porcentaje de zafar y el aguante, y EL TOQUE como paso que sigue */
         E: { texto: "🎯 TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
-      centro: listos ? {
+      centro: unico || (listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
         cb: () => this.abrirMenuCruz({
           titulo: "★ ESPECIAL: elegí uno (VOLVER = a las cuatro de siempre)",
@@ -2902,7 +2906,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           lista: especiales.concat([{ texto: "✕ VOLVER", sub: "gambeta, pase, pared o tiro", fondo: 0xdcd6c2, cb: volverCruz }]),
           volver: volverCruz
         })
-      } : null,
+      } : null),
       volver: libre ? () => this.reanudarLibre() : null,
       salida: libre ? ["✕ SEGUIR", "corriendo"] : null
     });
@@ -2952,7 +2956,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (carta) especiales.push(carta);
     /* V8 §3: el SÚPER QUITE del jugadón (ficha defensiva) */
     const F = this.jugadonFichas ? this.jugadonFichas() : null;
-    if (F && F.quites > 0) {
+    if (F && F.quites > 0 && this.FLAGS.jugadon !== false) {
       especiales.push({
         texto: "🌟 SÚPER QUITE (quedan " + F.quites + ")", sub: "leé su movida y cerrale el camino",
         cb: () => { if (window.PampaJugadon.gastarFicha(F, "quites")) this.entrarJugadonQuite(); }
@@ -2984,6 +2988,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   /* qué MEGADEFENSA está disponible para ese jugador (data + nivel + aguante) */
   megaDefensaDisponible(tipos, j) {
+    if (this.FLAGS.megadefensas === false) return null;
     const nivel = this._nivelCarrera || 1;
     const lista = ((this.MEGA && this.MEGA.megadefensas) || []).filter(m =>
       tipos.indexOf(m.tipo) >= 0 && nivel >= (m.nivel || 1) && j && j.aguante >= (m.aguante || 250));
@@ -4238,7 +4243,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const nivel = this._nivelCarrera || 1;
     const lista = ((this.MEGA && this.MEGA.megatiros) || []).filter(m =>
       nivel >= (m.nivel || 1) && j.aguante >= (m.aguante || 300) && j.x > (m.x_min || 680));
-    return lista.length ? lista[lista.length - 1] : null;
+    if (!lista.length) return null;
+    const m = lista[lista.length - 1];
+    /* la poda del 22/oct: el del nivel pone los números y se llama SÚPER TIRO */
+    return this.FLAGS.megatiros_con_nombre === false
+      ? Object.assign({}, m, { n: "Súper tiro", grito: "¡GOLAZO!", sub: "junta todo lo que le queda" })
+      : m;
   }
   /* ============ V9 §4 · SIN BARRA DE CARGA ============
      Estaba la BARRA DE TIMING: una aguja que iba y venía y había que frenar
@@ -5545,6 +5555,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            V6 §4: con LA DEFINICIÓN activa, la decisión vive ADENTRO (botones CABEZA/CHILENA). */
         this.quitarDuelo();
         if (this.FLAGS.v6_definicion) this.entrarDefinicionOf({ libre: true });
+        /* la poda del 22/oct: sin LA DEFINICIÓN es un remate común, y en el
+           área lo juega EL TOQUE, que ya sabe de cabeza, volea y chilena */
+        else if (this.FLAGS.toque) this.resolverTiro(false, null, true);
         else this.abrirMenuAereo();
       } else if (this.hayEscenas() && this.escenaPase) {
         /* V9 §2 · EL PASE SE VE, SIEMPRE Y ENTERO: se acomoda, le pega, la
@@ -5868,18 +5881,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        debajo del canto del ⚡ ACCIÓN (que llega a y 498, 499 con el pulso):
        las dos filas bajaron 7 y 5. AGUANTE termina en y 535. */
     const MD = this.MEDIDORES = { xEtq: 754, xBarra: 820, xNum: 948, yEnvion: 507, yGuts: 527, wBarra: 84 };
-    this.lblEnvion = this.add.text(MD.xEtq, MD.yEnvion, "ENVIÓN", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0, 0.5);
     this.lblGuts = this.add.text(MD.xEtq, MD.yGuts, "AGUANTE", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0, 0.5);
     this.txtGuts = this.add.text(MD.xNum, MD.yGuts, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
     this.hudLayer.add([barra, this.txtMarcador, this.txtDivision, this.txtReloj, this.gutsG, this.lblGuts, this.txtGuts]);
-    /* V6 §2 R3: el MEDIDOR DE ENVIÓN — barra + NÚMERO siempre (accesibilidad) */
-    this.envionG = this.add.graphics();
-    this.txtEnvion = this.add.text(MD.xNum, MD.yEnvion, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
-    /* el estado del envión (LLENO / EN USO) va en su propia línea arriba: es
-       texto, no color, porque el color solo no alcanza para leerlo */
-    this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0, 0.5);
-    this.hudLayer.add([this.envionG, this.lblEnvion, this.txtEnvion, this.txtEnvionEstado]);
+    /* V6 §2 R3: el MEDIDOR DE ENVIÓN — barra + NÚMERO siempre (accesibilidad).
+       La poda del 22/oct lo apaga con balance.flags.envion */
+    if (this.FLAGS.envion !== false) {
+      this.lblEnvion = this.add.text(MD.xEtq, MD.yEnvion, "ENVIÓN", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0, 0.5);
+      this.envionG = this.add.graphics();
+      this.txtEnvion = this.add.text(MD.xNum, MD.yEnvion, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
+      /* el estado del envión (LLENO / EN USO) va en su propia línea arriba: es
+         texto, no color, porque el color solo no alcanza para leerlo */
+      this.txtEnvionEstado = this.add.text(MD.xEtq, 480, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0, 0.5);
+      this.hudLayer.add([this.envionG, this.lblEnvion, this.txtEnvion, this.txtEnvionEstado]);
+    }
     /* ANIME E: el ticker del RELATOR · V9 §8: SUBIDO. En y=520 pisaba la banda
        de abajo del mapa (el radar en pantalla partida llega a y≈521) justo
        donde se dibujan las fichas pegadas a la línea de fondo. Ahora vive en
@@ -6222,7 +6238,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        this.txtEnvion, this.txtEnvionEstado].forEach(o => o && o.setVisible(!menuAbierto));
     }
     /* V8 §3: las FICHAS del jugadón, siempre a la vista (letra + número) */
-    if (this.jugadonFichas) {
+    if (this.jugadonFichas && this.FLAGS.jugadon !== false) {
       const F = this.jugadonFichas();
       const fTxt = "🌟 QUITES " + F.quites + " · GAMBETAS " + F.gambetas + " · TIROS " + F.tiros;
       if (this._hudFichas !== fTxt) {
@@ -6555,7 +6571,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            venir con una MEGACOSA — decidido por la situación del duelo, no azar puro */
         this._megaRival = null;
         const F6 = this.BAL.feel || {};
-        if (this.FLAGS.e6_cine && st.mios[st.ctrl].x > (F6.mega_x_caliente || 700)) {
+        if (this.FLAGS.e6_cine && this.FLAGS.megadefensas !== false && st.mios[st.ctrl].x > (F6.mega_x_caliente || 700)) {
           const defs = ((this.MEGA && this.MEGA.megadefensas) || []).filter(m => (m.tipo === "quite" || m.tipo === "bloqueo") && st.aguanteRival >= (m.aguante || 250));
           if (defs.length) {
             const semilla = ((st.golesMio + st.golesRival) * 7 + Math.floor(st.minuto * 10)) % 100;

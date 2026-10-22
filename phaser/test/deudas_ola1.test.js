@@ -233,6 +233,7 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     var s = conHUD(E);
     tap = E.BAL.legibilidad.tap_min;
     if (op.sinPregunta) E.BAL.envion.super_pregunta = false;
+    if (!op.comoViene) E.BAL.flags.envion = true;   // poda del 22/oct: la perilla lo vuelve a prender
     s.st.posesion = "rival"; s.st.portadorRival = 9; s.estado = "BEAT";
     s.st.envion = op.envion != null ? op.envion : E.BAL.envion.max;
     /* el cine: capas y lo que dibuja (no es lo que se mide) */
@@ -310,6 +311,13 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   function textosCine(E) { return E.s.cineContent.list.filter(function (o) { return o.type === "Text" && !o.destruido; }); }
   function correrTodo(E) { for (var k = 0; k < 8 && E.timers.length; k++) E.correrTimers(); }
 
+  /* la poda pedida por Rodri el 22/oct apaga el envión (balance.flags.envion):
+     cargado por la semana, te rematan no pregunta nada y el remate sigue como
+     siempre. armar() prende la perilla para todo lo que viene después. */
+  var E0 = armar({ comoViene: true }), s0 = E0.s;
+  s0.escenaRemateRival(9);
+  assert(E0.BAL.flags.envion === false && s0.estado !== "SUPERDEF" && !textosCine(E0).some(function (t) { return /SÚPER DEFENSA|ENVIÓN/.test(t.text); }),
+    "poda 22/oct: con el envión apagado y cargado, te rematan no pregunta por la SÚPER DEFENSA (estado " + s0.estado + ")");
   /* con el envión lleno, el remate rival PREGUNTA antes de resolverse */
   var E = armar(), s = E.s, max = E.BAL.envion.max;
   s.escenaRemateRival(9);

@@ -31,6 +31,11 @@
    ★ ESPECIAL, en una grilla propia. Por eso se suman dos situaciones que
    abren esa grilla tocando el centro, y [4] busca GAMBETA-TIRO ahí.
 
+   La poda pedida por Rodri el 22/oct apaga casi todo eso con sus perillas
+   (balance.flags). Se fija que vienen apagadas y que la cruz queda con el
+   SÚPER TIRO solo en el centro; las demás situaciones prenden las perillas
+   y miden el peor caso de siempre, que es lo que vuelve si se prenden.
+
    Corré:  node phaser/test/legibilidad_partido.test.js
    ========================================================================== */
 "use strict";
@@ -47,7 +52,7 @@ var ok = 0, mal = 0;
 function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); } }
 
 /* el partido de mentira con lo que la cruz necesita, y los textos MEDIDOS */
-function escena(mixinsExtra) {
+function escena(mixinsExtra, comoViene) {
   var E = PM.escena({
     logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
     logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js"],
@@ -75,7 +80,11 @@ function escena(mixinsExtra) {
   s.retratoKey = function () { return "retrato"; };
   s.materializarDuelo = function () { };
   s.hayEscenas = function () { return true; };
-  s.FLAGS.v6_secuencias = true;
+  if (!comoViene) {
+    s.FLAGS.v6_secuencias = true;
+    ["cartas", "jugadon", "megadefensas", "pase_al_vacio", "megatiros_con_nombre"].forEach(function (k) { s.FLAGS[k] = true; });
+    s.BAL.flags.envion = true;
+  }
   s.MEGA = MEGA;
   s.game.registry.set("megacosas", MEGA);
   s.cameras.main.ignore = function () { };
@@ -143,12 +152,27 @@ var SITUACIONES = [
     st.ctrl = i; st.posesion = "rival"; st.portadorRival = 9; st.mios[i].aguante = 30;
     s._nivelCarrera = 1;
     s.abrirMenuDefensa();
+  } },
+  { n: "la poda: ataque en el área, nivel 5, con las perillas como vienen", comoViene: true, armar: function (s) {
+    SITUACIONES[0].armar(s);
+    var T = textos(s).map(function (t) { return t.text; });
+    assert(!!centro(s) && T.indexOf("★ SÚPER TIRO") >= 0 && T.indexOf("★ ESPECIAL") < 0,
+      "poda 22/oct: el centro de la cruz de ataque es el SÚPER TIRO, sin la grilla de ★ ESPECIAL (" + T.join(" | ") + ")");
+    assert(!T.some(function (t) { return /GAMBETA-TIRO|MEGACORRIDA|COMBINADA|POTENCIAR|AL VACÍO|TORNADO|ATUEL|CALDÉN/.test(t); }),
+      "poda 22/oct: la cruz no nombra nada de lo apagado");
+  } },
+  { n: "la poda: defensa, nivel 5, con las perillas como vienen", comoViene: true, armar: function (s) {
+    SITUACIONES[2].armar(s);
+    assert(!centro(s) && !textos(s).some(function (t) { return /ESPECIAL|PAMPERO|MÉDANO|SÚPER QUITE|PRESIÓN|BARRIDA/.test(t.text); }),
+      "poda 22/oct: la cruz de defensa queda con QUITE, CORTE, BLOQUEO y NO MOVERSE, sin centro");
   } }
 ];
 
 var vistos = [], chicos = [], afuera = [], pisados = [], fueraLienzo = [], gambetaTiro = null, bloqueados = 0;
+assert(["cartas", "jugadon", "megadefensas", "pase_al_vacio", "megatiros_con_nombre", "envion", "v6_secuencias", "v6_definicion"].every(function (k) { return BAL.flags[k] === false; }),
+  "poda 22/oct: balance.flags trae apagados cartas, jugadon, megadefensas, pase_al_vacio, megatiros_con_nombre, envion, v6_secuencias y v6_definicion");
 SITUACIONES.forEach(function (sit) {
-  var E = escena(), s = E.s;
+  var E = escena(null, sit.comoViene), s = E.s;
   sit.armar(s, E);
   var T = textos(s), C = cajas(s);
   /* [1] el tamaño */

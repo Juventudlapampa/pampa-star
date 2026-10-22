@@ -565,8 +565,11 @@
      Se llena ganando quites, gambetas y duelos. Lleno, se gasta en POTENCIAR
      al equipo unos momentos o en una SÚPER DEFENSA que bloquea seguro. */
   function envionCfg(st) { return st.bal.envion || { max: 100, gana_duelo: 18, potencia_bonus: 10, potencia_ms: 20000 }; }
-  function sumarEnvion(st, n) { st.envion = clamp((st.envion || 0) + n, 0, envionCfg(st).max); }
-  function envionLleno(st) { return (st.envion || 0) >= envionCfg(st).max; }
+  /* la poda del 22/oct: balance.flags.envion en false lo apaga entero (no
+     se llena ni se puede gastar, aunque la semana lo haya cargado) */
+  function envionApagado(st) { return !!(st.bal.flags && st.bal.flags.envion === false); }
+  function sumarEnvion(st, n) { if (envionApagado(st)) return; st.envion = clamp((st.envion || 0) + n, 0, envionCfg(st).max); }
+  function envionLleno(st) { return !envionApagado(st) && (st.envion || 0) >= envionCfg(st).max; }
   function envionActivo(st) { return !!(st._envionHasta && st._t < st._envionHasta); }
   function gastarEnvionPotencia(st) {
     if (!envionLleno(st)) return false;

@@ -60,7 +60,8 @@
     manoDeJugador: function (idx) {
       var C = window.PampaCartas, D = this.game.registry.get("megacosas");
       var st = this.st;
-      if (!C || !D || !st) return [];
+      /* la poda del 22/oct: sin mano no hay carta en la cruz ni fila arriba */
+      if (!C || !D || !st || this.FLAGS.cartas === false) return [];
       var j = st.mios[idx];
       if (!j) return [];
       return C.manoDe(D, this.cartasEstado(), idx, j, st.minuto || 0);

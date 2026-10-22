@@ -2470,14 +2470,18 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
          franja. Lo cazó el guardián ampliado, no el ojo. */
       const pielEv = (this.game.registry.get("balance") || {}).piel;
+      const flagsEv = (this.game.registry.get("balance") || {}).flags || {};
       const items = ev.opciones.map((o, i) => {
+        /* la poda del 22/oct: con el envión apagado la bajada no lo nombra */
+        const efecto = Object.assign({}, o.efecto);
+        if (flagsEv.envion === false) delete efecto.envion;
         const y = Math.round(window.PampaPiel.yDeOpcion(i, ev.opciones.length, 72, pielEv));
         const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
         /* 20/oct · el dibujito y la bajada salen de lo que la opción cambia,
            dicho con palabras y sin números */
-        this.dibujarIcono(W / 2 - 350 + 32, y, D.iconoDeEfecto(o.efecto));
+        this.dibujarIcono(W / 2 - 350 + 32, y, D.iconoDeEfecto(efecto));
         this.add.text(W / 2, y - 10, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 600 } }).setOrigin(0.5);
-        this.add.text(W / 2, y + 14, D.bajadaDeEfecto(o.efecto), { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
+        this.add.text(W / 2, y + 14, D.bajadaDeEfecto(efecto), { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
         const elegir = () => {
           this.save.modFecha = V.aplicarEleccion(ev, i);
           this._semEventoResuelto = true;

@@ -11,11 +11,11 @@ var pass = 0, fail = 0;
 function ok(c, m) { if (c) pass++; else { fail++; console.error("  ✗ " + m); } }
 function seq(vals) { var i = 0; return function () { return vals[i++ % vals.length]; }; }
 
-function partidoNuevo(rng) {
+function partidoNuevo(rng, balDe) {
   var mios = [{ nombre: "Arquero", pos: "ARQ" }];
   for (var i = 0; i < 10; i++) mios.push({ nombre: "Compa " + i, pos: "X" });
   mios[8] = { nombre: "Vos", esVos: true };
-  return P.crearPartido({ bal: bal, mios: mios, rivales: [], rng: rng || Math.random });
+  return P.crearPartido({ bal: balDe || bal, mios: mios, rivales: [], rng: rng || Math.random });
 }
 
 /* ---- 1) creación: 11 por lado, VOS con la pelota, formación en cancha ---- */
@@ -316,9 +316,24 @@ function partidoNuevo(rng) {
   console.log("[13] fixes urgentes V6 §1: ok");
 })();
 
-/* ---- 16) V6 §2 R3: el medidor de ENVIÓN (mérito acumulado) ---- */
+/* ---- 16) V6 §2 R3: el medidor de ENVIÓN (mérito acumulado) ----
+   La poda pedida por Rodri el 22/oct lo apaga con balance.flags.envion.
+   Primero se fija que viene apagado; después, que su perilla lo vuelve a
+   prender, con las mismas comprobaciones de siempre. */
 (function () {
-  var st = partidoNuevo();
+  ok(bal.flags.envion === false, "poda 22/oct: balance.flags.envion viene en false");
+  var apagado = partidoNuevo();
+  apagado.posesion = "mia";
+  P.resolverDuelo(apagado, { accion: "gambeta", costo: 0, rng: seq([0.9, 0.0]) });
+  ok(apagado.envion === 0, "poda 22/oct: apagado, ganar un duelo no suma envión");
+  apagado.envion = bal.envion.max;   // lo que dejaría cargado la semana
+  ok(!P.envionLleno(apagado), "poda 22/oct: apagado, ni con el máximo cargado está lleno");
+  ok(!P.gastarEnvionPotencia(apagado) && !P.gastarEnvionSuper(apagado), "poda 22/oct: apagado, no hay POTENCIAR ni súper defensa");
+  P.sumarEnvion(apagado, 10);
+  ok(apagado.envion === bal.envion.max, "poda 22/oct: apagado, sumarEnvion no toca nada");
+  var prendido = JSON.parse(JSON.stringify(bal));
+  prendido.flags.envion = true;
+  var st = partidoNuevo(null, prendido);
   ok(st.envion === 0, "R3: arranca vacío");
   /* ganar duelos lo llena; perder no */
   var antes = st.envion;
