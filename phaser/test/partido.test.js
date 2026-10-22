@@ -438,5 +438,60 @@ function partidoNuevo(rng, balDe) {
   console.log("[14] modelo de saltos + separación + reloj v6: ok");
 })();
 
+/* ---- 17) pedido de Rodri del 22/oct: quien juega tiene que defender ----
+   Con la pelota del rival, el primero de los tuyos que está en su camino
+   sale al cruce y abre la cruz de defensa con ESE jugador. Medido en 600
+   pelotas del rival sin tocar nada (.claude/shots, simulación de la tanda):
+   antes 35% con cruz (5% tras un robo, 0% tras tu gol), ahora 100%, y una
+   sola salida automática por pelota. */
+(function () {
+  function contarPelota(arranque, seed, balDe) {
+    var rng = (function (s) { return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })(seed);
+    var st = partidoNuevo(rng, balDe);
+    st.cooldown = 9e9;
+    for (var k = 0; k < 2 + (seed % 9); k++) P.tick(st, 300, { dx: 1, dy: rng() - 0.5 });
+    if (arranque === 0) P.perderPelota(st, rng); else P.kickoff(st, "rival");
+    var cruces = 0, quienes = [];
+    for (var t = 0; t < 300; t++) {
+      var evs = P.tick(st, 300, null), corte = false;
+      for (var e = 0; e < evs.length; e++) {
+        if (evs[e].tipo === "encuentroDef") { cruces++; quienes.push(st.ctrl); P.perderDefensa(st); }
+        else corte = true;
+      }
+      if (corte || st.posesion === "mia") break;
+    }
+    return { cruces: cruces, quienes: quienes, st: st };
+  }
+  var conCruz = 0, conDos = 0, n = 0;
+  for (var s = 0; s < 40; s++) {
+    [0, 1].forEach(function (a) {
+      var r = contarPelota(a, 500 + s);
+      n++;
+      if (r.cruces > 0) conCruz++;
+      if (r.cruces > 1) conDos++;
+      r.quienes.forEach(function (q) { ok(r.st.mios[q].pos !== "ARQ", "el que sale al cruce nunca es el arquero"); });
+    });
+  }
+  ok(conCruz / n >= 0.8, "la cruz de defensa sale en la mayoría de las pelotas del rival (" + conCruz + " de " + n + ")");
+  ok(conDos === 0, "sin mover a nadie, una sola salida por pelota (" + conDos + " con dos)");
+  /* la perilla la apaga y vuelve lo de antes */
+  var balSin = JSON.parse(JSON.stringify(bal));
+  balSin.ritmo.cruce_def.activo = false;
+  var conCruzSin = 0;
+  for (var s2 = 0; s2 < 40; s2++) if (contarPelota(1, 500 + s2, balSin).cruces > 0) conCruzSin++;
+  ok(conCruzSin === 0, "con cruce_def.activo=false, tras tu gol no sale nadie (" + conCruzSin + " de 40)");
+  /* R1 sigue: el que ya quedó atrás del portador no lo cruza */
+  var st6 = partidoNuevo();
+  P.kickoff(st6, "rival"); st6.cooldown = 0; st6.esperaRival = 0;
+  var pr6 = st6.rivales[st6.portadorRival];
+  st6.mios.forEach(function (j) { j.x = 1000; j.y = 60; });
+  var atras = st6.mios.findIndex(function (j) { return j.pos === "DEF"; });
+  st6.ctrl = st6.mios.findIndex(function (j) { return j.pos === "ATA"; });
+  st6.mios[atras].x = pr6.x + 20; st6.mios[atras].y = pr6.y;
+  var ev6 = P.tick(st6, 16, null);
+  ok(!ev6.some(function (e) { return e.tipo === "encuentroDef"; }), "R1: el tuyo que quedó atrás del portador no lo cruza");
+  console.log("[17] salir al cruce en defensa (pedido del 22/oct): ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);

@@ -205,6 +205,38 @@
        vuelve la elasticidad vieja, solo para comparar. */
     var empuje = (st.pelota.x - st.W / 2);
     var IA = bal.ia || {};
+    /* 22/oct, Rodri: "quien juega tiene que defender". Con la pelota del
+       rival, el primero de los tuyos que está en su camino SALE AL CRUCE: le
+       va de frente y lo sigue siendo mientras el portador no lo pase. Al que
+       ya lo pasó no lo persigue nadie (R1). El que conducís vos sale solo si
+       no lo estás moviendo. Con el cooldown corriendo no sale nadie, y hay un
+       tope de salidas por cada pelota del rival para que defender no sea una
+       seguidilla de menús. Perillas en balance.ritmo.cruce_def. */
+    var CD = R.cruce_def || {}, salidor = -1;
+    var velSal = V.posicionales_por_segundo * (CD.vel_mult || 1.3);
+    if (st.posesion === "mia") { st._crucesDef = 0; st._salidor = -1; }
+    else if (CD.activo !== false && st.cooldown === 0 && (st._crucesDef || 0) < (CD.por_posesion || 1)) {
+      var prc = st.rivales[st.portadorRival];
+      var velRc = V.rival_con_pelota * (esSaltos(bal) ? (V.saltos_vel_mult || 2.4) : 1);
+      var puedeSalir = function (j, i) {
+        if (j.pos === "ARQ") return false;
+        if (i === st.ctrl && input && (input.dx || input.dy)) return false;
+        if (st._perdioHasta && st._t < st._perdioHasta && i === st._perdioIdx) return false;
+        return prc.x - j.x >= R.radio_encuentro;
+      };
+      if (st._salidor >= 0 && st.mios[st._salidor] && puedeSalir(st.mios[st._salidor], st._salidor)) salidor = st._salidor;
+      else {
+        var mejorGap = 1e9;
+        st.mios.forEach(function (j, i) {
+          if (!puedeSalir(j, i)) return;
+          var gap = prc.x - j.x;
+          var costado = (gap - R.radio_encuentro) / (velRc + velSal) * velSal + R.radio_encuentro;
+          if (Math.abs(j.y - prc.y) > Math.min(costado, CD.alcance_y || 160)) return;
+          if (gap < mejorGap) { mejorGap = gap; salidor = i; }
+        });
+      }
+      st._salidor = salidor;
+    }
     function moverPosicional(j, esMio, i) {
       var tx;
       /* 20/oct, Rodri: "se ven amontonados". Medido en node (600 latidos
@@ -256,7 +288,16 @@
       j.x += clamp(tx - j.x, -v * dt, v * dt);
       j.y += clamp(ty - j.y, -v * dt, v * dt);
     }
-    st.mios.forEach(function (j, i) { if (i !== st.ctrl) moverPosicional(j, true, i); });
+    st.mios.forEach(function (j, i) {
+      if (i === salidor) {
+        /* primero se pone en su línea, después le sale de frente */
+        var prs = st.rivales[st.portadorRival], vs = velSal * dt;
+        var my = clamp(prs.y - j.y, -vs, vs);
+        var mx = Math.sqrt(Math.max(0, vs * vs - my * my));
+        j.y += my;
+        j.x += clamp(prs.x - R.radio_encuentro * 0.5 - j.x, -mx, mx);
+      } else if (i !== st.ctrl) moverPosicional(j, true, i);
+    });
 
     if (st.posesion === "mia") {
       /* la pelota va con tu portador */
@@ -342,14 +383,30 @@
       st.pelota.x += (pr.x - 12 - st.pelota.x) * Math.min(1, dt * 10);
       st.pelota.y += (pr.y - st.pelota.y) * Math.min(1, dt * 10);
       st.rivales.forEach(function (j, i) { if (i !== st.portadorRival) moverPosicional(j, false, i); });
-      /* encuentro defensivo: TU marcador lo alcanzó */
-      if (st.cooldown === 0 && dist(ctrl.x, ctrl.y, pr.x, pr.y) < R.radio_encuentro) {
-        st.modo = "congelado";
-        ev.push({ tipo: "encuentroDef" });
-        return ev;
+      /* encuentro defensivo: TU marcador lo alcanzó, o le salió al cruce
+         uno de los tuyos que estaba adelante (con el tope de salidas) */
+      if (st.cooldown === 0) {
+        var quien = dist(ctrl.x, ctrl.y, pr.x, pr.y) < R.radio_encuentro ? st.ctrl : -1;
+        if (quien < 0 && CD.activo !== false && (st._crucesDef || 0) < (CD.por_posesion || 1)) {
+          var dq = R.radio_encuentro;
+          st.mios.forEach(function (j, i) {
+            if (j.pos === "ARQ" || j.x > pr.x + 8) return;
+            if (st._perdioHasta && st._t < st._perdioHasta && i === st._perdioIdx) return;
+            var dj = dist(j.x, j.y, pr.x, pr.y);
+            if (dj < dq) { dq = dj; quien = i; }
+          });
+        }
+        if (quien >= 0) {
+          st.ctrl = quien;
+          st._crucesDef = (st._crucesDef || 0) + 1;
+          st.modo = "congelado";
+          ev.push({ tipo: "encuentroDef" });
+          return ev;
+        }
       }
       /* llegó a tu área: remata */
       if (pr.x < P.dist_remate_rival) {
+        st._crucesDef = 0;
         st.modo = "congelado";
         ev.push({ tipo: "rivalTira" });
         return ev;
