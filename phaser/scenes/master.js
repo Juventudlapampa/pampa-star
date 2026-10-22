@@ -1051,6 +1051,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     /* tu club: pueblo del roster con su apodo (stepper con flechas dibujadas) */
     const roster = this.game.registry.get("roster");
+    /* revisión del 22/oct: volviendo de la pinta (◀ VOLVER del editor) queda
+       marcada la localidad que habías elegido */
+    const elegida = this.pueblos && this.pueblos[this.pSel];
     this.pueblos = roster && roster.clubes_por_pueblo ? Object.keys(roster.clubes_por_pueblo) : ["Winifreda", "Toay", "General Pico", "Santa Rosa", "Victorica"];
     this.pSel = 0;
     /* si el save clásico tiene club, arranca ahí */
@@ -1061,6 +1064,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         if (i >= 0) this.pSel = i;
       }
     } catch (e) { }
+    if (this.pueblos.indexOf(elegida) >= 0) this.pSel = this.pueblos.indexOf(elegida);
 
     /* ══════════════════════════════════════════════════════════════════════
        D4 · EL MAPA EN VEZ DE LA LISTA CON FLECHITAS.

@@ -249,6 +249,14 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
     "D5: al volver del editor se va derecho a la entrevista, sin pasar de nuevo por elegir club");
   assert(/PASO 1 DE 2/.test(EDITOR),
     "D5: el editor tiene que decir que es un paso de arrancar, no una parada opcional");
+  /* revisión del 22/oct: VOLVER desde el paso 1 iba al título y JUGAR CARRERA
+     devolvía a la pinta, así que la localidad ya no se podía cambiar. VOLVER
+     va al paso de antes (el mapa) y el mapa deja marcada la que habías elegido.
+     En la página: Santa Rosa, ESC en el paso 1, el mapa con Santa Rosa. */
+  assert(/"◀ VOLVER", 0xf6efdc, \(\) => \{\s*this\.guardar\(\);\s*this\.game\.registry\.set\("carreraPendiente", null\);\s*this\.irA\("master"\);/.test(EDITOR),
+    "SÍNTOMA: VOLVER en el paso 1 de una carrera nueva no lleva a elegir la localidad");
+  assert(/const elegida = this\.pueblos && this\.pueblos\[this\.pSel\];[\s\S]{0,900}?if \(this\.pueblos\.indexOf\(elegida\) >= 0\) this\.pSel = this\.pueblos\.indexOf\(elegida\);/.test(MASTER),
+    "SÍNTOMA: de vuelta en el mapa, la localidad elegida se pierde");
   assert(/entrevistado\(\)/.test(MASTER), "D5: y en la entrevista tiene que haber alguien de este lado");
   assert(/poseConTuPinta\("recibiendo"\)/.test(MASTER),
     "D5: con TU pinta, la misma que usa el panel del partido");

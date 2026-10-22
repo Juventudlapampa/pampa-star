@@ -190,8 +190,15 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     if (pendiente) {
       /* 20/oct, Rodri: con la carrera recién elegida no había cómo volver y
          ESC no hacía nada. VOLVER guarda la pinta y deja el pendiente como
-         está: JUGAR CARRERA, en el título, trae de vuelta a este paso */
-      volver = btn(105, 170, "◀ VOLVER", 0xf6efdc, () => { this.guardar(); this.irA("titulo"); }, "volver");
+         está: JUGAR CARRERA, en el título, trae de vuelta a este paso.
+         Revisión del 22/oct: así la localidad ya no se podía cambiar. VOLVER
+         lleva al paso de antes, el mapa, con la localidad elegida marcada, y
+         del mapa ◀ VOLVER AL MENÚ va al título */
+      volver = btn(105, 170, "◀ VOLVER", 0xf6efdc, () => {
+        this.guardar();
+        this.game.registry.set("carreraPendiente", null);
+        this.irA("master");
+      }, "volver");
       btn(W / 2 - 145, 250, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
       /* "🏆 CARRERA" arriba a la derecha no se lee como "seguí por acá", y
          ¡A LA CANCHA! te sacaba de la carrera: con la carrera pendiente, la
