@@ -62,10 +62,22 @@
       tq.lectura = this.add.text(W / 2, 64, "¡AHÍ VIENE!", { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
       var ayuda = this.add.text(18, H - 50, tactil ? "arrastrá para acomodarte · tocá ¡PEGALE! cuando llega" : "mouse o flechas: te acomodás · clic o ESPACIO: le pegás",
         { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0, 0.5);
-      [info, tq.lectura, ayuda].forEach(function (o) { self.cineContent.add(o); });
+      /* 20/oct, Rodri: nada decía qué hay que hacer con el anillo. La primera
+         vez de la sesión va grande y en dos renglones; después, corto */
+      var primera = !this.game.registry.get("toqueExplicado");
+      this.game.registry.set("toqueExplicado", true);
+      tq.consigna = this.add.text(W / 2, 104, primera
+        ? "Acomodate para que la SOMBRA de la pelota\ncaiga en el ANILLO " + (alta ? "· viene alta: le das de CABEZA" : "de tu PIE " + pie)
+        : "la sombra de la pelota, en el anillo",
+        { fontFamily: window.PF.texto, fontSize: primera ? "22px" : "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center" }).setOrigin(0.5, 0);
+      [info, tq.lectura, ayuda, tq.consigna].forEach(function (o) { self.cineContent.add(o); });
       /* con mouse el clic pega en cualquier lado: el botón solo atraía al
          jugador hacia la esquina, lejos de la pelota (revisión del 20/oct) */
-      if (tactil) this.jugadonBoton(W - 120, H - 34, 200, "¡PEGALE!", 0xffd84d, function () { self.toquePegar(); });
+      if (tactil) {
+        tq.boton = this.jugadonBoton(W - 120, H - 34, 200, "¡PEGALE!", 0xffd84d, function () { self.toquePegar(); });
+        var queHace = this.add.text(W - 120, H - 67, "le pegás cuando llega", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5, 1);
+        this.cineContent.add(queHace);
+      }
 
       /* sobre un botón el puntero no es un lugar de la cancha */
       var mover = function (p, sobre) { if (self._tq === tq && (!p.wasTouch || p.isDown) && !(sobre && sobre.length)) tq.obj = self.toqueAMundo(p.x, p.y); };
@@ -162,8 +174,11 @@
         }
       } else if (tq.corre) pose = "corriendo";
       if (tq.poseAhora !== pose) {
-        tq.prota.setTexture(this.poseDePlano(pose, tq.j, false));
-        tq.prota.setScale(this.escalaDePose(pose, 1.85 * HPX * pj.s, tq.prota));
+        /* 20/oct, Rodri: un compañero rematando salía con tu ilustración. Va
+           con su identidad, como en el jugadón (las poses de la jugada son tuyas) */
+        var ki = !tq.j.esVos && this.identidadDe ? this.identidadDe(tq.j, false) : null;
+        tq.prota.setTexture(ki || this.poseDePlano(pose, tq.j, false));
+        tq.prota.setScale(this.escalaDePose(ki ? "corriendo" : pose, 1.85 * HPX * pj.s, tq.prota));
         tq.poseAhora = pose;
       }
       var bob = pose === "corriendo" ? Math.abs(Math.sin(this.time.now / 70)) * 4 : 0;
@@ -177,7 +192,11 @@
       tq.anillo.fillEllipse(ps.x, ps.y, 46 * ps.s, 18 * ps.s);
       tq.anillo.lineStyle(4, 0xffffff, e.golpe ? 0.3 : 0.95);
       tq.anillo.strokeEllipse(ps.x, ps.y, 46 * ps.s, 18 * ps.s);
-      tq.marca.setPosition(ps.x, ps.y + 10 * ps.s);
+      tq.marca.setOrigin(0.5, 0).setPosition(ps.x, ps.y + 10 * ps.s);
+      /* en el teléfono, si la marca cae debajo de ¡PEGALE!, va arriba del anillo */
+      if (tq.boton && Phaser.Geom.Rectangle.Overlaps(tq.marca.getBounds(), tq.boton.getBounds())) {
+        tq.marca.setOrigin(0.5, 1).setPosition(ps.x, ps.y - 10 * ps.s);
+      }
 
       tq.mira.clear();
       if (tq.obj && !e.golpe && !tq.teclado) {
@@ -199,7 +218,7 @@
       var tq = this._tq, e = tq.e, res = e.fin, C = this.BAL.toque, T = window.PampaToque, self = this;
       tq.resuelto = true;
       var zona = T.zonaDeContacto(res, C), texto = T.textoDeContacto(res, C);
-      tq.anillo.clear(); tq.marca.setVisible(false); tq.mira.clear();
+      tq.anillo.clear(); tq.marca.setVisible(false); tq.mira.clear(); tq.consigna.setVisible(false);
       if (res.contacto) {
         if (zona.id === "angulo") { this.SFX && this.SFX.kickFuerte(); this.uiCam.shake(140, 0.006); }
         else this.SFX && this.SFX.kick();
