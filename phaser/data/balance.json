@@ -892,6 +892,21 @@
         "h": 0.3
       }
     ],
+    "propia": {
+      "_nota": "Pedido de Rodri del 22/oct: en el SÚPER TIRO la pelota la tenías en el pie y EL TOQUE la tiraba de atrás como un pase. Ahora sale de tus pies (x y z son cuánto adelante y al costado de donde arrancás, en metros), con poca comba (curva multiplica curva_max) y el rótulo lo dice. No entra en el sorteo de origenes: el remate del área sigue igual.",
+      "id": "propia",
+      "n": "TU PELOTA: TE LA ACOMODÁS Y LE PEGÁS",
+      "x": [
+        0.2,
+        0.4
+      ],
+      "z": [
+        -0.15,
+        0.15
+      ],
+      "h": 0.2,
+      "curva": 0.3
+    },
     "alturas": [
       {
         "p": 0.38,

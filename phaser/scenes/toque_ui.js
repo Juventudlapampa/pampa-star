@@ -28,12 +28,12 @@
 
     /* alFinal({ zona, texto, res }): la zona va a duel.resolveShot por el
        camino de siempre (ejDeLaSituacion o tiroPorComandos) */
-    entrarToque(alFinal) {
+    entrarToque(alFinal, origen) {
       var st = this.st, j = st.mios[st.ctrl], C = this.BAL.toque, T = window.PampaToque, self = this;
       this._toqueN = (this._toqueN || 0) + 1;
       var e = T.crearJugada({
         semilla: (st.golesMio * 31 + st.golesRival * 17 + this._toqueN) * 7919 + Math.floor(st.minuto * 100),
-        cfg: C,
+        cfg: C, origen: origen,
         jugador: { stats: j.stats, aguanteFrac: j.aguante / this.BAL.aguante.max, pie: T.pieDe(j) }
       });
       this.jugadonAbrir("· EL TOQUE · " + e.origen.n);
@@ -63,7 +63,9 @@
       var pie = e.jug.pie === "izq" ? "IZQUIERDO" : "DERECHO";
       var info = this.add.text(18, 14, (j.esVos ? "VOS" : String(j.nombre || "").toUpperCase()) + " · PIE HÁBIL: " + pie,
         { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 });
-      tq.lectura = this.add.text(W / 2, 64, "¡AHÍ VIENE!", { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
+      var propia = origen === "propia";
+      tq.propia = propia;
+      tq.lectura = this.add.text(W / 2, 64, propia ? "¡ACOMODALA!" : "¡AHÍ VIENE!", { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
       /* revisión del 22/oct: con un compañero los textos le hablaban a quien
          juega ("tu PIE", "¡LA PIFIASTE!"); ahora dicen su nombre */
       var otro = j.esVos ? null : String(j.nombre || "").toUpperCase();
@@ -161,8 +163,9 @@
         tq.pre -= dt;
         /* segunda revisión del 22/oct: con un compañero, en tercera persona */
         var vos = tq.j.esVos;
-        if (tq.pre <= 0) tq.lectura.setText(tq.alta ? (vos ? "VIENE ALTA · ponete abajo y saltá" : "VIENE ALTA · se pone abajo y salta")
-          : (e.T.h <= this.BAL.toque.tecnicas.remate.h[1] ? (vos ? "VIENE BAJA · que caiga en tu pie" : "VIENE BAJA · que caiga en su pie") : "VIENE A MEDIA ALTURA · de volea"));
+        var viene = tq.propia ? "TE LA LEVANTÁS" : "VIENE";
+        if (tq.pre <= 0) tq.lectura.setText(tq.alta ? (vos ? viene + " ALTA · ponete abajo y saltá" : "VIENE ALTA · se pone abajo y salta")
+          : (e.T.h <= this.BAL.toque.tecnicas.remate.h[1] ? (tq.propia ? "TE LA DEJÁS BAJA · que caiga en tu pie" : vos ? "VIENE BAJA · que caiga en tu pie" : "VIENE BAJA · que caiga en su pie") : viene + " A MEDIA ALTURA · de volea"));
       } else {
         var antes = { x: e.jug.x, z: e.jug.z };
         window.PampaToque.paso(e, dt, tq.obj);

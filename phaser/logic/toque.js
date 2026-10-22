@@ -63,32 +63,39 @@
     };
   }
 
-  /* jugador: { stats, aguanteFrac, pie } · cfg = balance.toque */
+  /* jugador: { stats, aguanteFrac, pie } · cfg = balance.toque
+     origen: "propia" para el SÚPER TIRO (pedido de Rodri del 22/oct): la
+     pelota es tuya y sale de tus pies, te la acomodás y le pegás. Sin origen,
+     se sortea uno de cfg.origenes, como en el remate del área. */
   function crearJugada(o) {
     var c = o.cfg, r = rng(o.semilla), J = o.jugador, s = J.stats || {};
-    var org = c.origenes[Math.floor(r() * c.origenes.length)];
+    var propia = o.origen === "propia";
+    var org = propia ? c.propia : c.origenes[Math.floor(r() * c.origenes.length)];
     var p0 = { x: entre(r, org.x), z: entre(r, org.z), h: org.h };
     var tira = r(), acc = 0, tramo = c.alturas[c.alturas.length - 1];
     for (var i = 0; i < c.alturas.length; i++) { acc += c.alturas[i].p; if (tira < acc) { tramo = c.alturas[i]; break; } }
     var T = { x: entre(r, c.llegada.x), z: entre(r, c.llegada.z), h: entre(r, tramo.h) };
-    var tT = entre(r, c.vuelo_s), az = (r() * 2 - 1) * c.curva_max;
-    var v = {
-      x: (T.x - p0.x) / tT,
-      z: (T.z - p0.z - 0.5 * az * tT * tT) / tT,
-      h: (T.h - p0.h + 0.5 * c.gravedad * tT * tT) / tT
-    };
+    var tT = entre(r, c.vuelo_s), az = (r() * 2 - 1) * c.curva_max * (org.curva != null ? org.curva : 1);
     var frac = clamp(J.aguanteFrac, 0, 1);
     var vmax = (c.vel_base + ((s.velocidad || 50) - 50) * c.vel_stat) * (1 - c.vel_cansancio * (1 - frac));
     /* arranca lejos, pero siempre a una distancia que se llega leyendo bien */
     var d = Math.min(entre(r, c.distancia_m), vmax * (tT - c.reaccion_s) * 0.9);
     var ang = r() * Math.PI * 2;
     var pie = J.pie;
+    var jx = clamp(T.x + Math.cos(ang) * d, 0.4, c.cancha.L - 0.4), jz = clamp(T.z + Math.sin(ang) * d, 0.3, c.cancha.D - 0.3);
+    /* la tuya arranca pegada a tu pie: org.x y org.z son cuánto adelante y al costado */
+    if (propia) p0 = { x: jx + p0.x, z: clamp(jz + p0.z, 0.2, c.cancha.D - 0.2), h: org.h };
+    var v = {
+      x: (T.x - p0.x) / tT,
+      z: (T.z - p0.z - 0.5 * az * tT * tT) / tT,
+      h: (T.h - p0.h + 0.5 * c.gravedad * tT * tT) / tT
+    };
     return {
       cfg: c, r: r, t: 0, tT: tT, T: T, origen: org,
       tramos: tramos(p0, v, az, c), curva: az,
       jug: {
-        x: clamp(T.x + Math.cos(ang) * d, 0.4, c.cancha.L - 0.4),
-        z: clamp(T.z + Math.sin(ang) * d, 0.3, c.cancha.D - 0.3),
+        x: jx,
+        z: jz,
         vmax: vmax, salto: c.salto_base + ((s.aereo || 50) - 50) * c.salto_stat,
         pie: pie, lado: pie === "izq" ? -1 : 1, stats: s
       },

@@ -262,7 +262,7 @@
       }
       if (especial) {
         this.lineasVelocidad(W * 0.42, H * 0.5, 1.4, 0xffd84d);
-        this.punch(cfg.titulo || "¡SÚPER TIRO!", cfg.sub || "", 0xffd84d);
+        if (cfg.titulo !== "") this.punch(cfg.titulo || "¡SÚPER TIRO!", cfg.sub || "", 0xffd84d);
       }
 
       /* --- el sonido: la música se va y un riser llega justo al golpe --- */

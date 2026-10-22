@@ -3291,7 +3291,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (mega && this.FLAGS.e6_cine) {
       /* FEEL B5 · MEGATIRO: anuncio con cut-in y carga → ejecución exigente → CINE de 5 planos */
       this.cutInEspecial("¡" + mega.n.toUpperCase() + "!", (mega.sub || "") + " · " + mega.aguante + " aguante", () => {
-        if (this.FLAGS.toque) this.entrarToque(t => this.dispararConCine(mega, this.ejDeLaSituacion(mega, null, t)));
+        if (this.FLAGS.toque) this.entrarToque(t => this.dispararConCine(mega, this.ejDeLaSituacion(mega, null, t)), "propia");
         else this.dispararConCine(mega, this.ejDeLaSituacion(mega));
       });
     } else {
@@ -4501,8 +4501,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.tomaDelRemate({
         j, especial: true, siluetas: enCamino > 0 ? enCamino : null,
         etiqueta: "· " + String(mega.n || "EL SÚPER TIRO").toUpperCase() + " ·",
-        titulo: "¡" + String(mega.n || "SÚPER TIRO").toUpperCase() + "!",
-        sub: (mega.sub || "junta todo lo que le queda") + " · " + (ej.lecturaTexto || ""),
+        /* 22/oct, Rodri: el cartel salía dos veces. El cut-in de resolverTiro
+           ya lo anunció; acá va vacío y la toma no lo repite */
+        titulo: "", sub: ej.lecturaTexto || "",
         alFinal: () => { this.entrarCine(); this.planoViaje(); }
       });
       return;
@@ -4517,8 +4518,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            que es el único que suena a patada. Antes sonaban tres: acá, en el
            alFinal y en planoPie */
         gana: true, sfx: null,
-        titulo: "¡" + String(mega.n || "SÚPER TIRO").toUpperCase() + "!",
-        sub: (mega.sub || "junta todo lo que le queda") + " · " + (ej.lecturaTexto || ""),
+        titulo: "", sub: ej.lecturaTexto || "",
         color: 0xffd84d,
         alFinal: () => {
           this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);

@@ -198,5 +198,35 @@ assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", 
   assert(s.subDelGol() === "¡La clavaste donde el viento no la saca!", "y el tuyo te habla a vos");
 })();
 
+/* --- pedido de Rodri del 22/oct: en el SÚPER TIRO la pelota es tuya ---
+   EL TOQUE la tiraba de atrás como un pase ("TE LA TIRAN DE ATRÁS") aunque
+   la tenías en el pie. Con origen "propia" sale de tus pies, el rótulo lo
+   dice y sigue siendo justa. El remate del área sigue sorteando. */
+(function () {
+  const propia = function (sm) { return T.crearJugada({ semilla: sm, cfg: C, origen: "propia", jugador: { stats: medio, aguanteFrac: 1, pie: "der" } }); };
+  let pegada = true, rotulo = true, noAtras = true;
+  for (let sm = 1; sm <= 200; sm++) {
+    const e = propia(sm), b0 = T.bolaEn(e, 0);
+    if (Math.hypot(b0.x - e.jug.x, b0.z - e.jug.z) > 0.5) pegada = false;
+    if (e.origen.id !== "propia" || !/ACOMOD/.test(e.origen.n)) rotulo = false;
+    if (/ATR[AÁ]S/.test(e.origen.n)) noAtras = false;
+  }
+  assert(pegada, "SÍNTOMA: en el súper tiro la pelota no arranca en tus pies");
+  assert(rotulo && noAtras, "el rótulo dice que te la acomodás, no que te la tiran de atrás");
+  let buenas = 0;
+  for (let s2 = 1; s2 <= 600; s2++) if (lector(propia(s2), T.rng(s2 * 7919), 0.12, 0.035).calidad >= C.zonas[1].q) buenas++;
+  assert(buenas / 600 >= 0.7, "con tu pelota, leyendo bien, bien pegada 7 de cada 10 o más (" + (buenas / 600).toFixed(2) + ")");
+  assert(JSON.stringify(jugada(77).T) === JSON.stringify(T.crearJugada({ semilla: 77, cfg: C, jugador: { stats: medio, aguanteFrac: 1, pie: "der" } }).T)
+    && C.origenes.every(function (o) { return o.id !== "propia"; }), "el remate del área sigue con su sorteo de siempre");
+  const MATCH = fs.readFileSync(path.join(__dirname, "..", "scenes", "match.js"), "utf8");
+  assert(/entrarToque\(t => this\.dispararConCine\(mega, [^\n]*\), "propia"\)/.test(MATCH), "el súper tiro entra a EL TOQUE con su propia pelota");
+  /* el cartel: el cut-in lo anuncia y la toma no lo repite */
+  const disparar = MATCH.slice(MATCH.indexOf("  dispararConCine(mega, ej) {"), MATCH.indexOf("\n  /* ============ ANIME v4 Bloque B"));
+  assert(disparar.indexOf("junta todo lo que le queda") < 0 && (disparar.match(/titulo: ""/g) || []).length === 2,
+    "SÍNTOMA: el cartel ¡SÚPER TIRO! · junta todo lo que le queda sale dos veces (en el cut-in y en la toma)");
+  const TOMA = fs.readFileSync(path.join(__dirname, "..", "scenes", "toma_remate.js"), "utf8");
+  assert(/if \(cfg\.titulo !== ""\) this\.punch\(cfg\.titulo \|\| "¡SÚPER TIRO!"/.test(TOMA), "la toma especial sin título no pone el cartel");
+})();
+
 console.log((mal ? "✗" : "✓") + " toque: " + ok + " ok, " + mal + " mal · lector " + L.buenas.toFixed(2) + "/" + L.justas.toFixed(2) + " · azar " + Z.buenas.toFixed(3) + " · crack " + crack.media.toFixed(2) + " vs tronco " + tronco.media.toFixed(2));
 process.exit(mal ? 1 : 0);
