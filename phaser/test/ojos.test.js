@@ -240,9 +240,12 @@ function escenaConPoses() {
   assert(!/planoArquero\(\)/.test(M), "SÍNTOMA: volvió planoArquero, la misma toma del arquero antes del desenlace");
   /* 17/oct, pedido de Rodri: el salto lento usa la estirada nueva
      (r_arquero_estirada), que se pide como "estirada"; sigue siendo el
-     arquero rival estirado desde el primer cuadro */
-  assert(/figuraArquero\("estirada", "planoDesenlace \(arquero rival\)", true\)/.test(M),
-    "SÍNTOMA: planoDesenlace no arranca con el arquero rival estirado (antes la pose de 'la agarró' estaba desde el primer cuadro y era la tuya)");
+     arquero rival estirado desde el primer cuadro. 20/oct, pedido de Rodri:
+     "te rematan" usa este mismo plano y ahí el que vuela es TU arquero
+     (_remRival); en tu remate sigue siendo el rival */
+  assert(/const RR = this\._remRival, quien = RR \? "planoDesenlace \(tu arquero\)" : "planoDesenlace \(arquero rival\)";/.test(M) &&
+    /figuraArquero\("estirada", quien, !RR\)/.test(M),
+    "SÍNTOMA: planoDesenlace no arranca con el arquero rival estirado en tu remate (antes la pose de 'la agarró' estaba desde el primer cuadro y era la tuya)");
   assert(/if \(!corner && this\.ponerArqueroQueAtaja\(arq, ball\)\) return;/.test(M), "la atajada pasa a la pose de rodillas RECIÉN en la revelación");
   /* nadie pide la de los ojos cerrados, y está apagada */
   var ESC = ["match.js", "definicion_ui.js", "escenas_v9.js", "jugadon_ui.js", "cine_arte.js", "intro.js", "master.js"].map(function (f) {
@@ -250,7 +253,8 @@ function escenaConPoses() {
   }).join("\n");
   assert(ESC.indexOf("arquero_ataja_celeste") < 0, "ninguna escena pide arquero_ataja_celeste");
   assert(!/"arquero_ataja"/.test(leer("phaser/scenes/escenas_v9.js").replace(/\/\*[\s\S]*?\*\//g, "")), "'te rematan' ya no pasa a arquero_ataja (+_celeste)");
-  assert(/poseDePlano\("arquero_despeje_celeste", arqM, false\)/.test(leer("phaser/scenes/escenas_v9.js")), "'te rematan': tu atajada es el despeje, con el id completo");
+  /* 20/oct: la atajada de "te rematan" se ve en el cine (planoDesenlace) */
+  assert(/poseDePlano\("arquero_despeje_celeste", RR\.arquero, false\)/.test(M), "'te rematan': tu atajada es el despeje, con el id completo");
   var D = leer("phaser/scenes/definicion_ui.js");
   assert(/poseId = o\.gol \? "arquero_vuela" : "arquero_despeje";/.test(D), "el ¡ATAJADÓN! de la Definición es el despeje");
   var MEGA = json("data/megacosas.json");

@@ -3514,7 +3514,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.corte(() => this.planoDesenlace());
     };
   }
-  salirCine() {
+  /* despues: lo que sigue al volver al partido (el relato del remate rival) */
+  salirCine(despues) {
     this.respirar();
     this.viajeState = null;
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
@@ -3528,6 +3529,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.uiCam.fadeIn(ms, 0, 0, 0);
       this.zoomBase();
       this.estado = "LIBRE";
+      if (despues) despues();
     };
     this.uiCam.once("camerafadeoutcomplete", volver);
     this.uiCam.fadeOut(ms, 0, 0, 0);
@@ -3691,7 +3693,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.fondoCine || !this.fondoCine("golpe", { bando: "mio", cx: 0.5, cy: 0.52 })) { this.cineBG.fillStyle(0x1a1206, 1); this.cineBG.fillRect(0, 0, W, H); }
     this.cineLabel.setText("· el esfuerzo ·");
     this.lineasVelocidad(W / 2, H / 2, 1, 0xffd84d);
-    const jug = this.add.sprite(W / 2, H / 2 + 20, this.texturaCineJugador()).setScale(2.6).setAngle(4);
+    /* te rematan (escenas_v9.js): el esfuerzo es el de TU arquero */
+    const RR = this._remRival;
+    const tex = RR ? (this._bustoIlustrado(RR.arquero, false) || this.figuraArquero("vuela", "planoEsfuerzo (tu arquero)", false)) : this.texturaCineJugador();
+    const jug = this.add.sprite(W / 2, H / 2 + 20, tex).setScale(2.6).setAngle(4);
     this.cineContent.add(jug);
     this.tweens.add({ targets: jug, scale: 3.4, angle: -3, duration: C.plano_esfuerzo_ms, ease: "Sine.easeOut" });
     this.SFX && this.SFX.crowd(400);
@@ -3751,6 +3756,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        re-entrar y duplicar el gol) */
     this._cineSkip = null; this._cineTimer = null;
     const W = 960, H = 540, C = this.BAL.cine, EP = this.BAL.epica, res = this.res;
+    /* 20/oct · TE REMATAN con este mismo plano: el que vuela es TU arquero,
+       con sus poses celestes, y el remate ya está resuelto afuera
+       (escenas_v9.js, escenaRemateRival): RR.revelar dice qué pasó y
+       RR.cerrar vuelve al partido. Sin RR, tu remate de siempre. */
+    const RR = this._remRival, quien = RR ? "planoDesenlace (tu arquero)" : "planoDesenlace (arquero rival)";
     this.limpiarContenido();
     /* 17/oct, pedido de Rodri: "la animación del arquero está como repetida".
        Lo estaba: planoArquero lo mostraba estirándose en su arco y este plano,
@@ -3793,7 +3803,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.dibujarArcoCine(g);
     };
     pintarArco(0);
-    this.cineLabel.setText("· el arquero ·");
+    this.cineLabel.setText(RR ? "· tu arquero ·" : "· el arquero ·");
     /* P2: los carteles bajan al pasto, debajo del arco. Antes ¡GOOOL! caía en
        el centro de la pantalla, o sea adentro de la boca. */
     this.cineBig.setY(A.carteles);
@@ -3803,7 +3813,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        recién en la revelación de la atajada. P2: el origen en los pies, así la
        Y es su piso y no se hunde por debajo de la línea de gol.
        17/oct: la estirada larga de perfil (r_arquero_estirada). */
-    const arq = this.add.sprite(gx, gy, this.figuraArquero("estirada", "planoDesenlace (arquero rival)", true));
+    const arq = this.add.sprite(gx, gy, this.figuraArquero("estirada", quien, !RR));
     /* A3: la estirada es mas ancha que alta */
     arq.setScale(this.escalaDePose(this._poseArqueroUltima || "arquero_vuela", A.h * 1.15, arq));
     arq.setOrigin(0.5, 1);
@@ -3848,7 +3858,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            hacia donde entró (la pose mira a la derecha: el flip del salto
            sirve igual) */
         this.tweens.killTweensOf(arq);
-        arq.setTexture(this.figuraArquero("caido", "planoDesenlace (arquero rival)", true)).setAngle(0);
+        arq.setTexture(this.figuraArquero("caido", quien, !RR)).setAngle(0);
         arq.setScale(this.escalaDePose(this._poseArqueroUltima, A.h * 1.15, arq));
         /* la red se hunde donde entró la pelota y vuelve: los hilos de la
            malla (el mismo paso que dibujarArcoCine) se tiran hacia el punto
@@ -3887,6 +3897,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.tweens.add({ targets: ball, scale: escFin * 0.75 * kB, y: destino.y + 10, duration: 140, ease: "Quad.easeOut" });
         this.tweens.add({ targets: ball, y: gy - 10, delay: 300, duration: 420, ease: "Bounce.easeOut" });
         this.uiCam.shake(EP.shake_ms, EP.shake_intensidad);
+        if (RR) { RR.revelar(); return; }
         this.uiCam.flash(EP.flash_ms, 255, 255, 210);
         this.burst(ball.x, ball.y);
         this.punch(this._megaGrito || "¡GOOOL!", "¡La clavaste donde el viento no la saca!", 0xffd84d);
@@ -3910,6 +3921,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         ball.setPosition(destino.x, destino.y);
         pintarArco(0);
         this.uiCam.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
+        if (RR) {
+          /* tu arquero la despeja con los puños: la pose trae la pelota
+             pintada, así que la del juego se esconde (o se ven dos) */
+          encuadrar(arq.x + lado * 20, gy - 80, 1.35);
+          this.dust(ox + destino.x * z, oy + destino.y * z);
+          const kD = this.poseDePlano("arquero_despeje_celeste", RR.arquero, false);
+          if (kD) {
+            this.tweens.killTweensOf(arq);
+            arq.setTexture(kD).setAngle(0);
+            arq.setScale(this.escalaDePose("arquero_despeje_celeste", A.h * 1.1, arq));
+            ball.setVisible(false);
+          }
+          RR.revelar();
+          return;
+        }
         const d = this.desenlaceRemate(res);
         this.punch(d.titulo, d.sub, d.color);
         /* la atajada se queda cerca, en las manos; el córner abre para verla irse */
@@ -3971,7 +3997,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       onComplete: () => {
         revelar();
         /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */
-        if (res.outcome !== "gol") this.time.delayedCall(this.msV(C.desenlace_hold_ms), () => this.salirCine());
+        if (RR) this.time.delayedCall(this.msV(C.desenlace_hold_ms), RR.cerrar);
+        else if (res.outcome !== "gol") this.time.delayedCall(this.msV(C.desenlace_hold_ms), () => this.salirCine());
       }
     });
     this.SFX && this.SFX.crowd(Math.round(tFreeze * 0.9));

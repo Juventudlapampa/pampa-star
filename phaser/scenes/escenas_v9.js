@@ -444,17 +444,24 @@
         st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
       }
 
-      /* ---- EL TEATRO ---- */
+      /* ---- EL TEATRO ----
+         20/oct, Rodri: "te rematan" tiene que sentirse igual de épico que
+         cuando rematás vos. Este plano es la patada (como la viñeta EL
+         REMATE de tu tiro) y, si nadie la bloquea, sigue EL MISMO CINE de tu
+         remate (match.js: planoViaje, planoEsfuerzo, planoDesenlace) con TU
+         arquero y sus poses celestes. El bloqueo se resuelve acá mismo: la
+         pelota no llega al arco. */
       this._abrirEscena("· te rematan ·");
-      var horizonte = this.fondoDeCancha(true);
+      this.fondoDeCancha(true);
       var tEntrada = this.msV(EP.entrada_ms || 340);
       var silencio = feel.silencio_ms || 500;
       var tHold = this.msV(EP.hold_ms || 900);
+      var tVuelo = this.msV(520);
 
       /* el rematador rival, grande, pegándole */
       var rem = this.figuraDePlano("remate", tirador, true, 300, Math.round(H * 0.66), 300, false);
       /* las placas van sobre la cabeza: a los pies quedaban debajo del cartel
-         ("¡ATAJADÓN!" en y 452) y de su bajada (y 492), que las pisaban */
+         ("¡LA BLOQUEÓ!" en y 452) y de su bajada (y 492), que las pisaban */
       this.placaDePlano(300, rem.y - rem.displayHeight / 2 - 16, tirador, true);
       var bola = this.add.sprite(360, H * 0.66 + 70, "ball").setScale(2.4);
       this.cineContent.add(bola);
@@ -469,36 +476,81 @@
         figs.push(f);
         if (jd) this.placaDePlano(560, f.y - f.displayHeight / 2 - 16, jd, false);
       }
-      /* el arquero, al fondo. 17/oct: con la estirada larga de perfil, la
-         misma del salto lento de tu remate (planoDesenlace) */
-      var arqSpr = this.figuraDePlano("arquero_estirada_celeste", arqM, false, 840, Math.round(H * 0.46), 190, true);
+      /* el arquero, al fondo, solo si la bloquean: si no, su momento es el
+         desenlace del cine, y dos veces el mismo salto se lee repetido */
+      var arqSpr = lectura.bloqueado ? this.figuraDePlano("arquero_estirada_celeste", arqM, false, 840, Math.round(H * 0.46), 190, true) : null;
       /* los globos de Nelda y el Tuli le caían encima al arquero: se corren
          adonde no tapen a nadie (tribuna_ui.js), los que ya están a la vista
          y los que salgan durante la escena */
-      this._figurasCine = [rem, bola, arqSpr].concat(figs);
+      this._figurasCine = [rem, bola].concat(arqSpr ? [arqSpr] : [], figs);
       if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(this);
 
       var esc = { revelado: false, cerrado: false };
-      /* la pelota sale disparada hacia el arco */
+      /* la pelota sale disparada hacia el arco: el golpe fuerte, como el tuyo */
       this.time.delayedCall(tEntrada, function () {
         self.uiCam.flash(70, 255, 200, 120);
-        self.SFX && self.SFX.kick && self.SFX.kick();
-        /* 20/oct: el mismo sonido de tu remate mientras viaja: el aire, la
-           tribuna que sube hasta el freeze y la música abajo hasta saberlo */
-        self.SFX && self.SFX.whoosh && self.SFX.whoosh();
-        self.SFX && self.SFX.riserRemate && self.SFX.riserRemate(self.msV(520));
-        self.musicaDuck(self.msV(520) + silencio);
+        self.SFX && self.SFX.kickFuerte && self.SFX.kickFuerte();
+        /* si la bloquean, el vuelo suena acá; si no, lo pone el viaje del cine */
+        if (lectura.bloqueado) {
+          self.SFX && self.SFX.whoosh && self.SFX.whoosh();
+          self.SFX && self.SFX.riserRemate && self.SFX.riserRemate(tVuelo);
+          self.musicaDuck(tVuelo + silencio);
+        }
         self.lineasVelocidad(360, H * 0.6, 1.1, 0xff8a50);
         var destinoX = lectura.bloqueado ? 560 : 830;
-        self.tweens.add({ targets: bola, x: destinoX, y: H * 0.5, angle: 900, duration: self.msV(520), ease: "Sine.easeIn" });
+        self.tweens.add({ targets: bola, x: destinoX, y: H * 0.5, angle: 900, duration: tVuelo, ease: "Sine.easeIn" });
         figs.forEach(function (f, i) {
           self.tweens.add({ targets: f, y: "-=" + (30 + i * 8), angle: -14, duration: 260, yoyo: true });   // saltan
         });
       });
       /* LA CÁMARA VIVA (match.js): se acerca mientras le pega y viaja */
-      if (this.dollyCine) this.dollyCine(tEntrada + this.msV(520), 1.2);
+      if (this.dollyCine) this.dollyCine(tEntrada + tVuelo, 1.2);
+
+      /* los globos vuelven a su sitio recién después del negro: antes saltaban
+         encima del arquero mientras la escena se iba */
+      var volverAlPartido = function () {
+        self._figurasCine = null;
+        if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(self);
+        self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
+      };
+
+      if (!lectura.bloqueado) {
+        var alCine = function () {
+          if (esc.cerrado) return; esc.cerrado = true;
+          self._escSkip = null;
+          self.res = { outcome: res.golRival ? "gol" : "atajada" };
+          /* el palo al que va: el contrario al lado de donde viene el rematador */
+          self.zona = { id: "rival", gy: (tirador.y < st.H / 2 ? 1 : -1) * 36 };
+          self._remRival = {
+            arquero: arqM,
+            revelar: function () {
+              if (res.golRival) {
+                self.SFX && self.SFX.net && self.SFX.net();
+                self.punch("GOL DE " + String(self.nombreRival || "ELLOS").toUpperCase(), self.porQueRemateRival(lectura, res), 0xe3503e);
+                if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
+                if (self.efectoGol) self.efectoGol(true);
+              } else {
+                self.uiCam.flash(60, 255, 255, 255);
+                self.SFX && self.SFX.gloves && self.SFX.gloves();
+                self.punch("¡ATAJADÓN!", self.porQueRemateRival(lectura, res), 0x5bb8e8);
+                if (self.tribunaSaltando) self.tribunaSaltando();
+                self.SFX && self.SFX.festejo && self.SFX.festejo(900);
+              }
+            },
+            cerrar: function () {
+              self._remRival = null;
+              self.salirCine(volverAlPartido);
+            }
+          };
+          self.cerrarEscena(function () { self.entrarCine(); self.planoViaje(); });
+        };
+        this._escSkip = alCine;
+        this.time.delayedCall(tEntrada + tVuelo, alCine);
+        return;
+      }
+
       /* FREEZE + silencio: no sabés si la frenan */
-      this.time.delayedCall(tEntrada + this.msV(520), function () {
+      this.time.delayedCall(tEntrada + tVuelo, function () {
         if (self.pararDolly) self.pararDolly();
         self.musicaDuck(silencio);
         self.cineFX.clear();
@@ -507,69 +559,27 @@
 
       var revelar = function () {
         if (esc.revelado) return; esc.revelado = true;
-        if (self.golpeDeCamara) self.golpeDeCamara(res.golRival ? 1.4 : 1);
+        if (self.golpeDeCamara) self.golpeDeCamara(1);
         var quien = lectura.defensorMasCerca;
-        if (lectura.bloqueado) {
-          self.uiCam.flash(60, 255, 255, 255);
-          self.SFX && self.SFX.choque && self.SFX.choque();
-          if (figs[0] && figs[0].active) self.tweens.add({ targets: figs[0], scale: figs[0].scale * 1.14, duration: 240 });
-          /* revisión L04b: decía "te tiraste", y la figura de quien juega es
-             la pose "bloqueo" (de pie, brazos cruzados: el cuerpo en la
-             línea; l04b_4_super_defensa_revela.png). El cartel dice lo que
-             se ve, como el bloqueo común de abajo. */
-          if (lectura.superDefensa) self.punch("🌟 ¡SÚPER DEFENSA!", "pusiste el cuerpo con todo el envión · pelota nuestra", 0xffd84d);
-          else self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
-            "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
-          if (self.tribunaSaltando) self.tribunaSaltando();
-        } else if (!res.golRival) {
-          self.uiCam.flash(60, 255, 255, 255);
-          self.SFX && self.SFX.gloves && self.SFX.gloves();
-          /* OJOS (tanda 1.0): acá tu arquero pasaba a arquero_ataja_celeste,
-             de rodillas con los ojos cerrados. Ahora el despeje (ojos
-             abiertos, los puños contra la pelota), pedido con el id completo
-             porque poseDePlano("arquero_despeje") no existe sin sufijo. Esa
-             pose trae la pelota PINTADA en el puño: la del juego se esconde,
-             o se ven dos. */
-          var conDespeje = false;
-          if (arqSpr && arqSpr.active) {
-            var kAt = self.poseDePlano("arquero_despeje_celeste", arqM, false);
-            if (kAt && arqSpr.setTexture) { arqSpr.setTexture(kAt); arqSpr.setScale(210 / arqSpr.height); conDespeje = true; }
-            self.tweens.add({ targets: arqSpr, x: 800, scale: arqSpr.scale * 1.1, duration: 260 });
-          }
-          if (bola.active) { bola.setPosition(806, H * 0.5); if (conDespeje) bola.setVisible(false); }
-          self.punch("¡ATAJADÓN!", self.porQueRemateRival(lectura, res), 0x5bb8e8);
-          if (self.tribunaSaltando) self.tribunaSaltando();
-          self.SFX && self.SFX.festejo && self.SFX.festejo(900);
-        } else {
-          self.uiCam.shake(280, 0.01);
-          self.SFX && self.SFX.net && self.SFX.net();
-          if (bola.active) self.tweens.add({ targets: bola, x: 880, y: H * 0.42, duration: 220 });
-          /* 17/oct, pedido de Rodri: tu arquero quedaba colgado en el aire.
-             Corte seco a él tirado en el piso, mirando la pelota adentro */
-          var kCaido = self.poseDePlano("arquero_caido_celeste", arqM, false);
-          if (kCaido && arqSpr && arqSpr.active && arqSpr.setTexture) {
-            self.tweens.killTweensOf(arqSpr);
-            arqSpr.setTexture(kCaido).setFlipX(false).setAngle(0).setOrigin(0.5, 1).setPosition(850, Math.round(H * 0.65));
-            arqSpr.setScale(self.escalaDePose("arquero_caido_celeste", 160, arqSpr));
-          }
-          self.punch("GOL DE " + String(self.nombreRival || "ELLOS").toUpperCase(), self.porQueRemateRival(lectura, res), 0xe3503e);
-          if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
-          if (self.efectoGol) self.efectoGol(true);
-        }
+        self.uiCam.flash(60, 255, 255, 255);
+        self.SFX && self.SFX.choque && self.SFX.choque();
+        if (figs[0] && figs[0].active) self.tweens.add({ targets: figs[0], scale: figs[0].scale * 1.14, duration: 240 });
+        /* revisión L04b: decía "te tiraste", y la figura de quien juega es
+           la pose "bloqueo" (de pie, brazos cruzados: el cuerpo en la
+           línea; l04b_4_super_defensa_revela.png). El cartel dice lo que
+           se ve, como el bloqueo común de abajo. */
+        if (lectura.superDefensa) self.punch("🌟 ¡SÚPER DEFENSA!", "pusiste el cuerpo con todo el envión · pelota nuestra", 0xffd84d);
+        else self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
+          "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
+        if (self.tribunaSaltando) self.tribunaSaltando();
       };
       var cerrarYa = function () {
         if (esc.cerrado) return; esc.cerrado = true;
         self._escSkip = null;
-        /* los globos vuelven a su sitio recién después del negro: antes saltaban
-           encima del arquero mientras la escena se iba */
-        self.cerrarEscena(function () {
-          self._figurasCine = null;
-          if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(self);
-          self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
-        });
+        self.cerrarEscena(volverAlPartido);
       };
       this._escSkip = function () { if (!esc.revelado) revelar(); else cerrarYa(); };
-      var tRevela = tEntrada + this.msV(520) + silencio;
+      var tRevela = tEntrada + tVuelo + silencio;
       this.time.delayedCall(tRevela, revelar);
       this.time.delayedCall(tRevela + tHold, cerrarYa);
     },

@@ -229,7 +229,7 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   var tap = null;
   function armar(op) {
     op = op || {};
-    var E = PM.escena({ match: VIEJO, logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"], logica: ["phaser/logic/definicion.js"], mixins: [process.env.PAMPA_V9_VIEJO || "phaser/scenes/escenas_v9.js", "phaser/scenes/tribuna_ui.js"] });
+    var E = PM.escena({ match: VIEJO, logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"], logica: ["phaser/logic/definicion.js", "phaser/logic/perspectiva.js"], mixins: [process.env.PAMPA_V9_VIEJO || "phaser/scenes/escenas_v9.js", "phaser/scenes/tribuna_ui.js"] });
     var s = conHUD(E);
     tap = E.BAL.legibilidad.tap_min;
     if (op.sinPregunta) E.BAL.envion.super_pregunta = false;
@@ -251,7 +251,57 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     /* los dos de la tribuna, hablando (comentar() los dejó a la vista) */
     s._tribuna = { cont: s.add.container(), _irse: { remove: function () { E.tribunaIrse = (E.tribunaIrse | 0) + 1; } } };
     s.cerrarEscena = function (alFinal) { s.estado = "RESOLUCION"; alFinal && alFinal(); if (s.estado === "RESOLUCION") s.estado = "LIBRE"; };
-    ["kick", "gloves", "crowd", "net"].forEach(function (k) { s.SFX[k] = function () { }; });
+    ["kick", "kickFuerte", "gloves", "crowd", "net", "whoosh", "riserRemate", "festejo", "choque"].forEach(function (k) { s.SFX[k] = function () { }; });
+    /* 20/oct, pedido de Rodri: "te rematan" sigue con el MISMO cine de tu
+       remate (match.js planoViaje, planoEsfuerzo, planoDesenlace) cuando nadie
+       la bloquea. Ese cine pinta en su lienzo (cineBG) y avanza cuando sus
+       tweens terminan, así que el falso los trae: el lienzo acepta cualquier
+       trazo, y cada tween termina por el reloj de mentira (delay + duración),
+       salvo el que se pausó en el freeze, que termina al reanudarse, y los
+       que se repiten para siempre, que no terminan nunca (como en Phaser). */
+    var trazo = function () { return lienzo; };
+    var lienzo = new Proxy({}, { get: function (o, k) { return k in o ? o[k] : trazo; } });
+    s.cineBG = lienzo;
+    var graficos = s.add.graphics;
+    s.add.graphics = function () {
+      var p = new Proxy(graficos(), { get: function (o, k) { return k in o ? o[k] : function () { return p; }; } });
+      return p;
+    };
+    s.cineBig = s.add.text(0, 0, "", {}); s.cineSub = s.add.text(0, 0, "", {});
+    s.cineContent.moveBelow = function () { };
+    E.planos = [];
+    var setLabel = s.cineLabel.setText;
+    s.cineLabel.setText = function (t) { E.planos.push(String(t)); return setLabel.call(s.cineLabel, t); };
+    s.uiCam.zoomTo = s.uiCam.pan = s.uiCam.fadeIn = s.uiCam.fadeOut = s.uiCam.once = function () { };
+    s.zoomBase = function () { };
+    s.fondoCine = function () { return false; };
+    s.texPelota = function () { return { key: "ball", esc: 1 }; };
+    s.add.particles = function () { var o = s.add.rectangle(0, 0, 1, 1); o.stop = function () { }; return o; };
+    var sprite = s.add.sprite;
+    E.texturas = [];
+    s.add.sprite = function (x, y, tex) { var o = sprite(x, y); E.texturas.push(tex); o.setAngle = function () { return o; }; o.setTexture = function (k) { E.texturas.push(k); return o; }; return o; };
+    s._bustoIlustrado = function (j) { return j ? "busto:" + (j.esVos ? "VOS" : j.nombre) : null; };
+    s.figuraArquero = function (pose) { return "arquero:" + pose; };
+    s.escalaDePose = function () { return 1; };
+    s.puntoDePose = function () { return null; };
+    s.dust = function () { };
+    s.tweens = {
+      add: function (c) {
+        var t = { cfg: c, paused: false, hecho: false, timeScale: 1, stop: function () { t.hecho = true; }, remove: function () { t.hecho = true; },
+          pause: function () { t.paused = true; }, resume: function () { t.paused = false; if (t.pendiente) terminar(); } };
+        var terminar = function () {
+          if (t.hecho) return;
+          if (t.paused) { t.pendiente = true; return; }
+          t.hecho = true;
+          if (c.onUpdate) c.onUpdate();
+          if (c.onComplete) c.onComplete();
+        };
+        if (c.repeat !== -1 && !c.loop) s.time.delayedCall((c.delay || 0) + (c.duration || 0), terminar);
+        E.tweens.push(t);
+        return t;
+      },
+      killTweensOf: function (obj) { E.tweens.forEach(function (t) { if (t.cfg.targets === obj) t.hecho = true; }); }
+    };
     return E;
   }
   function botonesCine(E) {
@@ -341,6 +391,14 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   assert(s2.st.envion === max, "GUARDAR EL ENVIÓN no lo gasta");
   correrTodo(E2);
   assert(!E2.punch.some(function (p) { return /SÚPER DEFENSA/.test(p); }) && E2.punch.length === 1, "y el remate se resuelve como siempre (" + E2.punch.join(" · ") + ")");
+  /* 20/oct, pedido de Rodri: el remate que nadie bloquea va por el MISMO
+     cine que tu remate, con TU arquero, y vuelve al partido */
+  assert(["· el viaje ·", "· el esfuerzo ·", "· tu arquero ·"].every(function (p) { return E2.planos.indexOf(p) >= 0; }),
+    "SÍNTOMA: te rematan sin el cine de tu remate (planos: " + E2.planos.join(" | ") + ")");
+  var arqMio = s2.st.mios.filter(function (x) { return x.pos === "ARQ"; })[0];
+  var texCine = E2.texturas.filter(function (t) { return typeof t === "string"; });
+  assert(texCine.indexOf("busto:" + arqMio.nombre) >= 0 || texCine.indexOf("arquero:vuela") >= 0, "el esfuerzo es la cara de TU arquero (" + texCine.join(" | ") + ")");
+  assert(s2.estado === "LIBRE" && s2._remRival == null, "y después del cine el partido sigue (" + s2.estado + ")");
 
   /* con el teclado: ENTER confirma lo que tiene el cursor; la repetición no */
   var E3 = armar(), s3 = E3.s;

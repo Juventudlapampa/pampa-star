@@ -152,7 +152,7 @@ function lineasCon(re) {
   var directos = lineasCon(/SFX\.(temaPosesion|temaCampo)\(/).filter(function (l) { return /^match\.js/.test(l); });
   assert(directos.length === 0, "las notas de posesión y de campo pasan por golpeCorto() (respiro al volver de una escena): " + directos.join(", "));
   assert(/respirar\(\)/.test(cuerpo(MATCH, "cerrarEscena(alFinal) {")), "cerrarEscena abre el respiro");
-  assert(/respirar\(\)/.test(cuerpo(MATCH, "salirCine() {")), "salirCine abre el respiro");
+  assert(/respirar\(\)/.test(cuerpo(MATCH, "salirCine(despues) {")), "salirCine abre el respiro");
   console.log("[5] golpes cortos con respiro después de cada escena");
 })();
 
