@@ -127,5 +127,39 @@ function poderDe(st, id) {
   console.log("[6] " + Object.keys(usos).length + " efectos usados por los eventos, todos adentro de su tope");
 })();
 
+/* ---- 7) pedido de Rodri del 22/oct: con el envión apagado (la poda) las
+   opciones que SOLO daban envión decían "todo igual" y el relato seguía
+   diciendo "entra encendido". Cada una tiene ahora un efecto que la cancha
+   lee, y el relato tiene de qué hablar. ---- */
+(function () {
+  var D = require(path.join(RAIZ, "phaser/logic/dialogo.js"));
+  var leidos = ["aguante", "duelo", "keeper", "tiro", "pase", "gambeta", "fisico", "caracter", "recuperacion", "arranque", "final"];
+  var soloEnvion = [];
+  EVS.eventos.forEach(function (e) {
+    e.opciones.forEach(function (o) {
+      var ks = Object.keys(o.efecto || {});
+      if (ks.length && ks.every(function (k) { return k === "envion"; })) soloEnvion.push(e.id + ": " + o.texto);
+    });
+  });
+  assert(soloEnvion.length === 0, "SÍNTOMA: opciones que con el envión apagado no hacen nada: " + soloEnvion.join(" | "));
+  ["micro", "asado", "fiesta", "radio", "mala_racha"].forEach(function (id) {
+    var e = EVS.eventos.find(function (x) { return x.id === id; });
+    var o = e.opciones.find(function (op) { return (op.efecto || {}).envion > 0; });
+    var sinEnvion = Object.assign({}, o.efecto); delete sinEnvion.envion;
+    assert(D.bajadaDeEfecto(sinEnvion) !== "todo igual", id + ": '" + o.texto + "' dice " + D.bajadaDeEfecto(sinEnvion));
+    assert(Object.keys(sinEnvion).every(function (k) { return leidos.indexOf(k) >= 0; }), id + ": su efecto lo lee la cancha (" + Object.keys(sinEnvion).join(",") + ")");
+    /* y la cancha lo lee de verdad: el modificador cambia un número del partido */
+    var st = P.crearPartido({ bal: bal, mios: [{ nombre: "Vos", esVos: true, pos: "ATA" }], rivales: [], rng: function () { return 0.5; } });
+    var mod = V.aplicarEleccion(e, e.opciones.indexOf(o)).mod;
+    st.modVida = mod;
+    var k = Object.keys(sinEnvion)[0];
+    var real;
+    if (k === "arranque" || k === "final") { st.tiempo = k === "final" ? 2 : 1; real = P.bonusAccion(st) > 0; }
+    else real = mod[k] > 0;   // tiro, pase, gambeta y carácter: match.js los suma a tus stats al armar la fecha
+    assert(real, id + ": el efecto " + k + " no llega a la cancha");
+  });
+  console.log("[7] ninguna opción de la semana depende solo del envión (pedido del 22/oct)");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

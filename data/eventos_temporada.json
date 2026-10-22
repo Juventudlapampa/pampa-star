@@ -272,7 +272,8 @@
     {
      "texto": "Salgo a jugar para ellos",
      "efecto": {
-      "envion": 40
+      "envion": 40,
+      "caracter": 4
      },
      "frase_relator": "Con la hinchada de la localidad en la tribuna, entra encendido."
     },
@@ -338,7 +339,8 @@
     {
      "texto": "Me lo quiero ganar",
      "efecto": {
-      "envion": 35
+      "envion": 35,
+      "final": 5
      },
      "frase_relator": "Quiere sentarse a la mesa habiendo ganado."
     }
@@ -576,7 +578,8 @@
     {
      "texto": "Voy después del partido",
      "efecto": {
-      "envion": 30
+      "envion": 30,
+      "gambeta": 4
      },
      "frase_relator": "Después hay fiesta: quiere llegar con algo para festejar."
     },
@@ -663,7 +666,8 @@
     {
      "texto": "Voy y hablo del equipo",
      "efecto": {
-      "envion": 30
+      "envion": 30,
+      "pase": 4
      },
      "frase_relator": "En la radio nombró a todos: los muchachos se agrandaron."
     },
@@ -729,7 +733,8 @@
     {
      "texto": "Los junto y hablamos",
      "efecto": {
-      "envion": 45
+      "envion": 45,
+      "arranque": 5
      },
      "frase_relator": "Habló de frente en el vestuario: hoy salen a romperla."
     },
