@@ -142,5 +142,22 @@ const EVENTO = TRIBUNA.dialogos[0].evento;
   console.log("[5] durante el cine se callan y al volver comentan");
 })();
 
+/* ---------- [6] segunda revisión del 22/oct: EL TOQUE tampoco ----------
+   EL TOQUE entra por jugadonAbrir con estado TOQUE, no por entrarCine: tras
+   un bloqueo, Nelda y el Tuli quedaban encima del arco */
+(function () {
+  const sc = escena();
+  T.montar(sc);
+  assert(T.comentar(sc, EVENTO) === true && sc._tribuna.cont.alpha === 1, "control: en el partido comentan");
+  const TOQUE_UI = require("fs").readFileSync(require("path").join(__dirname, "..", "scenes", "toque_ui.js"), "utf8");
+  assert(/this\.estado = "TOQUE";[\s\S]{0,400}?PampaTribunaUI\.callar\(this\)/.test(TOQUE_UI), "SÍNTOMA: al entrar a EL TOQUE los globos siguen a la vista (toque_ui.js, entrarToque)");
+  T.callar(sc);
+  sc.estado = "TOQUE";
+  assert(T.comentar(sc, EVENTO) === false && sc._tribuna.cont.alpha === 0, "SÍNTOMA: lo que comentan durante EL TOQUE sale encima del arco");
+  sc.estado = "LIBRE";
+  assert(T.soltar(sc) === true && sc._tribuna.cont.alpha === 1, "al volver el partido sale lo que comentaron en EL TOQUE");
+  console.log("[6] durante EL TOQUE se callan y al volver comentan");
+})();
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

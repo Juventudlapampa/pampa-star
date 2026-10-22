@@ -3940,7 +3940,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (RR) { RR.revelar(); return; }
         this.uiCam.flash(EP.flash_ms, 255, 255, 210);
         this.burst(ball.x, ball.y);
-        this.punch(this._megaGrito || "¡GOOOL!", "¡La clavaste donde el viento no la saca!", 0xffd84d);
+        this.punch(this._megaGrito || "¡GOOOL!", this.subDelGol(), 0xffd84d);
         /* V9: la fiesta completa (tribuna + efecto + saque relatado). Acá
            decidir y ver son el mismo instante: anota y festeja junto. La red
            y la fanfarria son SUYAS. La escena se queda abierta hasta ver la
@@ -4131,13 +4131,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      que la escena llama en el instante en que se VE el desenlace. Sin
      diferir —el desenlace del cine, que ya llama en el impacto— siente en el
      momento, como siempre. */
+  /* segunda revisión del 22/oct: el gol de un compañero (MATEO en EL TOQUE)
+     decía "¡La clavaste...!": lleva su nombre */
+  subDelGol() {
+    const j = this.st.mios[this.st.ctrl];
+    return j && !j.esVos ? "¡" + String(j.nombre || "").toUpperCase() + " la clavó donde el viento no la saca!" : "¡La clavaste donde el viento no la saca!";
+  }
   desenlaceRemate(res, opts) {
     const st = this.st, P = window.PampaPartido;
     opts = opts || {};
     let d;
     if (res.outcome === "gol") {
+      const sub = this.subDelGol();
       this.anotarGolPropio();
-      d = { titulo: "¡GOOOL!", sub: "¡La clavaste donde el viento no la saca!", color: 0xffd84d, gana: true };
+      d = { titulo: "¡GOOOL!", sub: sub, color: 0xffd84d, gana: true };
     } else if (res.outcome === "corner") {
       const c = P.cornerMio(st);
       d = { titulo: "¡LA SACÓ AL CÓRNER!", sub: "No la pudo agarrar: la mandó afuera. Sigue siendo tuya.",

@@ -81,8 +81,9 @@
       var t = sc._tribuna;
       if (!t) return false;
       /* revisión del 22/oct: durante el cine no se charla encima; lo último
-         que comentaron sale cuando vuelve el partido (soltar) */
-      if (sc.estado === "CINE") { t.pendiente = evento; return false; }
+         que comentaron sale cuando vuelve el partido (soltar). Lo mismo en
+         EL TOQUE (segunda revisión del 22/oct) */
+      if (sc.estado === "CINE" || sc.estado === "TOQUE") { t.pendiente = evento; return false; }
       var bloque = t.data.dialogos.find(function (d) { return d.evento === evento; });
       if (!bloque || !bloque.intercambios.length) return false;
       var n = bloque.intercambios.length;

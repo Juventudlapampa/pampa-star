@@ -145,5 +145,58 @@ assert(mono, "mejor contacto, mejor zona (nunca al revés)");
 assert(T.pieDe({ rasgo: "zurda de ruta 35" }) === "izq" && T.pieDe({ pie: "der", rasgo: "zurda" }) === "der", "el pie: el que dice el jugador, o la zurda del rasgo");
 assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", numero: 9 }), "el pie de un jugador es siempre el mismo");
 
+/* segunda revisión del 22/oct: EL TOQUE de un compañero, en la escena
+   (toque_ui.js y match.js sobre la escena de mentira). El golpe terminaba
+   echado atrás (tween con yoyo); la lectura decía "tu pie" / "ponete abajo
+   y saltá" y el gol de MATEO, "¡La clavaste...!" */
+(function () {
+  const E = require("./_partido_de_mentira.js").escena({ logica: ["phaser/logic/toque.js"], mixins: ["phaser/scenes/toque_ui.js"] });
+  const s = E.s;
+  const cosa = function () {
+    const o = { angle: 0 };
+    ["setTexture", "setScale", "setPosition", "setFlipX", "setOrigin", "setAlpha", "clear", "fillStyle", "fillEllipse", "lineStyle", "strokeEllipse", "lineBetween"].forEach(function (k) { o[k] = function () { return o; }; });
+    o.setAngle = function (a) { o.angle = a; return o; };
+    o.setText = function (t) { o.text = t; return o; };
+    return o;
+  };
+  s.identidadDe = function () { return "ident_mateo"; };
+  s.poseDePlano = function () { return "pose"; };
+  s.escalaDePose = function () { return 1; };
+  s.lineasVelocidad = function () { };
+  s.cineContent = { bringToTop: function () { }, getIndex: function () { return 0; }, moveTo: function () { } };
+  s.cursors = null;
+  const mateo = { esVos: false, nombre: "Mateo" }, vos = { esVos: true, nombre: "Rodri" };
+  const armar = function (e, j) {
+    return s._tq = { e: e, j: j, pre: 0.01, obj: null, teclado: false, alta: e.T.h > C.tecnicas.volea.h[1], bolaEsc: 1,
+      lectura: cosa(), prota: cosa(), anillo: cosa(), marca: cosa(), mira: cosa(), sombra: cosa(), bola: cosa() };
+  };
+  let alta = null, baja = null;
+  for (let sm = 1; sm < 400 && (!alta || !baja); sm++) {
+    const e = jugada(sm);
+    if (e.T.h > C.tecnicas.volea.h[1]) alta = alta || sm;
+    else if (e.T.h <= C.tecnicas.remate.h[1]) baja = baja || sm;
+  }
+  const leer = function (sm, j) { const tq = armar(jugada(sm), j); s.updateToque(50); return tq.lectura.text; };
+  assert(leer(baja, vos) === "VIENE BAJA · que caiga en tu pie" && leer(alta, vos) === "VIENE ALTA · ponete abajo y saltá", "con vos, la lectura te habla a vos");
+  assert(leer(baja, mateo) === "VIENE BAJA · que caiga en su pie" && leer(alta, mateo) === "VIENE ALTA · se pone abajo y salta",
+    "SÍNTOMA: con MATEO la lectura le habla a quien juega (" + leer(baja, mateo) + " | " + leer(alta, mateo) + ")");
+  /* el golpe: dos poses quietas con corte seco, y queda en la del golpe */
+  const tq = armar(jugada(baja), mateo);
+  tq.pre = 0; tq.poseAhora = "corriendo";
+  T.pegar(tq.e);
+  E.timers.length = 0; E.tweens.length = 0;
+  s.toqueDibujar(0.016);
+  assert(tq.prota.angle === -14 && !E.tweens.some(function (t) { return t.cfg.targets === tq.prota; }), "al pegarle se echa atrás, quieto, sin tween (" + tq.prota.angle + ")");
+  E.timers.forEach(function (t) { t.fn(); });
+  s.toqueDibujar(0.016);
+  assert(tq.prota.angle === 10, "SÍNTOMA: el golpe de MATEO termina echado atrás y no en la pose del golpe (" + tq.prota.angle + "°)");
+  /* el gol */
+  s.st.mios = [mateo, vos];
+  s.st.ctrl = 0;
+  assert(s.subDelGol() === "¡MATEO la clavó donde el viento no la saca!", "SÍNTOMA: el gol de MATEO dice '¡La clavaste...!' (" + s.subDelGol() + ")");
+  s.st.ctrl = 1;
+  assert(s.subDelGol() === "¡La clavaste donde el viento no la saca!", "y el tuyo te habla a vos");
+})();
+
 console.log((mal ? "✗" : "✓") + " toque: " + ok + " ok, " + mal + " mal · lector " + L.buenas.toFixed(2) + "/" + L.justas.toFixed(2) + " · azar " + Z.buenas.toFixed(3) + " · crack " + crack.media.toFixed(2) + " vs tronco " + tronco.media.toFixed(2));
 process.exit(mal ? 1 : 0);

@@ -38,6 +38,10 @@
       });
       this.jugadonAbrir("· EL TOQUE · " + e.origen.n);
       this.estado = "TOQUE";
+      /* segunda revisión del 22/oct: entra por jugadonAbrir y no por
+         entrarCine, y los globos quedaban encima del arco. Se callan como en
+         el cine; el remate sigue en el cine, y salirCine suelta lo pendiente */
+      if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
       this.cineBG.clear();
       this.toqueFondo();
       /* teñir las poses ahora y no en el golpe (cada una cuesta su tirón) */
@@ -155,7 +159,10 @@
       }
       if (tq.pre > 0) {
         tq.pre -= dt;
-        if (tq.pre <= 0) tq.lectura.setText(tq.alta ? "VIENE ALTA · ponete abajo y saltá" : (e.T.h <= this.BAL.toque.tecnicas.remate.h[1] ? "VIENE BAJA · que caiga en tu pie" : "VIENE A MEDIA ALTURA · de volea"));
+        /* segunda revisión del 22/oct: con un compañero, en tercera persona */
+        var vos = tq.j.esVos;
+        if (tq.pre <= 0) tq.lectura.setText(tq.alta ? (vos ? "VIENE ALTA · ponete abajo y saltá" : "VIENE ALTA · se pone abajo y salta")
+          : (e.T.h <= this.BAL.toque.tecnicas.remate.h[1] ? (vos ? "VIENE BAJA · que caiga en tu pie" : "VIENE BAJA · que caiga en su pie") : "VIENE A MEDIA ALTURA · de volea"));
       } else {
         var antes = { x: e.jug.x, z: e.jug.z };
         window.PampaToque.paso(e, dt, tq.obj);
@@ -192,9 +199,13 @@
         tq.prota.setScale(this.escalaDePose(ki ? "corriendo" : pose, 1.85 * HPX * pj.s, tq.prota));
         /* revisión del 22/oct: su identidad es una sola ilustración, la de
            correr, y al pegarle no se veía el golpe. El golpe es el cuerpo:
-           se echa atrás y descarga hacia la pelota */
+           se echa atrás y descarga hacia la pelota. Segunda revisión del
+           22/oct: el tween con yoyo lo dejaba echado atrás hasta el final;
+           son dos poses quietas con corte seco y queda en la del golpe */
         if (ki && e.golpe) {
-          this.tweens.add({ targets: tq.prota, angle: { from: -14, to: 10 }, duration: this.msV(170), ease: "Back.easeOut", yoyo: true, hold: this.msV(120) });
+          var prota = tq.prota;
+          prota.setAngle(-14);
+          this.time.delayedCall(this.msV(120), function () { prota.setAngle(10); });
           this.lineasVelocidad(pj.x, pj.y - 0.9 * HPX * pj.s, 0.8, 0xffffff);
         }
         tq.poseAhora = pose;
