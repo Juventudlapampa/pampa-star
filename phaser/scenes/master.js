@@ -1046,7 +1046,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
   vistaElegir() {
     const W = this.scale.width, H = this.scale.height;
-    this.add.text(W / 2, 26, "🏆 MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 26, "MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 54, "de la PRIMERA B de tu localidad al MUNDIAL · el campeón SUBE de división", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* tu club: pueblo del roster con su apodo (stepper con flechas dibujadas) */

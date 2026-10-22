@@ -314,7 +314,8 @@ var resumen = [];
   assert(A.localStorage.getItem("pampa_master_v1_corrupta") === cortado, "el respaldo del roto queda");
   assert(A.localStorage.getItem("pampa_master_v1_borrada") === "{\"una\":\"carrera borrada antes\"}", "y no pisa el respaldo de una carrera borrada a propósito");
   var e5 = A.nueva(); e5.create();
-  assert(e5.textos().indexOf("🏆 MODO MASTER") >= 0, "después de EMPEZAR OTRA se elige club");
+  /* elegir club se reconoce por su título, sin emoji desde el 20/oct (pedido de Rodri) */
+  assert(e5.textos().indexOf("MODO MASTER") >= 0, "después de EMPEZAR OTRA se elige club");
   console.log("[3] master real: sin titulos y sin tabla → tabla con botones · cortado → aviso, 2 salidas y respaldo");
 })();
 

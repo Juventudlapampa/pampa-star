@@ -277,7 +277,8 @@ pasos.push(async function () {
   var e = B.nueva(); e.create();
   var bot2 = doc2.buscar(function (n) { return n.tagName === "button"; }).map(function (b) { return b.textContent; });
   assert(bot2.length === 1 && bot2[0] === "▶ SEGUIR IGUAL", "sin carrera: el aviso ofrece solo SEGUIR IGUAL (" + bot2.join(", ") + ")");
-  assert(e.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0 && e.textos().indexOf("🏆 MODO MASTER") >= 0, "y la marca en elegir club");
+  /* la marca de elegir club es su título; desde el 20/oct sin el emoji (pedido de Rodri) */
+  assert(e.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0 && e.textos().indexOf("MODO MASTER") >= 0, "y la marca en elegir club");
 
   /* un guardar() que falla en medio de la carrera, con la prueba de entrada en verde */
   var C = M.armar({ logicaExtra: ["phaser/logic/entorno.js"] });
@@ -323,7 +324,7 @@ pasos.push(async function () {
    getItem tiran → el aviso decía "Podés jugar igual…" → elegir club → la
    entrevista → _crearCarrera: guardar() da false → scene.restart() (Phaser
    reusa la instancia: init() + create()) → create() relee el
-   almacenamiento, no hay nada → "🏆 MODO MASTER" otra vez, en un bucle. Lo
+   almacenamiento, no hay nada → "MODO MASTER" otra vez, en un bucle. Lo
    mismo con PEGAR UN CÓDIGO. Y con el almacenamiento LLENO, getItem
    devolvía la carrera vieja: la fecha jugada se rebobinaba.
    Ahora la copia de la sesión (registry "masterSaveMemoria") se lee antes. */
@@ -343,7 +344,7 @@ pasos.push(async function () {
   bloqueado(A);
   var s = A.nueva(); s.create();
   var p = doc.buscar(function (n) { return n.tagName === "p"; })[0];
-  assert(s.textos().indexOf("🏆 MODO MASTER") >= 0 && p && /Podés jugar igual mientras esta página siga abierta/.test(p.textContent),
+  assert(s.textos().indexOf("MODO MASTER") >= 0 && p && /Podés jugar igual mientras esta página siga abierta/.test(p.textContent),
     "bloqueado y sin carrera: elegir club y el aviso dice que se juega mientras la página siga abierta (" + (p && p.textContent) + ")");
   assert(!/Chrome|Safari|instalalo/.test(p.textContent) && /bloqueado o lleno/.test(p.textContent),
     "el aviso no supone la causa ni manda a otra app: 'puede estar bloqueado o lleno', sin nombres de navegadores");
@@ -356,7 +357,7 @@ pasos.push(async function () {
   s._crearCarrera("primera_b", null);
   assert(s._restarts === 1 && typeof A.reg.get("masterSaveMemoria") === "string", "_crearCarrera: guardar() da false y la carrera queda en la copia de la sesión");
   reiniciar(s);
-  assert(s.save && s.save.club === club && s.textos().indexOf("🏆 MODO MASTER") < 0 && s.textos().some(function (t) { return /^FECHA 1 de 18/.test(t); }),
+  assert(s.save && s.save.club === club && s.textos().indexOf("MODO MASTER") < 0 && s.textos().some(function (t) { return /^FECHA 1 de 18/.test(t); }),
     "SÍNTOMA: después del restart, la tabla de TU carrera (" + club + ") y no elegir club otra vez (" + s.textos().slice(0, 3).join(" · ") + ")");
   assert(s.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "con la marca fija en la tabla");
   /* ◀ VOLVER A LA TABLA (o cualquier otra vista que reinicia) */
@@ -377,7 +378,7 @@ pasos.push(async function () {
   /* borrar la carrera borra también la copia */
   s.borrarCarrera();
   reiniciar(s);
-  assert(!s.save && s.textos().indexOf("🏆 MODO MASTER") >= 0 && !A.reg.get("masterSaveMemoria"), "✕ BORRAR: se va también la copia de la sesión, y se vuelve a elegir club");
+  assert(!s.save && s.textos().indexOf("MODO MASTER") >= 0 && !A.reg.get("masterSaveMemoria"), "✕ BORRAR: se va también la copia de la sesión, y se vuelve a elegir club");
   /* PEGAR UN CÓDIGO con el guardado bloqueado */
   var CR = A.window.PampaCarrera;
   var codigo = CR.exportar(A.carreraNueva("Toay"));
@@ -385,7 +386,7 @@ pasos.push(async function () {
   assert(imp.ok, "el código se importa (" + imp.error + ")");
   s.importarCarrera(imp.save);
   reiniciar(s);
-  assert(s.save && s.save.pueblo === "Toay" && s.textos().indexOf("🏆 MODO MASTER") < 0, "PEGAR UN CÓDIGO bloqueado: después del restart, la carrera del código");
+  assert(s.save && s.save.pueblo === "Toay" && s.textos().indexOf("MODO MASTER") < 0, "PEGAR UN CÓDIGO bloqueado: después del restart, la carrera del código");
 
   /* LLENO: getItem devuelve la carrera VIEJA y setItem tira */
   var B = M.armar({ logicaExtra: ["phaser/logic/entorno.js"] });

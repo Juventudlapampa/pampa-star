@@ -365,7 +365,7 @@
      aunque el aviso decía "Podés jugar igual". Medido en node con master.js
      real: setItem y getItem tiran → elegir club → la entrevista →
      _crearCarrera: guardar() da false → scene.restart() → create() relee el
-     almacenamiento, no hay nada y vuelve a "🏆 MODO MASTER", en un bucle.
+     almacenamiento, no hay nada y vuelve a "MODO MASTER", en un bucle.
      Lo mismo con PEGAR UN CÓDIGO. Y con el almacenamiento LLENO, getItem
      devuelve la carrera VIEJA: la fecha recién jugada se rebobinaba sola.
 
