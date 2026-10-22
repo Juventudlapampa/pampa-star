@@ -2344,7 +2344,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* textos-tactiles: las teclas, solo donde hay teclado */
     const tactil = this.sys.game.device.input.touch;
     const PASOS = [
-      "1/3 · Movés con el DEDO sobre la cancha" + (tactil ? "" : "\n(o con las flechas / WASD)"),
+      /* 20/oct, Rodri: en la PC también decía "con el DEDO" */
+      tactil ? "1/3 · Movés con el DEDO sobre la cancha" : "1/3 · Movés con el MOUSE: clic sobre la cancha\n(o con las flechas / WASD)",
       "2/3 · ⚡ ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
       this._split ? "3/3 · Tocá el MAPA de abajo y corrés hacia ahí.\nEl PASE está en el menú de jugadas" : (this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
@@ -5266,7 +5267,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const b = this.add.rectangle(F.xo, 496, F.w, tap, 0x7ee08a, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
       const bt = this.add.text(F.xo, 496, "↺ OTRO PARTIDO", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
       this.menuLayer.add([bv, btv, b, bt]);
-      const otro = () => this.scene.restart();
+      /* 20/oct, Rodri: en el partido rápido, OTRO PARTIDO repetía el rival */
+      const otro = () => {
+        const pr = this.game.registry.get("masterPartido") ? null : this.game.registry.get("partidoRapido");
+        if (pr) {
+          const otros = this.game.registry.get("divisiones").divisiones[pr.division].rivales.filter(r => r !== pr.rival);
+          this.game.registry.set("partidoRapido", Object.assign({}, pr, { rival: otros[Math.floor(Math.random() * otros.length)] }));
+        }
+        this.scene.restart();
+      };
       bv.on("pointerdown", volverMenu);
       b.on("pointerdown", otro);
       items.push({ obj: bv, caja: { x: F.xv - F.w / 2, y: 496 - tap / 2, w: F.w, h: tap }, cb: volverMenu });

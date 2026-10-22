@@ -179,6 +179,9 @@ function centro(s, texto) {
   assert(P.s.rivalEntero === "Espejo de Sal" && P.s._masterPartido === null && P.s._division && P.s._division.id === "primera_b",
     "el partido rápido juega contra su rival de la Primera B, sin carrera (" + P.s.rivalEntero + ")");
   assert(P.s.st.bal.tempo.minutos_por_momento === BALj.tempo.presets.largo, "y con la duración que trae");
+  /* 20/oct, Rodri: OTRO PARTIDO repetía el rival del partido rápido */
+  assert(/const otro = \(\) => \{[\s\S]{0,300}?\.rivales\.filter\(r => r !== pr\.rival\)[\s\S]{0,300}?set\("partidoRapido"[\s\S]{0,200}?this\.scene\.restart\(\);/.test(leer("phaser/scenes/match.js")),
+    "OTRO PARTIDO, en el partido rápido, sortea un rival distinto del que se jugó");
   /* la carrera nueva trae marcada la duración de OPCIONES */
   var A = M.armar({ logicaExtra: ["phaser/logic/opciones.js"] });
   A.store[O.CLAVE] = JSON.stringify({ v: 1, musica: 10, efectos: 10, estilo: "folklore", duracion: "relampago" });

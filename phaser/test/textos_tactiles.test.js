@@ -68,7 +68,7 @@ function semanaDeLaFecha1(tactil) {
   var K = semanaDeLaFecha1(false);
   assert(K.semana.some(function (t) { return /\(teclas 1 a 0\)/.test(t); }), "con teclado la semana sigue diciendo las teclas");
   assert(K.evento.some(function (t) { return /^1 · /.test(t); }), "y el evento, el número de la opción");
-  var Ak = M.armar({ tactil: false }), ek = Ak.nueva(); ek.vistaOrigen("primera_b");
+  var Ak = M.armar({ tactil: false }), ek = Ak.nueva(); ek.vistaOrigen("primera_b"); ek.leerHastaElFinal();
   assert(ek.textos().some(function (t) { return /^1 · /.test(t); }), "y la entrevista también");
   console.log("[1] el Master en el teléfono: semana, evento y entrevista sin teclas · " + T.semana.filter(function (t) { return /🗓/.test(t); })[0]);
 })();
@@ -109,6 +109,9 @@ function semanaDeLaFecha1(tactil) {
   var K = C.jugar(mp, { tactil: false });
   assert(K.textos.some(function (t) { return /WASD/.test(t); }) && K.textos.some(function (t) { return /ESPACIO/.test(t); }),
     "con teclado el tutorial sigue diciendo las flechas y el ESPACIO");
+  /* 20/oct, Rodri: en la PC el primer paso decía "con el DEDO" */
+  assert(K.textos.some(function (t) { return /^1\/3 · Movés con el MOUSE/.test(t); }) && !K.textos.some(function (t) { return /DEDO/.test(t); }),
+    "en la PC el primer paso habla del mouse, no del dedo");
   var k0 = K.textos.length;
   K.s.limpiarMenu(); K.s.estado = "LIBRE"; K.s.iniciarPaseDirigido(null, true);
   assert(K.textos.slice(k0).some(function (t) { return /ENTER/.test(t); }), "y el PASE, las teclas");
