@@ -78,12 +78,14 @@ function jugar(masterPartido, opts) {
   opts = opts || {};
   var reg = Object.assign({}, datos, { masterPartido: masterPartido }, opts.registro || {});
   if (opts.flags) reg.balance = Object.assign({}, BAL, { flags: Object.assign({}, BAL.flags, opts.flags) });
-  var textos = [], estados = [];
-  /* lo que se escribe: al crear el texto y cada vez que se le cambia */
+  var textos = [], estados = [], toques = [];
+  /* lo que se escribe: al crear el texto y cada vez que se le cambia; y lo
+     que responde a un toque, para poder tocarlo desde la prueba */
   var anotar = function (n, a) {
     if (!a) return;
     if (/add\.text$/.test(n)) textos.push(String(a[2]));
     else if (/\.setText$/.test(n)) textos.push(String(a[0]));
+    else if (/\.on$/.test(n) && a[0] === "pointerdown" && typeof a[1] === "function") toques.push(a[1]);
   };
   var s = Object.create(Escena.prototype);
   ["add", "cameras", "tweens", "time", "input", "scale", "textures", "load", "events", "children", "sound", "make", "renderer", "plugins", "cache"]
@@ -96,7 +98,7 @@ function jugar(masterPartido, opts) {
   var e;
   Object.defineProperty(s, "estado", { get: function () { return e; }, set: function (v) { e = v; estados.push(v); } });
   s.init(); s.create();
-  return { s: s, textos: textos, estados: estados };
+  return { s: s, textos: textos, estados: estados, toques: toques };
 }
 
 module.exports = { jugar: jugar, localStorage: ctx.localStorage, ls: ls, W: Wv };

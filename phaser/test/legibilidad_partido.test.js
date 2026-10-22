@@ -188,11 +188,19 @@ SITUACIONES.forEach(function (sit) {
   var E = escena(), s = E.s, st = s.st, i = vos(s), A = s.BAL.toque.area;
   st.ctrl = i; st.posesion = "mia"; st.mios[i].esVos = true; st.mios[i].aguante = 1000;
   st.mios[i].x = st.W - A.largo_px / 2; st.mios[i].y = st.H / 2;
-  s.abrirMenuAtaque(1, false);
+  s.abrirMenuAtaque(null, true);
   var t = textos(s).filter(function (o) { return /TOQUE|zafar/.test(o.text); })[0];
   var CE = CZ.E;
   assert(s.toqueEnArea() && t && t.text === "EL TOQUE: acomodate y pegá" && t.width <= CE[2] - 2 * CZ.aire,
-    "en el área, el TIRO dice EL TOQUE entero, sin recortar (" + (t && t.text) + ", " + (t && Math.round(t.width)) + " de " + (CE[2] - 2 * CZ.aire) + ")");
+    "en el área y sin marca, el TIRO dice EL TOQUE entero, sin recortar (" + (t && t.text) + ", " + (t && Math.round(t.width)) + " de " + (CE[2] - 2 * CZ.aire) + ")");
+  /* pedido de Rodri del 20/oct, revisado: con un defensor al cruce el duelo
+     del bloqueo se juega ANTES de EL TOQUE (resolverTiro), así que el TIRO
+     muestra cuánto zafás y cuánto aguante gasta, y avisa que sigue EL TOQUE */
+  s.limpiarMenu();
+  s.abrirMenuAtaque(1, false);
+  var u = textos(s).filter(function (o) { return /TOQUE|zafar/.test(o.text); })[0];
+  assert(u && /^\d+% · \d+ aguante · TOQUE$/.test(u.text) && u.text.indexOf(" " + s.BAL.aguante.costo_tiro + " aguante") > 0 && u.width <= CE[2] - 2 * CZ.aire,
+    "en el área con un defensor al cruce, el TIRO dice el porcentaje de zafar, el aguante y TOQUE, sin recortar (" + (u && u.text) + ", " + (u && Math.round(u.width)) + ")");
 })();
 assert(vistos.length > 40,"se armaron las cuatro cruces y las dos grillas de ★ ESPECIAL (" + vistos.length + " textos)");
 assert(chicos.length === 0, "ningún texto de la cruz baja de " + PISO + " px:\n     " + chicos.join("\n     "));

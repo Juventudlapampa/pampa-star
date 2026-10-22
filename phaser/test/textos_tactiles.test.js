@@ -112,6 +112,27 @@ function semanaDeLaFecha1(tactil) {
   /* 20/oct, Rodri: en la PC el primer paso decía "con el DEDO" */
   assert(K.textos.some(function (t) { return /^1\/3 · Movés con el MOUSE/.test(t); }) && !K.textos.some(function (t) { return /DEDO/.test(t); }),
     "en la PC el primer paso habla del mouse, no del dedo");
+  /* revisión del 20/oct: con pantalla partida (la vista por defecto) un clic
+     en la cancha de arriba no mueve, solo el MAPA (apuntar). El tutorial lo
+     dice desde el paso 1, y en la PC dice "clic", no "tocá". Se avanza a
+     tocar el velo dos veces, sin cerrarlo: cerrarlo guarda el tutorial visto */
+  function hastaElPaso3(J) {
+    var velo = J.toques.filter(function (f) { return /paso\+\+/.test(String(f)); })[0];
+    var n = J.textos.length;
+    if (velo) { velo(null, 0, 0, null); velo(null, 0, 0, null); }
+    return J.textos.slice(n);
+  }
+  assert(K.s._split && K.textos.indexOf("1/3 · Movés con el MOUSE: clic en el MAPA de abajo\n(o con las flechas / WASD)") >= 0 &&
+    !K.textos.some(function (t) { return /clic sobre la cancha/.test(t); }),
+    "en la PC con pantalla partida, el paso 1 manda al MAPA de abajo, no a la cancha");
+  assert(K.textos.indexOf("clic para seguir ▸") >= 0 && K.textos.indexOf("tocá para seguir ▸") < 0, "en la PC el tutorial dice \"clic para seguir\"");
+  var pasosK = hastaElPaso3(K);
+  assert(pasosK.some(function (t) { return /^3\/3 · /.test(t) && /hacé clic en el MAPA/.test(t); }) && !pasosK.some(function (t) { return /[Tt]ocá/.test(t); }),
+    "en la PC el paso 3 dice \"hacé clic en el MAPA\" y ningún paso dice \"tocá\" (" + pasosK.join(" | ") + ")");
+  assert(P.textos.indexOf("1/3 · Movés con el DEDO en el MAPA de abajo") >= 0 && P.textos.indexOf("tocá para seguir ▸") >= 0,
+    "en el teléfono con pantalla partida, el paso 1 manda el DEDO al MAPA de abajo");
+  var pasosP = hastaElPaso3(P);
+  assert(pasosP.some(function (t) { return /^3\/3 · /.test(t) && /tocá en el MAPA/.test(t); }), "en el teléfono el paso 3 dice \"tocá en el MAPA\" (" + pasosP.join(" | ") + ")");
   var k0 = K.textos.length;
   K.s.limpiarMenu(); K.s.estado = "LIBRE"; K.s.iniciarPaseDirigido(null, true);
   assert(K.textos.slice(k0).some(function (t) { return /ENTER/.test(t); }), "y el PASE, las teclas");

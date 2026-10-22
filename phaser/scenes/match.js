@@ -2343,14 +2343,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (visto || !this.FLAGS.e3_menus) return;
     /* textos-tactiles: las teclas, solo donde hay teclado */
     const tactil = this.sys.game.device.input.touch;
+    /* 20/oct: con pantalla partida un clic en la cancha de arriba no hace nada
+       (apuntar: solo el MAPA mueve), así que el paso 1 ya señala el mapa */
+    const toca = tactil ? "tocá" : "hacé clic en";
+    const donde = this._split ? "en el MAPA de abajo" : "sobre la cancha";
     const PASOS = [
       /* 20/oct, Rodri: en la PC también decía "con el DEDO" */
-      tactil ? "1/3 · Movés con el DEDO sobre la cancha" : "1/3 · Movés con el MOUSE: clic sobre la cancha\n(o con las flechas / WASD)",
+      tactil ? "1/3 · Movés con el DEDO " + donde : "1/3 · Movés con el MOUSE: clic " + donde + "\n(o con las flechas / WASD)",
       "2/3 · ⚡ ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
-      this._split ? "3/3 · Tocá el MAPA de abajo y corrés hacia ahí.\nEl PASE está en el menú de jugadas" : (this._vista4 ? "3/3 · Para el PASE, tocá el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, tocá el DESTINO\nen el RADAR de abajo a la izquierda")
+      this._split ? "3/3 · El PASE está en el menú de jugadas:\n" + (tactil ? "tocá en" : toca) + " el MAPA a quién se la pasás" : (this._vista4 ? "3/3 · Para el PASE, " + toca + " el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, " + toca + " el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
-    const ANILLOS = [null, { x: 838, y: 456, w: 210, h: 90 },   /* R1: el botón se movió a 838 */
-      this._vista4 ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 }];
+    const mapa = this._vista4 ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 };
+    const ANILLOS = [this._split ? mapa : null, { x: 838, y: 456, w: 210, h: 90 }, mapa];   /* R1: el botón se movió a 838 */
     this.estado = "TUTORIAL";
     this.st.modo = "congelado";
     let paso = 0;
@@ -2362,7 +2366,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const franjaTut = this.add.rectangle(480, 372, 960, 92, 0x0a1f13, 0.94);
     const lineaTut = this.add.rectangle(480, 328, 960, 2, 0xf5c400, 0.65);
     const caja = this.add.text(480, 362, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center", lineSpacing: 6 }).setOrigin(0.5);
-    const pie = this.add.text(480, 404, "tocá para seguir ▸", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    const pie = this.add.text(480, 404, (tactil ? "tocá" : "clic") + " para seguir ▸", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     const anillo = this.add.graphics();
     this.menuLayer.add([velo, franjaTut, lineaTut, caja, pie, anillo]);
     this.selloMenu();
@@ -2885,8 +2889,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           cb: () => this.iniciarPaseDirigido(rivalIdx, libre)
         },
         S: { texto: "🔁 PARED", sub: par.bloqueada ? null : pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
-        /* 20/oct, Rodri: adentro del área el porcentaje no es lo que decide, decide EL TOQUE */
-        E: { texto: "🎯 TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+        /* 20/oct, Rodri: adentro del área el remate lo decide EL TOQUE. Con un
+           defensor al cruce, resolverTiro juega antes el duelo del bloqueo: ahí
+           van el porcentaje de zafar y el aguante, y EL TOQUE como paso que sigue */
+        E: { texto: "🎯 TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
       centro: listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
