@@ -60,14 +60,20 @@
       var info = this.add.text(18, 14, (j.esVos ? "VOS" : String(j.nombre || "").toUpperCase()) + " · PIE HÁBIL: " + pie,
         { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 });
       tq.lectura = this.add.text(W / 2, 64, "¡AHÍ VIENE!", { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 6 }).setOrigin(0.5);
-      var ayuda = this.add.text(18, H - 50, tactil ? "arrastrá para acomodarte · tocá ¡PEGALE! cuando llega" : "mouse o flechas: te acomodás · clic o ESPACIO: le pegás",
+      /* revisión del 22/oct: con un compañero los textos le hablaban a quien
+         juega ("tu PIE", "¡LA PIFIASTE!"); ahora dicen su nombre */
+      var otro = j.esVos ? null : String(j.nombre || "").toUpperCase();
+      var ayuda = this.add.text(18, H - 50, tactil
+        ? (otro ? "arrastrá para mover a " + otro : "arrastrá para acomodarte") + " · tocá ¡PEGALE! cuando llega"
+        : (otro ? "mouse o flechas: movés a " + otro + " · clic o ESPACIO: le pega" : "mouse o flechas: te acomodás · clic o ESPACIO: le pegás"),
         { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0, 0.5);
       /* 20/oct, Rodri: nada decía qué hay que hacer con el anillo. La primera
          vez de la sesión va grande y en dos renglones; después, corto */
       var primera = !this.game.registry.get("toqueExplicado");
       this.game.registry.set("toqueExplicado", true);
       tq.consigna = this.add.text(W / 2, 104, primera
-        ? "Acomodate para que la SOMBRA de la pelota\ncaiga en el ANILLO " + (alta ? "· viene alta: le das de CABEZA" : "de tu PIE " + pie)
+        ? (otro ? "Acomodá a " + otro : "Acomodate") + " para que la SOMBRA de la pelota\ncaiga en el ANILLO " +
+          (alta ? (otro ? "· viene alta: le da de CABEZA" : "· viene alta: le das de CABEZA") : (otro ? "de su PIE " : "de tu PIE ") + pie)
         : "la sombra de la pelota, en el anillo",
         { fontFamily: window.PF.texto, fontSize: primera ? "22px" : "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center" }).setOrigin(0.5, 0);
       [info, tq.lectura, ayuda, tq.consigna].forEach(function (o) { self.cineContent.add(o); });
@@ -75,10 +81,14 @@
          jugador hacia la esquina, lejos de la pelota (revisión del 20/oct) */
       if (tactil) {
         tq.boton = this.jugadonBoton(W - 120, H - 34, 200, "¡PEGALE!", 0xffd84d, function () { self.toquePegar(); });
-        var queHace = this.add.text(W - 120, H - 67, "le pegás cuando llega", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5, 1);
+        var queHace = this.add.text(W - 120, H - 67, otro ? "le pega cuando llega" : "le pegás cuando llega", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5, 1);
         this.cineContent.add(queHace);
         tq.zonaBoton = Phaser.Geom.Rectangle.Union(tq.boton.getBounds(), queHace.getBounds());
       }
+      /* revisión del 22/oct: en la PC, con quien remata cerca de cámara, la
+         marca del pie caía sobre el renglón de ayuda. La ayuda también es
+         zona que la marca no pisa, en las dos pantallas */
+      tq.zonaBoton = tq.zonaBoton ? Phaser.Geom.Rectangle.Union(tq.zonaBoton, ayuda.getBounds()) : ayuda.getBounds();
 
       /* sobre un botón el puntero no es un lugar de la cancha */
       var mover = function (p, sobre) { if (self._tq === tq && (!p.wasTouch || p.isDown) && !(sobre && sobre.length)) tq.obj = self.toqueAMundo(p.x, p.y); };
@@ -180,6 +190,13 @@
         var ki = !tq.j.esVos && this.identidadDe ? this.identidadDe(tq.j, false) : null;
         tq.prota.setTexture(ki || this.poseDePlano(pose, tq.j, false));
         tq.prota.setScale(this.escalaDePose(ki ? "corriendo" : pose, 1.85 * HPX * pj.s, tq.prota));
+        /* revisión del 22/oct: su identidad es una sola ilustración, la de
+           correr, y al pegarle no se veía el golpe. El golpe es el cuerpo:
+           se echa atrás y descarga hacia la pelota */
+        if (ki && e.golpe) {
+          this.tweens.add({ targets: tq.prota, angle: { from: -14, to: 10 }, duration: this.msV(170), ease: "Back.easeOut", yoyo: true, hold: this.msV(120) });
+          this.lineasVelocidad(pj.x, pj.y - 0.9 * HPX * pj.s, 0.8, 0xffffff);
+        }
         tq.poseAhora = pose;
       }
       var bob = pose === "corriendo" ? Math.abs(Math.sin(this.time.now / 70)) * 4 : 0;
@@ -220,11 +237,12 @@
     toqueResolver() {
       var tq = this._tq, e = tq.e, res = e.fin, C = this.BAL.toque, T = window.PampaToque, self = this;
       tq.resuelto = true;
-      var zona = T.zonaDeContacto(res, C), texto = T.textoDeContacto(res, C);
+      var zona = T.zonaDeContacto(res, C, !tq.j.esVos), texto = T.textoDeContacto(res, C, !tq.j.esVos);
       tq.anillo.clear(); tq.marca.setVisible(false); tq.mira.clear(); tq.consigna.setVisible(false);
       if (res.contacto) {
-        if (zona.id === "angulo") { this.SFX && this.SFX.kickFuerte(); this.uiCam.shake(140, 0.006); }
-        else this.SFX && this.SFX.kick();
+        /* revisión del 22/oct: la patada fuerte, como el resto de los remates */
+        this.SFX && this.SFX.kickFuerte();
+        if (zona.id === "angulo") this.uiCam.shake(140, 0.006);
         var alto = zona.id === "angulo" ? 2.2 : (zona.id === "palo" ? 0.6 : 1.5);
         var meta = this.toqueAPantalla(11.8, 2.5 + Math.sign(zona.gy) * 1.3, alto);
         this.tweens.add({ targets: tq.bola, x: meta.x, y: meta.y, scale: tq.bolaEsc * 0.7, duration: this.msV(300), ease: "Quad.easeOut" });

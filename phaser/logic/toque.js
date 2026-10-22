@@ -168,12 +168,13 @@
     };
   }
 
-  /* el contacto, traducido a la zona que ya entiende duel.resolveShot */
-  function zonaDeContacto(res, cfg) {
+  /* el contacto, traducido a la zona que ya entiende duel.resolveShot.
+     deOtro: remata un compañero y el cartel habla de él (revisión del 22/oct) */
+  function zonaDeContacto(res, cfg, deOtro) {
     /* sin tocarla no hay gol: la pifia y la que se pasa van por su zona */
     if (res.contacto === false) {
       var sc = cfg.sin_contacto;
-      return { id: sc.id, n: sc.n, dice: res.motivo === "se_paso" ? sc.dice_se_paso : sc.dice, bonus: sc.bonus, fuera: sc.fuera, gy: 0 };
+      return { id: sc.id, n: sc.n, dice: res.motivo === "se_paso" ? (deOtro ? sc.dice_se_paso_otro : sc.dice_se_paso) : (deOtro ? sc.dice_otro : sc.dice), bonus: sc.bonus, fuera: sc.fuera, gy: 0 };
     }
     var z = cfg.zonas[cfg.zonas.length - 1];
     for (var i = 0; i < cfg.zonas.length; i++) if (res.calidad >= cfg.zonas[i].q) { z = cfg.zonas[i]; break; }
@@ -186,8 +187,8 @@
       gy: z.gy * lado
     };
   }
-  function textoDeContacto(res, cfg) {
-    if (res.motivo === "se_paso") return "la dejaste pasar";
+  function textoDeContacto(res, cfg, deOtro) {
+    if (res.motivo === "se_paso") return deOtro ? "la dejó pasar" : "la dejaste pasar";
     var tec = cfg.tecnicas[res.tecnica];
     var pie = res.pieUsado ? (res.pieUsado === "der" ? " con la derecha" : " con la izquierda") : "";
     return tec.de + pie + (res.pie === "otro" ? ", la menos hábil" : "");

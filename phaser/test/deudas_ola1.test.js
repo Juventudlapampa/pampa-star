@@ -397,8 +397,51 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     "SÍNTOMA: te rematan sin el cine de tu remate (planos: " + E2.planos.join(" | ") + ")");
   var arqMio = s2.st.mios.filter(function (x) { return x.pos === "ARQ"; })[0];
   var texCine = E2.texturas.filter(function (t) { return typeof t === "string"; });
-  assert(texCine.indexOf("busto:" + arqMio.nombre) >= 0 || texCine.indexOf("arquero:vuela") >= 0, "el esfuerzo es la cara de TU arquero (" + texCine.join(" | ") + ")");
+  /* revisión del 22/oct (lo vio Rodri en la revisión): el esfuerzo llevaba
+     el busto de tu arquero (pelirrojo) y el desenlace la pose celeste de pelo
+     oscuro, y parecían dos personas. Antes esto pedía el busto; ahora los dos
+     planos llevan el mismo arte, la estirada de TU arquero */
+  assert(texCine.indexOf("busto:" + arqMio.nombre) < 0 && texCine.filter(function (t) { return t === "arquero:estirada"; }).length >= 2,
+    "SÍNTOMA: el esfuerzo y el desenlace muestran dos arqueros distintos (" + texCine.join(" | ") + ")");
   assert(s2.estado === "LIBRE" && s2._remRival == null, "y después del cine el partido sigue (" + s2.estado + ")");
+
+  /* revisión del 22/oct: un toque antes de la patada abría el cine y la
+     patada pendiente sonaba en medio del viaje. Sale con el arranque del cine,
+     una sola vez; y los globos de la tribuna no quedan encima del cine */
+  var E4 = armar(), s4 = E4.s, seq4 = [];
+  s4.SFX.kickFuerte = function () { seq4.push("patada"); };
+  var label4 = s4.cineLabel.setText;
+  s4.cineLabel.setText = function (t) { seq4.push(String(t)); return label4.call(s4.cineLabel, t); };
+  s4.escenaRemateRival(9); E4.correrTimers();
+  E4.tocar(botonesCine(E4)[1]);
+  s4._tribuna.cont.setAlpha(1);
+  s4._escSkip();
+  assert(s4._tribuna.cont.alpha === 0, "SÍNTOMA: los globos de la jugada anterior quedan encima del cine");
+  correrTodo(E4);
+  var patadas4 = seq4.filter(function (x) { return x === "patada"; }).length;
+  assert(patadas4 === 1 && seq4.indexOf("patada") < seq4.indexOf("· el viaje ·"),
+    "SÍNTOMA: saltada antes de la patada, la patada suena en medio del cine (" + seq4.join(" | ") + ")");
+  assert(s4.estado === "LIBRE" && s4._remRival == null, "y el partido sigue (" + s4.estado + ")");
+
+  /* revisión del 22/oct: con dos cines pisados, el segundo destruía al arquero
+     del primero y la revelación del primero le cambiaba la textura (TypeError
+     en setTexture, "Algo se trabó"). El segundo corta los relojes y tweens del
+     primero: se revela una sola vez */
+  var E5 = armar(), s5 = E5.s;
+  s5.escenaRemateRival(9); E5.correrTimers();
+  E5.tocar(botonesCine(E5)[1]);
+  s5._escSkip();
+  s5.planoDesenlace();
+  var vivo1 = s5._desenlaceVivo;
+  s5.entrarCine();
+  s5.planoDesenlace();
+  assert(vivo1 && vivo1.timers.length > 0 && vivo1.tweens.length > 0, "control: el primer desenlace anotó sus relojes y tweens");
+  assert(vivo1.timers.every(function (t) { return t.quitado; }) && vivo1.tweens.every(function (t) { return t.hecho; }),
+    "SÍNTOMA: el cine nuevo deja andando los relojes o tweens del anterior");
+  var punch5 = E5.punch.length;
+  correrTodo(E5);
+  assert(E5.punch.length - punch5 === 1, "SÍNTOMA: dos cines pisados revelan dos veces (" + E5.punch.join(" · ") + ")");
+  assert(s5.estado === "LIBRE" && s5._remRival == null, "y el partido sigue (" + s5.estado + ")");
 
   /* con el teclado: ENTER confirma lo que tiene el cursor; la repetición no */
   var E3 = armar(), s3 = E3.s;

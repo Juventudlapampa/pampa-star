@@ -3508,9 +3508,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        corrida TEÑIDA con tu camiseta — sigue siendo vos, sigue siendo dibujo. */
     return this.poseHeroeTenida(j, "corriendo") || this.figuraCine("corriendo", "texturaCineJugador(sin busto)");
   }
+  /* corta los tweens y relojes del desenlace anterior (planoDesenlace) */
+  cortarDesenlace() {
+    const vivo = this._desenlaceVivo;
+    if (!vivo) return;
+    this._desenlaceVivo = null;
+    vivo.timers.forEach(t => t.remove(false));
+    vivo.tweens.forEach(t => t.remove());
+  }
   entrarCine() {
+    /* un cine nuevo corta el anterior: su cadena de planos y su desenlace */
+    if (this._cineTimer) { this._cineTimer.remove(false); this._cineTimer = null; }
+    this.cortarDesenlace();
     this.quitarDuelo();
     this.estado = "CINE";
+    /* revisión del 22/oct: los globos de la jugada anterior quedaban encima
+       del cine; se callan, y lo que comenten durante el cine sale al volver */
+    if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
     this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
     this.cineLayer.setVisible(true);
     this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
@@ -3539,6 +3553,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.uiCam.fadeIn(ms, 0, 0, 0);
       this.zoomBase();
       this.estado = "LIBRE";
+      if (window.PampaTribunaUI) window.PampaTribunaUI.soltar(this);
       if (despues) despues();
     };
     this.uiCam.once("camerafadeoutcomplete", volver);
@@ -3703,12 +3718,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.fondoCine || !this.fondoCine("golpe", { bando: "mio", cx: 0.5, cy: 0.52 })) { this.cineBG.fillStyle(0x1a1206, 1); this.cineBG.fillRect(0, 0, W, H); }
     this.cineLabel.setText("· el esfuerzo ·");
     this.lineasVelocidad(W / 2, H / 2, 1, 0xffd84d);
-    /* te rematan (escenas_v9.js): el esfuerzo es el de TU arquero */
+    /* te rematan (escenas_v9.js): el esfuerzo es el de TU arquero. Revisión
+       del 22/oct: iba su busto (la cara del plantel, pelirrojo) y en el
+       desenlace la pose celeste de pelo oscuro, y parecían dos personas. Va
+       la misma estirada del desenlace, de cerca y hacia el mismo palo */
     const RR = this._remRival;
-    const tex = RR ? (this._bustoIlustrado(RR.arquero, false) || this.figuraArquero("vuela", "planoEsfuerzo (tu arquero)", false)) : this.texturaCineJugador();
-    const jug = this.add.sprite(W / 2, H / 2 + 20, tex).setScale(2.6).setAngle(4);
+    const tex = RR ? this.figuraArquero("estirada", "planoEsfuerzo (tu arquero)", false) : this.texturaCineJugador();
+    const jug = this.add.sprite(W / 2, H / 2 + 20, tex).setAngle(4);
+    const s0 = RR ? this.escalaDePose(this._poseArqueroUltima, H * 0.9, jug) : 2.6;
+    jug.setScale(s0);
+    if (RR) jug.flipX = this.zona.gy < 0;
     this.cineContent.add(jug);
-    this.tweens.add({ targets: jug, scale: 3.4, angle: -3, duration: C.plano_esfuerzo_ms, ease: "Sine.easeOut" });
+    this.tweens.add({ targets: jug, scale: s0 * 3.4 / 2.6, angle: -3, duration: C.plano_esfuerzo_ms, ease: "Sine.easeOut" });
     this.SFX && this.SFX.crowd(400);
     this._cineTimer = this.time.delayedCall(this.msV(C.plano_esfuerzo_ms), () => this.corte(() => this.planoDesenlace()));
   }
@@ -3764,7 +3785,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   planoDesenlace() {
     /* V7 §1: acá se RESUELVE el remate — el skip muere (un toque no puede
        re-entrar y duplicar el gol) */
-    this._cineSkip = null; this._cineTimer = null;
+    this._cineSkip = null;
+    if (this._cineTimer) { this._cineTimer.remove(false); this._cineTimer = null; }
+    /* revisión del 22/oct: con dos cines pisados, los relojes del primero
+       seguían andando y su revelación le cambiaba la textura a un arquero
+       ya destruido ("Algo se trabó"). Los tweens y relojes de este plano
+       quedan anotados y el próximo cine los corta (cortarDesenlace) */
+    this.cortarDesenlace();
+    const vivo = this._desenlaceVivo = { timers: [], tweens: [] };
+    const luego = (ms, fn) => { const t = this.time.delayedCall(ms, fn); vivo.timers.push(t); return t; };
+    const tw = (cfg) => { const t = this.tweens.add(cfg); vivo.tweens.push(t); return t; };
     const W = 960, H = 540, C = this.BAL.cine, EP = this.BAL.epica, res = this.res;
     /* 20/oct · TE REMATAN con este mismo plano: el que vuela es TU arquero,
        con sus poses celestes, y el remate ya está resuelto afuera
@@ -3902,10 +3932,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
             red.strokePath();
           }
         };
-        this.tweens.add({ targets: hondo, v: 1, duration: 140, ease: "Quad.easeOut", onUpdate: dibujarRed });
-        this.tweens.add({ targets: hondo, v: 0.55, delay: 140, duration: 420, ease: "Sine.easeInOut", onUpdate: dibujarRed });
-        this.tweens.add({ targets: ball, scale: escFin * 0.75 * kB, y: destino.y + 10, duration: 140, ease: "Quad.easeOut" });
-        this.tweens.add({ targets: ball, y: gy - 10, delay: 300, duration: 420, ease: "Bounce.easeOut" });
+        tw({ targets: hondo, v: 1, duration: 140, ease: "Quad.easeOut", onUpdate: dibujarRed });
+        tw({ targets: hondo, v: 0.55, delay: 140, duration: 420, ease: "Sine.easeInOut", onUpdate: dibujarRed });
+        tw({ targets: ball, scale: escFin * 0.75 * kB, y: destino.y + 10, duration: 140, ease: "Quad.easeOut" });
+        tw({ targets: ball, y: gy - 10, delay: 300, duration: 420, ease: "Bounce.easeOut" });
         this.uiCam.shake(EP.shake_ms, EP.shake_intensidad);
         if (RR) { RR.revelar(); return; }
         this.uiCam.flash(EP.flash_ms, 255, 255, 210);
@@ -3916,7 +3946,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            y la fanfarria son SUYAS. La escena se queda abierta hasta ver la
            explosión y un respiro. */
         const hastaLaExplosion = this.golPropio() || 0;
-        this.time.delayedCall(hastaLaExplosion + this.msV(C.desenlace_hold_ms), () => this.salirCine());
+        luego(hastaLaExplosion + this.msV(C.desenlace_hold_ms), () => this.salirCine());
       };
     } else if (res.outcome === "atajada" || res.outcome === "corner") {
       /* G1: los dos son "el arquero llegó", pero terminan distinto: la que
@@ -3955,7 +3985,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            pose de rodillas y la pelota del juego queda en sus manos */
         if (!corner && this.ponerArqueroQueAtaja(arq, ball)) return;
         /* la del córner sale DISPARADA por afuera del palo */
-        this.tweens.add({
+        tw({
           targets: ball,
           x: corner ? gx + lado * (A.w / 2 + 140) : gx - 260,
           y: corner ? A.travesano - 20 : gy - 30,
@@ -3973,7 +4003,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         abierto();
         ball.setPosition(destino.x, destino.y);
         this.uiCam.shake(120, 0.005);
-        this.tweens.add({ targets: ball, x: destino.x + lado * 210, y: gy - 6, scale: 0.8 * kB, angle: lado * 300, duration: 520, ease: "Quad.easeOut" });
+        tw({ targets: ball, x: destino.x + lado * 210, y: gy - 6, scale: 0.8 * kB, angle: lado * 300, duration: 520, ease: "Quad.easeOut" });
         const d = this.desenlaceRemate(res, { palo: true });
         this.punch(d.titulo, d.sub, d.color);
       };
@@ -3984,17 +4014,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       arq.setPosition(destino.x - lado * 95 - alcance, gy);
       revelar = () => {
         abierto();
-        this.tweens.add({ targets: ball, x: destino.x + lado * 170, y: destino.y - 60, scale: 0.7 * kB, alpha: 0.3, duration: 460, ease: "Quad.easeOut" });
+        tw({ targets: ball, x: destino.x + lado * 170, y: destino.y - 60, scale: 0.7 * kB, alpha: 0.3, duration: 460, ease: "Quad.easeOut" });
         const d = this.desenlaceRemate(res);
         this.punch(d.titulo, d.sub, d.color);
       };
     }
     /* EL SALTO: sale del medio del arco y llega estirado justo en el freeze.
        La pose no se anima: lo que se mueve es la figura entera y lo demás. */
-    this.tweens.add({ targets: arq, x: { from: arq.x - lado * 110, to: arq.x }, angle: { from: lado * 10, to: 0 }, duration: tFreeze, ease: "Sine.easeOut" });
+    tw({ targets: arq, x: { from: arq.x - lado * 110, to: arq.x }, angle: { from: lado * 10, to: 0 }, duration: tFreeze, ease: "Sine.easeOut" });
     const F = { x: (arq.x + destino.x) / 2, y: A.bocaY };
     const prog = { p: 0, quieto: false };
-    this.tweens.add({
+    tw({
       targets: prog, p: 1, duration: tFreeze, ease: "Linear",
       onUpdate: () => { if (!prog.quieto) { pintarArco(prog.p); encuadrar(F.x, F.y, 1.35 + 0.25 * prog.p); } }
     });
@@ -4002,26 +4032,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        cámara lenta es esa velocidad que no cambia. Entra por el lado del
        salto, así llega a los guantes por afuera del cuerpo y no por la cara */
     ball.setPosition(destino.x + lado * 90, F.y + H / 2 / 1.35 + 30);
-    const twBola = this.tweens.add({
+    const twBola = tw({
       targets: ball, x: destino.x, y: destino.y, scale: escFin * kB, angle: lado * 160, duration: dur, ease: "Linear",
       onComplete: () => {
         revelar();
         /* V7 §1: la velocidad RÁPIDA acorta el hold (el silencio es sagrado, queda) */
-        if (RR) this.time.delayedCall(this.msV(C.desenlace_hold_ms), RR.cerrar);
-        else if (res.outcome !== "gol") this.time.delayedCall(this.msV(C.desenlace_hold_ms), () => this.salirCine());
+        /* revisión del 22/oct: el porqué de "te rematan" se leía completo
+           0,6 s antes del negro. Se queda hasta que se lee (desenlace_leer_ms
+           cuenta desde que sale el cartel, con la bajada entrando) */
+        if (RR) luego(Math.max(this.msV(C.desenlace_hold_ms), C.desenlace_leer_ms), RR.cerrar);
+        else if (res.outcome !== "gol") luego(this.msV(C.desenlace_hold_ms), () => this.salirCine());
       }
     });
     this.SFX && this.SFX.crowd(Math.round(tFreeze * 0.9));
     /* FREEZE + SILENCIO (Feel B8, el vacío en el estómago): todo se clava a un
        paso del contacto, con un corte seco a los guantes y la pelota */
-    this.time.delayedCall(tFreeze, () => {
+    luego(tFreeze, () => {
       twBola.pause(); prog.quieto = true;
       encuadrar((destino.x + ball.x) / 2, (destino.y + ball.y) / 2 + 30, 1.9);
       this.uiCam.flash(70, 255, 255, 255);
       this.musicaDuck(silencio + 300);   // ANIME D: también calla la música del loop
     });
     /* y el contacto vuelve a velocidad real */
-    this.time.delayedCall(tFreeze + silencio, () => { twBola.timeScale = 3; twBola.resume(); });
+    luego(tFreeze + silencio, () => { twBola.timeScale = 3; twBola.resume(); });
   }
   /* OJOS (tanda 1.0) · EL ARQUERO RIVAL QUE LA AGARRA, en la revelación del
      remate común (planoDesenlace). Pasa de la estirada a arquero_ataja (de

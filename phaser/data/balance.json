@@ -522,6 +522,8 @@
     "slowmo_factor": 0.32,
     "lineas_velocidad": 14,
     "desenlace_hold_ms": 1200,
+    "_desenlace_leer": "Revisión del 22/oct: en 'te rematan' el porqué (la bajada del cartel) entra en 540 ms y se borra con el negro. 2100 deja 1,56 s completo; no lo acorta la velocidad RÁPIDA.",
+    "desenlace_leer_ms": 2100,
     "zoom_viaje": 1.25,
     "camara_pan_ms": 420,
     "drift_mult": 1.4,
@@ -1056,6 +1058,9 @@
       "n": "pifiada",
       "dice": "¡LA PIFIASTE!",
       "dice_se_paso": "¡SE TE PASÓ!",
+      "_otro": "Revisión del 22/oct: cuando remata un compañero el cartel habla de él, no de quien juega.",
+      "dice_otro": "¡LA PIFIÓ!",
+      "dice_se_paso_otro": "¡SE LE PASÓ!",
       "bonus": -8,
       "fuera": 1
     }

@@ -133,6 +133,10 @@ let golesSin = 0;
 });
 assert(golesSin === 0, "pifiar o dejarla pasar nunca es gol (" + golesSin + " de 6000)");
 assert(T.zonaDeContacto(quieto.fin, C).dice !== T.zonaDeContacto(pifia, C).dice, "se_paso y pifia no dicen lo mismo");
+/* revisión del 22/oct: cuando remata un compañero, el cartel habla de él */
+const deOtro = [T.zonaDeContacto(pifia, C, true).dice, T.zonaDeContacto(quieto.fin, C, true).dice, T.textoDeContacto(quieto.fin, C, true)];
+assert(deOtro.join(" | ") === "¡LA PIFIÓ! | ¡SE LE PASÓ! | la dejó pasar", "SÍNTOMA: con un compañero el cartel le habla a quien juega (" + deOtro.join(" | ") + ")");
+assert(T.zonaDeContacto(pifia, C, true).bonus === T.zonaDeContacto(pifia, C).bonus && T.zonaDeContacto(pifia, C, true).fuera === T.zonaDeContacto(pifia, C).fuera, "y la pifia de un compañero vale lo mismo");
 const g1 = T.pegar(jugada(9)), e9 = jugada(9); T.pegar(e9);
 assert(g1 && T.pegar(e9) === null, "un solo golpe por jugada");
 let mono = true, prev = -99;

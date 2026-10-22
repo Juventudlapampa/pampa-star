@@ -128,5 +128,19 @@ const EVENTO = TRIBUNA.dialogos[0].evento;
   console.log("[4] sin lugar libre: callados");
 })();
 
+/* ---------- [5] revisión del 22/oct: durante el cine no hay globos ---------- */
+(function () {
+  const sc = escena();
+  T.montar(sc);
+  assert(T.comentar(sc, EVENTO) === true && sc._tribuna.cont.alpha === 1, "control: en el partido comentan");
+  assert(T.callar(sc) && sc._tribuna.cont.alpha === 0, "al entrar al cine se callan (match.js, entrarCine)");
+  sc.estado = "CINE";
+  assert(T.comentar(sc, EVENTO) === false && sc._tribuna.cont.alpha === 0, "SÍNTOMA: lo que comentan durante el cine sale encima del cine");
+  sc.estado = "LIBRE";
+  assert(T.soltar(sc) === true && sc._tribuna.cont.alpha === 1, "al volver el partido sale lo que comentaron (match.js, salirCine)");
+  assert(T.soltar(sc) === false, "y una sola vez");
+  console.log("[5] durante el cine se callan y al volver comentan");
+})();
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

@@ -485,9 +485,10 @@
       this._figurasCine = [rem, bola].concat(arqSpr ? [arqSpr] : [], figs);
       if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(this);
 
-      var esc = { revelado: false, cerrado: false };
+      var esc = { revelado: false, cerrado: false, pateo: false };
       /* la pelota sale disparada hacia el arco: el golpe fuerte, como el tuyo */
-      this.time.delayedCall(tEntrada, function () {
+      var patada = this.time.delayedCall(tEntrada, function () {
+        esc.pateo = true;
         self.uiCam.flash(70, 255, 200, 120);
         self.SFX && self.SFX.kickFuerte && self.SFX.kickFuerte();
         /* si la bloquean, el vuelo suena acá; si no, lo pone el viaje del cine */
@@ -518,6 +519,14 @@
         var alCine = function () {
           if (esc.cerrado) return; esc.cerrado = true;
           self._escSkip = null;
+          /* revisión del 22/oct: con un toque antes de la patada, la patada
+             pendiente sonaba y dibujaba sus líneas en medio del viaje. Sale
+             ahora, con el arranque del cine, y el timer se corta */
+          if (!esc.pateo) {
+            esc.pateo = true;
+            patada.remove(false);
+            self.SFX && self.SFX.kickFuerte && self.SFX.kickFuerte();
+          }
           self.res = { outcome: res.golRival ? "gol" : "atajada" };
           /* el palo al que va: el contrario al lado de donde viene el rematador */
           self.zona = { id: "rival", gy: (tirador.y < st.H / 2 ? 1 : -1) * 36 };
@@ -559,6 +568,8 @@
 
       var revelar = function () {
         if (esc.revelado) return; esc.revelado = true;
+        /* saltada antes de la patada: lo que queda es el bloqueo, sin patada después */
+        if (!esc.pateo) { esc.pateo = true; patada.remove(false); }
         if (self.golpeDeCamara) self.golpeDeCamara(1);
         var quien = lectura.defensorMasCerca;
         self.uiCam.flash(60, 255, 255, 255);

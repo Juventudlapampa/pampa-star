@@ -80,6 +80,9 @@
     comentar: function (sc, evento) {
       var t = sc._tribuna;
       if (!t) return false;
+      /* revisión del 22/oct: durante el cine no se charla encima; lo último
+         que comentaron sale cuando vuelve el partido (soltar) */
+      if (sc.estado === "CINE") { t.pendiente = evento; return false; }
       var bloque = t.data.dialogos.find(function (d) { return d.evento === evento; });
       if (!bloque || !bloque.intercambios.length) return false;
       var n = bloque.intercambios.length;
@@ -112,6 +115,13 @@
       if (sc.tweens && sc.tweens.killTweensOf) sc.tweens.killTweensOf(t.cont);
       t.cont.setAlpha(0);
       return true;
+    },
+    soltar: function (sc) {
+      var t = sc && sc._tribuna;
+      if (!t || !t.pendiente) return false;
+      var ev = t.pendiente;
+      t.pendiente = null;
+      return this.comentar(sc, ev);
     },
 
     /* 18/oct · LOS GLOBOS NO TAPAN FIGURAS. En "te rematan" el arquero va
