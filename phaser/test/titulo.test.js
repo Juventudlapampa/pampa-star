@@ -68,10 +68,12 @@ function armarTitulo(store) {
     isMuted: function () { return mudo; }, setMuted: function (m) { mudo = !!m; },
     setVolumenes: function (m, e) { vol.push([m, e]); }
   };
-  var s = A.nueva();
+  var s = A.nueva(), musica = [];
   s.crudoDelMaster = function () { return A.localStorage.getItem("pampa_master_v1"); };
+  /* la puerta de la música (piel_ui.js pedirMusica), anotada */
+  s.pedirMusica = function (m) { musica.push("pedir:" + m); return true; };
   s.create();
-  return { A: A, s: s, sonidos: sonidos, vol: vol, mudo: function () { return mudo; } };
+  return { A: A, s: s, sonidos: sonidos, vol: vol, musica: musica, mudo: function () { return mudo; } };
 }
 function centro(s, texto) {
   var t = s.children.list.filter(function (o) { return o.type === "Text" && o.text === texto; })[0];
@@ -151,9 +153,11 @@ function centro(s, texto) {
   /* con data/audio.json en el registro (como en el juego): ► en ESTILO elige
      CUARTETO, lo guarda y vuelve a registrar la música con el estilo nuevo */
   var E = armarTitulo();
+  /* 20/oct, Rodri: el estilo se elegía a ciegas; el título ya suena */
+  assert(E.musica.join() === "pedir:espera", "el título pide la música de espera al abrir (" + E.musica.join() + ")");
   E.A.registry.set("audio", JSON.parse(leer("data/audio.json")));
   var registros = [];
-  E.s.registrarMusicaGlobal = function (forzar) { registros.push(forzar); };
+  E.s.registrarMusicaGlobal = function (forzar) { registros.push(forzar); E.musica.push("registrar"); };
   E.s.vistaOpciones();
   assert(E.s.textos().indexOf("próximamente") < 0, "con los temas del 20/oct ningún estilo dice próximamente");
   E.s._fila = 3; E.sonidos.length = 0; E.s.teclas("RIGHT");
@@ -162,6 +166,8 @@ function centro(s, texto) {
   var cr = centro(E.s, "RAP");
   E.s.tocar(cr[0], cr[1]);
   assert(JSON.parse(E.A.store[O.CLAVE]).estilo === "rap" && registros.length === 2, "tocar RAP lo elige y vuelve a registrar la música");
+  assert(E.musica.join() === "pedir:espera,registrar,pedir:espera,registrar,pedir:espera",
+    "cada estilo elegido suena en el momento: primero el registro con el estilo nuevo y después la espera (" + E.musica.join() + ")");
   console.log("[3] JUGAR CARRERA (dedo), PARTIDO RÁPIDO (teclado), OPCIONES (las seis filas, guardadas)");
 })();
 

@@ -38,6 +38,10 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     this.game.events.on("atras", alAtrasDelTelefono);
     this.events.once("shutdown", () => { this.game.events.off("atras", alAtrasDelTelefono); this.soltarAtajos(); });
     this.vistaMenu();
+    /* 20/oct, Rodri: el estilo se elegía a ciegas. El título y OPCIONES
+       suenan la espera del estilo elegido (en CUARTETO, ROCK y RAP es el
+       tema de la semana), y al cambiar de estilo cambia acá mismo */
+    this.pedirMusica("espera");
   }
 
   /* el atrás del teléfono: en OPCIONES vuelve al título (logic/atras.js);
@@ -154,7 +158,11 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
       { n: "ESTILO DE MÚSICA", tipo: "chips",
         chips: estilos.map((e) => ({ k: e.k, n: e.n, d: e.disponible ? "" : "próximamente", bloqueada: !e.disponible })),
         valor: op.estilo,
-        elegir: (k) => { op.estilo = k; this.guardarOpciones(); if (this.registrarMusicaGlobal) this.registrarMusicaGlobal(true); } },
+        elegir: (k) => {
+          op.estilo = k; this.guardarOpciones();
+          if (this.registrarMusicaGlobal) this.registrarMusicaGlobal(true);
+          this.pedirMusica("espera");
+        } },
       { n: "DURACIÓN", sub: "partido rápido y carrera nueva", tipo: "chips",
         chips: O.duraciones(this.BAL).map((o) => ({ k: o.k, n: o.n, d: o.d })), valor: op.duracion,
         elegir: (k) => { op.duracion = k; this.guardarOpciones(); } },
