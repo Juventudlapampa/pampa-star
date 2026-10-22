@@ -2353,7 +2353,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       "2/3 · ⚡ ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
       this._split ? "3/3 · El PASE está en el menú de jugadas:\n" + (tactil ? "tocá en" : toca) + " el MAPA a quién se la pasás" : (this._vista4 ? "3/3 · Para el PASE, " + toca + " el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, " + toca + " el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
-    const mapa = this._vista4 ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 };
+    const mapa = this._vista4 && !this._split ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 };
     const ANILLOS = [this._split ? mapa : null, { x: 838, y: 456, w: 210, h: 90 }, mapa];   /* R1: el botón se movió a 838 */
     this.estado = "TUTORIAL";
     this.st.modo = "congelado";
