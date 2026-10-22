@@ -49,7 +49,8 @@
                  "FINAL", "DEFINICION"…),
          menuConSalida: el menú abierto del partido se puede cerrar (la cruz
                  tiene ✕, el pase dirigido se cancela),
-         cajaAbierta: la caja DOM del código de carrera está a la vista (Master) }
+         cajaAbierta: la caja DOM del código de carrera está a la vista (Master),
+         pendiente: el editor es el paso 1 de una carrera nueva }
      ms: milisegundos desde el atrás anterior que pidió confirmar (Infinity,
      null o negativo = no hubo). opciones.ventana pisa VENTANA_MS. */
   function decidir(estado, ms, opciones) {
@@ -77,6 +78,9 @@
     }
     /* 20/oct: en OPCIONES vuelve al título; el título mismo pide confirmar */
     if (e.escena === "titulo" && e.vista === "opciones") return "volver";
+    /* segunda revisión del 22/oct: en el paso 1 de una carrera nueva el
+       editor tiene VOLVER (al mapa), y atrás hace lo mismo */
+    if (e.escena === "editor" && e.pendiente) return "volver";
     /* título, editor, intro, o una pantalla que no se presentó: dos atrás seguidos */
     var dentro = typeof ms === "number" && isFinite(ms) && ms >= 0 && ms < ventana;
     return dentro ? "salir" : "confirmar_salida";

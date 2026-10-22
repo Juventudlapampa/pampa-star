@@ -145,6 +145,37 @@ function reiniciar(s) {
   console.log("[2] la creación: 3 opciones a 13 px o más, NORMAL con ELEGIDO, piso táctil y cursor · ARRANCAR solo = INTERMEDIO (1 toque) · CORTO llega al save");
 })();
 
+/* ---------- [2b] ◀ VOLVER DEL PASO 1 CONSERVA LA DURACIÓN ----------
+   Segunda revisión del 22/oct: con LARGO marcado, VOLVER del editor dejaba
+   el mapa en NORMAL y la carrera se creaba "intermedio" (init() volvía a
+   leer OPCIONES). El editor deja el tempo del pendiente en tempoDeVuelta
+   (d_decisiones.test.js lo fija) y el mapa lo marca una sola vez. */
+(function () {
+  var A2 = M.armar();
+  var s = A2.nueva(); s.create();
+  var marcadaBajo = function () {
+    var m = s.children.list.find(function (o) { return o.type === "Text" && o.text === "ELEGIDO" && o.active !== false; });
+    var op = BAL.tempo.opciones.find(function (o) { var t = s.children.list.find(function (x) { return x.type === "Text" && x.text === o.n && x.active !== false; }); return t && m && t.x === m.x; });
+    return op && op.n;
+  };
+  var zLargo = s._tempoFoco[2].obj;
+  s.tocar(zLargo.x, zLargo.y);
+  s.tocar(480, 438);
+  var pend = A2.registry.get("carreraPendiente");
+  assert(pend && pend.tempo === "largo", "ARRANCAR con LARGO lo lleva en el pendiente (" + JSON.stringify(pend) + ")");
+  /* lo que hace ◀ VOLVER en el editor */
+  A2.registry.set("tempoDeVuelta", pend.tempo);
+  A2.registry.set("carreraPendiente", null);
+  reiniciar(s);
+  assert(s._tempoElegido === "largo" && marcadaBajo() === "LARGO", "de vuelta en el mapa, LARGO sigue marcado (" + s._tempoElegido + ", ELEGIDO bajo " + marcadaBajo() + ")");
+  s.tocar(480, 438);
+  assert(A2.registry.get("carreraPendiente").tempo === "largo", "y ARRANCAR otra vez lleva LARGO, no INTERMEDIO");
+  A2.registry.set("carreraPendiente", null);
+  reiniciar(s);
+  assert(s._tempoElegido === "intermedio", "la vuelta se usa una vez: la próxima entrada al mapa trae la de OPCIONES (" + s._tempoElegido + ")");
+  console.log("[2b] VOLVER del paso 1 con LARGO: el mapa vuelve con LARGO marcado y ARRANCAR lo lleva otra vez");
+})();
+
 /* ---------- [3] 18 FECHAS SEGUIDAS, CON EL create() DEL PARTIDO ----------
    El partido corre su create() de verdad (_create_de_mentira.js): lo de
    Phaser es un stub universal y la lógica y los datos son los de verdad. */

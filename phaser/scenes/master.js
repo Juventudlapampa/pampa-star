@@ -46,10 +46,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._vestidasPedidas = false;
     /* TEMPO-1: el tempo que se marca en la creación (NORMAL de entrada) y el
        que viaja por el editor en carreraPendiente hasta _crearCarrera */
-    /* 20/oct: la carrera nueva trae marcada la duración de OPCIONES */
-    this._tempoElegido = window.PampaOpciones
+    /* 20/oct: la carrera nueva trae marcada la duración de OPCIONES.
+       Segunda revisión del 22/oct: de vuelta del paso 1 (◀ VOLVER del
+       editor), la que habías marcado */
+    const tempoDeVuelta = this.game.registry.get("tempoDeVuelta");
+    this.game.registry.set("tempoDeVuelta", null);
+    this._tempoElegido = tempoDeVuelta || (window.PampaOpciones
       ? window.PampaOpciones.leer(localStorage, this.game.registry.get("balance"), this.game.registry.get("audio")).duracion
-      : window.PampaSaveMaster.TEMPO_POR_DEFECTO;
+      : window.PampaSaveMaster.TEMPO_POR_DEFECTO);
     this._tempoDeLaCarrera = null;
     this._tempoFoco = null;
   }

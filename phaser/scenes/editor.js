@@ -196,6 +196,10 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
          del mapa ◀ VOLVER AL MENÚ va al título */
       volver = btn(105, 170, "◀ VOLVER", 0xf6efdc, () => {
         this.guardar();
+        /* segunda revisión del 22/oct: la duración marcada en el mapa vuelve
+           marcada, como la localidad (master.js, init) */
+        const pend = this.game.registry.get("carreraPendiente");
+        this.game.registry.set("tempoDeVuelta", pend && pend.tempo);
         this.game.registry.set("carreraPendiente", null);
         this.irA("master");
       }, "volver");
@@ -212,10 +216,14 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
          y se vuelve a ella */
       volver = btn(W / 2 + 170, 320, "▶ VOLVER A LA CARRERA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
     }
-    if (this.input.keyboard) {
-      const alEsc = this._botones.find(b => b.obj === volver).cb;
-      this.input.keyboard.on("keydown-ESC", alEsc);
-    }
+    const alEsc = this._botones.find(b => b.obj === volver).cb;
+    if (this.input.keyboard) this.input.keyboard.on("keydown-ESC", alEsc);
+    /* segunda revisión del 22/oct: en el paso 1 de una carrera nueva, el
+       atrás del teléfono es el VOLVER de la pantalla (logic/atras.js); en la
+       pinta de siempre sigue pidiendo confirmar la salida */
+    const alAtrasDelTelefono = (ev) => { if (ev && ev.escena === "editor" && ev.decision === "volver") alEsc(); };
+    this.game.events.on("atras", alAtrasDelTelefono);
+    this.events.once("shutdown", () => this.game.events.off("atras", alAtrasDelTelefono));
     /* Addendum v6 A.2: repetir el opening a gusto */
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } }).setInteractive({ useHandCursor: true });
     vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.irA("intro"); });
@@ -256,6 +264,8 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
 
   /* V7 §0.2: ¿este color de pelo vale para esta cara? (0 = Original vale siempre;
      el manifest declara caras que no tiñen el pelo o excluyen colores puntuales) */
+  estadoAtras() { return { escena: "editor", pendiente: !!this.game.registry.get("carreraPendiente") }; }
+
   tinteValido(cara, tPelo) {
     if (tPelo === 0) return true;
     if (cara.tintes_pelo === false) return false;

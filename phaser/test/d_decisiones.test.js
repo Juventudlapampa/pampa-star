@@ -253,8 +253,19 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
      devolvía a la pinta, así que la localidad ya no se podía cambiar. VOLVER
      va al paso de antes (el mapa) y el mapa deja marcada la que habías elegido.
      En la página: Santa Rosa, ESC en el paso 1, el mapa con Santa Rosa. */
-  assert(/"◀ VOLVER", 0xf6efdc, \(\) => \{\s*this\.guardar\(\);\s*this\.game\.registry\.set\("carreraPendiente", null\);\s*this\.irA\("master"\);/.test(EDITOR),
+  /* segunda revisión del 22/oct: VOLVER perdía la duración marcada en el
+     mapa. Antes de soltar el pendiente deja su tempo en tempoDeVuelta, que
+     master.js marca al volver (tempo_carrera.test.js, [2b]) */
+  assert(/"◀ VOLVER", 0xf6efdc, \(\) => \{\s*this\.guardar\(\);[\s\S]{0,300}?this\.game\.registry\.set\("carreraPendiente", null\);\s*this\.irA\("master"\);/.test(EDITOR),
     "SÍNTOMA: VOLVER en el paso 1 de una carrera nueva no lleva a elegir la localidad");
+  assert(/const pend = this\.game\.registry\.get\("carreraPendiente"\);\s*this\.game\.registry\.set\("tempoDeVuelta", pend && pend\.tempo\);\s*this\.game\.registry\.set\("carreraPendiente", null\);/.test(EDITOR),
+    "SÍNTOMA: VOLVER en el paso 1 pierde la duración elegida en el mapa");
+  assert(/this\._tempoElegido = tempoDeVuelta \|\|/.test(MASTER), "SÍNTOMA: el mapa no marca la duración con la que volviste");
+  /* y el atrás del teléfono en el paso 1 es ese mismo VOLVER (logic/atras.js
+     decide "volver" con pendiente; atras.test.js) */
+  assert(/estadoAtras\(\) \{ return \{ escena: "editor", pendiente: !!this\.game\.registry\.get\("carreraPendiente"\) \}; \}/.test(EDITOR) &&
+    /ev\.escena === "editor" && ev\.decision === "volver"\) alEsc\(\);/.test(EDITOR) && /const alEsc = this\._botones\.find\(b => b\.obj === volver\)\.cb;/.test(EDITOR),
+    "SÍNTOMA: en el paso 1 de una carrera nueva, el atrás del teléfono pide salir del juego en vez de volver al mapa");
   assert(/const elegida = this\.pueblos && this\.pueblos\[this\.pSel\];[\s\S]{0,900}?if \(this\.pueblos\.indexOf\(elegida\) >= 0\) this\.pSel = this\.pueblos\.indexOf\(elegida\);/.test(MASTER),
     "SÍNTOMA: de vuelta en el mapa, la localidad elegida se pierde");
   assert(/entrevistado\(\)/.test(MASTER), "D5: y en la entrevista tiene que haber alguien de este lado");

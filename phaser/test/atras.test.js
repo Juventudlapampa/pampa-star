@@ -78,6 +78,10 @@ if (!AT || !AT.decidir) { console.log("\n✗ " + mal + " FALLARON (" + ok + " ok
     [{ escena: "editor" }, 2000, "confirmar_salida", "editor, segundo atrás a los 2.000 ms: vuelve a confirmar"],
     [{ escena: "editor" }, 3500, "confirmar_salida", "editor, segundo atrás a los 3,5 s: vuelve a confirmar"],
     [{ escena: "editor" }, -5, "confirmar_salida", "un tiempo negativo no cuenta como dentro de la ventana"],
+    /* segunda revisión del 22/oct: en el paso 1 de una carrera nueva el
+       editor tiene VOLVER al mapa, y atrás pedía salir del juego */
+    [{ escena: "editor", pendiente: true }, Infinity, "volver", "editor en el paso 1 de una carrera nueva: VOLVER, al mapa"],
+    [{ escena: "editor", pendiente: true }, 300, "volver", "editor en el paso 1, doble atrás rápido: vuelve, no sale"],
     [{ escena: "intro" }, Infinity, "confirmar_salida", "intro, primer atrás: confirmar"],
     [{ escena: "intro" }, 800, "salir", "intro, segundo atrás a los 800 ms: sale"],
     [{ escena: null }, Infinity, "confirmar_salida", "sin juego todavía: confirmar"],
