@@ -117,13 +117,15 @@ var B = PI.huesos(def, TW, TH);
   assert(/this\.tomaDelRemate\(\{/.test(porCom), "el remate común usa la toma");
   var mega = MATCH.slice(MATCH.indexOf("  dispararConCine(mega, ej) {"), MATCH.indexOf("  texturaEscena(j, esRival, anim, frame) {"));
   assert(/this\.tomaDelRemate\(\{[^]*?especial: true/.test(mega), "el súper tiro usa la toma especial");
-  /* la patada: una sola, dentro de contacto() */
-  var kicks = (TOMA.replace(/\/\*[\s\S]*?\*\//g, "").match(/\.kick\(\)/g) || []).length;
-  assert(kicks === 1, "la toma suena UNA patada (hay " + kicks + ")");
-  /* pedido de Rodri del 17/oct: en la toma especial (el súper tiro) la
-     patada es la fuerte, con su propia muestra */
-  assert(/var contacto = function \(\) \{\s*if \(est\.contacto\) return; est\.contacto = true;\s*snd && \(especial \? snd\.kickFuerte\(\) : snd\.kick\(\)\);/.test(TOMA),
-    "y es lo primero que pasa en el contacto (la fuerte en el súper tiro)");
+  /* la patada: una sola, dentro de contacto(). Pedido de Rodri del 17/oct:
+     en el súper tiro, la fuerte. Pedido de Rodri del 20/oct ("el tiro tiene
+     que sonar más épico"): el remate común también con la fuerte, así que la
+     común ya no suena en la toma */
+  var sinComent = TOMA.replace(/\/\*[\s\S]*?\*\//g, "");
+  var kicks = (sinComent.match(/\.kick\(\)/g) || []).length, fuertes = (sinComent.match(/\.kickFuerte\(\)/g) || []).length;
+  assert(kicks === 0 && fuertes === 1, "la toma suena UNA patada, la fuerte (común " + kicks + ", fuerte " + fuertes + ")");
+  assert(/var contacto = function \(\) \{\s*if \(est\.contacto\) return; est\.contacto = true;\s*(\/\*[\s\S]*?\*\/\s*)?snd && snd\.kickFuerte\(\);/.test(TOMA),
+    "y es lo primero que pasa en el contacto, en el remate común y en el súper tiro");
   /* las dos mallas comparten cámara (si no, la pelota proyecta 8 veces más chica) */
   assert(/plano\.setViewHeight\(th\)/.test(TOMA) && /bola\.setViewHeight\(th\)/.test(TOMA), "la pose y la pelota con la misma cámara");
   assert(!!BAL.toma && BAL.toma.ms > 0 && BAL.toma.especial_ms > BAL.toma.ms, "las perillas de la toma en balance.json");

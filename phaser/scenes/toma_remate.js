@@ -306,7 +306,10 @@
       /* --- EL CONTACTO --- */
       var contacto = function () {
         if (est.contacto) return; est.contacto = true;
-        snd && (especial ? snd.kickFuerte() : snd.kick());
+        /* 20/oct: el remate común también con el golpe fuerte (pedido de
+           Rodri: "sonido épico"); el especial se distingue por el flash, el
+           temblor y el hitstop */
+        snd && snd.kickFuerte();
         self.uiCam.flash(especial ? 140 : 90, 255, 255, 235);
         self.uiCam.shake(especial ? 300 : 200, especial ? 0.014 : 0.009);
         if (FE && FE.hitstop) FE.hitstop(self, "fuerte", especial ? 3 : 2);

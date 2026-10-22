@@ -114,10 +114,12 @@ function lineasCon(re) {
 /* ---------- [3] UNA PATADA POR REMATE ---------- */
 (function () {
   var porCom = cuerpo(MATCH, "tiroPorComandos(rivalIdx) {");
-  /* la del bloqueo (previo) y la del contacto de la escena (sfx "kick") */
+  /* la del bloqueo (previo) y la del contacto de la escena. Pedido de Rodri
+     del 20/oct ("el tiro tiene que sonar más épico"): el contacto del remate
+     común es la patada fuerte (sfx "kickFuerte"), como el súper tiro */
   var kicks = (porCom.match(/\.kick\(\)/g) || []).length;
   assert(kicks === 1, "tiroPorComandos: solo la patada del bloqueo puede sonar a mano (hay " + kicks + "); la del remate es el sfx de la escena");
-  assert(/sfx: "kick"/.test(porCom), "y la escena del remate suena la patada en el contacto");
+  assert(/sfx: "kickFuerte"/.test(porCom) && !/sfx: "kick"/.test(porCom), "y la escena del remate suena la patada fuerte en el contacto");
   var mega = cuerpo(MATCH, "dispararConCine(mega, ej) {");
   assert(!/\.kick\(\)/.test(mega) && !/sfx: "kick"/.test(mega),
     "el súper tiro no patea en la carga ni al cerrarla: la patada es del plano del pie (eran tres)");

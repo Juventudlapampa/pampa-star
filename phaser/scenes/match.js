@@ -4397,7 +4397,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       pose: "remate", pelotaAlPie: false,
       rival: rival ? { j: rival, esRival: true, anim: "gambeta" } : null,
       siluetas: nDefs > 0 ? nDefs : null,
-      gana: true, sfx: "kick",
+      gana: true, sfx: "kickFuerte",
       /* "¡LE PEGA VOS!" estaba mal dicho: con un compañero queda bien ("¡LE
          PEGA RAMIRO!") pero con vos la persona del verbo cambia. */
       titulo: j.esVos ? "¡LE PEGÁS!" : "¡LE PEGA " + (j.nombre || "").toUpperCase() + "!",
