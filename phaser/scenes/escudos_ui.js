@@ -169,11 +169,14 @@
       cont.add(borde);
 
       /* 4 · la inicial. Solo desde cierto tamaño: por debajo de 18 px de alto
-         no se lee y ensucia — ahí manda la silueta sola. */
+         no se lee y ensucia — ahí manda la silueta sola. 22/oct, Rodri: medía
+         8 px en la previa y 11 en la tabla; el piso de los textos es 13. Va
+         en la letra de texto, que a 13 px entra en el escudo con tres letras
+         (la de títulos mide 13 px de ancho por letra). */
       if (alto >= 18 && esc.inicial) {
         var t = sc.add.text(0, esc.forma === "punta" ? -alto * 0.12 : 0, esc.inicial, {
-          fontFamily: window.PF ? window.PF.display : "sans-serif",
-          fontSize: Math.round(alto * (esc.inicial.length > 2 ? 0.3 : 0.38)) + "px",
+          fontFamily: window.PF ? window.PF.texto : "sans-serif",
+          fontSize: Math.max(13, Math.round(alto * (esc.inicial.length > 2 ? 0.36 : 0.44))) + "px",
           color: esc.colorC
         }).setOrigin(0.5);
         cont.add(t);

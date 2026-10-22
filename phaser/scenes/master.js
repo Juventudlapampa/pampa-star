@@ -459,19 +459,19 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   avisoSinGuardar() {
     const hay = !!this.save;
     return this.cajaDeTexto({
-      titulo: "⚠ En este navegador tu carrera NO se guarda",
+      titulo: "En este navegador tu carrera NO se guarda",
       texto: hay
         ? "Este navegador no deja guardar datos de este sitio: puede estar bloqueado o lleno. Podés seguir jugando mientras esta página siga abierta, pero si la cerrás, la carrera se pierde. Guardá tu código de carrera en un mensaje o en una nota: con él la seguís en otro navegador."
         : "Este navegador no deja guardar datos de este sitio: puede estar bloqueado o lleno. Podés jugar igual mientras esta página siga abierta, pero si la cerrás, la carrera se pierde. Para que quede guardada, abrí el juego en otro navegador, o fuera de la página donde lo encontraste.",
       sinCaja: true,
-      botones: (hay && window.PampaCarrera ? [{ texto: "💾 CÓDIGO DE CARRERA", principal: true, accion: () => { this.cerrarCaja(); this.vistaCodigo(); } }] : [])
+      botones: (hay && window.PampaCarrera ? [{ texto: "CÓDIGO DE CARRERA", principal: true, accion: () => { this.cerrarCaja(); this.vistaCodigo(); } }] : [])
         .concat([{ texto: "▶ SEGUIR IGUAL", principal: !hay, accion: () => this.cerrarCaja() }])
     });
   }
   marcaSinGuardar() {
     if (!this.game.registry.get("sinGuardar")) return null;
     if (this._marcaSG && this._marcaSG.scene) return this._marcaSG;
-    const t = this.add.text(12, 8, "⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA", {
+    const t = this.add.text(12, 8, "ESTE NAVEGADOR NO GUARDA TU CARRERA", {
       fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d",
       backgroundColor: "#0a1f13ee", padding: { x: 8, y: 4 }
     }).setOrigin(0, 0).setDepth(80);
@@ -671,7 +671,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.scene.restart();
     });
     const pegarEnSuLugar = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("abrir"); this.pegarCodigo(true); };
-    const pegar = window.PampaCarrera ? this.boton(W / 2, yP, 460, "📋 PEGAR UN CÓDIGO EN SU LUGAR", 0xffd84d, pegarEnSuLugar) : null;
+    const pegar = window.PampaCarrera ? this.boton(W / 2, yP, 460, "PEGAR UN CÓDIGO EN SU LUGAR", 0xffd84d, pegarEnSuLugar) : null;
     const borrar = this.boton(W / 2, yB, 460, "✕ SÍ, BORRAR Y ELEGIR OTRO CLUB", 0xe3503e, () => {
       const S = window.PampaSFX; if (S && S.ui) S.ui("confirmar");
       this.borrarCarrera();
@@ -807,7 +807,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!window.PampaCarrera) return null;
     /* espejo de la salida (abajo a la izquierda): el mismo tamaño, la misma
        forma y el mismo piso táctil, abajo a la derecha. No compite con JUGAR. */
-    return this.accesoDeAbajo(W - 20, H, "💾 código de carrera", 1, () => this.vistaCodigo());
+    return this.accesoDeAbajo(W - 20, H, "código de carrera", 1, () => this.vistaCodigo());
   }
   /* ══════════════════════════════════════════════════════════════════════
      L08c · 📲 INSTALAR, TAMBIÉN APAISADO.
@@ -828,7 +828,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const PT = window.PampaPortada;
     if (!PT || typeof PT.instalar !== "function" || typeof PT.alCambiarInstalar !== "function") return null;
     if (this._soltarInstalar) { this._soltarInstalar(); this._soltarInstalar = null; }
-    const t = this.add.text(W / 2, H - 26, "📲 instalar el juego", {
+    const t = this.add.text(W / 2, H - 26, "instalar el juego", {
       fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5",
       backgroundColor: "#0a1f13aa", padding: { x: 8, y: 4 }
     }).setOrigin(0.5, 0.5);
@@ -842,7 +842,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const r = PT.instalar();
       if (r === "menu") {
         this.cajaDeTexto({
-          titulo: "📲 Instalar el juego",
+          titulo: "Instalar el juego",
           texto: PT.textoMenu || "Para instalarlo: abrí el menú del navegador y elegí «Instalar app».",
           sinCaja: true,
           botones: [{ texto: "▶ VOLVER A LA TABLA", principal: true, accion: () => this.cerrarCaja() }]
@@ -868,7 +868,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.vaciarVista();
     this._atrasVista = () => this.scene.restart();   // L04: como ◀ VOLVER A LA TABLA
     if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
-    this.add.text(W / 2, 46, "💾 CÓDIGO DE CARRERA", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 46, "CÓDIGO DE CARRERA", { fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
     /* revisión L03: PEGAR UN CÓDIGO está en elegir club, que no aparece si el
        teléfono ya tiene una carrera; ahí está en ✕ empezar otra carrera */
     this.add.text(W / 2, 74, "Tu carrera entera, en un texto. Guardalo en un mensaje o en una nota: si el teléfono borra el juego, o si cambiás de teléfono, lo pegás en MODO MASTER → PEGAR UN CÓDIGO y seguís desde esta fecha (si ese teléfono ya tiene otra carrera: ✕ empezar otra carrera → PEGAR UN CÓDIGO EN SU LUGAR).", {
@@ -889,8 +889,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     const piel = (this.game.registry.get("balance") || {}).piel;
     const puedeCompartir = typeof navigator !== "undefined" && typeof navigator.share === "function";
-    const ops = [{ t: "📋 COPIAR EL CÓDIGO", c: 0x7ee08a, cb: () => this.copiarCodigo(codigo, decir) }];
-    if (puedeCompartir) ops.push({ t: "📤 COMPARTIR", c: 0xffd84d, cb: () => this.compartirCodigo(codigo, decir) });
+    const ops = [{ t: "COPIAR EL CÓDIGO", c: 0x7ee08a, cb: () => this.copiarCodigo(codigo, decir) }];
+    if (puedeCompartir) ops.push({ t: "COMPARTIR", c: 0xffd84d, cb: () => this.compartirCodigo(codigo, decir) });
     ops.push({ t: "◀ VOLVER A LA TABLA", c: 0xf6efdc, cb: () => this.scene.restart() });
     const items = ops.map((o, i) => {
       const y = Math.round(window.PampaPiel.yDeOpcion(i, ops.length, 52, piel));
@@ -902,10 +902,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   copiarCodigo(codigo, decir) {
     const aMano = () => {
       const caja = this.cajaDeTexto({
-        titulo: "💾 Tu código de carrera",
+        titulo: "Tu código de carrera",
         texto: "No se pudo copiar solo. Está todo seleccionado: copialo (mantené apretado, o Ctrl+C) y guardalo donde quieras.",
         valor: codigo, soloLectura: true,
-        botones: [{ texto: "✔ LISTO", principal: true, accion: () => this.cerrarCaja() }]
+        botones: [{ texto: "LISTO", principal: true, accion: () => this.cerrarCaja() }]
       });
       /* el camino viejo de copiar, por si el navegador lo deja. Si anda,
          cambia TAMBIÉN el párrafo (revisión L03): si no, la caja decía a la
@@ -913,13 +913,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       try {
         if (caja && document.execCommand && document.execCommand("copy")) {
           if (caja.p) caja.p.textContent = "Ya quedó copiado. Igual lo tenés acá abajo, por si querés guardarlo de otra forma.";
-          caja.decir("✔ Ya quedó copiado.");
+          caja.decir("Ya quedó copiado.");
         }
       } catch (e) { }
     };
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(codigo).then(() => decir("✔ Copiado. Pegalo en un mensaje o en una nota para guardarlo."), aMano);
+        navigator.clipboard.writeText(codigo).then(() => decir("Copiado. Pegalo en un mensaje o en una nota para guardarlo."), aMano);
         return;
       }
     } catch (e) { }
@@ -929,14 +929,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     try {
       navigator.share({ title: "Pampa Star · código de carrera",
         text: "Mi carrera de Pampa Star. Para seguirla: MODO MASTER → PEGAR UN CÓDIGO (si ya hay otra carrera: ✕ empezar otra carrera → PEGAR UN CÓDIGO EN SU LUGAR).\n\n" + codigo })
-        .then(() => decir("✔ Listo."), () => { });
+        .then(() => decir("Listo."), () => { });
     } catch (e) { decir("✗ No se pudo compartir: probá con COPIAR EL CÓDIGO."); }
   }
   /* enSuLugar: se llega desde ¿EMPEZAR OTRA CARRERA? con una carrera en
      curso, y se dice qué pasa con ella */
   pegarCodigo(enSuLugar) {
     this.cajaDeTexto({
-      titulo: "📋 PEGAR UN CÓDIGO DE CARRERA",
+      titulo: "PEGAR UN CÓDIGO DE CARRERA",
       texto: "Pegá acá el código que guardaste (empieza con PAMPA1.). La carrera sigue en la fecha en que lo copiaste." +
         (enSuLugar ? " La carrera de ahora deja de jugarse: queda respaldada en este navegador, como al borrarla." : ""),
       valor: "", soloLectura: false,
@@ -1203,14 +1203,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* TEMPO-1: lo del respaldo va adentro del botón (era un renglón de
          10 px abajo, con el nombre de la clave de localStorage, y ya no
          entraba entre esta fila y la de abajo) */
-      this.boton(W / 2 + 205, H - 102, 400, "⬆ IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
+      this.boton(W / 2 + 205, H - 102, 400, "IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
         "tu carrera de antes queda guardada, sin tocar");
     }
     /* tanda 1.0: el código de carrera se pega acá, donde se empieza. Va al
        lado de VOLVER, del mismo tamaño: es la otra forma de entrar */
     if (window.PampaCarrera) {
       this.boton(W / 2 - 160, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo"));
-      this.boton(W / 2 + 160, H - 40, 300, "📋 PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo());
+      this.boton(W / 2 + 160, H - 40, 300, "PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo());
     } else {
       this.boton(W / 2, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo"));
     }
@@ -1467,7 +1467,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       if (dichaAntes) {
         tDice.setText("");
         const tEco = this.add.text(W - 156, 196, "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 3 } }).setOrigin(1, 0.5);
-        this.escribir(tEco, "▼ VOS: «" + dichaAntes + "»", "vos", () => this.escribir(tDice, qe.dice, "nito", ponerOpciones));
+        /* 22/oct, Rodri: el eco decía "▼ VOS:" al lado de la placa "▼ VOS" de
+           tu retrato; quién habla ya lo dicen la placa y el lado */
+        this.escribir(tEco, "«" + dichaAntes + "»", "vos", () => this.escribir(tDice, qe.dice, "nito", ponerOpciones));
       } else this.escribir(tDice, qe.dice, "nito", ponerOpciones);
     } else ponerOpciones();
     /* V1 (cantidad + alineación): estaba en H-26, o sea DEBAJO de la cuarta
@@ -1679,7 +1681,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const tR = this.add.text(W / 2, 50, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
     if (window.PampaEscudosUI && window.PampaEscudos) {
       const esc = window.PampaEscudosUI.deClub(this, rival, this.T.posiciones(t).map(p => p.equipo), t.division);
-      window.PampaEscudosUI.dibujar(this, tR.x - tR.width / 2 - 26, 50, 22, esc);
+      window.PampaEscudosUI.dibujar(this, tR.x - tR.width / 2 - 26, 50, 30, esc);
     }
     /* el relator a la izquierda, con su nombre en placa */
     const xc = 120, yc = 214, lado = 150;
@@ -1851,8 +1853,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       g.fillStyle(color, 1); g.fillRect(x + 2, y + 2, Math.max(0, Math.min(296, 296 * valor / 100)), 14);
       g.lineStyle(2, 0xf6efdc, 0.8); g.strokeRect(x, y, 300, 18);
     };
-    medidor(W / 2 - 320, 80, "⚡ ENERGÍA", sem.energia, 0x7ee08a);
-    medidor(W / 2 + 20, 80, "🧠 ÁNIMO", sem.animo, 0x4fc3f7);
+    medidor(W / 2 - 320, 80, "ENERGÍA", sem.energia, 0x7ee08a);
+    medidor(W / 2 + 20, 80, "ÁNIMO", sem.animo, 0x4fc3f7);
     /* la molestia, el titular del evento y lo que elegiste van entre los
        medidores (terminan en y=98) y la tira de los días (arranca en y=134):
        entran dos renglones de 14. Cada renglón junta lo que entra a lo ancho,
@@ -1861,8 +1863,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const sup = [];
     const ev = this._semEvento;
     const md = this.save.modFecha;
-    const tm = sem.molestia ? this.add.text(0, 0, "🩹 arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }) : null;
-    const te = ev && ev.texto ? this.add.text(0, 0, "📰 " + ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 860 } }) : null;
+    const tm = sem.molestia ? this.add.text(0, 0, "arrastrás una molestia de la fecha pasada", { fontFamily: window.PF.texto, fontSize: "13px", color: "#e3503e" }) : null;
+    const te = ev && ev.texto ? this.add.text(0, 0, ev.texto, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#ffd84d", align: "center", wordWrap: { width: 860 } }) : null;
     /* lo que ELEGISTE queda a la vista mientras armás la semana: es la mitad
        de la decisión que antes no existía */
     const tl = te && md && md.opcion ? this.add.text(0, 0, "↳ " + md.opcion, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 860 } }) : null;
@@ -2035,9 +2037,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
     /* textos-tactiles: decía "con 1000 de aguante y 30 de envión", números
        crudos que nada presentó todavía en la primera semana */
-    this.add.text(W / 2, 264, "🗓 " + llega.resumen + " · las piernas al " + Math.round(llega.aguanteFrac * 100) + "%",
+    this.add.text(W / 2, 264, llega.resumen + " · las piernas al " + Math.round(llega.aguanteFrac * 100) + "%",
       { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
-    if (sem.espiado) this.add.text(W / 2, 136, "👀 los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    if (sem.espiado) this.add.text(W / 2, 136, "los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
 
     const listo = sem.elegidas.every(e => e);
     /* boton() toma x como CENTRO. Acá había un W/2-170 heredado del layout de
@@ -2127,13 +2129,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (seg <= 0) return false;                  // el default: no existe
     const W = this.scale.width;
     let quedan = seg;
-    const t = this.add.text(W - 20, 20, "⏱ " + quedan + "s", { fontFamily: window.PF.display,
+    const t = this.add.text(W - 20, 20, quedan + "s", { fontFamily: window.PF.display,
       fontSize: "14px", color: "#ffd84d", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 4 } }).setOrigin(1, 0);
     this._relojSem = this.time.addEvent({
       delay: 1000, repeat: seg - 1,
       callback: () => {
         quedan--;
-        t.setText("⏱ " + quedan + "s").setColor(quedan <= 5 ? "#e3503e" : "#ffd84d");
+        t.setText(quedan + "s").setColor(quedan <= 5 ? "#e3503e" : "#ffd84d");
         if (quedan <= 0) { this._relojSem = null; this.cerrarSemana(alJugar); }
       }
     });
@@ -2597,7 +2599,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this._ultimo) {
       const gano = this._ultimo.golesMio > this._ultimo.golesRival;
       const empate = this._ultimo.golesMio === this._ultimo.golesRival;
-      const resTxt = this.add.text(W / 2, 78, (gano ? "✔ GANASTE " : empate ? "= EMPATASTE " : "✘ PERDISTE ") + this._ultimo.golesMio + "-" + this._ultimo.golesRival, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: gano ? "#7ee08a" : empate ? "#f6c11d" : "#e3503e" }).setOrigin(0, 0.5);
+      const resTxt = this.add.text(W / 2, 78, (gano ? "GANASTE " : empate ? "EMPATASTE " : "PERDISTE ") + this._ultimo.golesMio + "-" + this._ultimo.golesRival, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: gano ? "#7ee08a" : empate ? "#f6c11d" : "#e3503e" }).setOrigin(0, 0.5);
       const aire = 22, total = clubTxt.width + aire + resTxt.width;
       const x0 = Math.round(W / 2 - total / 2);
       clubTxt.setOrigin(0, 0.5).setX(x0);
@@ -2750,7 +2752,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           this.scene.restart();
         });
       }
-      this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
+      this.boton(W / 2 + 170, H - 80, 280, "EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
     } else {
       /* FIN DE TEMPORADA: el veredicto de la escalera */
       /* (los accesos antes que los botones: ver la otra rama) */
@@ -2762,8 +2764,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* M4 · idem "hype" (Ascenso, título, gloria): declarado, con archivo y sin
          nadie que lo pida. Este es el momento para el que fue escrito. */
       if (v.gloria || v.asciende || v.campeon) this.pedirMusica("hype");
-      if (v.gloria) { msj = "🏆 ¡CAMPEÓN DEL MUNDO! LA GLORIA ETERNA"; color = "#ffd84d"; }
-      else if (v.asciende) { msj = "🏆 ¡CAMPEÓN! SUBÍS A " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#ffd84d"; }
+      if (v.gloria) { msj = "¡CAMPEÓN DEL MUNDO! LA GLORIA ETERNA"; color = "#ffd84d"; }
+      else if (v.asciende) { msj = "¡CAMPEÓN! SUBÍS A " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#ffd84d"; }
       /* A4 · con todas las letras: se dice que se descendió y a dónde */
       else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás a " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#e3503e"; }
       else { msj = "Terminaste " + v.posicion + "º — otra temporada en " + div.n; color = "#f6efdc"; }
@@ -2784,7 +2786,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.guardar();
         this.scene.restart();
       });
-      this.boton(W / 2 + 170, H - 80, 280, "✎ EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
+      this.boton(W / 2 + 170, H - 80, 280, "EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
     }
     /* L07: fijo en la tabla mientras este navegador no guarde */
     this.marcaSinGuardar();

@@ -128,7 +128,7 @@
     "golpes_ganancia": 0.5,
     "_golpes": "20/oct: los efectos grabados de la intro (patada, súper tiro, whoosh, guantes, choque, red y la tribuna del grito, en p3, p4, p6, p7 y p8) suenan multiplicados por este número para quedar por debajo del tema del opening (scenes/intro.js, golpe). 0.5 = 6 dB menos que en el partido: la patada queda unos 3,5 dB debajo de la música. 1 = como en el partido.",
     "compuerta": true,
-    "t_compuerta": "👆 TOCÁ PARA EMPEZAR",
+    "t_compuerta": "TOCÁ PARA EMPEZAR",
     "t_compuerta_teclado": "(o apretá cualquier tecla)",
     "_compuerta": "L04b · la COMPUERTA sin pisarse a 800x360 (scenes/intro.js, compuerta). compuerta_logo_alto: el alto del logo en el lienzo (se escala por alto, con el tope de 540 de ancho de antes); con 330, el dibujo de pampa-star-logo.webp (filas 22 a 2115 de 2200, medido por el alfa del archivo) va de y≈15 a y≈329. compuerta_logo_y: dónde arranca la imagen arriba. compuerta_toca_y y compuerta_tecla_y: los renglones 'TOCÁ PARA EMPEZAR' (15 px, late al 106%: de 350 a 370) y '(o apretá cualquier tecla)' (12 px: de 386 a 399). El techo es 425: ahí arranca el aviso 'Tocá ATRÁS otra vez para salir' (DOM, 18 px fijos, 50 de alto medido, 18 del borde de abajo) en el teléfono apaisado más bajo, 568x320; a 800x360 arranca en 438. Más abajo, el aviso tapa el renglón por 2 s.",
     "compuerta_logo_alto": 330,

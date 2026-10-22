@@ -113,8 +113,9 @@ function centro(s, texto) {
   var to = P.s.textos();
   assert(P.s._vista === "opciones" && ["SONIDO", "MÚSICA", "EFECTOS", "ESTILO DE MÚSICA", "DURACIÓN", "VELOCIDAD", "◀ VOLVER"].every(function (n) { return to.indexOf(n) >= 0; }),
     "OPCIONES tiene sonido, música, efectos, estilo, duración, velocidad y VOLVER (" + to.join(" | ") + ")");
-  assert(to.indexOf("✔ FOLKLORE") >= 0 && ["CUARTETO", "ROCK", "RAP"].every(function (n) { return to.indexOf(n) >= 0; }) &&
-    to.filter(function (t) { return t === "próximamente"; }).length === 3, "FOLKLORE elegido con ✔; CUARTETO, ROCK y RAP listados con \"próximamente\"");
+  /* pedido de Rodri del 22/oct: sin emojis en los textos del juego: lo elegido se marca con » (está en la tipografía) además del color */
+  assert(to.indexOf("» FOLKLORE") >= 0 && ["CUARTETO", "ROCK", "RAP"].every(function (n) { return to.indexOf(n) >= 0; }) &&
+    to.filter(function (t) { return t === "próximamente"; }).length === 3, "FOLKLORE elegido con »; CUARTETO, ROCK y RAP listados con \"próximamente\"");
   /* música: abajo y tres a la izquierda */
   P.s.teclas("DOWN"); P.s.teclas("LEFT"); P.s.teclas("LEFT"); P.s.teclas("LEFT");
   var g = JSON.parse(P.A.store[O.CLAVE]);
@@ -131,13 +132,13 @@ function centro(s, texto) {
   assert(JSON.parse(P.A.store[O.CLAVE]).estilo === "folklore", "tocar CUARTETO tampoco lo elige");
   /* duración y velocidad */
   P.s._fila = 3; P.s.teclas("DOWN"); P.s.teclas("RIGHT");
-  assert(JSON.parse(P.A.store[O.CLAVE]).duracion === "largo" && P.s.textos().indexOf("✔ LARGO") >= 0, "► en DURACIÓN: de NORMAL a LARGO, guardado");
+  assert(JSON.parse(P.A.store[O.CLAVE]).duracion === "largo" && P.s.textos().indexOf("» LARGO") >= 0, "► en DURACIÓN: de NORMAL a LARGO, guardado");
   P.s.teclas("DOWN"); P.s.teclas("RIGHT");
   assert(P.A.store.pampa_velocidad === "rapida", "► en VELOCIDAD: RÁPIDA, en la misma clave que usa la PAUSA");
   /* sonido, con el dedo */
   var cn = centro(P.s, "NO");
   P.s.tocar(cn[0], cn[1]);
-  assert(P.mudo() === true && P.s.textos().indexOf("✔ NO") >= 0, "tocar NO en SONIDO apaga el sonido");
+  assert(P.mudo() === true && P.s.textos().indexOf("» NO") >= 0, "tocar NO en SONIDO apaga el sonido");
   /* el atrás del teléfono y ESC vuelven al título */
   P.A.juegoEventos.emit("atras", { decision: "volver", escena: "titulo" });
   assert(P.s._vista === "menu" && P.s.textos().indexOf("▶ JUGAR CARRERA") >= 0, "atrás del teléfono en OPCIONES: vuelve al título");
@@ -161,7 +162,7 @@ function centro(s, texto) {
   E.s.vistaOpciones();
   assert(E.s.textos().indexOf("próximamente") < 0, "con los temas del 20/oct ningún estilo dice próximamente");
   E.s._fila = 3; E.sonidos.length = 0; E.s.teclas("RIGHT");
-  assert(JSON.parse(E.A.store[O.CLAVE]).estilo === "cuarteto" && E.s.textos().indexOf("✔ CUARTETO") >= 0 && registros.join() === "true" && E.sonidos.join() === "confirmar",
+  assert(JSON.parse(E.A.store[O.CLAVE]).estilo === "cuarteto" && E.s.textos().indexOf("» CUARTETO") >= 0 && registros.join() === "true" && E.sonidos.join() === "confirmar",
     "► en ESTILO: CUARTETO, guardado, con su sonido y la música registrada de nuevo (" + E.sonidos.join() + ")");
   var cr = centro(E.s, "RAP");
   E.s.tocar(cr[0], cr[1]);

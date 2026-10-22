@@ -131,7 +131,7 @@
   #rotate .pt-logo{display:block;width:auto;height:auto;max-width:min(72vw,320px);max-height:26vh;margin:0 auto;}
   #rotate .pt-que{margin:0;max-width:30em;font-size:17px;line-height:1.3;}
   #rotate .pt-girar{font-size:19px;}
-  #rotate .ico{display:inline-block;font-size:2rem;animation:spin 1.8s ease-in-out infinite;}
+  #rotate .ico{display:inline-block;vertical-align:middle;animation:spin 1.8s ease-in-out infinite;}
   #rotate b{color:#ffd84d;font-weight:normal;}
   #rotate .pt-rot,#rotate .pt-peso,#rotate .pt-ios{margin:0;max-width:30em;font-size:15px;line-height:1.3;color:#dcd6c2;}
   #rotate .pt-peso{color:#9FB3A5;}
@@ -164,7 +164,7 @@
   #trabado .caja{max-width:640px;width:100%;max-height:100%;overflow:auto;box-sizing:border-box;
     background:#0A1F13;border:3px solid #F5C400;border-radius:12px;padding:14px 18px;text-align:center;}
   #trabado h1{margin:0 0 6px;font-size:22px;color:#FFD84D;font-weight:normal;}
-  #trabado h1 .ico{display:inline-block;margin-right:8px;font-size:24px;}
+  #trabado h1 .ico{display:inline-block;margin-right:8px;vertical-align:-3px;}
   #trabado p{margin:6px 0;font-size:16px;line-height:1.3;}
   #trabado .botones{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:12px 0 4px;}
   #trabado button{font:inherit;font-size:16px;min-height:48px;min-width:150px;padding:8px 14px;cursor:pointer;
@@ -229,7 +229,7 @@
   #integrado .caja{max-width:560px;width:100%;max-height:100%;overflow:auto;box-sizing:border-box;
     background:#0A1F13;border:3px solid #F5C400;border-radius:12px;padding:14px 18px;text-align:center;}
   #integrado h1{margin:0 0 6px;font-size:20px;color:#FFD84D;font-weight:normal;}
-  #integrado h1 .ico{display:inline-block;margin-right:8px;}
+  #integrado h1 .ico{display:inline-block;margin-right:8px;vertical-align:-3px;}
   #integrado p{margin:6px 0;font-size:16px;line-height:1.3;}
   #integrado .pasos{color:#FFD84D;}
   #integrado .nota{font-size:14px;color:#9FB3A5;}
@@ -408,11 +408,11 @@
     <img class="pt-logo" src="../assets/ui/pampa-star-logo.webp" alt="PAMPA STAR" width="2400" height="2200" loading="lazy">
     <div class="pt-caja">
       <p class="pt-que">Fútbol pampeano, jugada por jugada: armás tu pinta, elegís tu localidad y jugás tu carrera del potrero al Mundial.</p>
-      <div class="pt-girar"><span class="ico" aria-hidden="true">📱↻</span> <b>Girá el celular para jugar</b></div>
+      <div class="pt-girar"><svg class="ico" viewBox="0 0 24 24" width="32" height="32" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="2"/></svg> <b>Girá el celular para jugar</b></div>
       <p class="pt-rot">Si no gira, activá la <b>Rotación automática</b>: deslizá desde arriba de la pantalla y tocá su ícono. En iPhone, sacá el <b>Bloqueo de rotación</b> desde el Centro de control.</p>
       <div class="pt-botones">
         <button type="button" id="pt-horizontal" hidden><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M1 6V1h5M12 1h5v5M17 12v5h-5M6 17H1v-5" fill="none" stroke="#0A1F13" stroke-width="2.4"/></svg>JUGAR EN HORIZONTAL</button>
-        <button type="button" id="pt-instalar" class="sec" hidden>📲 INSTALAR</button>
+        <button type="button" id="pt-instalar" class="sec" hidden>INSTALAR</button>
       </div>
       <p id="pt-ios" class="pt-ios" hidden>Para instalarlo en iPhone: tocá <b>Compartir</b> (el cuadrado con la flecha para arriba) y elegí <b>Agregar a inicio</b>.</p>
       <p class="pt-peso">La primera vez baja unos <span id="pt-mb" data-mb="16">16</span> MB: mejor con Wi-Fi.</p>
@@ -437,12 +437,12 @@
        (Sección 11, la excepción acotada) -->
   <div id="integrado" role="dialog" aria-modal="true" aria-labelledby="ig-tit" hidden>
     <div class="caja">
-      <h1><span class="ico" aria-hidden="true">⚠</span><span id="ig-tit"></span></h1>
+      <h1><svg class="ico" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 2.5L22.5 21H1.5Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 9v6.5M12 17.5v2" stroke="currentColor" stroke-width="2.4"/></svg><span id="ig-tit"></span></h1>
       <p id="ig-txt"></p>
       <p id="ig-pasos" class="pasos" hidden></p>
       <div class="botones">
-        <a id="ig-abrir" class="btn prim" href="#" hidden>🌐 ABRIR EN EL NAVEGADOR</a>
-        <button type="button" id="ig-copiar">📋 COPIAR EL LINK</button>
+        <a id="ig-abrir" class="btn prim" href="#" hidden>ABRIR EN EL NAVEGADOR</a>
+        <button type="button" id="ig-copiar">COPIAR EL LINK</button>
         <button type="button" id="ig-seguir" class="sec">▶ SEGUIR ACÁ IGUAL</button>
       </div>
       <p id="ig-link" class="link" hidden></p>
@@ -459,14 +459,14 @@
        existe aunque no baje nada. Los botones se prenden según el caso. -->
   <div id="trabado" role="alertdialog" aria-modal="true" aria-labelledby="tb-tit" hidden>
     <div class="caja">
-      <h1><span class="ico" aria-hidden="true">⚠</span><span id="tb-tit">Algo se trabó</span></h1>
+      <h1><svg class="ico" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 2.5L22.5 21H1.5Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 9v6.5M12 17.5v2" stroke="currentColor" stroke-width="2.4"/></svg><span id="tb-tit">Algo se trabó</span></h1>
       <p id="tb-txt"></p>
       <div class="botones">
         <button type="button" id="tb-menu" class="prim">◀ VOLVER AL MENÚ</button>
         <button type="button" id="tb-reintentar" class="prim">↻ REINTENTAR</button>
         <button type="button" id="tb-recargar">↻ RECARGAR</button>
         <button type="button" id="tb-seguir" class="sec">▶ SEGUIR IGUAL</button>
-        <button type="button" id="tb-copiar" class="sec">📋 COPIAR INFORME</button>
+        <button type="button" id="tb-copiar" class="sec">COPIAR INFORME</button>
       </div>
       <!-- la ayuda ANTES del texto: a 800x360 el informe llena la caja y lo
            que va abajo queda fuera de la vista (visto en captura) -->
@@ -697,7 +697,7 @@
       boton("tb-reintentar", noBajo);
       boton("tb-recargar", !noBajo);
       boton("tb-seguir", puedeSeguir);
-      $("tb-copiar").textContent = "📋 COPIAR INFORME";
+      $("tb-copiar").textContent = "COPIAR INFORME";
       $("tb-informe").hidden = true;
       $("tb-ayuda").textContent = "";
       var c = R.contacto(), pc = $("tb-contacto");
@@ -1972,7 +1972,7 @@
     vista:{cobertura:0.85,lerp:0.08,deadzone_w:60,deadzone_h:40,cambio_auto:true,escala_portador:0.6,escala_ficha:1.3,zoom_beat_mult:3,imprecision_ms:750,imprecision_radio:60,radio_silueta:260,parallax_pasto:1.4,parallax_pasto_y:0.7,parallax_tribuna:0.35,panel_techo_y:34,panel_suelo_y:278,panel_figura_frac:0.86,panel_figura_x:400,panel_velo_alpha:0.45,panel_franja_y:292},
     escena:{entrada_ms:500,pose_ms:800,hold_ms:1300,escala_prota:3.4,escala_rival:2.9},
     envion:{max:100,gana_duelo:18,potencia_bonus:10,potencia_ms:20000},
-    intro:{planos_ms:[3000,2000,4000,2000,1000,1500,2000,4000],compuerta:true,t_compuerta:"👆 TOCÁ PARA EMPEZAR",t_compuerta_teclado:"(o apretá cualquier tecla)",t_pueblo:"En alguna localidad de La Pampa…",t_grito:"¡CALDENAZO!",t_bajada:"DEL POTRERO AL MUNDIAL"},
+    intro:{planos_ms:[3000,2000,4000,2000,1000,1500,2000,4000],compuerta:true,t_compuerta:"TOCÁ PARA EMPEZAR",t_compuerta_teclado:"(o apretá cualquier tecla)",t_pueblo:"En alguna localidad de La Pampa…",t_grito:"¡CALDENAZO!",t_bajada:"DEL POTRERO AL MUNDIAL"},
     musica:{vol:0.5,viento:0.014,motivo:[0,7,9,12],temas:{propia_propio:{tonica:220,modo:"menor",bpm:92,prog:[0,8,3,10],percusion:0.35,motivo:"insinuado"},propia_rival:{tonica:261.63,modo:"mayor",bpm:112,prog:[0,9,5,7],percusion:1,motivo:"completo"},rival:{tonica:220,modo:"menor",bpm:100,prog:[0,-1,-2,-3],percusion:0.8,motivo:"invertido",segunda_menor:true},urgente:{tonica:220,modo:"menor",bpm:138,prog:[0,8,3,10],percusion:1,motivo:"completo",tictac:true},opening:{tonica:220,modo:"menor_a_mayor",bpm:140,prog:[0,8,3,10],percusion:1,motivo:"principal"}},gol_bpm:150,lamento_bpm:70},
     secuencias:{megacorrida_nivel:2,megacorrida_aguante:300,megacorrida_rivales:2,combinada_nivel:2,combinada_aguante:160,bonus_duelo:8},
     definicion:{def_acercan_px_s:34,contacto_px:34,jugador_px_s:160,angulo_peso:16,zona_timing:0.2,dulce_bonus:8,floja_penal:22,pasada_fuera_mult:1.6,pasada_fuera_max:0.55,coincide:55,a_una:10,a_dos:-25,bloqueo_base:0.18,bloqueo_radio:120,bloqueo_cercania:0.25,bloqueo_max:0.6,achicar_bonus:14,achicar_vendido:18,carga_ms:4200},

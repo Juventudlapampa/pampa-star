@@ -234,7 +234,7 @@
     if (sistema === "android") {
       t.texto = "Para que tu carrera quede guardada y se juegue a pantalla completa, abrilo en " + nav + ".";
       t.abrir = true;
-      t.boton = "🌐 ABRIR EN " + nav.toUpperCase();
+      t.boton = "ABRIR EN " + nav.toUpperCase();
     } else if (sistema === "ios") {
       t.texto = "Para que tu carrera quede guardada, abrilo en " + nav + ".";
       t.pasos = "Tocá el menú ··· (arriba a la derecha) y elegí «Abrir en el navegador».";

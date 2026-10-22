@@ -203,13 +203,13 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
         this.game.registry.set("carreraPendiente", null);
         this.irA("master");
       }, "volver");
-      btn(W / 2 - 145, 250, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
+      btn(W / 2 - 145, 250, "GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
       /* "🏆 CARRERA" arriba a la derecha no se lee como "seguí por acá", y
          ¡A LA CANCHA! te sacaba de la carrera: con la carrera pendiente, la
          salida hacia adelante es esta */
       btn(W / 2 + 170, 320, "▶ LISTO, A LA ENTREVISTA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
     } else {
-      btn(W / 2 - 190, 300, "💾 GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
+      btn(W / 2 - 190, 300, "GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
       /* 20/oct, Rodri: ¡A LA CANCHA! y 🏆 CARRERA sueltos acá eran la entrada
          del juego, y "no es un juego así". La entrada es la pantalla de título
          (scenes/titulo.js); al editor se llega desde la tabla de la carrera,
@@ -370,7 +370,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const CAT = A.CATALOGO;
     const nTin = (v, lista) => v > 0 ? lista[v - 1].n : "Original";
     this.txtLabel.setText(this._v2
-      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · piel " + nTin(l.tPiel, CAT.pieles).toLowerCase() + " · pelo " + nTin(l.tPelo, CAT.colores_pelo).toLowerCase())
+      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · piel " + nTin(l.tPiel, CAT.pieles).toLowerCase().replace(/^piel /, "") + " · pelo " + nTin(l.tPelo, CAT.colores_pelo).toLowerCase())
       : A.lookLabel(p.look));
     /* etiquetas de los steppers (cada variante con NOMBRE) + la fila activa
        del teclado marcada con ► y color (forma + color, no solo color) */

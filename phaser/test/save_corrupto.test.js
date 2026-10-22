@@ -270,7 +270,7 @@ var resumen = [];
   assert(!err, "SÍNTOMA: con un save sin titulos, create() no tira (" + (err && err.message) + ")");
   var tx = e1.textos();
   assert(tx.indexOf("PRIMERA B · TEMPORADA 1") >= 0, "aparece la tabla");
-  assert(tx.indexOf("▶ JUGAR LA FECHA") >= 0 && tx.indexOf("✎ EDITOR / PINTA") >= 0 && e1.tocables().length >= 3, "con sus botones");
+  assert(tx.indexOf("▶ JUGAR LA FECHA") >= 0 && tx.indexOf("EDITOR / PINTA") >= 0 && e1.tocables().length >= 3, "con sus botones");
   var guard = JSON.parse(A.localStorage.getItem("pampa_master_v1"));
   assert(Array.isArray(guard.titulos), "y el save queda guardado reparado");
 

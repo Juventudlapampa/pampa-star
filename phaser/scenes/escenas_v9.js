@@ -579,7 +579,7 @@
            la pose "bloqueo" (de pie, brazos cruzados: el cuerpo en la
            línea; l04b_4_super_defensa_revela.png). El cartel dice lo que
            se ve, como el bloqueo común de abajo. */
-        if (lectura.superDefensa) self.punch("🌟 ¡SÚPER DEFENSA!", "pusiste el cuerpo con todo el envión · pelota nuestra", 0xffd84d);
+        if (lectura.superDefensa) self.punch("¡SÚPER DEFENSA!", "pusiste el cuerpo con todo el envión · pelota nuestra", 0xffd84d);
         else self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
           "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
         if (self.tribunaSaltando) self.tribunaSaltando();
@@ -635,11 +635,11 @@
       /* la pregunta, a la derecha (el rematador ocupa de x≈150 a 450) */
       var X = 700, ANCHO = 400;
       var nom = String((tirador && tirador.nombre) || "el rival").toUpperCase();
-      var t1 = this.add.text(X, 126, "⚠ ¡" + nom + " TE VA A REMATAR!", {
+      var t1 = this.add.text(X, 126, "¡" + nom + " TE VA A REMATAR!", {
         fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", align: "center",
         backgroundColor: "#0a1f13dd", padding: { x: 10, y: 6 }, wordWrap: { width: ANCHO }
       }).setOrigin(0.5);
-      var t2 = this.add.text(X, 174, "🌟 Tenés el ENVIÓN lleno: ¿lo usás?", {
+      var t2 = this.add.text(X, 174, "Tenés el ENVIÓN lleno: ¿lo usás?", {
         fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc",
         backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }
       }).setOrigin(0.5);
@@ -652,7 +652,7 @@
         self.escenaRemateRival(tiradorIdx, !!usar);
       };
       var OPS = [
-        { y: 262, color: 0xffd84d, t: "🌟 SÚPER DEFENSA", s: "gastás el envión · este remate no entra", usar: true },
+        { y: 262, color: 0xffd84d, t: "SÚPER DEFENSA", s: "gastás el envión · este remate no entra", usar: true },
         /* revisión L04b: decía "atajan tu defensa y tu arquero", una promesa
            que el remate común no cumple (56 goles en 200, y a veces no hay
            nadie tuyo en la línea). Es texto de decisión: dice lo que pasa. */

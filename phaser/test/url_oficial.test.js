@@ -225,7 +225,8 @@ function guardado(datos, bloqueado) {
      renombra (ENTRADA-1), este assert pide cambiar también la portada */
   var aviso = (PORTADA.match(/<section id="mudanza"[\s\S]*?<\/section>/) || [""])[0];
   var MASTER = leer("phaser/scenes/master.js");
-  assert(/IMPORTAR TU CARRERA/.test(aviso) && /"⬆ IMPORTAR TU CARRERA/.test(MASTER), "el aviso nombra ⬆ IMPORTAR TU CARRERA, el botón de la mudanza que existe en master.js");
+  /* pedido de Rodri del 22/oct: el botón va sin emoji */
+  assert(/IMPORTAR TU CARRERA/.test(aviso) && /"IMPORTAR TU CARRERA/.test(MASTER), "el aviso nombra IMPORTAR TU CARRERA, el botón de la mudanza que existe en master.js");
   assert(!/<a\b/.test(aviso) && /▶ JUGAR/.test(aviso), "el aviso no tiene links: manda a ▶ JUGAR");
   console.log("[5] la portada corriendo: JUGAR o SEGUIR MI CARRERA, el aviso de la mudanza (sin link al clásico), bloqueada sin errores, y COPIAR");
 })();

@@ -584,10 +584,10 @@
   function accionesAtaque(st) {
     var A = st.bal.aguante, puedeT = puedeTirar(st), rend = rendido(st);
     var acc = [
-      { id: "gambeta", n: "GAMBETA", ico: "🌀", costo: A.costo_gambeta, poder: statCtrl(st, "gambeta"), bloqueada: rend },
-      { id: "pase", n: "PASE", ico: "➡️", costo: A.costo_pase, poder: statCtrl(st, "pase"), bloqueada: false },
-      { id: "pared", n: "PARED (1-2)", ico: "🔁", costo: A.costo_pared, poder: statCtrl(st, "pase") * 0.8 + mejorVinculo(st) * 0.2, bloqueada: rend || !hayCompaCerca(st), motivo: rend ? "SIN AGUANTE" : (!hayCompaCerca(st) ? "SIN COMPAÑERO CERCA" : null) },
-      { id: "tiro", n: "TIRO", ico: "🎯", costo: A.costo_tiro, poder: statCtrl(st, "tiro"), bloqueada: rend || !puedeT, motivo: !puedeT ? "LEJOS DEL ARCO" : (rend ? "SIN AGUANTE" : null) }
+      { id: "gambeta", n: "GAMBETA", ico: "", costo: A.costo_gambeta, poder: statCtrl(st, "gambeta"), bloqueada: rend },
+      { id: "pase", n: "PASE", ico: "", costo: A.costo_pase, poder: statCtrl(st, "pase"), bloqueada: false },
+      { id: "pared", n: "PARED (1-2)", ico: "", costo: A.costo_pared, poder: statCtrl(st, "pase") * 0.8 + mejorVinculo(st) * 0.2, bloqueada: rend || !hayCompaCerca(st), motivo: rend ? "SIN AGUANTE" : (!hayCompaCerca(st) ? "SIN COMPAÑERO CERCA" : null) },
+      { id: "tiro", n: "TIRO", ico: "", costo: A.costo_tiro, poder: statCtrl(st, "tiro"), bloqueada: rend || !puedeT, motivo: !puedeT ? "LEJOS DEL ARCO" : (rend ? "SIN AGUANTE" : null) }
     ];
     if (rend) acc.forEach(function (a) { if (a.id !== "pase") { a.bloqueada = true; a.motivo = "SIN AGUANTE"; } });
     return conBonusVida(st, acc);
@@ -595,9 +595,9 @@
   function accionesDefensa(st) {
     var A = st.bal.aguante, rend = rendido(st);
     return conBonusVida(st, [
-      { id: "quite", n: "QUITE", ico: "🦵", costo: A.costo_quite, poder: statCtrl(st, "fisico"), bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null },
-      { id: "corte", n: "CORTE DE PASE", ico: "✂️", costo: A.costo_corte, poder: statCtrl(st, "velocidad"), bloqueada: false },
-      { id: "bloqueo", n: "BLOQUEO", ico: "🧱", costo: A.costo_bloqueo, poder: statCtrl(st, "fisico") * 0.55 + statCtrl(st, "aereo") * 0.45, bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null }
+      { id: "quite", n: "QUITE", ico: "", costo: A.costo_quite, poder: statCtrl(st, "fisico"), bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null },
+      { id: "corte", n: "CORTE DE PASE", ico: "", costo: A.costo_corte, poder: statCtrl(st, "velocidad"), bloqueada: false },
+      { id: "bloqueo", n: "BLOQUEO", ico: "", costo: A.costo_bloqueo, poder: statCtrl(st, "fisico") * 0.55 + statCtrl(st, "aereo") * 0.45, bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null }
     ]);
   }
   function hayCompaCerca(st) {
@@ -1127,8 +1127,8 @@
        sola atajada. */
     var base = (arq.stats.fisico || 50) * 0.7 + (arq.stats.caracter || 50) * 0.4 + bonusVida(st, "keeper");
     return [
-      { id: "atajar", n: "ATAJAR", ico: "🧤", poder: base, riesgo: "retiene, más difícil" },
-      { id: "despejar", n: "DESPEJAR", ico: "👊", poder: base + 8, riesgo: "más seguro · pelota dividida" }
+      { id: "atajar", n: "ATAJAR", ico: "", poder: base, riesgo: "retiene, más difícil" },
+      { id: "despejar", n: "DESPEJAR", ico: "", poder: base + 8, riesgo: "más seguro · pelota dividida" }
     ];
   }
   function resolverAtajada(st, eleccion, rng, bonus) {

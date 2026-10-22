@@ -292,7 +292,7 @@
       /* área */
       g.lineStyle(4, 0xeafff0, 0.7); g.strokeRect(W / 2 - 260, 128, 520, 210);
       if (esMiArco) {
-        var t = this.add.text(16, 128, "⚠ TU ARCO", { fontFamily: window.PF.display, fontSize: "13px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 2 });
+        var t = this.add.text(16, 128, "TU ARCO", { fontFamily: window.PF.display, fontSize: "13px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 2 });
         this.cineContent.add(t);
       }
     },
@@ -337,19 +337,19 @@
          izquierda a derecha (PASE a la izquierda, TIRO a la derecha) y los
          mismos nombres. Antes el TIRO iba primero y el PASE último: el mismo
          botón cambiaba de punta según la pantalla. */
-      this.defBoton(xs, "➡ PASE", "salir del momento", 0xdcd6c2, function () { self.salirDefinicion(function () { self.iniciarPaseDirigido(null, true); }); });
+      this.defBoton(xs, "PASE", "salir del momento", 0xdcd6c2, function () { self.salirDefinicion(function () { self.iniciarPaseDirigido(null, true); }); });
       var alta = P.pelotaAltaVigente(st);
       if (alta) {
         var accA = P.accionesAereas(st);
         var cab = accA.find(function (a) { return a.id === "cabezazo"; });
         var chi = accA.find(function (a) { return a.id === "chilena"; });
-        if (cab && !cab.bloqueada) this.defBoton(xs + paso, "🎯 CABEZA", cab.costo + " de aguante", 0xf6efdc, function () { self.defElegirTiro("cabezazo", cab.costo); });
-        if (chi && !chi.bloqueada) this.defBoton(xs + paso * 2, "🌪 CHILENA", chi.costo + " · ¡la gloria!", 0xff8c3a, function () { self.defElegirTiro("chilena", chi.costo); });
+        if (cab && !cab.bloqueada) this.defBoton(xs + paso, "CABEZA", cab.costo + " de aguante", 0xf6efdc, function () { self.defElegirTiro("cabezazo", cab.costo); });
+        if (chi && !chi.bloqueada) this.defBoton(xs + paso * 2, "CHILENA", chi.costo + " · ¡la gloria!", 0xff8c3a, function () { self.defElegirTiro("chilena", chi.costo); });
       } else {
-        this.defBoton(xs + paso, "⚡ GAMBETA", A.costo_gambeta + " · saca a uno", 0xf6efdc, function () { self.defGambeta(); });
-        this.defBoton(xs + paso * 2, "🔁 PARED", A.costo_pared + " · barata", 0xf6efdc, function () { self.defPared(); });
+        this.defBoton(xs + paso, "GAMBETA", A.costo_gambeta + " · saca a uno", 0xf6efdc, function () { self.defGambeta(); });
+        this.defBoton(xs + paso * 2, "PARED", A.costo_pared + " · barata", 0xf6efdc, function () { self.defPared(); });
       }
-      this.defBoton(xs + paso * 3, "🎯 TIRO", A.costo_tiro + " de aguante", 0xffd84d, function () { self.defElegirTiro("remate", A.costo_tiro); });
+      this.defBoton(xs + paso * 3, "TIRO", A.costo_tiro + " de aguante", 0xffd84d, function () { self.defElegirTiro("remate", A.costo_tiro); });
     },
     /* ============ V9 §6 · UNA DECISIÓN, NO UNA CHECKLIST ============
        Había cinco botones (PLANTARSE / BARRIDA / ACHICAR / LÍNEA / QUIETO):
@@ -371,16 +371,16 @@
           fn();
         };
       };
-      this.defBoton(xs, "🦵 ME TIRO", A.costo_quite + " · a todo o nada", 0xff8c3a, elegir(function () {
+      this.defBoton(xs, "ME TIRO", A.costo_quite + " · a todo o nada", 0xff8c3a, elegir(function () {
         self.defBarrida();
       }), w);
-      this.defBoton(xs + w + 14, "🧤 SALGO A ACHICAR", "el arquero le achica el ángulo", 0xf6efdc, elegir(function () {
+      this.defBoton(xs + w + 14, "SALGO A ACHICAR", "el arquero le achica el ángulo", 0xf6efdc, elegir(function () {
         self._def.plan = "achicar";
         if (self._def.arq) self._def.arq.y = 190;
         self.avisarDef("Tu arquero SALE a achicar");
         self.time.delayedCall(self.msV(520), function () { self.defResolverDefensa(); });
       }), w);
-      this.defBoton(xs + (w + 14) * 2, "🧱 AGUANTO", "en la línea · juntás aire", 0xf6efdc, elegir(function () {
+      this.defBoton(xs + (w + 14) * 2, "AGUANTO", "en la línea · juntás aire", 0xf6efdc, elegir(function () {
         self._def.plantado = true;
         st.mios[st.ctrl].aguante = Math.min(A.max, st.mios[st.ctrl].aguante + Math.round((A.recupera_no_moverse || 30) * 0.5));
         self.avisarDef("Te plantás en la línea y juntás aire");
@@ -391,14 +391,14 @@
          que se juega es la pregunta de escenas_v9.js (preguntarSuperDefensa),
          antes del remate rival, con el mismo gastarEnvionSuper. */
       if (window.PampaPartido.envionLleno(st)) {
-        this.defBotonEn(W / 2, H - 108, "🌟 SÚPER DEFENSA", "ENVIÓN lleno", 0xffd84d, function () {
+        this.defBotonEn(W / 2, H - 108, "SÚPER DEFENSA", "ENVIÓN lleno", 0xffd84d, function () {
           self._def.superDef = true;
-          self.avisarDef("🌟 ¡SÚPER DEFENSA lista! Este remate NO entra");
+          self.avisarDef("¡SÚPER DEFENSA lista! Este remate NO entra");
         }, 300);
       } else {
         var iArq = st.mios.findIndex(function (x) { return x.pos === "ARQ"; });
         var m = this.megaDefensaDisponible(["atajada"], st.mios[iArq]);
-        if (m) this.defBotonEn(W / 2, H - 108, "🔥 " + m.n.toUpperCase().slice(0, 14), m.aguante + " aguante", 0xffd84d, function () {
+        if (m) this.defBotonEn(W / 2, H - 108, m.n.toUpperCase().slice(0, 14), m.aguante + " aguante", 0xffd84d, function () {
           self._def.mega = m; self.avisarDef("¡" + m.n.toUpperCase() + " lista!");
         }, 300);
         /* ACÁ IBA LA TRANQUERA, la carta del arquero, y NO VA.
@@ -546,9 +546,9 @@
       var j = st.mios[st.ctrl];
       var lado = (j && j.y > st.H / 2) ? "izq" : "der";     // cruzado al palo lejano
       var OPC = [
-        { t: "🎯 AL PALO", sub: "el más seguro", zona: "bajo_" + lado },
-        { t: "💥 AL MEDIO", sub: "a reventarla", zona: "bajo_centro" },
-        { t: "⚡ AL ÁNGULO", sub: "donde no llega nadie", zona: "alto_" + lado }
+        { t: "AL PALO", sub: "el más seguro", zona: "bajo_" + lado },
+        { t: "AL MEDIO", sub: "a reventarla", zona: "bajo_centro" },
+        { t: "AL ÁNGULO", sub: "donde no llega nadie", zona: "alto_" + lado }
       ];
       var w = 250;
       OPC.forEach(function (o, i) {

@@ -234,11 +234,12 @@ console.log("[2] cada rótulo adentro de su botón, con " + CZ.aire + " de aire 
 assert(pisados.length === 0, "SÍNTOMA DEL FOGONAZO ENCIMA DE PASE Y TIRO: botones o retratos que se pisan:\n     " + pisados.join("\n     "));
 assert(fueraLienzo.length === 0, "nada se sale del lienzo de 960x540:\n     " + fueraLienzo.join("\n     "));
 console.log("[3] ni los botones ni los retratos se pisan (con el canto de " + CANTO + " px), todo en el lienzo");
-assert(!!gambetaTiro, "★ ESPECIAL ofrece \"🌟 GAMBETA-TIRO (quedan 2)\"");
+/* pedido de Rodri del 22/oct: sin emojis en los textos del juego */
+assert(!!gambetaTiro, "★ ESPECIAL ofrece \"GAMBETA-TIRO (quedan 2)\"");
 if (gambetaTiro) {
-  assert(gambetaTiro.t.text === "🌟 GAMBETA-TIRO (quedan 2)" && adentro(gambetaTiro.b, gambetaTiro.caja, CZ.aire),
-    "\"🌟 GAMBETA-TIRO (quedan 2)\" entra ENTERA (" + Math.round(gambetaTiro.t.width) + " en " + Math.round(gambetaTiro.caja.x1 - gambetaTiro.caja.x0 - 2 * CZ.aire) + ")");
-  console.log("[4] \"🌟 GAMBETA-TIRO (quedan 2)\": " + Math.round(gambetaTiro.t.width) + " px en un botón que deja " + Math.round(gambetaTiro.caja.x1 - gambetaTiro.caja.x0 - 2 * CZ.aire));
+  assert(gambetaTiro.t.text === "GAMBETA-TIRO (quedan 2)" && adentro(gambetaTiro.b, gambetaTiro.caja, CZ.aire),
+    "\"GAMBETA-TIRO (quedan 2)\" entra ENTERA (" + Math.round(gambetaTiro.t.width) + " en " + Math.round(gambetaTiro.caja.x1 - gambetaTiro.caja.x0 - 2 * CZ.aire) + ")");
+  console.log("[4] \"GAMBETA-TIRO (quedan 2)\": " + Math.round(gambetaTiro.t.width) + " px en un botón que deja " + Math.round(gambetaTiro.caja.x1 - gambetaTiro.caja.x0 - 2 * CZ.aire));
 }
 /* lo que se recorta para que entre: nunca una palabra a la mitad, y la
    lectura del rival ("👁👁👁 te la vieron toda") queda con sus ojos. Desde el
@@ -246,7 +247,8 @@ if (gambetaTiro) {
    el costo, y lo que se pide es lo mismo, el nombre entero y los ojos. */
 assert(vistos.some(function (t) { return /^(🔥 )?TORNADO PAMPEANO$/.test(t); }) && !vistos.some(function (t) { return /DISPARO DEL CAL$|TORNADO PAMPE$/.test(t); }),
   "el especial va con su nombre entero (sin el ícono si no entra), no cortado a 15 letras");
-assert(vistos.some(function (t) { return t.indexOf("👁👁👁 te la vieron toda") === 0; }), "si te tienen leído, ★ ESPECIAL lo dice con los ojos y la palabra (" + vistos.filter(function (t) { return /vieron|leído|ficha/.test(t); }).join(" | ") + ")");
+/* pedido de Rodri del 22/oct: sin emojis en los textos del juego: los ojos son tres puntos de la tipografía */
+assert(vistos.some(function (t) { return t.indexOf("••• te la vieron toda") === 0; }), "si te tienen leído, ★ ESPECIAL lo dice con los puntos y la palabra (" + vistos.filter(function (t) { return /vieron|leído|ficha/.test(t); }).join(" | ") + ")");
 assert(bloqueados >= 3, "las opciones bloqueadas llevan el rayado dibujado (" + bloqueados + " de 3)");
 assert(!vistos.some(function (t) { return /▨/.test(t); }), "el bloqueo no viaja en el glifo ▨, que no está en las tipografías del juego");
 assert(MET.ajenas("▨", "texto").length === 1, "control: ▨ no está en Pixelify Sans ni en VT323 (por eso se dibuja)");

@@ -5,7 +5,7 @@
  "opciones": [
   {
    "id": "entrenar_tiro",
-   "n": "⚽ ENTRENAR TIRO",
+   "n": "ENTRENAR TIRO",
    "sub": "toda la tarde pateando al arco",
    "energia_costo": 25,
    "stat": "tiro",
@@ -17,7 +17,7 @@
   },
   {
    "id": "entrenar_gambeta",
-   "n": "🌀 ENTRENAR GAMBETA",
+   "n": "ENTRENAR GAMBETA",
    "sub": "conos, amagues y cintura",
    "energia_costo": 25,
    "stat": "gambeta",
@@ -29,7 +29,7 @@
   },
   {
    "id": "entrenar_aguante",
-   "n": "💪 ENTRENAR AGUANTE",
+   "n": "ENTRENAR AGUANTE",
    "sub": "correr el campo entero",
    "energia_costo": 30,
    "stat": "resistencia",
@@ -42,7 +42,7 @@
   },
   {
    "id": "picadito",
-   "n": "🥅 PICADITO EN EL POTRERO",
+   "n": "PICADITO EN EL POTRERO",
    "sub": "con la barra del barrio",
    "energia_costo": 15,
    "animo": 5,
@@ -56,7 +56,7 @@
   },
   {
    "id": "descansar",
-   "n": "😴 DESCANSAR",
+   "n": "DESCANSAR",
    "sub": "no hacer nada, y que sea sagrado",
    "energia_recupera": 30,
    "animo": 5,
@@ -68,7 +68,7 @@
   },
   {
    "id": "asado",
-   "n": "🔥 ASADO CON LA BARRA",
+   "n": "ASADO CON LA BARRA",
    "sub": "el ritual de siempre",
    "energia_costo": 10,
    "animo": 15,
@@ -80,7 +80,7 @@
   },
   {
    "id": "ayudar_casa",
-   "n": "🏠 AYUDAR EN CASA",
+   "n": "AYUDAR EN CASA",
    "sub": "laburo de verdad · tu vieja te lo agradece",
    "energia_costo": 35,
    "animo": 10,
@@ -96,7 +96,7 @@
   },
   {
    "id": "ver_rival",
-   "n": "👀 IR A VER AL RIVAL",
+   "n": "IR A VER AL RIVAL",
    "sub": "espiarlos el domingo",
    "energia_costo": 20,
    "espia_rival": true,
@@ -108,7 +108,7 @@
   },
   {
    "id": "estudiar",
-   "n": "📚 ESTUDIAR PARA LA ESCUELA",
+   "n": "ESTUDIAR PARA LA ESCUELA",
    "sub": "sacarte el problema de encima",
    "energia_costo": 20,
    "animo": 3,
@@ -122,7 +122,7 @@
   },
   {
    "id": "curar",
-   "n": "🩹 CURAR LA MOLESTIA",
+   "n": "CURAR LA MOLESTIA",
    "sub": "hielo, descanso y paciencia",
    "energia_costo": 20,
    "cura_molestia": true,

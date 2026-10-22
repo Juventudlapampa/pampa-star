@@ -169,9 +169,10 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     return out;
   }
   [
-    { n: "club sin títulos, ganaste 2-1", titulos: 0, ultimo: { golesMio: 2, golesRival: 1 }, re: /^✔ GANASTE 2-1$/ },
-    { n: "club con 5 títulos, empataste 0-0", titulos: 5, ultimo: { golesMio: 0, golesRival: 0 }, re: /^= EMPATASTE 0-0$/ },
-    { n: "perdiste 1-3", titulos: 1, ultimo: { golesMio: 1, golesRival: 3 }, re: /^✘ PERDISTE 1-3$/ }
+    /* pedido de Rodri del 22/oct: sin emojis en los textos del juego: el resultado lo dice la palabra, sin ✔ ni ✘ */
+    { n: "club sin títulos, ganaste 2-1", titulos: 0, ultimo: { golesMio: 2, golesRival: 1 }, re: /^GANASTE 2-1$/ },
+    { n: "club con 5 títulos, empataste 0-0", titulos: 5, ultimo: { golesMio: 0, golesRival: 0 }, re: /^EMPATASTE 0-0$/ },
+    { n: "perdiste 1-3", titulos: 1, ultimo: { golesMio: 1, golesRival: 3 }, re: /^PERDISTE 1-3$/ }
   ].forEach(function (c) {
     var s = A.nueva();
     s.save = A.carreraNueva();
@@ -330,7 +331,7 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   E.correrTimers();
   var bs = botonesCine(E), ts = textosCine(E).map(function (t) { return t.text; });
   assert(bs.length === 2, "dos botones: SÚPER DEFENSA y GUARDAR (" + bs.length + ")");
-  assert(ts.indexOf("🌟 SÚPER DEFENSA") >= 0 && ts.indexOf("◀ GUARDAR EL ENVIÓN") >= 0, "con ícono y palabra (" + ts.join(" | ") + ")");
+  assert(ts.indexOf("SÚPER DEFENSA") >= 0 && ts.indexOf("◀ GUARDAR EL ENVIÓN") >= 0, "con su palabra (" + ts.join(" | ") + ")");
   /* revisión L04b: el renglón de GUARDAR decía "atajan tu defensa y tu
      arquero", y el remate común entra (abajo se mide). Es texto de decisión:
      dice que el envión queda y que el remate puede entrar, sin prometer. */

@@ -309,12 +309,13 @@ pasos.push(async function () {
   var PM = require("./_partido_de_mentira.js");
   var C = PM.cargar();
   var textos = [];
-  function medir(t) { return Array.from(t).reduce(function (a, c) { return a + (c === "⏰" ? 14 : 7); }, 0); }
+  /* pedido de Rodri del 22/oct: sin emojis en los textos del juego: el aviso de los últimos minutos es un » de la tipografía */
+  function medir(t) { return Array.from(t).length * 7; }
   var reloj = { scene: {}, x: 948, originX: 1, text: "12:15 1T", width: 0,
     setText: function (t) { this.text = t; textos.push(t); this.width = medir(t); return this; } };
   var borde = C.W.PampaMatch.prototype.bordeIzqDelReloj.call({ txtReloj: reloj, BAL: { tempo: { tramo_seg: 15 } } });
-  assert(borde === 948 - medir("⏰ 90:00+ 2T"), "mide los relojes de los últimos minutos y del descuento y se queda con el más ancho (" + borde + ")");
-  assert(textos.indexOf("⏰ 90:45+ 2T") >= 0 && textos.indexOf("45:30+ 1T") >= 0, "con los segundos del tramo (15) y el descuento del 1T");
+  assert(borde === 948 - medir("» 90:00+ 2T"), "mide los relojes de los últimos minutos y del descuento y se queda con el más ancho (" + borde + ")");
+  assert(textos.indexOf("» 90:45+ 2T") >= 0 && textos.indexOf("45:30+ 1T") >= 0, "con los segundos del tramo (15) y el descuento del 1T");
   assert(reloj.text === "12:15 1T", "y el reloj queda con el texto que tenía");
   assert(C.W.PampaMatch.prototype.bordeIzqDelReloj.call({ txtReloj: null, BAL: {} }) === 856, "sin reloj, el borde de antes (856)");
   console.log("[5b] revisión: la pastilla del partido va pegada al reloj más ancho, medido, sin pisarlo");

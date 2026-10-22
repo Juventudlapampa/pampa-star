@@ -96,7 +96,7 @@ var ESPERADO = {
 /* ---------- [2] textos y links ---------- */
 (function () {
   var a = E.textoIntegrado("instagram", "android");
-  assert(a.titulo === "Estás en el navegador de Instagram" && /quede guardada y se juegue a pantalla completa, abrilo en Chrome/.test(a.texto) && a.abrir === true && a.boton === "🌐 ABRIR EN CHROME" && !a.pasos,
+  assert(a.titulo === "Estás en el navegador de Instagram" && /quede guardada y se juegue a pantalla completa, abrilo en Chrome/.test(a.texto) && a.abrir === true && a.boton === "ABRIR EN CHROME" && !a.pasos,
     "Instagram en Android: el texto del ítem y el botón ABRIR EN CHROME");
   var i = E.textoIntegrado("tiktok", "ios");
   assert(i.titulo === "Estás en el navegador de TikTok" && /Safari/.test(i.texto) && /···/.test(i.pasos) && i.abrir === false && i.navegador === "Safari", "TikTok en iPhone: Safari y los pasos del menú ···");
@@ -177,8 +177,9 @@ pasos.push(async function () {
   assert(D.els["ig-tit"].textContent === "Estás en el navegador de Instagram" && /abrilo en Chrome/.test(D.els["ig-txt"].textContent), "con el título y el texto del ítem");
   assert(D.els["ig-abrir"].hidden === false && /^intent:\/\/juventudlapampa\.github\.io\/pampa-star\/phaser\/index\.html#Intent;scheme=https;package=com\.android\.chrome;/.test(D.els["ig-abrir"].href),
     "🌐 ABRIR EN CHROME con el intent:// a esta dirección, sin el ?ref (" + D.els["ig-abrir"].href + ")");
-  assert(D.els["ig-abrir"].textContent === "🌐 ABRIR EN CHROME", "el botón dice ABRIR EN CHROME (el texto sale de la tabla de entorno.js, no del HTML)");
-  assert(/<a id="ig-abrir"[^>]*>🌐 ABRIR EN EL NAVEGADOR<\/a>/.test(INDEX), "en el HTML el botón va neutro");
+  assert(D.els["ig-abrir"].textContent === "ABRIR EN CHROME", "el botón dice ABRIR EN CHROME (el texto sale de la tabla de entorno.js, no del HTML)");
+  /* pedido de Rodri del 22/oct: sin emojis en los textos del juego */
+  assert(/<a id="ig-abrir"[^>]*>ABRIR EN EL NAVEGADOR<\/a>/.test(INDEX), "en el HTML el botón va neutro");
   assert(D.els["ig-abrir"].enfocado, "y el foco arranca en ABRIR EN CHROME");
   assert(D.els["ig-pasos"].hidden === true, "en Android no hay pasos del menú");
   /* los toques y las teclas del cartel no llegan al juego */
@@ -248,24 +249,25 @@ pasos.push(async function () {
   s.create();
   var cajas = doc.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; });
   var h1 = doc.buscar(function (n) { return n.tagName === "h1"; })[0];
-  assert(cajas.length === 1 && h1 && h1.textContent === "⚠ En este navegador tu carrera NO se guarda", "SÍNTOMA: el Master arma el aviso (" + (h1 && h1.textContent) + ")");
+  /* pedido de Rodri del 22/oct: sin emojis en los textos del juego (el aviso lo dice con palabras) */
+  assert(cajas.length === 1 && h1 && h1.textContent === "En este navegador tu carrera NO se guarda", "SÍNTOMA: el Master arma el aviso (" + (h1 && h1.textContent) + ")");
   assert(doc.buscar(function (n) { return n.tagName === "textarea"; }).length === 0, "es un aviso, sin caja de texto");
   var botones = doc.buscar(function (n) { return n.tagName === "button"; });
-  var cod = botones.find(function (b) { return b.textContent === "💾 CÓDIGO DE CARRERA"; });
-  assert(!!cod && botones.some(function (b) { return b.textContent === "▶ SEGUIR IGUAL"; }), "con 💾 CÓDIGO DE CARRERA y ▶ SEGUIR IGUAL");
+  var cod = botones.find(function (b) { return b.textContent === "CÓDIGO DE CARRERA"; });
+  assert(!!cod && botones.some(function (b) { return b.textContent === "▶ SEGUIR IGUAL"; }), "con CÓDIGO DE CARRERA y ▶ SEGUIR IGUAL");
   assert(cod && cod.enfocado, "el foco arranca en CÓDIGO DE CARRERA");
-  assert(s.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "y la marca fija en la tabla");
-  var marca = s.tocables().find(function (o) { return o.text === "⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA"; });
+  assert(s.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "y la marca fija en la tabla");
+  var marca = s.tocables().find(function (o) { return o.text === "ESTE NAVEGADOR NO GUARDA TU CARRERA"; });
   assert(!!marca && marca.x < 40 && marca.y < 20, "arriba a la izquierda, y se puede tocar");
   assert(s.guardar() === false, "guardar() devuelve false");
   cod.oyentes.click[0]("", function () { });
-  assert(doc.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 0 && s.textos().indexOf("💾 CÓDIGO DE CARRERA") >= 0,
-    "💾 CÓDIGO DE CARRERA cierra el aviso y abre la vista del código");
+  assert(doc.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 0 && s.textos().indexOf("CÓDIGO DE CARRERA") >= 0,
+    "CÓDIGO DE CARRERA cierra el aviso y abre la vista del código");
   /* otra entrada al Master en la misma sesión: la marca sí, la caja no otra vez */
   var s2 = A.nueva(); s2.create();
   assert(doc.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 0, "la segunda vez en la sesión no vuelve la caja");
-  assert(s2.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "pero la marca sigue fija");
-  var m2 = s2.tocables().find(function (o) { return o.text === "⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA"; });
+  assert(s2.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "pero la marca sigue fija");
+  var m2 = s2.tocables().find(function (o) { return o.text === "ESTE NAVEGADOR NO GUARDA TU CARRERA"; });
   s2.tocar(m2.x + 5, m2.y + 5);
   assert(doc.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 1, "tocar la marca vuelve a abrir el aviso");
   s2.cerrarCaja();
@@ -278,19 +280,19 @@ pasos.push(async function () {
   var bot2 = doc2.buscar(function (n) { return n.tagName === "button"; }).map(function (b) { return b.textContent; });
   assert(bot2.length === 1 && bot2[0] === "▶ SEGUIR IGUAL", "sin carrera: el aviso ofrece solo SEGUIR IGUAL (" + bot2.join(", ") + ")");
   /* la marca de elegir club es su título; desde el 20/oct sin el emoji (pedido de Rodri) */
-  assert(e.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0 && e.textos().indexOf("MODO MASTER") >= 0, "y la marca en elegir club");
+  assert(e.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0 && e.textos().indexOf("MODO MASTER") >= 0, "y la marca en elegir club");
 
   /* un guardar() que falla en medio de la carrera, con la prueba de entrada en verde */
   var C = M.armar({ logicaExtra: ["phaser/logic/entorno.js"] });
   var doc3 = domDeMentira(); C.ctx.document = doc3;
   C.localStorage.setItem("pampa_master_v1", JSON.stringify(sv));
   var c = C.nueva(); c.create();
-  assert(doc3.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 0 && c.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") < 0,
+  assert(doc3.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 0 && c.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") < 0,
     "con un almacenamiento que anda: ni aviso ni marca");
   assert(c.guardar() === true, "y guardar() devuelve true");
   C.localStorage.setItem = function () { throw new Error("QuotaExceededError"); };
   assert(c.guardar() === false && doc3.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 1, "el primer guardar() que falla abre el aviso");
-  assert(c.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "y pone la marca en la vista de ahora");
+  assert(c.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "y pone la marca en la vista de ahora");
   c.cerrarCaja();
   assert(c.guardar() === false && doc3.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 0, "los siguientes no lo vuelven a abrir");
   A.localStorage.setItem = setOrig;
@@ -299,7 +301,7 @@ pasos.push(async function () {
   var doc4 = domDeMentira(); Dd.ctx.document = doc4;
   Dd.window.PAMPA_GUARDADO = false;
   var dd = Dd.nueva(); dd.create();
-  assert(doc4.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 1 && dd.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0,
+  assert(doc4.buscar(function (n) { return n.attrs && n.attrs.role === "dialog"; }).length === 1 && dd.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0,
     "si la prueba de index.html al abrir dio que no (PAMPA_GUARDADO false), el Master avisa igual");
   var MS = leer("phaser/scenes/master.js");
   var g = MS.slice(MS.indexOf("  guardar() {"), MS.indexOf("  guardadoAnda() {"));
@@ -359,7 +361,7 @@ pasos.push(async function () {
   reiniciar(s);
   assert(s.save && s.save.club === club && s.textos().indexOf("MODO MASTER") < 0 && s.textos().some(function (t) { return /^FECHA 1 de 18/.test(t); }),
     "SÍNTOMA: después del restart, la tabla de TU carrera (" + club + ") y no elegir club otra vez (" + s.textos().slice(0, 3).join(" · ") + ")");
-  assert(s.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "con la marca fija en la tabla");
+  assert(s.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "con la marca fija en la tabla");
   /* ◀ VOLVER A LA TABLA (o cualquier otra vista que reinicia) */
   reiniciar(s);
   assert(s.save && s.save.club === club && s.save.temporada.fecha === 0, "un restart más: la misma carrera");
@@ -437,7 +439,7 @@ pasos.push(async function () {
   seguir.oyentes.click[0]("", function () { });
   assert(cajas() === 0, "SEGUIR IGUAL lo cierra");
   reiniciar(s);
-  assert(cajas() === 0 && s.textos().indexOf("⚠ ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "leído y cerrado con un botón, no vuelve; la marca sigue fija");
+  assert(cajas() === 0 && s.textos().indexOf("ESTE NAVEGADOR NO GUARDA TU CARRERA") >= 0, "leído y cerrado con un botón, no vuelve; la marca sigue fija");
   var MS = leer("phaser/scenes/master.js");
   assert(/this\.events\.once\("shutdown", \(\) => \{ this\._cajaGancho = false; this\.soltarAvisoPorApagado\(\); this\.cerrarCaja\(\); \}\)/.test(MS),
     "el gancho de apagado deja el aviso pendiente antes de cerrar la caja");

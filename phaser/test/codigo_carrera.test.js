@@ -238,7 +238,8 @@ function domDeMentira() {
   var conPiso = [], yaTocable = [];
   s.pisoTactil = function (o) { conPiso.push(o); if (o.input) yaTocable.push(o.text); return o; };
   s.create();
-  assert(s.textos().indexOf("💾 código de carrera") >= 0, "la tabla tiene \"💾 código de carrera\"");
+  /* pedido de Rodri del 22/oct: sin emojis en los textos del juego */
+  assert(s.textos().indexOf("código de carrera") >= 0, "la tabla tiene \"código de carrera\"");
   var textosTocables = s.tocables().filter(function (o) { return o.type === "Text"; });
   assert(textosTocables.length >= 2 && textosTocables.every(function (o) { return conPiso.indexOf(o) >= 0; }),
     "SÍNTOMA: en la tabla, todo texto tocable pasa por pisoTactil (" + textosTocables.map(function (o) {
@@ -256,10 +257,10 @@ function domDeMentira() {
   assert(antesQueLosBotones(s), "SÍNTOMA: en la tabla, los accesos de abajo se crean antes que los botones (en el borde gana el botón)");
   assert(textosTocables.every(function (o) { return parseInt(o.style.fontSize, 10) >= 13; }),
     "y su letra es de 13 o más (" + textosTocables.map(function (o) { return o.style.fontSize; }).join(", ") + ")");
-  var acceso = s.tocables().find(function (o) { return o.text === "💾 código de carrera"; });
+  var acceso = s.tocables().find(function (o) { return o.text === "código de carrera"; });
   s.tocar(acceso.x - 40, acceso.y);
   var tx = s.textos();
-  assert(tx.indexOf("💾 CÓDIGO DE CARRERA") >= 0 && tx.some(function (t) { return /letras · empieza con PAMPA1\./.test(t); }),
+  assert(tx.indexOf("CÓDIGO DE CARRERA") >= 0 && tx.some(function (t) { return /letras · empieza con PAMPA1\./.test(t); }),
     "tocarlo abre la vista del código, que dice cuántas letras tiene y cómo empieza");
   s.teclas("ENTER");                                      // el cursor arranca en COPIAR
   assert(copiado === C.exportar(mia), "COPIAR EL CÓDIGO copia el código de esta carrera");
@@ -270,7 +271,7 @@ function domDeMentira() {
   A.localStorage.removeItem("pampa_master_v1_borrada");
   var s2 = A.nueva(); s2.save = null; s2.T = W.PampaTemporada; s2.Ma = W.PampaMaster; s2.DIV = A.datos.divisiones;
   s2.vistaElegir();
-  assert(s2.textos().indexOf("📋 PEGAR UN CÓDIGO") >= 0, "elegir club tiene \"📋 PEGAR UN CÓDIGO\"");
+  assert(s2.textos().indexOf("PEGAR UN CÓDIGO") >= 0, "elegir club tiene \"PEGAR UN CÓDIGO\"");
   var bPegar = s2.tocables().find(function (o) { return o.type === "Rectangle" && o.x > 480 && o.y > 480; });
   s2.tocar(bPegar.x, bPegar.y);
   var ta = doc.buscar(function (n) { return n.tagName === "textarea"; })[0];
@@ -315,7 +316,7 @@ function domDeMentira() {
   var fin = carrera("primera_a", 18);
   A.localStorage.setItem("pampa_master_v1", JSON.stringify(fin));
   var s4 = A.nueva(); s4.create();
-  var acc4 = s4.tocables().find(function (o) { return o.text === "💾 código de carrera"; });
+  var acc4 = s4.tocables().find(function (o) { return o.text === "código de carrera"; });
   assert(!!acc4 && s4.textos().indexOf("▶ NUEVA TEMPORADA") >= 0, "en FIN DE TEMPORADA también está el 💾 (control del test)");
   assert(antesQueLosBotones(s4), "en FIN DE TEMPORADA los accesos también van antes que los botones");
   if (acc4) s4.tocar(acc4.x - 40, acc4.y);
@@ -331,7 +332,7 @@ function domDeMentira() {
      elegir club, que no aparece si el teléfono ya tiene carrera: el camino
      no existía. Ahora está en ¿EMPEZAR OTRA CARRERA?, y la de ahora queda
      respaldada en pampa_master_v1_borrada */
-  assert(s4.textos().indexOf("📋 PEGAR UN CÓDIGO EN SU LUGAR") >= 0, "SÍNTOMA: ¿EMPEZAR OTRA CARRERA? ofrece \"📋 PEGAR UN CÓDIGO EN SU LUGAR\"");
+  assert(s4.textos().indexOf("PEGAR UN CÓDIGO EN SU LUGAR") >= 0, "SÍNTOMA: ¿EMPEZAR OTRA CARRERA? ofrece \"PEGAR UN CÓDIGO EN SU LUGAR\"");
   assert(s4._foco && s4._foco.i === 0, "el cursor sigue arrancando en SEGUIR CON ESTA CARRERA");
   var bs4 = s4.tocables().filter(function (o) { return o.type === "Rectangle"; }).sort(function (a, b) { return a.y - b.y; });
   assert(bs4.length === 3, "tres caminos: seguir, pegar, borrar (" + bs4.length + ")");
@@ -388,7 +389,7 @@ function domDeMentira() {
     var txt = (parrafo ? parrafo.textContent : "") + " | " + (msg ? msg.textContent : "");
     casos.push((anda ? "execCommand anda: " : "execCommand no anda: ") + txt);
     if (anda) {
-      assert(msg && msg.textContent === "✔ Ya quedó copiado." && parrafo && !/No se pudo copiar/.test(parrafo.textContent),
+      assert(msg && msg.textContent === "Ya quedó copiado." && parrafo && !/No se pudo copiar/.test(parrafo.textContent),
         "SÍNTOMA: con execCommand andando, la caja no dice a la vez \"No se pudo copiar solo\" y \"✔ Ya quedó copiado.\" (" + txt + ")");
     } else {
       assert(parrafo && /No se pudo copiar solo/.test(parrafo.textContent) && msg && msg.textContent === "",

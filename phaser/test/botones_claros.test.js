@@ -107,7 +107,7 @@ function ataque(s, rivalIdx, libre) {
   s0.MEGA = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "data", "megacosas.json"), "utf8"));
   s0.st.envion = BAL.envion.max;
   ataque(s0, 1, false);
-  assert(!hayTexto(s0, "🌟 POTENCIAR") && !hayTexto(s0, "★ ESPECIAL"), "[2] poda 22/oct: con balance.flags.envion en false no hay POTENCIAR ni ★ ESPECIAL, aunque el envión venga cargado");
+  assert(!hayTexto(s0, "POTENCIAR") && !hayTexto(s0, "★ ESPECIAL"), "[2] poda 22/oct: con balance.flags.envion en false no hay POTENCIAR ni ★ ESPECIAL, aunque el envión venga cargado");
   assert(hayTexto(s0, "★ SÚPER TIRO"), "[2] poda 22/oct: el centro de la cruz es el SÚPER TIRO solo");
   var E = escena(), s = E.s;
   s.BAL.flags.envion = true;   // la perilla lo vuelve a prender
@@ -116,12 +116,13 @@ function ataque(s, rivalIdx, libre) {
   assert(!!centro(s), "[2] con el envión lleno hay ★ ESPECIAL");
   E.tocar(centro(s));
   var pot = vivos(s, "Rectangle").filter(function (o) {
-    return o.input && o.input.enabled && vivos(s, "Text").some(function (t) { return t.text === "🌟 POTENCIAR" && Math.abs(t.x - o.x) < 2 && Math.abs(t.y - o.y) < 12; });
+    /* pedido de Rodri del 22/oct: sin emojis en los textos del juego */
+    return o.input && o.input.enabled && vivos(s, "Text").some(function (t) { return t.text === "POTENCIAR" && Math.abs(t.x - o.x) < 2 && Math.abs(t.y - o.y) < 12; });
   })[0];
   assert(!!pot, "[2] POTENCIAR está en la grilla de ★ ESPECIAL");
   E.tocar(pot);
   assert(s.st.envion === 0 && E.W.PampaPartido.envionActivo(s.st), "[2] usarlo gasta el envión y enciende al equipo");
-  assert(s.estado === "MENU" && s._menuOps.N && s._menuOps.N.texto === "⚡ GAMBETA", "[2] y vuelve a la cruz para elegir la jugada");
+  assert(s.estado === "MENU" && s._menuOps.N && s._menuOps.N.texto === "GAMBETA", "[2] y vuelve a la cruz para elegir la jugada");
   var E2 = escena(), s2 = E2.s;
   s2.BAL.flags.envion = true;
   s2.st.envion = BAL.envion.max - 1;
@@ -129,7 +130,7 @@ function ataque(s, rivalIdx, libre) {
   /* con un solo especial el centro es ese botón (el SÚPER TIRO) y tocarlo
      patea: la grilla se abre solo si el centro es ★ ESPECIAL */
   if (centro(s2) && hayTexto(s2, "★ ESPECIAL")) E2.tocar(centro(s2));
-  assert(!hayTexto(s2, "🌟 POTENCIAR"), "[2] sin el envión lleno no se ofrece");
+  assert(!hayTexto(s2, "POTENCIAR"), "[2] sin el envión lleno no se ofrece");
   console.log("[2] POTENCIAR vive en ★ ESPECIAL y vuelve a la cruz");
 })();
 

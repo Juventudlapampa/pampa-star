@@ -183,7 +183,8 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
   ok(sd[0] && sd[0].w === 300, "y mide 300 de ancho, un número (recibía " + (sd[0] && typeof sd[0].w) + ")");
   ok(sd[0] && typeof sd[0].color === "number", "y el color es un número (recibía el texto del botón)");
   var tSD = a.textos.filter(function (t) { return t.y < 432 && t.y > 400; }).map(function (t) { return t.text; });
-  ok(tSD.indexOf("🌟 SÚPER DEFENSA") >= 0, "el título del botón es '🌟 SÚPER DEFENSA' (salió " + JSON.stringify(tSD) + ")");
+  /* pedido de Rodri del 22/oct: sin emojis en los textos del juego */
+  ok(tSD.indexOf("SÚPER DEFENSA") >= 0, "el título del botón es 'SÚPER DEFENSA' (salió " + JSON.stringify(tSD) + ")");
   ok(a.textos.some(function (t) { return t.text === "ENVIÓN lleno" && t.y > 432; }), "y abajo, chico, 'ENVIÓN lleno'");
   var fila = a.rects.filter(function (r) { return r.y === 506; });
   ok(fila.length === 3, "la fila de la decisión sigue siendo de tres en y=506 (hay " + fila.length + ")");
@@ -197,7 +198,7 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
   var b = armar(10, { n: "Tranquera", aguante: 250 });
   var mg = b.rects.filter(function (r) { return r.y === 432; });
   ok(mg.length === 1 && mg[0].w === 300, "la megadefensa usa el mismo lugar: y=432, 300 de ancho");
-  ok(b.textos.some(function (t) { return t.text === "🔥 TRANQUERA"; }), "con su nombre arriba ('🔥 TRANQUERA')");
+  ok(b.textos.some(function (t) { return t.text === "TRANQUERA"; }), "con su nombre arriba ('TRANQUERA')");
   ok(b.textos.some(function (t) { return t.text === "250 aguante"; }), "y el costo en número abajo ('250 aguante')");
   var err2 = mg[0] ? tocar(mg[0]) : new Error("no hay botón");
   ok(!err2, "tocarla no puede tirar excepción: " + (err2 && err2.message));

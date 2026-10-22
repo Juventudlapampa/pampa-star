@@ -286,7 +286,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       const t = this.add.text(480, 200, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.capa.add(t);
     }
-    const toca = this.add.text(480, Q.compuerta_toca_y || 360, Q.t_compuerta || "👆 TOCÁ PARA EMPEZAR",
+    const toca = this.add.text(480, Q.compuerta_toca_y || 360, Q.t_compuerta || "TOCÁ PARA EMPEZAR",
       { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
     this.capa.add(toca);
     this._tocaTxt = toca;   // L06: si al tocar falta lo del opening, este renglón pasa a decir cuánto

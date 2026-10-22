@@ -669,7 +669,7 @@ var TEXTOS_MUNDO_OK = {
      orden se cuida en create(), donde el partido arranca */
   var cre = SRC_M.slice(SRC_M.indexOf("  create() {"));
   var iTut = cre.indexOf("this.tutorialSiHaceFalta();");
-  assert(iTut > 0 && iTut < cre.indexOf("anunciarEnTicker(this._vidaFicha") && iTut < cre.indexOf('this.avisar("⚔ " + this.nombreRival'),
+  assert(iTut > 0 && iTut < cre.indexOf("anunciarEnTicker(this._vidaFicha") && iTut < cre.indexOf('this.avisar(this.nombreRival + " juega "'),
     "SÍNTOMA DE LOS AVISOS DETRÁS DEL TUTORIAL: al arrancar, el tutorial se abre ANTES de la ficha y del perfil del rival (si no, se pintan y quedan tapados)");
   assert(/this\._relPendiente = null;/.test(SRC_M.slice(SRC_M.indexOf("  init() {"), SRC_M.indexOf("  create() {"))),
     "init() vacía la frase que esperaba (patrón P1: si no, salía al arrancar la fecha siguiente)");
@@ -678,7 +678,7 @@ var TEXTOS_MUNDO_OK = {
   var llamadas = (SRC_M.match(/this\.avisar\(/g) || []).length;
   assert(llamadas >= 9, "match.js sigue llamando a avisar() (" + llamadas + " llamadas)");
   assert(/if \(this\._avisosCola && this\._avisosCola\.length\) this\.soltarAvisos\(\);/.test(SRC_M), "el update suelta la cola de avisos");
-  assert(!/this\.avisar\("📋/.test(SRC_M) && /anunciarEnTicker\(this\._vidaFicha, "📋", \{ prioridad: true \}\)/.test(SRC_M),
+  assert(!/this\.avisar\("📋/.test(SRC_M) && /anunciarEnTicker\(this\._vidaFicha, null, \{ prioridad: true \}\)/.test(SRC_M),
     "la ficha de la semana va al ticker del relator (que tiene su espera), no a avisar()");
 
   /* ---- (b) el censo: textos que van a mundoLayer ----

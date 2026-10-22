@@ -388,7 +388,7 @@
         defensor: { quite: window.PampaPartido.quiteDe(st.mios[st.ctrl].stats) },
         rival: { gambeta: (rival.stats && rival.stats.gambeta) || 55, nombre: rival.nombre }
       });
-      this.jugadonAbrir("🌟 SÚPER QUITE · leé su movida y cerrale el camino");
+      this.jugadonAbrir("SÚPER QUITE · leé su movida y cerrale el camino");
       var kR = this.poseRivalNaranja ? this.poseRivalNaranja("corriendo") : this.poseKey("corriendo");
       if (kR) { var sr = this.add.image(480, 150, kR); sr.setScale(115 / sr.height); sr.setFlipX(true); this.cineContent.add(sr); }
       this._jg.sprites.push(this.jugadonGlobo(480, 84, "▼ " + (rival.nombre || "RIVAL").toUpperCase().slice(0, 12) + " INSINÚA: " + this._jgLogica.movidaRival.n));
@@ -445,7 +445,7 @@
        ====================================================================== */
     entrarJugadonTiro() {
       var st = this.st, J = window.PampaJugadon, self = this;
-      this.jugadonAbrir("🌟 SÚPER TIRO · ¿dónde la ponés? — la física decide");
+      this.jugadonAbrir("SÚPER TIRO · ¿dónde la ponés? — la física decide");
       /* el ARCO grande (400×140 de lógica, ×1.8 en pantalla) */
       var AW = J.ARCO.w * 1.8, AH = J.ARCO.h * 1.8, ax = W / 2, ayPiso = 380;
       var g = this.add.graphics();
@@ -478,9 +478,9 @@
          Los botones ya traen su número y su tecla (jugadonBoton). */
       var lado = (st.mios[st.ctrl].y > st.H / 2) ? 1 : -1;      // cruzado al palo lejano
       var OPC = [
-        { t: "🎯 AL PALO", x: 175 * lado, y: 25 },
-        { t: "💥 AL MEDIO", x: 0, y: 20 },
-        { t: "⚡ AL ÁNGULO", x: 185 * lado, y: 120 }
+        { t: "AL PALO", x: 175 * lado, y: 25 },
+        { t: "AL MEDIO", x: 0, y: 20 },
+        { t: "AL ÁNGULO", x: 185 * lado, y: 120 }
       ];
       var wpx = 250;
       OPC.forEach(function (o, i) {

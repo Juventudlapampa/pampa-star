@@ -95,7 +95,8 @@ function espiarTick(E) {
   var tx = E.textos();
   assert(tx.some(function (x) { return /PAUSA/.test(x); }), "la pausa se titula PAUSA (" + tx.join(" | ") + ")");
   assert(tx.indexOf("▶ SEGUIR") >= 0, "tiene ▶ SEGUIR");
-  assert(tx.indexOf("🔊 SONIDO: SÍ") >= 0, "tiene 🔊 SONIDO: SÍ (ícono + palabra, no solo color)");
+  /* pedido de Rodri del 22/oct: sin emojis en los textos del juego: el estado lo dice la palabra */
+  assert(tx.indexOf("SONIDO: SÍ") >= 0, "tiene SONIDO: SÍ (con palabra, no solo color)");
   assert(tx.indexOf("◀ VOLVER AL MENÚ") >= 0, "en el amistoso, la salida es ◀ VOLVER AL MENÚ");
   var bs = E.botones();
   /* TANDA 1.0, TEMPO-1: eran tres. La VELOCIDAD vivía en el menú de tempo
@@ -111,9 +112,9 @@ function espiarTick(E) {
   /* el sonido: se prende y se apaga, y el cartel lo dice con palabra */
   var son = bs.filter(function (b) { return /SONIDO/.test(E.textoCerca(b)); })[0];
   E.tocar(son);
-  assert(s.SFX.isMuted() === true && E.textos().indexOf("🔇 SONIDO: NO") >= 0, "SONIDO apaga y el botón dice 🔇 SONIDO: NO");
+  assert(s.SFX.isMuted() === true && E.textos().indexOf("SONIDO: NO") >= 0, "SONIDO apaga y el botón dice SONIDO: NO");
   E.tocar(son);
-  assert(s.SFX.isMuted() === false && E.textos().indexOf("🔊 SONIDO: SÍ") >= 0, "otro toque lo vuelve a prender (el juego no queda muteado)");
+  assert(s.SFX.isMuted() === false && E.textos().indexOf("SONIDO: SÍ") >= 0, "otro toque lo vuelve a prender (el juego no queda muteado)");
   assert(s.estado === "PAUSA", "tocar SONIDO no cierra la pausa");
   /* la velocidad: NORMAL de entrada, se cambia con palabra y queda guardada
      en el aparato (pampa_velocidad) para el partido siguiente */
@@ -312,7 +313,7 @@ function espiarTick(E) {
      siguen arrancando en x=136 */
   assert((SRC.match(/this\.add\.text\(136, 39,/g) || []).length === 2 && x1 <= 136,
     "las fichas y la mano arrancan en x=136, después del área del ⏸ (" + x1 + ")");
-  assert(/⏸ PAUSA/.test(E.textos(s.hudLayer).join("|")), "el botón dice PAUSA, no solo el ícono");
+  assert(/(^|\|)PAUSA(\||$)/.test(E.textos(s.hudLayer).join("|")), "el botón dice PAUSA");
   E.tocar(zona);
   assert(s.estado === "PAUSA", "tocarlo en LIBRE abre la pausa");
   console.log("[6] ⏸ PAUSA: área " + h.width + "x" + h.height + " desde y=0, x " + x0 + "→" + x1 + " (el 🔊 termina en 46)");

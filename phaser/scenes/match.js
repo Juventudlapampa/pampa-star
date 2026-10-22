@@ -617,7 +617,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        fecha: con TUTORIAL puesto, la ficha y los avisos esperan detrás del
        velo y salen al cerrarlo. */
     this.tutorialSiHaceFalta();
-    if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, "📋", { prioridad: true }));
+    if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, null, { prioridad: true }));
 
     /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
     if (!this._vista4) this.st._noAutoHasta = 9e15;
@@ -656,7 +656,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       : null;
     this.relatar("saque", { rival: this.nombreRival });
     /* §8: el rival tiene identidad — que se sepa a qué juega */
-    if (this._perfilRival) this.avisar("⚔ " + this.nombreRival + " juega " + this._perfilRival.n);
+    if (this._perfilRival) this.avisar(this.nombreRival + " juega " + this._perfilRival.n);
   }
   /* el ticker del relator: una frase por vez, en su franja, sin tapar el juego.
      V9 §8 · LA COLA: el HUD se apaga durante el cine, la Definición y el
@@ -691,7 +691,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const f = this.REL.frase(sit, c);
     if (!f) return;
     if (this.BAL.relator.fuertes.indexOf(sit) >= 0 || c.mega) { this.vinietaRelator(f); return; }
-    this.anunciarEnTicker(f, "🎙");
+    this.anunciarEnTicker(f);
   }
   /* ══════════════════════════════════════════════════════════════════════
      20/oct · EL RELATO A LA VISTA (playtest de Rodri, punto 4).
@@ -818,7 +818,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
   anunciarEnTicker(f, icono, op) {
     if (!f || !this.tickerTxt) return;
-    const linea = (icono || "🎙") + " " + f, prio = !!(op && op.prioridad);
+    const linea = (icono ? icono + " " : "") + f, prio = !!(op && op.prioridad);
     const fichaALaVista = this._tickerFijo && this.time.now < this._tickerFijo;
     if (!this.tickerSeLee() || this.vinietaALaVista() || (fichaALaVista && !prio)) {
       if (!(this._relPendiente && this._relPendientePrio && !prio)) {
@@ -2269,7 +2269,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        838 + (94+5)*1.06 = 943, o sea 17px de aire. */
     const cont = this.add.container(838, 456);
     const r = this.add.rectangle(0, 0, 188, 68, 0xffd84d, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.txtBotonAccion = this.add.text(0, 0, "⚡ ACCIÓN", { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13", align: "center" }).setOrigin(0.5);
+    this.txtBotonAccion = this.add.text(0, 0, "ACCIÓN", { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13", align: "center" }).setOrigin(0.5);
     cont.add([r, this.txtBotonAccion]);
     /* PIEL P2: canto sólido + sombra difusa. El rect sigue siendo el que recibe
        el toque; solo deja de pintarse (ver vestirBoton en scenes/piel_ui.js). */
@@ -2351,7 +2351,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const PASOS = [
       /* 20/oct, Rodri: en la PC también decía "con el DEDO" */
       tactil ? "1/3 · Movés con el DEDO " + donde : "1/3 · Movés con el MOUSE: clic " + donde + "\n(o con las flechas / WASD)",
-      "2/3 · ⚡ ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
+      "2/3 · ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
       this._split ? "3/3 · El PASE está en el menú de jugadas:\n" + (tactil ? "tocá en" : toca) + " el MAPA a quién se la pasás" : (this._vista4 ? "3/3 · Para el PASE, " + toca + " el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, " + toca + " el DESTINO\nen el RADAR de abajo a la izquierda")
     ];
     const mapa = this._vista4 && !this._split ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 };
@@ -2400,7 +2400,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st;
     this.cameras.main.fadeIn(700, 6, 18, 11);
     const banda = this.add.rectangle(480, 200, 960, 84, 0x0a1f13, 0.9);
-    const t = this.add.text(480, 190, "⏸ ENTRETIEMPO", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
+    const t = this.add.text(480, 190, "ENTRETIEMPO", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
     const m = this.add.text(480, 218, "VOS " + st.golesMio + " - " + st.golesRival + " " + this.nombreRival + " · el descanso recupera aguante", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
     /* V9 §10: el cambio de lado SE ANUNCIA — si no, darse vuelta se lee como un bug */
     const c = this.add.text(480, 242, "⇄ CAMBIO DE LADO · ahora atacás para el otro arco", { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 8, y: 3 } }).setOrigin(0.5);
@@ -2449,7 +2449,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (megaViene) {
       this.relatar("peligro");   // Anime E: el relator también lo huele
-      const aviso = this.add.text(480, 130, "⚠ ¡ALGO GRANDE SE VIENE!", { fontFamily: window.PF.display, fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
+      const aviso = this.add.text(480, 130, "¡ALGO GRANDE SE VIENE!", { fontFamily: window.PF.display, fontSize: "14px", color: "#ff8a50", stroke: "#0a1f13", strokeThickness: 3 }).setOrigin(0.5);
       this.menuLayer.add(aviso);
       this.selloMenu();
       this.tweens.add({ targets: aviso, scale: 1.12, duration: 300, yoyo: true, repeat: 3 });
@@ -2818,7 +2818,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          estás por elegir, no después de que falle */
       const leido = this.avisoLectura(megaListo.id);
       especiales.push({
-        texto: (this.FLAGS.megatiros_con_nombre === false ? "★ " : "🔥 ") + megaListo.n.toUpperCase(), superTiro: true,
+        texto: (this.FLAGS.megatiros_con_nombre === false ? "★ " : "") + megaListo.n.toUpperCase(), superTiro: true,
         sub: (leido ? leido + " · " : "") + "quedan " + F.tiros + " · " + megaListo.aguante + " aguante",
         /* Revisión del 17/oct: abría el mismo cruce de gambetas que
            GAMBETA-TIRO y eran dos botones para lo mismo. Ahora es el remate
@@ -2831,14 +2831,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (F && F.gambetas > 0 && this.FLAGS.jugadon !== false) {
       especiales.push({
-        texto: "🌟 GAMBETA-TIRO (quedan " + F.gambetas + ")", sub: "encarás y definís de frente al arco",
+        texto: "GAMBETA-TIRO (quedan " + F.gambetas + ")", sub: "encarás y definís de frente al arco",
         cb: () => { if (window.PampaJugadon.gastarFicha(F, "gambetas")) this.entrarJugadonGambeta(rivalIdx, { marcadores: 2 }); }
       });
     }
     const corrida = !libre && !gam.bloqueada ? this.secuenciaDisponible("megacorrida") : null;
-    if (corrida) especiales.push({ texto: "🌠 MEGACORRIDA", sub: corrida.costo + " aguante · los dejás atrás", cb: () => this.secuenciaMegacorrida() });
+    if (corrida) especiales.push({ texto: "MEGACORRIDA", sub: corrida.costo + " aguante · los dejás atrás", cb: () => this.secuenciaMegacorrida() });
     const combinada = !par.bloqueada ? this.secuenciaDisponible("combinada") : null;
-    if (combinada) especiales.push({ texto: "🤝 COMBINADA", sub: combinada.costo + " aguante · él define", cb: () => this.secuenciaCombinada() });
+    if (combinada) especiales.push({ texto: "COMBINADA", sub: combinada.costo + " aguante · él define", cb: () => this.secuenciaCombinada() });
     const carta = this.centroDeCarta ? this.centroDeCarta("ataque", () => {
       const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "ataque");
       if (!c) { this.reanudarLibre(); return; }
@@ -2852,7 +2852,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const alVacio = this.FLAGS.pase_al_vacio !== false && receptores.find(r => r.adelante);
     if (alVacio) {
       especiales.push({
-        texto: "➡ PASE AL VACÍO",
+        texto: "PASE AL VACÍO",
         sub: "a " + (st.mios[alVacio.idx].nombre || "").toUpperCase() + " · " + Math.max(10, alVacio.pct - this.BAL.partido.vacio_penal) + "% · deja vendido al arquero",
         cb: () => this.confirmarPase(alVacio, true)
       });
@@ -2863,10 +2863,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        cruz: la jugada que elijas ya sale potenciada. */
     if (P.envionLleno(st)) {
       especiales.push({
-        texto: "🌟 POTENCIAR", sub: "+" + this.BAL.envion.potencia_bonus + " a cada duelo · gasta el envión",
+        texto: "POTENCIAR", sub: "+" + this.BAL.envion.potencia_bonus + " a cada duelo · gasta el envión",
         cb: () => {
           if (P.gastarEnvionPotencia(st)) {
-            this.avisar("🌟 ¡EQUIPO ENCENDIDO! (+bonus un rato)");
+            this.avisar("¡EQUIPO ENCENDIDO! (+bonus un rato)");
             this.SFX && this.SFX.festejo(900);
           }
           volverCruz();
@@ -2880,23 +2880,23 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        es ese botón, sin grilla; la grilla vuelve si se prende otro */
     const unico = especiales.length === 1 && especiales[0].superTiro ? especiales[0] : null;
     this.abrirMenuCruz({
-      titulo: rival ? "⚔ ¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ = seguir corriendo)",
+      titulo: rival ? "¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ = seguir corriendo)",
       izq, der,
       opciones: {
         N: {
-          texto: "⚡ GAMBETA", sub: pct(gam) + "% · " + gam.costo + " aguante",
+          texto: "GAMBETA", sub: pct(gam) + "% · " + gam.costo + " aguante",
           bloqueada: libre || gam.bloqueada, motivo: libre ? "nadie te marca" : gam.motivo,
           cb: () => this.resolverAccionAtaque(gam, rivalIdx)
         },
         W: {
-          texto: "➡ PASE", sub: "elegís a quién", bloqueada: !receptores.length, motivo: "SIN COMPAÑERO CERCA",
+          texto: "PASE", sub: "elegís a quién", bloqueada: !receptores.length, motivo: "SIN COMPAÑERO CERCA",
           cb: () => this.iniciarPaseDirigido(rivalIdx, libre)
         },
-        S: { texto: "🔁 PARED", sub: par.bloqueada ? null : pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
+        S: { texto: "PARED", sub: par.bloqueada ? null : pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
         /* 20/oct, Rodri: adentro del área el remate lo decide EL TOQUE. Con un
            defensor al cruce, resolverTiro juega antes el duelo del bloqueo: ahí
            van el porcentaje de zafar y el aguante, y EL TOQUE como paso que sigue */
-        E: { texto: "🎯 TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+        E: { texto: "TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
       centro: unico || (listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
@@ -2939,7 +2939,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     [[this.megaDefensaDisponible(["quite"], yo), qui], [this.megaDefensaDisponible(["bloqueo"], yo), blo]].forEach(([mg, base]) => {
       if (!mg || base.bloqueada) return;
       especiales.push({
-        texto: "🔥 " + mg.n.toUpperCase(),
+        texto: mg.n.toUpperCase(),
         sub: mg.aguante + " aguante · +" + mg.bonus + " de poder",
         cb: () => this.cutInEspecial("¡" + mg.n.toUpperCase() + "!", mg.grito,
           () => this.resolverAccionDefensa({ id: base.id, poder: base.poder + mg.bonus, costo: mg.aguante }), yo, false)
@@ -2958,7 +2958,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const F = this.jugadonFichas ? this.jugadonFichas() : null;
     if (F && F.quites > 0 && this.FLAGS.jugadon !== false) {
       especiales.push({
-        texto: "🌟 SÚPER QUITE (quedan " + F.quites + ")", sub: "leé su movida y cerrale el camino",
+        texto: "SÚPER QUITE (quedan " + F.quites + ")", sub: "leé su movida y cerrale el camino",
         cb: () => { if (window.PampaJugadon.gastarFicha(F, "quites")) this.entrarJugadonQuite(); }
       });
     }
@@ -2966,12 +2966,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const volverCruz = () => this.abrirMenuDefensa();
     const listos = especiales.filter(o => !o.bloqueada).length;
     this.abrirMenuCruz({
-      titulo: "🛡 ¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
+      titulo: "¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
       izq, der,
       opciones: {
-        N: { texto: "🦶 QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
-        W: { texto: "✂ CORTE", sub: sub(cor), bloqueada: cor.bloqueada, motivo: cor.motivo, cb: () => this.resolverAccionDefensa(cor) },
-        E: { texto: "🧱 BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
+        N: { texto: "QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
+        W: { texto: "CORTE", sub: sub(cor), bloqueada: cor.bloqueada, motivo: cor.motivo, cb: () => this.resolverAccionDefensa(cor) },
+        E: { texto: "BLOQUEO", sub: sub(blo), bloqueada: blo.bloqueada, motivo: blo.motivo, cb: () => this.resolverAccionDefensa(blo) },
         S: { texto: "✕ NO MOVERSE", sub: "+" + this.BAL.aguante.recupera_no_moverse + " aguante · el rival sigue", fondo: 0xdcd6c2, cb: () => this.resolverNoMoverse() }
       },
       centro: listos ? {
@@ -3310,13 +3310,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const cab = A("cabezazo"), vol = A("volea"), chi = A("chilena");
     const sub = a => a.bloqueada ? null : Math.round(a.poder) + " de poder · " + a.costo + " aguante";
     this.abrirMenuCruz({
-      titulo: "☁ ¡LA PELOTA VIENE ALTA! ¿Cómo la resolvés? (ventanas más exigentes)",
+      titulo: "¡LA PELOTA VIENE ALTA! ¿Cómo la resolvés? (ventanas más exigentes)",
       izq: { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante },
       opciones: {
-        W: { texto: "🎯 CABEZAZO", sub: sub(cab), bloqueada: cab.bloqueada, motivo: cab.motivo, cb: () => this.resolverTiroAereo("cabezazo") },
-        N: { texto: "⚡ VOLEA", sub: sub(vol), bloqueada: vol.bloqueada, motivo: vol.motivo, cb: () => this.resolverTiroAereo("volea") },
-        S: { texto: "🌪 CHILENA", sub: chi.bloqueada ? null : sub(chi) + " · ¡la gloria!", bloqueada: chi.bloqueada, motivo: chi.motivo, cb: () => this.resolverTiroAereo("chilena") },
-        E: { texto: "⬇ BAJARLA", sub: "control y a jugar", cb: () => { P.bajarla(st); this.reanudarLibre(); } }
+        W: { texto: "CABEZAZO", sub: sub(cab), bloqueada: cab.bloqueada, motivo: cab.motivo, cb: () => this.resolverTiroAereo("cabezazo") },
+        N: { texto: "VOLEA", sub: sub(vol), bloqueada: vol.bloqueada, motivo: vol.motivo, cb: () => this.resolverTiroAereo("volea") },
+        S: { texto: "CHILENA", sub: chi.bloqueada ? null : sub(chi) + " · ¡la gloria!", bloqueada: chi.bloqueada, motivo: chi.motivo, cb: () => this.resolverTiroAereo("chilena") },
+        E: { texto: "BAJARLA", sub: "control y a jugar", cb: () => { P.bajarla(st); this.reanudarLibre(); } }
       },
       volver: null
     });
@@ -4235,7 +4235,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!e) return null;
     /* forma además de texto: ojos que se van llenando, para que se note de un
        vistazo sin depender de leer ni del color */
-    return ["", "👁", "👁👁", "👁👁👁"][e.nivel] + " " + e.texto;
+    return ["", "•", "••", "•••"][e.nivel] + " " + e.texto;
   }
   megaDisponible() {
     const st = this.st, j = st.mios[st.ctrl];
@@ -5082,11 +5082,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         st.pelota.x = c.x + 12; st.pelota.y = c.y;
         this.st.modo = "congelado";
         this.abrirMenuCruz({
-          titulo: "🤝 ¡" + (c.nombre || "EL COMPA").toUpperCase() + " LA RECIBE EN EL ÁREA!",
+          titulo: "¡" + (c.nombre || "EL COMPA").toUpperCase() + " LA RECIBE EN EL ÁREA!",
           izq: { j: c, guts: c.aguante },
           opciones: {
-            W: { texto: "🎯 AL PIE", sub: "define de remate", cb: () => this.entrarDefinicionOf({ libre: true }) },
-            E: { texto: "☁ CENTRO", sub: "la pide ARRIBA (cabeza/chilena)", cb: () => { st._altaHasta = st._t + 6000; this.entrarDefinicionOf({ libre: true }); } }
+            W: { texto: "AL PIE", sub: "define de remate", cb: () => this.entrarDefinicionOf({ libre: true }) },
+            E: { texto: "CENTRO", sub: "la pide ARRIBA (cabeza/chilena)", cb: () => { st._altaHasta = st._t + 6000; this.entrarDefinicionOf({ libre: true }); } }
           },
           volver: null
         });
@@ -5218,7 +5218,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const apagar = [this.radarG, this.radarZona, this._btnAccionCont, this._hintEspacio,
       this.gutsG, this.lblGuts, this.txtGuts, this.envionG, this.lblEnvion,
       this.txtEnvion, this.txtEnvionEstado, this.txtFichas, this.txtMano, this.tickerTxt];
-    apagar.push(this.radarMarco, this._radarTuArco);
+    /* 22/oct, Rodri: el rótulo del portador ("▲ 10 · VALEN") quedaba encima
+       del panel del final */
+    apagar.push(this.radarMarco, this._radarTuArco, this.panelNombre);
     apagar.forEach(o => o && o.setVisible(false));
     (this.radarNumsMios || []).forEach(t => t.setVisible(false));
     (this.radarNumsRiv || []).forEach(t => t.setVisible(false));
@@ -5442,8 +5444,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const px = this.BAL.legibilidad.texto_decision_min + "px";
     const hint = this.add.text(hx, hy,
       this.sys.game.device.input.touch
-        ? "➡ PASE: tocá " + dondeToca + " a quién se la pasás, o su botón"
-        : "➡ PASE: ▲▼ elegís a quién · ENTER se la pasás · ESC vuelve (o tocalo " + dondeToca + ")",
+        ? "PASE: tocá " + dondeToca + " a quién se la pasás, o su botón"
+        : "PASE: ▲▼ elegís a quién · ENTER se la pasás · ESC vuelve (o tocalo " + dondeToca + ")",
       { fontFamily: window.PF.texto, fontSize: px, color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
     this._paseCancelar = () => this.abrirMenuAtaque(rivalIdx, libre);
     /* la columna de compañeros: balance.legibilidad.cruz.pase */
@@ -5985,7 +5987,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     let w = 0;
     for (let s = 0; s < 60; s += tramo) {
       const ss = ("0" + s).slice(-2);
-      ["⏰ 90:" + ss + "+ 2T", "⏰ 89:" + ss + " 2T", "45:" + ss + "+ 1T"].forEach((t) => { r.setText(t); w = Math.max(w, r.width); });
+      ["» 90:" + ss + "+ 2T", "» 89:" + ss + " 2T", "45:" + ss + "+ 1T"].forEach((t) => { r.setText(t); w = Math.max(w, r.width); });
     }
     r.setText(antes);
     return Math.round(r.x - w * (r.originX == null ? 1 : r.originX));
@@ -6012,7 +6014,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const g = this.add.graphics();
     g.fillStyle(0x0a1f13, 0.9); g.fillRoundedRect(X - W / 2, Y - H / 2, W, H, 8);
     g.lineStyle(2, 0xf6efdc, 0.75); g.strokeRoundedRect(X - W / 2, Y - H / 2, W, H, 8);
-    const t = this.add.text(X, Y, "⏸ PAUSA", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
+    const t = this.add.text(X, Y, "PAUSA", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc" }).setOrigin(0.5);
     /* la zona de toque: transparente (vestirPendientes no la viste) */
     const zona = this.add.rectangle(X, Y, W, H, 0x0a1f13, 0)
       .setInteractive(new Phaser.Geom.Rectangle(-3, -(Y - H / 2), W + 6, tap), Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
@@ -6058,7 +6060,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.estado === "LIBRE") return this.abrirPausa();
     if (!this._pausaPedida) {
       this._pausaPedida = true;
-      this.avisar("⏸ La pausa entra apenas termine la jugada", { clave: "pausa", toque: true });
+      this.avisar("La pausa entra apenas termine la jugada", { clave: "pausa", toque: true });
     }
     return false;
   }
@@ -6082,12 +6084,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, PZ.velo_alpha != null ? PZ.velo_alpha : 0.82).setInteractive();
     velo.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now; });
-    const tit = this.add.text(480, 108, "⏸ PAUSA", { fontFamily: window.PF.display, fontSize: "22px", color: "#ffd84d" }).setOrigin(0.5);
+    const tit = this.add.text(480, 108, "PAUSA", { fontFamily: window.PF.display, fontSize: "22px", color: "#ffd84d" }).setOrigin(0.5);
     const sub = this.add.text(480, 146, "el partido está quieto: el reloj no corre", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc" }).setOrigin(0.5);
     const marc = this.add.text(480, 174, (this._hudMarc || "") + (this._hudReloj ? "  ·  " + this._hudReloj : ""), { fontFamily: window.PF.texto, fontSize: "15px", color: "#9fb3a5" }).setOrigin(0.5);
     this.menuLayer.add([velo, tit, sub, marc]);
     const enFecha = !!this._masterPartido;
-    const sonidoTxt = () => (this.SFX && this.SFX.isMuted()) ? "🔇 SONIDO: NO" : "🔊 SONIDO: SÍ";
+    const sonidoTxt = () => (this.SFX && this.SFX.isMuted()) ? "SONIDO: NO" : "SONIDO: SÍ";
     const velTxt = () => this._velRapida ? "VELOCIDAD: RÁPIDA" : "VELOCIDAD: NORMAL";
     const velSub = () => this._velRapida ? "animaciones más cortas" : "animaciones enteras";
     const OPS = [
@@ -6240,7 +6242,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* V8 §3: las FICHAS del jugadón, siempre a la vista (letra + número) */
     if (this.jugadonFichas && this.FLAGS.jugadon !== false) {
       const F = this.jugadonFichas();
-      const fTxt = "🌟 QUITES " + F.quites + " · GAMBETAS " + F.gambetas + " · TIROS " + F.tiros;
+      const fTxt = "QUITES " + F.quites + " · GAMBETAS " + F.gambetas + " · TIROS " + F.tiros;
       if (this._hudFichas !== fTxt) {
         this._hudFichas = fTxt;
         if (!this.txtFichas) {
@@ -6355,14 +6357,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* el número solo; el ESTADO va arriba, en palabras (no en color) */
       const etxt = String(Math.round(st.envion || 0));
       if (this._hudEnvion !== etxt) { this._hudEnvion = etxt; this.txtEnvion.setText(etxt); }
-      const estado = P6.envionActivo(st) ? "⚡ ENVIÓN EN USO" : (fracE >= 1 ? "🌟 ENVIÓN LLENO" : "");
+      const estado = P6.envionActivo(st) ? "ENVIÓN EN USO" : (fracE >= 1 ? "ENVIÓN LLENO" : "");
       /* con la pelota, ⚡ ACCIÓN tapa esa línea: el estado va de segundo
          renglón del botón, que es por donde se llega a POTENCIAR (★ ESPECIAL) */
       const conPelota = st.posesion === "mia";
       const abajo = conPelota ? "" : estado;
       if (this._hudEnvionEst !== abajo) { this._hudEnvionEst = abajo; this.txtEnvionEstado.setText(abajo); }
       if (this.txtBotonAccion) {
-        const rotulo = conPelota && estado ? "⚡ ACCIÓN\n" + estado : "⚡ ACCIÓN";
+        const rotulo = conPelota && estado ? "ACCIÓN\n" + estado : "ACCIÓN";
         if (this.txtBotonAccion.text !== rotulo) this.txtBotonAccion.setText(rotulo);
       }
     }
@@ -6374,10 +6376,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.txtReloj.setColor("#c62828");
         this.SFX && this.SFX.temaUrgente && this.SFX.temaUrgente();
         if (this.FLAGS.v4_musica && this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(true);   // ANIME D: tictac EN el loop
-        this.avisar("⏰ ¡ÚLTIMOS MINUTOS!");
+        this.avisar("¡ÚLTIMOS MINUTOS!");
         this.relatar("urgente");
       }
-      if (this._urgente) this.txtReloj.setText("⏰ " + this.txtReloj.text.replace("⏰ ", ""));
+      if (this._urgente) this.txtReloj.setText("» " + this.txtReloj.text.replace("» ", ""));
     }
   }
   /* el corte de plano: la pelota cambió de dueño → pan breve + follow al nuevo portador (doc §2).

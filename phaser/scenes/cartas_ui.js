@@ -87,7 +87,7 @@
         : mano.sort(function (a, b) { return (a.falta || 0) - (b.falta || 0); })[0];
       var c = m.carta;
       return {
-        texto: "🃏 " + String(c.n).toUpperCase().slice(0, 15),
+        texto: String(c.n).toUpperCase().slice(0, 15),
         /* L09: en el centro de la cruz entra el costo; la frase de la carta
            ("todo el cuerpo atrás de la pelota") se lee al jugarla, en su momento */
         sub: m.puede ? c.aguante + " aguante" : m.motivo,

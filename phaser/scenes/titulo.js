@@ -296,7 +296,7 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
       const r = this.add.rectangle(x, y, w, 52, si ? 0xffd84d : 0x0d2a18, 1)
         .setStrokeStyle(2, si ? 0x0a1f13 : 0xf6efdc, c.bloqueada ? 0.4 : 0.9).setInteractive({ useHandCursor: true });
       const col = si ? "#0a1f13" : c.bloqueada ? "#9fb3a5" : "#f6efdc";
-      this.add.text(x, c.d ? y - 10 : y, (si ? "✔ " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "19px", color: col }).setOrigin(0.5);
+      this.add.text(x, c.d ? y - 10 : y, (si ? "» " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "19px", color: col }).setOrigin(0.5);
       if (c.d) this.add.text(x, y + 13, c.d, { fontFamily: window.PF.texto, fontSize: "13px", color: si ? "#365a41" : "#cfe9d4" }).setOrigin(0.5);
       r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._fila = fila; this.elegirChip(f, c); });
     });
