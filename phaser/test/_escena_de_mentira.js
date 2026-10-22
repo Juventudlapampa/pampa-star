@@ -238,6 +238,20 @@ function armar(opts) {
       return o;
     };
     s.teclas = function (t) { return input.keyboard.emit("keydown-" + t, { keyCode: 0 }); };
+    /* un toque en el fondo, sin objeto debajo: en Phaser llega al
+       "pointerdown" de la escena, que completa el texto que se escribe letra
+       por letra (master.js escribir). Desde el 20/oct las opciones de los
+       diálogos aparecen recién ahí (pedido de Rodri), así que los tests que
+       las tocan primero leen el diálogo hasta el final, como quien juega */
+    s.tocarAfuera = function () {
+      if (input.enabled === false) return;
+      input.emit("pointerdown", { x: -1, y: -1 });
+    };
+    s.leerHastaElFinal = function () {
+      var n = 0;
+      while (s._escritura && n < 10) { s.tocarAfuera(); n++; }
+      return n;
+    };
     s.correrTimers = function () {
       var t = s._timers.splice(0);
       t.forEach(function (e) { if (!e.quitado && e.fn) e.fn(); });

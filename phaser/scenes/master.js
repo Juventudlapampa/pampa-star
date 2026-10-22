@@ -1413,6 +1413,43 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* D5 · y de este lado estás vos, con la pinta que elegiste recién */
     if (qe) this.entrevistado();
     else this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
+    /* O1 · las cuatro respuestas estaban en columna desde y=150, o sea ARRIBA.
+       Bajan a la franja de decisión: 4 de 52 px entran justo en los 212 útiles
+       (piel.caben lo confirma). Arriba queda el que pregunta, que es lo que se
+       mira; abajo lo que se toca. */
+    /* 20/oct, Rodri: las respuestas estaban a la vista y se podían tocar
+       antes de que Nito terminara de preguntar. Aparecen cuando la pregunta
+       terminó de escribirse, o cuando un toque la completa */
+    const ponerOpciones = () => {
+      const pielCfg = (this.game.registry.get("balance") || {}).piel;
+      const _focoEnt = [];
+      p.opciones.forEach((o, i) => {
+        const y = Math.round(window.PampaPiel.yDeOpcion(i, p.opciones.length, 52, pielCfg));
+        const r = this.add.rectangle(W / 2, y, 720, 52, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+        /* la respuesta DICHA reemplaza al rótulo, pero el subtítulo original
+           queda: es lo que le dice al jugador qué tipo de jugador está eligiendo */
+        /* 20/oct · una línea corta (corto) y la bajada (sub) abajo, con su
+           dibujito. textos-tactiles: el número es el atajo de teclado; en el
+           teléfono no va */
+        this.dibujarIcono(W / 2 - 360 + 32, y, o.ico);
+        this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.corto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center" }).setOrigin(0.5);
+        this.add.text(W / 2, y + 13, o.sub, { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
+        const elegir = () => {
+          const nuevas = elegidas.concat([i]);
+          if (paso < D.origen.length - 1) this.vistaOrigen(divId, paso + 1, nuevas);
+          else this._crearCarrera(divId, V.aplicarOrigen(D, nuevas));
+        };
+        r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
+        /* atajo de ESTA pregunta: se suelta al pintar la siguiente (antes era un
+           once que sobrevivía y la tecla contestaba dos preguntas) */
+        this.atajo(["ONE", "TWO", "THREE", "FOUR"][i], elegir);
+        _focoEnt.push({ obj: r, cb: elegir });
+      });
+      /* EL CURSOR EN LA ENTREVISTA. Cuatro respuestas en columna y ningun atajo
+         mas que los numeros: con las flechas ahora se recorren, y ninguna es
+         "la correcta", asi que el foco arranca en la primera y listo. */
+      if (this.grupoFoco) this.grupoFoco(_focoEnt, { inicial: 0 });
+    };
     /* 20/oct · las respuestas en pantalla son cortas; lo que contestaste
        DICHO (entrevista.json, respuestas) lo decís vos al arrancar la
        pregunta siguiente, y recién después pregunta Nito */
@@ -1422,41 +1459,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       if (dichaAntes) {
         tDice.setText("");
         const tEco = this.add.text(W - 156, 196, "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 3 } }).setOrigin(1, 0.5);
-        this.escribir(tEco, "▼ VOS: «" + dichaAntes + "»", "vos", () => this.escribir(tDice, qe.dice, "nito"));
-      } else this.escribir(tDice, qe.dice, "nito");
-    }
-    /* O1 · las cuatro respuestas estaban en columna desde y=150, o sea ARRIBA.
-       Bajan a la franja de decisión: 4 de 52 px entran justo en los 212 útiles
-       (piel.caben lo confirma). Arriba queda el que pregunta, que es lo que se
-       mira; abajo lo que se toca. */
-    const pielCfg = (this.game.registry.get("balance") || {}).piel;
-    const _focoEnt = [];
-    p.opciones.forEach((o, i) => {
-      const y = Math.round(window.PampaPiel.yDeOpcion(i, p.opciones.length, 52, pielCfg));
-      const r = this.add.rectangle(W / 2, y, 720, 52, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      /* la respuesta DICHA reemplaza al rótulo, pero el subtítulo original
-         queda: es lo que le dice al jugador qué tipo de jugador está eligiendo */
-      /* 20/oct · una línea corta (corto) y la bajada (sub) abajo, con su
-         dibujito. textos-tactiles: el número es el atajo de teclado; en el
-         teléfono no va */
-      this.dibujarIcono(W / 2 - 360 + 32, y, o.ico);
-      this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.corto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center" }).setOrigin(0.5);
-      this.add.text(W / 2, y + 13, o.sub, { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
-      const elegir = () => {
-        const nuevas = elegidas.concat([i]);
-        if (paso < D.origen.length - 1) this.vistaOrigen(divId, paso + 1, nuevas);
-        else this._crearCarrera(divId, V.aplicarOrigen(D, nuevas));
-      };
-      r.on("pointerdown", (pp, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
-      /* atajo de ESTA pregunta: se suelta al pintar la siguiente (antes era un
-         once que sobrevivía y la tecla contestaba dos preguntas) */
-      this.atajo(["ONE", "TWO", "THREE", "FOUR"][i], elegir);
-      _focoEnt.push({ obj: r, cb: elegir });
-    });
-    /* EL CURSOR EN LA ENTREVISTA. Cuatro respuestas en columna y ningun atajo
-       mas que los numeros: con las flechas ahora se recorren, y ninguna es
-       "la correcta", asi que el foco arranca en la primera y listo. */
-    if (this.grupoFoco) this.grupoFoco(_focoEnt, { inicial: 0 });
+        this.escribir(tEco, "▼ VOS: «" + dichaAntes + "»", "vos", () => this.escribir(tDice, qe.dice, "nito", ponerOpciones));
+      } else this.escribir(tDice, qe.dice, "nito", ponerOpciones);
+    } else ponerOpciones();
     /* V1 (cantidad + alineación): estaba en H-26, o sea DEBAJO de la cuarta
        opción, y quedaba tapado. Y decía dos cosas: cómo se toca (que el jugador
        descubre solo) y que no hay opción mala (que sí importa, porque saca el
@@ -1682,10 +1687,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     cola.fillStyle(0xf6efdc, 1); cola.fillTriangle(bx + 2, yc - 12, bx + 2, yc + 12, bx - 18, yc);
     const txt = this.add.text(bx + 18, by + 16, "", { fontFamily: window.PF.texto, fontSize: "19px", color: "#0a1f13", wordWrap: { width: bw - 36 }, lineSpacing: 4 });
     const pag = this.add.text(bx + bw - 12, by + bh - 10, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(1, 1);
-    let i = 0;
+    let i = 0, b = null;
     const mostrar = () => {
       pag.setText((i + 1) + " de " + pv.paginas.length + (i < pv.paginas.length - 1 ? "  ▸ seguir" : ""));
-      this.escribir(txt, pv.paginas[i], pv.relator);
+      this.escribir(txt, pv.paginas[i], pv.relator, b ? null : ponerBoton);
     };
     const seguir = () => {
       if (this.completarEscritura()) return;
@@ -1693,14 +1698,18 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     };
     globo.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); seguir(); });
     const irse = () => { this.cortarEscritura(); alSeguir(); };
-    const b = this.boton(W / 2, H - 70, 320, "▶ A LA CANCHA", 0x7ee08a, irse);
     /* con teclado, ENTER y ESPACIO (los del cursor) leen de a una página y en
        la última salen a la cancha; el botón, tocado, sale siempre */
     const conTeclado = () => {
       if (this.completarEscritura()) return;
       if (i < pv.paginas.length - 1) { i++; mostrar(); } else irse();
     };
-    if (this.grupoFoco) this.grupoFoco([{ obj: b, cb: conTeclado }], { inicial: 0 });
+    /* 20/oct, Rodri: el botón aparece cuando la primera página terminó de
+       escribirse (o un toque la completó), no antes */
+    const ponerBoton = () => {
+      b = this.boton(W / 2, H - 70, 320, "▶ A LA CANCHA", 0x7ee08a, irse);
+      if (this.grupoFoco) this.grupoFoco([{ obj: b, cb: conTeclado }], { inicial: 0 });
+    };
     mostrar();
   }
 
@@ -2446,33 +2455,37 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* 20/oct · el texto sale letra por letra: con el tamaño ya medido sobre
        el texto entero, así el centro no baila mientras se escribe */
     tEv.setFixedSize(tEv.width, tEv.height);
-    this.escribir(tEv, ev.texto, "semana");
-    const D = window.PampaDialogo;
-    /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
-       franja. Lo cazó el guardián ampliado, no el ojo. */
-    const pielEv = (this.game.registry.get("balance") || {}).piel;
-    const items = ev.opciones.map((o, i) => {
-      const y = Math.round(window.PampaPiel.yDeOpcion(i, ev.opciones.length, 72, pielEv));
-      const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      /* 20/oct · el dibujito y la bajada salen de lo que la opción cambia,
-         dicho con palabras y sin números */
-      this.dibujarIcono(W / 2 - 350 + 32, y, D.iconoDeEfecto(o.efecto));
-      this.add.text(W / 2, y - 10, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 600 } }).setOrigin(0.5);
-      this.add.text(W / 2, y + 14, D.bajadaDeEfecto(o.efecto), { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
-      const elegir = () => {
-        this.save.modFecha = V.aplicarEleccion(ev, i);
-        this._semEventoResuelto = true;
-        /* decidido queda decidido: recargar no lo vuelve a preguntar */
-        if (this.save.eventoFecha) this.save.eventoFecha.resuelto = true;
-        this.guardar();
-        alSeguir();
-      };
-      r.on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); elegir(); });
-      return { obj: r, cb: elegir };
-    });
-    /* el cursor, como en los demás grupos: no hay salida (el evento SE DECIDE,
-       no se saltea), así que no lleva `volver` */
-    if (this.grupoFoco) this.grupoFoco(items, { inicial: 0 });
+    /* 20/oct, Rodri: las opciones se podían tocar antes de que el evento
+       terminara de escribirse; aparecen cuando terminó o lo completa un toque */
+    const ponerOpciones = () => {
+      const D = window.PampaDialogo;
+      /* D1 · las dos opciones del evento arrancaban en y=280, apenas fuera de la
+         franja. Lo cazó el guardián ampliado, no el ojo. */
+      const pielEv = (this.game.registry.get("balance") || {}).piel;
+      const items = ev.opciones.map((o, i) => {
+        const y = Math.round(window.PampaPiel.yDeOpcion(i, ev.opciones.length, 72, pielEv));
+        const r = this.add.rectangle(W / 2, y, 700, 72, 0xf6efdc, 0.97).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+        /* 20/oct · el dibujito y la bajada salen de lo que la opción cambia,
+           dicho con palabras y sin números */
+        this.dibujarIcono(W / 2 - 350 + 32, y, D.iconoDeEfecto(o.efecto));
+        this.add.text(W / 2, y - 10, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center", wordWrap: { width: 600 } }).setOrigin(0.5);
+        this.add.text(W / 2, y + 14, D.bajadaDeEfecto(o.efecto), { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
+        const elegir = () => {
+          this.save.modFecha = V.aplicarEleccion(ev, i);
+          this._semEventoResuelto = true;
+          /* decidido queda decidido: recargar no lo vuelve a preguntar */
+          if (this.save.eventoFecha) this.save.eventoFecha.resuelto = true;
+          this.guardar();
+          alSeguir();
+        };
+        r.on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); elegir(); });
+        return { obj: r, cb: elegir };
+      });
+      /* el cursor, como en los demás grupos: no hay salida (el evento SE DECIDE,
+         no se saltea), así que no lleva `volver` */
+      if (this.grupoFoco) this.grupoFoco(items, { inicial: 0 });
+    };
+    this.escribir(tEv, ev.texto, "semana", ponerOpciones);
     /* V1 (cantidad): decía cómo se toca, que el jugador ya sabe a esta altura */
   }
 

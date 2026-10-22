@@ -40,6 +40,7 @@ function semanaDeLaFecha1(tactil) {
   A.localStorage.setItem("pampa_master_v1", JSON.stringify(A.carreraNueva()));
   var s = A.nueva(); s.create();
   s.tocar(310, 460);                                   // ▶ JUGAR LA FECHA
+  s.leerHastaElFinal();                                // 20/oct, Rodri: las opciones salen al terminar el texto
   var evento = s._semEvento && !s._semEventoResuelto ? s.textos().slice() : [];
   if (evento.length) s.teclas("ENTER");
   return { s: s, A: A, evento: evento, semana: s.textos().slice() };
@@ -59,6 +60,7 @@ function semanaDeLaFecha1(tactil) {
   /* la entrevista */
   var A = M.armar({ tactil: true });
   var e = A.nueva(); e.vistaOrigen("primera_b");
+  e.leerHastaElFinal();
   var te = e.textos();
   assert(te.some(function (t) { return /TU HISTORIA/.test(t); }), "control: es la entrevista");
   assert(malos(te).length === 0, "SÍNTOMA: la entrevista numera las respuestas con la tecla: " + malos(te).join(" | "));

@@ -82,7 +82,9 @@ function interactivosVisibles(s) {
   /* ▶ JUGAR LA FECHA, con el dedo, como en el juego */
   var b = s.tocar(310, 460);
   assert(b && b.type === "Rectangle", "el toque en (310,460) tiene que caer en JUGAR LA FECHA");
-  /* si la semana abre con un evento, se elige con Enter (el cursor arranca en la primera) */
+  /* si la semana abre con un evento, se elige con Enter (el cursor arranca en la primera).
+     20/oct, Rodri: las opciones salen cuando el evento terminó de escribirse */
+  s.leerHastaElFinal();
   if (s._semEvento && !s._semEventoResuelto) s.teclas("ENTER");
   assert(s.textos().some(function (x) { return /^LA SEMANA · fecha/.test(x); }), "estamos en la semana");
   var tocablesSemana = s.tocables().length, visibles = interactivosVisibles(s);
@@ -142,12 +144,19 @@ function interactivosVisibles(s) {
   s.save = null;
   var creada = [];
   s._crearCarrera = function (div, origen) { creada.push({ div: div, origen: origen }); };
+  /* 20/oct, Rodri: las respuestas salen cuando la pregunta terminó de
+     escribirse; antes de eso no hay ninguna zona */
   s.vistaOrigen("primera_b");
+  var antes = s.tocables().length;
+  s.leerHastaElFinal();
   var zonas = [s.tocables().length];
   s.teclas("TWO");
+  s.leerHastaElFinal();
   zonas.push(s.tocables().length);
   s.teclas("ONE");
+  s.leerHastaElFinal();
   zonas.push(s.tocables().length);
+  assert(antes === 0, "con la pregunta escribiéndose no hay respuestas para tocar (" + antes + ")");
   assert(zonas.every(function (z) { return z === 4; }), "SÍNTOMA: la entrevista tiene 4 zonas táctiles en cada pregunta (" + zonas.join(" → ") + ")");
   s.teclas("THREE");
   assert(creada.length === 1, "la tercera respuesta crea la carrera UNA vez (" + creada.length + ")");
