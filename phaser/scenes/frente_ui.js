@@ -229,7 +229,7 @@
         if (self._fr !== fr || fr.resuelto) return;
         fr.arrastraBoton = sobreBoton(sobre);
         if (fr.arrastraBoton) return;
-        if (conDedo && p.wasTouch) { fr.dedo = [{ x: p.x, y: p.y }]; self.frenteDedo(fr, null); return; }
+        if (conDedo && p.wasTouch) { fr.marcaDedo = null; fr.marcaDedo = self.frentePos(fr); fr.dedo = [{ x: p.x, y: p.y }]; self.frenteDedo(fr, null); return; }
         apuntar(p);
         if (!p.wasTouch) self.frenteGolpe();
         else fr.apuntando = true;
@@ -239,6 +239,7 @@
         if (fr.dedo) {
           var gg = leerGesto();
           fr.dedo = null;
+          if (!gg) fr.marcaDedo = null;
           self.frenteDedo(fr, gg, !gg);
           if (gg) self.frenteGolpe();
         } else if (p.wasTouch && fr.apuntando) { fr.apuntando = false; self.frenteGolpe(); }
@@ -257,6 +258,10 @@
          la izquierda la pelota, de donde sale el dedo */
       fr.dedoTxt = this.add.text(X_DEDO, 466, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center", wordWrap: { width: 380 } }).setOrigin(0.5, 0);
       this.cineContent.add(fr.dedoTxt);
+      /* revisión del 23/oct: la calidad sale de la marca al apoyar el dedo;
+         se dice abajo al medio hasta que lo apoyás (la ayuda de la columna
+         no tiene lugar para una tercera línea) */
+      if (conDedo) fr.dedoTxt.setText("Apoyá el dedo en la pelota cuando la marca pasa por AHORA");
       if (this.input.keyboard) {
         var K2 = C.camara;
         var paso = function (du, dh) { return function (ev) { if (self._fr !== fr || fr.resuelto) return; if (ev && ev.preventDefault) ev.preventDefault(); fr.mira = { u: Phaser.Math.Clamp(fr.mira.u + du, -1.2, 1.2), h: Phaser.Math.Clamp(fr.mira.h + dh, 0, 1.15) }; fr.teclado = true; }; };
@@ -399,6 +404,10 @@
     },
     /* la marca de la barra: va y viene en barrido_ms */
     frentePos(fr) {
+      /* revisión del 23/oct: con el dedo, la marca queda quieta donde estaba
+         al apoyarlo y de ahí sale la calidad; antes seguía corriendo durante
+         el arrastre y contaba la del momento de soltar, que nadie mira */
+      if (fr.marcaDedo != null) return fr.marcaDedo;
       var per = this.msV(this.BAL.frente.perfil.barrido_ms), f = (fr.t % (2 * per)) / per;
       return f <= 1 ? f : 2 - f;
     },

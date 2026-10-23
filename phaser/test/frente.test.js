@@ -231,6 +231,32 @@ function tanda(n, semilla, jugar, jug) {
   assert(F.leer(Fl, l1.mira, l1.tipo, C).mira.h >= C.tipos.por_arriba.h_min, "[9] POR ARRIBA con el dedo va por arriba de la barrera");
   assert(F.gesto(curva(480, 500, 480, 500 - 0.5 * L, 0.2 * 0.5 * L), ol, C).tipo === "efecto", "[9] tiro libre con curva: CON EFECTO");
   assert(C.gesto.activo === true, "[9] la perilla del dedo, prendida de fábrica");
+  /* revisión del 23/oct: la altura sube pareja con el largo, sin serrucho al
+     cambiar de pegada (150 px era COLOCADO al travesaño y 160 px FUERTE al ras;
+     en el libre, 99 px por arriba y 101 px al ras) */
+  [[o, "remate"], [ol, "tiro libre"]].forEach(([oo, nom]) => {
+    let antes = -1, salto = 0;
+    for (let px = 40; px <= 1.25 * L; px += 2) {
+      const g = F.gesto(recta(480, 500, 480, 500 - px), oo, C);
+      if (antes >= 0) salto = Math.max(salto, Math.abs(g.mira.h - antes));
+      assert(g.mira.h >= antes - 1e-9, "[9] " + nom + ": más largo nunca sale más bajo (" + px + " px)");
+      antes = g.mira.h;
+    }
+    assert(salto < 0.02, "[9] " + nom + ": la altura no pega saltos (" + salto.toFixed(3) + ")");
+  });
+  const r150 = F.gesto(recta(480, 500, 480, 500 - 0.49 * L), o, C), r160 = F.gesto(recta(480, 500, 480, 500 - 0.53 * L), o, C);
+  assert(r150.tipo === "colocado" && r160.tipo === "fuerte" && Math.abs(r150.mira.h - r160.mira.h) < 0.05, "[9] SÍNTOMA: a los dos lados del cambio de pegada, al travesaño y al ras: " + r150.mira.h.toFixed(2) + " " + r160.mira.h.toFixed(2));
+  /* revisión del 23/oct: con el dedo la calidad sale de la marca al apoyarlo
+     (queda quieta mientras arrastrás) y la ayuda lo dice */
+  {
+    const UI = require("fs").readFileSync(require("path").join(__dirname, "..", "scenes", "frente_ui.js"), "utf8");
+    assert(/if \(conDedo && p\.wasTouch\) \{ fr\.marcaDedo = null; fr\.marcaDedo = self\.frentePos\(fr\);/.test(UI), "[9] al apoyar el dedo la marca queda quieta (la de ese momento, aunque un toque anterior no haya terminado)");
+    assert(/frentePos\(fr\) \{[\s\S]{0,300}if \(fr\.marcaDedo != null\) return fr\.marcaDedo;/.test(UI), "[9] la barra y el golpe usan la marca del apoyo");
+    assert(/if \(!gg\) fr\.marcaDedo = null;/.test(UI), "[9] si el gesto no le pega, la marca vuelve a correr");
+    assert(/if \(conDedo\) fr\.dedoTxt\.setText\("Apoyá el dedo en la pelota cuando la marca pasa por AHORA"\)/.test(UI), "[9] la ayuda del dedo nombra la marca");
+  }
+  const pal = F.gesto(recta(480, 500, 480, 500 - 0.5 * L), o, C);
+  assert(pal.palabra === "MEDIA" && pal.mira.h > 0.4 && pal.mira.h < 0.6, "[9] FUERZA MEDIA es a media altura");
   console.log("[9] el tiro con el dedo: " + [g1, g2, g3, g6].map(g => g.tipo + "/" + g.palabra + "/u " + g.mira.u.toFixed(2) + "/h " + g.mira.h.toFixed(2)).join(" · "));
 }
 
