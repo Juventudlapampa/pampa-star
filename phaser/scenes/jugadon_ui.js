@@ -233,7 +233,7 @@
           (self._jg.teclas = self._jg.teclas || []).push({ ev: ev, fn: fn });
         }
       });
-      this.uiCam.flash(80, 255, 255, 220);
+      this.destello(this.uiCam, 80, 255, 255, 220);
       this.SFX && this.SFX.whoosh && this.SFX.whoosh();
     },
 
@@ -306,8 +306,8 @@
         titulo(!bienLeido ? "¡DE PURA GAMBETA!" : movidaId === "canio" ? "¡CAÑO!" : movidaId === "sombrerito" ? "¡SOMBRERO!" : "¡LO DEJASTE PAGANDO!", "#ffd84d");
         bajada(post.dice.toLowerCase() + (bienLeido ? " y fuiste " : ": la buena era ") + salidas.join(" o ") +
           "\n" + nombre + " QUEDA ATRÁS · " + (g.terminado ? "¡QUEDASTE DE FRENTE AL ARCO!" : "viene el otro"));
-        this.uiCam.flash(90, 255, 255, 230);
-        this.uiCam.shake(160, 0.006);
+        this.destello(this.uiCam, 90, 255, 255, 230);
+        this.sacudir(this.uiCam, 160, 0.006);
         this.SFX && this.SFX.kick && this.SFX.kick();
         this.SFX && this.SFX.whoosh && this.SFX.whoosh();
         this.time.delayedCall(this.msV(B.paso_ms || 950), function () {
@@ -338,7 +338,7 @@
       bajada(bienLeido
         ? "lo leíste bien, pero te leyó el cuerpo igual"
         : post.dice.toLowerCase() + ": había que pasarlo " + salidas.join(" o "));
-      this.uiCam.shake(200, 0.008);
+      this.sacudir(this.uiCam, 200, 0.008);
       this.SFX && this.SFX.choque && this.SFX.choque();
       this.time.delayedCall(this.msV(B.caida_ms || 1100), function () {
         self._jgCruce = null;

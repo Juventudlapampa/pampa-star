@@ -89,7 +89,7 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     const OPS = [
       { t: "▶ JUGAR CARRERA", s: club ? "seguís con " + club : "elegís tu localidad, armás la pinta y arranca la Primera B", color: 0x7ee08a, cb: () => this.jugarCarrera() },
       { t: "PARTIDO RÁPIDO", s: "un partido suelto: no cuenta para tu carrera", color: 0xffd84d, cb: () => this.partidoRapido() },
-      { t: "OPCIONES", s: "sonido, música y duración de los partidos", color: 0xf6efdc, cb: () => this.vistaOpciones() }
+      { t: "OPCIONES", s: "sonido, música, duración y movimiento", color: 0xf6efdc, cb: () => this.vistaOpciones() }
     ];
     const x = 700, w = 450, h = 76;
     const items = OPS.map((o, i) => {
@@ -170,7 +170,14 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
       { n: "VELOCIDAD", tipo: "chips",
         chips: [{ k: false, n: "NORMAL", d: "animaciones enteras" }, { k: true, n: "RÁPIDA", d: "más cortas" }],
         valor: O.velocidadRapida(localStorage),
-        elegir: (k) => O.ponerVelocidad(localStorage, k) }
+        elegir: (k) => O.ponerVelocidad(localStorage, k) },
+      /* L11 · MOVIMIENTO SUAVE: sin sacudones, sin destellos, sin líneas de
+         velocidad y con cortes en vez de zooms (logic/cuidado.js). Arranca en
+         lo que pidió el sistema (prefers-reduced-motion) hasta que se elige */
+      { n: "MOVIMIENTO", sub: "si te marea la pantalla", tipo: "chips",
+        chips: [{ k: "completo", n: "COMPLETO", d: "todo el efecto" }, { k: "suave", n: "SUAVE", d: "sin destellos" }],
+        valor: this.game.registry.get("movimiento"),
+        elegir: (k) => { this.game.registry.set("movimiento", k); window.PampaCuidado.guardar(localStorage, k); } }
     ];
   }
 
@@ -224,9 +231,12 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     this.add.text(W - 40, 34, "se guarda solo, en este aparato", { fontFamily: window.PF.texto, fontSize: "15px", color: "#cfe9d4" }).setOrigin(1, 0.5);
     const filas = this.filasDeOpciones();
 
+    /* L11: con MOVIMIENTO son siete filas. Cada 60 desde 88, la última termina
+       en 474 y ◀ VOLVER baja a H-32: ningún área táctil (61 de alto) pisa el
+       dibujo de otra fila ni el de VOLVER */
     const x0 = 300, alto = 52;
     const items = filas.map((f, i) => {
-      const y = 96 + i * 62;
+      const y = 88 + i * 60;
       const lbl = this.add.text(40, f.sub ? y - 9 : y, f.n, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6c11d" }).setOrigin(0, 0.5);
       if (f.sub) this.add.text(40, y + 13, f.sub, { fontFamily: window.PF.texto, fontSize: "13px", color: "#cfe9d4" }).setOrigin(0, 0.5);
       if (f.tipo === "nivel") this.dibujarNivel(f, x0, y, i);
@@ -235,7 +245,7 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
         cb: () => (f.tipo === "nivel" ? f.cambiar(1) : this.moverChip(f, 1)) };
     });
     /* VOLVER, abajo a la izquierda; el aviso (si hay) a su derecha */
-    const yv = H - 40, wv = 240;
+    const yv = H - 32, wv = 240;
     const bv = this.add.rectangle(30 + wv / 2, yv, wv, 52, 0xf6efdc, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     this.add.text(30 + wv / 2, yv, "◀ VOLVER", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
     const volver = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("volver"); this._aviso = ""; this._fila = 0; this.vistaMenu(); };

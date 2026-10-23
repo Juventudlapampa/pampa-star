@@ -242,6 +242,7 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     s.cineFX = s.add.graphics(); s.cineLabel = s.add.text(0, 0, "", {}); s.cineBlack = s.add.rectangle(0, 0, 960, 540);
     s.cineFondo = null; s.resetDolly = function () { };
     s.uiCam = { setZoom: function () { }, centerOn: function () { }, flash: function () { }, shake: function () { }, ignore: function () { } };
+    require("./_cuidado_de_mentira.js")(s);
     s.add.sprite = function (x, y) { var o = s.add.rectangle(x, y, 10, 10); o.setFlipX = function () { return o; }; o.setTexture = function () { return o; }; return o; };
     s.fondoDeCancha = function () { return 183; };
     E.figs = [];

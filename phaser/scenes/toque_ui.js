@@ -265,7 +265,7 @@
       if (res.contacto) {
         /* revisión del 22/oct: la patada fuerte, como el resto de los remates */
         this.SFX && this.SFX.kickFuerte();
-        if (zona.id === "angulo") this.uiCam.shake(140, 0.006);
+        if (zona.id === "angulo") this.sacudir(this.uiCam, 140, 0.006);
         var alto = zona.id === "angulo" ? 2.2 : (zona.id === "palo" ? 0.6 : 1.5);
         var meta = this.toqueAPantalla(11.8, 2.5 + Math.sign(zona.gy) * 1.3, alto);
         this.tweens.add({ targets: tq.bola, x: meta.x, y: meta.y, scale: tq.bolaEsc * 0.7, duration: this.msV(300), ease: "Quad.easeOut" });

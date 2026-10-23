@@ -43,7 +43,7 @@
     if (!o || !(o.intensidad > 0)) return null;
     return {
       k: o.intensidad,
-      quieto: !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches),
+      quieto: sc.movimientoSuave(),
       impacto_ms: sc.msV(o.impacto_ms),
       corte_cerca: o.corte_cerca, corte_revela: o.corte_revela,
       sacudon_ms: o.sacudon_ms, sacudon: o.sacudon, lineas: o.lineas
@@ -259,8 +259,10 @@
     impacto: function (sc, h, o) {
       var C = h.C;
       limpiarEntrada(h);
-      if (C.quieto) { o.alTerminar(); return 0; }
-      if (o.choque) sc.uiCam.shake(C.sacudon_ms, C.sacudon * C.k, true);
+      /* L11: el cuadro de impacto es un destello (papel contra tinta en toda
+         la pantalla): sin cupo en la escena, no sale */
+      if (C.quieto || !sc.cupoDestello()) { o.alTerminar(); return 0; }
+      if (o.choque) sc.sacudir(sc.uiCam, C.sacudon_ms, C.sacudon * C.k, true);
       var aFavor = h.o.aFavor, cont = sc.cineContent, capa = [];
       var fondo = sc.add.rectangle(W / 2, H / 2, W * 3, H * 3, aFavor ? PAPEL : TINTA);
       cont.add(fondo); capa.push(fondo);

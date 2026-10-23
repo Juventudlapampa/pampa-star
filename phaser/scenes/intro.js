@@ -393,7 +393,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
        editor de la pinta con dos salidas sueltas (scenes/titulo.js) */
     this.irA("titulo");
   }
-  flashBlanco() { this.cameras.main.flash(70, 255, 255, 255); }
+  flashBlanco() { this.destello(this.cameras.main, 70, 255, 255, 255); }
   poseImg(id, x, y, altura) {
     if (!this.textures.exists("pose_" + id)) return null;   // el plano se las arregla
     const man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
@@ -454,7 +454,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
      pisando lo que escribiera el tween de entrada. Por eso el héroe del plano 2
      se quedaba clavado en x=1200, fuera de pantalla (medido en vivo).
      Ahora tiembla por ÁNGULO, que no la usa nadie más. */
-  temblor(spr) { if (spr) this.tweens.add({ targets: spr, angle: 1.4, duration: 44, yoyo: true, repeat: -1 }); }
+  temblor(spr) { if (spr && !this.movimientoSuave()) this.tweens.add({ targets: spr, angle: 1.4, duration: 44, yoyo: true, repeat: -1 }); }
 
   /* ══════════════════════════════════════════════════════════════════════
      I1 · EL FONDO. Siete de los ocho planos eran una figura recortada sobre
@@ -655,7 +655,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 5 }).setOrigin(0.5);
     this.capa.add(g);
     this.tweens.add({ targets: g, scale: 1.06, duration: 220, yoyo: true, repeat: 2 });
-    this.cameras.main.shake(280, 0.012);
+    this.sacudir(this.cameras.main, 280, 0.012);
     /* el remate: el golpe, el aire y la tribuna que se levanta con el grito */
     this.golpe("kickFuerte");
     this.golpe("whoosh");
@@ -719,7 +719,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       const l = this.add.image(480, 210, kL);
       l.setScale(Math.min(1, 620 / l.width, 300 / l.height));
       this.capa.add(l);
-      this.time.delayedCall(540, () => { if (!this._fin) { this.cameras.main.shake(200, 0.01); this.golpe("net"); } });
+      this.time.delayedCall(540, () => { if (!this._fin) { this.sacudir(this.cameras.main, 200, 0.01); this.golpe("net"); } });
     } else {
       const t = this.add.text(480, 220, "PAMPA STAR", { fontFamily: window.PF.display, fontSize: "44px", color: "#ffd84d", stroke: "#0a1f13", strokeThickness: 5 }).setOrigin(0.5);
       this.capa.add(t);

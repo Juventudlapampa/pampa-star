@@ -139,6 +139,8 @@ function escena(opts) {
   s.mundoLayer = contenedor("mundoLayer");
   s.cameras = { main: { ignore: function (o) { E.ignorados.push(o); } } };
   s.uiCam = { ignore: function () { } };
+  /* L11: las puertas del cuidado (destello, sacudir, movimientoSuave) */
+  require("./_cuidado_de_mentira.js")(s);
   s.time = {
     now: 0,
     delayedCall: function (ms, fn) { var t = { ms: ms, fn: fn, remove: function () { this.quitado = true; } }; E.timers.push(t); return t; }

@@ -508,7 +508,7 @@
       /* la pelota sale disparada hacia el arco: el golpe fuerte, como el tuyo */
       var patada = this.time.delayedCall(tEntrada, function () {
         esc.pateo = true;
-        self.uiCam.flash(70, 255, 200, 120);
+        self.destello(self.uiCam, 70, 255, 200, 120);
         self.SFX && self.SFX.kickFuerte && self.SFX.kickFuerte();
         /* si la bloquean, el vuelo suena acá; si no, lo pone el viaje del cine */
         if (lectura.bloqueado) {
@@ -558,7 +558,7 @@
                 if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
                 if (self.efectoGol) self.efectoGol(true);
               } else {
-                self.uiCam.flash(60, 255, 255, 255);
+                self.destello(self.uiCam, 60, 255, 255, 255);
                 self.SFX && self.SFX.gloves && self.SFX.gloves();
                 self.punch("¡ATAJADÓN!", self.porQueRemateRival(lectura, res), 0x5bb8e8);
                 if (self.tribunaSaltando) self.tribunaSaltando();
@@ -591,7 +591,7 @@
         if (!esc.pateo) { esc.pateo = true; patada.remove(false); }
         if (self.golpeDeCamara) self.golpeDeCamara(1);
         var quien = lectura.defensorMasCerca;
-        self.uiCam.flash(60, 255, 255, 255);
+        self.destello(self.uiCam, 60, 255, 255, 255);
         self.SFX && self.SFX.choque && self.SFX.choque();
         if (figs[0] && figs[0].active) self.tweens.add({ targets: figs[0], scale: figs[0].scale * 1.14, duration: 240 });
         /* revisión L04b: decía "te tiraste", y la figura de quien juega es
@@ -759,7 +759,7 @@
       /* --- LA PEGADA: flash, líneas y la pelota sale --- */
       this.time.delayedCall(tEntrada, function () {
         if (!bola.active) return;
-        self.uiCam.flash(70, 255, 255, 220);
+        self.destello(self.uiCam, 70, 255, 255, 220);
         if (!onda) self.lineasVelocidad(258, yPie, 0.9, 0xffd84d);
         self.SFX && self.SFX.kick && self.SFX.kick();
         var t1 = hayCorte ? Math.round(tViaje * 0.55) : tViaje;
@@ -793,7 +793,7 @@
         if (onda) window.PampaOnda.revelar(self, onda, { foco: cfg.win ? destino : (cort || bola), soltar: false });
         if (self.golpeDeCamara) self.golpeDeCamara(0.8);
         if (cfg.win) {
-          if (!(onda && hayCorte)) self.uiCam.flash(60, 255, 255, 255);
+          if (!(onda && hayCorte)) self.destello(self.uiCam, 60, 255, 255, 255);
           self.SFX && self.SFX.whoosh && self.SFX.whoosh();
           if (bola.active) self.tweens.add({ targets: bola, x: destino.x, y: destino.y, angle: 1080, duration: self.msV(320), ease: "Sine.easeOut" });
           if (cort && cort.active) self.tweens.add({ targets: cort, y: "+=26", angle: -74, alpha: 0.45, duration: 320 });
@@ -802,7 +802,7 @@
             cfg.sub || (cfg.alVacio ? "la dejó en el camino y pica al espacio" : "toque y a seguir"), 0x7ee08a);
         } else {
           self.SFX && self.SFX.choque && self.SFX.choque();
-          self.uiCam.shake(220, 0.006);
+          self.sacudir(self.uiCam, 220, 0.006);
           if (cort && cort.active) {
             if (bola.active) bola.setPosition(cort.x - 30, cort.y + 60);
             self.tweens.add({ targets: cort, scale: cort.scale * 1.14, angle: 0, duration: 280 });

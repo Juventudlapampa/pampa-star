@@ -68,6 +68,7 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
       addCounter: function (cfg) { tweens.push(cfg); cfg.stop = function () {}; return cfg; }
     }
   };
+  require("./_cuidado_de_mentira.js")(sc);
   /* correr el tween a mano hasta el final */
   function correr(cfg) {
     if (!cfg || !cfg.onUpdate) return;

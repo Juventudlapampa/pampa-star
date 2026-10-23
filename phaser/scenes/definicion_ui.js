@@ -716,7 +716,7 @@
       this.cineContent.add(spr);
       this._def.shakeSpr = spr;   // sacudida 2-3px de esfuerzo (updateDefinicion)
       this.lineasVelocidad(W / 2, H * 0.45, 1.2, o.ofensiva ? 0xffd84d : 0xff8a50);
-      this.uiCam.flash(90, 255, 255, 235);
+      this.destello(this.uiCam, 90, 255, 255, 235);
       var snd = this.FLAGS.e6_cine ? this.SFX : null;
       snd && snd.kick();
       /* la pelota viaja a la zona; el arquero VUELA con su pose */
@@ -834,8 +834,8 @@
       }
       this.lineasVelocidad(W / 2, H * 0.45, 1.4, color);
       this.punch(titulo, sub, color);
-      this.uiCam.flash(110, 255, 255, 255);
-      this.uiCam.shake(240, 0.01);
+      this.destello(this.uiCam, 110, 255, 255, 255);
+      this.sacudir(this.uiCam, 240, 0.01);
       var esFiesta = (o.ofensiva && o.gol) || (!o.ofensiva && !o.gol);
       /* el gol tuyo: el festejo de siempre (red ya, fanfarria y tribuna al
          estallar), una sola vez */

@@ -198,6 +198,7 @@
 
     empujar: function (sc, escalon) {
       if (escalon === 1) return;
+      if (sc.movimientoSuave()) return;   // L11: en MOVIMIENTO SUAVE la cámara no empuja
       var C = cfg(sc);
       var p = sc.panelLayer;
       if (p) {
@@ -252,16 +253,19 @@
       this.hitstop(sc, "gol", 3);
       /* el cuadro de impacto: silueta blanca sobre fondo oscuro, UN cuadro */
       var W = 960, H = 540;
-      var flash = sc.add.rectangle(W / 2, H / 2, W, H, 0xf6efdc, 1).setDepth(9998);
-      if (sc.uiCam && sc.cameras && sc.cameras.main) sc.cameras.main.ignore(flash);
+      /* L11: el cuadro crema es un destello: cuenta en el cupo de la escena y
+         en MOVIMIENTO SUAVE no sale (el silencio y los tiempos quedan igual) */
+      var conCuadro = !sc.movimientoSuave() && sc.cupoDestello();
+      var flash = conCuadro ? sc.add.rectangle(W / 2, H / 2, W, H, 0xf6efdc, 1).setDepth(9998) : null;
+      if (flash && sc.uiCam && sc.cameras && sc.cameras.main) sc.cameras.main.ignore(flash);
       var sil = null;
-      if (opts.silueta && sc.textures && sc.textures.exists(opts.silueta)) {
+      if (conCuadro && opts.silueta && sc.textures && sc.textures.exists(opts.silueta)) {
         sil = sc.add.image(W / 2, H / 2, opts.silueta).setTint(0x0a1f13).setDepth(9999);
         if (opts.escala) sil.setScale(opts.escala);
         if (sc.uiCam && sc.cameras && sc.cameras.main) sc.cameras.main.ignore(sil);
       }
       sc.time.delayedCall(Math.round(90 * C.k), function () {
-        flash.destroy(); if (sil) sil.destroy();
+        if (flash) flash.destroy(); if (sil) sil.destroy();
         if (opts.alSilencio) opts.alSilencio();
         sc.time.delayedCall(silencio, function () { if (opts.alEstallar) opts.alEstallar(); });
       });

@@ -388,6 +388,7 @@ function teatro(poseTiro) {
   e.time = { delayedCall: function () { } };
   e.cineBG = { clear: function () { }, fillStyle: function () { }, fillRect: function () { }, fillTriangle: function () { } };
   e.uiCam = { flash: function () { } };
+  require("./_cuidado_de_mentira.js")(e);
   e.limpiarContenido = function () { }; e.fondoCine = function () { return true; };
   e.lineasVelocidad = function () { }; e.musicaDuck = function () { }; e.msV = function (v) { return v; };
   e.FLAGS = {};

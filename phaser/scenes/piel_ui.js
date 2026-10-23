@@ -357,6 +357,44 @@
       this.children.list.forEach(visitar);
     },
 
+    /* ══════════════════════════════════════════════════════════════════════
+       L11 · EL CUIDADO: DESTELLOS Y MOVIMIENTO (logic/cuidado.js).
+
+       Toda cámara que destella o se sacude pasa por acá, en todas las
+       escenas y sus agregados (el cine, LA ONDA, la Definición, el Jugadón,
+       la toma del remate, la intro). cuidado.test.js pone la suite en rojo si
+       aparece un .flash( o un .shake( en otro archivo de phaser/scenes.
+
+       El cupo es UNO por escena: el flash, el cuadro crema del gol, el cuadro
+       de impacto de LA ONDA y el negro de corte del cine cuentan juntos, como
+       los cuenta el ojo. Sin cupo, el flash y los cuadros no salen y el negro
+       baja a balance.cuidado.negro_sin_cupo. En MOVIMIENTO SUAVE no hay
+       flash ni sacudón, y los zooms de cámara son cortes.
+       ══════════════════════════════════════════════════════════════════════ */
+    movimientoSuave: function () { return this.game.registry.get("movimiento") === "suave"; },
+    cupoDestello: function () {
+      var C = this.game.registry.get("balance").cuidado;
+      if (!this._limDestellos) this._limDestellos = window.PampaCuidado.limitador({ ventana_ms: C.destellos_ventana_ms, max: C.destellos_max });
+      return this._limDestellos.pedir(this.time.now);
+    },
+    destello: function (cam, ms, r, g, b) {
+      if (this.movimientoSuave() || !this.cupoDestello()) return false;
+      cam.flash(ms, r, g, b);
+      return true;
+    },
+    sacudir: function (cam, ms, intensidad, forzar) {
+      if (this.movimientoSuave()) return false;
+      cam.shake(ms, intensidad, forzar);
+      return true;
+    },
+    alfaNegro: function () {
+      return this.cupoDestello() ? 1 : this.game.registry.get("balance").cuidado.negro_sin_cupo;
+    },
+    zoomCamara: function (cam, z, ms, ease, forzar) {
+      if (this.movimientoSuave()) { cam.setZoom(z); return; }
+      cam.zoomTo(z, ms, ease, forzar);
+    },
+
     /* L10 · EL SONIDO SE APAGA DESDE CADA PANTALLA, CON LA PALABRA A LA VISTA.
        Solo estaba en la PAUSA del partido y en OPCIONES del título: el
        opening, el editor, la tabla y la semana tienen música y no había cómo

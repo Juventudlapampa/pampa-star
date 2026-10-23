@@ -166,6 +166,7 @@ assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", 
   s.poseDePlano = function () { return "pose"; };
   s.escalaDePose = function () { return 1; };
   s.lineasVelocidad = function () { };
+  require("./_cuidado_de_mentira.js")(s);
   s.cineContent = { bringToTop: function () { }, getIndex: function () { return 0; }, moveTo: function () { } };
   s.cursors = null;
   const mateo = { esVos: false, nombre: "Mateo" }, vos = { esVos: true, nombre: "Rodri" };

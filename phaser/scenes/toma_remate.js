@@ -166,6 +166,8 @@
 
     puedeTomaDelRemate: function () {
       if (!window.PampaPierna || !window.Phaser) return false;
+      /* L11: en MOVIMIENTO SUAVE la toma gira 63° (82° en el súper tiro): vuelve la viñeta */
+      if (this.movimientoSuave()) return false;
       if (this.FLAGS && this.FLAGS.toma_remate === false) return false;
       var r = this.sys && this.sys.renderer;
       if (!r || r.type !== Phaser.WEBGL || !this.add.plane) return false;
@@ -311,8 +313,8 @@
            Rodri: "sonido épico"); el especial se distingue por el flash, el
            temblor y el hitstop */
         snd && snd.kickFuerte();
-        self.uiCam.flash(especial ? 140 : 90, 255, 255, 235);
-        self.uiCam.shake(especial ? 300 : 200, especial ? 0.014 : 0.009);
+        self.destello(self.uiCam, especial ? 140 : 90, 255, 255, 235);
+        self.sacudir(self.uiCam, especial ? 300 : 200, especial ? 0.014 : 0.009);
         if (FE && FE.hitstop) FE.hitstop(self, "fuerte", especial ? 3 : 2);
         /* la pelota sale de donde está en la pantalla (su malla ya proyectada) */
         var bv = bola.vertices, sx = 0, sy = 0, cnt = 0;
@@ -337,7 +339,7 @@
         self.respirar && self.respirar();
         /* corte seco: un instante de negro y al viaje */
         self.cineBig.setAlpha(0); self.cineSub.setAlpha(0);
-        self.cineBlack.setAlpha(1);
+        self.cineBlack.setAlpha(self.alfaNegro());
         self.time.delayedCall(60, function () {
           self.cineBlack.setAlpha(0);
           plano.destroy(); bola.destroy();

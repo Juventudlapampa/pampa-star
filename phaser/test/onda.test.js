@@ -116,6 +116,8 @@ function armar(onda, reducir) {
     PF: { display: "x" },
     matchMedia: function (q) { return { matches: !!reducir && /prefers-reduced-motion: reduce/.test(q) }; }
   };
+  /* L11: la onda pregunta el modo MOVIMIENTO; sin elección guardada sale de lo que pide el sistema */
+  require("./_cuidado_de_mentira.js")(sc, { suave: require("../logic/cuidado.js").leer({ getItem: function () { return null; } }, win.matchMedia) === "suave" });
   new Function("window", ONDA)(win);
   return { O: win.PampaOnda, sc: sc, reg: reg };
 }

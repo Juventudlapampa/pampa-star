@@ -136,6 +136,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   init() {
     this.BAL = this.game.registry.get("balance");
     this.SFX = window.PampaSFX;
+    /* L11: el cupo de destellos y el antirrebote del salteo son de ESTE partido */
+    this._limDestellos = null; this._ultSalteo = null;
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
     this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true, v6_secuencias: true, pantalla_partida: true, pulso: true }, this.BAL.flags || {});
@@ -550,6 +552,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._punteroListo = false;
     this.input.on("pointerdown", (p) => {
       this._punteroListo = true;
+      /* L11 · EL SALTEO CON ANTIRREBOTE. Tocando seguido, cada toque salteaba
+         la viñeta que recién entraba, con su destello: la megacorrida llegaba
+         a 6 destellos en un segundo y el súper tiro a 4. Entre dos salteos
+         tiene que haber balance.cuidado.skip_min_ms. */
+      if (this.estado === "ESCENA" || this.estado === "CINE") {
+        if (this.time.now - (this._ultSalteo != null ? this._ultSalteo : -Infinity) < this.BAL.cuidado.skip_min_ms) return;
+        this._ultSalteo = this.time.now;
+      }
       /* V6 R4 · SKIP: un toque durante la escena adelanta al desenlace */
       if (this.estado === "ESCENA") { this._escSkip && this._escSkip(); return; }
       /* V7 §1: el cine de 5 planos del megatiro también se saltea con un toque */
@@ -2534,7 +2544,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     } else {
       /* en la vista elevada el beat se ACERCA más (si no, el zoom no se siente) */
       const extraBeat = (F.beat_zoom_extra || 0.12) * (megaViene ? 1.6 : 1) * (this._vista4 ? (this.VI.zoom_beat_mult || 3) : 1);
-      cam.zoomTo(this._zoomBase * (1 + extraBeat), durBeat, "Sine.easeInOut");
+      this.zoomCamara(cam, this._zoomBase * (1 + extraBeat), durBeat, "Sine.easeInOut");
     }
     if (this.FLAGS.e6_cine) this.SFX && this.SFX.riser && this.SFX.riser(durBeat / 1000);
     this.time.delayedCall(durBeat, () => { if (this.estado === "BEAT") abrir(); });
@@ -2599,7 +2609,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return true;
   }
   /* devuelve la cámara a su zoom base tras el drama del beat */
-  zoomBase() { this.cameras.main.zoomTo(this._zoomBase || this.V2.ZOOM, 420, "Sine.easeInOut"); }
+  zoomBase() { this.zoomCamara(this.cameras.main, this._zoomBase || this.V2.ZOOM, 420, "Sine.easeInOut"); }
   /* ⚠ Phaser: ignore(container) taggea solo a los hijos EXISTENTES — todo lo que
      se agrega al menú DESPUÉS hay que re-ignorarlo o se dibuja duplicado en la
      cámara con zoom. Llamar esto al final de cada armado de menú. */
@@ -3513,6 +3523,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   dollyCine(ms, fuerza) {
     this.pararDolly();
     const CV = (this.BAL.cine && this.BAL.cine.camara_viva) || {};
+    if (this.movimientoSuave()) return;   // L11: en MOVIMIENTO SUAVE la cámara del cine no se mueve
     if (CV.activa === false || !this.cineContent) return;
     const W = 960, H = 540, k = fuerza || 1;
     const cerca = (CV.acercar_figuras != null ? CV.acercar_figuras : 0.035) * k;
@@ -3538,6 +3549,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* la revelación: un golpe de zoom que entra y vuelve */
   golpeDeCamara(fuerza) {
     const CV = (this.BAL.cine && this.BAL.cine.camara_viva) || {};
+    if (this.movimientoSuave()) return;
     if (CV.activa === false || !this.uiCam) return;
     const z = 1 + (CV.golpe_zoom != null ? CV.golpe_zoom : 0.045) * (fuerza || 1);
     this.uiCam.zoomTo(z, 70, "Quad.easeOut", true);
@@ -3559,13 +3571,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.cineFondo) this.cineFondo.setVisible(false);
   }
   corte(fn) {
-    this.cineBlack.setAlpha(1);
+    this.cineBlack.setAlpha(this.alfaNegro());
     this.tweens.add({ targets: this.cineBlack, alpha: 0, duration: this.BAL.cine.corte_ms, delay: 20 });
     this.time.delayedCall(10, fn);
   }
   lineasVelocidad(cx, cy, inten, tinte) {
     const g = this.cineFX, n = this.BAL.cine.lineas_velocidad;
     g.clear();
+    if (this.movimientoSuave()) return;   // L11: en MOVIMIENTO SUAVE no hay líneas de velocidad
     /* ARTE · la línea de velocidad de anime es una CUÑA: fina del lado del
        centro, ancha afuera. Antes era un trazo de ancho parejo, que se lee
        como un palito. Una de cada cinco va más gruesa y más larga: el ritmo
@@ -3683,7 +3696,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.tweens.add({ targets: foco, scale: 1, duration: 260, ease: "Back.easeOut" });
     this.tweens.add({ targets: bola, x: bx + 640, y: by - 170, scale: TP.esc * 0.35, angle: 240, delay: 140, duration: this.msV(C.plano_pie_ms), ease: "Quad.easeIn" });
     this.SFX && this.SFX.kickFuerte();
-    this.uiCam.flash(90, 255, 255, 220);
+    this.destello(this.uiCam, 90, 255, 255, 220);
     this.lineasVelocidad(W * 0.45, H * 0.5, 1, 0xffd84d);
     this._cineTimer = this.time.delayedCall(this.msV(C.plano_pie_ms + 240), () => this.corte(() => this.planoViaje()));
   }
@@ -3763,7 +3776,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.lineasVelocidad(vs.vp.x, vs.vp.y, 0.4 + 0.6 * d, 0xffd84d);
     if (!vs.zoomed && d > C.slowmo_desde) {
       vs.zoomed = true;
-      this.uiCam.zoomTo(C.zoom_viaje, C.camara_pan_ms, "Sine.easeInOut");
+      this.zoomCamara(this.uiCam, C.zoom_viaje, C.camara_pan_ms, "Sine.easeInOut");
       /* el centro no se pasa del cuadro: con el zoom del viaje, centrar en la
          fuga dejaba ver lo que hay arriba de la pintura (una franja negra de
          58 px, vista en la captura del 17/oct) */
@@ -4032,9 +4045,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         tw({ targets: hondo, v: 0.55, delay: 140, duration: 420, ease: "Sine.easeInOut", onUpdate: dibujarRed });
         tw({ targets: ball, scale: escFin * 0.75 * kB, y: destino.y + 10, duration: 140, ease: "Quad.easeOut" });
         tw({ targets: ball, y: gy - 10, delay: 300, duration: 420, ease: "Bounce.easeOut" });
-        this.uiCam.shake(EP.shake_ms, EP.shake_intensidad);
+        this.sacudir(this.uiCam, EP.shake_ms, EP.shake_intensidad);
         if (RR) { RR.revelar(); return; }
-        this.uiCam.flash(EP.flash_ms, 255, 255, 210);
+        this.destello(this.uiCam, EP.flash_ms, 255, 255, 210);
         this.burst(ball.x, ball.y);
         this.punch(this._megaGrito || this.tituloDelGol(), this.subDelGol(), 0xffd84d);
         /* V9: la fiesta completa (tribuna + efecto + saque relatado). Acá
@@ -4060,7 +4073,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       revelar = () => {
         ball.setPosition(destino.x, destino.y);
         pintarArco(0);
-        this.uiCam.shake(EP.atajada_shake_ms, EP.atajada_shake_int);
+        this.sacudir(this.uiCam, EP.atajada_shake_ms, EP.atajada_shake_int);
         if (RR) {
           /* tu arquero la despeja con los puños: la pose trae la pelota
              pintada, así que la del juego se esconde (o se ven dos) */
@@ -4102,7 +4115,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       revelar = () => {
         abierto();
         ball.setPosition(destino.x, destino.y);
-        this.uiCam.shake(120, 0.005);
+        this.sacudir(this.uiCam, 120, 0.005);
         tw({ targets: ball, x: destino.x + lado * 210, y: gy - 6, scale: 0.8 * kB, angle: lado * 300, duration: 520, ease: "Quad.easeOut" });
         const d = this.desenlaceRemate(res, { palo: true });
         this.punch(d.titulo, d.sub, d.color);
@@ -4150,7 +4163,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     luego(tFreeze, () => {
       twBola.pause(); prog.quieto = true;
       encuadrar((destino.x + ball.x) / 2, (destino.y + ball.y) / 2 + 30, 1.9);
-      this.uiCam.flash(70, 255, 255, 255);
+      this.destello(this.uiCam, 70, 255, 255, 255);
       this.musicaDuck(silencio + 300);   // ANIME D: también calla la música del loop
     });
     /* y el contacto vuelve a velocidad real */
@@ -4641,14 +4654,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         titulo: "", sub: ej.lecturaTexto || "",
         color: 0xffd84d,
         alFinal: () => {
-          this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
+          this.destello(this.cameras.main, this.BAL.cine.corte_flash_ms, 255, 255, 255);
           this.entrarCine();
           contacto();     // y de acá sale el viaje, el arquero y el desenlace
         }
       });
       return;
     }
-    this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
+    this.destello(this.cameras.main, this.BAL.cine.corte_flash_ms, 255, 255, 255);
     this.entrarCine();
     contacto();     // la patada suena en el plano del pie
   }
@@ -4936,7 +4949,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const shakeTw = this.tweens.add({ targets: sp, x: "+=2", y: "-=2", duration: 46, yoyo: true, repeat: -1, delay: F.entrada_ms || 420 });
     if (cfg.especial) {   // la escena más espectacular: doble flash + líneas más gruesas
       this.lineasVelocidad(W * 0.3, H * 0.5, 1.4, 0xffd84d);
-      this.time.delayedCall((F.entrada_ms || 420) * 0.6, () => this.uiCam.flash(140, 255, 216, 77));
+      this.time.delayedCall((F.entrada_ms || 420) * 0.6, () => this.destello(this.uiCam, 140, 255, 216, 77));
     }
     let sr = null;
     if (cfg.rival) {
@@ -4978,7 +4991,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       tNombre: this.msV((F.entrada_ms || 420) * multR)
     }) : null;
     if (!onda) this.lineasVelocidad(W / 2, H * 0.45, 0.9, rivProta ? 0xff8a50 : 0xffd84d);
-    this.uiCam.flash(90, 255, 255, 220);
+    this.destello(this.uiCam, 90, 255, 255, 220);
     const snd = this.SFX; snd && snd.whoosh && snd.whoosh();
     /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall, idempotente:
        V6 R4 el SKIP —un toque durante la escena— adelanta a la revelación y cierra) */
@@ -5002,7 +5015,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           sp, sr, bola: bolaProta, soltar: true, protaEsVos: !cfg.prota.esRival,
           dir: cfg.poseFlip ? -1 : 1, foco: cfg.gana || !sr ? sp : sr
         });
-      } else this.uiCam.flash(60, 255, 255, 255);   // V6 §3.1: un frame blanco en el contacto
+      } else this.destello(this.uiCam, 60, 255, 255, 255);   // V6 §3.1: un frame blanco en el contacto
       this.pararDolly();
       this.golpeDeCamara(cfg.especial ? 1.5 : (cfg.gana ? 1.1 : 0.8));
       if (sp.active && sp._esPose) {
@@ -5075,14 +5088,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           this.cineContent.moveBelow(bolaProta, sr);
         }
       }
-      if (cfg.especial) { this.uiCam.shake(320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
+      if (cfg.especial) { this.sacudir(this.uiCam, 320, 0.012); this.lineasVelocidad(sp.x, sp.y - 40, 1.6, 0xffd84d); }
       if (cfg.hinchada) this.tribunaSaltando();   // V6 P5: la tribuna SALTA en el gol
       this.punch(cfg.titulo, cfg.sub || "", cfg.color != null ? cfg.color : (cfg.gana ? 0xffd84d : 0xe3503e));
       /* oct 2026: la red y la fanfarria de un gol NO se tocan acá (era la
          segunda de las tres fanfarrias del cabezazo). Un remate que termina
          en gol pasa sfx "kick" —el contacto— y alRevelar, que es el festejo. */
       if (snd && cfg.sfx && snd[cfg.sfx]) snd[cfg.sfx]();
-      this.uiCam.shake(200, cfg.gana ? 0.008 : 0.005);
+      this.sacudir(this.uiCam, 200, cfg.gana ? 0.008 : 0.005);
       /* LO QUE PASÓ, un instante DESPUÉS del contacto: pum… ¡red! (o guantes,
          o afuera). Si es un gol, devuelve cuánto falta para la explosión y la
          viñeta se queda abierta hasta verla. */
@@ -5126,7 +5139,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        partido, nada de fundidos (como el manga entre viñetas) */
     this.cineBig.setAlpha(0); this.cineSub.setAlpha(0);
     this.limpiarContenido();
-    this.cineBlack.setAlpha(1);   // un instante de NEGRO (la canaleta entre viñetas)
+    this.cineBlack.setAlpha(this.alfaNegro());   // un instante de NEGRO (la canaleta entre viñetas)
     this.respirar();
     this.time.delayedCall(70, () => {
       this.cineBlack.setAlpha(0);
@@ -5303,13 +5316,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const cargaTxt = this.add.text(620, 340, "cargando aguante…", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     this.cineContent.add(cargaBg); this.cineContent.add(carga); this.cineContent.add(cargaTxt);
     this.tweens.add({ targets: carga, width: 336, duration: this.msV(820), ease: "Sine.easeIn" });
-    this.uiCam.flash(120, 255, 216, 77);
+    this.destello(this.uiCam, 120, 255, 216, 77);
     this.dollyCine(this.msV(1150), 1.6);   // LA CÁMARA VIVA: el anuncio se viene encima
     this.SFX && this.SFX.riser && this.SFX.riser(this.msV(1050) / 1000);
     this.time.delayedCall(this.msV(1150), () => {
       /* corte seco y el flujo sigue (timing del megatiro / resolución de la megadefensa) */
       this.limpiarContenido();
-      this.cineBlack.setAlpha(1);
+      this.cineBlack.setAlpha(this.alfaNegro());
       this.time.delayedCall(60, () => {
         this.cineBlack.setAlpha(0);
         this.cineLayer.setVisible(false);
@@ -5351,7 +5364,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.mundoLayer.add(e);
     e.explode(26);
     this.time.delayedCall(900, () => e.destroy());
-    this.cameras.main.shake(240, 0.011);
+    this.sacudir(this.cameras.main, 240, 0.011);
     /* oct 2026: la RED ya no suena acá. Esto es la explosión, que llega
        después del silencio; la red es el impacto y la toca quien muestra la
        pelota entrando (festejarGolPropio, el gol rival de escenas_v9). Cuando
@@ -6601,7 +6614,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* E6: el corte de plano se SIENTE — flash breve + motivo musical al cambiar el LADO
        (no en cada pase entre compañeros: el hook es por POSESIÓN) */
     if (this.FLAGS.e6_cine) {
-      cam.flash(90, 255, 255, 235);
+      this.destello(cam, 90, 255, 255, 235);
       const lado = p.esRival ? "rival" : "mia";
       if (lado !== this._ladoTema) {
         this._ladoTema = lado;

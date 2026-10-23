@@ -354,7 +354,7 @@
   (function () {
     "use strict";
     var C = window.PampaCartel = {
-      SCRIPTS: 61, DATOS: 15,
+      SCRIPTS: 62, DATOS: 15,
       PESOS: { scripts: 0.73, datos: 0.18, escena: 0.09 },
       scripts: 0, datos: 0, escena: 0, pct: 0, fuera: false
     };
@@ -1650,6 +1650,8 @@
   <!-- L04: qué hace el atrás del teléfono en cada pantalla (lo usa el script del atrás, arriba) -->
   <script src="logic/atras.js"></script>
   <script src="logic/opciones.js"></script>
+  <!-- L11: el tope de destellos y el modo MOVIMIENTO (COMPLETO o SUAVE) -->
+  <script src="logic/cuidado.js"></script>
   <!-- L05: la carga con señal floja (cuánto vino de la red, ?perf=1) -->
   <script src="logic/carga.js"></script>
   <!-- L06: el tope de lado en memoria de las texturas y cuánto ocupan (?perf=1) -->
@@ -2184,7 +2186,7 @@
         timeout: (balance && balance.red_floja && balance.red_floja.loader_timeout_ms) || 75000,
         maxParallelDownloads: (balance && balance.red_floja && balance.red_floja.loader_paralelas) || 4
       },
-      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* L06: la cola de precalentamiento y, con ?perf=1, el cuadro más largo */ if (window.PampaPrecalentarEnganchar) window.PampaPrecalentarEnganchar(game); /* revisión L06: el tope de cuadros, después de medir la pantalla */ if (window.PampaTopeDeCuadros) window.PampaTopeDeCuadros(game); if (window.PampaPerf) window.PampaPerf.enganchar(game); /* L06: si se pierde el contexto WebGL, pausa y espera; si no vuelve, "Se cortó el dibujo" */ if (window.PampaRed && window.PampaRed.vigilarMemoria) window.PampaRed.vigilarMemoria(game); /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* 20/oct: los volúmenes de OPCIONES, desde el arranque */ if (window.PampaOpciones && window.PampaSFX) window.PampaOpciones.aplicar(window.PampaSFX, window.PampaOpciones.leer(localStorage, balance, audio)); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
+      callbacks: { preBoot: (game)=>{ game.registry.set("balance", balance); game.registry.set("roster", roster); game.registry.set("portraits", retratos); game.registry.set("megacosas", mega); game.registry.set("relatos", relatos); game.registry.set("poses", poses); game.registry.set("caras", caras); game.registry.set("divisiones", divisiones); game.registry.set("vida", vida); game.registry.set("semana", semanaData); game.registry.set("entrevista", entrevista); game.registry.set("tribuna", tribuna); game.registry.set("audio", audio); game.registry.set("ambientes", ambientes); }, postBoot: (game)=>{ /* L06: la cola de precalentamiento y, con ?perf=1, el cuadro más largo */ if (window.PampaPrecalentarEnganchar) window.PampaPrecalentarEnganchar(game); /* revisión L06: el tope de cuadros, después de medir la pantalla */ if (window.PampaTopeDeCuadros) window.PampaTopeDeCuadros(game); if (window.PampaPerf) window.PampaPerf.enganchar(game); /* L06: si se pierde el contexto WebGL, pausa y espera; si no vuelve, "Se cortó el dibujo" */ if (window.PampaRed && window.PampaRed.vigilarMemoria) window.PampaRed.vigilarMemoria(game); /* V10: el anillo violeta del recorte se limpia al cargar cada ilustración (cine_arte.js + logic/halo.js) */ if (window.PampaHaloEnganchar) window.PampaHaloEnganchar(game); /* oct 2026: la mezcla de los efectos (balance.audio_mezcla) vale desde el primer menú, no desde el primer partido */ if (window.PampaSFX && window.PampaSFX.configurarMezcla) window.PampaSFX.configurarMezcla(balance.audio_mezcla); /* L11: el modo MOVIMIENTO, el guardado o el del sistema */ game.registry.set("movimiento", window.PampaCuidado.leer(localStorage, window.matchMedia && window.matchMedia.bind(window))); /* 20/oct: los volúmenes de OPCIONES, desde el arranque */ if (window.PampaOpciones && window.PampaSFX) window.PampaOpciones.aplicar(window.PampaSFX, window.PampaOpciones.leer(localStorage, balance, audio)); /* oct 2026: UN SOLO RELOJ — ver scenes/reloj.js */ if (window.PampaUnSoloReloj) window.PampaUnSoloReloj(game); } },
       scene: [ window.PampaIntro, window.PampaTitulo, window.PampaEditor, window.PampaMasterScene, window.PampaMatch ]   // OPENING → título → carrera o partido rápido
     };
     window.PAMPA_GAME = new Phaser.Game(config);
