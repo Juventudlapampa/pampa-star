@@ -185,7 +185,7 @@ const ASSETS_HUELLA = {
   "assets/poses/hincha_mate.webp": "7330-8cc92edfa4ab",
   "assets/poses/hincha_parado.webp": "5388-944ad0cbd854",
   "assets/poses/identidades/jugador_colorado.png": "280298-e4254b46ef29",
-  "assets/poses/identidades/jugador_colorado_remate.webp": "16104-5ac86ccf012b",
+  "assets/poses/identidades/jugador_colorado_remate.webp": "16260-284fabfddeac",
   "assets/poses/identidades/jugador_largo.png": "289883-fc41adb6e4ad",
   "assets/poses/identidades/jugador_largo_izq.webp": "44666-cb3e16a382a6",
   "assets/poses/identidades/jugador_largo_remate.webp": "17268-fac1c4223c6e",

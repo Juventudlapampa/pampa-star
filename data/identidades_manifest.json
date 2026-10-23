@@ -76,9 +76,9 @@
       "remate": {
         "archivo": "jugador_colorado_remate.webp",
         "pelota": {
-          "x": 0.428,
-          "y": 0.888,
-          "r": 0.103
+          "x": 0.774,
+          "y": 0.899,
+          "r": 0.097
         }
       }
     },
@@ -126,5 +126,5 @@
   "_alineacion": "Las seis se recortaron con una CAJA COMÚN, no una por una: por eso los pies caen en la misma línea (pisos medidos: 618-619 de 620, 1px de diferencia). Si se reemplaza una sola, hay que recortarla con la misma caja o se va a ver saltar.",
   "_arte": "TANDA DE ARTE (30/jul): llegaron con fondo magenta (chroma key); se procesaron offline a alpha real, recorte común y alto 620. 4 propios (camiseta celeste) + 2 rivales (naranja a rayas), como dicen los nombres de archivo.",
   "_izq": "Pedido de Rodri del 17/oct. 'izq': la misma ilustración espejada con el número redibujado al derecho, para cuando el panel la muestra mirando a la izquierda (match.js la usa sin flip). En webp y bajada a 404x420 (la de siempre mide 596x620; en el panel se ve a unos 210 px de alto). El colorado no tiene: el 8 espejado se lee igual.",
-  "_remate": "22/oct, pedido de Rodri: cuando remata un compañero o un rival salía la ilustración del 10 o la de correr. 'remate': la pose de remate de cada identidad (su pelo, su cara, su número), un instante antes de pegarle, mirando a la derecha; la usan EL TOQUE, la escena del remate, el súper tiro (cut-in, carga y plano del pie), 'te rematan' y el pase (match.js remateDe). 'pelota' es dónde se recortó la del dibujo (x sobre el ancho; y y r sobre el alto): el juego dibuja la suya ahí. Arte de .claude/nuevos/arte/LEEME.txt (tercera y cuarta tanda: Gemini y ChatGPT); PNG de fuente en assets/_fuente/poses/ (hasta 1742x1801). En webp bajadas a 420 de alto (calidad 72, alfa 60): las seis pesan 92 KB y entran en el tope de 8 MB de w1_peso.test.js. El colorado es el de manga larga (falta rehacerlo en manga corta). Sin 'remate', sigue como antes."
+  "_remate": "22/oct, pedido de Rodri: cuando remata un compañero o un rival salía la ilustración del 10 o la de correr. 'remate': la pose de remate de cada identidad (su pelo, su cara, su número), un instante antes de pegarle, mirando a la derecha; la usan EL TOQUE, la escena del remate, el súper tiro (cut-in, carga y plano del pie), 'te rematan' y el pase (match.js remateDe). 'pelota' es dónde se recortó la del dibujo (x sobre el ancho; y y r sobre el alto): el juego dibuja la suya ahí. Arte de .claude/nuevos/arte/LEEME.txt (tercera y cuarta tanda: Gemini y ChatGPT); PNG de fuente en assets/_fuente/poses/ (hasta 1742x1801). En webp bajadas a 420 de alto (calidad 72, alfa 60): las seis pesan 92 KB y entran en el tope de 8 MB de w1_peso.test.js. El colorado es el de manga corta (R8 de Gemini, 23/oct, espejado por código; reemplaza al de manga larga). Sin 'remate', sigue como antes."
 }
