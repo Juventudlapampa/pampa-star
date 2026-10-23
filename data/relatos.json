@@ -208,6 +208,14 @@
    "En {localidad} el club es el bar, la pileta y la cancha. Hoy viajó toda la comisión.",
    "Desde {localidad} vienen con el bombo y la radio pegada a la oreja."
   ],
+  "localidad_dicha": [
+   "Allá cierran el almacén temprano cuando juega {rival}.",
+   "La gente de allá viene en camioneta y mira el partido apoyada en el alambrado.",
+   "Allá el club es el bar, la pileta y la cancha. Hoy viajó toda la comisión.",
+   "De allá vienen con el bombo y la radio pegada a la oreja."
+  ],
+  "_localidad_dicha": "Revisión del 23/oct: la estrella es de la localidad del rival y su apodo ya la nombra («El Bagual de Winifreda»), así que esta página no la vuelve a decir. no_repetir: las palabras que la previa no dice dos veces; cada página toma, desde la que le toca, la primera frase que no repite una ya dicha (logic/dialogo.js, previaDeLaFecha).",
+  "no_repetir": ["caldén", "mate", "viento", "radio", "alambrado"],
   "sin_localidad": [
    "A {rival} lo siguen dos colectivos y una chata con la bandera atada a la caja.",
    "{rival} entrena de noche, con las luces del tinglado prendidas.",

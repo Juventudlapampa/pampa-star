@@ -118,22 +118,58 @@
     var P = o.previa, h = o.hash;
     var loc = localidadDe(o.rival, o.roster);
     var est = estrellaDe(o.rival, o.division, o.roster, h);
-    var de = function (lista, sal) { return lista[(h(o.rival) + sal + (o.fecha | 0)) % lista.length]; };
+    /* revisión del 23/oct · LA PREVIA NO REPITE. Se leía «Mate de Intendente
+       Alvear», después "De Intendente Alvear, empezó...", después "En
+       Intendente Alvear cierran el almacén...", y "caldén" en la historia y en
+       la frase del relator. Cada página toma, desde la que le toca, la primera
+       que no repite una palabra de previa_fecha.no_repetir ya dicha; si
+       ninguna sirve, la previa no arranca (dialogo.test.js recorre todas). */
+    var dicho = "";
+    /* el nombre del rival se dice siempre: no cuenta ("Viento Oeste") */
+    var sinRival = function (t) { return t.split(o.rival).join(" ").toLowerCase(); };
+    var repite = function (t, antes) {
+      var a = sinRival(antes == null ? dicho : antes), b = sinRival(t);
+      return P.no_repetir.some(function (w) { return a.indexOf(w) >= 0 && b.indexOf(w) >= 0; });
+    };
+    var de = function (lista, sal, datos) {
+      for (var k = 0; k < lista.length; k++) {
+        var t = llenar(lista[(h(o.rival) + sal + (o.fecha | 0) + k) % lista.length], datos || {});
+        if (!repite(t)) return t;
+      }
+      throw new Error("la previa de " + o.rival + " no tiene frase que no repita lo dicho: " + dicho);
+    };
+    var poner = function (t) { paginas.push(t); dicho += " " + t; };
+    var paginas = [];
     /* en la primera fecha la tabla está en cero y el puesto no dice nada.
        Va en su propia oración: pegada al perfil, el 20/oct se leía "un equipo
        con una ESTRELLA que viene con la tabla en cero, como todos" */
     var tabla = (o.fecha | 0) > 0 ? llenar(P.tabla, { puesto: o.puesto }) : P.tabla_en_cero;
     var datos = { rival: o.rival, perfil: o.perfil, tabla: tabla, localidad: loc };
-    var paginas = [llenar(de(P.rival, 0), datos)];
+    poner(de(P.rival, 0, datos));
     if (est) {
-      paginas.push(llenar(de(P.estrella, 1), { nombre: est.nombre, apodo: est.apodo, puesto_cancha: P.puestos[est.posicion_motor] }) + " " + est.historia);
+      /* el apodo ya dice de dónde es («El Bagual de Winifreda»): la historia
+         va sin su "De Winifreda, " del principio; y si el nombre del club ya
+         la dijo (Unión de Realicó), el apodo va sin su " de Realicó" */
+      var hist = est.historia.indexOf("De " + est.pueblo + ", ") === 0 ? est.historia.slice(est.pueblo.length + 5) : est.historia;
+      var fin = " de " + est.pueblo, apodo = est.apodo;
+      if (dicho.indexOf(est.pueblo) >= 0 && apodo.slice(-fin.length) === fin) apodo = apodo.slice(0, -fin.length);
+      var pag = de(P.estrella, 1, { nombre: est.nombre, apodo: apodo, puesto_cancha: P.puestos[est.posicion_motor] });
+      /* de la historia, las oraciones que no repiten (el «El Viento» que
+         "patea contra el viento" se queda con la primera) */
+      (hist.charAt(0).toUpperCase() + hist.slice(1)).split(/(?<=\.) /).forEach(function (oracion, k) {
+        if (k === 0 || !repite(oracion, dicho + " " + pag)) pag += " " + oracion;
+      });
+      poner(pag);
     }
-    var lugar = loc ? P.localidad : (o.division === "primera_b" || o.division === "primera_a" ? P.sin_localidad : P.lejos);
-    paginas.push(llenar(de(lugar, 2), datos));
+    /* si la localidad del rival ya se nombró (el apodo de su estrella, el
+       nombre del club), la página de la localidad dice "allá" */
+    var lugar = loc ? (dicho.indexOf(loc) >= 0 ? P.localidad_dicha : P.localidad)
+      : (o.division === "primera_b" || o.division === "primera_a" ? P.sin_localidad : P.lejos);
+    poner(de(lugar, 2, datos));
     /* el relator de la previa va rotando entre los que tienen frases de previa */
     var conPrevia = o.relatores.filter(function (r) { return r.previa && r.previa.length; });
     var rel = conPrevia[(o.fecha | 0) % conPrevia.length];
-    paginas.push(de(rel.previa, 3));
+    poner(de(rel.previa, 3));
     return { relator: rel.id, nombre: rel.nombre, paginas: paginas, estrella: est ? est.id : null, localidad: loc };
   }
 

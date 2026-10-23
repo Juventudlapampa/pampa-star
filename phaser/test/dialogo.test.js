@@ -101,12 +101,24 @@ var DIBUJOS = (bloque.match(/^ {6}(\w+): \(\) =>/gm) || []).map(function (l) { r
       if (pv.estrella) {
         conEstrella++;
         var j = ROSTER.jugadores.filter(function (x) { return x.id === pv.estrella; })[0];
-        ok(j.posicion_motor !== "ARQ" && pv.paginas[1].indexOf(j.nombre) >= 0 && pv.paginas[1].indexOf(j.historia) >= 0, rival + ": la estrella con su nombre y su historia del roster");
+        /* 23/oct, pedido de Rodri: la previa no repite la localidad. El apodo ya
+           la dice («Mate de Intendente Alvear»), así que la historia va sin su
+           "De Intendente Alvear, " del principio y sin las oraciones que
+           repiten lo dicho; la primera oración queda siempre */
+        var sinDe = j.historia.replace("De " + j.pueblo + ", ", "");
+        var primera = (sinDe.charAt(0).toUpperCase() + sinDe.slice(1)).split(/(?<=\.) /)[0];
+        ok(j.posicion_motor !== "ARQ" && pv.paginas[1].indexOf(j.nombre) >= 0 && pv.paginas[1].indexOf(primera) >= 0, rival + ": la estrella con su nombre y su historia del roster");
+        ok(pv.paginas[1].indexOf("De " + j.pueblo + ",") < 0, rival + ": SÍNTOMA: la historia repite la localidad que el apodo ya dijo (" + pv.paginas[1] + ")");
         ok(D.estrellaDe(rival, div, ROSTER, D.hash).id === pv.estrella, rival + ": la misma estrella que viaja al partido");
       }
       if (pv.localidad) { conLocalidad++; ok(pv.paginas.join(" ").indexOf(pv.localidad) >= 0, rival + ": la localidad aparece"); }
       var todo = pv.paginas.join(" ");
       ok(!/\bpueblos?\b|\bpibes?\b/i.test(todo), rival + ": lenguaje institucional (" + todo + ")");
+      /* 23/oct: ni la localidad ni las palabras de no_repetir dos veces (el nombre del club no cuenta) */
+      var sinClub = todo.split(rival).join(" ");
+      if (pv.localidad) ok(sinClub.split(pv.localidad).length - 1 <= 1, rival + ": SÍNTOMA: la previa repite la localidad (" + todo + ")");
+      var dosVeces = REL.previa_fecha.no_repetir.filter(function (w) { return sinClub.toLowerCase().split(w).length - 1 > 1; });
+      ok(dosVeces.length === 0, rival + ": SÍNTOMA: la previa repite " + dosVeces.join(", ") + " (" + todo + ")");
     });
   });
   ok(D.localidadDe("Jagüel Viejo", ROSTER) === "Winifreda", "el clásico declarado en el roster da la localidad");
@@ -133,6 +145,25 @@ var DIBUJOS = (bloque.match(/^ {6}(\w+): \(\) =>/gm) || []).map(function (l) { r
     ok(r[0] >= 0 && r[1] >= 0 && r[0] + r[2] <= 1024 && r[1] + r[3] <= 335, "la cara de '" + k + "' cae adentro de relatores.webp");
   });
   console.log("[4] relato fuerte en viñeta: " + R.fuertes.join(", ") + " y el súper tiro");
+})();
+
+/* ---------- [5] revisión del 23/oct: lo que elegiste en la semana, dicho a vos ----------
+   "En la radio nombró a todos" salía cuando habías ido vos: el evento te
+   habla de vos ("te quiere hacer una nota"), la opción es tuya ("Voy y hablo
+   del equipo") y la frase que sale en el partido te nombraba en tercera
+   persona, como si hubiera ido otro. Las 56 frases van ahora en segunda
+   persona con voseo, como las de LA SEMANA (data/semana.json: "Te quedaste
+   pateando..."). */
+(function () {
+  var EV = json("data/eventos_temporada.json"), frases = [];
+  JSON.stringify(EV, function (k, v) { if (k === "frase_relator") frases.push(v); return v; });
+  var TERCERA = /\b(nombró|Firmó|Habló él|Mandó|Durmió|Prefiere|Prefirió|Eligió|Avisó|Pidió|Se perdió|Se quedó|Se cuidó|Le pegó|Le pateó|Viene|Sale|Sabe|Quiere|Va a|Estrena|Debuta|Empieza|Fue a|lo esperan|lo respeta|lo están)\b/;
+  var malas = frases.filter(function (f) { return TERCERA.test(f); });
+  ok(frases.length >= 50, "control: se leyeron las frases de los eventos (" + frases.length + ")");
+  ok(malas.length === 0, "SÍNTOMA: frases de la semana que te nombran en tercera persona: " + malas.slice(0, 4).join(" | "));
+  ok(frases.indexOf("En la radio nombraste a todo el plantel: el equipo se agrandó.") >= 0, "la de la radio dice que nombraste vos");
+  ok(!frases.some(function (f) { return /\b(tenés|sabés)\b/.test(f) && /\b(tienes|sabes)\b/.test(f); }), "sin mezclar voseo y tuteo");
+  console.log("[5] las " + frases.length + " frases de los eventos de la semana te hablan de vos");
 })();
 
 console.log((fail ? "✗ " + fail + " FALLARON" : "✓ todo ok") + " (" + pass + " ok)");
