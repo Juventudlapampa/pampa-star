@@ -153,5 +153,96 @@
   /* qué texturas se miran: las ilustraciones de personajes */
   function aplica(key) { return /^(pose_|cara_|ident_)/.test(String(key)); }
 
-  return { DEF: DEF, medir: medir, quitar: quitar, muestra: muestra, aplica: aplica };
+  /* ══════════════════════════════════════════════════════════════════════
+     23/oct · EL NÚMERO DE LA ESPALDA. En "te rematan" el rival sin pose de su
+     número salía con el 10 de pose_remate teñido de naranja (AXEL, el 6, con
+     el 10). Igual que el anillo, sin tocar el archivo: en memoria, cuando se
+     tiñe la copia naranja, el número se borra. Cada píxel del número (lo
+     blanco de la caja, con 5 px de aire para su línea) toma el color de
+     camiseta más cercano, que en un dibujo de sombras planas sigue la sombra
+     que ya estaba; después, un promedio de 3x3 adentro de lo borrado. La
+     línea de la figura (a 3 px de lo transparente) no se toca.
+     d: los bytes RGBA de un rectángulo de W x H. z, en píxeles de ese
+     rectángulo: la caja {x0, y0, x1, y1} y la esquina que no se toca, de
+     arriba a la izquierda hasta (sx, sy) (en pose_remate, el puño blanco).
+     Devuelve cuántos píxeles cambió. */
+  var NUM = { blanco: 190, aire: 5, borde: 3, croma: 60, brillo: 110, opaco: 250 };
+  function borrarNumero(d, W, H, z) {
+    var N = W * H, c = NUM;
+    function enCaja(x, y) { return x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1 && !(x < z.sx && y < z.sy); }
+    var opaco = new Uint8Array(N), blanco = new Uint8Array(N), i, x, y, k, dx, dy;
+    for (i = 0; i < N; i++) {
+      opaco[i] = d[i * 4 + 3] >= c.opaco ? 1 : 0;
+      blanco[i] = enCaja(i % W, (i / W) | 0) && d[i * 4] > c.blanco && d[i * 4 + 1] > c.blanco && d[i * 4 + 2] > c.blanco ? 1 : 0;
+    }
+    function cercaDelVacio(x, y) {
+      for (dy = -c.borde; dy <= c.borde; dy++) for (dx = -c.borde; dx <= c.borde; dx++) {
+        var xx = x + dx, yy = y + dy;
+        if (xx >= 0 && yy >= 0 && xx < W && yy < H && !opaco[yy * W + xx]) return true;
+      }
+      return false;
+    }
+    var borrar = new Uint8Array(N);
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      i = y * W + x;
+      if (!opaco[i] || !enCaja(x, y)) continue;
+      if (blanco[i]) { borrar[i] = 1; continue; }
+      var junto = false;
+      for (dy = -c.aire; dy <= c.aire && !junto; dy++) for (dx = -c.aire; dx <= c.aire; dx++) {
+        var xx = x + dx, yy = y + dy;
+        if (xx >= 0 && yy >= 0 && xx < W && yy < H && blanco[yy * W + xx]) { junto = true; break; }
+      }
+      if (junto && !cercaDelVacio(x, y)) borrar[i] = 1;
+    }
+    /* lo que da color: camiseta (con color de verdad y no oscura), afuera de lo borrado */
+    var cola = new Int32Array(N), ini = 0, fin = 0, de = new Int32Array(N).fill(-1);
+    for (i = 0; i < N; i++) {
+      if (borrar[i] || !opaco[i]) continue;
+      var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b);
+      if (mx >= c.brillo && mx - Math.min(r, g, b) >= c.croma) { de[i] = i; cola[fin++] = i; }
+    }
+    /* el color más cercano: se expande desde todas las fuentes a la vez */
+    while (ini < fin) {
+      i = cola[ini++]; x = i % W; y = (i / W) | 0;
+      for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) {
+        var nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        k = ny * W + nx;
+        if (!borrar[k] || de[k] >= 0) continue;
+        de[k] = de[i]; cola[fin++] = k;
+      }
+    }
+    var cambiados = 0;
+    for (i = 0; i < N; i++) {
+      if (!borrar[i] || de[i] < 0) continue;
+      d[i * 4] = d[de[i] * 4]; d[i * 4 + 1] = d[de[i] * 4 + 1]; d[i * 4 + 2] = d[de[i] * 4 + 2];
+      cambiados++;
+    }
+    var suave = new Uint8ClampedArray(d);
+    for (i = 0; i < N; i++) {
+      if (!borrar[i]) continue;
+      x = i % W; y = (i / W) | 0;
+      var sr = 0, sg = 0, sb = 0, n = 0;
+      for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) {
+        var px = x + dx, py = y + dy;
+        if (px < 0 || py < 0 || px >= W || py >= H) continue;
+        k = py * W + px;
+        if (!borrar[k] && de[k] !== k) continue;
+        sr += suave[k * 4]; sg += suave[k * 4 + 1]; sb += suave[k * 4 + 2]; n++;
+      }
+      if (n) { d[i * 4] = sr / n; d[i * 4 + 1] = sg / n; d[i * 4 + 2] = sb / n; }
+    }
+    return cambiados;
+  }
+  /* la caja del manifiesto (poses.<id>.numero, fracciones del dibujo) en
+     píxeles de un rectángulo que empieza en (ox, oy) de un dibujo de W x H */
+  function cajaDeNumero(num, W, H, ox, oy) {
+    return {
+      x0: Math.round(num.caja[0] * W) - ox, y0: Math.round(num.caja[1] * H) - oy,
+      x1: Math.round(num.caja[2] * W) - ox, y1: Math.round(num.caja[3] * H) - oy,
+      sx: Math.round(num.sin_tocar[0] * W) - ox, sy: Math.round(num.sin_tocar[1] * H) - oy
+    };
+  }
+
+  return { DEF: DEF, medir: medir, quitar: quitar, muestra: muestra, aplica: aplica, borrarNumero: borrarNumero, cajaDeNumero: cajaDeNumero };
 });

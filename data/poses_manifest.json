@@ -22,6 +22,11 @@
     "piel": 80,
     "camiseta": 95
    },
+   "numero": {
+    "caja": [0.2722, 0.185, 0.4389, 0.3689],
+    "sin_tocar": [0.3133, 0.2529],
+    "_23oct": "Revisión del 23/oct: en 'te rematan' el rival sin pose de su número salía con el 10 de esta pose teñido de naranja (AXEL, el 6, con el 10). El archivo no se toca: la copia naranja del rival (definicion_ui.js, pedidoRivalNaranja) sale con el número borrado en memoria (logic/halo.js, borrarNumero). caja: dónde está el 10 de la espalda, en fracciones del dibujo (en 900x854: x 245-395, y 158-315). sin_tocar: la esquina de arriba a la izquierda de la caja que queda como está, hasta ese punto (el puño blanco de la manga, x < 282 e y < 216). El rival que tiene identidad con su número sigue con esa (match.js, remateDe)."
+   },
    "pierna": {
     "cadera": [0.372, 0.585],
     "rodilla": [0.609, 0.642],

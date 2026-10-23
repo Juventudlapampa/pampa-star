@@ -485,7 +485,18 @@ window.PampaAvatarArte = (function () {
       }
     }
   }
-  function tenirImagen(scene, srcKey, dstKey, mapa) {
+  /* 23/oct · el número de la espalda de una pose, borrado en la copia teñida
+     (logic/halo.js, borrarNumero): numero es poses.<id>.numero del manifiesto.
+     Se lee solo la caja con 9 px de aire, lo que la búsqueda necesita */
+  function borrarNumeroEnCanvas(ctx, W, H, numero) {
+    var M = 9, Hl = window.PampaHalo;
+    var x0 = Math.max(0, Math.round(numero.caja[0] * W) - M), y0 = Math.max(0, Math.round(numero.caja[1] * H) - M);
+    var x1 = Math.min(W, Math.round(numero.caja[2] * W) + M + 1), y1 = Math.min(H, Math.round(numero.caja[3] * H) + M + 1);
+    var img = ctx.getImageData(x0, y0, x1 - x0, y1 - y0);
+    Hl.borrarNumero(img.data, img.width, img.height, Hl.cajaDeNumero(numero, W, H, x0, y0));
+    ctx.putImageData(img, x0, y0);
+  }
+  function tenirImagen(scene, srcKey, dstKey, mapa, numero) {
     if (scene.textures.exists(dstKey)) return dstKey;
     if (!scene.textures.exists(srcKey)) return null;
     /* V10: la fuente, sin el anillo violeta del recorte (logic/halo.js) */
@@ -497,6 +508,7 @@ window.PampaAvatarArte = (function () {
     var img = c2.getImageData(0, 0, src.width, src.height);
     tenirFilas(img.data, src.width, reglasDeTinte(mapa, src.height), 0);
     c2.putImageData(img, 0, 0);
+    if (numero) borrarNumeroEnCanvas(c2, src.width, src.height, numero);
     cv.refresh();
     return dstKey;
   }
@@ -539,9 +551,9 @@ window.PampaAvatarArte = (function () {
     if (!P || scene.textures.exists(P.clave)) return null;
     return trabajoDeTinteImagen(scene, P.base, P.clave, P.mapa);
   }
-  function trabajoDeTinteImagen(scene, base, clave, mapa) {
+  function trabajoDeTinteImagen(scene, base, clave, mapa, numero) {
     if (!scene || !base || !clave || !mapa || !mapa.length || scene.textures.exists(clave)) return null;
-    var P = { base: base, clave: clave, mapa: mapa };
+    var P = { base: base, clave: clave, mapa: mapa, numero: numero };
     var fase = 0, cv = null, c = null, src = null, w = 0, h = 0, y = 0, banda = BANDA_MIN, reglas = null;
     function vivo() { return scene.sys && scene.sys.settings && scene.sys.settings.status <= 5 && scene.sys.settings.status >= 2; }
     return {
@@ -575,6 +587,7 @@ window.PampaAvatarArte = (function () {
           fase = 2;
           if (reloj() >= fin) return false;
         }
+        if (P.numero) borrarNumeroEnCanvas(c, w, h, P.numero);
         var ct = scene.textures.createCanvas(P.clave, w, h);
         if (ct) { ct.getContext().drawImage(cv, 0, 0); ct.refresh(); }
         cv = null; c = null; src = null;

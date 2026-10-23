@@ -131,7 +131,7 @@
       var P = this.pedidoRivalNaranja(id);
       if (!P || !window.PampaAvatarArte || !window.PampaAvatarArte.tenirImagen) return P ? P.base : null;
       if (this.textures.exists(P.clave)) return P.clave;
-      window.PampaAvatarArte.tenirImagen(this, P.base, P.clave, P.mapa);
+      window.PampaAvatarArte.tenirImagen(this, P.base, P.clave, P.mapa, P.numero);
       return this.textures.exists(P.clave) ? P.clave : P.base;
     },
     /* revisión L06: qué teñir para el naranja, aparte, para que el
@@ -139,7 +139,11 @@
        (avatar_arte.js, trabajoDeTinteImagen) */
     pedidoRivalNaranja(id) {
       var src = this.poseKey(id);
-      return src ? { base: src, clave: "poseR_" + id, mapa: [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }] } : null;
+      if (!src) return null;
+      /* 23/oct: si la pose declara dónde va el número (poses.remate.numero),
+         el rival la lleva sin el 10 del héroe en la espalda */
+      var man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
+      return { base: src, clave: "poseR_" + id, mapa: [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }], numero: def && def.numero };
     },
 
     /* ============ ENTRADAS ============ */

@@ -155,5 +155,60 @@ const cinco = { esVos: false, nombre: "Toro", numero: 5 }, vos = { esVos: true, 
   console.log("[4] te rematan y el pase: su pose sin espejar, la pelota en su pie y de su tamaño; la escena, la carga, el pie y el anuncio la piden");
 })();
 
+/* ---------- [5] revisión del 23/oct: el rival con su número o sin número ----------
+   AXEL, el 6, salía en "te rematan" con el 10: o la identidad que le tocaba
+   por nombre (la del flequillo, el 10) o pose_remate teñida de naranja, que
+   lleva el 10 del héroe en la espalda. Ahora el rival usa una identidad solo
+   si es la de SU número, y si no, la copia naranja de pose_remate sale con el
+   número borrado en memoria (logic/halo.js, borrarNumero; el archivo no se
+   toca). */
+(function () {
+  const HALO = require(path.join(__dirname, "..", "logic", "halo.js"));
+  const PNG = require("./_png.js");
+  const POSES = JSON.parse(fs.readFileSync(path.join(RAIZ, "data", "poses_manifest.json"), "utf8"));
+  const todas = MAN.identidades.reduce((a, d) => a.concat(["ident_" + d.id, "ident_" + d.id + "_remate"]), []);
+  /* la escena de mentira, con lo que hace falta para elegir por nombre y teñir */
+  const E = require("./_partido_de_mentira.js").escena({ logica: ["phaser/logic/toque.js", "phaser/logic/avatar.js"], mixins: ["phaser/scenes/toque_ui.js", "phaser/scenes/escenas_v9.js", "phaser/scenes/definicion_ui.js"] });
+  const s = E.s;
+  s._identMan = MAN;
+  s.textures = { exists: k => todas.indexOf(k) >= 0, get: () => ({ getSourceImage: () => ({ height: 16 }) }) };
+  const seis = { esVos: false, nombre: "Axel", numero: 6 };
+  assert(s.remateDe(seis, true) === null, "SÍNTOMA: el 6 rival remata con la pose de otro número (" + JSON.stringify(s.remateDe(seis, true)) + ")");
+  assert(s.remateDe(cinco, true).key === "ident_rival_mohicano_remate", "el 5 rival sigue con la del mohicano, que es su número");
+  const diez = { esVos: false, nombre: "Lucho", numero: 10 };
+  assert(s.remateDe(diez, true).key === "ident_rival_flequillo_remate", "y el 10 rival con la del flequillo");
+  /* la copia naranja de pose_remate pide borrar el número; las otras no */
+  const DEF = fs.readFileSync(path.join(RAIZ, "phaser/scenes/definicion_ui.js"), "utf8");
+  s.game = { registry: { get: k => (k === "poses" ? POSES : null) } };
+  s.poseKey = id => "pose_" + id;
+  const pr = s.pedidoRivalNaranja("remate"), pb = s.pedidoRivalNaranja("barrida");
+  assert(pr.clave === "poseR_remate" && pr.numero === POSES.poses.remate.numero, "el remate del rival en naranja lleva la caja del número del manifiesto");
+  assert(pb && !pb.numero, "la barrida, que no tiene número, se tiñe como antes");
+  const AA = fs.readFileSync(path.join(RAIZ, "phaser/scenes/avatar_arte.js"), "utf8");
+  assert(/c2\.putImageData\(img, 0, 0\);\s*\r?\n\s*if \(numero\) borrarNumeroEnCanvas\(c2, src\.width, src\.height, numero\);/.test(AA)
+    && /if \(P\.numero\) borrarNumeroEnCanvas\(c, w, h, P\.numero\);/.test(AA), "el teñido entero y el de a tajadas borran el número");
+  assert(/tenirImagen\(this, P\.base, P\.clave, P\.mapa, P\.numero\)/.test(DEF), "poseRivalNaranja le pasa el número al teñido");
+  /* sobre el dibujo de verdad (el PNG de fuente, mismo lienzo que el webp) */
+  const img = PNG.leer(fs.readFileSync(path.join(RAIZ, "assets/_fuente/poses/pose_remate.png")));
+  const W = img.ancho, H = img.alto, d = img.datos, antes = Buffer.from(d);
+  const z = HALO.cajaDeNumero(POSES.poses.remate.numero, W, H, 0, 0);
+  const blancos = () => { let n = 0; for (let y = z.y0; y <= z.y1; y++) for (let x = z.x0; x <= z.x1; x++) { if (x < z.sx && y < z.sy) continue; const i = (y * W + x) * 4; if (d[i + 3] >= 250 && d[i] > 190 && d[i + 1] > 190 && d[i + 2] > 190) n++; } return n; };
+  const b0 = blancos();
+  assert(b0 > 3000, "control: el 10 está en la caja del manifiesto (" + b0 + " píxeles blancos)");
+  const n = HALO.borrarNumero(d, W, H, z);
+  assert(blancos() === 0, "SÍNTOMA: quedan " + blancos() + " píxeles del número en la espalda");
+  let afuera = 0, alfa = 0, puno = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4;
+    if (d[i + 3] !== antes[i + 3]) alfa++;
+    const enCaja = x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1;
+    if (d[i] === antes[i] && d[i + 1] === antes[i + 1] && d[i + 2] === antes[i + 2]) continue;
+    if (!enCaja) afuera++;
+    else if (x < z.sx && y < z.sy) puno++;
+  }
+  assert(afuera === 0 && alfa === 0 && puno === 0, "fuera de la caja, en el puño y en la transparencia no cambia nada (" + afuera + ", " + puno + ", " + alfa + ")");
+  console.log("[5] el rival con la pose de su número o con el 10 borrado: " + b0 + " píxeles del número, " + n + " cambiados, nada afuera de la caja");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

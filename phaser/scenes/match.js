@@ -1585,6 +1585,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!j || j.esVos || j.pos === "ARQ") return null;
     const k = this.identidadDe(j, esRival);
     const d = k && this._identMan.identidades.find(x => "ident_" + x.id === k);
+    /* 23/oct: el rival, solo con la de SU número (AXEL, el 6, salía con el
+       10 del flequillo); sin ella, la pose sin número (pedidoRivalNaranja) */
+    if (d && esRival && d.dorsal !== j.numero) return null;
     return d && d.remate && this.textures.exists(k + "_remate") ? { key: k + "_remate", pelota: d.remate.pelota } : null;
   }
   /* TANDA DE ARTE A3 · EL CICLO DE CORRIDA. Si el manifest declara "ciclo"
@@ -1792,7 +1795,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* 3) las del rival, en naranja (por tajadas), y sus pies */
     (R.precalentar_rival || []).forEach((id) => {
       const P = this.pedidoRivalNaranja ? this.pedidoRivalNaranja(id) : null;
-      if (P && porBandas) partido(AA.trabajoDeTinteImagen(this, P.base, P.clave, P.mapa));
+      if (P && porBandas) partido(AA.trabajoDeTinteImagen(this, P.base, P.clave, P.mapa, P.numero));
       atomico("naranja:" + id, CO.pie, () => {
         if (P && esperaTinte(P.clave)) return false;
         const k = this.poseRivalNaranja ? this.poseRivalNaranja(id) : null;
