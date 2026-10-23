@@ -48,7 +48,7 @@
    cada publicación que toque phaser/: ahora eso solo barre el código.
    ========================================================================== */
 "use strict";
-const VERSION = "v21b-1.0-fluye";
+const VERSION = "v21c-1.0-fluye";
 const CODIGO = "pampa-codigo-" + VERSION;
 const ASSETS = "pampa-assets";
 /* los temas que se bajan al instalar, por su clave de data/audio.json: el
