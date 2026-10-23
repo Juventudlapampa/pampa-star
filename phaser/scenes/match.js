@@ -4003,6 +4003,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            y la fanfarria son SUYAS. La escena se queda abierta hasta ver la
            explosión y un respiro. */
         const hastaLaExplosion = this.golPropio() || 0;
+        /* 23/oct, Rodri: el gol del cine no lo comentaba nadie, y la tribuna
+           tiene que nombrar al compañero que la metió. Durante el cine la
+           tribuna y la viñeta esperan: salen al volver el partido. */
+        this.relatar("gol");
         luego(hastaLaExplosion + this.msV(C.desenlace_hold_ms), () => this.salirCine());
       };
     } else if (res.outcome === "atajada" || res.outcome === "corner") {
@@ -4197,9 +4201,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const j = this.st.mios[this.st.ctrl];
     return j && !j.esVos ? "¡El " + j.numero + " la clavó donde el viento no la saca!" : "¡La clavaste donde el viento no la saca!";
   }
-  tituloDelGol() {
-    const j = this.st.mios[this.st.ctrl];
-    return j && !j.esVos ? "¡GOOOL DE " + String(j.nombre || "").toUpperCase() + "!" : "¡GOOOL!";
+  /* grito: el del súper tiro ("¡GOLAZO!"); sin él, el de siempre */
+  tituloDelGol(grito) {
+    const j = this.st.mios[this.st.ctrl], base = grito || "¡GOOOL!";
+    return j && !j.esVos ? base.replace(/!$/, " DE " + String(j.nombre || "").toUpperCase() + "!") : base;
   }
   desenlaceRemate(res, opts) {
     const st = this.st, P = window.PampaPartido;
@@ -4381,6 +4386,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const enCamino = this.rivalesEnElCamino(tirador);
       const gol = res.outcome === "gol";
       const atajo = res.outcome === "atajada" || res.outcome === "corner";
+      const grito = mega ? this.tituloDelGol(mega.grito) : null;   // antes de anotar: el saque mueve st.ctrl
       /* la verdad UNA vez; lo que se siente, cuando la escena lo muestra */
       const d = this.desenlaceRemate(res, { diferir: true });
       const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
@@ -4394,7 +4400,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : "tiro",
-        titulo: gol && mega ? mega.grito : d.titulo,
+        titulo: gol && mega ? grito : d.titulo,
         sub: gol ? (tirador.esVos ? "" : "el " + tirador.numero + " · ") + fb : d.sub + " · " + fb,
         color: d.color,
         /* el contacto en la revelación, y lo que pasó un instante después:
@@ -4451,7 +4457,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       penalizaciones: prep.penalizaciones
     });
     this.zona = toque ? toque.zona : auto.zona;
-    this._megaGrito = "¡GOOOL!";
+    this._megaGrito = this.tituloDelGol();
     /* revisión final del 22/oct: si en EL TOQUE no la tocó, no hubo remate
        que bloquear ni que ver viajar */
     if (toque && !toque.res.contacto) { this.toqueSinRemate(); return; }
@@ -4548,7 +4554,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       penalizaciones: prep.penalizaciones
     });
     this.zona = ej.zona;
-    this._megaGrito = mega.grito || "¡GOOOL!";
+    this._megaGrito = this.tituloDelGol(mega.grito);
     /* revisión final del 22/oct: se le pasó en EL TOQUE, y la carga, el pie
        y el viaje mostraban una patada que no hubo */
     if (ej.sinContacto) { this.toqueSinRemate(); return; }

@@ -71,6 +71,15 @@ function escena() {
   st.ctrl = 6;
   assert(s.tituloDelGol() === "¡GOOOL DE MATEO!", "SÍNTOMA: el título del cartel no dice quién la metió (" + s.tituloDelGol() + ")");
   assert(s.subDelGol() === "¡El " + C.mateo.numero + " la clavó donde el viento no la saca!", "el sub dice su número (" + s.subDelGol() + ")");
+  assert(s.tituloDelGol("¡GOLAZO!") === "¡GOLAZO DE MATEO!", "el grito del súper tiro también lo nombra (" + s.tituloDelGol("¡GOLAZO!") + ")");
+  /* el remate por comandos fijaba "¡GOOOL!" en _megaGrito y el cartel del
+     cine lo usaba antes que el título: visto en pantalla el 23/oct */
+  const M = fs.readFileSync(path.join(RAIZ, "phaser", "scenes", "match.js"), "utf8");
+  assert(!/_megaGrito = "¡GOOOL!"|mega\.grito \|\| "¡GOOOL!"/.test(M), "SÍNTOMA: el grito del cine sigue fijo en ¡GOOOL! y tapa el nombre del compañero");
+  /* el gol de EL TOQUE (planoDesenlace) no llamaba al relator: ni la viñeta
+     ni la tribuna lo comentaban */
+  const pd = C.E.W.PampaMatch.prototype.planoDesenlace.toString();
+  assert(/this\.golPropio\(\)[\s\S]{0,400}this\.relatar\("gol"\)/.test(pd), "SÍNTOMA: el gol del cine de EL TOQUE no se relata y la tribuna no lo nombra");
   C.P.golMio(st);
   let ctx = null;
   s.REL = { frase: function (sit, c) { ctx = c; return null; } };
