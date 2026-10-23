@@ -31,6 +31,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        fallback del poseSprite cubre el hueco como antes. Va arriba de todo:
        antes el oyente se ponía solo si había manifest de poses. */
     if (window.PampaCarga) window.PampaCarga.reintentarUnaVez(this.load);
+    /* el loader sobrevive al restart de la escena: off antes de on */
+    this.load.off("addfile", this.sinTexturaDoble, this);
+    this.load.on("addfile", this.sinTexturaDoble, this);
     /* L06: "CARGANDO EL PARTIDO… NN%" mientras bajan las poses (el editor y
        el Master ya las bajaron en segundo plano: casi siempre sale de la caché) */
     if (this.barraDeCarga) this.barraDeCarga("el partido");
@@ -119,6 +122,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
   }
 
+  /* revisión final del 23/oct: "Texture key already in use: pose_remate"
+     (y pose_chilena, pose_pelota_vieja) al entrar al partido desde el
+     Master. El Master baja en segundo plano lo del partido (logic/carga.js)
+     y el partido lo pide también: si las dos descargas están en vuelo, la
+     que termina segunda quería registrar una textura que ya estaba. Esa
+     no se registra. */
+  sinTexturaDoble(key, type, loader, file) {
+    if (type !== "image" || !file) return;
+    const registrar = file.addToCache;
+    file.addToCache = function () { if (!this.cache.exists(this.key)) registrar.call(this); };
+  }
   init() {
     this.BAL = this.game.registry.get("balance");
     this.SFX = window.PampaSFX;
