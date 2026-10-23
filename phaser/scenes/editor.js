@@ -116,7 +116,13 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        (resaltada), ◄► cicla en ambas direcciones. */
     this.filas = {}; this.filaRects = []; this.CATS = CATS; this.filaSel = 0;
     this._filaCajas = []; this._botones = [];
-    let fy = 122;
+    /* L10 · EL PISO TÁCTIL. Las flechas miden 52x44 y el área de toque crece
+       a legibilidad.tap_min (61): con las filas cada 46, la de una fila tapaba
+       15 px de la flecha de la de abajo, y la de CARA llegaba al botón de
+       ★ VOS. Cada 62 y desde 132, ninguna pisa a otra. El editor de bloques
+       (sin las caras ilustradas) tiene 8 filas y no entra así: queda cada 46. */
+    const pasoFila = this._v2 ? 62 : 46;
+    let fy = this._v2 ? 132 : 122;
     CATS.forEach((c, ci) => {
       const cx = 690;
       const lbl = this.add.text(cx - 235, fy - 1, c.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(0, 0.5);
@@ -140,7 +146,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
          (cx-235) hasta el filo de la flecha derecha (cx+198+26). Va declarada
          porque el label mide 60px y el cursor abrazaria solo eso. */
       this._filaCajas.push({ x: cx - 241, y: fy - 24, w: 471, h: 48 });
-      fy += 46;
+      fy += pasoFila;
     });
     /* ══════════════════════════════════════════════════════════════════════
        EL EDITOR ES EL ULTIMO GRUPO, Y ES DISTINTO A LOS OTROS SIETE.
@@ -254,6 +260,10 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       this.add.text(W - 10, 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" })
         .setOrigin(1, 0).setAlpha(0.85);
     }
+    /* L10: el sonido, debajo de la versión (arriba a la izquierda están
+       VER INTRO y PANTALLA COMPLETA); su área baja hasta y≈74 y la flecha de
+       la primera fila arranca en 101 */
+    if (this.botonSonido) this.botonSonido(W - 10, 32, 1);
 
     /* el cursor, sin teclado: las flechas las maneja el editor (ver arriba).
        Las filas van con caja declarada; los botones con la suya real. */

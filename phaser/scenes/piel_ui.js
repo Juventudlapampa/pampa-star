@@ -310,21 +310,76 @@
        Se agranda el ÁREA, no el dibujo: el botón se sigue viendo igual y el
        dedo le acierta. El hitArea de Phaser va en coordenadas locales del
        objeto, con (0,0) en su esquina superior izquierda, así que para crecer
-       centrado hay que correr el origen en negativo. */
+       centrado hay que correr el origen en negativo.
+
+       L10 · DOS AGUJEROS QUE QUEDABAN:
+         · un objeto que YA era tocable no crecía: en Phaser 3.80
+           setInteractive(área) sobre un objeto con input solo lo habilita
+           (InputPlugin.enable) y se queda con el área vieja. Por eso los
+           botones que vestía vestirPendientes seguían en 52 o 46 de alto
+           aunque _tapArea dijera 61. Ahora se cambia el área del input.
+         · el piso se mide en pantalla: un objeto achicado con setScale
+           necesita un área local más grande para llegar a lo mismo. */
     pisoTactil: function (obj, min) {
       if (!obj || obj._pisoTactil) return obj;
-      var P = this.piel();
       var LEG = (this.game.registry.get("balance") || {}).legibilidad || {};
       var piso = min != null ? min : (LEG.tap_min != null ? LEG.tap_min : 61);
       var w = obj.width || 0, h = obj.height || 0;
       if (!(w > 0 && h > 0)) return obj;
-      if (w >= piso && h >= piso) { obj._pisoTactil = true; return obj; }
-      var W = Math.max(w, piso), H = Math.max(h, piso);
-      obj.setInteractive(new Phaser.Geom.Rectangle(-(W - w) / 2, -(H - h) / 2, W, H),
-        Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
+      var sx = Math.abs(obj.scaleX || 1), sy = Math.abs(obj.scaleY || 1);
+      var ha = obj.input && obj.input.hitArea;
+      var haW = ha ? (ha.width || (ha.radius || 0) * 2) : w, haH = ha ? (ha.height || (ha.radius || 0) * 2) : h;
       obj._pisoTactil = true;
-      obj._tapArea = { w: W, h: H };
+      if (haW * sx >= piso && haH * sy >= piso) return obj;
+      var W = Math.max(w, piso / sx), H = Math.max(h, piso / sy);
+      var area = new Phaser.Geom.Rectangle(-(W - w) / 2, -(H - h) / 2, W, H);
+      if (obj.input) {
+        obj.input.hitArea = area;
+        obj.input.hitAreaCallback = Phaser.Geom.Rectangle.Contains;
+      } else {
+        obj.setInteractive(area, Phaser.Geom.Rectangle.Contains, { useHandCursor: true });
+      }
+      obj._tapArea = { w: W * sx, h: H * sy };
       return obj;
+    },
+
+    /* L10 · TODO lo tocable al piso, no solo los botones con relleno que
+       viste vestirPendientes: textos, zonas, círculos, rectángulos sin
+       relleno y los de más de 560 de ancho (la entrevista, los eventos).
+       Lo usa vestirPendientes y, sin vestir nada, la pantalla de título. */
+    pisoTactilTodo: function () {
+      var self = this;
+      var visitar = function (o) {
+        if (!o) return;
+        if (o.input && o.input.enabled && !o._pisoTactil) self.pisoTactil(o);
+        if (o.type === "Container" || o.type === "Layer") (o.list || []).forEach(visitar);
+      };
+      this.children.list.forEach(visitar);
+    },
+
+    /* L10 · EL SONIDO SE APAGA DESDE CADA PANTALLA, CON LA PALABRA A LA VISTA.
+       Solo estaba en la PAUSA del partido y en OPCIONES del título: el
+       opening, el editor, la tabla y la semana tienen música y no había cómo
+       callarla sin salir. Es el mismo interruptor (PampaSFX.setMuted, que ya
+       guarda la elección en el aparato) con las mismas palabras que la PAUSA.
+       Uno por escena: si la vista ya lo puso, se devuelve ese. origenX: 0 si
+       x es el borde izquierdo, 1 si es el derecho. */
+    botonSonido: function (x, y, origenX) {
+      var S = window.PampaSFX;
+      if (this._btnSonido && this._btnSonido.scene) return this._btnSonido;
+      var palabra = function () { return S.isMuted() ? "SONIDO: NO" : "SONIDO: SÍ"; };
+      var t = this.add.text(x, y, palabra(), {
+        fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc",
+        backgroundColor: "#0a1f13cc", padding: { x: 6, y: 4 }
+      }).setOrigin(origenX || 0, 0).setDepth(99);
+      this.pisoTactil(t);
+      t.on("pointerdown", function (p, xx, yy, ev) {
+        ev && ev.stopPropagation && ev.stopPropagation();
+        S.setMuted(!S.isMuted());
+        t.setText(palabra());
+      });
+      this._btnSonido = t;
+      return t;
     },
 
     /* ---------- VESTIR LOS QUE VAYAN APARECIENDO ----------
@@ -344,6 +399,7 @@
       this._pielTick = (this._pielTick || 0) + 1;
       if (cada && (this._pielTick % cada) !== 0) return 0;
       var self = this, n = 0;
+      this.pisoTactilTodo();
       var visitar = function (o) {
         if (!o) return;
         if (o.type === "Container" || o.type === "Layer") { (o.list || []).slice().forEach(visitar); return; }

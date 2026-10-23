@@ -302,3 +302,20 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     });
   }
 };
+
+/* L10: el piso táctil también acá. Las vistas se arman de una vez (no hay
+   update que barra): al terminar cada una, pisoTactilTodo lleva todo lo
+   tocable a legibilidad.tap_min (las pastillas de OPCIONES medían 52 de alto
+   y las flechas de MÚSICA y EFECTOS 52x46). Sin vestir: el título tiene su
+   propio dibujo. */
+Object.getOwnPropertyNames(window.PampaTitulo.prototype)
+  .filter(function (n) { return n === "create" || /^vista[A-Z]/.test(n); })
+  .forEach(function (n) {
+    var orig = window.PampaTitulo.prototype[n];
+    if (typeof orig !== "function") return;
+    window.PampaTitulo.prototype[n] = function () {
+      var r = orig.apply(this, arguments);
+      if (this.pisoTactilTodo) this.pisoTactilTodo();
+      return r;
+    };
+  });

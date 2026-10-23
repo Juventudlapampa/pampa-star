@@ -369,6 +369,9 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
       fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc",
       backgroundColor: "#0a1f13cc", padding: { x: 7, y: 3 }
     }).setOrigin(1, 1).setDepth(99);
+    /* L10: el opening tiene música; SONIDO arriba a la derecha lo calla sin
+       saltearlo (su toque no llega al salteo: corta la propagación) */
+    if (this.botonSonido) this.botonSonido(948, 14, 1);
   }
 
   /* --- utilería del opening --- */

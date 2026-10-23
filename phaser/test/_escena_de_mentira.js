@@ -137,8 +137,11 @@ function armar(opts) {
       o.visible = true; o.alpha = 1; o.active = true; o.scene = s; o.input = null;
       o.parentContainer = null; o.depth = 0;
       o.setOrigin = function (a, b) { this.originX = a; this.originY = b == null ? a : b; return this; };
-      o.setInteractive = function () {
-        if (!this.input) { this.input = { enabled: true }; input._list.push(this); }
+      /* el área, como Phaser 3.80: se toma al hacerlo tocable; si ya lo era,
+         setInteractive solo lo habilita y se queda con la que tenía */
+      o.setInteractive = function (area) {
+        if (!this.input) { this.input = { enabled: true, hitArea: area && area.width != null ? area : null }; input._list.push(this); }
+        else this.input.enabled = true;
         return this;
       };
       o.disableInteractive = function () { if (this.input) this.input.enabled = false; return this; };
@@ -253,12 +256,16 @@ function armar(opts) {
         var ox = o.parentContainer ? o.parentContainer.x : 0, oy = o.parentContainer ? o.parentContainer.y : 0;
         var w = o.displayWidth, h = o.displayHeight;
         var x0 = ox + o.x - w * (o.originX || 0), y0 = oy + o.y - h * (o.originY || 0);
+        /* con área propia (el piso táctil), manda el área: va en coordenadas
+           locales, con (0,0) en la esquina del objeto */
+        var ha = o.input.hitArea;
+        if (ha) { x0 += ha.x * o.scaleX; y0 += ha.y * o.scaleY; w = ha.width * o.scaleX; h = ha.height * o.scaleY; }
         return x >= x0 && x <= x0 + w && y >= y0 && y <= y0 + h;
       });
       if (!tocados.length) return null;
       var o = tocados[tocados.length - 1];
       var ev = { cancelado: false, stopPropagation: function () { this.cancelado = true; } };
-      o.emit("pointerdown", { x: x, y: y }, 0, 0, ev);
+      o.emit("pointerdown", { x: x, y: y, worldX: x, worldY: y }, 0, 0, ev);
       return o;
     };
     s.teclas = function (t) { return input.keyboard.emit("keydown-" + t, { keyCode: 0 }); };

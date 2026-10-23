@@ -1288,7 +1288,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* EL CURSOR EN EL MAPA. Ya se navegaba con ◄► pero en una lista circular:
        en un mapa eso no tiene sentido, porque los pueblos estan en el espacio.
        Con foco geometrico, la flecha de abajo lleva al pueblo de abajo. */
-    const _focoMapa = [];
+    const _focoMapa = [], blancos = [];
     ubic.forEach(p => {
       const x = aX(p.x), y = aY(p.y);
       const esSel = p.nombre === sel;
@@ -1312,16 +1312,32 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         const k = this.pueblos.indexOf(p.nombre);
         if (k >= 0 && k !== this.pSel) { this.pSel = k; this.dibujarMapa(); }
       } });
-      /* tocar el punto (o su nombre) lo elige */
-      [punto, nom].forEach(o => {
-        o.setInteractive({ useHandCursor: true });
-        o.on("pointerdown", (pp, xx, yy, e2) => {
-          e2 && e2.stopPropagation && e2.stopPropagation();
-          const i = this.pueblos.indexOf(p.nombre);
-          if (i >= 0 && i !== this.pSel) { this.pSel = i; this.dibujarMapa(); }
-        });
-      });
+      blancos.push({ nombre: p.nombre, x, y, caja: nom.getBounds() });
     });
+    /* L10 · EL MAPA SE TOCA ENTERO. El punto medía 10 de diámetro (6,6 px CSS
+       en el teléfono) y el nombre unos 17 de alto, contra los 61 lógicos de
+       legibilidad.tap_min. Agrandar cada uno a 61 no servía: hay localidades
+       a menos de 40 una de otra y el área de una tapaba el nombre de la
+       vecina (medido en el navegador). Ahora el mapa es UNA zona y el toque
+       elige la localidad más cercana a su punto o a su nombre, si está a
+       menos de tap_min de alguno: cada una se queda con lo que tiene más
+       cerca y ninguna le tapa nada a otra. */
+    const tapMapa = ((this.game.registry.get("balance") || {}).legibilidad || {}).tap_min || 61;
+    const zonaMapa = this.add.zone(C.x - 20, C.y - 10, C.w + 40, C.h + 30).setOrigin(0, 0).setInteractive({ useHandCursor: true });
+    zonaMapa.on("pointerdown", (pp, xx, yy, e2) => {
+      e2 && e2.stopPropagation && e2.stopPropagation();
+      const px = pp.worldX, py = pp.worldY;
+      let mejor = null, dMejor = Infinity;
+      blancos.forEach(b => {
+        const dx = Math.max(b.caja.x - px, 0, px - b.caja.right), dy = Math.max(b.caja.y - py, 0, py - b.caja.bottom);
+        const d = Math.min(Math.hypot(px - b.x, py - b.y), Math.hypot(dx, dy));
+        if (d < dMejor) { dMejor = d; mejor = b; }
+      });
+      if (!mejor || dMejor > tapMapa) return;
+      const i = this.pueblos.indexOf(mejor.nombre);
+      if (i >= 0 && i !== this.pSel) { this.pSel = i; this.dibujarMapa(); }
+    });
+    capa.add(zonaMapa);
 
     /* --- las zonas, nombradas: el mapa es esquemático y se dice --- */
     /* la etiqueta va en una ESQUINA de su caja, no en el medio: en el medio
@@ -1385,6 +1401,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this.grupoFoco && _focoMapa.length) {
       const iSel = ubic.findIndex(p => p.nombre === sel);
       this.grupoFoco(_focoMapa.concat(this._tempoFoco || []), { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
+      /* el cursor hace tocable cada punto; en el mapa el dedo va a la zona */
+      _focoMapa.forEach(it => it.obj.disableInteractive());
     }
     /* TEMPO-1: va debajo de la ficha y no debajo del mapa, donde ahora está
        la pregunta del tempo. 20/oct, Rodri: la nota "mapa por zonas · las
@@ -2881,6 +2899,14 @@ Object.getOwnPropertyNames(window.PampaMasterScene.prototype)
     window.PampaMasterScene.prototype[n] = function () {
       var r = orig.apply(this, arguments);
       if (this.vestirPendientes) this.vestirPendientes();
+      /* L10: SONIDO en todas las vistas (la tabla, la semana, el mapa, la
+         entrevista), arriba a la izquierda: arriba a la derecha está el
+         ◀ MENÚ de la tabla. Si está la marca de "este navegador no guarda",
+         va a su lado. */
+      if (this.botonSonido) {
+        var m = this._marcaSG && this._marcaSG.scene ? this._marcaSG : null;
+        this.botonSonido(m ? m.x + m.width + 8 : 12, 8, 0);
+      }
       return r;
     };
   });
