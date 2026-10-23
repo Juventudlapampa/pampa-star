@@ -271,6 +271,24 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   assert(/entrevistado\(\)/.test(MASTER), "D5: y en la entrevista tiene que haber alguien de este lado");
   assert(/poseConTuPinta\("recibiendo"\)/.test(MASTER),
     "D5: con TU pinta, la misma que usa el panel del partido");
+  /* revisión final del 22/oct: en una carrera nueva sin save del clásico,
+     Rulos y Blanco pampa salían en el partido y la entrevista y la semana
+     seguían con la pinta original. lookGuardado leía solo el look del
+     clásico; ahora el mismo que match.armarPlanteles (corriendo master.js) */
+  var MMk = require("./_escena_de_mentira.js").armar({ logicaExtra: ["phaser/logic/avatar.js"] }), AV = MMk.window.PampaAvatar;
+  var smk = MMk.nueva();
+  assert(smk.lookGuardado() === null, "sin nada guardado, la pose va tal cual");
+  var elegido = AV.validarLook({ cara: 1, tPiel: 2, tPelo: 3, tCam: 4 });
+  MMk.store.pampa_star_avatares = JSON.stringify({ vos: { cara: 1, tPiel: 2, tPelo: 3, tCam: 4 } });
+  assert(JSON.stringify(smk.lookGuardado()) === JSON.stringify(elegido),
+    "SÍNTOMA: sin save del clásico, la entrevista y la semana no usan la pinta del editor (" + JSON.stringify(smk.lookGuardado()) + ")");
+  MMk.store.pampa_star_v1 = JSON.stringify({ name: "Prueba", look: { piel: 1 }, avatares: { vos: { cara: 2, tPiel: 1, tPelo: 0, tCam: 3 } } });
+  assert(JSON.stringify(smk.lookGuardado()) === JSON.stringify(AV.validarLook({ cara: 2, tPiel: 1, tPelo: 0, tCam: 3 })),
+    "con save del clásico, la del editor guardada adentro manda sobre el look viejo");
+  MMk.store.pampa_star_v1 = JSON.stringify({ name: "Prueba", look: { piel: 1 } });
+  delete MMk.store.pampa_star_avatares;
+  assert(JSON.stringify(smk.lookGuardado()) === JSON.stringify(AV.validarLook(AV.migrarDelClasico({ piel: 1 }))),
+    "y si solo está el clásico, su look migrado, como en el partido");
   /* el contenido de la entrevista no cambió: es un cambio de ORDEN */
   var ENT = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/entrevista.json"), "utf8"));
   var VIDA = JSON.parse(fs.readFileSync(path.join(RAIZ, "data/eventos_temporada.json"), "utf8"));

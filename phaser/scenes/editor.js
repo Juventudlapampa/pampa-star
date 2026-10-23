@@ -207,7 +207,13 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       /* "🏆 CARRERA" arriba a la derecha no se lee como "seguí por acá", y
          ¡A LA CANCHA! te sacaba de la carrera: con la carrera pendiente, la
          salida hacia adelante es esta */
-      btn(W / 2 + 170, 320, "▶ LISTO, A LA ENTREVISTA", 0x7ee08a, () => { this.guardar(); this.irA("master"); });
+      /* revisión final del 22/oct: "te van a ver así" es este busto, y la
+         entrevista lo usa tal cual (master.js, entrevistado) */
+      btn(W / 2 + 170, 320, "▶ LISTO, A LA ENTREVISTA", 0x7ee08a, () => {
+        this.guardar();
+        this.game.registry.set("bustoElegido", this._v2 ? this.bustoTenido(this.personajes[0].look) : null);
+        this.irA("master");
+      });
     } else {
       btn(W / 2 - 190, 300, "GUARDAR PINTA", 0xf6efdc, () => { this.guardar(); this.toast("¡Pinta guardada!"); });
       /* 20/oct, Rodri: ¡A LA CANCHA! y 🏆 CARRERA sueltos acá eran la entrada

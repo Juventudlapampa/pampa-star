@@ -1740,14 +1740,18 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const x = W - 92, y = 118;
     const g = this.add.graphics();
     g.fillStyle(0x0e2a1a, 1); g.fillRoundedRect(x - 52, y - 46, 104, 116, 10);
-    const key = this.poseConTuPinta("recibiendo");
+    /* revisión final del 22/oct: el editor dice "te van a ver así" con el
+       busto de la cara elegida, y acá salía la pose, con otro peinado. Va ese
+       busto (el mismo que el retrato del partido); sin él, la pose teñida */
+    const busto = this.game.registry.get("bustoElegido");
+    const key = busto && this.textures.exists(busto) ? busto : this.poseConTuPinta("recibiendo");
     if (key) {
       const R = 40, cy = y + 4;
       const im = this.add.image(x, cy, key);
       /* encuadrado en la CARA: la pose es de cuerpo entero y acá se mira a los
          ojos, así que se escala grande y se recorta en redondo por arriba */
-      im.setScale((R * 5.6) / im.height);
-      im.y = cy + im.displayHeight * 0.30;
+      if (key === busto) { im.setScale((R * 2) / im.height); im.y = cy + R * 0.05; }
+      else { im.setScale((R * 5.6) / im.height); im.y = cy + im.displayHeight * 0.30; }
       const mk2 = this.make.graphics({ x: 0, y: 0, add: false });
       mk2.fillStyle(0xffffff); mk2.fillCircle(x, cy, R);
       im.setMask(mk2.createGeometryMask());
@@ -1789,7 +1793,15 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   lookGuardado() {
     try {
       const s = JSON.parse(localStorage.getItem("pampa_star_v1") || "null");
-      if (s && s.look) return s.look;
+      /* revisión final del 22/oct: leía solo el look del clásico, y sin ese
+         save la entrevista y la semana salían con la pinta original. Es el
+         mismo orden que match.armarPlanteles: el del editor (en el save o
+         suelto) y si no, el del clásico */
+      const A = window.PampaAvatar;
+      let sueltos = null;
+      try { sueltos = JSON.parse(localStorage.getItem("pampa_star_avatares") || "null"); } catch (e) { }
+      const avs = (s && s.avatares) || sueltos || {};
+      if (A && (avs.vos || (s && s.look))) return A.validarLook(avs.vos || A.migrarDelClasico(s.look));
     } catch (e) { }
     return null;
   }
