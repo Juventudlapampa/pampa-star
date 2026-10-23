@@ -95,15 +95,19 @@
   }
   /* se llama después de cada latido; devuelve { motivo, rivalIdx } o null.
      motivo: "recibe" (le acaba de llegar un pase), "rival" (se le viene uno),
-     "tiempo" (pasaron cada_ms sin decidir nada). */
+     "tiempo" (pasaron cada_ms sin decidir nada); con la pelota del rival,
+     "defensa" (le sale uno de los tuyos, ver chequearDefensa). */
   function chequear(st) {
     var F = cfg(st);
     if (!F) return null;
-    if (st.posesion !== "mia" || st._flujoPos !== st.posesion) {
-      st._flujoPos = st.posesion; st._flujoUlt = st._t; st._flujoCtrl = st.ctrl; st._flujoRecibe = 0;
+    if (st._flujoPos !== st.posesion) {
+      /* la que recuperás se juega enseguida, como un pase recibido */
+      var recupera = st._flujoPos === "rival" && st.posesion === "mia" && F.defensa && F.defensa.activo && F.defensa.recupera_ms;
+      st._flujoPos = st.posesion; st._flujoUlt = st._t; st._flujoCtrl = st.ctrl; st._flujoRecibe = recupera ? st._t + F.defensa.recupera_ms : 0; st._flujoCruces = st._crucesDef || 0;
       return null;
     }
     if (st.modo !== "juego") return null;
+    if (st.posesion !== "mia") return chequearDefensa(st, F);
     if (st._flujoCtrl !== st.ctrl) {
       st._flujoCtrl = st.ctrl; st._flujoRecibe = st._t + F.recibe_ms; st._flujoCarrilY = null; st._flujoCarrilHasta = 0;
     }
@@ -119,6 +123,34 @@
     st._flujoN = (st._flujoN || 0) + 1;
     st.modo = "congelado";
     return out;
+  }
+  /* revisión final del 23/oct: con la pelota del rival el partido seguía
+     trabado (ratos de 7 s de mediana y 10 s de máximo sin que pasara nada,
+     el 63% de lo quieto). Si en defensa.cada_ms nadie le salió al cruce, le
+     sale el tuyo más cerca de los que están entre el portador y tu arco, a
+     menos de alcance_px, y se abre QUITE / CORTE / BLOQUEO con él. tope:
+     cruces por cada pelota del rival, contando los de siempre */
+  function chequearDefensa(st, F) {
+    var D = F.defensa;
+    if (!D || !D.activo) return null;
+    if ((st._crucesDef || 0) !== st._flujoCruces) { st._flujoCruces = st._crucesDef || 0; st._flujoUlt = st._t; }
+    if (st._t - st._flujoUlt < D.cada_ms || (st._crucesDef || 0) >= D.tope) return null;
+    var pr = st.rivales[st.portadorRival], R = st.bal.ritmo, mejor = -1, md = D.alcance_px;
+    st.mios.forEach(function (j, i) {
+      if (j.pos === "ARQ" || j.x > pr.x) return;
+      if (st._perdioHasta && st._t < st._perdioHasta && i === st._perdioIdx) return;
+      var d = dist(j.x, j.y, pr.x, pr.y);
+      if (d < md) { md = d; mejor = i; }
+    });
+    if (mejor < 0) return null;
+    var u = st.mios[mejor];
+    u.x = clamp(pr.x - R.radio_encuentro * 0.8, 14, st.W - 14); u.y = pr.y;
+    st.ctrl = mejor;
+    st._crucesDef = (st._crucesDef || 0) + 1; st._flujoCruces = st._crucesDef;
+    st._flujoUlt = st._t;
+    st._flujoN = (st._flujoN || 0) + 1;
+    st.modo = "congelado";
+    return { motivo: "defensa", rivalIdx: st.portadorRival };
   }
   /* SEGUIR (o cualquier decisión que no cambia de dueño): la cuenta arranca de nuevo */
   function seguir(st) {

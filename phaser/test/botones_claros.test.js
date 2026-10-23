@@ -69,6 +69,9 @@ function defensa(s, nivel, aguante) {
 function ataque(s, rivalIdx, libre) {
   var st = s.st, i = st.mios.findIndex(function (j) { return j.pos === "ATA"; });
   st.ctrl = i; st.posesion = "mia"; st.mios[i].esVos = true; st.mios[i].aguante = 1000; st.mios[i].x = 900;
+  /* revisión final del 23/oct (pedido de Rodri: el súper tiro, excepcional):
+     se ofrece solo de frente al arco (flujo.super_tiro_zona_px) */
+  st.mios[i].y = st.H / 2;
   s._nivelCarrera = 1;
   s.abrirMenuAtaque(rivalIdx, libre);
 }
@@ -109,6 +112,13 @@ function ataque(s, rivalIdx, libre) {
   ataque(s0, 1, false);
   assert(!hayTexto(s0, "POTENCIAR") && !hayTexto(s0, "★ ESPECIAL"), "[2] poda 22/oct: con balance.flags.envion en false no hay POTENCIAR ni ★ ESPECIAL, aunque el envión venga cargado");
   assert(hayTexto(s0, "★ SÚPER TIRO"), "[2] poda 22/oct: el centro de la cruz es el SÚPER TIRO solo");
+  /* revisión final del 23/oct: se ofrecía desde el primer ataque, a 37 m */
+  var Ef = escena(), sf = Ef.s, stf = sf.st, kf = stf.mios.findIndex(function (j) { return j.pos === "ATA"; });
+  sf.MEGA = s0.MEGA;
+  stf.ctrl = kf; stf.posesion = "mia"; stf.mios[kf].esVos = true; stf.mios[kf].aguante = 1000; stf.mios[kf].x = 700; stf.mios[kf].y = stf.H / 2;
+  sf._nivelCarrera = 1;
+  sf.abrirMenuAtaque(1, false);
+  assert(!hayTexto(sf, "★ SÚPER TIRO"), "[2] SÍNTOMA: el SÚPER TIRO se ofrece lejos del arco (a 35 m)");
   var E = escena(), s = E.s;
   s.BAL.flags.envion = true;   // la perilla lo vuelve a prender
   s.st.envion = BAL.envion.max;

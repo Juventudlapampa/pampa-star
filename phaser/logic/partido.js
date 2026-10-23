@@ -304,6 +304,12 @@
           }
           var tapa = riesgoLinea(st, i).quien;
           if (tapa) ty += (j.y >= tapa.y ? 1 : -1) * DM.linea_px;
+          /* revisión final del 23/oct: casi ningún centro caía en la zona de
+             remate. Con la pelota pasando al_area_desde, el delantero pica al área */
+          if (DM.al_area_desde && j.pos === "ATA" && i !== st.ctrl && st.pelota.x > st.W * DM.al_area_desde) {
+            tx = Math.max(tx, st.W - FLUJO.centro.zona_px * DM.al_area_hondo);
+            ty += (st.H / 2 - ty) * DM.al_area_cierra;
+          }
           ty = clamp(ty, j.banda[0], j.banda[1]);
         }
       }

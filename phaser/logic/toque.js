@@ -74,7 +74,7 @@
     var p0 = { x: entre(r, org.x), z: entre(r, org.z), h: org.h };
     var tira = r(), acc = 0, tramo = c.alturas[c.alturas.length - 1];
     for (var i = 0; i < c.alturas.length; i++) { acc += c.alturas[i].p; if (tira < acc) { tramo = c.alturas[i]; break; } }
-    var T = { x: entre(r, c.llegada.x), z: entre(r, c.llegada.z), h: entre(r, tramo.h) };
+    var T = { x: entre(r, c.llegada.x), z: entre(r, c.llegada.z), h: entre(r, propia && org.h_llegada ? org.h_llegada : tramo.h) };
     var tT = entre(r, c.vuelo_s), az = (r() * 2 - 1) * c.curva_max * (org.curva != null ? org.curva : 1);
     var frac = clamp(J.aguanteFrac, 0, 1);
     var vmax = (c.vel_base + ((s.velocidad || 50) - 50) * c.vel_stat) * (1 - c.vel_cansancio * (1 - frac));

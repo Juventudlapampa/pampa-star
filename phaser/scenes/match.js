@@ -1035,7 +1035,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     usados.add(vosIdx);
     mios[vosIdx] = { nombre: (career && career.name) ? String(career.name).slice(0, 10) : "VOS", pos: "ATA", stats: career && career.stats, esVos: true };
     /* Anime E: tu pueblo (del origen de la carrera) para el grito de gol del relator */
-    this._puebloMio = (career && career.origen && career.origen.localidad) ? String(career.origen.localidad).toUpperCase().slice(0, 16) : "LA PAMPA";
+    /* revisión final del 23/oct: la carrera del Master no trae origen.localidad
+       y el relator gritaba "LA PAMPA" en Winifreda. La localidad viaja en masterPartido */
+    const mpL = this.game.registry.get("masterPartido");
+    const loc = (mpL && mpL.pueblo) || (career && career.origen && career.origen.localidad);
+    this._puebloMio = loc ? String(loc).toUpperCase().slice(0, 16) : "LA PAMPA";
     let pool = (roster && roster.jugadores) ? roster.jugadores.slice() : [];
     /* 20/oct · la estrella del rival que nombró la previa (masterPartido.estrella)
        sale del pozo antes de armar tu equipo y juega en su puesto del rival */
@@ -2492,7 +2496,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        pantalla partida un clic en la cancha de arriba no hace nada (apuntar:
        solo el MAPA mueve), así que se señala el mapa */
     const tactil = this.sys.game.device.input.touch;
-    const c = window.PampaTutorial.cartel("libre", this.tutorialVistos(), { tactil, split: this._split });
+    const flujo = !!(window.PampaFlujo && window.PampaFlujo.activo(this.st));
+    const c = window.PampaTutorial.cartel("libre", this.tutorialVistos(), { tactil, split: this._split, flujo });
     if (!c) return;
     const mapa = this._vista4 && !this._split ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 };
     const ANILLOS = [mapa, { x: 838, y: 456, w: 210, h: 90 }];   /* R1: el botón de ACCIÓN está en 838 */
@@ -3172,6 +3177,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ANIME B (P2): la GAMBETA se VE — el que encara en pose, el que queda atrás */
     const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : st.rivales[st.portadorRival];
     if (r.win) {
+      /* revisión final del 23/oct: el que quedó pagando a tiro del arco te puede bajar (frente_ui.js) */
+      if (!megaR && (a.id === "gambeta" || a.id === "pared") && rivalJ
+        && this.cobrarFalta({ aFavor: true, infractor: rivalJ, accion: "al_pasar", holgura: r.chancePct / 100 - r.roll })) return;
       P.ganarAtaque(st, a.id, rivalIdx, r);   // R2: el gambeteado queda pagando atrás
       /* V9 §3: la gambeta ganada SIEMPRE tiene su viñeta (antes, si el rival
          venía con megacosa, se comía la escena y quedaba un cartel), y la
@@ -4461,6 +4469,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* 23/oct, Rodri: "el súper tiro, excepcional, algo WOW que gasta
        energía". Con balance.flujo gasta por lo menos super_tiro_aguante */
     const FLU = this.BAL.flujo && this.BAL.flujo.activo ? this.BAL.flujo : null;
+    /* revisión final del 23/oct: se ofrecía desde el primer ataque, a 37 m.
+       Con super_tiro_zona_px, solo de frente al arco */
+    if (FLU && FLU.super_tiro_zona_px != null
+      && (Math.hypot(st.W - j.x, st.H / 2 - j.y) > FLU.super_tiro_zona_px || Math.abs(j.y - st.H / 2) > FLU.super_tiro_ancho_px)) return null;
     const lista = ((this.MEGA && this.MEGA.megatiros) || [])
       .map(m => FLU ? Object.assign({}, m, { aguante: Math.max(m.aguante || 300, FLU.super_tiro_aguante) }) : m)
       .filter(m => nivel >= (m.nivel || 1) && j.aguante >= (m.aguante || 300) && j.x > (m.x_min || 680));
@@ -5503,7 +5515,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   decisionDelFlujo(dec) {
     const st = this.st;
     if (dec.motivo === "rival") {
+      if (this.cobrarFalta({ aFavor: true, infractor: st.rivales[dec.rivalIdx], accion: "al_cierre", holgura: 0 })) return;
       this.beatDeTension(st.rivales[dec.rivalIdx], true, null, () => this.abrirMenuAtaque(dec.rivalIdx, false));
+      return;
+    }
+    if (dec.motivo === "defensa") {
+      this.beatDeTension(st.mios[st.ctrl], false, null, () => this.abrirMenuDefensa());
       return;
     }
     const j = st.mios[st.ctrl];
@@ -6985,6 +7002,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* FEEL B1: los cruces se ANUNCIAN con un beat de tensión ANTES del menú
          (zoom leve + riser + el rival entrando al plano) — nunca un menú de golpe */
       if (ev.tipo === "encuentro") {
+        /* revisión final del 23/oct: a tiro del arco, el que te cierra te puede parar con falta (frente_ui.js) */
+        if (this.cobrarFalta({ aFavor: true, infractor: st.rivales[ev.rivalIdx], accion: "al_cierre", holgura: 0 })) continue;
         /* Feel B6: en MOMENTOS CALIENTES (cerca de su arco, con tanque) el rival puede
            venir con una MEGACOSA — decidido por la situación del duelo, no azar puro */
         this._megaRival = null;

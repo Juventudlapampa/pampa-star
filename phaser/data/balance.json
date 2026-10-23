@@ -690,7 +690,9 @@
       "barra_animo": 20,
       "grande_desde": 50,
       "grande_por_punto": 0.2,
-      "grande_max": 10
+      "grande_max": 10,
+      "_barra_sobra": "Revisión final del 23/oct: el ÁNIMO se llena en tres victorias y desde ahí SALIR CON LA BARRA ofrecía lo mismo que no ir. Con barra_sobra_a_grande, lo que la barra no puede sumar al ánimo lleno va directo a las jugadas grandes (por grande_por_punto): la barra siempre suma 4. false = como antes.",
+      "barra_sobra_a_grande": true
     },
     "momento_ms": 950,
     "_momento": "D3 · cuanto dura el momento de una accion de la semana (la pose con anticipacion y rebote sobre el escenario). Se puede saltear tocando. En 0 no se muestra."
@@ -957,6 +959,8 @@
     ],
     "propia": {
       "_nota": "Pedido de Rodri del 22/oct: en el SÚPER TIRO la pelota la tenías en el pie y EL TOQUE la tiraba de atrás como un pase. Ahora sale de tus pies (x y z son cuánto adelante y al costado de donde arrancás, en metros), con poca comba (curva multiplica curva_max) y el rótulo lo dice. No entra en el sorteo de origenes: el remate del área sigue igual.",
+      "_h_llegada": "Revisión final del 23/oct: la del súper tiro caía con la altura sorteada de un centro y una terminó de cabeza y pifiada. Te la acomodás vos: llega entre h_llegada (metros), para el remate o la volea. Sin h_llegada, como antes.",
+      "h_llegada": [0.12, 0.9],
       "id": "propia",
       "n": "TU PELOTA: TE LA ACOMODÁS Y LE PEGÁS",
       "x": [
@@ -1174,23 +1178,36 @@
       "radio_px": 90,
       "px": 55,
       "adelante_px": 30,
-      "linea_px": 45
+      "linea_px": 45,
+      "_al_area": "Revisión final del 23/oct: con la pelota pasando al_area_desde (fracción de la cancha), el delantero que no la lleva pica a la zona de remate (queda a zona_px * al_area_hondo del fondo y se cierra al_area_cierra hacia el medio). Medido en node: centros que caen en la zona de 81 a 98 cada 60 partidos. al_area_desde null = como antes.",
+      "al_area_desde": 0.55,
+      "al_area_hondo": 0.6,
+      "al_area_cierra": 0.4
     },
+    "_defensa": "Revisión final del 23/oct: con la pelota del rival el partido seguía trabado (medido en el teléfono: ratos de 7 s de mediana y 10,4 s de máximo, el 63% del tiempo en que no pasaba nada). Si en cada_ms (de simulación) nadie le salió al cruce, sale el tuyo más cerca de los que están entre el portador y tu arco, a menos de alcance_px, y se abre la cruz de defensa. tope: cruces por cada pelota del rival, contando los de ritmo.cruce_def. recupera_ms: la que recuperás se decide a ese rato, como un pase recibido (la jugada sale jugando en vez de esperar cada_ms). Medido en node con 60 partidos: con la pelota del rival, mediana de 7 a 4,4 s y máximo de 15 a 6 s; jugadas con pase o centro de 55 a 64%. activo false = como antes.",
+    "defensa": {
+      "activo": true,
+      "cada_ms": 2600,
+      "alcance_px": 320,
+      "tope": 3,
+      "recupera_ms": 2000
+    },
+    "_centro": "Revisión final del 23/oct: en cuatro partidos no hubo ningún firulete de un compañero con 6 a 8 centros por partido (los cortaban o caían afuera de la zona). base subió de 68 a 74, por_marca bajó de 0,3 a 0,2 y bonus_zona de 25 a 40 (el centro busca más al que está en la zona). Para volver: 68, 0,3 y 25.",
     "centro": {
       "radio_px": 560,
       "d_min_px": 120,
       "zona_px": 300,
       "zona_ancho_px": 240,
-      "base": 68,
+      "base": 74,
       "por_pase": 0.4,
       "por_aereo": 0.3,
       "marca_px": 60,
-      "por_marca": 0.3,
+      "por_marca": 0.2,
       "d_ok_px": 280,
       "penal_lejos": 0.03,
       "min": 15,
       "max": 88,
-      "bonus_zona": 25,
+      "bonus_zona": 40,
       "bonus_vos": 4,
       "costo": 40,
       "h_base": 0.4,
@@ -1262,7 +1279,10 @@
         "gambeta_min": 60
       }
     },
-    "super_tiro_aguante": 400
+    "super_tiro_aguante": 400,
+    "_super_tiro_zona": "Revisión final del 23/oct: el SÚPER TIRO se ofrecía desde el primer ataque (bastaba pasar x 680, a 37 m). Con super_tiro_zona_px solo aparece a menos de esa distancia del centro del arco y con ángulo (super_tiro_ancho_px desde el medio): la jugada WOW queda para cuando estás de frente. null = como antes.",
+    "super_tiro_zona_px": 250,
+    "super_tiro_ancho_px": 170
   },
   "frente": {
     "_nota": "23/oct, pedido de Rodri: EL TIRO DE FRENTE AL ARCO (logic/frente.js + scenes/frente_ui.js, flags.tiro_frente) y EL TIRO LIBRE (flags.tiro_libre). Cuando pateás con la pelota al pie (no un centro ni un pase al aire, que siguen por EL TOQUE), la escena se pone detrás de quien remata con el arco al fondo, el arquero y los defensores reales donde están en el partido. La mira va en el plano del arco: u de -1 a 1 entre los palos y h de 0 (al ras) a 1 (el travesaño). La geometría dice quién se cruza (cuerpo_px: lo bloquea o la desvía, desvio.bloquea; roce_px: la puede desviar, desvio.roce; la pelota que pasa más alta que alcance_defensor no la toca nadie) y cuánto le queda al arquero: su alcance crece con su nivel y con el tiempo que tarda la pelota (distancia / tiempo_ref_px / vel del tipo). El margen se vuelve zona.bonus para duel.resolveShot (arquero.bonus_por_margen, con tope) y el gol lo decide ese duelo con los stats de siempre. error: el desvío de la pegada en anchos de medio arco; baja con el tiro, con el toque a tiempo (perfil) y con el aguante, y sube con la distancia. La barrera: n por distancia (cerca, media, lejos), a dist_px de la pelota, el de afuera tapando el palo de su lado; salta y arquero_adivina se esconden hasta que pegás (la rasante pasa por abajo de la barrera que salta; el arquero que se adelanta al palo de la barrera deja el suyo). falta.base es la chance de cada quite o bloqueo ganado, por agresividad del club que la comete (perfil de logic/master.js; vos es la tuya), más alta si ganó justo (holgura_justa) y si viene sin aire; adentro del área no se cobra (en_area false: todavía no hay penales). tiro_libre.directo_max_px: más cerca que eso y con ángulo, se patea al arco; más lejos se juega rápido.",
@@ -1289,7 +1309,8 @@
     "zona": { "palo_desde": 0.6, "alto_desde": 0.6, "gy_max": 42, "desviada_bonus": -10, "nombres": { "angulo": "al ángulo", "palo": "al palo", "medio_alto": "alto al medio", "medio": "al medio" } },
     "barrera": { "dist_px": 92, "n": [5, 4, 3], "cerca_px": 220, "media_px": 290, "hombro_px": 7, "afuera_px": 3, "centrado": 0.25, "arquero_u": 0.15, "arquero_adelante_px": 6, "arquero_adivina": 0.5, "arquero_se_tira": 0.55, "salta": 0.55 },
     "tiro_libre": { "directo_max_px": 330, "directo_ancho_px": 260, "px_por_metro": 10, "aviso_ms": 2400 },
-    "falta": { "base": { "quite": 0.12, "bloqueo": 0.08 }, "agresividad": { "garra": 1.5, "pelotazo": 1.15, "estrella": 1.0, "toque": 0.7, "vos": 0.9, "otro": 1.0 }, "por_justo": 0.6, "holgura_justa": 0.3, "por_cansancio": 0.8, "max": 0.4, "en_area": false },
+    "_al_pasar": "Revisión final del 23/oct: en cuatro partidos no hubo ningún tiro libre tuyo, porque la falta a favor solo nacía donde el rival te ganaba la pelota, casi siempre lejos de su arco (43 y 66 m). Medido en node (60 partidos con piloto): 0,02 tiros libres directos tuyos por partido. Ahora hay dos faltas tácticas, que solo se cobran a tiro de tiro libre directo y afuera del área (solo_a_tiro): base.al_cierre, la del que te sale al cruce y te para antes de que elijas, y base.al_pasar, la del que dejaste pagando con la GAMBETA o la PARED. Son del rival: el tuyo no hace faltas tácticas. Con las dos, 0,6 por partido. 0 = como antes.",
+    "falta": { "base": { "quite": 0.12, "bloqueo": 0.08, "al_cierre": 0.22, "al_pasar": 0.35 }, "solo_a_tiro": ["al_cierre", "al_pasar"], "agresividad": { "garra": 1.5, "pelotazo": 1.15, "estrella": 1.0, "toque": 0.7, "vos": 0.9, "otro": 1.0 }, "por_justo": 0.6, "holgura_justa": 0.3, "por_cansancio": 0.8, "max": 0.4, "en_area": false },
     "cpu": { "grilla_u": [-0.85, -0.45, 0, 0.45, 0.85], "grilla_h": [0.1, 0.5, 0.85], "ruido": 0.35, "calidad": [0.25, 0.85] },
     "camara": { "horizonte": 150, "alto_cam": 30, "atras": 70, "al_costado": 22, "ancho_cerca": 500, "ancho_lejos": 300, "d_cerca": 60, "d_lejos": 360, "paso_u": 0.15, "paso_h": 0.35 }
   },

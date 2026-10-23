@@ -120,6 +120,7 @@ var SITUACIONES = [
   { n: "ataque en el área, nivel 5: MEGACORRIDA, TORNADO PAMPEANO con lectura, GAMBETA-TIRO", armar: function (s) {
     var st = s.st, i = vos(s);
     st.ctrl = i; st.posesion = "mia"; st.mios[i].esVos = true; st.mios[i].aguante = 1000; st.mios[i].x = 900;
+    st.mios[i].y = st.H / 2;   // revisión final del 23/oct: el súper tiro se ofrece solo de frente al arco
     s._nivelCarrera = 5; st.minuto = 40;
     st.lectura = { usos: { tornado: { nivel: 0.95, ultimo: 40 } } };
     s.abrirMenuAtaque(1, false);

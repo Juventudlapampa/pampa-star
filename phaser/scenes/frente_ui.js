@@ -498,13 +498,16 @@
       if (!this.FLAGS.tiro_libre || !window.PampaFrente) return false;
       var st = this.st, C = this.BAL.frente, Fr = window.PampaFrente, A = this.BAL.toque.area;
       var sobre = o.aFavor ? st.mios[st.ctrl] : st.rivales[st.portadorRival];
-      if (!sobre || !o.infractor) return false;
+      /* el arquero no sale a cometer faltas a 66 m de su arco */
+      if (!sobre || !o.infractor || o.infractor.pos === "ARQ") return false;
       var arco = o.aFavor ? { x: st.W, y: st.H / 2 } : { x: 0, y: st.H / 2 };
       var enArea = Math.abs(arco.x - sobre.x) < A.largo_px && Math.abs(sobre.y - arco.y) < A.ancho_medio_px;
+      var tl = Fr.tiroLibre(sobre.x, sobre.y, arco, C);
+      /* la falta táctica (te cierra o lo dejaste pagando) solo a tiro del arco */
+      if ((C.falta.solo_a_tiro || []).indexOf(o.accion) >= 0 && !tl.directo) return false;
       var perfil = o.aFavor ? ((st._master && st._master.perfil) || "otro") : "vos";
       var cans = 1 - Phaser.Math.Clamp((o.infractor.aguante != null ? o.infractor.aguante : this.BAL.aguante.max) / this.BAL.aguante.max, 0, 1);
       if (!Fr.hayFalta({ accion: o.accion, perfil: perfil, holgura: o.holgura, cansancio: cans, enArea: enArea }, C, Math.random)) return false;
-      var tl = Fr.tiroLibre(sobre.x, sobre.y, arco, C);
       var nom = function (j) { return j.numero + " " + String(j.nombre || "").toUpperCase(); };
       var del = function (j) { return j.esVos ? "TUYA" : "DEL " + nom(j); };
       var aQuien = function (j) { return j.esVos ? "VOS" : "EL " + nom(j); };

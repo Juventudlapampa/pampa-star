@@ -12,6 +12,7 @@ const fs = require("fs");
 const P = require(path.join(__dirname, "..", "logic", "partido.js"));
 const F = require(path.join(__dirname, "..", "logic", "flujo.js"));
 const Duel = require(path.join(__dirname, "..", "logic", "duel.js"));
+const Fr = require(path.join(__dirname, "..", "logic", "frente.js"));
 
 let ok = 0, mal = 0;
 function assert(cond, msg) { if (cond) ok++; else { mal++; console.error("✗ " + msg); } }
@@ -101,6 +102,41 @@ function partidoNuevo(bal, rng) {
   assert(drec && drec.motivo === "recibe", "al recibir un pase decide enseguida (recibe_ms), aunque no pasó min_ms");
 }
 
+/* ---------- 2b) CON LA PELOTA DEL RIVAL (revisión final del 23/oct) ----------
+   Medido en el teléfono: ratos de 7 s de mediana y 10,4 s de máximo con la
+   pelota de ellos sin que pasara nada. Si nadie le salió en defensa.cada_ms,
+   le sale el tuyo más cerca de los que están entre el portador y tu arco */
+{
+  const bal = balCon(true), st = partidoNuevo(bal, semilla(4));
+  const D = bal.flujo.defensa;
+  st.posesion = "rival"; st.modo = "juego"; st.portadorRival = 8; st.esperaRival = 0; st.cooldown = 9e9;
+  const pr = st.rivales[8];
+  pr.x = 600; pr.y = 340;
+  st.mios.forEach(j => { if (j.pos !== "ARQ") { j.x = 900; j.y = 40; } });
+  const cerca = st.mios[6]; cerca.x = 470; cerca.y = 300;
+  const lejos = st.mios[2]; lejos.x = 300; lejos.y = 340;
+  assert(F.chequear(st) === null, "al cambiar de dueño no decide en el acto");
+  const t0 = st._t;
+  let d = null;
+  while (!d && st._t - t0 < D.cada_ms + 1000) { st._t += 100; d = F.chequear(st); }
+  assert(d && d.motivo === "defensa" && d.rivalIdx === 8, "si nadie le salió, a cada_ms se abre la cruz de defensa");
+  assert(st._t - t0 >= D.cada_ms && st._t - t0 <= D.cada_ms + 100, "a defensa.cada_ms (" + (st._t - t0) + " ms)");
+  assert(st.ctrl === 6 && Math.abs(st.mios[6].x - (pr.x - bal.ritmo.radio_encuentro * 0.8)) < 1 && st.modo === "congelado", "sale el más cerca de los que están adelante del portador, y se congela");
+  st._crucesDef = D.tope; st.modo = "juego"; st._t += D.cada_ms * 2;
+  assert(F.chequear(st) === null, "con el tope de cruces de esa pelota, no sale nadie más");
+  const st2 = partidoNuevo(balCon(true), semilla(4));
+  st2.bal.flujo.defensa.activo = false; st2.posesion = "rival"; st2.modo = "juego";
+  F.chequear(st2); st2._t += D.cada_ms * 3;
+  assert(F.chequear(st2) === null, "con defensa.activo false, como antes");
+  const st3 = partidoNuevo(balCon(true), semilla(5));
+  st3.posesion = "rival"; st3.modo = "juego"; F.chequear(st3);
+  st3.posesion = "mia"; F.chequear(st3);
+  const t3 = st3._t;
+  let d3 = null;
+  while (!d3 && st3._t - t3 < 6000) { st3._t += 100; d3 = F.chequear(st3); }
+  assert(d3 && d3.motivo === "recibe" && st3._t - t3 <= D.recupera_ms + 100, "la que recuperás se decide a recupera_ms, como un pase recibido");
+}
+
 /* ---------- 3) EL CENTRO Y LOS FIRULETES ---------- */
 {
   const bal = balCon(true), st = partidoNuevo(bal, semilla(3));
@@ -151,9 +187,9 @@ const ESCENA_MS = 3200;   // lo que tarda en promedio elegir y ver la jugada
 function jugar(activo, s) {
   const rng = semilla(s), bal = balCon(activo), st = partidoNuevo(bal, rng);
   const azar = Math.random; Math.random = rng;
-  const m = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, pases: 0, centros: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0 };
-  let desdeAlgo = 0, desdeDecConPelota = 0, jug = null;
-  const algo = () => { m.gaps.push(desdeAlgo); desdeAlgo = 0; };
+  const m = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, pases: 0, centros: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0, gapsRival: [], faltasTiro: 0, ocasionesTiro: 0 };
+  let desdeAlgo = 0, desdeDecConPelota = 0, desdeRival = 0, jug = null;
+  const algo = () => { m.gaps.push(desdeAlgo); desdeAlgo = 0; if (desdeRival) { m.gapsRival.push(desdeRival); desdeRival = 0; } };
   const cierraJugada = () => { if (jug) { m.jugadas++; if (jug.pase) m.conPase++; if (jug.centro) m.conCentro++; if (jug.pase || jug.centro) m.conAlguno++; } jug = null; };
   const remate = (prep) => {
     const res = Duel.resolveShot({ shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: { bonus: 0, fuera: 0.1 }, cfg: bal.duelo,
@@ -163,10 +199,26 @@ function jugar(activo, s) {
     else if (res.outcome === "corner") P.cornerMio(st, rng);
     else P.saqueArquero(st, res.outcome === "atajada" ? "atajada" : "afuera");
   };
+  /* LA FALTA A FAVOR, como frente_ui.js cobrarFalta: la del quite o el
+     bloqueo que te la saca y (revisión final del 23/oct) la del que quedó
+     pagando a tiro del arco. Cuenta los tiros libres directos */
+  const falta = (accion, holgura) => {
+    const c2 = st.mios[st.ctrl], arco = { x: st.W, y: st.H / 2 }, AR = bal.toque.area;
+    const enArea = st.W - c2.x < AR.largo_px && Math.abs(c2.y - arco.y) < AR.ancho_medio_px;
+    const directo = Fr.tiroLibre(c2.x, c2.y, arco, bal.frente).directo;
+    if (bal.frente.falta.solo_a_tiro.indexOf(accion) >= 0 && !directo) return false;
+    if (directo && !enArea) m.ocasionesTiro++;
+    if (!Fr.hayFalta({ accion, perfil: "otro", holgura, cansancio: 0, enArea }, bal.frente, rng)) return false;
+    if (!directo) return false;   // se juega rápido: sigue la jugada
+    m.faltasTiro++; m.real += ESCENA_MS;
+    remate(P.prepararRemate(st, false, rng));
+    return true;
+  };
   const decidir = (rivalIdx, libre) => {
     m.decisiones++; m.real += ESCENA_MS;
     if (st.posesion === "mia") { m.gapsConPelota.push(desdeDecConPelota); desdeDecConPelota = 0; }
     algo();
+    if (rivalIdx != null && falta("al_cierre", 0)) return;
     const c = st.mios[st.ctrl], acc = P.accionesAtaque(st);
     const A = id => acc.find(a => a.id === id);
     const ops = [];
@@ -197,6 +249,7 @@ function jugar(activo, s) {
     if (op === "tiro") {
       if (rivalIdx != null) {
         const d = P.resolverDuelo(st, { accion: "tiro", poder: A("tiro").poder, costo: 0, rng });
+        if (!d.win && falta(d.accionRival, d.roll - d.chancePct / 100)) return;
         if (!d.win) { P.perderPelota(st, rng); return; }
       }
       remate(P.prepararRemate(st, false, rng));
@@ -204,7 +257,15 @@ function jugar(activo, s) {
     }
     const a = A(op);
     const d = P.resolverDuelo(st, { accion: op, poder: a.poder, costo: a.costo, rng });
+    if (falta(d.win ? "al_pasar" : d.accionRival, d.win ? d.chancePct / 100 - d.roll : d.roll - d.chancePct / 100)) return;
     if (d.win) P.ganarAtaque(st, op, rivalIdx, d); else P.perderPelota(st, rng);
+  };
+  const defender = () => {
+    algo(); m.real += ESCENA_MS;
+    const accion = ["quite", "corte", "bloqueo"][Math.floor(rng() * 3)];
+    const a = P.accionesDefensa(st).find(x => x.id === accion);
+    const d = P.resolverDuelo(st, { accion, poder: a.poder, costo: a.costo, rng });
+    if (d.win) P.ganarDefensa(st); else P.perderDefensa(st);
   };
   let vueltas = 0, fin = false;
   while (!fin && vueltas++ < 40000) {
@@ -214,16 +275,12 @@ function jugar(activo, s) {
     if (st.posesion === "mia") input = activo ? F.autoInput(st) : { dx: 1, dy: 0 };
     const evs = P.tick(st, DT, input);
     m.libreMs += LATIDO; m.real += LATIDO; desdeAlgo += LATIDO;
+    if (st.posesion !== "mia") desdeRival += LATIDO;
     if (st.posesion === "mia") desdeDecConPelota += LATIDO;
     for (const ev of evs) {
       if (ev.tipo === "encuentro") decidir(ev.rivalIdx, false);
-      else if (ev.tipo === "encuentroDef") {
-        algo(); m.real += ESCENA_MS;
-        const accion = ["quite", "corte", "bloqueo"][Math.floor(rng() * 3)];
-        const a = P.accionesDefensa(st).find(x => x.id === accion);
-        const d = P.resolverDuelo(st, { accion, poder: a.poder, costo: a.costo, rng });
-        if (d.win) P.ganarDefensa(st); else P.perderDefensa(st);
-      } else if (ev.tipo === "rivalTira") {
+      else if (ev.tipo === "encuentroDef") defender();
+      else if (ev.tipo === "rivalTira") {
         algo(); m.real += ESCENA_MS;
         const r = P.resolverAtajada(st, rng() < 0.5 ? "atajar" : "despejar", rng);
         if (r.golRival) m.golesRival++;
@@ -231,7 +288,7 @@ function jugar(activo, s) {
       else if (ev.tipo === "final") fin = true;
     }
     if (!evs.length && st.modo === "juego") {
-      if (activo) { const d = F.chequear(st); if (d) decidir(d.rivalIdx, d.rivalIdx == null); }
+      if (activo) { const d = F.chequear(st); if (d) { if (d.motivo === "defensa") defender(); else decidir(d.rivalIdx, d.rivalIdx == null); } }
       else if (st.posesion === "mia" && P.puedeTirar(st) && st.W - st.mios[st.ctrl].x < 260) decidir(null, true);
     }
   }
@@ -240,16 +297,16 @@ function jugar(activo, s) {
   return m;
 }
 function medir(activo) {
-  const tot = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0, n: 0 };
+  const tot = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0, n: 0, gapsRival: [], faltasTiro: 0, ocasionesTiro: 0 };
   for (let s = 1; s <= 12; s++) {
     const m = jugar(activo, 1000 + s);
     tot.n++;
-    ["decisiones", "libreMs", "jugadas", "conPase", "conCentro", "conAlguno", "goles", "golesRival", "toques", "real"].forEach(k => { tot[k] += m[k]; });
-    tot.gaps.push(...m.gaps); tot.gapsConPelota.push(...m.gapsConPelota);
+    ["decisiones", "libreMs", "jugadas", "conPase", "conCentro", "conAlguno", "goles", "golesRival", "toques", "real", "faltasTiro", "ocasionesTiro"].forEach(k => { tot[k] += m[k]; });
+    tot.gaps.push(...m.gaps); tot.gapsConPelota.push(...m.gapsConPelota); tot.gapsRival.push(...m.gapsRival);
     Object.keys(m.firuletes).forEach(k => { tot.firuletes[k] = (tot.firuletes[k] || 0) + m.firuletes[k]; });
   }
   const orden = a => a.slice().sort((x, y) => x - y);
-  const g = orden(tot.gaps), gp = orden(tot.gapsConPelota);
+  const g = orden(tot.gaps), gp = orden(tot.gapsConPelota), gr = orden(tot.gapsRival);
   const prom = a => a.reduce((x, y) => x + y, 0) / (a.length || 1);
   return {
     porMin: tot.decisiones / (tot.libreMs / 60000),
@@ -257,14 +314,19 @@ function medir(activo) {
     maxQuieto: g[g.length - 1] / 1000, maxConPelota: gp[gp.length - 1] / 1000, p90Quieto: g[Math.floor(g.length * 0.9)] / 1000,
     pase: Math.round(tot.conPase / tot.jugadas * 100), alguno: Math.round(tot.conAlguno / tot.jugadas * 100), centro: Math.round(tot.conCentro / tot.jugadas * 100),
     decisiones: tot.decisiones / tot.n, goles: tot.goles / tot.n, golesRival: tot.golesRival / tot.n,
-    minutos: tot.real / tot.n / 60000, firuletes: tot.firuletes, toques: tot.toques
+    minutos: tot.real / tot.n / 60000, firuletes: tot.firuletes, toques: tot.toques,
+    medRival: gr[Math.floor(gr.length / 2)] / 1000, maxRival: gr[gr.length - 1] / 1000,
+    faltasTiro: tot.faltasTiro / tot.n, ocasionesTiro: tot.ocasionesTiro / tot.n,
+    firuletesPorPartido: Object.keys(tot.firuletes).reduce((a, k) => a + tot.firuletes[k], 0) / tot.n
   };
 }
 const antes = medir(false), despues = medir(true);
 const linea = (n, m) => console.log("MEDIDA " + n + ": " + m.porMin.toFixed(1) + " decisiones por minuto de juego · una cada " + m.cadaSeg.toFixed(1)
   + " s con la pelota (lo más largo con la pelota sin decidir " + m.maxConPelota.toFixed(1) + " s) · lo más largo sin que pase nada " + m.maxQuieto.toFixed(1) + " s (p90 " + m.p90Quieto.toFixed(1) + " s) · jugadas con pase "
   + m.pase + "%, con centro " + m.centro + "%, con alguno de los dos " + m.alguno + "% · " + m.decisiones.toFixed(1) + " decisiones y " + m.goles.toFixed(2) + " a " + m.golesRival.toFixed(2)
-  + " por partido · unos " + m.minutos.toFixed(1) + " min" + (m.toques ? " · firuletes " + JSON.stringify(m.firuletes) + ", toques " + m.toques : ""));
+  + " por partido · unos " + m.minutos.toFixed(1) + " min" + (m.toques ? " · firuletes " + JSON.stringify(m.firuletes) + ", toques " + m.toques : "")
+  + " · con la pelota del rival, sin que pase nada: mediana " + m.medRival.toFixed(1) + " s, máximo " + m.maxRival.toFixed(1) + " s"
+  + " · tiros libres a tiro por partido " + m.faltasTiro.toFixed(2) + " (de " + m.ocasionesTiro.toFixed(1) + " duelos a tiro)");
 linea("ANTES", antes); linea("DESPUÉS", despues);
 assert(despues.cadaSeg >= 3 && despues.cadaSeg <= 5, "con la pelota, una decisión cada 3 a 5 s de juego (" + despues.cadaSeg.toFixed(1) + ")");
 const topeReal = (BAL.flujo.cada_ms * LATIDO / DT + 2 * LATIDO) / 1000;
@@ -272,6 +334,10 @@ assert(despues.maxConPelota <= topeReal, "con la pelota nunca pasan más de cada
 assert(despues.alguno > antes.alguno, "más jugadas con pase o centro (" + antes.alguno + "% → " + despues.alguno + "%)");
 assert(despues.centro > 0 && Object.keys(despues.firuletes).length >= 3, "hay centros y firuletes de varios tipos");
 assert(despues.minutos > antes.minutos * 0.8 && despues.minutos < 6, "el partido CORTO no se acorta de más ni se estira (" + despues.minutos.toFixed(1) + " min)");
+/* revisión final del 23/oct */
+assert(despues.maxRival < antes.maxRival * 0.6 && despues.medRival < antes.medRival * 0.7,
+  "con la pelota del rival se destraba (mediana " + antes.medRival.toFixed(1) + " → " + despues.medRival.toFixed(1) + " s, máximo " + antes.maxRival.toFixed(1) + " → " + despues.maxRival.toFixed(1) + " s)");
+assert(despues.faltasTiro >= 0.4, "SÍNTOMA: tu tiro libre directo casi no sale (" + despues.faltasTiro.toFixed(2) + " por partido)");
 
 console.log((mal ? "✗" : "✓") + " flujo: " + ok + " ok, " + mal + " mal");
 process.exit(mal ? 1 : 0);

@@ -225,6 +225,11 @@ assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", 
      al lado tuyo. Te la adelantás: cae entre vos y el arco */
   assert(adelante, "SÍNTOMA: con tu pelota, la pelota sale de tus pies para atrás");
   assert(rotulo && noAtras, "el rótulo dice que te la acomodás, no que te la tiran de atrás");
+  /* revisión final del 23/oct: una terminó "de cabeza · pifiada". La que te
+     acomodás vos llega para el remate o la volea, nunca a la cabeza */
+  let baja = true;
+  for (let sm = 1; sm <= 200; sm++) if (propia(sm).T.h > C.tecnicas.volea.h[1]) baja = false;
+  assert(baja, "SÍNTOMA: en el súper tiro tu pelota llega a la altura de la cabeza");
   let buenas = 0;
   for (let s2 = 1; s2 <= 600; s2++) if (lector(propia(s2), T.rng(s2 * 7919), 0.12, 0.035).calidad >= C.zonas[1].q) buenas++;
   assert(buenas / 600 >= 0.7, "con tu pelota, leyendo bien, bien pegada 7 de cada 10 o más (" + (buenas / 600).toFixed(2) + ")");
