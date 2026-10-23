@@ -2384,55 +2384,6 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (o.riesgo_golpe) t.push("riesgo de golpe");
     return t.join(" · ");
   }
-  /* la elección de UN día: las opciones disponibles, con su costo a la vista */
-  vistaElegirDia(ranura) {
-    const W = this.scale.width, H = this.scale.height;
-    const S = window.PampaSemana, D = this.game.registry.get("semana");
-    const cfg = (this.game.registry.get("balance") || {}).balance || {};
-    /* CON las stats: sin ellas, el rendimiento decreciente devuelve el valor
-       entero y toda la curva de A1 no corre (ver statsDeHoy). */
-    const bal = Object.assign({}, (this.game.registry.get("balance") || {}).semana || {},
-      { stats: this.statsDeHoy() });
-    const sem = this.save.semana;
-    /* TODAS las marcas, no solo la primera: el origen son TRES preguntas y
-     cualquiera de ellas puede dejar una. Con marcas[0] alcanzaba con que la
-     que importaba fuera la segunda para que no contara. */
-  const ctx = { stats: this.statsDeHoy(), stat_techo: ((this.game.registry.get("balance") || {}).semana || {}).stat_techo, marcas: (this.save.origen && this.save.origen.marcas) || [],
-    origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
-    const ops = S.opcionesPara(D, sem, ctx);
-    this.vaciarVista();
-    this._atrasVista = () => this.vistaSemana(this._semRival, this._semJugar);   // L04: como su ◀ VOLVER
-    if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
-    this.add.text(W / 2, 34, ["LUNES", "MIÉRCOLES", "VIERNES"][ranura] + " · ¿qué hacés?", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(W / 2, 60, "te quedan " + sem.energia + " de energía", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
-    /* Pedido de Rodri del 17/oct: todo a 13 px. Con 74 de alto el efecto del
-       PICADITO, que va en dos renglones, se salía por abajo; con 88 entra
-       (arranca en cy+8 y dos renglones terminan en cy+41). Sin energía, la
-       caja es gris oscura y el texto va claro: el rojo sobre gris no se leía. */
-    const porFila = 2, ancho = 380, alto = 88;
-    ops.slice(0, 8).forEach((o, i) => {
-      const cx = W / 2 + (i % porFila === 0 ? -ancho / 2 - 10 : ancho / 2 + 10);
-      const cy = 118 + Math.floor(i / porFila) * (alto + 6);
-      const alcanza = (o.energia_costo || 0) <= sem.energia;
-      const r = this.add.rectangle(cx, cy, ancho, alto, alcanza ? 0xf6efdc : 0x555f57, alcanza ? 0.97 : 0.6).setStrokeStyle(3, 0x0a1f13);
-      this.add.text(cx, cy - 26, o.n, { fontFamily: window.PF.display, fontSize: "13px", color: alcanza ? "#0a1f13" : "#f6efdc" }).setOrigin(0.5);
-      this.add.text(cx, cy - 6, o.sub, { fontFamily: window.PF.texto, fontSize: "13px", color: alcanza ? "#365a41" : "#dcd6c2" }).setOrigin(0.5);
-      this.add.text(cx, cy + 8, this.textoEfecto(o), { fontFamily: window.PF.texto, fontSize: "13px", color: alcanza ? "#0a1f13" : "#f6efdc", align: "center", wordWrap: { width: ancho - 16 } }).setOrigin(0.5, 0);
-      if (!alcanza) return;
-      r.setInteractive({ useHandCursor: true });
-      r.on("pointerdown", (pp, xx, yy, e2) => {
-        e2 && e2.stopPropagation && e2.stopPropagation();
-        const nueva = S.elegir(D, sem, ranura, o.id, bal);
-        if (nueva) {
-          this.save.semana = nueva;
-          if (o.riesgo_golpe && Math.random() < o.riesgo_golpe) this.save.semana.molestia = true;
-          this.guardar();
-        }
-        this.vistaSemana(this._semRival, this._semJugar);
-      });
-    });
-    this.boton(W / 2 - 110, H - 60, 220, "◀ VOLVER", 0xdcd6c2, () => this.vistaSemana(this._semRival, this._semJugar));
-  }
   /* el evento pampeano de la semana: sabor arriba + posible modificador */
   /* ══════════════════════════════════════════════════════════════════════
      TANDA 1.0 · EL EVENTO SE SORTEA UNA VEZ POR FECHA, Y QUEDA EN EL SAVE.
@@ -2917,9 +2868,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
 /* PIEL P2: las pantallas de esta escena se arman de una sola vez (no hay
    update que barra), así que se visten los botones al terminar de construir
-   cada vista. Se envuelven los métodos en vez de tocar su cuerpo: así el día
-   que se agregue una vista nueva, basta con sumarla a esta lista. */
-["create", "vistaSemana", "vistaElegirDia", "vistaFecha", "vistaTabla", "vistaResultado"]
+   cada vista. Se envuelven los métodos en vez de tocar su cuerpo.
+   L10: la lista era a mano y nombraba cuatro vistas que ya no existen
+   mientras dejaba afuera vistaOrigen,
+   vistaBorrarCarrera y las demás. Ahora sale de la clase: create y toda
+   vista* que tenga, así una vista nueva entra sola. */
+Object.getOwnPropertyNames(window.PampaMasterScene.prototype)
+  .filter(function (n) { return n === "create" || /^vista[A-Z]/.test(n); })
   .forEach(function (n) {
     var orig = window.PampaMasterScene.prototype[n];
     if (typeof orig !== "function") return;

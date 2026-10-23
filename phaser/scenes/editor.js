@@ -421,9 +421,13 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
 
 /* PIEL P2: las pantallas de esta escena se arman de una sola vez (no hay
    update que barra), así que se visten los botones al terminar de construir
-   cada vista. Se envuelven los métodos en vez de tocar su cuerpo: así el día
-   que se agregue una vista nueva, basta con sumarla a esta lista. */
-["create", "vistaSemana", "vistaElegirDia", "vistaFecha", "vistaTabla", "vistaResultado"]
+   cada vista. Se envuelven los métodos en vez de tocar su cuerpo.
+   L10: la lista era a mano y nombraba cuatro vistas que ya no existen
+   mientras dejaba afuera vistaOrigen,
+   vistaBorrarCarrera y las demás. Ahora sale de la clase: create y toda
+   vista* que tenga, así una vista nueva entra sola. */
+Object.getOwnPropertyNames(window.PampaEditor.prototype)
+  .filter(function (n) { return n === "create" || /^vista[A-Z]/.test(n); })
   .forEach(function (n) {
     var orig = window.PampaEditor.prototype[n];
     if (typeof orig !== "function") return;

@@ -113,7 +113,8 @@ function armar(opts) {
        L04 el Master se cuelga ahí del atrás del teléfono ("atras") */
     s.game = { registry: registry, events: juegoEventos };
     s.scale = { width: 960, height: 540 };
-    s.textures = { exists: function () { return false; } };
+    /* get: una textura con todos sus cuadros (la cara del relator de la previa) */
+    s.textures = { exists: function () { return false; }, get: function () { return { has: function () { return true; }, add: function () { } }; } };
     s.cameras = { main: { setBackgroundColor: function () { return this; } } };
     /* L09 (textos-tactiles): el Master pregunta si hay pantalla táctil para
        no mostrar teclas en el teléfono; opts.tactil es el teléfono */

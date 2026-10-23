@@ -407,12 +407,18 @@ function mundo(opts) {
   var d2 = AT.decidir(s2.estadoAtras(), Infinity);
   A.juegoEventos.emit("atras", { decision: d2, escena: "master" });
   assert(s2._restarts === r0 + 1 && s2._irA.indexOf("titulo") < 0, "LA SEMANA + atrás: vuelve a la tabla (restart), no al título");
-  /* el día suelto → la semana */
-  s2.vistaElegirDia(0);
-  var enDia = s2.textos().join(" | ");
+  /* el día suelto: la pantalla vieja no tenía llamador desde D2 (la semana
+     se elige en una sola pantalla) y la borró L10, en el pedido de Rodri de
+     terminar la ola 3. Lo que se mira ahora es la otra vista que sale de LA
+     SEMANA: la previa de la fecha, cuyo atrás sigue a la cancha como su
+     SEGUIR (no te deja volver a cambiar la semana ya jugada). */
+  assert(typeof s2.vistaElegirDia === "undefined", "la vista vieja del día suelto ya no existe");
+  var siguio = 0;
+  A.registry.set("relatos", JSON.parse(require("fs").readFileSync(require("path").join(M.RAIZ, "data/relatos.json"), "utf8")));
+  s2.vistaPrevia(rival, function () { siguio++; });
+  assert(/LA PREVIA · fecha/.test(s2.textos().join(" | ")), "control: la previa de la fecha está en pantalla");
   s2.alAtras("volver");
-  var tx = s2.textos().join(" | ");
-  assert(tx !== enDia && /LA SEMANA · fecha/.test(tx), "el día suelto + atrás: vuelve a LA SEMANA");
+  assert(siguio === 1, "la previa + atrás: sigue, como su SEGUIR");
   /* la caja del código: se cierra */
   s2._caja = { el: {} };
   assert(AT.decidir(s2.estadoAtras(), Infinity) === "cerrar_menu", "con la caja del código abierta: cerrar_menu");
@@ -429,7 +435,7 @@ function mundo(opts) {
   var n = A.juegoEventos.listenerCount("atras");
   s.events.emit("shutdown");
   assert(A.juegoEventos.listenerCount("atras") === n - 1, "el shutdown descuelga el oyente (no se apilan entrada tras entrada)");
-  console.log("[5] master.js: tabla→editor · semana→tabla · día→semana · caja→se cierra · entrevista→pregunta anterior");
+  console.log("[5] master.js: tabla→editor · semana→tabla · previa→sigue · caja→se cierra · entrevista→pregunta anterior");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
