@@ -730,12 +730,18 @@
       var cruce = { x: 500, y: Math.round((yPie + 96 + destino.y) / 2) };
       var cort = null;
       var esc = { revelado: false, cerrado: false };
+      /* LA ONDA (scenes/onda_ui.js): líneas hacia el que la recibe, la pelota
+         con estela y el nombre de la jugada cuando le pega */
+      var onda = window.PampaOnda ? window.PampaOnda.entrada(this, {
+        jugada: cfg.alVacio ? "vacio" : "pase", aFavor: !!cfg.win, flujo: 1, bola: bola,
+        tNombre: tEntrada, nombreX: W / 2
+      }) : null;
 
       /* --- LA PEGADA: flash, líneas y la pelota sale --- */
       this.time.delayedCall(tEntrada, function () {
         if (!bola.active) return;
         self.uiCam.flash(70, 255, 255, 220);
-        self.lineasVelocidad(258, yPie, 0.9, 0xffd84d);
+        if (!onda) self.lineasVelocidad(258, yPie, 0.9, 0xffd84d);
         self.SFX && self.SFX.kick && self.SFX.kick();
         var t1 = hayCorte ? Math.round(tViaje * 0.55) : tViaje;
         self.tweens.add({ targets: bola, x: hayCorte ? cruce.x : destino.x, y: hayCorte ? cruce.y : destino.y, duration: t1, ease: hayCorte ? "Sine.easeIn" : "Sine.easeInOut" });
@@ -754,6 +760,7 @@
         });
         this.time.delayedCall(tEntrada + Math.round(tViaje * 0.55), function () {
           if (self.pararDolly) self.pararDolly();
+          if (onda) window.PampaOnda.clavar(self, onda, cort, null, bola);   // corte seco al cruce
           self.musicaDuck(silencio);              // el silencio antes de saber
           self.cineFX.clear();
           self.tweens.killTweensOf(bola);
@@ -764,9 +771,10 @@
       var revelar = function () {
         if (esc.revelado) return; esc.revelado = true;
         if (self.pararDolly) self.pararDolly();
+        if (onda) window.PampaOnda.revelar(self, onda, { foco: cfg.win ? destino : (cort || bola), soltar: false });
         if (self.golpeDeCamara) self.golpeDeCamara(0.8);
         if (cfg.win) {
-          self.uiCam.flash(60, 255, 255, 255);
+          if (!(onda && hayCorte)) self.uiCam.flash(60, 255, 255, 255);
           self.SFX && self.SFX.whoosh && self.SFX.whoosh();
           if (bola.active) self.tweens.add({ targets: bola, x: destino.x, y: destino.y, angle: 1080, duration: self.msV(320), ease: "Sine.easeOut" });
           if (cort && cort.active) self.tweens.add({ targets: cort, y: "+=26", angle: -74, alpha: 0.45, duration: 320 });
@@ -792,8 +800,13 @@
       this._escSkip = function () { if (!esc.revelado) revelar(); else cerrarYa(); };
 
       var tRevela = hayCorte ? tEntrada + Math.round(tViaje * 0.55) + silencio : tEntrada + tViaje;
-      this.time.delayedCall(tRevela, revelar);
-      this.time.delayedCall(tRevela + tHold, cerrarYa);
+      /* con alguien tirándose al corte, el cuadro de impacto antes de saber */
+      var tImpacto = onda && hayCorte && !onda.C.quieto ? onda.C.impacto_ms : 0;
+      this.time.delayedCall(tRevela, function () {
+        if (tImpacto && !esc.revelado) window.PampaOnda.impacto(self, onda, { sp: bola, sr: cort, choque: !cfg.win, alTerminar: revelar });
+        else revelar();
+      });
+      this.time.delayedCall(tRevela + tImpacto + tHold, cerrarYa);
     }
 
   });

@@ -105,7 +105,7 @@ const PRECACHE = [
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
   "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/toque_ui.js", "./scenes/escenas_v9.js", "./scenes/cine_arte.js", "./scenes/toma_remate.js", "./scenes/piel_ui.js",
-  "./scenes/escudos_ui.js", "./scenes/semana_ui.js", "./scenes/tribuna_ui.js", "./scenes/feel_ui.js", "./scenes/reloj.js",
+  "./scenes/escudos_ui.js", "./scenes/semana_ui.js", "./scenes/tribuna_ui.js", "./scenes/feel_ui.js", "./scenes/onda_ui.js", "./scenes/reloj.js",
   "./scenes/cartas_ui.js", "./scenes/foco_ui.js",
   "./data/balance.json",
   "../data/eventos_temporada.json", "../data/audio.json",

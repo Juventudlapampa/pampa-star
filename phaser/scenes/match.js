@@ -3013,6 +3013,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const esPared = a.id === "pared";
         const mostrar = () => this.escenaCine({
           etiqueta: esPared ? "· la pared ·" : "· la gambeta ·",
+          jugada: esPared ? "pared" : "gambeta", aFavor: true,
           prota: { j: st.mios[st.ctrl], esRival: false, anim: esPared ? "pase" : "gambeta" },
           pose: esPared ? "pared" : "gambeta_gana",            // ARTE 2: el quiebre limpio
           rival: { j: rivalJ, esRival: true, anim: "pase" },   // el rival queda barrido atrás
@@ -3042,6 +3043,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         }
         this.escenaCine({
           etiqueta: "· " + String(megaR.n).toLowerCase() + " ·", accion: "gambeta",
+          jugada: "gambeta", aFavor: false,
           prota: { j: rival, esRival: true, anim: "gambeta" },
           pose: "gambeta_gana", poseFlip: true,
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
@@ -3060,6 +3062,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (a.id === "pared" && this.hayEscenas() && rivalJ) {
         this.escenaCine({
           etiqueta: "· la pared ·", accion: "gambeta",
+          jugada: "pared", aFavor: false,
           prota: { j: rivalJ, esRival: true, anim: "pase" },
           pose: "barrida",
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
@@ -3075,6 +3078,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         /* la variante "perdés": VOS trastabillando (gambeta_pierde), la barrida atrás */
         this.escenaCine({
           etiqueta: "· la gambeta ·", accion: "gambeta",
+          jugada: "gambeta", aFavor: false,
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "gambeta" },
           pose: "gambeta_pierde",                              // ARTE 2: el trastabille
           rival: { j: rivalJ, esRival: true, anim: "pase" },
@@ -3108,6 +3112,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         /* "la defendés": el RIVAL trastabilla (gambeta_pierde ESPEJADA) y vos abajo */
         this.escenaCine({
           etiqueta: "· el quite ·", accion: "quite_area", rapida: !quiteFuerte,
+          jugada: "quite", aFavor: true,
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
           pose: "gambeta_pierde", poseFlip: true,              // ARTE 2: espejo — pierde él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
@@ -3127,6 +3132,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         /* ARTE 2: el BLOQUEO defensivo plantado tiene su pose propia */
         this.escenaCine({
           etiqueta: "· el bloqueo ·", accion: "bloqueo",
+          jugada: "bloqueo", aFavor: true,
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           pose: "bloqueo",
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "tiro" } : null,
@@ -3146,6 +3152,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           /* accion "quite_area" (la jugada, escalón 2): con "corte" cobraba el
              presupuesto del trámite (420 ms) y la viñeta duraba 0,6 s */
           etiqueta: "· el corte ·", accion: "quite_area",
+          jugada: "corte", aFavor: true,
           prota: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
           pose: "barrida", rapida: !corteFuerte,
           rival: rivalJ ? { j: rivalJ, esRival: true, anim: "pase" } : null,
@@ -3188,6 +3195,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const t = T[a.id] || { et: "· te la hicieron ·", ti: "SE TE ESCAPÓ", su: "quedaste atrás de la jugada" };
         this.escenaCine({
           etiqueta: t.et,
+          jugada: a.id, aFavor: false,
           prota: { j: rivalJ, esRival: true, anim: "gambeta" },
           pose: "gambeta_gana", poseFlip: true,                // ARTE 2: espejo — gana él
           rival: { j: st.mios[st.ctrl], esRival: false, anim: "pase" },
@@ -4619,6 +4627,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     this.escenaCine({
       etiqueta: "· EL BLOQUEO ·", accion: "bloqueo",
+      jugada: "bloqueo", aFavor: false,
       prota: { j: defensor, esRival: true, anim: "bloqueo" },
       pose: "bloqueo",
       rival: { j: st.mios[st.ctrl], esRival: false, anim: "tiro" },
@@ -4673,7 +4682,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return k;
   }
   /* cfg: { etiqueta, prota:{j,esRival,anim}, rival:{j,esRival,anim}|null, gana,
-            titulo, sub, color?, sfx?, siluetas?, poseFinalProta?, poseFinalRival?, alFinal } */
+            titulo, sub, color?, sfx?, siluetas?, poseFinalProta?, poseFinalRival?, alFinal,
+            jugada? y aFavor? (la onda de onda_ui.js: qué jugada se nombra y si salió para vos) } */
   escenaCine(cfg) {
     /* ── BLOQUE A · EL PRESUPUESTO DEL ESCALÓN ────────────────────────────
        Antes toda viñeta duraba lo mismo: 500 de entrada + 800 de pose + 1300
@@ -4839,13 +4849,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     placa(W * 0.3, cfg.prota.j, cfg.prota.esRival);
     if (cfg.rival) placa(W * 0.72, cfg.rival.j, cfg.rival.esRival);
-    this.lineasVelocidad(W / 2, H * 0.45, 0.9, rivProta ? 0xff8a50 : 0xffd84d);
+    /* V8 D: cfg.rapida = viñeta corta (pases y robos, que pasan seguido) */
+    const multR = cfg.rapida ? 0.55 : 1;
+    /* LA ONDA (22/oct, scenes/onda_ui.js): en las seis jugadas las líneas
+       van en el sentido de la jugada y no radiales; el resto llega en el
+       silencio, el impacto y la revelación */
+    const onda = cfg.jugada && window.PampaOnda ? window.PampaOnda.entrada(this, {
+      jugada: cfg.jugada, aFavor: cfg.aFavor, flujo: cfg.poseFlip ? 1 : -1, bola: bolaProta,
+      tNombre: this.msV((F.entrada_ms || 420) * multR)
+    }) : null;
+    if (!onda) this.lineasVelocidad(W / 2, H * 0.45, 0.9, rivProta ? 0xff8a50 : 0xffd84d);
     this.uiCam.flash(90, 255, 255, 220);
     const snd = this.SFX; snd && snd.whoosh && snd.whoosh();
     /* pose → SILENCIO → DESENLACE → volver (todo por delayedCall, idempotente:
        V6 R4 el SKIP —un toque durante la escena— adelanta a la revelación y cierra) */
-    /* V8 D: cfg.rapida = viñeta corta (pases y robos, que pasan seguido) */
-    const multR = cfg.rapida ? 0.55 : 1;
     const tPose = this.msV(((F.entrada_ms || 420) + (F.pose_ms || 650)) * multR);
     /* BLOQUE A · EL SILENCIO SEGÚN EL ESCALÓN. Era fijo en 500 ms y no se
        acortaba nunca, ni con la velocidad rápida: en un gol eso es la mitad del
@@ -4858,7 +4875,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.dollyCine(tPose + 120, cfg.especial ? 1.6 : (escalon >= 3 ? 1.25 : 1));
     const revelar = () => {
       if (esc.revelado) return; esc.revelado = true;
-      this.uiCam.flash(60, 255, 255, 255);   // V6 §3.1: un frame blanco en el contacto
+      /* con la onda, el cuadro de impacto ya fue el contacto: el frame blanco
+         encima lo lavaba */
+      if (onda) {
+        this.pararDolly();
+        window.PampaOnda.revelar(this, onda, {
+          sp, sr, bola: bolaProta, soltar: true, protaEsVos: !cfg.prota.esRival,
+          dir: cfg.poseFlip ? -1 : 1, foco: cfg.gana || !sr ? sp : sr
+        });
+      } else this.uiCam.flash(60, 255, 255, 255);   // V6 §3.1: un frame blanco en el contacto
       this.pararDolly();
       this.golpeDeCamara(cfg.especial ? 1.5 : (cfg.gana ? 1.1 : 0.8));
       if (sp.active && sp._esPose) {
@@ -4967,10 +4992,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       shakeTw.stop();
       rayas.forEach(r => this.tweens.killTweensOf(r));
       this.pararDolly();   // la cámara también se clava
+      if (onda) window.PampaOnda.clavar(this, onda, sp, sr, bolaProta);   // y corta seco más cerca del contacto
       if (sp.active && !sp._esPose) sp.setTexture(this.texturaEscena(cfg.prota.j, cfg.prota.esRival, cfg.prota.anim, 2));
       this.musicaDuck(silencio);   // ANIME D: la música CALLA en el silencio pre-desenlace
     });
-    this.time.delayedCall(tPose + silencio, revelar);
+    this.time.delayedCall(tPose + silencio, () => {
+      if (onda && !esc.revelado) window.PampaOnda.impacto(this, onda, { sp, sr, bola: bolaProta, choque: cfg.sfx === "choque", alTerminar: revelar });
+      else revelar();
+    });
   }
   cerrarEscena(alFinal) {
     /* V6 §3.1: CORTE SECO entre viñetas — negro un instante y de vuelta al
