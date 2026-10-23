@@ -18,10 +18,10 @@
     "radio_encuentro": 26,
     "cooldown_encuentro_ms": 3200,
     "cruce_def": {
-      "_nota": "Pedido de Rodri del 22/oct: la cruz de defensa casi no salía (con la pelota del rival, solo el marcador que movías podía cruzarlo). Ahora el tuyo que está en el camino del portador se corre de costado hasta su línea y lo espera; si lo toca, abre QUITE / CORTE / BLOQUEO / NO MOVERSE con ese jugador. alcance_y = cuánto se corre de costado como máximo (px); por_posesion = tope de salidas automáticas por cada pelota del rival, para que no sea una seguidilla de menús (el marcador que movés vos cruza siempre, como antes). activo:false = solo el marcador, como antes.",
+      "_nota": "Pedido de Rodri del 22/oct: la cruz de defensa casi no salía (con la pelota del rival, solo el marcador que movías podía cruzarlo). Ahora el tuyo que está en el camino del portador se corre de costado hasta su línea y lo espera; si lo toca, abre QUITE / CORTE / BLOQUEO / NO MOVERSE con ese jugador. alcance_y = cuánto se corre de costado como máximo (px); por_posesion = tope de salidas automáticas por cada pelota del rival, para que no sea una seguidilla de menús (el marcador que movés vos cruza siempre, como antes). activo:false = solo el marcador, como antes. Visto jugando el 22/oct con 1: si perdías la cruz en la mitad de la cancha, el rival caminaba hasta tu área sin que nadie le saliera (en 300 pelotas medidas en node, 9 de cada 10 tiros llegaban hasta 19 latidos después de la última cruz). Con 2 sale la segunda línea: 49 de 300 pelotas tienen dos cruces (nunca tres, porque la segunda ya es en el área) y el tiro llega a 1 o 2 latidos de la última; entre una y otra corre el cooldown_encuentro_ms.",
       "activo": true,
       "alcance_y": 120,
-      "por_posesion": 1
+      "por_posesion": 2
     },
     "persecutores": 1,
     "marcadores": 2,

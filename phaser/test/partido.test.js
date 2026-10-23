@@ -443,7 +443,12 @@ function partidoNuevo(rng, balDe) {
    sale al cruce y abre la cruz de defensa con ESE jugador. Medido en 600
    pelotas del rival sin tocar nada (.claude/shots, simulación de la tanda):
    antes 35% con cruz (5% tras un robo, 0% tras tu gol), ahora 100%, y una
-   sola salida automática por pelota. */
+   sola salida automática por pelota.
+   Visto jugando el 22/oct (pedido de Rodri: ni seguidilla de menús ni
+   defensa inexistente): con una sola salida, si perdías la cruz en la mitad
+   de la cancha el rival caminaba solo hasta tu área. La perilla pasó a 2:
+   sale la segunda línea, nunca más de lo que dice la perilla, y con la
+   perilla en 1 sigue habiendo una sola. */
 (function () {
   function contarPelota(arranque, seed, balDe) {
     var rng = (function (s) { return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })(seed);
@@ -462,18 +467,51 @@ function partidoNuevo(rng, balDe) {
     }
     return { cruces: cruces, quienes: quienes, st: st };
   }
-  var conCruz = 0, conDos = 0, n = 0;
+  var tope = bal.ritmo.cruce_def.por_posesion;
+  var balUna = JSON.parse(JSON.stringify(bal));
+  balUna.ritmo.cruce_def.por_posesion = 1;
+  var conCruz = 0, pasados = 0, conDosUna = 0, n = 0;
   for (var s = 0; s < 40; s++) {
     [0, 1].forEach(function (a) {
       var r = contarPelota(a, 500 + s);
       n++;
       if (r.cruces > 0) conCruz++;
-      if (r.cruces > 1) conDos++;
+      if (r.cruces > tope) pasados++;
+      if (contarPelota(a, 500 + s, balUna).cruces > 1) conDosUna++;
       r.quienes.forEach(function (q) { ok(r.st.mios[q].pos !== "ARQ", "el que sale al cruce nunca es el arquero"); });
     });
   }
   ok(conCruz / n >= 0.8, "la cruz de defensa sale en la mayoría de las pelotas del rival (" + conCruz + " de " + n + ")");
-  ok(conDos === 0, "sin mover a nadie, una sola salida por pelota (" + conDos + " con dos)");
+  ok(pasados === 0, "sin mover a nadie, nunca más salidas por pelota que la perilla (" + pasados + " de " + n + " pasadas)");
+  ok(conDosUna === 0, "con la perilla en 1, sin mover a nadie, una sola salida por pelota (" + conDosUna + " con dos)");
+  /* la segunda línea: el rival arranca lejos, la primera cruz es en la
+     mitad de la cancha y se pierde */
+  function mitadDeCancha(balDe) {
+    var st = partidoNuevo(seq([0.5]), balDe);
+    P.kickoff(st, "rival"); st.cooldown = 0; st.esperaRival = 0;
+    var pr = st.rivales[st.portadorRival];
+    pr.x = 900; pr.y = st.H / 2;
+    var adelante = st.mios.findIndex(function (j) { return j.pos !== "ARQ"; });
+    st.mios.forEach(function (j) { if (j.pos !== "ARQ") { j.x = 1000; j.y = 60; } });
+    st.mios[adelante].x = 800; st.mios[adelante].y = st.H / 2;
+    var def = st.mios.findIndex(function (j, i) { return j.pos === "DEF" && i !== adelante; });
+    st.mios[def].x = 300; st.mios[def].y = st.H / 2;
+    var hechos = [];
+    for (var t = 0; t < 300 && hechos.length < 4; t++) {
+      var evs = P.tick(st, 300, null), corte = false;
+      for (var e = 0; e < evs.length; e++) {
+        hechos.push(evs[e].tipo === "encuentroDef" ? "cruz@" + Math.round(pr.x) : evs[e].tipo);
+        if (evs[e].tipo === "encuentroDef") P.perderDefensa(st); else corte = true;
+      }
+      if (corte) break;
+    }
+    return hechos;
+  }
+  var dos = mitadDeCancha(bal), una = mitadDeCancha(balUna);
+  ok(dos.length === 3 && /^cruz/.test(dos[0]) && /^cruz/.test(dos[1]) && dos[2] === "rivalTira",
+    "si perdés la cruz en la mitad de la cancha, sale la segunda línea antes del tiro (" + dos.join(", ") + ")");
+  ok(una.length === 2 && /^cruz/.test(una[0]) && una[1] === "rivalTira",
+    "con la perilla en 1, después de la primera cruz llega solo hasta el tiro (" + una.join(", ") + ")");
   /* la perilla la apaga y vuelve lo de antes */
   var balSin = JSON.parse(JSON.stringify(bal));
   balSin.ritmo.cruce_def.activo = false;
