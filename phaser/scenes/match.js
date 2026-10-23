@@ -326,6 +326,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* 20/oct: el PARTIDO RÁPIDO de la pantalla de título (scenes/titulo.js)
        trae rival, división, nivel y duración, y no pasa por la carrera */
     const rapido = this.game.registry.get("masterPartido") ? null : (this.game.registry.get("partidoRapido") || null);
+    this._rapido = rapido;
     /* TEMPO-1: el tempo es de la carrera (masterPartido.tempo); sin dato, INTERMEDIO */
     const balPartido = this.FLAGS.v6_tempo
       ? window.PampaSaveMaster.balConTempo(this.BAL, this.game.registry.get("masterPartido") || rapido)
@@ -6295,7 +6296,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* PIEL: el RESULTADO va solo y grande; la división abajo, chica */
     const marcador = "VOS " + st.golesMio + " - " + st.golesRival + " " + this.rivalMarcador;
     if (this._hudMarc !== marcador) { this._hudMarc = marcador; this.txtMarcador.setText(marcador); }
-    const division = this._division ? this._division.n : "";
+    /* revisión del 23/oct: el partido rápido decía PRIMERA B (su rival sale de
+       ahí, pero no es una fecha de la carrera) */
+    const division = this._rapido ? "PARTIDO RÁPIDO" : (this._division ? this._division.n : "");
     if (this._hudDiv !== division) { this._hudDiv = division; this.txtDivision.setText(division); }
     /* V8 E (playtest): el reloj se VE — MINUTOS:SEGUNDOS, con los segundos
        redondeados al tramo (balance.tempo.tramo_seg) para que se sienta correr */
