@@ -194,6 +194,24 @@
       ]
     },
     {
+      "evento": "falta_a_favor",
+      "intercambios": [
+        { "a": "Falta. Lo buscó y lo consiguió.", "b": "¡Que le saquen la amarilla, por favor!" },
+        { "a": "Bien parada la pelota. Ahora hay que pensar el tiro.", "b": "Yo ya estoy pensando en el grito." },
+        { "a": "Le pegaron de atrás. El árbitro estaba ahí.", "b": "Por una vez mira para este lado." },
+        { "a": "Tiro libre. Que patee quien la tiene clara.", "b": "Que patee con el corazón, Nelda." }
+      ]
+    },
+    {
+      "evento": "falta_en_contra",
+      "intercambios": [
+        { "a": "Falta sin necesidad. Ahora hay que armar la barrera.", "b": "Yo no miro. Avisame cuando pase." },
+        { "a": "Llegada tarde. Se paga con tiro libre.", "b": "Y con mi presión, que me sube a veinte." },
+        { "a": "Calma. Una barrera bien puesta vale un gol.", "b": "Que salten a la vez, como en el baile." },
+        { "a": "El árbitro la cobró rápido, eh.", "b": "Ese árbitro desayunó con ellos, seguro." }
+      ]
+    },
+    {
       "evento": "quite",
       "intercambios": [
         {

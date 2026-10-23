@@ -258,6 +258,18 @@
    "La abrazó el arquero. Se la queda él y saca desde el fondo.",
    "Se fue afuera. Saque de arco para ellos y a empezar de nuevo.",
    "La tiene el arquero rival. Ahora hay que ir a buscarla otra vez."
+  ],
+  "falta_a_favor": [
+   "¡Falta! El árbitro la vio clarita y cobra para {pueblo}.",
+   "Pitazo y tiro libre. {rival} se pasó de revoluciones.",
+   "Le entraron con todo y el árbitro no lo dudó: tiro libre.",
+   "Cobró el árbitro: falta de {rival} y la pelota se para."
+  ],
+  "falta_en_contra": [
+   "Pitazo. Falta y tiro libre para {rival}.",
+   "El árbitro no la dejó pasar: falta y tiro libre para ellos.",
+   "Llegada tarde y tiro libre en contra. A parar bien la barrera.",
+   "Falta en contra. Ahora hay que armar la barrera y aguantar."
   ]
  },
  "previa_fecha": {
