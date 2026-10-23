@@ -250,7 +250,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        manda setText() a un objeto DESTRUIDO. Crash por frame desde el segundo
        partido — el update entero del partido se cae ahí.
        Visto en vivo: active=false, scene=null, y fuera del hudLayer. */
-    this._radarTuArco = null;
+    this._radarTuArco = null; this._rotDefensa = null; this._rotEstrella = null;
     this._poseForzada = null;        // P3: la pose del trámite no cruza de partido
     this._tramitesMudos = 0;         // P3: cuántas acciones quedaron sin verse
     this._tramiteMudoUltimo = null;
@@ -308,6 +308,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._megaGrito = null;
     this._lecturaSemana = 0;
     this._semanaResumen = "";
+    this._vioAlRival = false; this._renglonesSemana = null; this._estrellaNombre = null; this._estrellaIdx = -1;
     this._dueloJ = null;
     this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; this._menuBtns = {};
     this._receptores = null; this._recSel = 0;
@@ -475,6 +476,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           const techo = window.PampaSemana.techoDeAguante(mej, Object.assign({}, cfgS, { aguante_max: this.BAL.aguante.max }));
           this.st.mios.forEach(j => { if (j.esVos) j.aguanteMax = techo; });
         }
+      }
+      /* 23/oct, pedido de Rodri · LA SEMANA DE CUATRO COSAS: lo que elegiste
+         se juega esta fecha (logic/semana.js, cerrarSemanaCuatro). ENTRENAR
+         sube esa cualidad, la BARRA trae el ánimo de las jugadas grandes
+         (partido.prepararRemate) y VER AL RIVAL prende el mapa (dibujarRadar) */
+      if (sem && sem.cuatro !== undefined) {
+        const k = sem.entrena && sem.entrena.stat;
+        if (k && vos && vos.stats && vos.stats[k] != null) vos.stats[k] = Phaser.Math.Clamp(vos.stats[k] + sem.entrena.mas, 20, 99);
+        this.st.animoGrande = sem.grande || 0;
+        this._vioAlRival = !!sem.espiado;
+        this._renglonesSemana = sem.renglones || null;
+        this._estrellaIdx = this._estrellaNombre ? this.st.rivales.findIndex(j => j.nombre === this._estrellaNombre) : -1;
       }
     }
 
@@ -651,6 +664,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        velo y salen al cerrarlo. */
     this.tutorialSiHaceFalta();
     if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, null, { prioridad: true }));
+    if (this._renglonesSemana) this.time.delayedCall(1400, () => this.anunciarEnTicker("ESTA FECHA: " + this._renglonesSemana.join(" · "), null, { prioridad: true }));
+    if (this._vioAlRival) this.avisarDelRival();
 
     /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
     if (!this._vista4) this.st._noAutoHasta = 9e15;
@@ -1036,6 +1051,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const rivales = slots.map(s => {
       if (estrella && estrella.posicion_motor === s) {
         const j = estrella; estrella = null;
+        this._estrellaNombre = j.nombre;
         return { nombre: j.nombre, pos: s, stats: j.stats_auto };
       }
       const k = pool.findIndex(j => j.posicion_motor === s);
@@ -4581,7 +4597,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       aguanteFrac: j.aguante / this.BAL.aguante.max,
       defensores: defs
     });
-    const prep = P.prepararRemate(st, null);
+    /* EL TOQUE es jugada grande: suma el ÁNIMO de la semana */
+    const prep = P.prepararRemate(st, null, undefined, !!toque);
     this.res = window.PampaDuel.resolveShot({
       /* el `duelo` ya no se suma aca: entra en prepararRemate, que es la via
          unica de las cuatro pantallas de tiro (antes solo pegaba en esta) */
@@ -5551,7 +5568,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.txtEnvion, this.txtEnvionEstado, this.txtFichas, this.txtMano, this.tickerTxt];
     /* 22/oct, Rodri: el rótulo del portador ("▲ 10 · VALEN") quedaba encima
        del panel del final */
-    apagar.push(this.radarMarco, this._radarTuArco, this.panelNombre);
+    apagar.push(this.radarMarco, this._radarTuArco, this._rotDefensa, this._rotEstrella, this.panelNombre);
     apagar.forEach(o => o && o.setVisible(false));
     (this.radarNumsMios || []).forEach(t => t.setVisible(false));
     (this.radarNumsRiv || []).forEach(t => t.setVisible(false));
@@ -6041,6 +6058,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
     });
   }
+  /* VER AL RIVAL (la semana de cuatro cosas): cómo se para su defensa, dicho
+     con palabras, y quién es la estrella; en el mapa quedan marcadas las dos */
+  avisarDelRival() {
+    const lin = (this._perfilRival && this._perfilRival.linea) || 0;
+    this.avisar("Los fuiste a ver: su defensa juega " + (lin >= 25 ? "bien adelantada" : lin > 0 ? "un poco adelantada" : lin < 0 ? "metida atrás" : "en el medio"), { clave: "espiado" });
+    const e = this.st.rivales[this._estrellaIdx];
+    if (e) this.avisar("Su estrella es el " + e.numero + ", " + String(e.nombre).toUpperCase(), { clave: "estrella" });
+  }
   dibujarRadar() {
     if (!this.radar) return;
     /* PIEL P9: con el partido terminado el mapa se apaga y no se vuelve a
@@ -6104,7 +6129,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        separa solo el DIBUJO, empujando de a pares hasta que entre cada centro
        haya una ficha y 2 px; la simulación no se toca, y el toque en el mapa
        busca en lo dibujado (onRadarTap). Primero los rivales, después los míos. */
-    const fichas = st.rivales.map((j, i) => { const p = posRiv[i] || j; return { x: mx(p.x), y: my(p.y) }; })
+    /* VER AL RIVAL: su defensa, en el lugar exacto */
+    const fichas = st.rivales.map((j, i) => { const p = (this._vioAlRival && j.pos === "DEF") ? j : (posRiv[i] || j); return { x: mx(p.x), y: my(p.y) }; })
       .concat(st.mios.map(j => ({ x: mx(j.x), y: my(j.y) })));
     const sep = 2 * RF + 2;
     for (let vuelta = 0; vuelta < 6; vuelta++) {
@@ -6135,6 +6161,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       g.lineStyle(1.5, 0x0a1f13, 0.9); g.strokeTriangle(x, ap, x + TB / 2, ba, x - TB / 2, ba);
       this.radarNumsRiv[i].setPosition(x, ap + TH * 0.72);
     });
+    if (this._vioAlRival) this.dibujarLoQueViste(g, R, RF);
     /* míos: CÍRCULOS con el TONO de camiseta que elegiste en el editor
        (Original = celeste titular) — en el mapa te reconocés por tu color de
        equipo + el NÚMERO + el anillo del controlado (forma, no solo color).
@@ -6188,6 +6215,39 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillPoints([{ x: bx, y: by - 5 }, { x: bx + 4, y: by }, { x: bx, y: by + 5 }, { x: bx - 4, y: by }], true);
     g.lineStyle(1.5, 0x000000, 1);
     g.strokePoints([{ x: bx, y: by - 5 }, { x: bx + 4, y: by }, { x: bx, y: by + 5 }, { x: bx - 4, y: by }], true, true);
+  }
+
+  /* VER AL RIVAL en el mapa: la línea de su defensa (punteada, de punta a
+     punta de sus defensores) con su rótulo, y la estrella con un anillo y
+     su palabra. Forma y palabra, nunca solo el color */
+  dibujarLoQueViste(g, R, RF) {
+    const st = this.st, F = this._fichasMapa.riv;
+    const defs = st.rivales.map((j, i) => ({ j, f: F[i] })).filter(o => o.j.pos === "DEF").sort((a, b) => a.f.y - b.f.y);
+    const rot = (k, txt) => {
+      if (!this[k]) {
+        this[k] = this.add.text(0, 0, txt, { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 4, y: 1 } }).setOrigin(0.5, 1).setDepth(30);
+        this.hudLayer.add(this[k]);
+      }
+      return this[k];
+    };
+    if (defs.length > 1) {
+      g.lineStyle(2, 0xffd84d, 1);
+      for (let k = 0; k < defs.length - 1; k++) {
+        const a = defs[k].f, b = defs[k + 1].f, d = Math.hypot(b.x - a.x, b.y - a.y), n = Math.max(1, Math.floor(d / 10));
+        for (let q = 0; q < n; q += 2) {
+          g.beginPath(); g.moveTo(a.x + (b.x - a.x) * q / n, a.y + (b.y - a.y) * q / n);
+          g.lineTo(a.x + (b.x - a.x) * Math.min(1, (q + 1) / n), a.y + (b.y - a.y) * Math.min(1, (q + 1) / n)); g.strokePath();
+        }
+      }
+      const t = rot("_rotDefensa", "SU DEFENSA"), top = defs[0].f;
+      t.setPosition(Phaser.Math.Clamp(top.x, R.x + t.width / 2 + 2, R.x + R.w - t.width / 2 - 2), Math.max(R.y + t.height + 2, top.y - RF - 4)).setVisible(true);
+    }
+    const e = F[this._estrellaIdx];
+    if (e) {
+      g.lineStyle(2, 0xffd84d, 1); g.strokeCircle(e.x, e.y, RF + 6);
+      const t = rot("_rotEstrella", "ESTRELLA");
+      t.setPosition(Phaser.Math.Clamp(e.x, R.x + t.width / 2 + 2, R.x + R.w - t.width / 2 - 2), Math.min(R.y + R.h - 2, e.y + RF + 6 + t.height + 2)).setOrigin(0.5, 1).setVisible(true);
+    }
   }
 
   /* ============ ETAPA 2 · HUD fijo (doc §4) ============ */
