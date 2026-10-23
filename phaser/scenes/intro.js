@@ -225,6 +225,8 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     this.entrarDesdeNegro();
     const BAL = this.game.registry.get("balance") || {};
     this.I = BAL.intro || {};
+    /* revisión final del 23/oct: con los megatiros sin nombre, en el partido se llama SÚPER TIRO */
+    this._gritoSinNombre = !!(BAL.flags && BAL.flags.megatiros_con_nombre === false && this.I.t_grito_sin_nombre);
     const flagOff = BAL.flags && BAL.flags.intro_opening === false;
     const pedida = this.game.registry.get("introPedida");
     /* L08: ¿ya se vio en este aparato? (VER INTRO lo pide igual) */
@@ -651,7 +653,7 @@ window.PampaIntro = class PampaIntro extends Phaser.Scene {
     if (s) this.tweens.add({ targets: s, scale: s.scale * 1.15, y: 300, duration: 1900, ease: "Sine.easeOut" });
     /* I1 · el grito NACE en su lugar (ver p2): antes salía de abajo de la
        pantalla y no llegaba nunca a su propio plano */
-    const g = this.add.text(480, 440, this.I.t_grito || "¡CALDENAZO!",
+    const g = this.add.text(480, 440, this._gritoSinNombre ? this.I.t_grito_sin_nombre : (this.I.t_grito || "¡CALDENAZO!"),
       { fontFamily: window.PF.display, fontSize: "40px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 5 }).setOrigin(0.5);
     this.capa.add(g);
     this.tweens.add({ targets: g, scale: 1.06, duration: 220, yoyo: true, repeat: 2 });
