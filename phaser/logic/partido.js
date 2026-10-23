@@ -406,6 +406,29 @@
       }
       /* llegó a tu área: remata */
       if (pr.x < P.dist_remate_rival) {
+        /* revisión final del 22/oct: la pelota robada cerca de tu área llegaba
+           al remate con el cooldown corriendo y sin que nadie saliera (2 de
+           4 remates rivales en un partido rápido, 6 segundos mirando). Si en
+           esta pelota no hubo cruz, antes del remate sale el tuyo que está
+           más cerca, aunque corra el cooldown (cruce_def.ultimo) */
+        if (CD.activo !== false && CD.ultimo !== false && !(st._crucesDef > 0)) {
+          var ult = -1, du = 1e9;
+          st.mios.forEach(function (j, i) {
+            if (j.pos === "ARQ") return;
+            if (st._perdioHasta && st._t < st._perdioHasta && i === st._perdioIdx) return;
+            var d = dist(j.x, j.y, pr.x, pr.y);
+            if (d < du) { du = d; ult = i; }
+          });
+          if (ult >= 0) {
+            var u = st.mios[ult];
+            u.x = clamp(pr.x - R.radio_encuentro * 0.8, 14, st.W - 14); u.y = pr.y;
+            st.ctrl = ult;
+            st._crucesDef = 1;
+            st.modo = "congelado";
+            ev.push({ tipo: "encuentroDef", ultimo: true });
+            return ev;
+          }
+        }
         st._crucesDef = 0;
         st.modo = "congelado";
         ev.push({ tipo: "rivalTira" });

@@ -528,6 +528,47 @@ function partidoNuevo(rng, balDe) {
   st6.mios[atras].x = pr6.x + 20; st6.mios[atras].y = pr6.y;
   var ev6 = P.tick(st6, 16, null);
   ok(!ev6.some(function (e) { return e.tipo === "encuentroDef"; }), "R1: el tuyo que quedó atrás del portador no lo cruza");
+  /* revisión final del 22/oct: la pelota robada cerca de tu área llegaba al
+     remate durante el cooldown y sin cruz (en la página, robos en x 270 y
+     342: 6 segundos caminando y te rematan). Antes del remate sale el más
+     cercano, delante del portador; con cruce_def.ultimo en false, lo de antes */
+  function roboCerca(balDe, x, seed) {
+    var rng = (function (s) { return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })(seed);
+    var st = partidoNuevo(rng, balDe);
+    st.cooldown = 0;
+    st.mios[st.ctrl].x = x; st.mios[st.ctrl].y = 120 + (seed * 47) % 440;
+    var ladron = st.rivales.findIndex(function (r) { return r.pos !== "ARQ"; });
+    st.rivales[ladron].x = x + 30; st.rivales[ladron].y = st.mios[st.ctrl].y;   // el que corta el pase está ahí nomás
+    P.perderPelota(st, rng);
+    var cruces = 0, ultimo = null;
+    for (var t = 0; t < 200; t++) {
+      var evs = P.tick(st, 300, null), corte = false;
+      for (var e = 0; e < evs.length; e++) {
+        if (evs[e].tipo === "encuentroDef") {
+          cruces++;
+          if (evs[e].ultimo) ultimo = { d: Math.hypot(st.mios[st.ctrl].x - st.rivales[st.portadorRival].x, st.mios[st.ctrl].y - st.rivales[st.portadorRival].y), pos: st.mios[st.ctrl].pos };
+          P.perderDefensa(st);
+        } else corte = true;
+      }
+      if (corte || st.posesion === "mia") break;
+    }
+    return { cruces: cruces, ultimo: ultimo, tiro: corte };
+  }
+  var balSinUlt = JSON.parse(JSON.stringify(bal));
+  balSinUlt.ritmo.cruce_def.ultimo = false;
+  var sinCruzAntes = 0, sinCruzAhora = 0, malUbicado = 0, arquero = 0, tirosCerca = 0;
+  for (var s3 = 0; s3 < 60; s3++) {
+    var xr = 260 + (s3 * 13) % 120;
+    var antes = roboCerca(balSinUlt, xr, 900 + s3), ahora = roboCerca(bal, xr, 900 + s3);
+    if (antes.tiro && antes.cruces === 0) sinCruzAntes++;
+    if (ahora.tiro) tirosCerca++;
+    if (ahora.tiro && ahora.cruces === 0) sinCruzAhora++;
+    if (ahora.ultimo && ahora.ultimo.d >= bal.ritmo.radio_encuentro) malUbicado++;
+    if (ahora.ultimo && ahora.ultimo.pos === "ARQ") arquero++;
+  }
+  ok(sinCruzAntes > 10, "con cruce_def.ultimo en false se ve el síntoma: robos cerca de tu área que llegan al remate sin cruz (" + sinCruzAntes + " de 60)");
+  ok(tirosCerca > 30 && sinCruzAhora === 0, "SÍNTOMA: la pelota robada cerca de tu área llega al remate sin ninguna cruz de defensa (" + sinCruzAhora + " de " + tirosCerca + ")");
+  ok(malUbicado === 0 && arquero === 0, "el último que sale queda delante del portador y nunca es el arquero (" + malUbicado + " lejos, " + arquero + " arqueros)");
   console.log("[17] salir al cruce en defensa (pedido del 22/oct): ok");
 })();
 
