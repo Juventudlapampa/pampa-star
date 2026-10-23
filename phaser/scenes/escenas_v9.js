@@ -133,11 +133,13 @@
       this.cineContent.add(b);
       return b;
     },
-    /* placa con el nombre (forma + palabra, nunca solo el color) */
+    /* placa con el nombre. L11: con la FORMA (marcaDeBando, en match.js) y la
+       PALABRA del bando antes del nombre; antes solo cambiaba el fondo */
     placaDePlano(x, y, j, esRival) {
-      var t = this.add.text(x, y, (j && j.esVos ? "VOS" : ((j && j.nombre) || "RIVAL").toUpperCase().slice(0, 12)),
-        { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+      var t = this.add.text(x, y, (j && j.esVos ? "VOS" : (esRival ? "RIVAL · " : "TU EQUIPO · ") + ((j && j.nombre) || "").toUpperCase().slice(0, 12)),
+        { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { left: 30, right: 8, top: 3, bottom: 3 } }).setOrigin(0.5);
       this.cineContent.add(t);
+      this.cineContent.add(this.marcaDeBando(this.add.graphics(), t.x - t.displayWidth / 2 + 16, t.y, esRival, 7, 0x0a1f13));
       return t;
     },
 

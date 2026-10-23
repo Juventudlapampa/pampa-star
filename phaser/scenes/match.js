@@ -172,7 +172,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._zonaTema = null;        // el tema del avance (propio/rival) arranca de cero
     this._megaRival = null;
     this._tq = null; this._toqueN = 0; this._toqueRemate = null;   // EL TOQUE: la jugada abierta, la cuenta de semillas y lo que espera el remate
-    this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = null;   // caches del HUD: el restart los recrea vacíos
+    this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = this._hudLblGuts = null;   // caches del HUD: el restart los recrea vacíos
     this.envionG = this.lblEnvion = this.txtEnvion = this.txtEnvionEstado = null;   // la poda del 22/oct: sin envión no se arman
     this.fichasMios = this.fichasRiv = null;                 // Anime A: las fichas mueren con la escena
     this.ringG = this.paseG = null; this._btnCambiar = null; this._figurasCine = null;
@@ -1301,8 +1301,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* C4 · x de 14 a 36: el EMPUJE del bloque B (B6) agranda este panel un 6%
        adentro de su máscara fija, o sea que se come ~29 px de cada costado
        mientras hay un menú abierto. A 14 px la etiqueta del portador quedaba
-       en x=-14 y se leía "0 · VOS". 36 la deja adentro con margen. */
-    this.panelNombre = this.add.text(36, yFranja, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0, 0.5);
+       en x=-14 y se leía "0 · VOS". 36 la deja adentro con margen.
+       L11: desde 36 va la forma del bando (dibujada, panelMarca) y el texto
+       arranca en 54. El ▼ de lo tuyo pasa a ser el círculo del mapa y el
+       rival dice RIVAL además del triángulo. */
+    this.panelMarca = this.add.graphics();
+    this.panelLayer.add(this.panelMarca);
+    this.panelNombre = this.add.text(54, yFranja, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(0, 0.5);
     this.panelLayer.add(this.panelNombre);
     this._panelPrev = null;
     /* ARTE · la luz del partido también en el panel (cine_arte.js): cielo y
@@ -1994,9 +1999,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        ve todo; en cuanto se abre un momento (menú, resolución, beat) el velo
        sube y la figura recorta contra el fondo oscurecido. */
     this.velarPanel(delta);
-    /* quién corre: bando por FORMA (▲/▼) + NÚMERO + NOMBRE (accesibilidad) */
-    const nom = (p.esRival ? "▲ " : "▼ ") + (j.numero ? j.numero + " · " : "") + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10));
-    if (this.panelNombre.text !== nom) this.panelNombre.setText(nom);
+    /* quién corre: bando por FORMA (círculo o triángulo) y PALABRA (RIVAL) +
+       NÚMERO + NOMBRE (accesibilidad) */
+    const nom = (p.esRival ? "RIVAL · " : "") + (j.numero ? j.numero + " · " : "") + (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 10));
+    if (this.panelNombre.text !== nom) {
+      this.panelNombre.setText(nom);
+      this.marcaDeBando(this.panelMarca.clear(), 42, this.panelNombre.y, p.esRival, 6, 0xf6efdc);
+    }
     /* SILUETAS de rivales dentro de radio_silueta (posición relativa al portador) */
     const radio = this.VI.radio_silueta || 260;
     /* Pedido de Rodri del 17/oct: "el jugador que está atrás corre para atrás
@@ -4973,11 +4982,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.cineContent.add(sr);
       this.tweens.add({ targets: sr, x: W * 0.72, duration: (F.entrada_ms || 420) * 1.15, ease: "Quad.easeOut" });
     }
-    /* nombres con placa del bando (celeste vs naranja + texto: forma y palabra, no solo color) */
+    /* nombres con placa del bando. L11: el fondo celeste o naranja pesaba lo
+       mismo en deuteranopía (luminancia 0,447 contra 0,443): ahora llevan la
+       FORMA (marcaDeBando) y la PALABRA, TU EQUIPO o RIVAL, antes del nombre.
+       En un renglón, como antes: el título de la viñeta (cine.titulo_y) cae
+       en la misma franja y una placa de dos renglones asomaba por debajo */
     const placa = (x, j, esRival) => {
-      const t = this.add.text(x, H * 0.84, (j.esVos ? "VOS" : (j.nombre || "").toUpperCase().slice(0, 12)),
-        { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { x: 8, y: 3 } }).setOrigin(0.5);
+      const t = this.add.text(x, H * 0.84, (j.esVos ? "VOS" : (esRival ? "RIVAL · " : "TU EQUIPO · ") + (j.nombre || "").toUpperCase().slice(0, 12)),
+        { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { left: 30, right: 8, top: 3, bottom: 3 } }).setOrigin(0.5);
       this.cineContent.add(t);
+      this.cineContent.add(this.marcaDeBando(this.add.graphics(), t.x - t.displayWidth / 2 + 16, t.y, esRival, 7, 0x0a1f13));
     };
     placa(W * 0.3, cfg.prota.j, cfg.prota.esRival);
     if (cfg.rival) placa(W * 0.72, cfg.rival.j, cfg.rival.esRival);
@@ -5261,6 +5275,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* V6 §3.3 P4: el anuncio de MEGACOSA ya no es una franjita — es una ESCENA
      del gestor a pantalla completa: pose ilustrada, rayas barriendo, grito
      grande, carga de aguante visible, y corte seco al siguiente paso. */
+  /* L11 · EL BANDO CON FORMA, ADEMÁS DEL COLOR: círculo lo tuyo, triángulo
+     el rival, como en el mapa. Va dibujado: el ● no está en las tipografías
+     del juego y saldría con la del sistema. El color del trazo es uno solo
+     por lugar (tinta sobre la placa, papel sobre el panel oscuro): lo que
+     dice el bando es la forma, y al lado va la palabra. */
+  marcaDeBando(g, x, y, esRival, r, color) {
+    g.fillStyle(color, 1);
+    if (esRival) g.fillTriangle(x, y - r, x + r, y + r * 0.8, x - r, y + r * 0.8);
+    else g.fillCircle(x, y, r * 0.85);
+    return g;
+  }
   cutInEspecial(titulo, sub, cb, jRet, esRivalRet) {
     if (typeof sub === "function") { cb = sub; sub = null; }   // compat con la firma vieja
     this.quitarDuelo(); this.limpiarMenu();
@@ -5307,9 +5332,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     this.lineasVelocidad(480, 250, 1.3, esRivalRet ? 0xff8a50 : 0xffd84d);
     const txt = this.add.text(1300, 210, titulo, { fontFamily: window.PF.display, fontSize: "24px", color: "#ffd84d", stroke: "#9c2b1d", strokeThickness: 4 }).setOrigin(0.5);
-    const subTxt = this.add.text(1300, 252, sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…"), { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
-    this.cineContent.add(txt); this.cineContent.add(subTxt);
+    /* L11: el bando con forma y palabra; el fondo rojo o azul del golpe solo no alcanza */
+    const subTxt = this.add.text(1300, 252, (esRivalRet ? "RIVAL · " : "") + (sub || ((j.esVos ? "VOS" : j.nombre) + " toma fuerza…")), { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc" }).setOrigin(0.5);
+    const dxMarca = subTxt.width / 2 + 14;
+    const marca = this.marcaDeBando(this.add.graphics(), 0, 0, esRivalRet, 7, 0xf6efdc).setPosition(1300 - dxMarca, 252);
+    this.cineContent.add(txt); this.cineContent.add(subTxt); this.cineContent.add(marca);
     this.tweens.add({ targets: [txt, subTxt], x: 620, duration: this.msV(300), ease: "Back.easeOut" });
+    this.tweens.add({ targets: marca, x: 620 - dxMarca, duration: this.msV(300), ease: "Back.easeOut" });
     /* Feel B5: CARGA DE AGUANTE VISIBLE — la barra se llena mientras el anuncio dura */
     const cargaBg = this.add.rectangle(620, 320, 340, 14, 0x0a1f13, 0.9).setStrokeStyle(2, 0xf6efdc, 0.8);
     const carga = this.add.rectangle(620 - 168, 320, 4, 10, 0xffd84d, 1).setOrigin(0, 0.5);
@@ -6061,7 +6090,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        L09: las etiquetas pasaron de 10 a 13 px y la de ENVIÓN quedaba
        debajo del canto del ⚡ ACCIÓN (que llega a y 498, 499 con el pulso):
        las dos filas bajaron 7 y 5. AGUANTE termina en y 535. */
-    const MD = this.MEDIDORES = { xEtq: 754, xBarra: 820, xNum: 948, yEnvion: 507, yGuts: 527, wBarra: 84 };
+    /* L11: la barra arranca en 846 y mide 60 para que entre "AGUANTE RIVAL"
+       (86 px desde 754); la forma del bando va en 744 */
+    const MD = this.MEDIDORES = { xEtq: 754, xBarra: 846, xNum: 948, yEnvion: 507, yGuts: 527, wBarra: 60 };
     this.lblGuts = this.add.text(MD.xEtq, MD.yGuts, "AGUANTE", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0, 0.5);
     this.txtGuts = this.add.text(MD.xNum, MD.yGuts, "", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc" }).setOrigin(1, 0.5);
     this.gutsG = this.add.graphics();
@@ -6406,7 +6437,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     g.fillStyle(0x0a1f13, 0.85); g.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
     g.fillStyle(color, 1); g.fillRect(bx, by, bw * frac, bh);
     g.lineStyle(1, 0xf6efdc, 0.8); g.strokeRect(bx, by, bw, bh);
-    /* el número solo: la etiqueta "AGUANTE" es un texto fijo al lado */
+    /* L11: de quién es el tanque, con forma y palabra: "AGUANTE RIVAL" con el
+       triángulo cuando la tiene el rival; antes la etiqueta decía AGUANTE
+       siempre y solo cambiaba de quién era el número */
+    this.marcaDeBando(g, MD.xEtq - 10, MD.yGuts, p.esRival, 6, 0xf6efdc);
+    const lblGuts = p.esRival ? "AGUANTE RIVAL" : "AGUANTE";
+    if (this._hudLblGuts !== lblGuts) { this._hudLblGuts = lblGuts; this.lblGuts.setText(lblGuts); }
+    /* el número solo: la etiqueta es un texto al lado */
     const gutsTxt = String(Math.round(val));
     if (this._hudGuts !== gutsTxt) { this._hudGuts = gutsTxt; this.txtGuts.setText(gutsTxt); }
     /* PIEL P5: con el menú de duelo abierto, los retratos ya traen el aguante

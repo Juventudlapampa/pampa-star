@@ -68,6 +68,8 @@ function armar(ladoVisual) {
   s.panelJug = sprite(); s.panelPelota = sprite();
   s.panelPasto = { tilePositionX: 0, tilePositionY: 0 }; s.panelTribuna = { tilePositionX: 0 };
   s.panelNombre = { text: "", setText: function (t) { this.text = t; return this; } };
+  /* L11: la forma del bando, dibujada al lado del nombre */
+  s.panelMarca = { clear: function () { return this; }, fillStyle: function () { return this; }, fillCircle: function () { return this; }, fillTriangle: function () { return this; } };
   s.panelSil = [sprite(), sprite(), sprite()];
   s.time.now = 1000;
   st.ladoVisual = ladoVisual;
