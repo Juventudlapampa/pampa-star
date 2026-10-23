@@ -75,7 +75,6 @@
       /* revisión final del 23/oct: el rótulo de abajo a la izquierda, blanco y
          chico, caía sobre la pierna de quien patea. Va arriba, con fondo */
       this.jugadonAbrir("");
-      this.cineContent.add(this.add.text(18, 22, cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }));
       this.estado = "FRENTE";
       if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
       this.cineBG.clear();
@@ -110,6 +109,7 @@
         fr.k *= Math.max(E.min_zoom, Math.min(1, maxD ? mitad / maxD : 1, maxI ? mitad / maxI : 1));
       }
       this.frenteFondo(fr);
+      this.cineContent.add(this.add.text(18, 22, cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }));
       var rivalDeEllos = !cfg.esRival, lista = cfg.esRival ? this.st.mios : this.st.rivales;
       /* la barrera no es la misma figura cinco veces: se alternan el lado y la altura */
       var nB = 0, altosB = K.barrera_altos || [1];

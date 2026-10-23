@@ -1180,12 +1180,12 @@
       "px": 55,
       "adelante_px": 30,
       "linea_px": 45,
-      "_al_area": "Revisión final del 23/oct: con la pelota pasando al_area_desde (fracción de la cancha), el delantero que no la lleva pica a la zona de remate (queda a zona_px * al_area_hondo del fondo y se cierra al_area_cierra hacia el medio). Medido en node: centros que caen en la zona de 81 a 98 cada 60 partidos. al_area_desde null = como antes.",
+      "_al_area": "Revisión final del 23/oct: con la pelota pasando al_area_desde (fracción de la cancha), el delantero que no la lleva pica a la zona de remate (queda a zona_px * al_area_hondo del fondo y se cierra al_area_cierra hacia el medio). Medido en node: centros que caen en la zona de 80 a 98 cada 60 partidos. al_area_desde null = como antes.",
       "al_area_desde": 0.55,
       "al_area_hondo": 0.6,
       "al_area_cierra": 0.4
     },
-    "_defensa": "Revisión final del 23/oct: con la pelota del rival el partido seguía trabado (medido en el teléfono: ratos de 7 s de mediana y 10,4 s de máximo, el 63% del tiempo en que no pasaba nada). Si en cada_ms (de simulación) nadie le salió al cruce, sale el tuyo más cerca de los que están entre el portador y tu arco, a menos de alcance_px, y se abre la cruz de defensa. tope: cruces por cada pelota del rival, contando los de ritmo.cruce_def. recupera_ms: la que recuperás se decide a ese rato, como un pase recibido (la jugada sale jugando en vez de esperar cada_ms). Medido en node con 60 partidos: con la pelota del rival, mediana de 7 a 4,4 s y máximo de 15 a 6 s; jugadas con pase o centro de 55 a 64%. activo false = como antes.",
+    "_defensa": "Revisión final del 23/oct: con la pelota del rival el partido seguía trabado (medido en el teléfono: ratos de 7 s de mediana y 10,4 s de máximo, el 63% del tiempo en que no pasaba nada). Si en cada_ms (de simulación) nadie le salió al cruce, sale el tuyo más cerca de los que están entre el portador y tu arco, a menos de alcance_px, y se abre la cruz de defensa. tope: cruces por cada pelota del rival, contando los de ritmo.cruce_def. recupera_ms: la que recuperás se decide a ese rato, como un pase recibido (la jugada sale jugando en vez de esperar cada_ms). Medido en node con 60 partidos: con la pelota del rival, mediana de 7 a 4,4 s y máximo de 15 a 6 s; jugadas con pase o centro de 55 a 63%. activo false = como antes.",
     "defensa": {
       "activo": true,
       "cada_ms": 2600,

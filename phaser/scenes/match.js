@@ -2343,9 +2343,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        espejada. Si le toca la tuya, pasa a la siguiente en rotación */
     const vos = esRival && this.st ? this.st.mios.find(m => m.esVos) : null;
     const cv = vos ? A.validarLook(vos.look || {}).cara % CM.caras.length : -1;
-    for (let k = 1; idx === cv && k < CM.caras.length; k++) {
-      const n = (cv + k) % CM.caras.length;
-      if (CM.caras[n].en_rotacion !== false) idx = n;
+    if (idx === cv) {
+      const otras = CM.caras.map((c, q) => q).filter(q => q !== cv && CM.caras[q].en_rotacion !== false);
+      if (otras.length) idx = otras[A.hashSemilla((j.nombre || "x") + "|otra") % otras.length];
     }
     const cara = CM.caras[idx];
     if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
