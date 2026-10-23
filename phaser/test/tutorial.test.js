@@ -19,6 +19,13 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("✗ " + m); } 
   const tel = T.cartel("libre", v0, { tactil: true, split: true });
   assert(!/ESPACIO|WASD|ENTER|MOUSE|clic/.test(tel.texto) && /DEDO/.test(tel.texto), "en el teléfono, ni teclas ni mouse (" + tel.texto + ")");
   assert(tel.texto.split("\n").length === 3, "una sola tarjeta de tres renglones: mover, ACCIÓN y la leyenda");
+  /* revisión final del 23/oct: con el flujo prendido seguía enseñando a arrastrar */
+  const fPC = T.cartel("libre", v0, { tactil: false, split: true, flujo: true }), fTel = T.cartel("libre", v0, { tactil: true, split: true, flujo: true });
+  [fPC, fTel].forEach(function (f) {
+    assert(/avanza SOLO/.test(f.texto) && /el pase, el centro o el tiro/.test(f.texto) && !/Movés con/.test(f.texto) && f.texto.split("\n").length === 3,
+      "con el flujo dice que avanza solo y que lo tuyo es decidir (" + f.texto + ")");
+  });
+  assert(/ESPACIO/.test(fPC.texto) && /flechas/.test(fPC.texto) && !/ESPACIO|WASD|MOUSE|clic/.test(fTel.texto) && /DEDO/.test(fTel.texto), "con el flujo, teclas en la PC y dedo en el teléfono");
 
   const d = T.cartel("menu_ataque", v0, { rival: "Dylan", sinAguante: true });
   assert(d && d.id === "duelo" && /DYLAN te sale al cruce/.test(d.texto) && /en secreto/.test(d.texto) && /si adivina tu jugada, te la saca/.test(d.texto),

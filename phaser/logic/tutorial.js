@@ -33,6 +33,12 @@
       var donde = c.split ? "en el MAPA de abajo" : "sobre la cancha";
       var mover = c.tactil ? "Movés con el DEDO " + donde : "Movés con el MOUSE: clic " + donde + " (o con las flechas / WASD)";
       var accion = "ACCIÓN abre el menú de jugadas" + (c.tactil ? "" : " (en teclado: ESPACIO)");
+      /* revisión final del 23/oct: con el flujo prendido ya no se arrastra */
+      if (c.flujo) {
+        mover = "Quien lleva la pelota avanza SOLO: lo tuyo es decidir el pase, el centro o el tiro";
+        accion = c.tactil ? "El menú se abre solo; con el DEDO " + donde + " elegís por dónde va"
+          : "Con un clic " + donde + " o las flechas, por dónde va; con ESPACIO, el menú";
+      }
       var leyenda = (c.split ? "En el MAPA" : "En la cancha") + ", el círculo es tu equipo y el triángulo, el rival";
       return [mover, accion, leyenda].join("\n");
     },
@@ -51,7 +57,7 @@
   };
 
   /* qué cartel toca en este momento, o null. momento: "libre", "menu_ataque",
-     "menu_defensa" o "toque". ctx: tactil, split, rival (el nombre, si hay
+     "menu_defensa" o "toque". ctx: tactil, split, flujo, rival (el nombre, si hay
      cruce) y sinAguante (si el menú tiene una jugada SIN AGUANTE). */
   function cartel(momento, vistos, ctx) {
     vistos = vistos || {};
@@ -65,7 +71,7 @@
       else if (ctx.sinAguante) id = "sin_aguante";
     }
     if (!id || vistos[id]) return null;
-    return { id: id, texto: TEXTOS[id]({ tactil: !!ctx.tactil, split: !!ctx.split, rival: String(ctx.rival || "").toUpperCase(), lado: momento === "menu_defensa" ? "defensa" : "ataque" }) };
+    return { id: id, texto: TEXTOS[id]({ tactil: !!ctx.tactil, split: !!ctx.split, flujo: !!ctx.flujo, rival: String(ctx.rival || "").toUpperCase(), lado: momento === "menu_defensa" ? "defensa" : "ataque" }) };
   }
 
   /* lo guardado → { id: true }; acepta lo que haya (vacío, roto o viejo) */

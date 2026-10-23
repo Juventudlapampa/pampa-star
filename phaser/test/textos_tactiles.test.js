@@ -97,7 +97,10 @@ function semanaDeLaFecha1(tactil) {
   /* ola 3, pedido de Rodri (terminar la ola 3, tutorial en contexto): las tres
      tarjetas pasaron a una sola, sin numerar, con la leyenda del MAPA; el
      PASE se explica en su menú (más abajo) */
-  assert(arranque.some(function (t) { return /^Movés con el DEDO/.test(t); }),
+  /* revisión final del 23/oct, pedido de Rodri ("que fluya más en vez de
+     correr con el cursor"): con el flujo, el tutorial ya no enseña a
+     arrastrar; dice que avanza solo y que el DEDO elige por dónde */
+  assert(arranque.some(function (t) { return /^Quien lleva la pelota avanza SOLO/.test(t) && /con el DEDO/.test(t); }),
     "control: se escribió el tutorial (" + arranque.filter(function (t) { return /DEDO/.test(t); }).join(" | ") + ")");
   /* la guía pegada al portador sale solo sin pantalla partida */
   var sinSplit = C.jugar(mp, { tactil: true, flags: { pantalla_partida: false } });
@@ -125,24 +128,27 @@ function semanaDeLaFecha1(tactil) {
   assert(malos(jug).length === 0, "SÍNTOMA: la corrida del jugadón habla de teclas: " + malos(jug).join(" | "));
   /* con teclado: las ayudas siguen */
   var K = C.jugar(mp, { tactil: false });
-  assert(K.textos.some(function (t) { return /WASD/.test(t); }) && K.textos.some(function (t) { return /ESPACIO/.test(t); }),
+  assert(K.textos.some(function (t) { return /flechas/.test(t); }) && K.textos.some(function (t) { return /ESPACIO/.test(t); }),
     "con teclado el tutorial sigue diciendo las flechas y el ESPACIO");
   /* 20/oct, Rodri: en la PC el primer paso decía "con el DEDO" */
-  assert(K.textos.some(function (t) { return /^Movés con el MOUSE/.test(t); }) && !K.textos.some(function (t) { return /DEDO/.test(t); }),
+  /* revisión final del 23/oct: con el flujo, el clic elige por dónde va */
+  assert(K.textos.some(function (t) { return /^Quien lleva la pelota avanza SOLO/.test(t) && /Con un clic/.test(t); }) && !K.textos.some(function (t) { return /DEDO/.test(t); }),
     "en la PC el primer paso habla del mouse, no del dedo");
   /* revisión del 20/oct: con pantalla partida (la vista por defecto) un clic
      en la cancha de arriba no mueve, solo el MAPA (apuntar). El tutorial lo
      dice desde el primer renglón, y en la PC dice "clic", no "tocá". La
      tarjeta es una sola: lo que se fijaba del viejo paso 3 (el PASE con
      "clic" en la PC y "tocá" en el teléfono) lo dice ahora el menú del PASE */
-  var tarjeta = function (J) { return J.textos.filter(function (t) { return /^Movés con el /.test(t); })[0] || ""; };
-  assert(K.s._split && tarjeta(K).split("\n")[0] === "Movés con el MOUSE: clic en el MAPA de abajo (o con las flechas / WASD)" &&
+  /* revisión final del 23/oct (pedido de Rodri, que fluya): la tarjeta
+     empieza por "avanza SOLO" y el segundo renglón dice por dónde se elige */
+  var tarjeta = function (J) { return J.textos.filter(function (t) { return /^Quien lleva la pelota avanza SOLO/.test(t); })[0] || ""; };
+  assert(K.s._split && tarjeta(K).split("\n")[1] === "Con un clic en el MAPA de abajo o las flechas, por dónde va; con ESPACIO, el menú" &&
     !K.textos.some(function (t) { return /clic sobre la cancha/.test(t); }),
     "en la PC con pantalla partida, el paso 1 manda al MAPA de abajo, no a la cancha");
   assert(K.textos.indexOf("clic o ENTER para seguir ▸") >= 0 && K.textos.indexOf("tocá para seguir ▸") < 0, "en la PC el tutorial dice \"clic o ENTER para seguir\"");
   assert(!/[Tt]ocá/.test(tarjeta(K)) && /ESPACIO/.test(tarjeta(K)) && /círculo es tu equipo y el triángulo, el rival/.test(tarjeta(K)),
     "en la PC la tarjeta no dice \"tocá\", nombra el ESPACIO y la leyenda del MAPA (" + tarjeta(K) + ")");
-  assert(tarjeta(P).split("\n")[0] === "Movés con el DEDO en el MAPA de abajo" && P.textos.indexOf("tocá para seguir ▸") >= 0,
+  assert(tarjeta(P).split("\n")[1] === "El menú se abre solo; con el DEDO en el MAPA de abajo elegís por dónde va" && P.textos.indexOf("tocá para seguir ▸") >= 0,
     "en el teléfono con pantalla partida, la tarjeta manda el DEDO al MAPA de abajo");
   assert(/En el MAPA, el círculo es tu equipo y el triángulo, el rival/.test(tarjeta(P)) && !/ESPACIO|WASD|ENTER/.test(tarjeta(P)),
     "en el teléfono la tarjeta dice la leyenda del MAPA y ninguna tecla (" + tarjeta(P) + ")");
