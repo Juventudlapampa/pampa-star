@@ -332,7 +332,7 @@
     }
     if (s.semanaResumen != null && !esObjeto(s.semanaResumen)) { s.semanaResumen = null; reparado.push("cómo llegás"); }
     /* las marcas por fecha (tanda 1.0): objeto o nada */
-    ["semanaCerradaEnFecha", "eventoFecha", "enCancha", "resultadoPendiente"].forEach(function (k) {
+    ["semanaCerradaEnFecha", "eventoFecha", "enCancha", "resultadoPendiente", "eleccion"].forEach(function (k) {
       if (s[k] != null && !esObjeto(s[k])) { delete s[k]; reparado.push(k); }
     });
 
@@ -350,7 +350,7 @@
       if (!esObjeto(nueva)) return false;
       s.division = div; s.temporada = nueva; t = nueva;
       s.semana = null; s.semanaResumen = null;
-      ["semanaCerradaEnFecha", "eventoFecha", "enCancha", "resultadoPendiente"].forEach(function (k) { delete s[k]; });
+      ["semanaCerradaEnFecha", "eventoFecha", "enCancha", "resultadoPendiente", "eleccion"].forEach(function (k) { delete s[k]; });
       reparado.push(por);
       return true;
     };

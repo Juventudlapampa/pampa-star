@@ -435,7 +435,7 @@
        stats de siempre y la zona de la geometría; el cine es el de siempre */
     frenteRematar(res, libre) {
       var st = this.st, P = window.PampaPartido, C = this.BAL.frente;
-      var prep = P.prepararRemate(st, null);
+      var prep = P.prepararRemate(st, null, undefined, libre);
       this._megaGrito = this.tituloDelGol();
       if (res.resultado === "bloqueo" || res.resultado === "desvio") {
         var quien = res.quien ? st.rivales[res.quien.ref] : null;

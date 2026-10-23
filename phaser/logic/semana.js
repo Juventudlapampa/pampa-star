@@ -459,7 +459,91 @@
     return null;
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     23/oct, PEDIDO DE RODRI · LA SEMANA DE CUATRO COSAS (flags.semana_cuatro).
+     "Capaz que tiene MUCHO y eso RESTA; algo simple de 3 o 4 cosas, claras
+     en qué influyen." Una sola decisión por semana, y cada una dice qué te
+     da en la cancha:
+       ENTRENAR (TIRO, PASE o GAMBETA)  +N a esa, solo el próximo partido
+       DESCANSAR                        llegás con el AGUANTE lleno
+       VER AL RIVAL                     ves su defensa y su estrella
+       SALIR CON LA BARRA               más ÁNIMO: suma en el SÚPER TIRO,
+                                        EL TOQUE y el tiro libre
+     La elección vive en save.eleccion, marcada con la fecha como lo demás:
+     la semana vieja (save.semana) no se toca, así que con la perilla en false
+     vuelve tal cual. balance.semana.cuatro tiene los números.
+     ══════════════════════════════════════════════════════════════════════ */
+  var CUATRO = ["entrenar", "descansar", "ver_rival", "barra"];
+  var ENTRENABLES = ["tiro", "pase", "gambeta"];
+
+  function eleccionDeLaFecha(save) {
+    return save && esLaFecha(save, save.eleccion) && CUATRO.indexOf(save.eleccion.id) >= 0 ? save.eleccion : null;
+  }
+  /* elegir otra pisa la anterior: es una sola por semana */
+  function elegirCuatro(save, id, que) {
+    if (CUATRO.indexOf(id) < 0) return null;
+    if (id === "entrenar" && ENTRENABLES.indexOf(que) < 0) return null;
+    var c = claveDeFecha(save);
+    save.eleccion = { temporadaN: c.temporadaN, fecha: c.fecha, id: id, que: id === "entrenar" ? que : null };
+    return save.eleccion;
+  }
+  /* el ánimo de una jugada grande, en puntos de poder del remate */
+  function bonusGrande(animo, C) {
+    return clamp(Math.round((animo - C.grande_desde) * C.grande_por_punto), 0, C.grande_max);
+  }
+  /* lo que vas a tener en la cancha con esta elección (o sin ninguna) */
+  function enLaCancha(save, eleccion, cfg) {
+    var C = cfg.cuatro, id = eleccion ? eleccion.id : null;
+    var animo = clamp(Math.round((save.animo != null ? save.animo : cfg.animo_inicial) + (id === "barra" ? C.barra_animo : 0)), 0, 100);
+    var sinDescanso = clamp(Math.round(C.llegada_base - (save.desgaste || 0) * C.llegada_por_desgaste), 0, 100);
+    return {
+      id: id,
+      entrena: id === "entrenar" ? { stat: eleccion.que, mas: C.entrenar_mas } : null,
+      aguantePct: id === "descansar" ? C.llegada_descanso : sinDescanso,
+      aguanteSinDescanso: sinDescanso,
+      animo: animo,
+      grande: bonusGrande(animo, C),
+      espiado: id === "ver_rival"
+    };
+  }
+  /* lo mismo dicho con las cinco palabras: TIRO, PASE, GAMBETA, AGUANTE, ÁNIMO */
+  function renglonesDeLaCancha(lc) {
+    var r = [];
+    if (lc.entrena) r.push("+" + lc.entrena.mas + " de " + lc.entrena.stat.toUpperCase());
+    r.push("AGUANTE al " + lc.aguantePct + "%");
+    r.push("ÁNIMO " + lc.animo + (lc.grande ? ": +" + lc.grande + " en las jugadas grandes" : ""));
+    if (lc.espiado) r.push("ves su defensa y su estrella");
+    return r;
+  }
+  /* cerrar con la elección: lo que viaja a la cancha. No suma mejoras para
+     siempre (lo de entrenar es para esta fecha) y una vez por fecha, igual
+     que cerrarSemana */
+  function cerrarSemanaCuatro(save, cfg) {
+    if (semanaCerrada(save) && save.semanaResumen) {
+      save.semanaCerradaEnFecha = claveDeFecha(save);
+      return { llega: save.semanaResumen, yaEstaba: true };
+    }
+    var lc = enLaCancha(save, eleccionDeLaFecha(save), cfg);
+    var techo = techoDeAguante(save.mejoras, cfg);
+    var envionMax = cfg.envion_max || 100;
+    var llega = {
+      cuatro: lc.id,
+      aguanteInicial: Math.round(techo * lc.aguantePct / 100),
+      aguanteFrac: lc.aguantePct / 100,
+      envionInicial: clamp(Math.round(envionMax * (lc.animo / 100) * (cfg.envion_frac != null ? cfg.envion_frac : 0.5)), 0, envionMax),
+      lectura: 0,
+      entrena: lc.entrena, animo: lc.animo, grande: lc.grande, espiado: lc.espiado,
+      renglones: renglonesDeLaCancha(lc),
+      resumen: "Esta fecha: " + renglonesDeLaCancha(lc).join(" · ")
+    };
+    save.semanaResumen = llega;
+    save.semanaCerradaEnFecha = claveDeFecha(save);
+    return { llega: llega, yaEstaba: false };
+  }
+
   return {
+    CUATRO: CUATRO, ENTRENABLES: ENTRENABLES, eleccionDeLaFecha: eleccionDeLaFecha, elegirCuatro: elegirCuatro,
+    bonusGrande: bonusGrande, enLaCancha: enLaCancha, renglonesDeLaCancha: renglonesDeLaCancha, cerrarSemanaCuatro: cerrarSemanaCuatro,
     RANURAS: RANURAS, clamp: clamp,
     claveDeFecha: claveDeFecha, esLaFecha: esLaFecha, semanaCerrada: semanaCerrada,
     cerrarSemana: cerrarSemana, eventoDeLaFecha: eventoDeLaFecha,

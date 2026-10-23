@@ -992,7 +992,10 @@
   /* parámetros del remate (la ESCENA llama a Duel.resolveShot con esto: una sola fuente de verdad).
      El salto de reloj del remate vive ACÁ (lógica), no en la escena. */
   /* esCalden: true = Caldén clásico (compat tests) · objeto {aguante, mult} = MEGATIRO de data (Feel B5) */
-  function prepararRemate(st, esCalden, rng) {
+  /* grande: el remate es una jugada grande tuya (EL TOQUE, el tiro libre;
+     el especial lo es siempre) y suma el ÁNIMO de la semana, st.animoGrande
+     (23/oct, pedido de Rodri, balance.semana.cuatro) */
+  function prepararRemate(st, esCalden, rng, grande) {
     var j = st.mios[st.ctrl], P = st.bal.partido, C = P.calden;
     var mega = (esCalden && typeof esCalden === "object") ? esCalden : null;
     var especial = !!esCalden;
@@ -1039,11 +1042,13 @@
        mano en tiroPorComandos y solo ahi: el mismo evento pegaba o no segun por
        donde hubieras entrado al tiro. */
     poder += bonusAccion(st);
+    var animo = (grande || especial) && j.esVos ? (st.animoGrande || 0) : 0;
+    poder += animo;
     gastar(st, "mio", mega ? (mega.aguante || st.bal.aguante.costo_calden) : (especial ? st.bal.aguante.costo_calden : st.bal.aguante.costo_tiro));
     saltoReloj(st, rng);
     return { shotPower: poder, keeperSkill: st.rivalKeeperSkill + bonusArq, arqueroVendido: !!vendido,
       distancia: Math.round(d), especial: especial ? quedaDeEspecial : false,
-      lecturaArq: Math.round(bonusArq * 10) / 10,
+      lecturaArq: Math.round(bonusArq * 10) / 10, animo: animo,
       /* la vía única de D2: quien resuelve el remate se lo pasa tal cual a
          resolveShot y no tiene que saber cómo se aplica */
       penalizaciones: factorLectura < 1 ? [{ id: "lectura", factor: factorLectura }] : [] };
