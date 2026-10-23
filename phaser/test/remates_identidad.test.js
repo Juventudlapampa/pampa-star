@@ -210,5 +210,86 @@ const cinco = { esVos: false, nombre: "Toro", numero: 5 }, vos = { esVos: true, 
   console.log("[5] el rival con la pose de su número o con el 10 borrado: " + b0 + " píxeles del número, " + n + " cambiados, nada afuera de la caja");
 })();
 
+/* [6] 23/oct, lo que vio Rodri en "te rematan": tus defensores salían con el
+   4 blanco dibujado en la espalda de pose_barrida (la camiseta del rival que
+   vestir.js pasa a la nuestra). Ahora la barrida vestida sale lisa: el número
+   se borra sobre la tela ya vestida, con la máscara de vestir(), en el hilo
+   aparte (vestir_obrero.js) y en este (vestidas_ui.js, vestirAca). */
+(function () {
+  const vm = require("vm");
+  const HALO = require(path.join(__dirname, "..", "logic", "halo.js"));
+  const V = require(path.join(__dirname, "..", "logic", "vestir.js"));
+  const PNG = require("./_png.js");
+  const POSES = JSON.parse(fs.readFileSync(path.join(RAIZ, "data", "poses_manifest.json"), "utf8"));
+  const num = POSES.poses.barrida.numero;
+  assert(num && POSES.poses.barrida.kit === "rival", "la barrida (kit rival) declara dónde está su número");
+  /* como getImageData en el navegador y el obrero: bytes que redondean (clamped) */
+  const leerFuente = () => { const p = PNG.leer(fs.readFileSync(path.join(RAIZ, "assets/_fuente/poses/pose_barrida.png"))); p.datos = new Uint8ClampedArray(p.datos.buffer, p.datos.byteOffset, p.datos.length); return p; };
+  const img = leerFuente(), W = img.ancho, H = img.alto, d = img.datos;
+  const z = HALO.cajaDeNumero(num, W, H, 0, 0);
+  const crudo = Buffer.from(d);
+  const blanco = (b, k) => b[k * 4 + 3] >= 250 && b[k * 4] > 190 && b[k * 4 + 1] > 190 && b[k * 4 + 2] > 190;
+  const luma = (b, k) => 0.299 * b[k * 4] + 0.587 * b[k * 4 + 1] + 0.114 * b[k * 4 + 2];
+  const enLaCaja = (f) => { for (let y = z.y0; y <= z.y1; y++) for (let x = z.x0; x <= z.x1; x++) f(y * W + x); };
+  const r = V.vestir(d, W, H, { destino: "#4fc3f7" });
+  const vestida = Buffer.from(d);
+  let b0 = 0; enLaCaja(k => { if (blanco(vestida, k) && !r.m[k]) b0++; });
+  assert(b0 > 3000, "SÍNTOMA: vestida, la barrida sigue con el 4 blanco en la espalda (" + b0 + " píxeles)");
+  /* el hueco del 4: lo de la caja que no se alcanza desde su borde sin pisar el número del dibujo */
+  const llega = new Uint8Array(W * H), pila = [];
+  enLaCaja(k => { const x = k % W, y = (k / W) | 0; if ((x === z.x0 || x === z.x1 || y === z.y0 || y === z.y1) && !blanco(crudo, k)) { llega[k] = 1; pila.push(k); } });
+  while (pila.length) {
+    const k = pila.pop(), x = k % W, y = (k / W) | 0;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(v => {
+      const nx = x + v[0], ny = y + v[1], q = ny * W + nx;
+      if (nx >= z.x0 && ny >= z.y0 && nx <= z.x1 && ny <= z.y1 && !llega[q] && !blanco(crudo, q)) { llega[q] = 1; pila.push(q); }
+    });
+  }
+  const hueco = []; enLaCaja(k => { if (!llega[k] && !blanco(crudo, k)) hueco.push(k); });
+  const oscuros = b => hueco.filter(k => luma(b, k) < 70).length;
+  assert(hueco.length > 300 && oscuros(vestida) > 100, "control: adentro del 4 queda un pedazo de raya negra que vestir() no saca (" + oscuros(vestida) + " de " + hueco.length + ")");
+  const n = HALO.borrarNumero(d, W, H, z, r.m);
+  let b1 = 0; enLaCaja(k => { if (blanco(d, k) && !r.m[k]) b1++; });
+  assert(b1 === 0, "borrado: no queda nada del 4 (" + b1 + " píxeles blancos que no son tela)");
+  assert(oscuros(d) === 0, "ni la raya negra que quedaba adentro del 4 (" + oscuros(d) + ")");
+  const tela = []; enLaCaja(k => { if (r.m[k] === 1) tela.push(luma(d, k)); });
+  tela.sort((a, b) => a - b);
+  const med = tela[(tela.length / 2) | 0], enHueco = hueco.reduce((s, k) => s + luma(d, k), 0) / hueco.length;
+  assert(enHueco >= med * 0.95, "el hueco del 4 queda del tono de la camiseta, sin la sombra del borde de la línea (" + enHueco.toFixed(1) + " contra " + med.toFixed(1) + ")");
+  let afuera = 0, alfa = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4;
+    if (d[i + 3] !== vestida[i + 3]) alfa++;
+    const en = x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1;
+    if (!en && (d[i] !== vestida[i] || d[i + 1] !== vestida[i + 1] || d[i + 2] !== vestida[i + 2])) afuera++;
+  }
+  assert(afuera === 0 && alfa === 0, "fuera de la caja y en la transparencia no cambia nada (" + afuera + ", " + alfa + ")");
+  /* con la camiseta blanca que podés elegir, la tela no se confunde con el
+     número, y del 4 (blanco sobre blanco) lo que se veía era su línea negra */
+  const blancaImg = leerFuente(), db = blancaImg.datos;
+  const rb = V.vestir(db, W, H, { destino: "#E8F4FA" });
+  const lineaDe = b => { let o = 0; enLaCaja(k => { if (b[k * 4 + 3] >= 250 && luma(b, k) < 70) o++; }); return o; };
+  const lb0 = lineaDe(db);
+  HALO.borrarNumero(db, W, H, z, rb.m);
+  let tb = 0; enLaCaja(k => { if (rb.m[k] === 1) tb++; });
+  assert(lineaDe(db) < lb0 / 2 && lineaDe(db) <= lineaDe(d) && tb > 5000, "con la camiseta blanca la línea del 4 se va como con la celeste (" + lb0 + " → " + lineaDe(db) + ") y la tela sigue ahí (" + tb + ")");
+  /* el hilo aparte, como lo carga el navegador: con el número del manifiesto, lo mismo */
+  const w = { console: console, Uint8ClampedArray: Uint8ClampedArray, Date: Date, enviados: [] };
+  w.self = w;
+  w.importScripts = function (f) { vm.runInContext(fs.readFileSync(path.join(RAIZ, "phaser/logic", f), "utf8"), w, { filename: f }); };
+  w.postMessage = function (m) { w.enviados.push(m); };
+  vm.createContext(w);
+  vm.runInContext(fs.readFileSync(path.join(RAIZ, "phaser/logic/vestir_obrero.js"), "utf8"), w, { filename: "vestir_obrero.js" });
+  const deObrero = leerFuente();
+  w.onmessage({ data: { n: 3, w: W, h: H, buf: deObrero.datos.buffer, destino: "#4fc3f7", numero: num } });
+  const env = w.enviados[0];
+  assert(env && env.ok === true && Buffer.from(new Uint8Array(env.buf)).equals(Buffer.from(d.buffer, d.byteOffset, d.length)), "el obrero viste y borra el 4 igual que en este hilo");
+  const VU = fs.readFileSync(path.join(RAIZ, "phaser/scenes/vestidas_ui.js"), "utf8");
+  assert(/destino: t\.destino, numero: numeroDe\(t\.game, t\.id\)/.test(VU), "la cola le manda al obrero el número de la pose");
+  assert(/var r = V\.vestir\(datos\.data, datos\.width, datos\.height, \{ destino: destino \}\), num = numeroDe\(game, id\);\s*\r?\n\s*if \(num\) window\.PampaHalo\.borrarNumero\(datos\.data, datos\.width, datos\.height, window\.PampaHalo\.cajaDeNumero\(num, datos\.width, datos\.height, 0, 0\), r\.m\);/.test(VU),
+    "y en este hilo (vestirAca) se borra después de vestir, con la máscara");
+  console.log("[6] la barrida vestida sale lisa: " + b0 + " píxeles del 4, " + n + " cambiados, " + oscuros(vestida) + " de raya adentro del 4 que ya no están, el obrero igual");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

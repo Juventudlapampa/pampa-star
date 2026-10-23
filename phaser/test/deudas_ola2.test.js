@@ -344,7 +344,9 @@ function mundoDeVestidas(op) {
   }
   var win = {
     PampaVestir: Object.assign({}, V, { vestir: function () { llamadasVestir++; return V.vestir.apply(null, arguments); } }),
-    PampaHaloAsegurar: function (k) { asegurados.push(k); }
+    PampaHaloAsegurar: function (k) { asegurados.push(k); },
+    /* 23/oct: el 4 de la barrida se borra al vestirla (logic/halo.js), como en index.html */
+    PampaHalo: require(path.join(RAIZ, "phaser/logic/halo.js"))
   };
   var ctx = {
     window: win, console: { error: function () { }, log: console.log, warn: function () { } },

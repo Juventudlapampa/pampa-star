@@ -165,15 +165,45 @@
      d: los bytes RGBA de un rectángulo de W x H. z, en píxeles de ese
      rectángulo: la caja {x0, y0, x1, y1} y la esquina que no se toca, de
      arriba a la izquierda hasta (sx, sy) (en pose_remate, el puño blanco).
+     tela (opcional): la máscara de logic/vestir.js (m, distinto de 0 = tela)
+     de una pose ya vestida; con ella el color sale de la tela vestida,
+     aunque sea blanca o negra, y no de lo que tiene color de verdad.
      Devuelve cuántos píxeles cambió. */
   var NUM = { blanco: 190, aire: 5, borde: 3, croma: 60, brillo: 110, opaco: 250 };
-  function borrarNumero(d, W, H, z) {
+  function borrarNumero(d, W, H, z, tela) {
     var N = W * H, c = NUM;
     function enCaja(x, y) { return x >= z.x0 && x <= z.x1 && y >= z.y0 && y <= z.y1 && !(x < z.sx && y < z.sy); }
     var opaco = new Uint8Array(N), blanco = new Uint8Array(N), i, x, y, k, dx, dy;
     for (i = 0; i < N; i++) {
       opaco[i] = d[i * 4 + 3] >= c.opaco ? 1 : 0;
-      blanco[i] = enCaja(i % W, (i / W) | 0) && d[i * 4] > c.blanco && d[i * 4 + 1] > c.blanco && d[i * 4 + 2] > c.blanco ? 1 : 0;
+      /* con máscara, la tela vestida de blanco no es número */
+      blanco[i] = enCaja(i % W, (i / W) | 0) && !(tela && tela[i]) && d[i * 4] > c.blanco && d[i * 4 + 1] > c.blanco && d[i * 4 + 2] > c.blanco ? 1 : 0;
+    }
+    /* en una pose vestida (con máscara), lo encerrado por el número (el
+       hueco del 4) también es número: en la barrida a rayas, el pedazo de
+       raya que queda adentro del 4 no lo saca vestir() (no tiene tela de los
+       dos lados) y quedaba como una mancha negra. Hueco = lo de la caja a lo
+       que no se llega desde su borde sin pisar el número. Sin máscara no: el
+       hueco del 0 de pose_remate es camiseta lisa con su sombra, y rellenado
+       desde afuera se llenaba de la sombra del hombro */
+    if (tela) {
+      var llega = new Uint8Array(N), pila = [];
+      for (y = z.y0; y <= z.y1; y++) for (x = z.x0; x <= z.x1; x++) {
+        if (x !== z.x0 && x !== z.x1 && y !== z.y0 && y !== z.y1) continue;
+        i = y * W + x;
+        if (!blanco[i] && !llega[i]) { llega[i] = 1; pila.push(i); }
+      }
+      while (pila.length) {
+        i = pila.pop(); x = i % W; y = (i / W) | 0;
+        if (x > z.x0 && !llega[i - 1] && !blanco[i - 1]) { llega[i - 1] = 1; pila.push(i - 1); }
+        if (x < z.x1 && !llega[i + 1] && !blanco[i + 1]) { llega[i + 1] = 1; pila.push(i + 1); }
+        if (y > z.y0 && !llega[i - W] && !blanco[i - W]) { llega[i - W] = 1; pila.push(i - W); }
+        if (y < z.y1 && !llega[i + W] && !blanco[i + W]) { llega[i + W] = 1; pila.push(i + W); }
+      }
+      for (y = z.y0; y <= z.y1; y++) for (x = z.x0; x <= z.x1; x++) {
+        i = y * W + x;
+        if (!llega[i] && opaco[i] && enCaja(x, y)) blanco[i] = 1;
+      }
     }
     function cercaDelVacio(x, y) {
       for (dy = -c.borde; dy <= c.borde; dy++) for (dx = -c.borde; dx <= c.borde; dx++) {
@@ -194,12 +224,19 @@
       }
       if (junto && !cercaDelVacio(x, y)) borrar[i] = 1;
     }
-    /* lo que da color: camiseta (con color de verdad y no oscura), afuera de lo borrado */
+    /* lo que da color: camiseta (con color de verdad y no oscura), afuera de
+       lo borrado. Con máscara, la tela a 2 px de su borde: el borde es el
+       antialias contra la línea, vestido sale oscuro, y el hueco del 4 se
+       llenaba de ese oscuro */
+    function telaAdentro(i) {
+      var x = i % W, y = (i / W) | 0;
+      return tela[i] && x > 1 && x < W - 2 && y > 1 && y < H - 2 && tela[i - 2] && tela[i + 2] && tela[i - 2 * W] && tela[i + 2 * W];
+    }
     var cola = new Int32Array(N), ini = 0, fin = 0, de = new Int32Array(N).fill(-1);
     for (i = 0; i < N; i++) {
       if (borrar[i] || !opaco[i]) continue;
       var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b);
-      if (mx >= c.brillo && mx - Math.min(r, g, b) >= c.croma) { de[i] = i; cola[fin++] = i; }
+      if (tela ? telaAdentro(i) : (mx >= c.brillo && mx - Math.min(r, g, b) >= c.croma)) { de[i] = i; cola[fin++] = i; }
     }
     /* el color más cercano: se expande desde todas las fuentes a la vez */
     while (ini < fin) {

@@ -89,6 +89,12 @@
     var img = game.textures.get(key).getSourceImage();
     return img && img.width ? img : null;
   }
+  /* 23/oct: dónde trae la pose un número dibujado (poses.<id>.numero: el 4
+     de la barrida), para borrarlo después de vestirla */
+  function numeroDe(game, id) {
+    var man = game.registry.get("poses"), def = man && man.poses && man.poses[id];
+    return (def && def.numero) || null;
+  }
   function leerPixeles(img) {
     var cv = document.createElement("canvas");
     cv.width = img.width; cv.height = img.height;
@@ -117,7 +123,8 @@
     var t0 = ahora();
     try {
       var datos = leerPixeles(src);
-      V.vestir(datos.data, datos.width, datos.height, { destino: destino });
+      var r = V.vestir(datos.data, datos.width, datos.height, { destino: destino }), num = numeroDe(game, id);
+      if (num) window.PampaHalo.borrarNumero(datos.data, datos.width, datos.height, window.PampaHalo.cajaDeNumero(num, datos.width, datos.height, 0, 0), r.m);
       ponerTextura(game, clave, datos);
     } catch (e) {
       console.error("[vestir] " + id + ": " + (e && e.message));
@@ -195,7 +202,7 @@
       enCurso = t;
       var tope = cfg(t.game).tope;
       reloj = setTimeout(function () { if (enCurso === t) morir("el obrero no contestó en " + tope + " ms"); }, tope);
-      try { ob.postMessage({ n: t.n, w: t.w, h: t.h, buf: datos.data.buffer, destino: t.destino }, [datos.data.buffer]); }
+      try { ob.postMessage({ n: t.n, w: t.w, h: t.h, buf: datos.data.buffer, destino: t.destino, numero: numeroDe(t.game, t.id) }, [datos.data.buffer]); }
       catch (e) { morir("no se pudo mandar al obrero: " + (e && e.message)); }
       return;
     }

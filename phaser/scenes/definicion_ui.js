@@ -140,10 +140,12 @@
     pedidoRivalNaranja(id) {
       var src = this.poseKey(id);
       if (!src) return null;
-      /* 23/oct: si la pose declara dónde va el número (poses.remate.numero),
-         el rival la lleva sin el 10 del héroe en la espalda */
+      /* 23/oct: si la pose del héroe declara dónde va el número
+         (poses.remate.numero), el rival la lleva sin el 10 del héroe en la
+         espalda. El 4 de la barrida es de la camiseta del rival: a él no se
+         le borra (a los tuyos sí, al vestirla: vestidas_ui.js) */
       var man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
-      return { base: src, clave: "poseR_" + id, mapa: [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }], numero: def && def.numero };
+      return { base: src, clave: "poseR_" + id, mapa: [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }], numero: def && def.quien === "heroe" ? def.numero : null };
     },
 
     /* ============ ENTRADAS ============ */

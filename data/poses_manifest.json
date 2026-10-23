@@ -82,7 +82,12 @@
    "quien": "defensor",
    "n": "Defensor barriéndose",
    "kit": "rival",
-   "_kit": "V10: dibujada con la camiseta del RIVAL (naranja a rayas). Cuando la usa un jugador tuyo, logic/vestir.js la viste con NUESTRA camiseta en tiempo de ejecución (celeste lisa: sin rayas, que son la marca del rival). El archivo no se toca."
+   "_kit": "V10: dibujada con la camiseta del RIVAL (naranja a rayas). Cuando la usa un jugador tuyo, logic/vestir.js la viste con NUESTRA camiseta en tiempo de ejecución (celeste lisa: sin rayas, que son la marca del rival). El archivo no se toca.",
+   "numero": {
+    "caja": [0.2022, 0.2548, 0.3378, 0.4392],
+    "sin_tocar": [0.2022, 0.2548],
+    "_23oct": "Revisión del 23/oct: en 'te rematan' tus defensores salían con el 4 blanco de la espalda (el del rival que dibujaron). Vestida con nuestra camiseta, la barrida sale lisa: scenes/vestidas_ui.js y logic/vestir_obrero.js borran el número sobre la tela ya vestida (logic/halo.js, borrarNumero, con la máscara de vestir). caja: el 4 con su línea, en fracciones del dibujo (en 900x683: x 182-304, y 174-300); afuera queda el brillo del antebrazo (x < 180). sin_tocar: igual a la esquina de la caja, no hay nada que salvar adentro. Al rival (naranja, a rayas) no se le borra: es su camiseta tal cual la dibujaron."
+   }
   },
   "arquero_vuela": {
    "archivo": "pose_arquero_vuela_v2.webp",
