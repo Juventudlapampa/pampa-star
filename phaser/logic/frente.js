@@ -49,7 +49,7 @@
      de arco. CON EFECTO la abre hacia afuera del palo y la cierra adentro */
   function trayectoria(m, mira, tipo) {
     var T = puntoDeArco(m, mira.u), S = m.S;
-    var lado = mira.u >= 0 ? 1 : -1, cur = tipo.curva || 0, arco = tipo.arco || 0;
+    var lado = mira.lado || (mira.u >= 0 ? 1 : -1), cur = tipo.curva || 0, arco = tipo.arco || 0;
     return function (t) {
       var b = cur * 4 * t * (1 - t) * lado;
       return { x: S.x + (T.x - S.x) * t + m.l.x * b, y: S.y + (T.y - S.y) * t + m.l.y * b, z: mira.h * t + arco * 4 * t * (1 - t) };
@@ -125,7 +125,9 @@
     var h = mira.h;
     if (tipo.h_min != null) h = Math.max(h, tipo.h_min);
     if (tipo.h_max != null) h = Math.min(h, tipo.h_max);
-    return { u: clamp(mira.u, -1.4, 1.4), h: clamp(h, 0, 1.3) };
+    var mi = { u: clamp(mira.u, -1.4, 1.4), h: clamp(h, 0, 1.3) };
+    if (mira.lado) mi.lado = mira.lado;
+    return mi;
   }
 
   /* el error de la pegada: peor cuanto peor el perfil (el toque a tiempo),
@@ -143,6 +145,7 @@
     var tipo = cfg.tipos[dec.tipo], mi = ajustarMira(dec.mira, tipo);
     var sd = errorDe(F, tipo, jug, dec.calidad, cfg);
     var fin = { u: mi.u + gauss(r) * sd, h: clamp(mi.h + gauss(r) * sd * cfg.error.alto + (tipo.sube || 0), 0, 1.6) };
+    if (mi.lado) fin.lado = mi.lado;
     var tray = trayectoria(F.m, fin, tipo);
     var c = cruces(F, tray, cfg, F.salta);
     var D = cfg.desvio;
@@ -249,7 +252,49 @@
     return clamp(1 - Math.abs(pos - P.dulce) / P.ancho, 0, 1);
   }
 
+  /* EL TIRO CON EL DEDO (idea de Rodri del 23/oct). puntos: el camino del
+     dedo en pantalla, del primero al último. o: { menu, pelota: {x, y},
+     palos: [el izquierdo (u = -1), el derecho (u = +1)] en pantalla, sobre
+     el pasto }. La DIRECCIÓN del arrastre elige el hueco: la recta que sale
+     de la pelota con esa dirección corta la línea de los palos en u. El
+     LARGO pone la fuerza. La CURVA (lo más que se aparta el dedo del camino
+     recto) da el efecto, para el lado que curvó. La pegada es una de las del
+     menú, sin reglas nuevas: con curva, la que más curva tiene; recta, por
+     fuerza, de la más lenta a la más rápida (tipos.vel). Adentro de cada
+     pegada, más fuerza la levanta, y de más se va por arriba. null: corto o
+     para atrás */
+  function gesto(puntos, o, cfg) {
+    var G = cfg.gesto, T = cfg.tipos;
+    if (!puntos || puntos.length < 2) return null;
+    var A = puntos[0], Z = puntos[puntos.length - 1], dx = Z.x - A.x, dy = Z.y - A.y, largo = Math.hypot(dx, dy);
+    if (largo < G.min_px) return null;
+    var P = o.pelota, a = o.palos[0], b = o.palos[1], ex = b.x - a.x, ey = b.y - a.y, den = dx * ey - dy * ex;
+    if (Math.abs(den) < 1e-9) return null;
+    var apx = a.x - P.x, apy = a.y - P.y;
+    if ((apx * ey - apy * ex) / den <= 0) return null;
+    var u = -1 + 2 * (apx * dy - apy * dx) / den;
+    /* la derecha de la pantalla, mirando hacia adonde va el dedo */
+    var nx = -dy / largo, ny = dx / largo, dev = 0;
+    puntos.forEach(function (p) { var e = (p.x - A.x) * nx + (p.y - A.y) * ny; if (Math.abs(e) > Math.abs(dev)) dev = e; });
+    var curva = dev / largo, fuerza = clamp(largo / G.largo_px, 0, G.fuerza_max);
+    var conCurva = o.menu.slice().sort(function (x, y) { return (T[y].curva || 0) - (T[x].curva || 0); })[0];
+    var curvo = Math.abs(curva) >= G.curva_min && (T[conCurva].curva || 0) > 0;
+    var tipo, frac;
+    if (curvo) { tipo = conCurva; frac = fuerza; }
+    else {
+      var rectas = o.menu.filter(function (t) { return t !== conCurva; }).sort(function (x, y) { return T[x].vel - T[y].vel; });
+      var n = rectas.length, k = Math.min(n - 1, Math.floor(Math.min(fuerza, 0.999) * n));
+      tipo = rectas[k]; frac = (fuerza - k / n) * n;
+    }
+    var mira = { u: clamp(u, -1.4, 1.4), h: clamp(G.alto[0] + (G.alto[1] - G.alto[0]) * frac, 0, 1.3) };
+    if (curvo) mira.lado = curva > 0 ? 1 : -1;
+    var nivel = 0;
+    while (nivel < G.cortes.length && fuerza >= G.cortes[nivel]) nivel++;
+    return { tipo: tipo, mira: mira, fuerza: fuerza, curva: curva, curvo: curvo, nivel: nivel, palabra: G.palabras[nivel] };
+  }
+
   return {
+    gesto: gesto,
     rng: rng, marco: marco, local: local, puntoDeArco: puntoDeArco, uDe: uDe,
     trayectoria: trayectoria, foto: foto, leer: leer, resolver: resolver, hayFalta: hayFalta, tiroLibre: tiroLibre, barrera: barrera,
     elegirCPU: elegirCPU, calidadDePerfil: calidadDePerfil

@@ -5,9 +5,12 @@
    partido de abajo no corre.
    La cámara va detrás de quien patea, un poco a su derecha; el arco al fondo
    y en el medio los que están de verdad en el partido, cada uno con su número.
-   Mouse: la mira sigue al puntero y el clic le pega. Dedo: arrastrás la mira
-   y al soltar le pega. Teclado: flechas y ENTER o ESPACIO. La pegada se elige
-   con los botones (o 1 a 4). Le pegás cuando la marca de la barra pasa por
+   Mouse: la mira sigue al puntero, la rueda (o Q y E) cambia la pegada y el
+   clic le pega. Dedo (idea de Rodri del 23/oct, balance.frente.gesto): desde
+   la pelota, la dirección del arrastre elige el hueco, el largo la fuerza y
+   la curva el efecto; al soltar le pega. Teclado: flechas y ENTER o ESPACIO.
+   La pegada también con los botones (o 1 a 4). Le pegás cuando la marca de la barra pasa por
+
    AHORA: eso te perfila, y la pegada sale más justa.
    ========================================================================== */
 (function () {
@@ -196,37 +199,68 @@
       fr.dice = this.add.text(X_BOT, 196 + cfg.menu.length * 62 - 18, "", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, align: "center", wordWrap: { width: ANCHO_BOT } }).setOrigin(0.5, 0);
       this.cineContent.add(fr.dice);
       var tactil = this.sys.game.device.input.touch;
-      fr.ayuda = this.add.text(X_BOT - ANCHO_BOT / 2, 486, tactil ? "Arrastrá la mira al hueco y soltá: le pegás"
-        : "Mouse o flechas: apuntá · clic o ENTER: le pegás",
+      /* idea de Rodri del 23/oct: en el teléfono, el tiro con el dedo
+         (logic/frente.js, gesto); con gesto.activo false, la mira y los botones */
+      var conDedo = !!(tactil && C.gesto && C.gesto.activo);
+      fr.ayuda = this.add.text(X_BOT - ANCHO_BOT / 2, 486, conDedo ? "Desde la pelota, arrastrá al hueco. Largo: fuerza. Curvo: efecto."
+        : tactil ? "Arrastrá la mira al hueco y soltá: le pegás"
+        : "Mouse: apuntá · rueda, Q o E: la pegada · clic: le pegás",
         { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, wordWrap: { width: ANCHO_BOT } }).setOrigin(0, 0);
       this.cineContent.add(fr.ayuda);
       this.frenteElegir(fr.tipo);
 
       var sobreBoton = function (sobre) { return !!(sobre && sobre.length); };
       var apuntar = function (p) { if (self._fr === fr && !fr.resuelto) { fr.mira = self.frenteMiraDePantalla(fr, p.x, p.y); fr.teclado = false; } };
-      var mover = function (p, sobre) { if ((!p.wasTouch || p.isDown) && !sobreBoton(sobre) && !fr.arrastraBoton) apuntar(p); };
+      var leerGesto = function () {
+        var a = self.frentePuntoArco(fr, -1, 0), b = self.frentePuntoArco(fr, 1, 0);
+        return Fr.gesto(fr.dedo, { menu: cfg.menu, pelota: fr.bola0, palos: [{ x: a.x, y: a.y }, { x: b.x, y: b.y }] }, C);
+      };
+      var mover = function (p, sobre) {
+        if (self._fr !== fr || fr.resuelto) return;
+        if (conDedo && p.wasTouch) {
+          var ult = fr.dedo && fr.dedo[fr.dedo.length - 1];
+          if (ult && p.isDown && Math.hypot(p.x - ult.x, p.y - ult.y) >= 3) { fr.dedo.push({ x: p.x, y: p.y }); self.frenteDedo(fr, leerGesto()); }
+          return;
+        }
+        if ((!p.wasTouch || p.isDown) && !sobreBoton(sobre) && !fr.arrastraBoton) apuntar(p);
+      };
       var bajar = function (p, sobre) {
         if (self._fr !== fr || fr.resuelto) return;
         fr.arrastraBoton = sobreBoton(sobre);
         if (fr.arrastraBoton) return;
+        if (conDedo && p.wasTouch) { fr.dedo = [{ x: p.x, y: p.y }]; self.frenteDedo(fr, null); return; }
         apuntar(p);
         if (!p.wasTouch) self.frenteGolpe();
         else fr.apuntando = true;
       };
       var soltar = function (p) {
         if (self._fr !== fr || fr.resuelto) return;
-        if (p.wasTouch && fr.apuntando) { fr.apuntando = false; self.frenteGolpe(); }
+        if (fr.dedo) {
+          var gg = leerGesto();
+          fr.dedo = null;
+          self.frenteDedo(fr, gg, !gg);
+          if (gg) self.frenteGolpe();
+        } else if (p.wasTouch && fr.apuntando) { fr.apuntando = false; self.frenteGolpe(); }
         fr.arrastraBoton = false;
       };
-      this.input.on("pointermove", mover); this.input.on("pointerdown", bajar); this.input.on("pointerup", soltar);
-      fr.ev = [["pointermove", mover], ["pointerdown", bajar], ["pointerup", soltar]];
+      /* en la PC la rueda (o Q y E) cambia la pegada */
+      var ciclo = function (d) {
+        if (self._fr !== fr || fr.resuelto) return;
+        var n = cfg.menu.length, i = cfg.menu.indexOf(fr.tipo);
+        self.frenteElegir(cfg.menu[((i < 0 ? 0 : i) + d + n) % n]);
+      };
+      var rueda = function (p, sobre, dx, dy) { if (dy) ciclo(dy > 0 ? 1 : -1); };
+      this.input.on("pointermove", mover); this.input.on("pointerdown", bajar); this.input.on("pointerup", soltar); this.input.on("wheel", rueda);
+      fr.ev = [["pointermove", mover], ["pointerdown", bajar], ["pointerup", soltar], ["wheel", rueda]];
+      fr.dedoTxt = this.add.text(W / 2 - 60, 86, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center" }).setOrigin(0.5, 0);
+      this.cineContent.add(fr.dedoTxt);
       if (this.input.keyboard) {
         var K2 = C.camara;
         var paso = function (du, dh) { return function (ev) { if (self._fr !== fr || fr.resuelto) return; if (ev && ev.preventDefault) ev.preventDefault(); fr.mira = { u: Phaser.Math.Clamp(fr.mira.u + du, -1.2, 1.2), h: Phaser.Math.Clamp(fr.mira.h + dh, 0, 1.15) }; fr.teclado = true; }; };
         var pegar = function (ev) { if (self._fr === fr && !fr.resuelto) { if (ev && ev.preventDefault) ev.preventDefault(); self.frenteGolpe(); } };
         var teclas = [["keydown-LEFT", paso(-K2.paso_u, 0)], ["keydown-RIGHT", paso(K2.paso_u, 0)], ["keydown-UP", paso(0, K2.paso_h)], ["keydown-DOWN", paso(0, -K2.paso_h)],
           ["keydown-A", paso(-K2.paso_u, 0)], ["keydown-D", paso(K2.paso_u, 0)], ["keydown-W", paso(0, K2.paso_h)], ["keydown-S", paso(0, -K2.paso_h)],
-          ["keydown-ENTER", pegar], ["keydown-SPACE", pegar]];
+          ["keydown-ENTER", pegar], ["keydown-SPACE", pegar], ["keydown-Q", function () { ciclo(-1); }], ["keydown-E", function () { ciclo(1); }]];
         ["ONE", "TWO", "THREE", "FOUR"].slice(0, cfg.menu.length).forEach(function (n, i) {
           teclas.push(["keydown-" + n, function () { if (self._fr === fr && !fr.resuelto) self.frenteElegir(cfg.menu[i]); }]);
         });
@@ -325,13 +359,14 @@
       return (fr.libre ? "Barrera: " : "Adelante: ") + (cerca.join(", ") || "nadie") + " · arquero: " + nombre(A);
     },
 
-    frenteElegir(tid) {
+    frenteElegir(tid, delDedo) {
       var fr = this._fr, C = this.BAL.frente;
       if (!fr || fr.resuelto) return;
       fr.tipo = tid;
       var T = C.tipos[tid];
-      /* al palo del arquero: la mira se va al palo donde está él */
-      if (T.al_palo_arquero) fr.mira = { u: (fr.foto.arquero.u >= 0 ? 1 : -1) * 0.82, h: 0.3 };
+      /* al palo del arquero: la mira se va al palo donde está él (con el
+         dedo no: el hueco lo eligió la dirección del arrastre) */
+      if (T.al_palo_arquero && !delDedo) fr.mira = { u: (fr.foto.arquero.u >= 0 ? 1 : -1) * 0.82, h: 0.3 };
       var tactil = this.sys.game.device.input.touch;
       fr.botones.forEach(function (o, i) {
         var sel = o.tid === tid;
@@ -339,6 +374,18 @@
         o.t.setText((tactil ? "" : (i + 1) + "·") + (sel ? "▶ " : "") + o.n);
       });
       if (fr.dice) fr.dice.setText(T.dice);
+    },
+
+    /* el gesto mientras arrastrás: la mira, la pegada y en palabras la
+       fuerza, la pegada y si va recta o con curva. corto: soltó sin tiro */
+    frenteDedo(fr, G, corto) {
+      fr.gesto = G;
+      if (G) {
+        fr.mira = G.mira;
+        if (G.tipo !== fr.tipo) this.frenteElegir(G.tipo, true);
+        var curva = G.curvo ? (G.mira.lado > 0 ? "CON CURVA A LA DERECHA" : "CON CURVA A LA IZQUIERDA") : "RECTA";
+        fr.dedoTxt.setText("FUERZA " + G.palabra + " · " + this.BAL.frente.tipos[G.tipo].n + " · " + curva);
+      } else fr.dedoTxt.setText(corto ? "Arrastrá más largo y hacia el arco" : "");
     },
 
     updateFrente(delta) {
@@ -375,7 +422,26 @@
         g.lineStyle(5, 0x0a1f13, 1); g.lineBetween(st2.x - 11, st2.y - 11, st2.x + 11, st2.y + 11); g.lineBetween(st2.x - 11, st2.y + 11, st2.x + 11, st2.y - 11);
         g.lineStyle(3, 0xffffff, 1); g.lineBetween(st2.x - 9, st2.y - 9, st2.x + 9, st2.y + 9); g.lineBetween(st2.x - 9, st2.y + 9, st2.x + 9, st2.y - 9);
       }
+      /* el dedo: su camino desde la pelota (el largo es la fuerza) y la
+         barra de la fuerza con sus cortes */
+      if (fr.dedo && fr.dedo.length > 1) {
+        var A0 = fr.dedo[0], b0 = fr.bola0, GZ = C.gesto;
+        g.lineStyle(9, 0x0a1f13, 0.8); g.beginPath(); g.moveTo(b0.x, b0.y);
+        fr.dedo.forEach(function (p) { g.lineTo(b0.x + p.x - A0.x, b0.y + p.y - A0.y); });
+        g.strokePath();
+        g.lineStyle(4, 0xffd84d, 1); g.beginPath(); g.moveTo(b0.x, b0.y);
+        fr.dedo.forEach(function (p) { g.lineTo(b0.x + p.x - A0.x, b0.y + p.y - A0.y); });
+        g.strokePath();
+        if (fr.gesto) {
+          var bx = W / 2 - 60 - 110, by = 112, bw = 220;
+          g.fillStyle(0x0a1f13, 0.85); g.fillRect(bx - 4, by - 4, bw + 8, 20);
+          g.fillStyle(fr.gesto.nivel >= GZ.cortes.length ? 0xf6efdc : 0xffd84d, 1); g.fillRect(bx, by, bw * Math.min(1, fr.gesto.fuerza / GZ.fuerza_max), 12);
+          g.fillStyle(0x0a1f13, 1);
+          GZ.cortes.forEach(function (c) { g.fillRect(bx + bw * c / GZ.fuerza_max - 1, by - 4, 3, 20); });
+        }
+      }
       /* la mira: un aro con cruz en el plano del arco */
+
       var pm = this.frentePuntoArco(fr, L.mira.u, L.mira.h);
       g.lineStyle(6, 0x0a1f13, 0.9); g.strokeCircle(pm.x, pm.y, 15);
       g.lineStyle(3, 0xffd84d, 1); g.strokeCircle(pm.x, pm.y, 15);

@@ -179,6 +179,61 @@ function tanda(n, semilla, jugar, jug) {
   console.log("[7] el tiro libre del rival: " + Math.round(goles / n * 100) + "% goles, " + Math.round(bloq / n * 100) + "% en la barrera");
 }
 
+/* [9] EL TIRO CON EL DEDO (idea de Rodri del 23/oct): gestos de ejemplo dan
+   la pegada y el hueco esperados. La pelota abajo al medio de la pantalla y
+   los palos arriba, como de frente al arco */
+{
+  const o = { menu: C.menu_remate, pelota: { x: 480, y: 500 }, palos: [{ x: 380, y: 200 }, { x: 580, y: 200 }] };
+  const ol = Object.assign({}, o, { menu: C.menu_libre });
+  const recta = (x0, y0, x1, y1, n) => Array.from({ length: (n || 8) + 1 }, (_, k) => ({ x: x0 + (x1 - x0) * k / (n || 8), y: y0 + (y1 - y0) * k / (n || 8) }));
+  /* la curva: el medio del camino se aparta "lejos" px a la derecha de la pantalla */
+  const curva = (x0, y0, x1, y1, lejos) => recta(x0, y0, x1, y1, 10).map((p, k) => ({ x: p.x + lejos * Math.sin(Math.PI * k / 10), y: p.y }));
+  const L = C.gesto.largo_px;
+
+  const g1 = F.gesto(recta(480, 500, 480, 500 - 0.25 * L), o, C);
+  assert(g1 && g1.tipo === "colocado" && Math.abs(g1.mira.u) < 0.02 && !g1.mira.lado && !g1.curvo, "[9] corto y recto al medio: COLOCADO al medio, sin efecto");
+  assert(g1.palabra === "SUAVE", "[9] corto dice SUAVE: " + (g1 && g1.palabra));
+
+  /* hacia el palo derecho desde la pelota: x 570 en la línea de los palos */
+  const dirX = (570 - 480) / 300, len = 0.8 * L, n = Math.hypot(dirX, 1);
+  const g2 = F.gesto(recta(480, 500, 480 + len * dirX / n, 500 - len / n), o, C);
+  assert(g2 && g2.tipo === "fuerte" && Math.abs(g2.mira.u - 0.9) < 0.03, "[9] largo y recto al palo derecho: FUERTE con u 0,9: " + (g2 && g2.tipo + " " + g2.mira.u.toFixed(2)));
+  assert(g2.palabra === "FUERTE", "[9] largo dice FUERTE");
+  /* la dirección vale aunque el dedo arranque en otro lado: lo que cuenta es para dónde va */
+  const g2b = F.gesto(recta(300, 520, 300 + len * dirX / n, 520 - len / n), o, C);
+  assert(g2b && Math.abs(g2b.mira.u - g2.mira.u) < 1e-9 && g2b.tipo === g2.tipo, "[9] el mismo gesto en otro lugar de la pantalla apunta igual");
+
+  const g3 = F.gesto(curva(480, 500, 480, 500 - 0.6 * L, 0.25 * 0.6 * L), o, C);
+  assert(g3 && g3.tipo === "efecto" && g3.curvo && g3.mira.lado === 1, "[9] el dedo que curva a la derecha: CON EFECTO para la derecha");
+  const g4 = F.gesto(curva(480, 500, 480, 500 - 0.6 * L, -0.25 * 0.6 * L), o, C);
+  assert(g4 && g4.tipo === "efecto" && g4.mira.lado === -1, "[9] y a la izquierda, para la izquierda");
+  const g5 = F.gesto(curva(480, 500, 480, 500 - 0.6 * L, 0.05 * 0.6 * L), o, C);
+  assert(g5 && g5.tipo !== "efecto" && !g5.curvo, "[9] un temblor del dedo no es efecto");
+
+  /* la curva del gesto es la curva de la pelota: se abre para ese lado */
+  const m = F.marco({ x: W - 260, y: H / 2 }, ARCO, AM);
+  const medio = (lado) => F.local(m, F.trayectoria(m, { u: 0.4, h: 0.4, lado }, C.tipos.efecto)(0.5)).u;
+  assert(medio(1) > 0.4 * AM * 0.5 + 5 && medio(-1) < medio(1) - 20, "[9] la trayectoria CON EFECTO se abre para el lado del gesto");
+  const res = F.resolver(F.foto({ tirador: { x: W - 260, y: H / 2 }, arco: ARCO, am: AM, defensores: [], arquero: { x: W - 4, y: H / 2, nivel: 55 } }),
+    { mira: g4.mira, tipo: "efecto", calidad: 1 }, { tiro: 70 }, C, F.rng(3));
+  assert(res.fin.lado === -1, "[9] el remate de verdad lleva el lado del gesto");
+
+  const g6 = F.gesto(recta(480, 500, 480, 500 - 1.25 * L), o, C);
+  const F6 = F.foto({ tirador: { x: W - 260, y: H / 2 }, arco: ARCO, am: AM, defensores: [], arquero: { x: W - 4, y: H / 2, nivel: 55 } });
+  assert(g6 && g6.palabra === "DE MÁS" && F.leer(F6, g6.mira, g6.tipo, C).fuera, "[9] de más: se va por arriba y la lectura lo dice");
+  assert(F.gesto(recta(480, 500, 480, 500 + 0.5 * L), o, C) === null, "[9] para atrás no le pega");
+  assert(F.gesto(recta(480, 500, 480, 500 - 0.6 * C.gesto.min_px), o, C) === null, "[9] un toque corto no le pega");
+
+  /* el tiro libre: corto POR ARRIBA (pasa la barrera), medio RASANTE, largo AL PALO */
+  const l1 = F.gesto(recta(480, 500, 480, 500 - 0.2 * L), ol, C), l2 = F.gesto(recta(480, 500, 480, 500 - 0.5 * L), ol, C), l3 = F.gesto(recta(480, 500, 480, 500 - 0.85 * L), ol, C);
+  assert(l1.tipo === "por_arriba" && l2.tipo === "rasante" && l3.tipo === "al_palo", "[9] tiro libre: " + [l1.tipo, l2.tipo, l3.tipo].join(", "));
+  const Fl = F.foto({ tirador: { x: W - 260, y: H / 2 }, arco: ARCO, am: AM, defensores: [], arquero: { x: W - 4, y: H / 2, nivel: 55 } });
+  assert(F.leer(Fl, l1.mira, l1.tipo, C).mira.h >= C.tipos.por_arriba.h_min, "[9] POR ARRIBA con el dedo va por arriba de la barrera");
+  assert(F.gesto(curva(480, 500, 480, 500 - 0.5 * L, 0.2 * 0.5 * L), ol, C).tipo === "efecto", "[9] tiro libre con curva: CON EFECTO");
+  assert(C.gesto.activo === true, "[9] la perilla del dedo, prendida de fábrica");
+  console.log("[9] el tiro con el dedo: " + [g1, g2, g3, g6].map(g => g.tipo + "/" + g.palabra + "/u " + g.mira.u.toFixed(2) + "/h " + g.mira.h.toFixed(2)).join(" · "));
+}
+
 /* [8] las perillas */
 {
   assert(BAL.flags.tiro_frente === true && BAL.flags.tiro_libre === true, "[8] las dos perillas prendidas de fábrica");
