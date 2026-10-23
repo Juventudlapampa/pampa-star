@@ -1303,7 +1303,7 @@
     "menu_remate": ["fuerte", "colocado", "efecto"],
     "menu_libre": ["por_arriba", "al_palo", "rasante", "efecto"],
     "_gesto": "23/oct, idea de Rodri: EL TIRO CON EL DEDO (logic/frente.js, gesto). En el teléfono arrastrás desde la pelota: la dirección elige el hueco, el largo la fuerza (largo_px es fuerza 1; arriba de 1 se va por arriba) y si el dedo se aparta del camino recto más de curva_min (en fracción del largo), CON EFECTO para ese lado. La pegada sale del menú: con curva la de más curva, recta por fuerza de la más lenta a la más rápida (tipos.vel). alto: la altura al principio y al final de cada pegada. palabras y cortes: lo que dice de la fuerza. activo false: vuelven los botones y el dedo mueve la mira como antes. En la PC el puntero marca el hueco, la rueda o Q y E cambian la pegada y el clic le pega.",
-    "gesto": { "activo": true, "min_px": 28, "largo_px": 300, "fuerza_max": 1.3, "curva_min": 0.12, "alto": [0.1, 0.95], "cortes": [0.34, 0.67, 1.0], "palabras": ["SUAVE", "MEDIA", "FUERTE", "DE MÁS"] },
+    "gesto": { "activo": true, "min_px": 28, "largo_px": 300, "fuerza_max": 1.3, "curva_min": 0.12, "alto": [0.1, 0.95], "cortes": [0.34, 0.67, 1.0], "palabras": ["BAJA", "MEDIA", "ALTA", "DE MÁS"] },
     "error": { "base": 0.2, "stat_techo": 1.35, "por_perfil": 0.7, "por_cansancio": 0.6, "dist_px": 380, "alto": 0.8 },
     "perfil": { "dulce": 0.68, "ancho": 0.3, "sin_tocar": 0.15, "barrido_ms": 1300 },
     "arquero": { "alcance": 0.8, "nivel_ref": 55, "tiempo_ref_px": 220, "tiempo_min": 0.65, "tiempo_max": 1.5, "angulo": 0.45, "alto_desde": 0.6, "libre_mult": 1.5, "bonus_por_margen": 120, "bonus_neg_max": 60, "bonus_pos_max": 14 },

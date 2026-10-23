@@ -192,13 +192,13 @@ function tanda(n, semilla, jugar, jug) {
 
   const g1 = F.gesto(recta(480, 500, 480, 500 - 0.25 * L), o, C);
   assert(g1 && g1.tipo === "colocado" && Math.abs(g1.mira.u) < 0.02 && !g1.mira.lado && !g1.curvo, "[9] corto y recto al medio: COLOCADO al medio, sin efecto");
-  assert(g1.palabra === "SUAVE", "[9] corto dice SUAVE: " + (g1 && g1.palabra));
+  assert(g1.palabra === "BAJA", "[9] corto dice fuerza BAJA: " + (g1 && g1.palabra));
 
   /* hacia el palo derecho desde la pelota: x 570 en la línea de los palos */
   const dirX = (570 - 480) / 300, len = 0.8 * L, n = Math.hypot(dirX, 1);
   const g2 = F.gesto(recta(480, 500, 480 + len * dirX / n, 500 - len / n), o, C);
   assert(g2 && g2.tipo === "fuerte" && Math.abs(g2.mira.u - 0.9) < 0.03, "[9] largo y recto al palo derecho: FUERTE con u 0,9: " + (g2 && g2.tipo + " " + g2.mira.u.toFixed(2)));
-  assert(g2.palabra === "FUERTE", "[9] largo dice FUERTE");
+  assert(g2.palabra === "ALTA", "[9] largo dice fuerza ALTA");
   /* la dirección vale aunque el dedo arranque en otro lado: lo que cuenta es para dónde va */
   const g2b = F.gesto(recta(300, 520, 300 + len * dirX / n, 520 - len / n), o, C);
   assert(g2b && Math.abs(g2b.mira.u - g2.mira.u) < 1e-9 && g2b.tipo === g2.tipo, "[9] el mismo gesto en otro lugar de la pantalla apunta igual");

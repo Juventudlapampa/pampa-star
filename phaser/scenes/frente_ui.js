@@ -15,7 +15,8 @@
    ========================================================================== */
 (function () {
   "use strict";
-  var W = 960, H = 540, X_BOT = 838, ANCHO_BOT = 214;
+  var W = 960, H = 540, X_BOT = 838, ANCHO_BOT = 214, X_DEDO = 520;
+
 
   Object.assign(window.PampaMatch.prototype, {
 
@@ -202,7 +203,7 @@
       /* idea de Rodri del 23/oct: en el teléfono, el tiro con el dedo
          (logic/frente.js, gesto); con gesto.activo false, la mira y los botones */
       var conDedo = !!(tactil && C.gesto && C.gesto.activo);
-      fr.ayuda = this.add.text(X_BOT - ANCHO_BOT / 2, 486, conDedo ? "Desde la pelota, arrastrá al hueco. Largo: fuerza. Curvo: efecto."
+      fr.ayuda = this.add.text(X_BOT - ANCHO_BOT / 2, 486, conDedo ? "Arrastrá y soltá. Largo: fuerza. Curvo: efecto."
         : tactil ? "Arrastrá la mira al hueco y soltá: le pegás"
         : "Mouse: apuntá · rueda, Q o E: la pegada · clic: le pegás",
         { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, wordWrap: { width: ANCHO_BOT } }).setOrigin(0, 0);
@@ -252,7 +253,9 @@
       var rueda = function (p, sobre, dx, dy) { if (dy) ciclo(dy > 0 ? 1 : -1); };
       this.input.on("pointermove", mover); this.input.on("pointerdown", bajar); this.input.on("pointerup", soltar); this.input.on("wheel", rueda);
       fr.ev = [["pointermove", mover], ["pointerdown", bajar], ["pointerup", soltar], ["wheel", rueda]];
-      fr.dedoTxt = this.add.text(W / 2 - 60, 86, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center" }).setOrigin(0.5, 0);
+      /* abajo al medio: arriba está la leyenda de quiénes están adelante y a
+         la izquierda la pelota, de donde sale el dedo */
+      fr.dedoTxt = this.add.text(X_DEDO, 466, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center", wordWrap: { width: 380 } }).setOrigin(0.5, 0);
       this.cineContent.add(fr.dedoTxt);
       if (this.input.keyboard) {
         var K2 = C.camara;
@@ -384,7 +387,7 @@
         fr.mira = G.mira;
         if (G.tipo !== fr.tipo) this.frenteElegir(G.tipo, true);
         var curva = G.curvo ? (G.mira.lado > 0 ? "CON CURVA A LA DERECHA" : "CON CURVA A LA IZQUIERDA") : "RECTA";
-        fr.dedoTxt.setText("FUERZA " + G.palabra + " · " + this.BAL.frente.tipos[G.tipo].n + " · " + curva);
+        fr.dedoTxt.setText(this.BAL.frente.tipos[G.tipo].n + " · FUERZA " + G.palabra + "\n" + curva);
       } else fr.dedoTxt.setText(corto ? "Arrastrá más largo y hacia el arco" : "");
     },
 
@@ -433,7 +436,7 @@
         fr.dedo.forEach(function (p) { g.lineTo(b0.x + p.x - A0.x, b0.y + p.y - A0.y); });
         g.strokePath();
         if (fr.gesto) {
-          var bx = W / 2 - 60 - 110, by = 112, bw = 220;
+          var bw = 220, bx = X_DEDO - bw / 2, by = 450;
           g.fillStyle(0x0a1f13, 0.85); g.fillRect(bx - 4, by - 4, bw + 8, 20);
           g.fillStyle(fr.gesto.nivel >= GZ.cortes.length ? 0xf6efdc : 0xffd84d, 1); g.fillRect(bx, by, bw * Math.min(1, fr.gesto.fuerza / GZ.fuerza_max), 12);
           g.fillStyle(0x0a1f13, 1);
