@@ -2649,6 +2649,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (t.width > ancho) t.setText(t.text.replace(/^[^\p{L}\p{N}¡¿~+(]+\s+/u, ""));
     return t;
   }
+  /* 23/oct, Rodri: el aguante de TIRO iba pegado al borde de abajo. Con el
+     título a y-9 y la bajada a y+11, medido con getBounds, quedaban 6-7 px
+     arriba y 2-3 abajo (en los compañeros del pase, 4 y 1). Ahora los dos
+     renglones van juntos y centrados en y por su alto medido: 6 y 6 en los
+     botones de 44, 4 y 4 en los de 40 */
+  centrarRotulos(t, s, y) {
+    const arriba = Math.round(y - (t.height + s.height) / 2);
+    t.setY(arriba + t.height / 2);
+    s.setY(arriba + t.height + s.height / 2);
+  }
   /* la cruz: opciones en W/N/E/S como el pad del original (doc §8) */
   abrirMenuCruz(cfg) {
     this.estado = "MENU";
@@ -2674,8 +2684,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        cruz, medida contra los retratos y la fila de las fichas). */
     const LG = this.BAL.legibilidad, CZ = LG.cruz, px = LG.texto_decision_min + "px";
     const rotulos = (x, y, w, titulo, sub, colT, colS) => {
-      const t = this.encajarTexto(this.add.text(x, y - (sub ? 9 : 0), titulo, { fontFamily: window.PF.display, fontSize: px, color: colT }).setOrigin(0.5), w - 2 * CZ.aire);
-      const s = sub ? this.encajarTexto(this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: px, color: colS }).setOrigin(0.5), w - 2 * CZ.aire) : null;
+      const t = this.encajarTexto(this.add.text(x, y, titulo, { fontFamily: window.PF.display, fontSize: px, color: colT }).setOrigin(0.5), w - 2 * CZ.aire);
+      const s = sub ? this.encajarTexto(this.add.text(x, y, sub, { fontFamily: window.PF.texto, fontSize: px, color: colS }).setOrigin(0.5), w - 2 * CZ.aire) : null;
+      if (s) this.centrarRotulos(t, s, y);
       this.menuLayer.add(s ? [t, s] : [t]);
     };
     this._menuOps = {}; this._menuSel = null; this._menuBtns = {};
@@ -5619,8 +5630,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const items = rs.map((r, k) => {
       const j = st.mios[r.idx], y = CP.y0 + k * CP.paso;
       const b = this.add.rectangle(CP.x, y, CP.w, CP.h, 0xf6efdc, 0.97).setStrokeStyle(2, 0x0a1f13).setInteractive({ useHandCursor: true });
-      const t = this.encajarTexto(this.add.text(CP.x, y - 9, j.numero + " " + (j.nombre || "").toUpperCase(), { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5), CP.w - 2 * aire);
-      const s = this.encajarTexto(this.add.text(CP.x, y + 10, r.pct + "% · " + (r.adelante ? "más adelante" : "de apoyo"), { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), CP.w - 2 * aire);
+      const t = this.encajarTexto(this.add.text(CP.x, y, j.numero + " " + (j.nombre || "").toUpperCase(), { fontFamily: window.PF.display, fontSize: px, color: "#0a1f13" }).setOrigin(0.5), CP.w - 2 * aire);
+      const s = this.encajarTexto(this.add.text(CP.x, y, r.pct + "% · " + (r.adelante ? "más adelante" : "de apoyo"), { fontFamily: window.PF.texto, fontSize: px, color: "#365a41" }).setOrigin(0.5), CP.w - 2 * aire);
+      this.centrarRotulos(t, s, y);
       this.menuLayer.add([b, t, s]);
       const cb = () => { this._uiTocado = this.time.now; this.confirmarPase(r, false); };
       b.on("pointerdown", (p, x, y2, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
@@ -5662,7 +5674,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       texto = res.win ? "¡PASE AL VACÍO!\n" + st.mios[st.ctrl].nombre.toUpperCase() + " la agarra en carrera\n(el arquero quedó vendido)" : "¡La adelantaste demasiado!\nPelota rival.";
     } else {
       res = P.resolverPase(st, rec.idx, rec.pct);
-      texto = res.win ? "AHORA JUGÁS: " + st.mios[st.ctrl].nombre.toUpperCase() : "¡INTERCEPTADO!\nLeyeron el pase.";
+      /* 23/oct, Rodri: "AHORA JUGÁS: VOS" se leía raro. Dice quién la tiene */
+      const rj = st.mios[st.ctrl];
+      texto = res.win ? (rj.esVos ? "¡LA TENÉS VOS!" : "LA TIENE " + rj.nombre.toUpperCase()) : "¡INTERCEPTADO!\nLeyeron el pase.";
     }
     /* B2 · DISPARADOR 1 · EL PASE LARGO. La distancia ya está: es la que
        separa origen de destino, que se calcularon arriba para saber quién
