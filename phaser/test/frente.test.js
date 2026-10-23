@@ -128,7 +128,11 @@ function tanda(n, semilla, jugar, jug) {
   const garra = cuenta("garra"), toque = cuenta("toque");
   assert(garra > toque * 1.6, "[5] garra pega más que toque (" + Math.round(garra * 100) + "% contra " + Math.round(toque * 100) + "%)");
   assert(garra < 0.35 && toque > 0.04, "[5] la falta es una cosa de vez en cuando");
-  assert(!F.hayFalta({ accion: "quite", perfil: "garra", enArea: true }, C, () => 0), "[5] adentro del área no se cobra");
+  /* 23/oct, decisión que Rodri delegó: adentro del área la falta es PENAL, con en_area_mult de la de afuera; con en_area false no se cobra */
+  const sinArea = JSON.parse(JSON.stringify(C)); sinArea.falta.en_area = false;
+  assert(!F.hayFalta({ accion: "quite", perfil: "garra", enArea: true }, sinArea, () => 0), "[5] con en_area false, adentro del área no se cobra");
+  const enArea = (() => { const r = F.rng(3); let n = 0; for (let i = 0; i < 4000; i++) if (F.hayFalta({ accion: "quite", perfil: "garra", holgura: r() * 0.4, enArea: true }, C, r)) n++; return n / 4000; })();
+  assert(C.falta.en_area === true && Math.abs(enArea - garra * C.falta.en_area_mult) < 0.03, "[5] adentro del área se cobra (penal) con en_area_mult de la de afuera (" + Math.round(enArea * 100) + "% contra " + Math.round(garra * 100) + "%)");
   assert(!F.hayFalta({ accion: "corte", perfil: "garra" }, C, () => 0), "[5] cortar un pase no es falta");
   const justo = F.hayFalta({ accion: "quite", perfil: "estrella", holgura: 0 }, C, () => 0.15), holgado = F.hayFalta({ accion: "quite", perfil: "estrella", holgura: 0.5 }, C, () => 0.15);
   assert(justo && !holgado, "[5] el quite ganado justo es más falta que el holgado");

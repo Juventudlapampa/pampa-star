@@ -192,7 +192,9 @@
     if (!base) return false;
     var mult = F.agresividad[o.perfil] != null ? F.agresividad[o.perfil] : F.agresividad.otro;
     var justo = 1 + F.por_justo * (1 - clamp((o.holgura || 0) / F.holgura_justa, 0, 1));
-    var p = clamp(base * mult * justo * (1 + F.por_cansancio * clamp(o.cansancio || 0, 0, 1)), 0, F.max);
+    /* 23/oct, penales: adentro del área se cobra menos que afuera */
+    var area = o.enArea && F.en_area_mult != null ? F.en_area_mult : 1;
+    var p = clamp(base * mult * justo * area * (1 + F.por_cansancio * clamp(o.cansancio || 0, 0, 1)), 0, F.max);
     return (r || Math.random)() < p;
   }
   /* cerca y con ángulo, al arco; lejos, se juega rápido */

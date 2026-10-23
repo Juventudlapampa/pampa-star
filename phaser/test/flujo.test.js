@@ -187,7 +187,7 @@ const ESCENA_MS = 3200;   // lo que tarda en promedio elegir y ver la jugada
 function jugar(activo, s) {
   const rng = semilla(s), bal = balCon(activo), st = partidoNuevo(bal, rng);
   const azar = Math.random; Math.random = rng;
-  const m = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, pases: 0, centros: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0, gapsRival: [], faltasTiro: 0, ocasionesTiro: 0 };
+  const m = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, pases: 0, centros: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0, gapsRival: [], faltasTiro: 0, ocasionesTiro: 0, penales: 0 };
   let desdeAlgo = 0, desdeDecConPelota = 0, desdeRival = 0, jug = null;
   const algo = () => { m.gaps.push(desdeAlgo); desdeAlgo = 0; if (desdeRival) { m.gapsRival.push(desdeRival); desdeRival = 0; } };
   const cierraJugada = () => { if (jug) { m.jugadas++; if (jug.pase) m.conPase++; if (jug.centro) m.conCentro++; if (jug.pase || jug.centro) m.conAlguno++; } jug = null; };
@@ -206,9 +206,12 @@ function jugar(activo, s) {
     const c2 = st.mios[st.ctrl], arco = { x: st.W, y: st.H / 2 }, AR = bal.toque.area;
     const enArea = st.W - c2.x < AR.largo_px && Math.abs(c2.y - arco.y) < AR.ancho_medio_px;
     const directo = Fr.tiroLibre(c2.x, c2.y, arco, bal.frente).directo;
+    /* 23/oct, penales (decisión que Rodri delegó): como cobrarFalta, en el área solo el quite y el bloqueo, y es penal */
+    if (enArea && bal.penal.acciones.indexOf(accion) < 0) return false;
     if (bal.frente.falta.solo_a_tiro.indexOf(accion) >= 0 && !directo) return false;
     if (directo && !enArea) m.ocasionesTiro++;
     if (!Fr.hayFalta({ accion, perfil: "otro", holgura, cansancio: 0, enArea }, bal.frente, rng)) return false;
+    if (enArea) { m.penales++; m.real += ESCENA_MS; remate(P.prepararRemate(st, false, rng)); return true; }
     if (!directo) return false;   // se juega rápido: sigue la jugada
     m.faltasTiro++; m.real += ESCENA_MS;
     remate(P.prepararRemate(st, false, rng));
@@ -297,11 +300,11 @@ function jugar(activo, s) {
   return m;
 }
 function medir(activo) {
-  const tot = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0, n: 0, gapsRival: [], faltasTiro: 0, ocasionesTiro: 0 };
+  const tot = { decisiones: 0, libreMs: 0, gaps: [], gapsConPelota: [], jugadas: 0, conPase: 0, conCentro: 0, conAlguno: 0, goles: 0, golesRival: 0, firuletes: {}, toques: 0, real: 0, n: 0, gapsRival: [], faltasTiro: 0, ocasionesTiro: 0, penales: 0 };
   for (let s = 1; s <= 12; s++) {
     const m = jugar(activo, 1000 + s);
     tot.n++;
-    ["decisiones", "libreMs", "jugadas", "conPase", "conCentro", "conAlguno", "goles", "golesRival", "toques", "real", "faltasTiro", "ocasionesTiro"].forEach(k => { tot[k] += m[k]; });
+    ["decisiones", "libreMs", "jugadas", "conPase", "conCentro", "conAlguno", "goles", "golesRival", "toques", "real", "faltasTiro", "ocasionesTiro", "penales"].forEach(k => { tot[k] += m[k]; });
     tot.gaps.push(...m.gaps); tot.gapsConPelota.push(...m.gapsConPelota); tot.gapsRival.push(...m.gapsRival);
     Object.keys(m.firuletes).forEach(k => { tot.firuletes[k] = (tot.firuletes[k] || 0) + m.firuletes[k]; });
   }
@@ -316,7 +319,7 @@ function medir(activo) {
     decisiones: tot.decisiones / tot.n, goles: tot.goles / tot.n, golesRival: tot.golesRival / tot.n,
     minutos: tot.real / tot.n / 60000, firuletes: tot.firuletes, toques: tot.toques,
     medRival: gr[Math.floor(gr.length / 2)] / 1000, maxRival: gr[gr.length - 1] / 1000,
-    faltasTiro: tot.faltasTiro / tot.n, ocasionesTiro: tot.ocasionesTiro / tot.n,
+    faltasTiro: tot.faltasTiro / tot.n, ocasionesTiro: tot.ocasionesTiro / tot.n, penales: tot.penales / tot.n,
     firuletesPorPartido: Object.keys(tot.firuletes).reduce((a, k) => a + tot.firuletes[k], 0) / tot.n
   };
 }
@@ -326,7 +329,7 @@ const linea = (n, m) => console.log("MEDIDA " + n + ": " + m.porMin.toFixed(1) +
   + m.pase + "%, con centro " + m.centro + "%, con alguno de los dos " + m.alguno + "% · " + m.decisiones.toFixed(1) + " decisiones y " + m.goles.toFixed(2) + " a " + m.golesRival.toFixed(2)
   + " por partido · unos " + m.minutos.toFixed(1) + " min" + (m.toques ? " · firuletes " + JSON.stringify(m.firuletes) + ", toques " + m.toques : "")
   + " · con la pelota del rival, sin que pase nada: mediana " + m.medRival.toFixed(1) + " s, máximo " + m.maxRival.toFixed(1) + " s"
-  + " · tiros libres a tiro por partido " + m.faltasTiro.toFixed(2) + " (de " + m.ocasionesTiro.toFixed(1) + " duelos a tiro)");
+  + " · tiros libres a tiro por partido " + m.faltasTiro.toFixed(2) + " (de " + m.ocasionesTiro.toFixed(1) + " duelos a tiro) · penales a favor por partido " + m.penales.toFixed(2));
 linea("ANTES", antes); linea("DESPUÉS", despues);
 assert(despues.cadaSeg >= 3 && despues.cadaSeg <= 5, "con la pelota, una decisión cada 3 a 5 s de juego (" + despues.cadaSeg.toFixed(1) + ")");
 const topeReal = (BAL.flujo.cada_ms * LATIDO / DT + 2 * LATIDO) / 1000;
@@ -337,6 +340,8 @@ assert(despues.minutos > antes.minutos * 0.8 && despues.minutos < 6, "el partido
 /* revisión final del 23/oct */
 assert(despues.maxRival < antes.maxRival * 0.6 && despues.medRival < antes.medRival * 0.7,
   "con la pelota del rival se destraba (mediana " + antes.medRival.toFixed(1) + " → " + despues.medRival.toFixed(1) + " s, máximo " + antes.maxRival.toFixed(1) + " → " + despues.maxRival.toFixed(1) + " s)");
+/* 23/oct, penales (decisión que Rodri delegó): que se vean, sin que sea un penal por ataque */
+assert(despues.penales >= 0.1 && despues.penales <= 0.6, "SÍNTOMA: los penales a favor no salen o salen de más (" + despues.penales.toFixed(2) + " por partido)");
 assert(despues.faltasTiro >= 0.4, "SÍNTOMA: tu tiro libre directo casi no sale (" + despues.faltasTiro.toFixed(2) + " por partido)");
 
 console.log((mal ? "✗" : "✓") + " flujo: " + ok + " ok, " + mal + " mal");

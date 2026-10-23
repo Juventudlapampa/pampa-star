@@ -732,6 +732,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            tiene sus claves (quite_win, corte_win, bloqueo_win) */
         quite_win: "quite", corte_win: "quite", bloqueo_win: "quite",
         falta_a_favor: "falta_a_favor", falta_en_contra: "falta_en_contra",
+        penal_a_favor: "penal_a_favor", penal_en_contra: "penal_en_contra",
         corte: "error", pared_lose: "error", defensa_lose: "error", gambeta_lose: "error", afuera: "error",
         final: (this.st && this.st.golesMio > this.st.golesRival) ? "resultado_gana"
           : (this.st && this.st.golesMio < this.st.golesRival) ? "resultado_pierde" : "resultado_empate",

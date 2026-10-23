@@ -270,6 +270,21 @@
    "El árbitro no la dejó pasar: falta y tiro libre para ellos.",
    "Llegada tarde y tiro libre en contra. A parar bien la barrera.",
    "Falta en contra. Ahora hay que armar la barrera y aguantar."
+  ],
+  "penal_a_favor": [
+   "¡Penal! Adentro del área y el árbitro no lo dudó. Penal para {pueblo}.",
+   "¡Lo bajaron en el área! Penal, y la tiene {jugador} desde los once pasos.",
+   "Pitazo y al punto del penal. Ahora es mano a mano con el arquero de {rival}."
+  ],
+  "penal_en_contra": [
+   "Penal para {rival}. Llegada tarde adentro del área.",
+   "El árbitro señala el punto. Penal en contra: todo queda en tu arquero.",
+   "Falta en el área y penal para ellos. A adivinar el lado."
+  ],
+  "penal_errado": [
+   "¡Lo erró! El penal se fue y {pueblo} respira.",
+   "¡Afuera! El penal de {rival} no entró.",
+   "No lo metió. El penal se perdió y sigue todo igual."
   ]
  },
  "previa_fecha": {

@@ -29,7 +29,7 @@
       var st = this.st, j = st.mios[st.ctrl], C = this.BAL.frente, Fr = window.PampaFrente, self = this;
       var iArq = st.rivales.findIndex(function (r) { return r.pos === "ARQ"; }), arq = st.rivales[iArq];
       var defs = [];
-      if (!o.B) st.rivales.forEach(function (r, i) {
+      if (!o.B && !o.penal) st.rivales.forEach(function (r, i) {
         if (r.pos !== "ARQ" && i !== o.sinIdx) defs.push({ ref: i, nombre: r.nombre, numero: r.numero, x: r.x, y: r.y });
       });
       var arqF = o.B ? o.B.arquero : { x: arq.x, y: arq.y, seTira: 0 };
@@ -39,10 +39,182 @@
         arquero: { ref: iArq, nombre: arq.nombre, numero: arq.numero, x: arqF.x, y: arqF.y, seTira: arqF.seTira, nivel: st.rivalKeeperSkill || 50 }
       });
       this.frenteAbrir({
-        foto: foto, j: j, esRival: false, libre: !!o.B, aviso: o.aviso,
+        foto: foto, j: j, esRival: false, libre: !!o.B, penal: !!o.penal, aviso: o.aviso,
         menu: o.B ? C.menu_libre : C.menu_remate,
-        alFinal: function (res) { self.frenteRematar(res, !!o.B); }
+        alFinal: function (res) { if (o.penal) self.penalRematar(res); else self.frenteRematar(res, !!o.B); }
       });
+    },
+
+    /* ══ EL PENAL (decisión que Rodri delegó, 23/oct; logic/penal.js) ══
+       TU PENAL: patea quien recibió la falta, desde el punto, contra el
+       arquero solo. Los controles son los del remate de frente al arco */
+    penalMio(aviso) {
+      var st = this.st, PC = this.BAL.penal, j = st.mios[st.ctrl];
+      j.x = st.W - PC.punto_px; j.y = st.H / 2; st.pelota.x = j.x; st.pelota.y = j.y;
+      var arq = st.rivales.find(function (r) { return r.pos === "ARQ"; });
+      if (arq) { arq.x = st.W - 4; arq.y = st.H / 2; }
+      this.entrarFrente({ penal: true, aviso: aviso });
+    },
+    /* EL PENAL DE ELLOS: con tu arquero elegís para dónde tirarte mientras el
+       que patea se perfila; su postura es la pista (penal.pateadorCPU) */
+    penalRival(tiradorIdx, aviso) {
+      var st = this.st, C = this.BAL.frente, PC = this.BAL.penal, Fr = window.PampaFrente, P = window.PampaPartido, self = this;
+      var t = st.rivales[tiradorIdx], arco = { x: 0, y: st.H / 2 };
+      t.x = PC.punto_px; t.y = st.H / 2; st.pelota.x = t.x; st.pelota.y = t.y;
+      var iArq = st.mios.findIndex(function (m) { return m.pos === "ARQ"; }), arqM = st.mios[iArq];
+      arqM.x = 4; arqM.y = st.H / 2;
+      var foto = Fr.foto({
+        tirador: { x: t.x, y: t.y }, arco: arco, am: this.BAL.mundo.arco_medio,
+        arquero: { ref: iArq, nombre: arqM.nombre, numero: arqM.numero, x: arqM.x, y: arqM.y, seTira: 0, nivel: P.nivelArqueroDe(arqM.stats) }
+      });
+      var dec = window.PampaPenal.pateadorCPU((t.stats && t.stats.tiro) || 55, PC, Math.random);
+      st.portadorRival = tiradorIdx;
+      this.frenteAbrir({
+        foto: foto, j: t, esRival: true, libre: false, penal: true, aviso: aviso, cpu: dec, menu: C.menu_remate,
+        alFinal: function (res) { self.penalRivalResuelto(res, tiradorIdx); }
+      });
+    },
+    /* lo de tu arquero mientras el otro se perfila: cinco botones (1 a 5),
+       las flechas y ENTER, o tocar el arco donde te querés tirar */
+    penalArqueroUI(fr, cfg) {
+      var self = this, C = this.BAL.frente, PC = this.BAL.penal, Pn = window.PampaPenal;
+      var tactil = this.sys.game.device.input.touch;
+      fr.penalArq = true; fr.penalDir = null; fr.perfila = this.msV(PC.perfila_ms);
+      fr.lectura.setText("¡PENAL PARA ELLOS!");
+      var lado = cfg.cpu.pista.dir;
+      /* la postura: el cuerpo inclinado para el lado de la pista */
+      if (fr.tirador && (lado === "izquierda" || lado === "derecha")) fr.tirador.setAngle(lado === "izquierda" ? -7 : 7);
+      fr.dedoTxt = this.add.text(X_DEDO, 452, "SE LE VE: " + cfg.cpu.pista.texto, { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center", wordWrap: { width: 380 } }).setOrigin(0.5, 0);
+      fr.perfilaTxt = this.add.text(fr.barra.x, fr.barra.y - 6, "SE PERFILA", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0, 1);
+      [fr.dedoTxt, fr.perfilaTxt].forEach(function (o) { self.cineContent.add(o); });
+      var NOMBRES = { izquierda: "◀ IZQUIERDA", medio: "MEDIO", derecha: "DERECHA ▶", arriba: "▲ ARRIBA", abajo: "▼ ABAJO" };
+      var elegir = function (d) {
+        if (self._fr !== fr || fr.resuelto) return;
+        fr.penalDir = d;
+        fr.botones.forEach(function (o, i) {
+          var sel = o.tid === d;
+          o.b.setFillStyle(sel ? 0xffd84d : 0xf6efdc, 0.97).setStrokeStyle(sel ? 5 : 3, 0x0a1f13);
+          o.t.setText((tactil ? "" : (i + 1) + "·") + (sel ? "▶ " : "") + o.n);
+        });
+        if (fr.dice) fr.dice.setText("Te tirás " + self.penalLado(d));
+      };
+      Pn.DIRS.forEach(function (d, i) {
+        var b = self.jugadonBoton(X_BOT, 150 + i * 58, ANCHO_BOT, NOMBRES[d], 0xf6efdc, function () { elegir(d); });
+        fr.botones.push({ tid: d, b: b, t: self._jg.botones[self._jg.botones.length - 1], n: NOMBRES[d] });
+      });
+      fr.dice = this.add.text(X_BOT, 150 + 5 * 58 - 22, "Todavía no elegiste: te quedás parado", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, align: "center", wordWrap: { width: ANCHO_BOT } }).setOrigin(0.5, 0);
+      fr.ayuda = this.add.text(X_BOT - ANCHO_BOT / 2, 486, tactil ? "Tocá un lado del arco o un botón antes de que patee"
+        : "Flechas o 1 a 5 · ENTER: al medio · clic en el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, wordWrap: { width: ANCHO_BOT } }).setOrigin(0, 0);
+      [fr.dice, fr.ayuda].forEach(function (o) { self.cineContent.add(o); });
+      var tocar = function (p, sobre) {
+        if (self._fr !== fr || fr.resuelto || (sobre && sobre.length)) return;
+        var mm = self.frenteMiraDePantalla(fr, p.x, p.y);
+        if (Math.abs(mm.u) <= 1.3 && mm.h <= 1.25 && p.y < 440) elegir(Pn.dirDePunto(mm.u, mm.h, PC));
+      };
+      this.input.on("pointerdown", tocar);
+      fr.ev = [["pointerdown", tocar]];
+      if (this.input.keyboard) {
+        var tecla = function (d) { return function (ev) { if (ev && ev.preventDefault) ev.preventDefault(); elegir(d); }; };
+        fr.teclas = [["keydown-LEFT", tecla("izquierda")], ["keydown-RIGHT", tecla("derecha")], ["keydown-UP", tecla("arriba")], ["keydown-DOWN", tecla("abajo")],
+          ["keydown-ENTER", tecla("medio")], ["keydown-SPACE", tecla("medio")]];
+        ["ONE", "TWO", "THREE", "FOUR", "FIVE"].forEach(function (n, i) { fr.teclas.push(["keydown-" + n, tecla(Pn.DIRS[i])]); });
+        fr.teclas.forEach(function (p) { self.input.keyboard.on(p[0], p[1]); });
+      }
+      this.pedirMusica("jugadon");
+      this.time.delayedCall(fr.perfila, function () {
+        if (self._fr !== fr) return;
+        fr.mira = { u: cfg.cpu.mira.u, h: cfg.cpu.mira.h };
+        self.frenteGolpe(cfg.cpu.calidad);
+      });
+      this.frenteDibujar();
+    },
+    /* mientras se perfila: adónde te tirás (aro en el arco) y cuánto falta */
+    penalDibujar(fr) {
+      var g = fr.g, PC = this.BAL.penal;
+      g.clear();
+      if (fr.penalDir) {
+        var P = { izquierda: [-0.7, 0.35], derecha: [0.7, 0.35], medio: [0, 0.35], arriba: [0, 0.8], abajo: [0, 0.08] }[fr.penalDir];
+        var pm = this.frentePuntoArco(fr, P[0], P[1]);
+        g.lineStyle(7, 0x0a1f13, 0.9); g.strokeCircle(pm.x, pm.y, 20);
+        g.lineStyle(4, 0xffd84d, 1); g.strokeCircle(pm.x, pm.y, 20);
+        g.fillStyle(0xffd84d, 1); g.fillCircle(pm.x, pm.y, 5);
+      }
+      var B = fr.barra, bg = fr.barraG, f = Phaser.Math.Clamp(1 - fr.t / fr.perfila, 0, 1);
+      bg.setVisible(true).clear();
+      bg.fillStyle(0x0a1f13, 0.85); bg.fillRect(B.x - 4, B.y - 4, B.w + 8, 22);
+      bg.fillStyle(0xf6efdc, 1); bg.fillRect(B.x, B.y, B.w * f, 14);
+    },
+    /* el arquero se tira: a un costado estirado, arriba salta, abajo se agacha */
+    penalTirada(fr, f, dir, suave) {
+      var img = f.img, x = img.x, y = f.y0, ang = 0;
+      if (dir === "izquierda" || dir === "derecha") { x = this.frentePuntoArco(fr, dir === "izquierda" ? -0.72 : 0.72, 0).x; ang = dir === "izquierda" ? -55 : 55; y = f.y0 - 0.12 * img.displayHeight; }
+      else if (dir === "arriba") y = f.y0 - 0.3 * img.displayHeight;
+      else if (dir === "abajo") y = f.y0 + 0.06 * img.displayHeight;
+      if (suave) { img.setPosition(x, y).setAngle(ang); return; }
+      this.tweens.add({ targets: img, x: x, y: y, angle: ang, duration: this.msV(280), ease: "Sine.easeOut" });
+    },
+    penalLado(dir) {
+      return { izquierda: "a la IZQUIERDA", derecha: "a la DERECHA", medio: "al MEDIO", arriba: "ARRIBA", abajo: "ABAJO" }[dir] || "";
+    },
+    penalAdonde(zona) {
+      var p = zona.split("_");
+      return (p[0] === "izq" ? "a la IZQUIERDA" : p[0] === "der" ? "a la DERECHA" : "al MEDIO") + (p[1] === "alto" ? ", arriba" : ", abajo");
+    },
+    /* TU PENAL, después de la foto: el arquero ya se tiró; el cine de
+       siempre muestra el gol, la atajada o el afuera */
+    penalRematar(res) {
+      var st = this.st, P = window.PampaPartido, C = this.BAL.frente, pn = res.penal;
+      P.prepararRemate(st, null, undefined, true);
+      this._megaGrito = this.tituloDelGol();
+      if (pn.resultado === "gol" || pn.resultado === "atajada") {
+        this.zona = res.zona;
+        this.res = { outcome: pn.resultado, keeperWins: pn.resultado === "atajada" };
+      } else {
+        var gy = Math.round(Phaser.Math.Clamp(res.fin.u, -1, 1) * C.zona.gy_max);
+        this.zona = { id: pn.resultado === "palo" ? "palo" : "medio_alto", n: pn.resultado === "palo" ? "al palo" : "afuera", bonus: 0, fuera: 1, gy: gy };
+        this.res = { outcome: "afuera", keeperWins: false };
+      }
+      this.entrarCine();
+      this.planoViaje();
+    },
+    /* SU PENAL, después de la foto: afuera o al palo, saque tuyo; al arco,
+       el cine de "te rematan" con tu arquero y el porqué */
+    penalRivalResuelto(res, tiradorIdx) {
+      var st = this.st, C = this.BAL.frente, P = window.PampaPartido, pn = res.penal, self = this;
+      if (pn.resultado === "afuera" || pn.resultado === "palo") {
+        this.relatar("penal_errado", {});
+        this.frenteRivalResuelto({ resultado: pn.resultado }, tiradorIdx);
+        return;
+      }
+      var gol = pn.resultado === "gol";
+      var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
+      P.resolverAtajada(st, "atajar", null, 0, gol);
+      var porque = "Penal · te tiraste " + this.penalLado(pn.dir) + " y la pateó " + this.penalAdonde(pn.zona);
+      this.res = { outcome: gol ? "gol" : "atajada" };
+      this.zona = { id: "rival", gy: Math.round(Phaser.Math.Clamp(res.fin.u, -1, 1) * C.zona.gy_max) };
+      this._remRival = {
+        arquero: arqM,
+        revelar: function () {
+          if (gol) {
+            self.SFX && self.SFX.net && self.SFX.net();
+            self.punch("GOL DE " + String(self.nombreRival || "ELLOS").toUpperCase(), porque, 0xe3503e);
+            if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
+            if (self.efectoGol) self.efectoGol(true);
+          } else {
+            self.destello(self.uiCam, 60, 255, 255, 255);
+            self.SFX && self.SFX.gloves && self.SFX.gloves();
+            self.punch("¡ATAJASTE EL PENAL!", porque, 0x5bb8e8);
+            if (self.tribunaSaltando) self.tribunaSaltando();
+            self.SFX && self.SFX.festejo && self.SFX.festejo(900);
+          }
+        },
+        cerrar: function () {
+          self._remRival = null;
+          self.salirCine(function () { self.relatar(gol ? "gol_rival" : "arquero_mio"); });
+        }
+      };
+      this.entrarCine();
+      this.planoViaje();
     },
 
     /* EL TIRO LIBRE DE ELLOS: patea el que tenía la pelota, contra tu arco,
@@ -102,7 +274,7 @@
          queda libre y, si alguien no entra, la toma se abre (hasta min_zoom) */
       var E = K.encuadre;
       if (E) {
-        fr.lim = { izq: E.margen, der: (cfg.cpu ? W : X_BOT - ANCHO_BOT / 2) - E.margen };
+        fr.lim = { izq: E.margen, der: (cfg.cpu && !cfg.penal ? W : X_BOT - ANCHO_BOT / 2) - E.margen };
         fr.cx = (fr.lim.izq + fr.lim.der) / 2;
         var maxD = 0, maxI = 0;
         gente.forEach(function (g) {
@@ -113,7 +285,7 @@
         fr.k *= Math.max(E.min_zoom, Math.min(1, maxD ? mitad / maxD : 1, maxI ? mitad / maxI : 1));
       }
       this.frenteFondo(fr);
-      this.cineContent.add(this.add.text(18, 22, cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }));
+      this.cineContent.add(this.add.text(18, 22, cfg.penal ? "· PENAL ·" : cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }));
       var rivalDeEllos = !cfg.esRival, lista = cfg.esRival ? this.st.mios : this.st.rivales;
       /* la barrera no es la misma figura cinco veces: se alternan el lado y la altura */
       var nB = 0, altosB = K.barrera_altos || [1];
@@ -174,6 +346,7 @@
       var ahora = this.add.text(fr.barra.x + PF.dulce * fr.barra.w, fr.barra.y - 12, "AHORA", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5, 1);
       this.cineContent.add(fr.barraG); this.cineContent.add(ahora);
 
+      if (cfg.cpu && cfg.penal) { ahora.setVisible(false); this.penalArqueroUI(fr, cfg); return; }
       if (cfg.cpu) {
         /* la barra es de quien patea con la mano en el mouse: la CPU no la usa */
         fr.barraG.setVisible(false); ahora.setVisible(false);
@@ -363,6 +536,7 @@
       var nombre = function (d) { return String(d.numero != null ? d.numero : "") + " " + String(d.nombre || "").toUpperCase(); };
       var A = fr.foto.arquero, defs = fr.foto.defensores.slice().sort(function (a, b) { return a.d - b.d; });
       var cerca = defs.filter(function (d) { return Math.abs(d.u) < d.d * 0.6 + 40; }).slice(0, 5).map(nombre);
+      if (fr.penal) return fr.esRival ? "Patea " + quien + " · tu arquero: " + nombre(A) : "Patea " + quien + ", solo contra el arquero " + nombre(A);
       if (fr.esRival) return "Patea " + quien + " · tu barrera: " + (cerca.join(", ") || "nadie") + " · tu arquero: " + nombre(A);
       return (fr.libre ? "Barrera: " : "Adelante: ") + (cerca.join(", ") || "nadie") + " · arquero: " + nombre(A);
     },
@@ -414,6 +588,8 @@
 
     frenteDibujar() {
       var fr = this._fr, C = this.BAL.frente, Fr = window.PampaFrente, g = fr.g, self = this;
+      /* en el penal de ellos no se ve adónde va: eso es lo que adivinás */
+      if (fr.penalArq) { this.penalDibujar(fr); return; }
       g.clear();
       var T = C.tipos[fr.tipo];
       var L = Fr.leer(fr.foto, fr.mira, fr.tipo, C);
@@ -462,6 +638,11 @@
       var nom = function (j) { return "EL " + String(j.numero != null ? j.numero : "") + " · " + String(j.nombre || "").toUpperCase(); };
       var txt = L.fuera ? "SE VA AFUERA" : L.tapa ? "LO TAPA " + nom(L.tapa) : L.roza ? "LO PUEDE ROZAR " + nom(L.roza)
         : L.margen < 0 ? "AHÍ LLEGA EL ARQUERO" : L.margen > 0.25 ? "LIBRE · lejos del arquero" : "LIBRE · el arquero se estira";
+      /* en tu penal el arquero todavía no se movió: se lee adónde va */
+      if (fr.penal && !fr.cpu && !L.fuera) {
+        var PC = this.BAL.penal;
+        txt = "PENAL · " + this.penalAdonde(window.PampaPenal.zonaDe(L.mira.u, L.mira.h, PC)).toUpperCase() + (Math.abs(L.mira.u) > PC.esquina_desde ? " · AL ÁNGULO" : "");
+      }
       if (fr.cpu) txt = fr.esRival ? "¡TE PATEAN EL TIRO LIBRE!" : txt;
       if (fr.lectura.text !== txt) fr.lectura.setText(txt);
       /* la barra del perfil */
@@ -485,17 +666,31 @@
       var j = fr.j;
       var res = Fr.resolver(fr.foto, { mira: fr.mira, tipo: fr.tipo, calidad: q }, { tiro: (j.stats && j.stats.tiro) || 55, aguanteFrac: (j.aguante != null ? j.aguante : this.BAL.aguante.max) / this.BAL.aguante.max }, C, Math.random);
       res.calidad = q;
+      /* el penal lo decide el arquero que se tiró (logic/penal.js): el tuyo
+         donde elegiste, el de ellos adivina o se tira a la suerte */
+      if (fr.penal) {
+        var Pn = window.PampaPenal, PC = this.BAL.penal;
+        var dirA = fr.penalArq ? (fr.penalDir || "medio") : Pn.arqueroCPU(fr.mira, fr.foto.arquero.nivel, PC, Math.random).dir;
+        res.penal = Pn.resolver({ u: res.fin.u, h: res.fin.h, fuera: res.resultado === "afuera", palo: res.resultado === "palo",
+          tipo: C.tipos[fr.tipo], dir: dirA, nivel: fr.foto.arquero.nivel }, PC, Math.random);
+      }
       this.frenteFrame(fr);
       this.SFX && this.SFX.kickFuerte && this.SFX.kickFuerte();
-      fr.lectura.setText(C.tipos[fr.tipo].n + " · " + (q > 0.75 ? "¡bien perfilado!" : q > 0.35 ? "más o menos parado" : "a destiempo"));
-      if (fr.dice) fr.dice.setText(C.tipos[fr.tipo].dice);
+      fr.lectura.setText(fr.penalArq ? "¡PATEÓ!" : C.tipos[fr.tipo].n + " · " + (q > 0.75 ? "¡bien perfilado!" : q > 0.35 ? "más o menos parado" : "a destiempo"));
+      if (fr.dice) fr.dice.setText(fr.penalArq ? "" : C.tipos[fr.tipo].dice);
+      if (fr.penal) {
+        if (fr.dedoTxt) fr.dedoTxt.setText(fr.penalArq ? "Te tirás " + this.penalLado(res.penal.dir) : "El arquero se tira " + this.penalLado(res.penal.dir));
+        if (fr.perfilaTxt) fr.perfilaTxt.setVisible(false);
+        fr.barraG.setVisible(false);
+      }
       /* la barrera que salta y el arquero que se adelantó se ven ahora */
       /* en MOVIMIENTO SUAVE es corte: la barrera queda arriba y el arquero, donde fue */
       var suave = !!(this.movimientoSuave && this.movimientoSuave());
       fr.figs.forEach(function (f) {
         var alto = f.y0 - 0.125 * f.img.displayHeight, xa = f.arq ? self.frentePuntoArco(fr, res.uArquero, 0).x : 0;
         if (f.d.barrera && fr.foto.salta) { if (suave) f.img.y = alto; else self.tweens.add({ targets: f.img, y: alto, duration: self.msV(220), yoyo: true }); }
-        if (f.arq && fr.foto.arquero.seTira) { if (suave) f.img.x = xa; else self.tweens.add({ targets: f.img, x: xa, duration: self.msV(260), ease: "Sine.easeOut" }); }
+        if (f.arq && fr.penal) self.penalTirada(fr, f, res.penal.dir, suave);
+        else if (f.arq && fr.foto.arquero.seTira) { if (suave) f.img.x = xa; else self.tweens.add({ targets: f.img, x: xa, duration: self.msV(260), ease: "Sine.easeOut" }); }
       });
       /* la pelota sale por el camino de verdad: hasta el que la tapa, o un
          tramo, y corte seco al cine */
@@ -613,6 +808,10 @@
       if (!sobre || !o.infractor || o.infractor.pos === "ARQ") return false;
       var arco = o.aFavor ? { x: st.W, y: st.H / 2 } : { x: 0, y: st.H / 2 };
       var enArea = Math.abs(arco.x - sobre.x) < A.largo_px && Math.abs(sobre.y - arco.y) < A.ancho_medio_px;
+      /* 23/oct, decisión que Rodri delegó: adentro del área, el quite o el
+         bloqueo con falta es PENAL (balance.penal, flags.penales) */
+      var penal = enArea && !!(this.FLAGS.penales && window.PampaPenal && this.BAL.penal);
+      if (enArea && (!penal || this.BAL.penal.acciones.indexOf(o.accion) < 0)) return false;
       var tl = Fr.tiroLibre(sobre.x, sobre.y, arco, C);
       /* la falta táctica (te cierra o lo dejaste pagando) solo a tiro del arco */
       if ((C.falta.solo_a_tiro || []).indexOf(o.accion) >= 0 && !tl.directo) return false;
@@ -622,6 +821,13 @@
       var nom = function (j) { return j.numero + " " + String(j.nombre || "").toUpperCase(); };
       var del = function (j) { return j.esVos ? "TUYA" : "DEL " + nom(j); };
       var aQuien = function (j) { return j.esVos ? "VOS" : "EL " + nom(j); };
+      if (penal) {
+        this.relatar(o.aFavor ? "penal_a_favor" : "penal_en_contra", {});
+        this.quitarDuelo(); this.limpiarMenu();
+        var avisoP = "¡PENAL! FALTA " + del(o.infractor) + " SOBRE " + aQuien(sobre) + (o.aFavor ? "\nPatea " + (sobre.esVos ? "VOS" : nom(sobre)) : "\nAtajalo con tu arquero");
+        if (o.aFavor) this.penalMio(avisoP); else this.penalRival(st.portadorRival, avisoP);
+        return true;
+      }
       var aviso = "¡FALTA " + del(o.infractor) + " SOBRE " + aQuien(sobre) + "!\nTiro libre " + (o.aFavor ? "a " + tl.metros + " m del arco" : "para ellos a " + tl.metros + " m");
       this.relatar(o.aFavor ? "falta_a_favor" : "falta_en_contra", {});
       this.quitarDuelo(); this.limpiarMenu();

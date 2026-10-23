@@ -1196,7 +1196,9 @@
       { id: "despejar", n: "DESPEJAR", ico: "", poder: base + 8, riesgo: "más seguro · pelota dividida" }
     ];
   }
-  function resolverAtajada(st, eleccion, rng, bonus) {
+  /* esGol: el resultado ya decidido afuera (el penal, logic/penal.js); el
+     estado del partido se mueve igual que con el duelo */
+  function resolverAtajada(st, eleccion, rng, bonus, esGol) {
     rng = rng || Math.random;
     var ops = opcionesArquero(st);
     var op = ops.find(function (o) { return o.id === eleccion; }) || ops[0];
@@ -1204,7 +1206,7 @@
     var atkRiv = poderRival(st) + 12;
     gastar(st, "rival", st.bal.aguante.costo_tiro);
     saltoReloj(st, rng);
-    var ataja = rng() < Duel.duelChance(op.poder, atkRiv, st.bal.duelo);
+    var ataja = esGol != null ? !esGol : rng() < Duel.duelChance(op.poder, atkRiv, st.bal.duelo);
     if (!ataja) { st.golesRival++; kickoff(st, "mia"); return { golRival: true, eleccion: eleccion }; }
     if (eleccion === "despejar") {
       /* dividida al medio: 50/50 */

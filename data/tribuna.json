@@ -212,6 +212,22 @@
       ]
     },
     {
+      "evento": "penal_a_favor",
+      "intercambios": [
+        { "a": "¡Penal! Ahora que patee con calma.", "b": "Yo no puedo mirar. Contame vos." },
+        { "a": "Lo bajaron adentro del área. Clarito.", "b": "Que elija un palo y no lo cambie." },
+        { "a": "Penal. El arquero se va a tirar a un lado, siempre.", "b": "Entonces que la pique al medio, como en el potrero." }
+      ]
+    },
+    {
+      "evento": "penal_en_contra",
+      "intercambios": [
+        { "a": "Penal en contra. Que el arquero lo mire a los ojos.", "b": "Que se tire para algún lado, por lo menos." },
+        { "a": "Fijate cómo se para el que patea. Siempre avisa.", "b": "Yo me fijo en los botines, Nelda." },
+        { "a": "Ahora todo depende del uno.", "b": "Dale, que este lo ataja. Lo siento." }
+      ]
+    },
+    {
       "evento": "quite",
       "intercambios": [
         {
