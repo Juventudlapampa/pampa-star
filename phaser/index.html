@@ -2050,8 +2050,13 @@
      red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
      RE-RASTERIZA todos los textos vivos. */
+  /* ola 3: se espera a las familias que nombra balance.tipografia (display y
+     texto), no a una lista escrita acá: esperaba a Press Start 2P, ya
+     descartada, y no a Archivo Black, la del marcador */
+  const familiasDe = T => [T.display, T.texto].join(",").split(",").map(f => f.trim().replace(/^'|'$/g, ""))
+    .filter(f => f && !/^(sans-serif|serif|monospace|cursive)$/.test(f));
   const pFuentes = Promise.race([
-    Promise.all([document.fonts.load("12px 'Press Start 2P'"), document.fonts.load("12px 'Pixelify Sans'", "aB5"), document.fonts.load("12px 'VT323'")]),
+    pBal.then(b => Promise.all(familiasDe((b && b.tipografia) || BALANCE_FALLBACK.tipografia).map(f => document.fonts.load("12px '" + f + "'", "aB5")))),
     new Promise(r=>setTimeout(r, 8000))
   ]).catch(()=>null).then((v)=>{ unDatoMas(); return v; });
   /* la red del fix: cuando las fuentes terminan de llegar (aunque sea tarde),

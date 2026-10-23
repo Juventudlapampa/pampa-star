@@ -60,11 +60,14 @@
        durante `latigazo_ms` y recién ahí recupera velocidad: ese contraste
        entre la pausa y el latigazo es el golpe.
 
-       No hace nada si el escalón es 1: el trámite no se congela. */
+       No hace nada si el escalón es 1: el trámite no se congela.
+       La fuerza es "gol", "fuerte" o "chico", o los ms que ya midió quien
+       llama (el freno del corte del bloque B: 90, o 144 en el tiro). */
     hitstop: function (sc, fuerza, escalon) {
       if (escalon === 1) return 0;
       var C = cfg(sc);
-      var ms = Math.round((fuerza === "gol" ? C.hit_gol : fuerza === "fuerte" ? C.hit_fuerte : C.hit_chico) * C.k);
+      var base = typeof fuerza === "number" ? fuerza : fuerza === "gol" ? C.hit_gol : fuerza === "fuerte" ? C.hit_fuerte : C.hit_chico;
+      var ms = Math.round(base * C.k);
       if (ms <= 0) return 0;
       if (sc._enHitstop) return 0;                 // no se apilan
       sc._enHitstop = true;

@@ -4163,7 +4163,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            0,6 s antes del negro. Se queda hasta que se lee (desenlace_leer_ms
            cuenta desde que sale el cartel, con la bajada entrando) */
         if (RR) luego(Math.max(this.msV(C.desenlace_hold_ms), C.desenlace_leer_ms), RR.cerrar);
-        else if (res.outcome !== "gol") luego(this.msV(C.desenlace_hold_ms), () => this.salirCine());
+        else if (res.outcome !== "gol") luego(this.msV(C.desenlace_hold_ms), () => {
+          /* el porqué del desenlace se veía 625 ms (388 en RÁPIDA): sigue
+             como aviso, con el tiempo de lectura de los avisos */
+          const sub = this.cineSub && this.cineSub.text;
+          this.salirCine();
+          if (sub) this.avisar(sub, { clave: "desenlace" });
+        });
       }
     });
     this.SFX && this.SFX.crowd(Math.round(tFreeze * 0.9));

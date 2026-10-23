@@ -69,5 +69,24 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   console.log("[3] Press Start 2P fuera de las candidatas, con el motivo escrito");
 })();
 
+/* ---------- [4] LA CARGA ESPERA A LA FAMILIA DE DISPLAY (ola 3) ----------
+   index.html esperaba a Press Start 2P (descartada) y no a Archivo Black: con
+   red lenta, el marcador salía con la de reserva. Las familias que se esperan
+   salen de balance.tipografia. */
+(function () {
+  var i = HTML.indexOf("const pFuentes"), bloque = i >= 0 ? HTML.slice(i, i + 600) : "";
+  assert(i >= 0, "index.html tiene la espera de las fuentes (pFuentes)");
+  assert(/tipografia/.test(bloque) && /pBal/.test(bloque), "pFuentes espera a las familias de balance.tipografia, después de leer el balance");
+  assert(bloque.indexOf("Press Start") < 0, "pFuentes no nombra a Press Start 2P");
+  var m = HTML.match(/const familiasDe = (T => [^\n]+\n[^\n]+);/);
+  assert(!!m, "familiasDe saca las familias de display y texto");
+  if (m) {
+    var fam = new Function("return (" + m[1] + ")")()(T);
+    assert(fam.indexOf(T.display.split(",")[0].trim().replace(/'/g, "")) >= 0 && fam.indexOf("VT323") >= 0 && fam.indexOf("monospace") < 0,
+      "con el balance de hoy espera a " + T.display.split(",")[0] + " y VT323, sin las genéricas (" + fam.join(", ") + ")");
+  }
+  console.log("[4] la carga espera a las familias del balance");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);
