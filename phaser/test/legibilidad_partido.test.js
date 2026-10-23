@@ -383,5 +383,40 @@ function contrasteProt(a, b) {
   console.log("[7] " + botones.length + " botones de ★ ESPECIAL vestidos en vuelo: la cara cae en su caja de " + CZ.lista.w + " al aterrizar");
 })();
 
+/* ---------- [8] revisión del 23/oct: el SÚPER TIRO no pisa a PASE ni a TIRO ----------
+   Al abrir la cruz, PASE y TIRO arrancaban 30 px corridos hacia el centro (al
+   86%) y pasaban por debajo de la caja del SÚPER TIRO: 10 px de solape medido
+   con getBounds en la página. Se mide la caja de cada botón en cada cuadro del
+   vuelo, desde que abre hasta que aterriza, contra la del centro. */
+(function () {
+  var E = escena(["phaser/scenes/feel_ui.js"], true), s = E.s;
+  s.game.registry.set("balance", BAL);
+  SITUACIONES.filter(function (x) { return x.comoViene; })[0].armar(s);
+  var c = centro(s);
+  var rects = s.menuLayer.list.filter(function (o) { return o.type === "Rectangle" && !o.destruido && o.input && o.input.enabled && o !== c && o.height === CZ.W[3]; });
+  var caja = function (o) { var sc = o.scale != null ? o.scale : 1; return { x0: o.x - o.width * sc / 2, x1: o.x + o.width * sc / 2 }; };
+  var cc = caja(c), peor = -1e9, cuadros = 0;
+  var medir = function () { cuadros++; rects.forEach(function (r) { var b = caja(r); peor = Math.max(peor, Math.min(b.x1, cc.x1) - Math.max(b.x0, cc.x0)); }); };
+  var mov = rects.filter(function (r, k) { return r.x !== [CZ.W[0], CZ.E[0]][k]; }).length;
+  medir();
+  /* el vuelo: cada tween de a pasos, como cuadros */
+  for (var i = 0; i < E.tweens.length; i++) {
+    var tw = E.tweens[i].cfg, objs = [].concat(tw.targets).filter(function (t) { return rects.indexOf(t) >= 0; });
+    if (!objs.length) continue;
+    var desde = objs.map(function (o) { return { x: o.x, scale: o.scale != null ? o.scale : 1 }; });
+    for (var p = 1; p <= 10; p++) {
+      objs.forEach(function (o, k) {
+        if (typeof tw.x === "number") o.x = desde[k].x + (tw.x - desde[k].x) * p / 10;
+        if (typeof tw.scale === "number") o.scale = desde[k].scale + (tw.scale - desde[k].scale) * p / 10;
+      });
+      medir();
+    }
+    if (tw.onComplete) tw.onComplete();
+  }
+  assert(rects.length === 2 && mov === 2, "control: PASE y TIRO entran volando (" + rects.length + " botones, " + mov + " corridos al abrir)");
+  assert(peor < 0, "SÍNTOMA: en el vuelo PASE o TIRO se meten " + Math.round(peor) + " px debajo del SÚPER TIRO");
+  console.log("[8] PASE y TIRO entran desde afuera: en " + cuadros + " cuadros del vuelo quedan a " + Math.round(-peor) + " px o más del SÚPER TIRO");
+})();
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

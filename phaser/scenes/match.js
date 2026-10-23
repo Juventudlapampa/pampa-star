@@ -2657,8 +2657,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const [x, y, w, h] = caja;
       const bg = op.bloqueada ? 0x333d36 : (op.fondo || 0xf6efdc);
       const r = this.add.rectangle(x, y, w, h, bg, 0.97).setStrokeStyle(2, 0x0a1f13);
-      /* B2 · la apertura del menú también lleva anticipación y rebote */
-      if (window.PampaFeel) window.PampaFeel.aparecer(this, r, { x: x, y: y, scale: 1, desdeX: 480 }, 2);
+      /* B2 · la apertura del menú también lleva anticipación y rebote.
+         Revisión del 23/oct: PASE y TIRO arrancaban 30 px hacia el centro y
+         pasaban por debajo del SÚPER TIRO (10 px de solape, medido con
+         getBounds al abrir): los de los costados entran desde afuera */
+      const desdeX = dir === "W" ? 0 : (dir === "E" ? 960 : 480);
+      if (window.PampaFeel) window.PampaFeel.aparecer(this, r, { x: x, y: y, scale: 1, desdeX: desdeX }, 2);
       this.menuLayer.add(r);
       /* bloqueado se ve por TEXTURA (un rayado dibujado: el glifo ▨ no está
          en las tipografías del juego) + el motivo escrito, no solo por el
