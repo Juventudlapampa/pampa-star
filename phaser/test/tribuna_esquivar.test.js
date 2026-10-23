@@ -179,5 +179,36 @@ const EVENTO = TRIBUNA.dialogos[0].evento;
   console.log("[7] la tribuna no repite una frase hasta haber usado las otras de su evento (" + TRIBUNA.dialogos.length + " eventos)");
 })();
 
+/* ---------- [8] revisión del 23/oct: las viñetas tampoco ----------
+   El cut-in del SÚPER TIRO y "te rematan" van en estado ESCENA, no en CINE:
+   los globos seguían a la vista encima del cut-in y del rematador. Toda
+   entrada a ESCENA los calla, y lo que comenten sale al cerrar la viñeta. */
+(function () {
+  const sc = escena();
+  T.montar(sc);
+  assert(T.comentar(sc, EVENTO) === true && sc._tribuna.cont.alpha === 1, "control: en el partido comentan");
+  const fuentes = ["match.js", "escenas_v9.js", "toma_remate.js"].map(f => [f, fs.readFileSync(path.join(__dirname, "..", "scenes", f), "utf8")]);
+  let entradas = 0;
+  fuentes.forEach(([f, src]) => {
+    const re = /this\.estado = "ESCENA";/g;
+    let m;
+    while ((m = re.exec(src))) {
+      entradas++;
+      const despues = src.slice(m.index, m.index + 500);
+      assert(/PampaTribunaUI\.callar\(this\)/.test(despues), "SÍNTOMA: una entrada a ESCENA deja los globos a la vista (" + f + ", carácter " + m.index + ")");
+    }
+  });
+  assert(entradas >= 4, "control: se encontraron las entradas a ESCENA (_abrirEscena, cutInEspecial, escenaCine, la toma del remate): " + entradas);
+  const MATCH = fuentes[0][1];
+  const cerrar = MATCH.slice(MATCH.indexOf("  cerrarEscena(alFinal) {"), MATCH.indexOf("  cerrarEscena(alFinal) {") + 1400);
+  assert(/this\.estado = "LIBRE";\s*\r?\n\s*if \(window\.PampaTribunaUI\) window\.PampaTribunaUI\.soltar\(this\);/.test(cerrar), "al cerrar la viñeta sale lo que comentaron (match.js, cerrarEscena)");
+  T.callar(sc);
+  sc.estado = "ESCENA";
+  assert(T.comentar(sc, EVENTO) === false && sc._tribuna.cont.alpha === 0, "SÍNTOMA: lo que comentan durante una viñeta sale encima de la viñeta");
+  sc.estado = "LIBRE";
+  assert(T.soltar(sc) === true && sc._tribuna.cont.alpha === 1, "al volver el partido sale lo que comentaron en la viñeta");
+  console.log("[8] en las " + entradas + " entradas a ESCENA se callan y al cerrar la viñeta comentan");
+})();
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

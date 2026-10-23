@@ -30,12 +30,15 @@
           "b": "Vos dijiste por adentro, Nelda. Pero bueno."
         },
         {
-          "a": "Fue rebote. No le pongas moño.",
-          "b": "Rebote o no, yo lo grité igual, mirá."
+          "a": "Entró. No le pongas moño, que falta.",
+          "b": "Moño o no, yo lo grité igual, mirá."
         },
         {
           "a": "Gol nuestro. Ahora hay que aguantar la cabeza.",
-          "b": "Dejame respirar un ratito, aunque sea."
+          "b": "Dejame respirar un ratito, aunque sea.",
+          "si": {
+            "va": "ganando"
+          }
         },
         {
           "a": "Justo cuando ibas a comprar. Sentate, Tuli.",
@@ -44,6 +47,20 @@
         {
           "a": "Le sobró tiempo y no se apuró. Eso es oficio.",
           "b": "Me apuré: ya festejaba y no había entrado."
+        },
+        {
+          "a": "Empatamos. Ahora a buscar el otro.",
+          "b": "Me volvió el alma al cuerpo, Nelda.",
+          "si": {
+            "va": "empatando"
+          }
+        },
+        {
+          "a": "Descontamos. Todavía hay partido.",
+          "b": "Uno más y festejo con dos choripanes.",
+          "si": {
+            "va": "perdiendo"
+          }
         }
       ]
     },
@@ -55,12 +72,16 @@
           "b": "No me expliques. Dejame sufrir en paz."
         },
         {
-          "a": "Se lo veía venir hace diez minutos.",
+          "a": "Se lo veía venir. Dejaron un hueco atrás.",
           "b": "Vos lo viste. Yo estaba en la cola del pan."
         },
         {
           "a": "Uno solo no pierde un partido.",
-          "b": "Igual me duele el pecho, te aviso."
+          "b": "Igual me duele el pecho, te aviso.",
+          "si": {
+            "va": "perdiendo",
+            "por": 1
+          }
         },
         {
           "a": "Nos ganaron la segunda pelota. Otra vez.",
@@ -68,11 +89,28 @@
         },
         {
           "a": "Queda mucho. No te vayas del partido.",
-          "b": "La levanto, pero el mate lo dejo un rato."
+          "b": "La levanto, pero el mate lo dejo un rato.",
+          "si": {
+            "antes_del": 70
+          }
         },
         {
-          "a": "Ese gol lo hicimos nosotros, no ellos.",
+          "a": "Ese gol lo regalamos. Nadie nos apuró.",
           "b": "Bajá la voz, que te escucha el equipo."
+        },
+        {
+          "a": "Nos empataron. A empezar de nuevo.",
+          "b": "Y yo que ya tenía el grito guardado.",
+          "si": {
+            "va": "empatando"
+          }
+        },
+        {
+          "a": "Seguimos arriba. Que no se desarme el fondo.",
+          "b": "Arriba, pero con el corazón en la boca.",
+          "si": {
+            "va": "ganando"
+          }
         }
       ]
     },
@@ -96,12 +134,41 @@
           "b": "Aplaudo, pero sentado. Se me fue la sangre."
         },
         {
-          "a": "Tercera que ataja. Va a terminar cansado él.",
+          "a": "Si sigue así, va a terminar cansado él.",
           "b": "Que atajen ellos un rato, digo yo."
         },
         {
           "a": "No la soltó. Con este viento, no es poco.",
           "b": "Menos mal, porque yo ya me paraba."
+        }
+      ]
+    },
+    {
+      "evento": "atajada_rival",
+      "intercambios": [
+        {
+          "a": "Se la sacaron. Bien pegada, igual.",
+          "b": "Yo ya la gritaba, Nelda. Qué bronca."
+        },
+        {
+          "a": "Le dio al cuerpo. Había que cruzarla.",
+          "b": "Se la dejó servida, pobre."
+        },
+        {
+          "a": "Bien tapada. Hay que reconocerlo.",
+          "b": "Reconocelo vos. Yo no reconozco nada."
+        },
+        {
+          "a": "La próxima, abajo y al palo.",
+          "b": "La próxima que me avisen y no miro."
+        },
+        {
+          "a": "El fondo rival está en su tarde.",
+          "b": "Que se le termine la tarde, digo yo."
+        },
+        {
+          "a": "Tiro al arco, por lo menos. Así se empieza.",
+          "b": "Para mí entraba. Juro que entraba."
         }
       ]
     },
@@ -138,7 +205,7 @@
       "evento": "error",
       "intercambios": [
         {
-          "a": "Ese pase no existía. Se lo inventó.",
+          "a": "Esa jugada no existía. Se la inventó.",
           "b": "Todos erramos. Yo salé el asado el domingo."
         },
         {
@@ -147,11 +214,21 @@
         },
         {
           "a": "Se durmió. Le pasaron por al lado.",
-          "b": "Le pasó lo que a mí en la siesta."
+          "b": "Le pasó lo que a mí en la siesta.",
+          "si": {
+            "jugada": [
+              "gambeta_lose"
+            ]
+          }
         },
         {
-          "a": "La perdimos solos, sin que nos la saquen.",
-          "b": "Eso duele más que el gol, te digo."
+          "a": "La tiramos afuera sin que nadie moleste.",
+          "b": "Eso duele más que un gol, te digo.",
+          "si": {
+            "jugada": [
+              "afuera"
+            ]
+          }
         },
         {
           "a": "Tranquilo, que ya va a salir una bien.",
@@ -159,7 +236,12 @@
         },
         {
           "a": "Le pegó de zurda teniendo la derecha.",
-          "b": "Bueno, alguna vez le va a entrar."
+          "b": "Bueno, alguna vez le va a entrar.",
+          "si": {
+            "jugada": [
+              "afuera"
+            ]
+          }
         }
       ]
     },
@@ -225,8 +307,11 @@
       "evento": "perdiendo_final",
       "intercambios": [
         {
-          "a": "Faltan diez. Con uno estamos de nuevo adentro.",
-          "b": "Diez minutos y un milagro, más bien."
+          "a": "Queda poco. Con uno estamos de nuevo adentro.",
+          "b": "Poco tiempo y un milagro, más bien.",
+          "si": {
+            "por": 1
+          }
         },
         {
           "a": "Todos arriba. No queda otra.",
@@ -234,7 +319,10 @@
         },
         {
           "a": "Si empatamos, valió la tarde.",
-          "b": "Yo me conformo con un tiro al arco."
+          "b": "Yo me conformo con un tiro al arco.",
+          "si": {
+            "por": 1
+          }
         },
         {
           "a": "No la revoleen. Jueguen tranquilos.",
@@ -262,7 +350,7 @@
           "b": "Entonces que no toque nadie la pelota."
         },
         {
-          "a": "Un empate afuera no está mal.",
+          "a": "Un empate así no está mal.",
           "b": "Decíselo a mi estómago, a ver si entiende."
         },
         {
@@ -271,7 +359,10 @@
         },
         {
           "a": "Se están mirando. Nadie se anima.",
-          "b": "Como en el baile de Victorica, igualito."
+          "b": "Como en el baile de Victorica, igualito.",
+          "si": {
+            "hicimos": false
+          }
         },
         {
           "a": "Si sigue así, lo firmo.",
@@ -284,15 +375,21 @@
       "intercambios": [
         {
           "a": "Terminó. Y no nos hicieron ni una clara.",
-          "b": "Ahora sí. Ahora sí lo grito."
+          "b": "Ahora sí. Ahora sí lo grito.",
+          "si": {
+            "nos_hicieron": false
+          }
         },
         {
           "a": "Ganamos, y encima jugando bien.",
           "b": "Yo me vuelvo a casa con otra cara."
         },
         {
-          "a": "Sufrido, pero de local se gana así.",
-          "b": "Sufrido para vos. Yo casi me muero."
+          "a": "Sufrido, pero estos se ganan así.",
+          "b": "Sufrido para vos. Yo casi me muero.",
+          "si": {
+            "por": 1
+          }
         },
         {
           "a": "Le ganamos al viento y a ellos.",
@@ -309,6 +406,41 @@
       ]
     },
     {
+      "evento": "resultado_empate",
+      "intercambios": [
+        {
+          "a": "Terminó igual. Un punto es un punto.",
+          "b": "Un punto y medio corazón, me queda."
+        },
+        {
+          "a": "Empate. No le sirve del todo a nadie.",
+          "b": "A mí sí: me voy con el choripán adentro."
+        },
+        {
+          "a": "Se repartió. Estuvo para los dos.",
+          "b": "Para mí lo merecíamos, Nelda."
+        },
+        {
+          "a": "Nos faltó el último pase. Nada más.",
+          "b": "El último y el anteúltimo también."
+        },
+        {
+          "a": "Cero a cero y sin que nos lastimen.",
+          "b": "Sin goles y yo con la garganta rota.",
+          "si": {
+            "hicimos": false
+          }
+        },
+        {
+          "a": "Fue ida y vuelta. Lindo para mirar.",
+          "b": "Lindo para vos. Yo no pude mirar.",
+          "si": {
+            "hicimos": true
+          }
+        }
+      ]
+    },
+    {
       "evento": "resultado_pierde",
       "intercambios": [
         {
@@ -317,11 +449,17 @@
         },
         {
           "a": "Nos faltó gol, nada más.",
-          "b": "Nos faltó todo, Nelda. Seamos sinceros."
+          "b": "Nos faltó todo, Nelda. Seamos sinceros.",
+          "si": {
+            "por": 1
+          }
         },
         {
           "a": "El equipo dejó las piernas. Eso lo vi.",
-          "b": "Las piernas sí. El arco no lo vieron."
+          "b": "Las piernas sí. El arco no lo vieron.",
+          "si": {
+            "hicimos": false
+          }
         },
         {
           "a": "Hay que aplaudir igual. Salieron a jugar.",
@@ -338,5 +476,6 @@
       ]
     }
   ],
-  "_revision": "Revisado adversarialmente contra data/relatos.json: cinco lineas chocaban casi textualmente con las del RELATOR (son dos voces distintas y no pueden decir lo mismo), y habia repeticiones internas — el Tuli hablaba de gritar en cuatro de sus seis lineas del gol, y dos intercambios de atajada eran el mismo. Ninguna linea pasa los 60 caracteres. · A1 (19/ago): Nelda y el Tuli ya no usan retratos prestados del banco de futbolistas — tienen el suyo."
+  "_revision": "Revisado adversarialmente contra data/relatos.json: cinco lineas chocaban casi textualmente con las del RELATOR (son dos voces distintas y no pueden decir lo mismo), y habia repeticiones internas — el Tuli hablaba de gritar en cuatro de sus seis lineas del gol, y dos intercambios de atajada eran el mismo. Ninguna linea pasa los 60 caracteres. · A1 (19/ago): Nelda y el Tuli ya no usan retratos prestados del banco de futbolistas — tienen el suyo.",
+  "_si": "23/oct · LA TRIBUNA MIRA EL MARCADOR. Un intercambio puede traer \"si\" y solo sale cuando vale en ese momento (el marcador ya cuenta el gol que se comenta). Claves: va (ganando, empatando o perdiendo; uno o una lista), por (la diferencia de goles exacta), hicimos y nos_hicieron (true: al menos un gol; false: ninguno), antes_del (minuto) y jugada (las situaciones del relator que lo disparan: afuera, gambeta_lose...). Sin \"si\", vale siempre. Cada evento tiene que tener siempre al menos dos que valgan (lo vigila phaser/test/tribuna_marcador.test.js)."
 }

@@ -184,6 +184,7 @@
 
       /* --- el corte a la toma --- */
       this.estado = "ESCENA";
+      if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
       this.quitarDuelo(); this.limpiarMenu();
       this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
       this.cineLayer.setVisible(true);

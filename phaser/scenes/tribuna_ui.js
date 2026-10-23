@@ -46,6 +46,7 @@
         orden: {},           // el orden barajado de cada evento
         dichos: {},          // cuántos dijo cada evento en este partido
         ultimo: {},          // el último intercambio de cada evento
+        ronda: {},           // los que ya salieron en esta vuelta de cada evento
         cont: sc.add.container(0, 0),
         globos: []
       };
@@ -81,13 +82,15 @@
 
     /* pinta un intercambio para un evento. `evento` es la misma clave que usa
        el relator (gol, atajada, quite...), así que engancharlo es una línea. */
-    comentar: function (sc, evento) {
+    /* jugada: la situación del relator que lo disparó (afuera, arquero_mio...) */
+    comentar: function (sc, evento, jugada) {
       var t = sc._tribuna;
       if (!t) return false;
       /* revisión del 22/oct: durante el cine no se charla encima; lo último
          que comentaron sale cuando vuelve el partido (soltar). Lo mismo en
-         EL TOQUE (segunda revisión del 22/oct) */
-      if (sc.estado === "CINE" || sc.estado === "TOQUE") { t.pendiente = evento; return false; }
+         EL TOQUE (segunda revisión del 22/oct) y en las viñetas, que van
+         en ESCENA: te rematan y el cut-in del SÚPER TIRO (23/oct) */
+      if (sc.estado === "CINE" || sc.estado === "TOQUE" || sc.estado === "ESCENA") { t.pendiente = { evento: evento, jugada: jugada }; return false; }
       var bloque = t.data.dialogos.find(function (d) { return d.evento === evento; });
       if (!bloque || !bloque.intercambios.length) return false;
       var n = bloque.intercambios.length;
@@ -96,9 +99,21 @@
         orden = t.orden[evento] = [];
         for (var k = 0; k < n; k++) orden.splice(Math.floor(Math.random() * (k + 1)), 0, k);
       }
-      var dichos = t.dichos[evento] || 0;
-      var i = orden[dichos % n];
-      t.dichos[evento] = dichos + 1;
+      /* 23/oct · LA TRIBUNA MIRA EL MARCADOR: solo los que valen ahora, y
+         entre esos el que no salió en esta vuelta (la rueda sigue siendo
+         la misma para todos: un intercambio no vuelve antes que los otros) */
+      var aptos = orden.filter(function (k) { return vale(bloque.intercambios[k], sc.st, jugada); });
+      if (!aptos.length) return false;
+      var ronda = t.ronda[evento] || (t.ronda[evento] = []);
+      var libres = aptos.filter(function (k) { return ronda.indexOf(k) < 0; });
+      if (!libres.length) {
+        ronda.length = 0;
+        libres = aptos.filter(function (k) { return k !== t.ultimo[evento]; });
+        if (!libres.length) libres = aptos;
+      }
+      var i = libres[0];
+      ronda.push(i);
+      t.dichos[evento] = (t.dichos[evento] || 0) + 1;
       t.ultimo[evento] = i;
       var inter = bloque.intercambios[i];
       var P = t.data.personajes;
@@ -129,9 +144,9 @@
     soltar: function (sc) {
       var t = sc && sc._tribuna;
       if (!t || !t.pendiente) return false;
-      var ev = t.pendiente;
+      var p = t.pendiente;
       t.pendiente = null;
-      return this.comentar(sc, ev);
+      return this.comentar(sc, p.evento, p.jugada);
     },
 
     /* 18/oct · LOS GLOBOS NO TAPAN FIGURAS. En "te rematan" el arquero va
@@ -175,6 +190,26 @@
 
     ANCHO: ANCHO, X: X, Y0: Y0
   };
+
+  /* 23/oct · después del 1-1 del rival Nelda decía "Ese gol lo hicimos
+     nosotros, no ellos", y ganando 2-1, "no nos hicieron ni una clara". El
+     "si" de cada intercambio (data/tribuna.json, _si) se mira contra el
+     marcador, que ya cuenta el gol que se comenta. Sin marcador (una escena
+     que no es un partido) ni jugada, esa parte de la condición no filtra. */
+  function vale(inter, st, jugada) {
+    var si = inter.si;
+    if (!si) return true;
+    if (si.jugada && jugada && si.jugada.indexOf(jugada) < 0) return false;
+    if (!st) return true;
+    var dif = st.golesMio - st.golesRival;
+    var va = dif > 0 ? "ganando" : (dif < 0 ? "perdiendo" : "empatando");
+    if (si.va && [].concat(si.va).indexOf(va) < 0) return false;
+    if (si.por != null && Math.abs(dif) !== si.por) return false;
+    if (si.hicimos != null && (st.golesMio > 0) !== si.hicimos) return false;
+    if (si.nos_hicieron != null && (st.golesRival > 0) !== si.nos_hicieron) return false;
+    if (si.antes_del != null && !(st.minuto < si.antes_del)) return false;
+    return true;
+  }
 
   /* un globo: la cabecita del que habla + el fondo + el texto */
   function pintar(sc, t, idx, personaje, texto) {

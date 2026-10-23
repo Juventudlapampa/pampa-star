@@ -21,6 +21,9 @@
     /* ---- apertura común de una escena del cine (idéntica a escenaCine) ---- */
     _abrirEscena(etiqueta) {
       this.estado = "ESCENA";
+      /* 23/oct · en las viñetas (te rematan, el cut-in del SÚPER TIRO) los
+         globos de la tribuna se callan igual que en el cine */
+      if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
       this.quitarDuelo(); this.limpiarMenu();
       this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
       this.cineLayer.setVisible(true);

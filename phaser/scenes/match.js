@@ -674,15 +674,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        decir cualquier cosa). */
     if (window.PampaTribunaUI && this._tribuna) {
       const MAPA = {
-        gol: "gol", gol_rival: "gol_rival", atajada: "atajada", arquero_mio: "atajada",
+        /* 23/oct · "atajada" del relator es la del arquero de ellos (tu
+           remate): la tribuna tiene la suya; arquero_mio es la del nuestro */
+        gol: "gol", gol_rival: "gol_rival", atajada: "atajada_rival", arquero_mio: "atajada",
         quite_win: "quite", corte: "quite", gambeta_lose: "error", afuera: "error",
         final: (this.st && this.st.golesMio > this.st.golesRival) ? "resultado_gana"
-          : (this.st && this.st.golesMio < this.st.golesRival) ? "resultado_pierde" : "empate",
+          : (this.st && this.st.golesMio < this.st.golesRival) ? "resultado_pierde" : "resultado_empate",
         urgente: (this.st && this.st.golesMio > this.st.golesRival) ? "ganando_final"
           : (this.st && this.st.golesMio < this.st.golesRival) ? "perdiendo_final" : "empate"
       };
       const ev = MAPA[situacion];
-      if (ev) window.PampaTribunaUI.comentar(this, ev);
+      if (ev) window.PampaTribunaUI.comentar(this, ev, situacion);
     }
     if (!this.REL) return;
     const c = Object.assign({ rival: this.nombreRival, pueblo: this._puebloMio || "La Pampa" }, ctx || {});
@@ -4743,6 +4745,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._escalonActual = escalon;
     const feel = this.BAL.feel || {};
     this.estado = "ESCENA";
+    if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
     this.quitarDuelo(); this.limpiarMenu();
     this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
     this.cineLayer.setVisible(true);
@@ -5063,6 +5066,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.estado = "RESOLUCION";
       alFinal && alFinal();
       if (this.estado === "RESOLUCION") this.estado = "LIBRE";
+      if (window.PampaTribunaUI) window.PampaTribunaUI.soltar(this);
     });
   }
   /* ¿la capa cinemática está activa? (flag B + el sonido/pulido de la E6 acompañan) */
@@ -5174,6 +5178,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (typeof sub === "function") { cb = sub; sub = null; }   // compat con la firma vieja
     this.quitarDuelo(); this.limpiarMenu();
     this.estado = "ESCENA";
+    /* 23/oct · los globos de la tribuna se veían encima del ¡SÚPER TIRO! */
+    if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
     this.mundoLayer.setVisible(false); this.hudLayer.setVisible(false);
     this.cineLayer.setVisible(true);
     this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
@@ -5236,6 +5242,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.mundoLayer.setVisible(!this._split); this.hudLayer.setVisible(true);
         this.estado = "RESOLUCION";
         cb();
+        /* si cb encadenó otra viñeta, lo pendiente vuelve a esperar */
+        if (window.PampaTribunaUI) window.PampaTribunaUI.soltar(this);
       });
     });
   }
