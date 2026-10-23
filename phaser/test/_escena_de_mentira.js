@@ -149,6 +149,15 @@ function armar(opts) {
       o.setY = function (v) { this.y = v; return this; };
       o.setDepth = function (v) { this.depth = v; return this; };
       o.setText = function (t) { this.text = String(t); medirTexto(this); return this; };
+      /* 23/oct: la ×N de la semana se ubica midiendo (master.js, marcarVeces):
+         la caja en pantalla y el grosor de la línea, como en Phaser */
+      o.lineWidth = 0;
+      o.setStrokeStyle = function (w) { this.lineWidth = w || 0; return this; };
+      o.getBounds = function () {
+        var w = this.width * this.scaleX, h = this.height * this.scaleY;
+        var l = this.x - (this.originX || 0) * w, t = this.y - (this.originY || 0) * h;
+        return { x: l, y: t, left: l, top: t, width: w, height: h, right: l + w, bottom: t + h, centerX: l + w / 2, centerY: t + h / 2 };
+      };
       o.destroy = function () {
         if (!this.scene) return;
         this.emit("destroy", this);
@@ -184,8 +193,22 @@ function armar(opts) {
       o.width = Math.max.apply(null, lineas.map(function (l) { return l.length; })) * fsz * 0.55;
       o.height = lineas.length * fsz * 1.25;
     }
+    /* lo que lee master.js renglonesDe de un Text de Phaser: los renglones,
+       la métrica de la letra (con los mismos números que medirTexto) y el
+       contexto que mide cada renglón */
+    function renglonesDeMentira(o) {
+      var fsz = parseInt(o.style.fontSize, 10) || 14;
+      o.lineSpacing = o.style.lineSpacing || 0;
+      o.padding = { left: 0, right: 0, top: 0, bottom: 0 };
+      o.canvas = {};
+      o.context = { measureText: function (l) { return { width: l.length * fsz * 0.55, actualBoundingBoxAscent: fsz * 0.75, actualBoundingBoxDescent: fsz * 0.2 }; } };
+      o.style.metrics = { ascent: fsz * 0.95, descent: fsz * 0.3, fontSize: fsz * 1.25 };
+      o.style.strokeThickness = o.style.strokeThickness || 0;
+      o.style.syncFont = function () { };
+      o.getWrappedText = function (t) { return String(t).split("\n"); };
+    }
     s.add = {
-      text: function (x, y, t, style) { var o = nuevo("Text", x, y, 0, 0, 0, 0); o.text = String(t); o.style = style || {}; medirTexto(o); return o; },
+      text: function (x, y, t, style) { var o = nuevo("Text", x, y, 0, 0, 0, 0); o.text = String(t); o.style = style || {}; medirTexto(o); renglonesDeMentira(o); return o; },
       rectangle: function (x, y, w, h, color, alpha) { var o = nuevo("Rectangle", x, y, w, h, 0.5, 0.5); o.fillColor = color; o.fillAlpha = alpha == null ? 1 : alpha; return o; },
       image: function (x, y, k) { var o = nuevo("Image", x, y, 100, 100, 0.5, 0.5); o.textureKey = k; return o; },
       sprite: function (x, y, k) { return s.add.image(x, y, k); },

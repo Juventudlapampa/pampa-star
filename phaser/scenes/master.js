@@ -2007,7 +2007,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          3 px más arriba, el efecto 1 px más abajo y con los renglones 4 px
          más juntos, y el riesgo se dice corto (textoEfecto): tres renglones
          que entran */
-      this.add.text(cx, cy - altoO / 2 + 3, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
+      const tN = this.add.text(cx, cy - altoO / 2 + 3, o.n, { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
         color: "#0a1f13", align: "center", wordWrap: { width: anchoO - 6 } }).setOrigin(0.5, 0);
       /* PASADA DE COHERENCIA · una vez armada la semana, las SIETE tarjetas
          decian "la semana ya esta armada". Siete veces el mismo renglon en
@@ -2015,7 +2015,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          que te sirve mirar mientras decidis si sacar una y poner otra.
          Ahora: el motivo se dice UNA vez, arriba del grupo (ver el titulo de la
          lista), y la tarjeta sigue mostrando SU efecto. */
-      this.add.text(cx, cy + altoO / 2 - 2, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
+      const tE = this.add.text(cx, cy + altoO / 2 - 2, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
         { fontFamily: window.PF.texto, fontSize: "13px", lineSpacing: -4,
           color: sinEnergia ? "#8a3226" : (alcanza ? "#365a41" : "#5a6b60"),
           fontStyle: sinEnergia ? "italic" : "normal", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5, 1);
@@ -2025,12 +2025,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* adentro tapaba la punta de los nombres de un renglón, y sobre el
          borde de arriba la de la segunda fila caía entre las dos filas (7 px
          de canaleta para 18 de marca). 20/oct: en el borde derecho, a media
-         altura, angosta (15 px): entra en la canaleta de 8 px entre
-         columnas sin tocar a la vecina, y ahí no hay texto (el nombre va
-         arriba y el efecto abajo, centrados y más angostos que la tarjeta).
-         Encima de las tarjetas: la de al lado se dibuja después y la tapaba */
-      if (veces) this.add.text(cx + anchoO / 2, cy, "×" + veces,
-        { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13", backgroundColor: "#7ee08a", padding: { x: 1, y: 0 } }).setOrigin(0.5).setDepth(1);
+         altura. 23/oct, Rodri: ahí iba montada sobre el borde. Va adentro,
+         donde no pisa nada (marcarVeces). Encima de las tarjetas: la de al
+         lado se dibuja después */
+      if (veces) this.marcarVeces(r, tN, tE, veces);
       /* la bloqueada TAMBIEN entra al grupo: se puede enfocar y te dice por que
          no se puede. Saltearla seria peor — no te enterarias de que existe. */
       _focoSem.push({ obj: r, bloqueada: !alcanza,
@@ -2165,6 +2163,51 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       }
     });
     return true;
+  }
+
+  /* 23/oct · los renglones de un texto centrado como rectángulos de lo que
+     se ve (la letra, no la caja del texto: con lineSpacing -4 las cajas de
+     los renglones de la tarjeta se pisan entre sí) */
+  renglonesDe(t) {
+    const b = t.getBounds(), st = t.style, m = st.metrics, ctx = t.context;
+    st.syncFont(t.canvas, ctx);
+    const paso = m.fontSize + st.strokeThickness + t.lineSpacing;
+    return t.getWrappedText(t.text).map((l, i) => {
+      const me = ctx.measureText(l), base = b.top + t.padding.top + st.strokeThickness / 2 + i * paso + m.ascent;
+      return { x: b.centerX - me.width / 2, y: base - me.actualBoundingBoxAscent, w: me.width, h: me.actualBoundingBoxAscent + me.actualBoundingBoxDescent };
+    });
+  }
+  /* LA MARCA ×N DE LA SEMANA, ADENTRO DE SU TARJETA. Iba montada sobre el
+     borde derecho (23/oct, Rodri: que respire). Es la etiqueta verde de
+     siempre, del alto de la letra más 1 px por lado, en el lugar de la
+     tarjeta con 4 px de aire del borde (del lado de adentro de la línea) y
+     de lo escrito: a media altura entre el nombre y el efecto, arriba del
+     efecto o al lado de un renglón suyo, primero a la derecha
+     (logic/piel.js, lugarLibre). En la tarjeta llena (PICADITO) el nombre
+     se corre a la izquierda lo que haga falta para que entre a su lado; si
+     ni así llega a 4 px, va donde más aire tenga, sin pisar el borde */
+  marcarVeces(r, tN, tE, veces) {
+    const t = this.add.text(0, 0, "×" + veces, { fontFamily: window.PF.texto, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5).setDepth(2);
+    const gl = this.renglonesDe(t)[0], tam = { w: Math.ceil(gl.w) + 4, h: Math.ceil(gl.h) + 2 };
+    const rb = r.getBounds(), borde = r.lineWidth / 2, AIRE = 4;
+    const caja = { x: rb.left + borde, y: rb.top + borde, w: rb.width - 2 * borde, h: rb.height - 2 * borde };
+    const nom = this.renglonesDe(tN), efe = this.renglonesDe(tE);
+    const finNombre = Math.max(...nom.map(q => q.y + q.h)), tope = Math.min(...efe.map(q => q.y));
+    const adentro = y => Math.min(Math.max(y, caja.y + AIRE + tam.h / 2), caja.y + caja.h - AIRE - tam.h / 2);
+    const ys = [(finNombre + tope) / 2, (caja.y + tope) / 2].concat(efe.map(q => q.y + q.h / 2)).map(adentro);
+    const der = caja.x + caja.w - AIRE - tam.w / 2, izq = caja.x + AIRE + tam.w / 2;
+    const lugares = ys.map(y => ({ x: der, y: y })).concat(ys.map(y => ({ x: izq, y: y })));
+    const probar = (renglones) => window.PampaPiel.lugarLibre(caja, tam, renglones.concat(efe), lugares, AIRE);
+    let L = probar(nom), dx = 0;
+    const corrida = -(nom[0].x + nom[0].w + AIRE + tam.w + AIRE - (caja.x + caja.w));
+    if (L.aire < AIRE && nom.length === 1 && corrida < 0 && nom[0].x + corrida - caja.x >= AIRE) {
+      const L2 = probar([Object.assign({}, nom[0], { x: nom[0].x + corrida })]);
+      if (L2.aire > L.aire) { L = L2; dx = corrida; }
+    }
+    if (dx) tN.setX(tN.x + dx);
+    const fondo = this.add.rectangle(L.x, L.y, tam.w, tam.h, 0x7ee08a).setDepth(1);
+    t.setPosition(L.x - (gl.x + gl.w / 2), L.y - (gl.y + gl.h / 2));
+    return { marca: t, fondo: fondo, aire: L.aire, corrida: dx };
   }
 
   /* ══════════════════════════════════════════════════════════════════════

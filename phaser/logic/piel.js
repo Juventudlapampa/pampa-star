@@ -198,6 +198,27 @@
     return arriba >= F.y0 - 0.5 && abajo <= F.y1 + 0.5;
   }
 
+  /* 23/oct · DÓNDE VA UNA MARCA SIN PISAR NADA (la ×N de LA SEMANA, que
+     iba sobre el borde de la tarjeta). caja {x, y, w, h}: la tarjeta; tam
+     {w, h}: la marca; ocupado: lo escrito, en rectángulos {x, y, w, h};
+     lugares: centros {x, y} a probar, en orden de preferencia. El aire de un
+     lugar es lo que separa la marca del borde de la caja y de lo escrito (en
+     negativo, lo que se mete). Devuelve el primero que llega a `aire` o, si
+     ninguno llega, el de más aire: { x, y, aire } */
+  function lugarLibre(caja, tam, ocupado, lugares, aire) {
+    var mejor = null;
+    (lugares || []).forEach(function (p) {
+      if (mejor && mejor.aire >= aire) return;
+      var x0 = p.x - tam.w / 2, y0 = p.y - tam.h / 2, x1 = x0 + tam.w, y1 = y0 + tam.h;
+      var a = Math.min(x0 - caja.x, caja.x + caja.w - x1, y0 - caja.y, caja.y + caja.h - y1);
+      (ocupado || []).forEach(function (o) {
+        a = Math.min(a, Math.max(o.x - x1, x0 - (o.x + o.w), o.y - y1, y0 - (o.y + o.h)));
+      });
+      if (!mejor || a > mejor.aire) mejor = { x: p.x, y: p.y, aire: a };
+    });
+    return mejor;
+  }
+
   /* ══════════════════════════════════════════════════════════════════════
      EL NOMBRE QUE ENTRA SIN PARTIRSE.
 
@@ -275,7 +296,7 @@
     luma: luma, esOscuro: esOscuro, tintaSobre: tintaSobre,
     esMayusculas: esMayusculas, trackingPx: trackingPx,
     escala: escala, tam: tam,
-    franja: franja, yDeOpcion: yDeOpcion, enFranja: enFranja, caben: caben,
+    franja: franja, yDeOpcion: yDeOpcion, enFranja: enFranja, caben: caben, lugarLibre: lugarLibre,
     nombreCorto: nombreCorto, CONECTORES: CONECTORES,
     JERARQUIA: JERARQUIA, nivel: nivel, nivelPx: nivelPx
   };
