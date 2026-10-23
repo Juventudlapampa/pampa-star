@@ -90,7 +90,10 @@ function semanaDeLaFecha1(tactil) {
   var P = C.jugar(mp, { tactil: true });
   assert(P.estados.indexOf("TUTORIAL") >= 0, "control: el primer partido abre el tutorial");
   var arranque = P.textos.slice();
-  assert(arranque.some(function (t) { return /^1\/3 · Movés con el DEDO/.test(t); }),
+  /* ola 3, pedido de Rodri (terminar la ola 3, tutorial en contexto): las tres
+     tarjetas pasaron a una sola, sin numerar, con la leyenda del MAPA; el
+     PASE se explica en su menú (más abajo) */
+  assert(arranque.some(function (t) { return /^Movés con el DEDO/.test(t); }),
     "control: se escribió el tutorial (" + arranque.filter(function (t) { return /DEDO/.test(t); }).join(" | ") + ")");
   /* la guía pegada al portador sale solo sin pantalla partida */
   var sinSplit = C.jugar(mp, { tactil: true, flags: { pantalla_partida: false } });
@@ -121,32 +124,28 @@ function semanaDeLaFecha1(tactil) {
   assert(K.textos.some(function (t) { return /WASD/.test(t); }) && K.textos.some(function (t) { return /ESPACIO/.test(t); }),
     "con teclado el tutorial sigue diciendo las flechas y el ESPACIO");
   /* 20/oct, Rodri: en la PC el primer paso decía "con el DEDO" */
-  assert(K.textos.some(function (t) { return /^1\/3 · Movés con el MOUSE/.test(t); }) && !K.textos.some(function (t) { return /DEDO/.test(t); }),
+  assert(K.textos.some(function (t) { return /^Movés con el MOUSE/.test(t); }) && !K.textos.some(function (t) { return /DEDO/.test(t); }),
     "en la PC el primer paso habla del mouse, no del dedo");
   /* revisión del 20/oct: con pantalla partida (la vista por defecto) un clic
      en la cancha de arriba no mueve, solo el MAPA (apuntar). El tutorial lo
-     dice desde el paso 1, y en la PC dice "clic", no "tocá". Se avanza a
-     tocar el velo dos veces, sin cerrarlo: cerrarlo guarda el tutorial visto */
-  function hastaElPaso3(J) {
-    var velo = J.toques.filter(function (f) { return /paso\+\+/.test(String(f)); })[0];
-    var n = J.textos.length;
-    if (velo) { velo(null, 0, 0, null); velo(null, 0, 0, null); }
-    return J.textos.slice(n);
-  }
-  assert(K.s._split && K.textos.indexOf("1/3 · Movés con el MOUSE: clic en el MAPA de abajo\n(o con las flechas / WASD)") >= 0 &&
+     dice desde el primer renglón, y en la PC dice "clic", no "tocá". La
+     tarjeta es una sola: lo que se fijaba del viejo paso 3 (el PASE con
+     "clic" en la PC y "tocá" en el teléfono) lo dice ahora el menú del PASE */
+  var tarjeta = function (J) { return J.textos.filter(function (t) { return /^Movés con el /.test(t); })[0] || ""; };
+  assert(K.s._split && tarjeta(K).split("\n")[0] === "Movés con el MOUSE: clic en el MAPA de abajo (o con las flechas / WASD)" &&
     !K.textos.some(function (t) { return /clic sobre la cancha/.test(t); }),
     "en la PC con pantalla partida, el paso 1 manda al MAPA de abajo, no a la cancha");
-  assert(K.textos.indexOf("clic para seguir ▸") >= 0 && K.textos.indexOf("tocá para seguir ▸") < 0, "en la PC el tutorial dice \"clic para seguir\"");
-  var pasosK = hastaElPaso3(K);
-  assert(pasosK.some(function (t) { return /^3\/3 · /.test(t) && /hacé clic en el MAPA/.test(t); }) && !pasosK.some(function (t) { return /[Tt]ocá/.test(t); }),
-    "en la PC el paso 3 dice \"hacé clic en el MAPA\" y ningún paso dice \"tocá\" (" + pasosK.join(" | ") + ")");
-  assert(P.textos.indexOf("1/3 · Movés con el DEDO en el MAPA de abajo") >= 0 && P.textos.indexOf("tocá para seguir ▸") >= 0,
-    "en el teléfono con pantalla partida, el paso 1 manda el DEDO al MAPA de abajo");
-  var pasosP = hastaElPaso3(P);
-  assert(pasosP.some(function (t) { return /^3\/3 · /.test(t) && /tocá en el MAPA/.test(t); }), "en el teléfono el paso 3 dice \"tocá en el MAPA\" (" + pasosP.join(" | ") + ")");
+  assert(K.textos.indexOf("clic o ENTER para seguir ▸") >= 0 && K.textos.indexOf("tocá para seguir ▸") < 0, "en la PC el tutorial dice \"clic o ENTER para seguir\"");
+  assert(!/[Tt]ocá/.test(tarjeta(K)) && /ESPACIO/.test(tarjeta(K)) && /círculo es tu equipo y el triángulo, el rival/.test(tarjeta(K)),
+    "en la PC la tarjeta no dice \"tocá\", nombra el ESPACIO y la leyenda del MAPA (" + tarjeta(K) + ")");
+  assert(tarjeta(P).split("\n")[0] === "Movés con el DEDO en el MAPA de abajo" && P.textos.indexOf("tocá para seguir ▸") >= 0,
+    "en el teléfono con pantalla partida, la tarjeta manda el DEDO al MAPA de abajo");
+  assert(/En el MAPA, el círculo es tu equipo y el triángulo, el rival/.test(tarjeta(P)) && !/ESPACIO|WASD|ENTER/.test(tarjeta(P)),
+    "en el teléfono la tarjeta dice la leyenda del MAPA y ninguna tecla (" + tarjeta(P) + ")");
   var k0 = K.textos.length;
   K.s.limpiarMenu(); K.s.estado = "LIBRE"; K.s.iniciarPaseDirigido(null, true);
-  assert(K.textos.slice(k0).some(function (t) { return /ENTER/.test(t); }), "y el PASE, las teclas");
+  var paseK = K.textos.slice(k0);
+  assert(paseK.some(function (t) { return /ENTER/.test(t); }) && !paseK.some(function (t) { return /[Tt]ocá /.test(t); }), "y el PASE, las teclas, sin \"tocá\" (" + paseK.join(" | ") + ")");
   console.log("[2] el partido en el teléfono: guía, tutorial, PASE y jugadón sin teclas · con teclado siguen");
 })();
 

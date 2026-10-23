@@ -74,9 +74,9 @@
         : (otro ? "mouse o flechas: movés a " + otro + " · clic o ESPACIO: le pega" : "mouse o flechas: te acomodás · clic o ESPACIO: le pegás"),
         { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0, 0.5);
       /* 20/oct, Rodri: nada decía qué hay que hacer con el anillo. La primera
-         vez de la sesión va grande y en dos renglones; después, corto */
-      var primera = !this.game.registry.get("toqueExplicado");
-      this.game.registry.set("toqueExplicado", true);
+         vez va grande y en dos renglones; después, corto. Ola 3: la primera
+         vez de todas, guardada con el resto del tutorial (logic/tutorial.js) */
+      var primera = !!(this.cartelTutorial && this.cartelTutorial("toque", {}));
       tq.consigna = this.add.text(W / 2, 104, primera
         ? (otro ? "Acomodá a " + otro : "Acomodate") + " para que la SOMBRA de la pelota\ncaiga en el ANILLO " +
           (alta ? (otro ? "· viene alta: le da de CABEZA" : "· viene alta: le das de CABEZA") : (otro ? "de su PIE " : "de tu PIE ") + pie)

@@ -2410,64 +2410,62 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
 
   /* Feel B3: la PRIMERA vez que se juega, tres pasos superpuestos al juego real */
+  /* OLA 3 · EL TUTORIAL EN CONTEXTO (logic/tutorial.js): cada cosa una vez,
+     en su momento. Lo visto vive en localStorage pampa_tutorial. */
+  tutorialVistos() {
+    let raw = null;
+    try { raw = localStorage.getItem("pampa_tutorial"); } catch (e) { /* sin almacenamiento: se explica cada vez */ }
+    return window.PampaTutorial.leerVistos(raw);
+  }
+  marcarTutorial(id) {
+    const v = window.PampaTutorial.marcar(this.tutorialVistos(), id);
+    try { localStorage.setItem("pampa_tutorial", JSON.stringify(v)); } catch (e) { /* idem */ }
+  }
+  /* el cartel que toca en un menú o en EL TOQUE; mostrarlo es haberlo visto */
+  cartelTutorial(momento, ctx) {
+    if (!window.PampaTutorial) return null;
+    const c = window.PampaTutorial.cartel(momento, this.tutorialVistos(), Object.assign({ tactil: this.sys.game.device.input.touch, split: this._split }, ctx));
+    if (c) this.marcarTutorial(c.id);
+    return c;
+  }
   tutorialSiHaceFalta() {
-    let visto = false;
-    try {
-      const c = localStorage.getItem("pampa_star_v1");
-      if (c) visto = !!JSON.parse(c).tutorialPartido;
-      else visto = localStorage.getItem("pampa_tutorial_partido") === "1";
-    } catch (e) { }
-    if (visto || !this.FLAGS.e3_menus) return;
-    /* textos-tactiles: las teclas, solo donde hay teclado */
+    if (!this.FLAGS.e3_menus || !window.PampaTutorial) return;
+    /* textos-tactiles: las teclas, solo donde hay teclado. 20/oct: con
+       pantalla partida un clic en la cancha de arriba no hace nada (apuntar:
+       solo el MAPA mueve), así que se señala el mapa */
     const tactil = this.sys.game.device.input.touch;
-    /* 20/oct: con pantalla partida un clic en la cancha de arriba no hace nada
-       (apuntar: solo el MAPA mueve), así que el paso 1 ya señala el mapa */
-    const toca = tactil ? "tocá" : "hacé clic en";
-    const donde = this._split ? "en el MAPA de abajo" : "sobre la cancha";
-    const PASOS = [
-      /* 20/oct, Rodri: en la PC también decía "con el DEDO" */
-      tactil ? "1/3 · Movés con el DEDO " + donde : "1/3 · Movés con el MOUSE: clic " + donde + "\n(o con las flechas / WASD)",
-      "2/3 · ACCIÓN abre el menú de jugadas" + (tactil ? "" : "\n(en teclado: ESPACIO)"),
-      this._split ? "3/3 · El PASE está en el menú de jugadas:\n" + (tactil ? "tocá en" : toca) + " el MAPA a quién se la pasás" : (this._vista4 ? "3/3 · Para el PASE, " + toca + " el DESTINO\nDIRECTO sobre la cancha" : "3/3 · Para el PASE, " + toca + " el DESTINO\nen el RADAR de abajo a la izquierda")
-    ];
+    const c = window.PampaTutorial.cartel("libre", this.tutorialVistos(), { tactil, split: this._split });
+    if (!c) return;
     const mapa = this._vista4 && !this._split ? null : { x: this.radar.x + this.radar.w / 2, y: this.radar.y + this.radar.h / 2, w: this.radar.w + 24, h: this.radar.h + 24 };
-    const ANILLOS = [this._split ? mapa : null, { x: 838, y: 456, w: 210, h: 90 }, mapa];   /* R1: el botón se movió a 838 */
+    const ANILLOS = [mapa, { x: 838, y: 456, w: 210, h: 90 }];   /* R1: el botón de ACCIÓN está en 838 */
     this.estado = "TUTORIAL";
     this.st.modo = "congelado";
-    let paso = 0;
     const velo = this.add.rectangle(480, 270, 960, 540, 0x06120b, 0.55).setInteractive();
-    /* R2: la caja iba en y=150, sobre el torso de la ilustración (el panel
-       ocupa 30..304) — el mismo vicio que el cartel de FINAL antes del P9.
-       Misma solución: FRANJA PROPIA abajo, el dibujo queda limpio. El anillo
-       amarillo sí puede subir, porque señala, no escribe. */
-    const franjaTut = this.add.rectangle(480, 372, 960, 92, 0x0a1f13, 0.94);
-    const lineaTut = this.add.rectangle(480, 328, 960, 2, 0xf5c400, 0.65);
-    const caja = this.add.text(480, 362, "", { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center", lineSpacing: 6 }).setOrigin(0.5);
-    const pie = this.add.text(480, 404, (tactil ? "tocá" : "clic") + " para seguir ▸", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    /* R2: FRANJA PROPIA abajo del panel (ocupa 30..304), el dibujo queda
+       limpio. El anillo amarillo sí puede subir, porque señala, no escribe. */
+    const franjaTut = this.add.rectangle(480, 372, 960, 108, 0x0a1f13, 0.94);
+    const lineaTut = this.add.rectangle(480, 319, 960, 2, 0xf5c400, 0.65);
+    const caja = this.add.text(480, 360, c.texto, { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center", lineSpacing: 6 }).setOrigin(0.5);
+    const pie = this.add.text(480, 413, (tactil ? "tocá" : "clic o ENTER") + " para seguir ▸", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     const anillo = this.add.graphics();
+    anillo.lineStyle(4, 0xffd84d, 1);
+    ANILLOS.forEach(a => { if (a) anillo.strokeRoundedRect(a.x - a.w / 2, a.y - a.h / 2, a.w, a.h, 12); });
     this.menuLayer.add([velo, franjaTut, lineaTut, caja, pie, anillo]);
     this.selloMenu();
-    const pintar = () => {
-      caja.setText(PASOS[paso]);
-      anillo.clear();
-      const a = ANILLOS[paso];
-      if (a) { anillo.lineStyle(4, 0xffd84d, 1); anillo.strokeRoundedRect(a.x - a.w / 2, a.y - a.h / 2, a.w, a.h, 12); }
-    };
-    pintar();
-    velo.on("pointerdown", (p, x, y, ev) => {
-      ev && ev.stopPropagation && ev.stopPropagation(); this._uiTocado = this.time.now;
-      paso++;
-      if (paso < PASOS.length) { pintar(); return; }
-      /* fin: se guarda en el save (retrocompatible: campo nuevo) y no vuelve salvo reset */
-      try {
-        const raw = localStorage.getItem("pampa_star_v1");
-        if (raw) { const c = JSON.parse(raw); c.tutorialPartido = true; localStorage.setItem("pampa_star_v1", JSON.stringify(c)); }
-        else localStorage.setItem("pampa_tutorial_partido", "1");
-      } catch (e) { }
+    const desde = this.time.now;
+    const teclas = this.input.keyboard ? ["keydown-ENTER", "keydown-SPACE"] : [];
+    const cerrar = () => {
+      /* antirrebote: la tecla o el toque que abrió el partido no lo cierra */
+      if (this.estado !== "TUTORIAL" || this.time.now - desde < 300) return;
+      this._uiTocado = this.time.now;
+      teclas.forEach(k => this.input.keyboard.off(k, cerrar));
+      this.marcarTutorial("libre");
       this.limpiarMenu();
       this.st.modo = "juego";
       this.estado = "LIBRE";
-    });
+    };
+    teclas.forEach(k => this.input.keyboard.on(k, cerrar));
+    velo.on("pointerdown", (p, x, y, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cerrar(); });
   }
   /* transición de ENTRETIEMPO (E6): fundido + banner con el marcador */
   transicionEntretiempo() {
@@ -2974,11 +2972,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     const volverCruz = () => this.abrirMenuAtaque(rivalIdx, libre);
     const listos = especiales.filter(o => !o.bloqueada).length;
+    const tut = this.cartelTutorial("menu_ataque", { rival: rival ? (rival.nombre || "el rival") : null, sinAguante: acc.some(a => a.motivo === "SIN AGUANTE") });
     /* la poda del 22/oct: si el único especial es el SÚPER TIRO, el centro
        es ese botón, sin grilla; la grilla vuelve si se prende otro */
     const unico = especiales.length === 1 && especiales[0].superTiro ? especiales[0] : null;
     this.abrirMenuCruz({
-      titulo: rival ? "¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ = seguir corriendo)",
+      titulo: tut ? tut.texto : rival ? "¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ = seguir corriendo)",
       izq, der,
       opciones: {
         N: {
@@ -3063,8 +3062,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
     const volverCruz = () => this.abrirMenuDefensa();
     const listos = especiales.filter(o => !o.bloqueada).length;
+    const tut = this.cartelTutorial("menu_defensa", { rival: this.nombreRival, sinAguante: acc.some(a => a.motivo === "SIN AGUANTE") });
     this.abrirMenuCruz({
-      titulo: "¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
+      titulo: tut ? tut.texto : "¡" + this.nombreRival + " avanza! Adivinale la intención (solo ves TUS números)",
       izq, der,
       opciones: {
         N: { texto: "QUITE", sub: sub(qui), bloqueada: qui.bloqueada, motivo: qui.motivo, cb: () => this.resolverAccionDefensa(qui) },
