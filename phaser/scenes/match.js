@@ -237,6 +237,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._musicaTrabada = false;     // P5: el partido nuevo vuelve a tener música
     this._temaFinalPuesto = false;   // M5: el tema de urgencia entra una vez por partido
     this._temaFinalMin = null;
+    this._musicaMomento = null;      // el "jugadon" de EL TOQUE del partido anterior no pide nada
     /* TANDA 1.0 · los avisos del HUD (avisar): los que se ven y los que
        esperan. Arreglos, no banderas, pero la lección es la misma: un aviso
        encolado al final de la fecha 1 no puede salir en la fecha 2. */
@@ -2817,6 +2818,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const pct = a => Math.round(window.PampaDuel.duelChance(a.poder, P.poderRival(st), this.BAL.duelo) * 100);
     const megaListo = this.megaDisponible(), puedeT = P.puedeTirar(st);
     const gam = A("gambeta"), par = A("pared"), tir = A("tiro");
+    /* revisión final del 22/oct: afuera del área y sin marca el TIRO decía
+       "62% de zafar" sin duelo que zafar, y se leía como la chance de gol.
+       Sin marca dice desde dónde pateás; con un defensor al cruce va el
+       porcentaje del duelo con su bloqueo, como en GAMBETA y PARED */
+    const L = puedeT ? this.ejDeLaSituacion(null).lectura : null;
+    const desde = !L ? "" : L.defensores >= 2 ? "con " + L.defensores + " adelante" : L.centrado < 0.35 ? "sin ángulo"
+      : L.cerca > 0.8 ? "de frente" : L.cerca < 0.35 ? "desde lejos" : L.defensores === 1 ? "con 1 adelante" : "media distancia";
     const receptores = P.receptoresPase(st);
     const izq = { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante };
     const der = rival ? { j: rival, aguante: st.aguanteRival } : null;
@@ -2907,7 +2915,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         /* 20/oct, Rodri: adentro del área el remate lo decide EL TOQUE. Con un
            defensor al cruce, resolverTiro juega antes el duelo del bloqueo: ahí
            van el porcentaje de zafar y el aguante, y EL TOQUE como paso que sigue */
-        E: { texto: "TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : pct(tir) + "% de zafar · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+        E: { texto: "TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : (libre || rivalIdx == null ? desde : pct(tir) + "%") + " · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
       centro: unico || (listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
@@ -4175,19 +4183,22 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       d = { titulo: "¡GOOOL!", sub: sub, color: 0xffd84d, gana: true };
     } else if (res.outcome === "corner") {
       const c = P.cornerMio(st);
-      d = { titulo: "¡LA SACÓ AL CÓRNER!", sub: "No la pudo agarrar: la mandó afuera. Sigue siendo tuya.",
+      /* opts.sinContacto: en EL TOQUE nadie la tocó (toque_ui.js, toqueSinRemate) */
+      d = { titulo: "¡LA SACÓ AL CÓRNER!", sub: opts.sinContacto ? "Nadie la tocó: el arquero la sacó. Sigue siendo tuya." : "No la pudo agarrar: la mandó afuera. Sigue siendo tuya.",
         color: 0x7ee08a, gana: false, corner: true, arriba: c.arriba };
     } else if (res.outcome === "atajada") {
       /* A4 · la tiene el arquero rival, en SU área — no un defensor cualquiera
          cerca del medio, que es lo que hacía la vieja tiroFallado */
       P.saqueArquero(st, "atajada");
-      d = { titulo: "¡LA AGARRÓ!", sub: "El arquero la abrazó. Saca él desde el fondo.", color: 0x5bb8e8, gana: false, saque: true };
+      d = { titulo: "¡LA AGARRÓ!", sub: opts.sinContacto ? "Nadie la tocó y el arquero la abrazó. Saca él." : "El arquero la abrazó. Saca él desde el fondo.", color: 0x5bb8e8, gana: false, saque: true };
     } else {
       /* A4 · se fue: saque de arco, que es lo que pasa de verdad. Con
          opts.palo pegó en el palo (17/oct: lo pide planoDesenlace, que es
          donde se ve) */
       P.saqueArquero(st, "afuera");
-      d = opts.palo
+      d = opts.sinContacto
+        ? { titulo: "¡DE LARGO!", sub: "Nadie la tocó y se fue por el fondo. Saque de arco.", color: 0xe3503e, gana: false, saque: true }
+        : opts.palo
         ? { titulo: "¡AL PALO!", sub: "Pegó en el palo y se fue. Saque de arco.", color: 0xe3503e, gana: false, saque: true, palo: true }
         : { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
     }
@@ -4302,6 +4313,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return {
       zona: zona, lectura: auto.lectura, ajustePoder: auto.ajustePoder,
       enZona: toque ? toque.res.contacto : auto.lectura.calidad >= 0.5,
+      /* con EL TOQUE: si la tocó y con qué (dispararConCine elige la pose) */
+      sinContacto: !!toque && !toque.res.contacto, tecnica: toque ? toque.res.tecnica : null,
       /* la frase de LECTURA reemplaza al "la aguja se te escapó…" */
       lecturaTexto: toque ? toque.texto : this.textoDeLectura(auto.lectura)
     };
@@ -4411,6 +4424,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     this.zona = toque ? toque.zona : auto.zona;
     this._megaGrito = "¡GOOOL!";
+    /* revisión final del 22/oct: si en EL TOQUE no la tocó, no hubo remate
+       que bloquear ni que ver viajar */
+    if (toque && !toque.res.contacto) { this.toqueSinRemate(); return; }
     /* ══════════════════════════════════════════════════════════════════════
        A3 · ALGUIEN CORTA EL REMATE.
 
@@ -4505,6 +4521,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     });
     this.zona = ej.zona;
     this._megaGrito = mega.grito || "¡GOOOL!";
+    /* revisión final del 22/oct: se le pasó en EL TOQUE, y la carga, el pie
+       y el viaje mostraban una patada que no hubo */
+    if (ej.sinContacto) { this.toqueSinRemate(); return; }
+    /* y de cabeza o de chilena se veía la patada con "· el pie ·": la carga
+       va con la pose de la técnica, y el plano del pie solo si fue con el pie */
+    const tec = ej.tecnica ? this.BAL.toque.tecnicas[ej.tecnica] : null;
+    const pose = tec ? tec.pose : "remate";
+    const contacto = () => { if (pose === "remate") this.planoPie(); else this.planoViaje(); };
     /* ============ V9 §5 · LA MEGA ANIMACIÓN ============
        El súper tiro es el momento más épico del juego y era el que MENOS se
        veía: cut-in, barra de aguja y directo al cine. Ahora la cadena completa,
@@ -4535,7 +4559,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.escenaCine({
         etiqueta: "· " + String(mega.n || "EL SÚPER TIRO").toUpperCase() + " ·",
         prota: { j: j, esRival: false, anim: "tiro" },
-        pose: "remate", especial: true,
+        pose: pose, especial: true,
         siluetas: enCamino > 0 ? enCamino : null,
         /* oct 2026: esta viñeta es la CARGA; el contacto es el plano del pie,
            que es el único que suena a patada. Antes sonaban tres: acá, en el
@@ -4546,14 +4570,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         alFinal: () => {
           this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
           this.entrarCine();
-          this.planoPie();     // y de acá sale el viaje, el arquero y el desenlace
+          contacto();     // y de acá sale el viaje, el arquero y el desenlace
         }
       });
       return;
     }
     this.cameras.main.flash(this.BAL.cine.corte_flash_ms, 255, 255, 255);
     this.entrarCine();
-    this.planoPie();     // la patada suena en el plano del pie
+    contacto();     // la patada suena en el plano del pie
   }
 
   /* ============ ANIME v4 Bloque B · LA CAPA CINEMÁTICA ============
@@ -6731,6 +6755,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ETAPA 2: radar + HUD, siempre al día (V7-1: panel de escena en lugar del mundo) */
     this.dibujarRadar();
     this.refrescarHUD();
+    /* revisión final del 22/oct: EL TOQUE pide el tema del jugadón y nadie
+       volvía a pedir el del partido: el tramo final sonaba hasta el pitazo */
+    if (this._musicaMomento === "jugadon") this.pedirMusica(this._temaFinalPuesto ? "partido_final" : "partido");
     this.chequearTramoFinal();       // M5
     if (this._prof && this._prof.activo) this.updatePanelProfundo();
     else if (this._split) this.updatePanelEscena(delta);

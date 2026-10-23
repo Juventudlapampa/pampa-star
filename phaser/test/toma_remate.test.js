@@ -143,7 +143,11 @@ var B = PI.huesos(def, TW, TH);
   var rem = MATCH.slice(MATCH.indexOf("this.puedeTomaDelRemate && this.puedeTomaDelRemate()"), MATCH.indexOf("  dispararConCine(mega, ej) {"));
   assert(/this\.escenaCine\(\{\s*etiqueta: "· EL REMATE ·"[^]*?pose: "remate"/.test(rem), "sin la toma, el remate común vuelve a la viñeta EL REMATE");
   var mega = MATCH.slice(MATCH.indexOf("  dispararConCine(mega, ej) {"), MATCH.indexOf("  texturaEscena(j, esRival, anim, frame) {"));
-  assert(/pose: "remate", especial: true[^]*?this\.planoPie\(\)/.test(mega), "y el súper tiro a la carga y el plano del pie");
+  /* revisión final del 22/oct: la pose de la carga es la de la técnica de EL
+     TOQUE (de cabeza no se ve la patada); con el pie, la del remate y el
+     plano del pie, como antes. toque.test.js lo prueba corriéndolo */
+  assert(/const pose = tec \? tec\.pose : "remate";/.test(mega) && /if \(pose === "remate"\) this\.planoPie\(\);/.test(mega) &&
+    /pose: pose, especial: true[^]*?contacto\(\)/.test(mega), "y el súper tiro a la carga y el plano del pie");
   /* lo que apareció al apagarla, visto en las capturas del 17/oct */
   var pie = MATCH.slice(MATCH.indexOf("  planoPie() {"), MATCH.indexOf("  planoViaje() {"));
   assert(!/scale: 5\.2/.test(pie) && /pi\.tobillo\[0\] \+ pi\.punta\[0\] \+ pel\.x/.test(pie),

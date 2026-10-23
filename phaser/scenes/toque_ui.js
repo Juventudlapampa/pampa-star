@@ -43,11 +43,11 @@
          el cine; el remate sigue en el cine, y salirCine suelta lo pendiente */
       if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
       this.cineBG.clear();
-      this.toqueFondo();
+      var arqT = this.toqueFondo();
       /* teñir las poses ahora y no en el golpe (cada una cuesta su tirón) */
       ["corriendo", "recibiendo", "remate", "volea", "cabezazo", "chilena"].forEach(function (p) { self.poseDePlano(p, j, false); });
       var alta = e.T.h > C.tecnicas.volea.h[1], baja = e.T.h <= C.tecnicas.remate.h[1];
-      var tq = this._tq = { e: e, j: j, alFinal: alFinal, pre: 0.8, obj: null, teclado: false, ev: [], teclas: [], alta: alta };
+      var tq = this._tq = { e: e, j: j, alFinal: alFinal, pre: 0.8, obj: null, teclado: false, ev: [], teclas: [], alta: alta, arq: arqT };
       tq.sombra = this.add.ellipse(0, 0, 32, 12, 0x000000, 0.4);
       tq.anillo = this.add.graphics();
       tq.marca = this.add.text(0, 0, alta ? "CABEZA" : (e.jug.pie === "izq" ? "PIE IZQ" : "PIE DER"),
@@ -83,12 +83,14 @@
         : "la sombra de la pelota, en el anillo",
         { fontFamily: window.PF.texto, fontSize: primera ? "22px" : "16px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 5, align: "center" }).setOrigin(0.5, 0);
       [info, tq.lectura, ayuda, tq.consigna].forEach(function (o) { self.cineContent.add(o); });
+      tq.abajo = [ayuda];
       /* con mouse el clic pega en cualquier lado: el botón solo atraía al
          jugador hacia la esquina, lejos de la pelota (revisión del 20/oct) */
       if (tactil) {
         tq.boton = this.jugadonBoton(W - 120, H - 34, 200, "¡PEGALE!", 0xffd84d, function () { self.toquePegar(); });
         var queHace = this.add.text(W - 120, H - 67, otro ? "le pega cuando llega" : "le pegás cuando llega", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5, 1);
         this.cineContent.add(queHace);
+        tq.abajo.push(queHace);
         tq.zonaBoton = Phaser.Geom.Rectangle.Union(tq.boton.getBounds(), queHace.getBounds());
       }
       /* revisión del 22/oct: en la PC, con quien remata cerca de cámara, la
@@ -146,6 +148,7 @@
       var arq = this.add.image(pa.x, pa.y, karq).setOrigin(0.5, 1);
       arq.setScale(this.escalaDePose("arquero_ataja", 1.9 * HPX * pa.s, arq));
       this.cineContent.add(arq);
+      return arq;
     },
 
     updateToque(delta) {
@@ -280,9 +283,41 @@
       tq.ev.forEach(function (p) { self.input.off(p[0], p[1]); });
       tq.teclas.forEach(function (p) { self.input.keyboard.off(p[0], p[1]); });
       this.jugadonLimpiarBotones();
-      this.limpiarContenido();
+      /* revisión final del 22/oct: sin contacto no hubo remate. La cancha de
+         EL TOQUE se queda para ver adónde fue la pelota (toqueSinRemate) */
+      if (salida.res.contacto) this.limpiarContenido();
+      else this._tqSigue = tq;
       this.estado = "RESOLUCION";
       tq.alFinal(salida);
+    },
+
+    /* revisión final del 22/oct: "¡SE LE PASÓ!" y después el viaje, el
+       arquero y "¡AFUERA! Se fue por centímetros". Sin contacto no hay cine
+       del remate: en la misma cancha la pelota sigue a las manos del
+       arquero, al córner o de largo por el fondo. this.res ya lo decidió
+       el que llama (resolveShot con la zona sin contacto) */
+    toqueSinRemate() {
+      var tq = this._tqSigue, res = this.res, C = this.BAL.cine, self = this;
+      this._tqSigue = null;
+      var d = this.desenlaceRemate(res, { sinContacto: true, diferir: true });
+      var b = window.PampaToque.bolaEn(tq.e, tq.e.t), D = this.BAL.toque.cancha.D;
+      var arriba = b.z < D / 2, meta, despues = null;
+      if (res.outcome === "atajada" || res.outcome === "corner") {
+        var man = this.game.registry.get("poses").poses.arquero_ataja.pelota, a = tq.arq;
+        meta = { x: a.x + (man.x - 0.5) * a.displayWidth, y: a.y - (1 - man.y) * a.displayHeight, s: 0.9 };
+        if (res.outcome === "corner") despues = this.toqueAPantalla(13.2, arriba ? -0.6 : D + 0.6, 0.8);
+      } else meta = this.toqueAPantalla(12.3, arriba ? 0.4 : D - 0.4, 0);   // pasando el palo, sobre la línea del fondo
+      tq.abajo.forEach(function (o) { o.setVisible(false); });
+      this.tweens.add({ targets: tq.sombra, alpha: 0, duration: 200 });
+      this.tweens.add({
+        targets: tq.bola, x: meta.x, y: meta.y, scale: tq.bolaEsc * (meta.s || 0.8), duration: this.msV(520), ease: "Quad.easeOut",
+        onComplete: function () {
+          d.sentir();
+          self.punch(d.titulo, d.sub, d.color);
+          if (despues) self.tweens.add({ targets: tq.bola, x: despues.x, y: despues.y, alpha: 0.4, duration: self.msV(380), ease: "Quad.easeOut" });
+          self.time.delayedCall(self.msV(C.desenlace_leer_ms), function () { self.salirCine(); });
+        }
+      });
     }
   });
 })();

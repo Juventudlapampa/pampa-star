@@ -235,5 +235,89 @@ assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", 
   assert(/if \(cfg\.titulo !== ""\) this\.punch\(cfg\.titulo \|\| "¡SÚPER TIRO!"/.test(TOMA), "la toma especial sin título no pone el cartel");
 })();
 
+/* --- revisión final del 22/oct: sin contacto no hay remate que mostrar ---
+   NICO en EL TOQUE: "¡SE LE PASÓ! la dejó pasar · pifiada" y después el
+   viaje, el esfuerzo, el arquero y "¡AFUERA! Se fue por centímetros". Sin
+   contacto, el TIRO del área y el SÚPER TIRO van a toqueSinRemate: ni
+   bloqueo, ni carga, ni pie, ni viaje, y el cartel dice que nadie la tocó.
+   Y un SÚPER TIRO de cabeza salía con la patada y "· el pie ·": la carga va
+   con la pose del cabezazo y corta al viaje sin el plano del pie. */
+(function () {
+  const E = require("./_partido_de_mentira.js").escena({ logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
+    logica: ["phaser/logic/toque.js", "phaser/logic/tiro.js", "phaser/logic/definicion.js"], mixins: ["phaser/scenes/toque_ui.js"] });
+  const s = E.s, st = s.st;
+  let vistos = [];
+  ["toqueSinRemate", "planoViaje", "planoPie", "escenaDelBloqueo", "entrarCine"].forEach(function (k) { s[k] = function () { vistos.push(k); }; });
+  s.escenaCine = function (cfg) { vistos.push("carga:" + cfg.pose); cfg.alFinal(); };
+  s.hayEscenas = function () { return true; };
+  s.cameras.main.flash = function () { };
+  const j = st.mios[st.ctrl];
+  st.posesion = "mia"; j.esVos = true; j.x = st.W - 60; j.y = st.H / 2;
+  st.rivales.forEach(function (r) { if (r.pos !== "ARQ") { r.x = 80; r.y = 40; } });   // nadie en la línea del remate
+  const toque = function (res) { return { zona: T.zonaDeContacto(res, C, false), texto: T.textoDeContacto(res, C, false), res: res }; };
+  const pasada = { contacto: false, calidad: 0, tecnica: null, pie: null, motivo: "se_paso" };
+  const pifia = { contacto: false, calidad: 0, tecnica: "remate", pie: "habil", motivo: "pifia", bola: { z: 2 } };
+  const golpe = function (tec) { return { contacto: true, calidad: 1, tecnica: tec, pie: tec === "cabezazo" ? null : "habil", motivo: "golpe", bola: { z: 2 } }; };
+  [pasada, pifia].forEach(function (r) {
+    vistos = []; s._toqueRemate = toque(r); s.tiroPorComandos(null);
+    assert(vistos.join() === "toqueSinRemate" && s.res.outcome !== "gol",
+      "SÍNTOMA: en el TIRO del área, con '" + r.motivo + "' en EL TOQUE igual sale el cine del remate (" + vistos.join() + ")");
+  });
+  vistos = []; s._toqueRemate = toque(golpe("remate")); s.tiroPorComandos(null);
+  assert(vistos.join() === "entrarCine,planoViaje", "con contacto, el TIRO del área sigue al viaje (" + vistos.join() + ")");
+  const mega = { n: "Súper tiro", grito: "¡GOLAZO!" };
+  const disparar = function (r) { vistos = []; s.dispararConCine(mega, s.ejDeLaSituacion(mega, null, toque(r))); return vistos.join(); };
+  assert(disparar(pasada) === "toqueSinRemate", "SÍNTOMA: en el SÚPER TIRO, con la pelota pasada, igual hay carga, pie y viaje (" + disparar(pasada) + ")");
+  assert(disparar(golpe("cabezazo")) === "carga:cabezazo,entrarCine,planoViaje",
+    "SÍNTOMA: el SÚPER TIRO de cabeza se ve con la patada y el plano del pie (" + disparar(golpe("cabezazo")) + ")");
+  assert(disparar(golpe("remate")) === "carga:remate,entrarCine,planoPie" && disparar(golpe("volea")) === "carga:remate,entrarCine,planoPie",
+    "con el pie, la carga del remate y el plano del pie, como antes (" + disparar(golpe("remate")) + ")");
+  /* el cartel: nadie la tocó, y nunca "por centímetros" */
+  ["afuera", "atajada", "corner"].forEach(function (o) {
+    const d = s.desenlaceRemate({ outcome: o }, { sinContacto: true, diferir: true });
+    assert(/^Nadie la tocó/.test(d.sub) && !/centímetros/.test(d.sub) && (o !== "afuera" || d.titulo === "¡DE LARGO!"),
+      "sin contacto, '" + o + "' dice que nadie la tocó (" + d.titulo + " " + d.sub + ")");
+  });
+  /* y se ve en la misma cancha: la pelota va a las manos del arquero o de largo, cartel y al partido */
+  delete s.toqueSinRemate;
+  ["gloves", "afuera"].forEach(function (k) { if (!s.SFX[k]) s.SFX[k] = function () { }; });
+  s.game.registry.set("poses", { poses: { arquero_ataja: { pelota: { x: 0.775, y: 0.405 } } } });
+  const obj = function () { const o = { x: 0, y: 0, visible: true }; o.setVisible = function (v) { o.visible = v; return o; }; return o; };
+  ["atajada", "afuera"].forEach(function (o) {
+    const tq = { e: jugada(5), arq: { x: 800, y: 380, displayWidth: 100, displayHeight: 160 }, bola: obj(), sombra: obj(), bolaEsc: 1, abajo: [obj()] };
+    tq.e.t = tq.e.tFin;
+    s._tqSigue = tq; s.res = { outcome: o };
+    let salio = 0, cartel = null;
+    s.salirCine = function () { salio++; };
+    s.punch = function (t) { cartel = t; };
+    E.tweens.length = 0; E.timers.length = 0;
+    s.toqueSinRemate();
+    const tw = E.tweens.filter(function (t) { return t.cfg.targets === tq.bola; })[0];
+    assert(tw && !tq.abajo[0].visible, "sin contacto, la pelota de EL TOQUE sigue y la ayuda de abajo se apaga");
+    if (o === "atajada") assert(Math.abs(tw.cfg.x - (800 + 0.275 * 100)) < 0.01 && Math.abs(tw.cfg.y - (380 - 0.595 * 160)) < 0.01, "la atajada va a las manos del arquero de EL TOQUE");
+    tw.cfg.onComplete();
+    E.correrTimers();
+    assert(cartel === (o === "atajada" ? "¡LA AGARRÓ!" : "¡DE LARGO!") && salio === 1, "el cartel sale al llegar y se vuelve al partido (" + cartel + ", " + salio + ")");
+  });
+})();
+
+/* --- revisión final del 22/oct: el tema del partido vuelve después de EL TOQUE ---
+   EL TOQUE pide "jugadon" (el tramo final) y nadie volvía a pedir el del
+   partido: en rock sonó rock_tramo_final_loop desde el 35 del 1T hasta el
+   pitazo, entretiempo incluido. Corre el update de verdad. */
+(function () {
+  const E = require("./_partido_de_mentira.js").escena({ logica: ["phaser/logic/toque.js"], mixins: ["phaser/scenes/toque_ui.js"] });
+  const s = E.s;
+  let pedidos = [];
+  s.pedirMusica = function (m) { pedidos.push(m); s._musicaMomento = m; return true; };
+  s._musicaMomento = "jugadon";
+  s.estado = "CINE"; s.update(0, 16);
+  assert(pedidos.length === 0, "durante el cine del remate sigue el tema de EL TOQUE (" + pedidos.join() + ")");
+  s.estado = "LIBRE"; s.update(0, 16); s.update(0, 16);
+  assert(pedidos.join() === "partido", "SÍNTOMA: al volver al partido después de EL TOQUE no vuelve el tema del partido (" + pedidos.join() + ")");
+  pedidos = []; s._musicaMomento = "jugadon"; s._temaFinalPuesto = true; s.update(0, 16);
+  assert(pedidos.join() === "partido_final", "si ya había entrado el tramo final, vuelve el tramo final (" + pedidos.join() + ")");
+})();
+
 console.log((mal ? "✗" : "✓") + " toque: " + ok + " ok, " + mal + " mal · lector " + L.buenas.toFixed(2) + "/" + L.justas.toFixed(2) + " · azar " + Z.buenas.toFixed(3) + " · crack " + crack.media.toFixed(2) + " vs tronco " + tronco.media.toFixed(2));
 process.exit(mal ? 1 : 0);

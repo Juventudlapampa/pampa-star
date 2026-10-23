@@ -38,7 +38,7 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 function escena() {
   var E = PM.escena({
     logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
-    logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js"],
+    logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js", "phaser/logic/tiro.js"],   // revisión final del 22/oct: el TIRO sin marca dice desde dónde pateás (tiroAuto)
     mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js", "phaser/scenes/toque_ui.js"]   // 20/oct: el rótulo del TIRO pregunta toqueEnArea
   });
   var s = E.s;

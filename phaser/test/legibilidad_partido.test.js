@@ -55,7 +55,7 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 function escena(mixinsExtra, comoViene) {
   var E = PM.escena({
     logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
-    logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js"],
+    logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js", "phaser/logic/tiro.js"],   // revisión final del 22/oct: el TIRO sin marca dice desde dónde pateás (tiroAuto)
     mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js", "phaser/scenes/toque_ui.js"].concat(mixinsExtra || [])   // 20/oct: el rótulo del TIRO pregunta toqueEnArea
   });
   var s = E.s, W = E.W;
@@ -225,6 +225,29 @@ SITUACIONES.forEach(function (sit) {
   var u = textos(s).filter(function (o) { return /TOQUE|zafar/.test(o.text); })[0];
   assert(u && /^\d+% · \d+ aguante · TOQUE$/.test(u.text) && u.text.indexOf(" " + s.BAL.aguante.costo_tiro + " aguante") > 0 && u.width <= CE[2] - 2 * CZ.aire,
     "en el área con un defensor al cruce, el TIRO dice el porcentaje de zafar, el aguante y TOQUE, sin recortar (" + (u && u.text) + ", " + (u && Math.round(u.width)) + ")");
+  /* revisión final del 22/oct: afuera del área y sin marca decía "62% de
+     zafar · 90 aguante" sin duelo que zafar, y se leía como la chance de
+     gol. Sin marca dice desde dónde pateás; con un defensor al cruce, el
+     porcentaje del duelo con su bloqueo, como GAMBETA y PARED */
+  var costo = " · " + s.BAL.aguante.costo_tiro + " aguante";
+  var subTiro = function () { return textos(s).filter(function (o) { return Math.abs(o.x - CE[0]) < 1 && o.y > CE[1] && /aguante|TOQUE/.test(o.text); })[0]; };
+  var desdes = ["media distancia", "desde lejos", "de frente", "sin ángulo", "con 1 adelante"];
+  [[st.W - A.largo_px - 140, st.H / 2], [st.W - A.largo_px - 40, st.H / 2], [st.W / 2 + 40, st.H / 2], [st.W - 40, 40]].forEach(function (p) {
+    s.limpiarMenu();
+    st.mios[i].x = p[0]; st.mios[i].y = p[1];
+    assert(E.W.PampaPartido.puedeTirar(st), "desde x " + p[0] + " se puede tirar");
+    s.abrirMenuAtaque(null, true);
+    var w = subTiro();
+    assert(!s.toqueEnArea() && w && w.text.indexOf("zafar") < 0 && w.text.indexOf("%") < 0 && w.width <= CE[2] - 2 * CZ.aire &&
+      desdes.concat(["con 2 adelante", "con 3 adelante"]).some(function (d) { return w.text === d + costo; }),
+      "SÍNTOMA: afuera del área y sin marca, el TIRO dice un porcentaje de zafar (" + (w && w.text) + " en x " + p[0] + ")");
+  });
+  s.limpiarMenu();
+  st.mios[i].x = st.W - A.largo_px - 140; st.mios[i].y = st.H / 2;
+  s.abrirMenuAtaque(1, false);
+  var z = subTiro();
+  assert(z && /^\d+% · \d+ aguante$/.test(z.text) && z.width <= CE[2] - 2 * CZ.aire,
+    "afuera del área con un defensor al cruce, el TIRO dice el porcentaje del duelo y el aguante, como GAMBETA (" + (z && z.text) + ")");
 })();
 assert(vistos.length > 40,"se armaron las cuatro cruces y las dos grillas de ★ ESPECIAL (" + vistos.length + " textos)");
 assert(chicos.length === 0, "ningún texto de la cruz baja de " + PISO + " px:\n     " + chicos.join("\n     "));
