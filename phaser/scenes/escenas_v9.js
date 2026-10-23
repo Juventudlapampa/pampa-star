@@ -718,7 +718,7 @@
       };
       var base = M[lectura.motivo] || "";
       var extra = lectura.defensoresEnLinea
-        ? " · " + lectura.defensoresEnLinea + (lectura.defensoresEnLinea === 1 ? " tuyo en el camino" : " tuyos en el camino")
+        ? " · " + lectura.defensoresEnLinea + (lectura.defensoresEnLinea === 1 ? " de tu equipo tapaba el tiro" : " de tu equipo tapaban el tiro")
         : " · no había nadie en el camino";
       return base + extra;
     },

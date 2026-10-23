@@ -3015,7 +3015,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        es ese botón, sin grilla; la grilla vuelve si se prende otro */
     const unico = especiales.length === 1 && especiales[0].superTiro ? especiales[0] : null;
     this.abrirMenuCruz({
-      titulo: tut ? tut.texto : rival ? "¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ = seguir corriendo)",
+      titulo: tut ? tut.texto : rival ? "¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ o ESC = seguir corriendo)",
       izq, der,
       opciones: {
         N: {
@@ -6867,7 +6867,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
       else if (ev.tipo === "entretiempo") {
         P.entretiempo(st); this.transicionEntretiempo(); this.relatar("entretiempo");
-        aviso = "ENTRETIEMPO — saca " + this.nombreRival;
+        aviso = "ENTRETIEMPO. Saca " + this.nombreRival;
         /* V9 §8+§10: el 2T ARRANCA de verdad — se anuncia el cambio de lado */
         this.time.delayedCall(this.msV(2400), () => this.relatar("arranca_2t"));
       }
