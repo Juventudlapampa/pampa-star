@@ -65,16 +65,18 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   /* las palabras: TIRO, PASE, GAMBETA, AGUANTE, ÁNIMO */
   var todas = S.renglonesDeLaCancha(e).concat(S.renglonesDeLaCancha(barra), S.renglonesDeLaCancha(S.enLaCancha(save, { id: "ver_rival" }, CFG)));
   assert(todas.every(function (t) { return !/energ|molestia|cualidad|envi[oó]n|resistencia|f[ií]sico|car[aá]cter|stat/i.test(t); }), "lo que se lee usa solo las cinco palabras (" + todas.join(" | ") + ")");
-  assert(todas.indexOf("+8 de PASE") >= 0, "se dice como pidió Rodri: \"+8 de PASE\"");
+  /* pedido de Rodri del 23/oct (decidí vos): entrenar deja +1 para siempre y la semana lo dice */
+  assert(todas.indexOf("+8 de PASE esta fecha, +1 para siempre") >= 0, "se dice como pidió Rodri: \"+8 de PASE esta fecha, +1 para siempre\" (" + todas.join(" | ") + ")");
   /* la eleccion vieja no vale para otra fecha */
   save.temporada.fecha = 4;
   assert(S.eleccionDeLaFecha(save) === null, "la elección de la fecha pasada no cuenta en la nueva");
-  /* cerrar: una vez por fecha, sin mejoras para siempre */
+  /* cerrar: una vez por fecha. Pedido de Rodri del 23/oct: entrenar deja +1 para siempre */
   var sv = { temporadaN: 1, temporada: { fecha: 0 }, animo: 70, desgaste: 10, mejoras: { tiro: 2, resistencia: 5 } };
   S.elegirCuatro(sv, "entrenar", "tiro");
   var r1 = S.cerrarSemanaCuatro(sv, CFG);
   assert(!r1.yaEstaba && sv.semanaResumen.entrena.stat === "tiro" && S.semanaCerrada(sv), "cerrar arma lo que viaja a la cancha");
-  assert(JSON.stringify(sv.mejoras) === JSON.stringify({ tiro: 2, resistencia: 5 }), "entrenar NO suma mejoras para siempre (es para esta fecha)");
+  assert(JSON.stringify(sv.mejoras) === JSON.stringify({ tiro: 2 + K.entrenar_siempre, resistencia: 5 }) && sv.entrenado.tiro === K.entrenar_siempre,
+    "entrenar TIRO suma +" + K.entrenar_siempre + " para siempre a lo que ya tenía (" + JSON.stringify(sv.mejoras) + ")");
   assert(sv.semanaResumen.aguanteInicial === Math.round(S.techoDeAguante(sv.mejoras, CFG) * (K.llegada_base - 10 * K.llegada_por_desgaste) / 100),
     "el aguante llega hasta TU techo (las mejoras de antes siguen contando)");
   S.elegirCuatro(sv, "barra", null);
@@ -125,7 +127,9 @@ var PALABRAS_VIEJAS = /energ|molestia|cualidad|envi[oó]n|resistencia|f[ií]sico
     assert(t.indexOf(n) >= 0, "a la vista: " + n);
   });
   SEM.cuatro.forEach(function (c) { assert(t.indexOf(c.efecto) >= 0, c.n + " dice qué te da en la cancha (" + c.efecto + ")"); });
-  assert(t.filter(function (x) { return /^esta fecha: /.test(x); }).length === 4, "cada tarjeta dice lo que vas a tener esta fecha");
+  /* pedido de Rodri del 23/oct: ENTRENAR dice las dos cosas (esta fecha y para siempre) */
+  assert(t.filter(function (x) { return /^esta fecha: /.test(x); }).length === 3 && t.indexOf("+" + K.entrenar_mas + " esta fecha, +" + K.entrenar_siempre + " para siempre") >= 0,
+    "cada tarjeta dice lo que vas a tener esta fecha, y ENTRENAR también lo de para siempre");
   assert(t.some(function (x) { return /^AGUANTE al \d+%$/.test(x); }) && t.some(function (x) { return /^ÁNIMO \d+\/100$/.test(x); }), "los dos medidores: AGUANTE y ÁNIMO");
   var viejas = t.filter(function (x) { return PALABRAS_VIEJAS.test(x); });
   assert(viejas.length === 0, "SÍNTOMA: la semana nombra lo que se apagó: " + viejas.join(" | "));
@@ -136,12 +140,12 @@ var PALABRAS_VIEJAS = /energ|molestia|cualidad|envi[oó]n|resistencia|f[ií]sico
   s.teclas("TWO");
   assert(s.save.eleccion && s.save.eleccion.id === "entrenar" && s.save.eleccion.que === "pase", "la tecla 2 es ENTRENAR PASE");
   var tm = s.textos();
-  assert(tm.indexOf("ESTA SEMANA") >= 0 && tm.indexOf("ENTRENAR PASE") >= 0 && tm.indexOf("esta fecha: +8 de PASE") >= 0, "el momento dice qué elegiste y qué te da (" + tm.slice(-6).join(" | ") + ")");
+  assert(tm.indexOf("ESTA SEMANA") >= 0 && tm.indexOf("ENTRENAR PASE") >= 0 && tm.indexOf("+8 de PASE esta fecha, +1 para siempre") >= 0, "el momento dice qué elegiste y qué te da (" + tm.slice(-6).join(" | ") + ")");
   s.teclas("FOUR");
   assert(s.save.eleccion.id === "entrenar", "con el momento a la vista, otra tecla no cambia nada");
   s.correrTimers();
   var t2 = s.textos();
-  assert(t2.indexOf("+8 de PASE · AGUANTE al " + (K.llegada_base) + "% · ÁNIMO 60: +2 en las jugadas grandes") >= 0,
+  assert(t2.indexOf("+8 de PASE esta fecha, +1 para siempre · AGUANTE al " + (K.llegada_base) + "% · ÁNIMO 60: +2 en las jugadas grandes") >= 0,
     "arriba queda lo que vas a tener en la cancha (" + t2.filter(function (x) { return /AGUANTE al/.test(x); }).join(" | ") + ")");
   assert(t2.indexOf("✓ ENTRENAR") >= 0 && t2.indexOf("▶ JUGAR LA FECHA") >= 0, "la elegida lleva la marca con palabra y el botón dice JUGAR LA FECHA");
   s.teclas("FOUR");
@@ -241,13 +245,15 @@ var PALABRAS_VIEJAS = /energ|molestia|cualidad|envi[oó]n|resistencia|f[ií]sico
   var mp0 = A.window.PampaTemporada.miPartido(s.save.temporada), rival = mp0.local === s.save.temporada.miClub ? mp0.visita : mp0.local;
   s.cerrarSemana(function () { s.irALaCancha(rival); });
   var mp = A.registry.get("masterPartido");
-  assert(JSON.stringify(mp.mejoras) === JSON.stringify(vieja.mejoras), "lo ganado en las semanas viejas sigue viajando a la cancha");
+  /* pedido de Rodri del 23/oct: a lo de la semana vieja se le suma el +1 para siempre de ENTRENAR TIRO */
+  var conElUno = Object.assign({}, vieja.mejoras, { tiro: vieja.mejoras.tiro + K.entrenar_siempre });
+  assert(JSON.stringify(mp.mejoras) === JSON.stringify(conElUno), "lo ganado en las semanas viejas sigue viajando a la cancha, con el +1 de entrenar (" + JSON.stringify(mp.mejoras) + ")");
   assert(mp.semana.entrena.stat === "tiro" && mp.semana.animo === 71, "con el ÁNIMO que traía (71) y +8 de TIRO");
   assert(mp.semana.aguanteInicial === Math.round(S.techoDeAguante(vieja.mejoras, CFG) * (K.llegada_base - 12 * K.llegada_por_desgaste) / 100), "y el techo de aguante que se había entrenado");
   var g = JSON.parse(A.localStorage.getItem("pampa_master_v1"));
   assert(g.molestia === true && g.resaca === 8 && g.modFecha && g.modFecha.frase === vieja.modFecha.frase && g.semana && g.semana.elegidas[1] === "asado",
     "lo de la semana vieja queda guardado (si se apaga la perilla, vuelve)");
-  assert(JSON.stringify(g.mejoras) === JSON.stringify(vieja.mejoras), "y la semana nueva no le sumó mejoras para siempre");
+  assert(JSON.stringify(g.mejoras) === JSON.stringify(conElUno), "y la semana nueva le sumó solo el +1 de entrenar, una vez");
   console.log("[6] carrera vieja: mejoras " + JSON.stringify(g.mejoras) + " intactas, ánimo 71, la semana vieja guardada");
 })();
 
@@ -262,6 +268,29 @@ var PALABRAS_VIEJAS = /energ|molestia|cualidad|envi[oó]n|resistencia|f[ií]sico
   var t = s.textos();
   assert(t.some(function (x) { return /^ENERGÍA \d+\/100$/.test(x); }) && t.indexOf("EL LUNES") >= 0, "con false vuelve la semana de tres días, con ENERGÍA");
   console.log("[7] flags.semana_cuatro false: la semana de tres días");
+})();
+
+/* ---------- [8] ENTRENAR DEJA ALGO (decisión que Rodri delegó, 23/oct) ---------- */
+(function () {
+  assert(K.entrenar_siempre === 1 && K.entrenar_siempre_tope > 0, "las perillas entrenar_siempre y entrenar_siempre_tope existen");
+  var sv = { temporadaN: 1, temporada: { fecha: 0 }, animo: 60, desgaste: 0 };
+  for (var f = 0; f < K.entrenar_siempre_tope + 3; f++) {
+    sv.temporada.fecha = f;
+    S.elegirCuatro(sv, "entrenar", "gambeta");
+    S.cerrarSemanaCuatro(sv, CFG);
+    S.cerrarSemanaCuatro(sv, CFG);
+  }
+  assert(sv.mejoras.gambeta === K.entrenar_siempre_tope && sv.entrenado.gambeta === K.entrenar_siempre_tope,
+    "entrenando GAMBETA " + (K.entrenar_siempre_tope + 3) + " fechas (cerrando dos veces cada una) queda el tope, +" + K.entrenar_siempre_tope + " (" + sv.mejoras.gambeta + ")");
+  assert(!sv.mejoras.tiro && !sv.mejoras.pase, "lo de GAMBETA no se le suma a las otras");
+  var lleno = S.enLaCancha(sv, { id: "entrenar", que: "gambeta" }, CFG).entrena;
+  assert(lleno.mas === K.entrenar_mas && lleno.siempre === 0 && S.textoEntrena(lleno) === "+" + K.entrenar_mas + " de GAMBETA esta fecha, ya tenés el +" + K.entrenar_siempre_tope + " para siempre",
+    "con el tope, el +" + K.entrenar_mas + " de la fecha sigue y la semana lo dice (" + S.textoEntrena(lleno) + ")");
+  var otra = S.enLaCancha(sv, { id: "entrenar", que: "tiro" }, CFG).entrena;
+  assert(otra.siempre === 1 && S.textoEntrena(otra) === "+" + K.entrenar_mas + " de TIRO esta fecha, +1 para siempre", "TIRO todavía suma (" + S.textoEntrena(otra) + ")");
+  sv.temporada.fecha = 40; S.elegirCuatro(sv, "descansar", null); S.cerrarSemanaCuatro(sv, CFG);
+  assert(sv.mejoras.gambeta === K.entrenar_siempre_tope && !sv.mejoras.tiro, "DESCANSAR no deja nada para siempre");
+  console.log("[8] entrenar deja algo: GAMBETA +" + sv.mejoras.gambeta + " con tope " + K.entrenar_siempre_tope + " · " + S.textoEntrena(otra));
 })();
 
 console.log(mal ? "✗ " + mal + " FALLARON (" + ok + " ok)" : "✓ semana_cuatro: " + ok + " ok");

@@ -314,6 +314,10 @@
       if (!esObjeto(s.mejoras)) { s.mejoras = {}; reparado.push("mejoras"); }
       else Object.keys(s.mejoras).forEach(function (k) { if (!esNumero(s.mejoras[k])) { delete s.mejoras[k]; reparado.push("mejora " + k); } });
     }
+    if (s.entrenado != null) {
+      if (!esObjeto(s.entrenado)) { s.entrenado = {}; reparado.push("entrenado"); }
+      else Object.keys(s.entrenado).forEach(function (k) { if (!esNumero(s.entrenado[k])) { delete s.entrenado[k]; reparado.push("entrenado " + k); } });
+    }
     if (s.racha != null && entero(s.racha) == null) { s.racha = 0; reparado.push("racha"); }
     if (s.racha == null) s.racha = 0;
     if (s.tempo != null && !tempoValido(s.tempo)) { s.tempo = TEMPO_POR_DEFECTO; reparado.push("tempo"); }

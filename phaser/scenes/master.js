@@ -2349,7 +2349,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       if (!touch && c.id !== "entrenar") this.add.text(cx - anchoC / 2 + 8, top + 6, String(foco.length + 1), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 4, y: 2 } });
       this.add.text(cx, top + 6, (elegida ? "✓ " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 10 } }).setOrigin(0.5, 0);
       this.add.text(cx, top + 28, c.efecto, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41", align: "center", lineSpacing: -2, wordWrap: { width: anchoC - 14 } }).setOrigin(0.5, 0);
-      this.add.text(cx, top + altoC - 6, "esta fecha: " + this.textoDeLaFecha(c.id, elegida ? el.que : null), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 12 } }).setOrigin(0.5, 1);
+      this.add.text(cx, top + altoC - 6, this.textoDeLaFecha(c.id, elegida ? el.que : null), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 12 } }).setOrigin(0.5, 1);
       if (c.id !== "entrenar") { tocar(r, () => this.ponerCuatro(c.id, null)); return; }
       S.ENTRENABLES.forEach((k, q) => {
         /* revisión final del 23/oct: medían 46x23 px reales en el teléfono. El
@@ -2372,11 +2372,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* lo de cada tarjeta, con las cinco palabras (y lo que dice el momento) */
   textoDeLaFecha(id, que) {
     const S = window.PampaSemana, cfg = this.game.registry.get("balance").semana;
-    if (id === "entrenar") return "+" + cfg.cuatro.entrenar_mas + (que ? " de " + que.toUpperCase() : " a la que elijas");
+    /* decisión que Rodri delegó (23/oct): entrenar dice las dos cosas */
+    if (id === "entrenar") return que ? S.textoEntrena(S.enLaCancha(this.save, { id: id, que: que }, cfg).entrena)
+      : "+" + cfg.cuatro.entrenar_mas + " esta fecha, +" + cfg.cuatro.entrenar_siempre + " para siempre";
     const lc = S.enLaCancha(this.save, { id: id }, cfg);
-    if (id === "descansar") return "AGUANTE al " + lc.aguantePct + "% (sin descansar, " + lc.aguanteSinDescanso + "%)";
-    if (id === "ver_rival") return "su defensa y su estrella, en el mapa";
-    return "ÁNIMO " + lc.animo + ", +" + lc.grande + " en las jugadas grandes";
+    if (id === "descansar") return "esta fecha: AGUANTE al " + lc.aguantePct + "% (sin descansar, " + lc.aguanteSinDescanso + "%)";
+    if (id === "ver_rival") return "esta fecha: su defensa y su estrella, en el mapa";
+    return "esta fecha: ÁNIMO " + lc.animo + ", +" + lc.grande + " en las jugadas grandes";
   }
   opDeLaSemana(D, el) {
     const c = D.cuatro.find(o => o.id === el.id), q = c.que ? c.que[el.que] : null;
@@ -2387,7 +2389,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (!S.elegirCuatro(this.save, id, que)) return false;
     this.guardar();
     const op = this.opDeLaSemana(this.game.registry.get("semana"), this.save.eleccion);
-    op.efectoCancha = "esta fecha: " + this.textoDeLaFecha(id, que);
+    op.efectoCancha = this.textoDeLaFecha(id, que);
     this.momentoDeAccion(op, "ESTA SEMANA");
     return true;
   }

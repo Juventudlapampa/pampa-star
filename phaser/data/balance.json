@@ -685,6 +685,9 @@
     "cuatro": {
       "_nota": "23/oct, pedido de Rodri: la semana de cuatro cosas (flags.semana_cuatro, logic/semana.js enLaCancha). entrenar_mas: lo que sube TIRO, PASE o GAMBETA, solo el próximo partido. llegada_base y llegada_por_desgaste: el AGUANTE con el que llegás sin descansar (85 menos la mitad de lo que te dejó el partido anterior: entre 65 y 85%); llegada_descanso: el que te da DESCANSAR. barra_animo: lo que suma SALIR CON LA BARRA al ÁNIMO de esa fecha. El ÁNIMO da poder en las jugadas grandes tuyas (SÚPER TIRO, EL TOQUE, tiro libre; partido.prepararRemate): (ÁNIMO - grande_desde) * grande_por_punto, entre 0 y grande_max. Con 60 de ánimo son +2; con la barra (80), +6; a 100, +10, lo mismo que entrenar el TIRO para un remate.",
       "entrenar_mas": 8,
+      "_entrenar_siempre": "23/oct, decisión que Rodri delegó: cada vez que entrenás TIRO, PASE o GAMBETA queda entrenar_siempre en la carrera (save.mejoras, la cuenta en save.entrenado), hasta entrenar_siempre_tope por cualidad. El tope se midió en node con el partido del flujo y las cinco divisiones de master.js (150 partidos CORTO por caso, ganados por vos): sin nada B 79%, A 78%, Regional 70%, Nacional 65%, Mundial 43%; con +10 en las tres, B 85%, A 83%, Regional 75%, Nacional 68%, Mundial 49%; con +18, Regional 81% y Nacional 75%, más fácil que la A sin nada. Con 10 cada escalón con el tope sigue más difícil que el anterior sin nada; con 18 se rompe.",
+      "entrenar_siempre": 1,
+      "entrenar_siempre_tope": 10,
       "llegada_base": 85,
       "llegada_por_desgaste": 0.5,
       "llegada_descanso": 100,

@@ -491,6 +491,18 @@
   function bonusGrande(animo, C) {
     return clamp(Math.round((animo - C.grande_desde) * C.grande_por_punto), 0, C.grande_max);
   }
+  /* Decisión que Rodri delegó (23/oct): además del +N de la fecha, cada vez
+     que entrenás queda +entrenar_siempre en la carrera, hasta
+     entrenar_siempre_tope por cualidad. save.entrenado lleva la cuenta aparte
+     de save.mejoras, que puede traer lo de la semana vieja */
+  function entrenaCon(save, stat, C) {
+    var llevas = ((save.entrenado || {})[stat]) || 0, tope = C.entrenar_siempre_tope;
+    return { stat: stat, mas: C.entrenar_mas, siempre: Math.max(0, Math.min(C.entrenar_siempre, tope - llevas)), llevas: llevas, tope: tope };
+  }
+  function textoEntrena(en) {
+    return "+" + en.mas + " de " + en.stat.toUpperCase() + " esta fecha, " +
+      (en.siempre ? "+" + en.siempre + " para siempre" : "ya tenés el +" + en.tope + " para siempre");
+  }
   /* lo que vas a tener en la cancha con esta elección (o sin ninguna) */
   function enLaCancha(save, eleccion, cfg) {
     var C = cfg.cuatro, id = eleccion ? eleccion.id : null;
@@ -502,7 +514,7 @@
     var sinDescanso = clamp(Math.round(C.llegada_base - (save.desgaste || 0) * C.llegada_por_desgaste), 0, 100);
     return {
       id: id,
-      entrena: id === "entrenar" ? { stat: eleccion.que, mas: C.entrenar_mas } : null,
+      entrena: id === "entrenar" ? entrenaCon(save, eleccion.que, C) : null,
       aguantePct: id === "descansar" ? C.llegada_descanso : sinDescanso,
       aguanteSinDescanso: sinDescanso,
       animo: animo,
@@ -513,21 +525,28 @@
   /* lo mismo dicho con las cinco palabras: TIRO, PASE, GAMBETA, AGUANTE, ÁNIMO */
   function renglonesDeLaCancha(lc) {
     var r = [];
-    if (lc.entrena) r.push("+" + lc.entrena.mas + " de " + lc.entrena.stat.toUpperCase());
+    if (lc.entrena) r.push(textoEntrena(lc.entrena));
     r.push("AGUANTE al " + lc.aguantePct + "%");
     r.push("ÁNIMO " + lc.animo + (lc.grande ? ": +" + lc.grande + " en las jugadas grandes" : ""));
     if (lc.espiado) r.push("ves su defensa y su estrella");
     return r;
   }
-  /* cerrar con la elección: lo que viaja a la cancha. No suma mejoras para
-     siempre (lo de entrenar es para esta fecha) y una vez por fecha, igual
-     que cerrarSemana */
+  /* cerrar con la elección: lo que viaja a la cancha, una vez por fecha igual
+     que cerrarSemana. Entrenar deja su +1 para siempre en save.mejoras, que
+     leen statsDeHoy y el partido */
   function cerrarSemanaCuatro(save, cfg) {
     if (semanaCerrada(save) && save.semanaResumen) {
       save.semanaCerradaEnFecha = claveDeFecha(save);
       return { llega: save.semanaResumen, yaEstaba: true };
     }
     var lc = enLaCancha(save, eleccionDeLaFecha(save), cfg);
+    if (lc.entrena && lc.entrena.siempre) {
+      var k = lc.entrena.stat;
+      save.entrenado = save.entrenado || {};
+      save.entrenado[k] = (save.entrenado[k] || 0) + lc.entrena.siempre;
+      save.mejoras = save.mejoras || {};
+      save.mejoras[k] = (save.mejoras[k] || 0) + lc.entrena.siempre;
+    }
     var techo = techoDeAguante(save.mejoras, cfg);
     var envionMax = cfg.envion_max || 100;
     var llega = {
@@ -547,7 +566,7 @@
 
   return {
     CUATRO: CUATRO, ENTRENABLES: ENTRENABLES, eleccionDeLaFecha: eleccionDeLaFecha, elegirCuatro: elegirCuatro,
-    bonusGrande: bonusGrande, enLaCancha: enLaCancha, renglonesDeLaCancha: renglonesDeLaCancha, cerrarSemanaCuatro: cerrarSemanaCuatro,
+    bonusGrande: bonusGrande, enLaCancha: enLaCancha, textoEntrena: textoEntrena, renglonesDeLaCancha: renglonesDeLaCancha, cerrarSemanaCuatro: cerrarSemanaCuatro,
     RANURAS: RANURAS, clamp: clamp,
     claveDeFecha: claveDeFecha, esLaFecha: esLaFecha, semanaCerrada: semanaCerrada,
     cerrarSemana: cerrarSemana, eventoDeLaFecha: eventoDeLaFecha,
