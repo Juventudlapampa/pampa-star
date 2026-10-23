@@ -174,8 +174,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
       };
       this.input.keyboard.on("keydown-UP", () => irA(this.filaSel - 1));
       this.input.keyboard.on("keydown-DOWN", () => irA(this.filaSel + 1));
-      this.input.keyboard.on("keydown-LEFT", () => { if (this.filaSel < CATS.length) this.mover(CATS[this.filaSel].k, -1); });
-      this.input.keyboard.on("keydown-RIGHT", () => { if (this.filaSel < CATS.length) this.mover(CATS[this.filaSel].k, 1); });
+      /* ola 3: en la fila de los botones, izquierda y derecha pasan de uno a otro */
+      this.input.keyboard.on("keydown-LEFT", () => { if (this.filaSel < CATS.length) this.mover(CATS[this.filaSel].k, -1); else if (this.filaSel > CATS.length) irA(this.filaSel - 1); });
+      this.input.keyboard.on("keydown-RIGHT", () => { if (this.filaSel < CATS.length) this.mover(CATS[this.filaSel].k, 1); else if (this.filaSel < CATS.length + this._botones.length - 1) irA(this.filaSel + 1); });
       this.input.keyboard.on("keydown-ENTER", () => {
         const b = this._botones[this.filaSel - CATS.length];
         if (b && b.cb) b.cb();

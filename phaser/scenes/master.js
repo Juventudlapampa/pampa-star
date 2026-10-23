@@ -56,6 +56,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       : window.PampaSaveMaster.TEMPO_POR_DEFECTO);
     this._tempoDeLaCarrera = null;
     this._tempoFoco = null;
+    this._botonesElegir = null;
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -1050,6 +1051,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
   vistaElegir() {
     const W = this.scale.width, H = this.scale.height;
+    this._botonesElegir = null;
     this.add.text(W / 2, 26, "MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 54, "de la PRIMERA B de tu localidad al MUNDIAL · el campeón SUBE de división", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
 
@@ -1142,7 +1144,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     });
     pintarT();
     this.dibujarMapa();
-    if (this.input.keyboard) {
+    /* ola 3: con el cursor, las flechas van por el mapa, la duración y los
+       botones, y ENTER elige. Estas dos cambiaban la localidad desde
+       cualquier lado y devolvían el cursor al mapa: no se llegaba a ARRANCAR */
+    if (this.input.keyboard && !this.grupoFoco) {
       this.input.keyboard.on("keydown-LEFT", () => { this.pSel = (this.pSel + this.pueblos.length - 1) % this.pueblos.length; this.dibujarMapa(); });
       this.input.keyboard.on("keydown-RIGHT", () => { this.pSel = (this.pSel + 1) % this.pueblos.length; this.dibujarMapa(); });
     }
@@ -1191,7 +1196,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     try { clasico = JSON.parse(localStorage.getItem("pampa_star_v1")); } catch (e) { }
     /* TEMPO-1: con IMPORTAR, los dos arranques van lado a lado en la misma fila */
     const hayClasico = !!(clasico && clasico.name);
-    this.boton(hayClasico ? W / 2 - 205 : W / 2, H - 102, hayClasico ? 400 : 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id));
+    const botones = [];
+    botones.push(this.boton(hayClasico ? W / 2 - 205 : W / 2, H - 102, hayClasico ? 400 : 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id)));
     /* el gate era `clasico.nivel`, un campo que el clasico no guarda nunca:
        el boton no aparecio jamas y la mudanza entera era inalcanzable. El nivel
        se CALCULA (logic/master.nivelDeCarreraClasica). Gate nuevo: que haya
@@ -1203,17 +1209,22 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* TEMPO-1: lo del respaldo va adentro del botón (era un renglón de
          10 px abajo, con el nombre de la clave de localStorage, y ya no
          entraba entre esta fila y la de abajo) */
-      this.boton(W / 2 + 205, H - 102, 400, "IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
-        "tu carrera de antes queda guardada, sin tocar");
+      botones.push(this.boton(W / 2 + 205, H - 102, 400, "IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
+        "tu carrera de antes queda guardada, sin tocar"));
     }
     /* tanda 1.0: el código de carrera se pega acá, donde se empieza. Va al
        lado de VOLVER, del mismo tamaño: es la otra forma de entrar */
     if (window.PampaCarrera) {
-      this.boton(W / 2 - 160, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo"));
-      this.boton(W / 2 + 160, H - 40, 300, "PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo());
+      botones.push(this.boton(W / 2 - 160, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo")));
+      botones.push(this.boton(W / 2 + 160, H - 40, 300, "PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo()));
     } else {
-      this.boton(W / 2, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo"));
+      botones.push(this.boton(W / 2, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo")));
     }
+    /* ola 3 · TECLADO: con flechas se elegía la localidad y la duración, pero
+       ARRANCAR, IMPORTAR, VOLVER y PEGAR UN CÓDIGO solo andaban con el
+       puntero. Entran al cursor del mapa (dibujarMapa lo rearma) */
+    this._botonesElegir = botones.map(o => ({ obj: o, cb: () => o.emit("pointerdown", null, 0, 0, null) }));
+    this.dibujarMapa();
     /* L07: si este navegador no guarda, se dice antes de empezar la carrera */
     this.marcaSinGuardar();
   }
@@ -1400,7 +1411,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     if (this.grupoFoco && _focoMapa.length) {
       const iSel = ubic.findIndex(p => p.nombre === sel);
-      this.grupoFoco(_focoMapa.concat(this._tempoFoco || []), { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
+      this.grupoFoco(_focoMapa.concat(this._tempoFoco || [], this._botonesElegir || []), { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
       /* el cursor hace tocable cada punto; en el mapa el dedo va a la zona */
       _focoMapa.forEach(it => it.obj.disableInteractive());
     }
@@ -1605,9 +1616,20 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      así que tocar una opción elige y no completa */
   escucharToque() {
     if (this._toqueEscritura) return;
-    this._toqueEscritura = () => this.completarEscritura();
-    this.input.on("pointerdown", this._toqueEscritura);
-    this.events.once("shutdown", () => { this.input.off("pointerdown", this._toqueEscritura); this._toqueEscritura = null; });
+    const fn = this._toqueEscritura = () => this.completarEscritura();
+    this.input.on("pointerdown", fn);
+    /* ola 3 · TECLADO: mientras se escribe todavía no hay opciones ni cursor
+       (la previa, la entrevista, el evento) y ENTER no hacía nada. ENTER o
+       ESPACIO completan, como el toque; las opciones llegan con su cursor */
+    const kb = this.input.keyboard, teclas = kb ? ["keydown-ENTER", "keydown-SPACE"] : [];
+    /* con un cursor vivo, la tecla es suya (el de la previa completa y pasa de página) */
+    const conTecla = () => {
+      const F = this._foco;
+      if (F && F.vivo && F.items.some(it => it.obj && it.obj.active)) return;
+      this.completarEscritura();
+    };
+    teclas.forEach(k => kb.on(k, conTecla));
+    this.events.once("shutdown", () => { this.input.off("pointerdown", fn); teclas.forEach(k => kb.off(k, conTecla)); this._toqueEscritura = null; });
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -2746,14 +2768,17 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         { fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#e3503e" }).setOrigin(0.5);
     }
 
+    let principal = null, editor = null;
+    const accesos = [];
     if (!T.terminada(t)) {
       /* los dos accesos de abajo se crean ANTES que los botones (revisión
          L03): con el piso táctil su área sube unos píxeles sobre el borde de
          abajo de JUGAR / NUEVA TEMPORADA, y Phaser le da el toque al objeto
          dibujado más arriba. Creados antes, en ese borde gana el botón. */
-      this.salidaDeLaCarrera(W, H);
-      this.accesoAlCodigo(W, H);
-      this.accesoAInstalar(W, H);   // L08c: solo si el navegador lo ofrece
+      const salida = this.salidaDeLaCarrera(W, H);
+      const codigo = this.accesoAlCodigo(W, H);
+      const instalar = this.accesoAInstalar(W, H);   // L08c: solo si el navegador lo ofrece
+      accesos.push(salida, codigo, instalar);
       /* la PRÓXIMA fecha: rival + su perfil de IA con nombre (sabés a qué venís) */
       const mp = T.miPartido(t);
       const fechaTxt = "FECHA " + (t.fecha + 1) + " de " + t.fixture.length;
@@ -2780,26 +2805,27 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           this.add.text(W / 2, H - 172, "↺ volviste sin terminar el partido: la semana ya está jugada y entrás como llegaste",
             { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
         }
-        this.boton(W / 2 - 170, H - 80, 300, repetir ? "↺ REPETIR EL PARTIDO" : "▶ JUGAR LA FECHA", 0x7ee08a, () => {
+        principal = this.boton(W / 2 - 170, H - 80, 300, repetir ? "↺ REPETIR EL PARTIDO" : "▶ JUGAR LA FECHA", 0x7ee08a, () => {
           if (repetir) { this.irALaCancha(rival); return; }
           /* V8 A1: primero LA SEMANA (dos toques), después la cancha */
           this.vistaSemana(rival, () => this.vistaPrevia(rival, () => this.irALaCancha(rival)));
         });
       } else {
         this.add.text(W / 2, H - 140, fechaTxt + " · FECHA LIBRE (descansás)", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
-        this.boton(W / 2 - 170, H - 80, 300, "▶ PASAR LA FECHA", 0x7ee08a, () => {
+        principal = this.boton(W / 2 - 170, H - 80, 300, "▶ PASAR LA FECHA", 0x7ee08a, () => {
           this.T.jugarFecha(t, null, null);
           this.guardar();
           this.scene.restart();
         });
       }
-      this.boton(W / 2 + 170, H - 80, 280, "EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
+      editor = this.boton(W / 2 + 170, H - 80, 280, "EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
     } else {
       /* FIN DE TEMPORADA: el veredicto de la escalera */
       /* (los accesos antes que los botones: ver la otra rama) */
-      this.salidaDeLaCarrera(W, H);
-      this.accesoAlCodigo(W, H);
-      this.accesoAInstalar(W, H);
+      const salida = this.salidaDeLaCarrera(W, H);
+      const codigo = this.accesoAlCodigo(W, H);
+      const instalar = this.accesoAInstalar(W, H);
+      accesos.push(salida, codigo, instalar);
       const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
       let msj, color;
       /* M4 · idem "hype" (Ascenso, título, gloria): declarado, con archivo y sin
@@ -2811,7 +2837,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás a " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#e3503e"; }
       else { msj = "Terminaste " + v.posicion + "º — otra temporada en " + div.n; color = "#f6efdc"; }
       this.add.text(W / 2, H - 140, msj, { fontFamily: window.PF.display, fontSize: "13px", color }).setOrigin(0.5);
-      this.boton(W / 2 - 170, H - 80, 320, "▶ NUEVA TEMPORADA", 0x7ee08a, () => {
+      principal = this.boton(W / 2 - 170, H - 80, 320, "▶ NUEVA TEMPORADA", 0x7ee08a, () => {
         if (v.campeon) this.save.titulos.push({ division: this.save.division, temporada: this.save.temporadaN });
         this.save.division = v.proximaDivision;
         /* marca de agua: el nivel sube con el ascenso y NO baja con el descenso.
@@ -2827,7 +2853,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         this.guardar();
         this.scene.restart();
       });
-      this.boton(W / 2 + 170, H - 80, 280, "EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
+      editor = this.boton(W / 2 + 170, H - 80, 280, "EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
+    }
+    /* ola 3 · TECLADO: la tabla es el paso entre fecha y fecha y solo andaba
+       con el puntero. Flechas y ENTER, empezando por jugar */
+    if (this.grupoFoco) {
+      const items = [principal, editor, menu].concat(accesos).filter(Boolean)
+        .map(o => ({ obj: o, cb: () => o.emit("pointerdown", null, 0, 0, null) }));
+      this.grupoFoco(items, { inicial: 0 });
     }
     /* L07: fijo en la tabla mientras este navegador no guarde */
     this.marcaSinGuardar();

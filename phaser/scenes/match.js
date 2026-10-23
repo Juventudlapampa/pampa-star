@@ -580,8 +580,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* ESPACIO = el botón de acción (doc §8); ESC = cancelar (todo se puede sin mouse) */
       this.input.keyboard.on("keydown-SPACE", (ev) => {
         ev.preventDefault && ev.preventDefault();
+        if (this.saltearConTecla()) return;
         this.onBotonAccion();
       });
+      this.input.keyboard.on("keydown-ENTER", () => this.saltearConTecla());
       /* L04 · ESC ES EL ATRÁS DEL TECLADO: la misma tabla que el gesto del
          teléfono (logic/atras.js). Con un menú que se puede cerrar, lo
          cierra (lo de siempre: el pase dirigido, la cruz con ✕, y ahora la
@@ -2410,6 +2412,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   }
 
   /* Feel B3: la PRIMERA vez que se juega, tres pasos superpuestos al juego real */
+  /* ola 3 · TECLADO: ENTER o ESPACIO saltean la escena y el cine como el
+     toque, con el mismo antirrebote (balance.cuidado.skip_min_ms) */
+  saltearConTecla() {
+    if (this.estado !== "ESCENA" && this.estado !== "CINE") return false;
+    if (this.time.now - (this._ultSalteo != null ? this._ultSalteo : -Infinity) < this.BAL.cuidado.skip_min_ms) return true;
+    this._ultSalteo = this.time.now;
+    if (this.estado === "ESCENA") { if (this._escSkip) this._escSkip(); }
+    else if (this._cineSkip) this._cineSkip();
+    return true;
+  }
   /* OLA 3 · EL TUTORIAL EN CONTEXTO (logic/tutorial.js): cada cosa una vez,
      en su momento. Lo visto vive en localStorage pampa_tutorial. */
   tutorialVistos() {
