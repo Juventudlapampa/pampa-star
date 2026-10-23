@@ -369,7 +369,7 @@
        de impacto de LA ONDA y el negro de corte del cine cuentan juntos, como
        los cuenta el ojo. Sin cupo, el flash y los cuadros no salen y el negro
        baja a balance.cuidado.negro_sin_cupo. En MOVIMIENTO SUAVE no hay
-       flash ni sacudón, y los zooms de cámara son cortes.
+       flash, ni sacudón, ni negro de corte, y los zooms de cámara son cortes.
        ══════════════════════════════════════════════════════════════════════ */
     movimientoSuave: function () { return this.game.registry.get("movimiento") === "suave"; },
     cupoDestello: function () {
@@ -388,6 +388,7 @@
       return true;
     },
     alfaNegro: function () {
+      if (this.movimientoSuave()) return 0;
       return this.cupoDestello() ? 1 : this.game.registry.get("balance").cuidado.negro_sin_cupo;
     },
     zoomCamara: function (cam, z, ms, ease, forzar) {

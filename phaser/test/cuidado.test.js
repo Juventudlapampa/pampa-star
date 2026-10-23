@@ -127,6 +127,8 @@ function escena(modo) {
   var S = escena("suave");
   S.s.destello(S.s.cam, 90, 255, 255, 255); S.s.sacudir(S.s.cam, 200, 0.01); S.s.zoomCamara(S.s.cam, 1.2, 400, "Sine.easeInOut");
   assert(S.R.flashes.length === 0 && S.R.shakes.length === 0 && S.R.zooms.join() === "corte 1.2", "en SUAVE: sin destello, sin sacudón y el zoom es un corte (" + S.R.zooms.join() + ")");
+  var negrosSuave = [S.s.alfaNegro(), S.s.alfaNegro(), S.s.alfaNegro(), S.s.alfaNegro(), S.s.alfaNegro()];
+  assert(negrosSuave.join() === "0,0,0,0,0", "en SUAVE el cine corta sin negro (" + negrosSuave.join() + ")");
   var K = escena("completo");
   K.s.sacudir(K.s.cam, 200, 0.01); K.s.zoomCamara(K.s.cam, 1.2, 400, "Sine.easeInOut");
   assert(K.R.shakes.length === 1 && K.R.zooms.join() === "tween 1.2", "en COMPLETO, como siempre");
