@@ -37,6 +37,9 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     if (this.calentarElPartido) this.calentarElPartido();
     const W = this.scale.width, H = this.scale.height;
     this.W = W; this.H = H;
+    /* 23/oct, Rodri: los menús sin música, aburrido. El editor sigue con el
+       tema del título (el mismo elemento: no se corta al pasar) */
+    this.pedirMusica("espera");
     const A = window.PampaAvatar;
     /* PIEL P1: fondo radial en vez del verde plano. El color de cámara queda
        como borde (lo de afuera del lienzo con Scale.FIT). */

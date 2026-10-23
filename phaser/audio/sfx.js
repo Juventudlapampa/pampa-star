@@ -208,7 +208,16 @@
     n.g.gain.cancelScheduledValues(t); n.g.gain.setValueAtTime(n.g.gain.value, t);
     n.g.gain.linearRampToValueAtTime(nivel, t + 0.2);
   }
-  function unlock() { var c = ensure(); if (c && c.state === "suspended") c.resume(); }
+  /* 23/oct, Rodri escuchó los menús sin música: con la intro ya vista, el
+     título pide su tema antes de cualquier gesto y el navegador frena el
+     play() (autoplay). Nadie lo volvía a intentar. Ahora el primer toque o
+     tecla arranca el tema que quedó pedido (no uno que ya terminó) */
+  function unlock() {
+    var c = ensure(); if (c && c.state === "suspended") c.resume();
+    var el = archivoSonando;
+    if (!el || !el.paused || el.ended || el.__saliendo || musicaEnPausa()) return;
+    try { el.muted = muted; var pr = el.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) { }
+  }
   function now() { return ctx ? ctx.currentTime : 0; }
 
   /* M3 · lo que queda de 'mus': banderas, no un bus de audio. gain/paso/prox

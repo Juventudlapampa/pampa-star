@@ -59,18 +59,36 @@
      INTERMEDIO sin que se le escriba nada (el save sano sale igual que
      entró); un valor que no se conoce se repara a INTERMEDIO.
      ══════════════════════════════════════════════════════════════════════ */
-  var TEMPOS = ["relampago", "intermedio", "largo"];
+  /* 23/oct, pedido de Rodri: "partido corto y largo (pero no larguísimo),
+     solo dos opciones". Con flags.duracion_dos las duraciones son las de
+     balance.tempo.dos (CORTO y LARGO); con false vuelven las tres de antes.
+     El save NO se reescribe: guarda su clave y se traduce al leerla
+     (dos.migrar: relampago a corto; intermedio y largo, a largo), así que
+     apagar la perilla devuelve cada carrera a la duración que tenía. */
+  var TEMPOS = ["relampago", "intermedio", "largo", "corto"];
   var TEMPO_POR_DEFECTO = "intermedio";
   function tempoValido(t) { return TEMPOS.indexOf(t) >= 0; }
-  /* el tempo de un save, de un masterPartido o de una clave suelta */
-  function tempoDe(x) {
+  /* las duraciones que se ofrecen hoy: { presets, opciones, porDefecto, migrar } */
+  function duracionesActivas(bal) {
+    var T = bal.tempo;
+    if (bal.flags && bal.flags.duracion_dos && T.dos) {
+      return { presets: T.dos.presets, opciones: T.dos.opciones, porDefecto: T.dos.por_defecto, migrar: T.dos.migrar };
+    }
+    return { presets: T.presets, opciones: T.opciones, porDefecto: TEMPO_POR_DEFECTO, migrar: { corto: "relampago" } };
+  }
+  /* el tempo de un save, de un masterPartido o de una clave suelta. Con
+     `bal`, ya traducido a una de las duraciones que se ofrecen hoy */
+  function tempoDe(x, bal) {
     var t = esObjeto(x) ? x.tempo : x;
-    return tempoValido(t) ? t : TEMPO_POR_DEFECTO;
+    if (!tempoValido(t)) t = TEMPO_POR_DEFECTO;
+    if (!bal) return t;
+    var A = duracionesActivas(bal);
+    return A.migrar[t] || t;
   }
   /* los minutos de partido que consume cada momento con ese tempo
      (logic/partido.js los lee de st.bal.tempo) */
-  function minutosPorMomento(tempo, balTempo) {
-    return balTempo.presets[tempoDe(tempo)];
+  function minutosPorMomento(tempo, bal) {
+    return duracionesActivas(bal).presets[tempoDe(tempo, bal)];
   }
   /* el balance del partido con ese tempo puesto, en una copia: el menú viejo
      escribía minutos_por_momento en el balance compartido del registry, y el
@@ -78,7 +96,7 @@
      minutos_por_momento el reloj es el continuo de v4 y el tempo no aplica. */
   function balConTempo(bal, tempo) {
     var T = Object.assign({}, bal.tempo);
-    if (T.minutos_por_momento > 0) T.minutos_por_momento = minutosPorMomento(tempo, bal.tempo);
+    if (T.minutos_por_momento > 0) T.minutos_por_momento = minutosPorMomento(tempo, bal);
     return Object.assign({}, bal, { tempo: T });
   }
 
@@ -385,6 +403,6 @@
   }
 
   return { VERSION: VERSION, CLAVE: CLAVE, sanear: sanear, sePuedeJugar: sePuedeJugar, tablaDesdeResultados: tablaDesdeResultados, crudoDeLaSesion: crudoDeLaSesion,
-    TEMPOS: TEMPOS, TEMPO_POR_DEFECTO: TEMPO_POR_DEFECTO, tempoValido: tempoValido, tempoDe: tempoDe,
+    TEMPOS: TEMPOS, TEMPO_POR_DEFECTO: TEMPO_POR_DEFECTO, tempoValido: tempoValido, tempoDe: tempoDe, duracionesActivas: duracionesActivas,
     minutosPorMomento: minutosPorMomento, balConTempo: balConTempo };
 });

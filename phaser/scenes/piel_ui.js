@@ -501,8 +501,8 @@
       var audio = this.game.registry.get("audio");
       if (!audio) return 0;
       var bal = this.game.registry.get("balance") || {};
-      /* 20/oct: el estilo de OPCIONES (logic/opciones.js) */
-      var estilo = window.PampaOpciones ? window.PampaOpciones.leer(localStorage, bal, audio).estilo : null;
+      /* 20/oct: el estilo de OPCIONES (logic/opciones.js); con MEZCLA, el de turno */
+      var estilo = window.PampaOpciones ? window.PampaOpciones.estiloQueSuena(localStorage, bal, audio) : null;
       /* si cambio la fecha o el estilo hay que re-registrar: la alternancia depende de la fecha */
       if (MUSICA_REGISTRADA && !forzar && window.__PAMPA_MUSICA_FECHA === fecha && window.__PAMPA_MUSICA_ESTILO === estilo) return -1;
       var vol = (bal.musica && bal.musica.vol_archivo != null) ? bal.musica.vol_archivo : 0.42;
@@ -513,6 +513,15 @@
       window.__PAMPA_MUSICA_FECHA = fecha;
       window.__PAMPA_MUSICA_ESTILO = estilo;
       return n;
+    },
+
+    /* 23/oct · MEZCLA: un partido o una semana nuevos cambian de estilo
+       (logic/opciones.js, rotarMezcla). Se llama antes de pedir su tema: el
+       registro ve el estilo nuevo y cambia los archivos */
+    cambiarEstiloDeMezcla: function (turno) {
+      var O = window.PampaOpciones;
+      if (!O) return null;
+      return O.rotarMezcla(localStorage, this.game.registry.get("balance"), this.game.registry.get("audio"), turno);
     },
 
     /* LA PUERTA. El momento tiene que estar en PampaMusica.MOMENTOS. */

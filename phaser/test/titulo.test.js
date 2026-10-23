@@ -18,7 +18,13 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 
 var O = require("../logic/opciones.js");
 var AT = require("../logic/atras.js");
-var BAL = JSON.parse(leer("phaser/data/balance.json"));
+/* 23/oct, pedido de Rodri: MEZCLA de estilos (flags.musica_mezcla) y solo
+   dos duraciones (flags.duracion_dos). De [1] a [4] se fija lo de antes con
+   las dos perillas en false, que es lo que vuelve si se apagan; [5] fija lo
+   nuevo y la migración de las opciones guardadas. */
+var BAL_HOY = JSON.parse(leer("phaser/data/balance.json"));
+var BAL = JSON.parse(JSON.stringify(BAL_HOY));
+BAL.flags.duracion_dos = false; BAL.flags.musica_mezcla = false;
 
 /* ---------- [1] LAS OPCIONES SE LEEN SANEADAS ---------- */
 (function () {
@@ -58,8 +64,9 @@ var BAL = JSON.parse(leer("phaser/data/balance.json"));
 })();
 
 /* ---------- [3] LAS TRES OPCIONES, CON LA ESCENA DE VERDAD ---------- */
-function armarTitulo(store) {
+function armarTitulo(store, bal) {
   var A = M.armar({ logicaExtra: ["phaser/logic/opciones.js"], escena: "phaser/scenes/titulo.js", clase: "PampaTitulo", key: "titulo" });
+  A.registry.set("balance", bal || BAL);
   Object.keys(store || {}).forEach(function (k) { A.store[k] = store[k]; });
   var sonidos = [], vol = [];
   var mudo = false;
@@ -175,8 +182,8 @@ function centro(s, texto) {
 /* ---------- [4] EL PARTIDO RÁPIDO EN LA CANCHA, Y LA CARRERA NUEVA ---------- */
 (function () {
   var C = require("./_create_de_mentira.js");
-  var BALj = JSON.parse(leer("phaser/data/balance.json"));
-  var P = C.jugar(undefined, { registro: { partidoRapido: { rival: "Espejo de Sal", division: "primera_b", nivel: 1, tempo: "largo" } } });
+  var BALj = BAL;
+  var P = C.jugar(undefined, { registro: { partidoRapido: { rival: "Espejo de Sal", division: "primera_b", nivel: 1, tempo: "largo" } }, flags: { duracion_dos: false, musica_mezcla: false } });
   assert(P.s.rivalEntero === "Espejo de Sal" && P.s._masterPartido === null && P.s._division && P.s._division.id === "primera_b",
     "el partido rápido juega contra su rival de la Primera B, sin carrera (" + P.s.rivalEntero + ")");
   assert(P.s.st.bal.tempo.minutos_por_momento === BALj.tempo.presets.largo, "y con la duración que trae");
@@ -185,10 +192,69 @@ function centro(s, texto) {
     "OTRO PARTIDO, en el partido rápido, sortea un rival distinto del que se jugó");
   /* la carrera nueva trae marcada la duración de OPCIONES */
   var A = M.armar({ logicaExtra: ["phaser/logic/opciones.js"] });
+  A.registry.set("balance", BAL);
   A.store[O.CLAVE] = JSON.stringify({ v: 1, musica: 10, efectos: 10, estilo: "folklore", duracion: "relampago" });
   var m = A.nueva();
   assert(m._tempoElegido === "relampago", "al crear la carrera, el tempo arranca en la duración de OPCIONES (" + m._tempoElegido + ")");
   console.log("[4] el partido rápido en la cancha y la carrera nueva con la duración elegida");
+})();
+
+/* ---------- [5] 23/OCT: MEZCLA Y LAS DOS DURACIONES ---------- */
+(function () {
+  var AU = JSON.parse(leer("data/audio.json"));
+  var def = O.porDefecto(BAL_HOY);
+  assert(BAL_HOY.flags.musica_mezcla === true && def.estilo === "mezcla" && def.duracion === "corto", "de fábrica: MEZCLA y CORTO");
+  var est = O.estilos(BAL_HOY, AU);
+  assert(est.map(function (e) { return e.n; }).join() === "MEZCLA,FOLKLORE,CUARTETO,ROCK,RAP" && est.every(function (e) { return e.disponible; }),
+    "MEZCLA va primero, y los cinco se pueden elegir (" + est.map(function (e) { return e.n; }).join() + ")");
+  /* la migración de lo guardado antes del 23/oct */
+  var v1 = O.sanear({ v: 1, musica: 6, efectos: 10, estilo: "folklore", duracion: "intermedio" }, BAL_HOY, AU);
+  assert(v1.estilo === "mezcla" && v1.duracion === "largo" && v1.musica === 6, "una opción v1 con FOLKLORE pasa a MEZCLA y NORMAL a LARGO; el volumen queda");
+  assert(O.sanear({ v: 1, estilo: "rock", duracion: "relampago" }, BAL_HOY, AU).estilo === "rock" && O.sanear({ v: 1, duracion: "relampago" }, BAL_HOY, AU).duracion === "corto",
+    "un ROCK elegido queda; el corto viejo va a CORTO");
+  assert(O.sanear({ v: 2, estilo: "folklore", duracion: "largo" }, BAL_HOY, AU).estilo === "folklore", "un FOLKLORE elegido después de la MEZCLA (v2) se respeta");
+  assert(O.sanear({ v: 1, estilo: "mezcla" }, BAL, AU).estilo === "folklore", "con la perilla apagada, MEZCLA no existe y vuelve FOLKLORE");
+  /* la rotación: nunca repite el anterior, pasa por los cuatro, y la misma semana no cambia */
+  var store = {};
+  var ls = { getItem: function (k) { return store[k] == null ? null : store[k]; }, setItem: function (k, v) { store[k] = String(v); }, removeItem: function (k) { delete store[k]; } };
+  O.guardar(ls, O.porDefecto(BAL_HOY));
+  var primero = O.estiloQueSuena(ls, BAL_HOY, AU);
+  assert(primero !== "folklore" && ["cuarteto", "rock", "rap"].indexOf(primero) >= 0, "la primera vez no arranca en FOLKLORE (" + primero + ")");
+  var antes = primero, repetidos = 0, vistos = {};
+  var semilla = 7, rng = function () { semilla = (semilla * 16807) % 2147483647; return semilla / 2147483647; };
+  for (var i = 0; i < 60; i++) {
+    var k = O.rotarMezcla(ls, BAL_HOY, AU, i % 2 ? null : "semana:1:" + i, rng);
+    if (k === antes) repetidos++;
+    vistos[k] = true; antes = k;
+    assert(O.estiloQueSuena(ls, BAL_HOY, AU) === k, "lo que rota es lo que suena");
+  }
+  assert(repetidos === 0 && Object.keys(vistos).sort().join() === "cuarteto,folklore,rap,rock", "60 partidos y semanas: ninguno repite el anterior y pasan los cuatro (" + Object.keys(vistos).join() + ")");
+  var s1 = O.rotarMezcla(ls, BAL_HOY, AU, "semana:2:5", rng), s2 = O.rotarMezcla(ls, BAL_HOY, AU, "semana:2:5", rng);
+  assert(s1 === s2, "volver a la misma semana no cambia el estilo");
+  O.guardar(ls, Object.assign(O.porDefecto(BAL_HOY), { estilo: "rap" }));
+  assert(O.rotarMezcla(ls, BAL_HOY, AU, null, rng) === "rap" && O.estiloQueSuena(ls, BAL_HOY, AU) === "rap", "con un estilo elegido no rota nada");
+  /* OPCIONES con las perillas prendidas */
+  var P = armarTitulo(null, BAL_HOY);
+  P.A.registry.set("audio", AU);
+  P.s.vistaOpciones();
+  var to = P.s.textos();
+  assert(to.indexOf("» MEZCLA") >= 0 && ["FOLKLORE", "CUARTETO", "ROCK", "RAP"].every(function (n) { return to.indexOf(n) >= 0; }), "OPCIONES marca MEZCLA con » y lista los cuatro estilos");
+  /* NORMAL queda una sola vez: es el de VELOCIDAD */
+  assert(to.indexOf("» CORTO") >= 0 && to.indexOf("LARGO") >= 0 && to.filter(function (t) { return /NORMAL/.test(t); }).length === 1,
+    "DURACIÓN: CORTO marcado y LARGO, sin NORMAL (" + to.filter(function (t) { return /CORTO|LARGO|NORMAL/.test(t); }).join(" | ") + ")");
+  P.s.partidoRapido();
+  assert(P.A.registry.get("partidoRapido").tempo === "corto", "el partido rápido sale CORTO de fábrica");
+  /* "los menús iniciales sin música, aburrido": el editor, el mapa del
+     Master y la entrevista piden el tema del título; la semana y el partido
+     cambian de estilo con MEZCLA; el gesto del teléfono y el teclado cuentan */
+  var ed = leer("phaser/scenes/editor.js"), ma = leer("phaser/scenes/master.js"), mt = leer("phaser/scenes/match.js"), html = leer("phaser/index.html");
+  assert(/create\(\) \{[\s\S]{0,900}?this\.pedirMusica\("espera"\)/.test(ed), "el editor suena con el tema del título");
+  assert(/vistaElegir\(\) \{[\s\S]{0,400}?this\.pedirMusica\("espera"\)/.test(ma) && /vistaOrigen\(divId, paso, elegidas\) \{[\s\S]{0,1200}?this\.pedirMusica\("espera"\)/.test(ma),
+    "el mapa del Master y la entrevista también");
+  assert(/cambiarEstiloDeMezcla\("semana:[\s\S]{0,200}?this\.pedirMusica\("semana"/.test(ma) && /cambiarEstiloDeMezcla\(null\);[\s\S]{0,300}?pedirMusica\("entrada"\)/.test(mt),
+    "la semana y el partido cambian de estilo antes de pedir su tema");
+  assert(/\["pointerdown", "pointerup", "touchend", "keydown"\]\.forEach[^\n]*PampaSFX\.unlock/.test(html), "el primer toque del teléfono (pointerup, touchend) y la primera tecla destraban el audio");
+  console.log("[5] MEZCLA de fábrica, rota sin repetir · FOLKLORE v1 a MEZCLA · CORTO y LARGO en OPCIONES y en el partido rápido");
 })();
 
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");

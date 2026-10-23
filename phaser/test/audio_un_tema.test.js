@@ -230,5 +230,31 @@ var VOL = 0.42;
   console.log("[9] cuarteto, rock y rap: " + recorrido.length + " pasos cada uno, un tema a la vez y del estilo (" + vistos.length + " temas)");
 })();
 
+/* ---------- [10] EL TEMA QUE FRENÓ EL AUTOPLAY ----------
+   23/oct, Rodri escuchó los menús iniciales sin música: con la intro ya vista
+   el título pide su tema antes de cualquier gesto, el navegador frena el
+   play() y nadie lo volvía a intentar. El primer toque (unlock) lo arranca. */
+(function () {
+  S.registrarArchivos(MUS.mapaCompleto(A, 0, "../assets/musica/"), VOL);
+  S.musicaTema(null, true); avanzar(1000);
+  var playOriginal = FakeAudio.prototype.play;
+  FakeAudio.prototype.play = function () { return { catch: function (fn) { fn(new Error("NotAllowedError")); } }; };
+  S.musicaTema("espera"); avanzar(1000);
+  assert(oido() === "(nada)", "antes del primer gesto el navegador no deja sonar (oye: " + oido() + ")");
+  FakeAudio.prototype.play = playOriginal;
+  S.unlock(); avanzar(400);
+  assert(oido() === "The_Longest_Minute_loop", "el primer toque arranca la espera que quedó pedida (oye: " + oido() + ")");
+  S.unlock(); avanzar(400);
+  assert(suenan().length === 1, "un segundo toque no suma nada (oye: " + oido() + ")");
+  /* un tema que ya terminó no vuelve a sonar con un toque */
+  S.musicaTema("gol_festejo", true); avanzar(400);
+  var fest = suenan()[0];
+  fest.paused = true; fest.ended = true;
+  S.unlock(); avanzar(400);
+  assert(oido() === "(nada)", "el cierre que ya terminó no se repite al tocar (oye: " + oido() + ")");
+  fest.ended = false;
+  console.log("[10] autoplay frenado: el primer toque arranca el tema pedido, y lo que terminó no vuelve");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

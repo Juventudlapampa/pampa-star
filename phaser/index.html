@@ -1997,7 +1997,9 @@
   /* Cargamos balance + roster ANTES de crear el juego (fetch simple, tolerante
      a fallo). Así no hace falta escena boot con transición async: match es la
      primera escena y ya tiene la data en el registry. */
-  window.addEventListener("pointerdown", ()=>{ try{ window.PampaSFX && window.PampaSFX.unlock(); }catch(e){} });
+  /* 23/oct: en el teléfono el pointerdown no cuenta como gesto para el
+     audio (sí el pointerup y el touchend), y con teclado no había ninguno */
+  ["pointerdown", "pointerup", "touchend", "keydown"].forEach((ev) => window.addEventListener(ev, ()=>{ try{ window.PampaSFX && window.PampaSFX.unlock(); }catch(e){} }));
   /* V7 §5 PWA: el juego se instala y abre OFFLINE. El service worker y lo
      que vino de la red viven en el script de arriba (LA RED, L05). */
   /* L05 · TOPE A CADA JSON DEL ARRANQUE (arranque-con-senal-floja). Antes

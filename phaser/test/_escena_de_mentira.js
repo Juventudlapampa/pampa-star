@@ -244,6 +244,7 @@ function armar(opts) {
     s.vestirPendientes = function () { return 0; };
     s.pisoTactil = function (o) { return o; };
     s.pedirMusica = function () { };
+    s.cambiarEstiloDeMezcla = function () { return null; };
     s.entrarDesdeNegro = function () { };
     s.irA = function (k) { s._irA.push(k); };
 

@@ -667,6 +667,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
 
        El corte lo maneja alTerminarMusica, que trae su propio tope por si el
        navegador no deja reproducir sin gesto. */
+    /* 23/oct · MEZCLA: cada partido, otro estilo */
+    this.cambiarEstiloDeMezcla(null);
     const msEntrada = (this.BAL.musica && this.BAL.musica.entrada_ms != null)
       ? this.BAL.musica.entrada_ms : 11000;
     if (msEntrada > 0 && this.SFX && this.SFX.alTerminarMusica && this.pedirMusica("entrada")) {

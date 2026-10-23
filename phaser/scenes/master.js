@@ -53,7 +53,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.game.registry.set("tempoDeVuelta", null);
     this._tempoElegido = tempoDeVuelta || (window.PampaOpciones
       ? window.PampaOpciones.leer(localStorage, this.game.registry.get("balance"), this.game.registry.get("audio")).duracion
-      : window.PampaSaveMaster.TEMPO_POR_DEFECTO);
+      : window.PampaSaveMaster.duracionesActivas(this.game.registry.get("balance")).porDefecto);
     this._tempoDeLaCarrera = null;
     this._tempoFoco = null;
     this._botonesElegir = null;
@@ -1052,6 +1052,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   vistaElegir() {
     const W = this.scale.width, H = this.scale.height;
     this._botonesElegir = null;
+    /* 23/oct, Rodri: los menús sin música. El mapa y la entrevista suenan
+       con el tema del título */
+    this.pedirMusica("espera");
     this.add.text(W / 2, 26, "MODO MASTER", { fontFamily: window.PF.display, fontSize: "18px", color: "#ffd84d" }).setOrigin(0.5);
     this.add.text(W / 2, 54, "de la PRIMERA B de tu localidad al MUNDIAL · el campeón SUBE de división", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
 
@@ -1112,7 +1115,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.add.text(W / 2, yT - 38, TB.titulo_creacion, { fontFamily: window.PF.display, fontSize: "14px", color: "#ffd84d" }).setOrigin(0.5);
     const caraT = this.add.graphics();
     const marcaT = this.add.text(0, yT + 37, "ELEGIDO", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    const opsT = TB.opciones.map((o, i) => ({ o, x: W / 2 + (i - (TB.opciones.length - 1) / 2) * pasoT }));
+    const durT = window.PampaSaveMaster.duracionesActivas(this.game.registry.get("balance")).opciones;
+    const opsT = durT.map((o, i) => ({ o, x: W / 2 + (i - (durT.length - 1) / 2) * pasoT }));
     const pintarT = () => {
       const PP = window.PampaPiel, P = this.piel();
       caraT.clear();
@@ -1439,6 +1443,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       ? () => this.vistaOrigen(divId, paso - 1, elegidas.slice(0, paso - 1))
       : () => this.scene.restart();
     if (this.fondoDelMaster) this.fondoDelMaster();   // ARTE: vaciarVista se lleva el fondo
+    this.pedirMusica("espera");
     const p = D.origen[paso];
     /* O2 · LA ENTREVISTA. El contenido y las consecuencias son EXACTAMENTE las
        mismas —los stats salen de D.origen y esta pantalla no los mira—; lo que
@@ -1866,6 +1871,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        ensucia cualquier medicion de musica. Se pide una sola vez por entrada. */
     if (this._musicaSemanaPuesta !== true) {
       /* revisión L06: en la última fecha, también baja el tema del título */
+      /* 23/oct · MEZCLA: cada semana, otro estilo (la misma semana, al volver, no cambia) */
+      this.cambiarEstiloDeMezcla("semana:" + (this.save.temporadaN | 0) + ":" + (this.save.temporada.fecha | 0));
       this.pedirMusica("semana", { cierre: this.T.ultimaFecha(this.save && this.save.temporada) });
       this._musicaSemanaPuesta = true;
     }
@@ -2598,7 +2605,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       origen: this.save.origen || null,
       semana: this.save.semanaResumen || null,
       mejoras: this.save.mejoras || null,
-      tempo: window.PampaSaveMaster.tempoDe(this.save),
+      tempo: window.PampaSaveMaster.tempoDe(this.save, this.game.registry.get("balance")),
       /* 20/oct · la estrella que nombró la previa juega de verdad (match.js armarPlanteles) */
       estrella: this.estrellaDeLaFecha(rival)
     });

@@ -33,7 +33,15 @@ var RAIZ = M.RAIZ;
 function leer(f) { return fs.readFileSync(path.join(RAIZ, f), "utf8"); }
 function json(f) { return JSON.parse(leer(f)); }
 var SM = require(path.join(RAIZ, "phaser/logic/save_master.js"));
-var BAL = json("phaser/data/balance.json");
+/* 23/oct, pedido de Rodri: "partido corto y largo (pero no larguísimo),
+   solo dos opciones" (flags.duracion_dos). De [1] a [3] se fija lo de antes
+   con la perilla en false, que es lo que vuelve si se apaga; [5] fija las
+   dos duraciones nuevas y la traducción de las carreras y opciones viejas. */
+var BAL_HOY = json("phaser/data/balance.json");
+var BAL = JSON.parse(JSON.stringify(BAL_HOY));
+BAL.flags.duracion_dos = false;
+var VIEJO = { flags: { duracion_dos: false } };
+function armarViejo() { var a = M.armar(); a.registry.set("balance", BAL); return a; }
 
 var ok = 0, mal = 0;
 function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); } }
@@ -45,7 +53,7 @@ function copia(o) { return JSON.parse(JSON.stringify(o)); }
   assert(SM.tempoDe(null) === "intermedio" && SM.tempoDe({}) === "intermedio" && SM.tempoDe({ tempo: "turbo" }) === "intermedio",
     "sin dato (o con uno que no existe) el tempo es INTERMEDIO");
   assert(SM.tempoDe({ tempo: "largo" }) === "largo" && SM.tempoDe("relampago") === "relampago", "el tempo de un save o de una clave suelta");
-  assert(SM.minutosPorMomento({ tempo: "largo" }, BAL.tempo) === P.largo && SM.minutosPorMomento(null, BAL.tempo) === P.intermedio,
+  assert(SM.minutosPorMomento({ tempo: "largo" }, BAL) === P.largo && SM.minutosPorMomento(null, BAL) === P.intermedio,
     "'largo' da el preset del balance (" + P.largo + "') y sin dato el de INTERMEDIO (" + P.intermedio + "')");
   var antes = JSON.stringify(BAL);
   var b = SM.balConTempo(BAL, { tempo: "largo" });
@@ -60,7 +68,7 @@ function copia(o) { return JSON.parse(JSON.stringify(o)); }
   var DIV = json("data/divisiones.json");
   var ids = Ma.DIVISIONES.map(function (d) { return d.id; });
   var opts = { rivalesDe: function (d) { return (DIV.divisiones[d] || {}).rivales || null; } };
-  var base = M.armar().carreraNueva();
+  var base = armarViejo().carreraNueva();
   var viejo = copia(base);
   var r = SM.sanear(JSON.stringify(viejo), ids, opts);
   assert(r.save && r.save.tempo === undefined && r.reparado.length === 0 && JSON.stringify(r.save) === JSON.stringify(viejo) && SM.tempoDe(r.save) === "intermedio",
@@ -75,7 +83,7 @@ function copia(o) { return JSON.parse(JSON.stringify(o)); }
 })();
 
 /* ---------- [2] LA CREACIÓN: master.js REAL ---------- */
-var A = M.armar();
+var A = armarViejo();
 var W = A.window;
 function reiniciar(s) {
   s.children.list.slice().forEach(function (o) { if (o && o.destroy) o.destroy(); });
@@ -98,7 +106,7 @@ function reiniciar(s) {
   var jerga = tx.filter(function (t) { return /momento|cl[aá]sico/i.test(t); });
   assert(jerga.length === 0, "ningún texto de la creación dice 'momento' ni 'clásico' (" + jerga.join(" | ") + ")");
   /* y tampoco con una carrera del clásico para importar (el botón ⬆ IMPORTAR) */
-  var Ac = M.armar();
+  var Ac = armarViejo();
   Ac.localStorage.setItem("pampa_star_v1", JSON.stringify({ name: "Prueba", goles: 3 }));
   var sc = Ac.nueva(); sc.create();
   var txc = sc.textos();
@@ -151,7 +159,7 @@ function reiniciar(s) {
    leer OPCIONES). El editor deja el tempo del pendiente en tempoDeVuelta
    (d_decisiones.test.js lo fija) y el mapa lo marca una sola vez. */
 (function () {
-  var A2 = M.armar();
+  var A2 = armarViejo();
   var s = A2.nueva(); s.create();
   var marcadaBajo = function () {
     var m = s.children.list.find(function (o) { return o.type === "Text" && o.text === "ELEGIDO" && o.active !== false; });
@@ -183,7 +191,7 @@ var PARTIDO = require("./_create_de_mentira.js").jugar;
 
 (function () {
   /* una carrera nueva con LARGO, jugada 18 fechas por el Master real */
-  var A3 = M.armar();
+  var A3 = armarViejo();
   var sv0 = A3.carreraNueva(); sv0.tempo = "largo";
   A3.localStorage.setItem("pampa_master_v1", JSON.stringify(sv0));
   var Tlog = A3.window.PampaTemporada;
@@ -194,7 +202,7 @@ var PARTIDO = require("./_create_de_mentira.js").jugar;
     var rival = mp.local === m.save.temporada.miClub ? mp.visita : mp.local;
     m.irALaCancha(rival);
     var mpReg = A3.registry.get("masterPartido");
-    var P = PARTIDO(mpReg);
+    var P = PARTIDO(mpReg, VIEJO);
     if (P.estados.indexOf("TEMPO_MENU") >= 0 || P.textos.some(function (t) { return /QUÉ PARTIDO JUGAMOS/.test(t); })) menus++;
     P.textos.forEach(function (t) { if (/momento|el clásico entero|Tempo /i.test(t)) conJerga.push(t); });
     tempos.push(mpReg.tempo + ":" + P.s.st.bal.tempo.minutos_por_momento);
@@ -210,7 +218,7 @@ var PARTIDO = require("./_create_de_mentira.js").jugar;
   assert(fechas.join(",") === "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17", "son 18 fechas seguidas de la misma temporada (" + fechas.join(",") + ")");
   assert(BAL.tempo.minutos_por_momento === 2.2, "y el balance compartido sigue en 2.2 después de 18 partidos");
   /* el amistoso (sin masterPartido) juega INTERMEDIO sin preguntar */
-  var Am = PARTIDO(undefined);
+  var Am = PARTIDO(undefined, VIEJO);
   assert(Am.estados.indexOf("TEMPO_MENU") < 0 && Am.s.st.bal.tempo.minutos_por_momento === BAL.tempo.presets.intermedio,
     "el partido sin carrera (amistoso) juega INTERMEDIO sin preguntar");
   console.log("[3] 18 fechas con el create() real: 0 menús de tempo · todas en " + tempos[0] + "' · el amistoso en INTERMEDIO");
@@ -226,6 +234,72 @@ var PARTIDO = require("./_create_de_mentira.js").jugar;
   });
   assert(sucios.length === 0, "no queda el estado TEMPO_MENU, el menú ni la clave pampa_tempo (" + sucios.join(", ") + ")");
   console.log("[4] sin TEMPO_MENU, sin menuTempoSiCorresponde, sin pampa_tempo");
+})();
+
+/* ---------- [5] 23/OCT: CORTO Y LARGO, NADA MÁS ---------- */
+(function () {
+  var D = BAL_HOY.tempo.dos;
+  assert(BAL_HOY.flags.duracion_dos === true, "la perilla de las dos duraciones viene prendida");
+  assert(D.opciones.map(function (o) { return o.n; }).join(",") === "CORTO,LARGO", "en pantalla se llaman CORTO y LARGO, y son dos");
+  assert(D.presets.corto > D.presets.largo && D.presets.largo > BAL_HOY.tempo.presets.largo,
+    "el LARGO nuevo es más corto que el larguísimo de antes (" + D.presets.largo + "' contra " + BAL_HOY.tempo.presets.largo + "' por momento)");
+  /* la traducción de lo guardado antes del 23/oct */
+  var tr = function (t) { return SM.tempoDe({ tempo: t }, BAL_HOY); };
+  assert(tr("relampago") === "corto" && tr("intermedio") === "largo" && tr("largo") === "largo" && tr("corto") === "corto",
+    "el corto viejo va a CORTO; normal y largo, a LARGO");
+  assert(SM.tempoDe(null, BAL_HOY) === "largo" && SM.tempoDe({ tempo: "turbo" }, BAL_HOY) === "largo",
+    "una carrera sin dato jugaba NORMAL y ahora juega LARGO");
+  assert(SM.minutosPorMomento({ tempo: "intermedio" }, BAL_HOY) === D.presets.largo && SM.minutosPorMomento({ tempo: "relampago" }, BAL_HOY) === D.presets.corto,
+    "los minutos por momento salen de las duraciones nuevas");
+  assert(SM.tempoDe({ tempo: "corto" }, BAL) === "relampago", "con la perilla apagada, una carrera creada en CORTO vuelve al CORTO de antes");
+  /* el save con la clave vieja no se reescribe */
+  var Ma = require(path.join(RAIZ, "phaser/logic/master.js"));
+  var DIV = json("data/divisiones.json");
+  var ids = Ma.DIVISIONES.map(function (d) { return d.id; });
+  var opts = { rivalesDe: function (d) { return (DIV.divisiones[d] || {}).rivales || null; } };
+  var A0 = M.armar();
+  var viejo = A0.carreraNueva(); viejo.tempo = "intermedio";
+  var r = SM.sanear(JSON.stringify(viejo), ids, opts);
+  var nuevo = A0.carreraNueva(); nuevo.tempo = "corto";
+  var r2 = SM.sanear(JSON.stringify(nuevo), ids, opts);
+  assert(r.save.tempo === "intermedio" && r.reparado.length === 0 && r2.save.tempo === "corto" && r2.reparado.length === 0,
+    "una carrera NORMAL de antes y una CORTO de hoy se cargan sin reparar nada");
+
+  /* la creación con la perilla prendida: dos opciones, CORTO marcado */
+  var A5 = M.armar();
+  var s = A5.nueva();
+  var pisos = [];
+  s.pisoTactil = function (o) { pisos.push(o); o._tapArea = { w: Math.max(o.width, BAL_HOY.legibilidad.tap_min), h: Math.max(o.height, BAL_HOY.legibilidad.tap_min) }; return o; };
+  s.create();
+  var tx = s.textos();
+  D.opciones.forEach(function (o) { assert(tx.indexOf(o.n) >= 0 && tx.indexOf(o.d) >= 0, "la creación ofrece " + o.n + " (" + o.d + ")"); });
+  assert(tx.indexOf("NORMAL") < 0, "NORMAL ya no está en la creación");
+  var xDe = function (n) { var o = s.children.list.find(function (x) { return x.type === "Text" && x.text === n; }); return o && o.x; };
+  var marca = s.children.list.find(function (o) { return o.type === "Text" && o.text === "ELEGIDO"; });
+  assert(s._tempoElegido === "corto" && marca && marca.x === xDe("CORTO"), "CORTO viene marcado: ELEGIDO está debajo de CORTO");
+  var zonas = (s._tempoFoco || []).map(function (it) { return it.obj; });
+  assert(zonas.length === 2 && zonas.every(function (z) { return pisos.indexOf(z) >= 0 && s._foco.items.some(function (it) { return it.obj === z; }); }),
+    "las dos opciones tienen piso táctil y están en el cursor");
+  var delTempo = s.children.list.filter(function (o) { return o.type === "Text" && D.opciones.some(function (op) { return op.n === o.text || op.d === o.text; }); });
+  assert(delTempo.length === 4 && delTempo.every(function (o) { return parseInt(o.style.fontSize, 10) >= 13; }), "los cuatro textos de las opciones van a 13 px o más");
+  s.tocar(zonas[1].x, zonas[1].y);
+  assert(s._tempoElegido === "largo" && marca.x === xDe("LARGO"), "tocar LARGO lo elige y ELEGIDO se muda");
+  s.tocar(480, 438);
+  assert(A5.registry.get("carreraPendiente").tempo === "largo", "ARRANCAR lleva LARGO en el pendiente");
+
+  /* una carrera NORMAL de antes, jugada por el create() real del partido */
+  var A6 = M.armar();
+  var sv0 = A6.carreraNueva(); sv0.tempo = "intermedio";
+  A6.localStorage.setItem("pampa_master_v1", JSON.stringify(sv0));
+  var m = A6.nueva(); m.create();
+  var mp = A6.window.PampaTemporada.miPartido(m.save.temporada);
+  m.irALaCancha(mp.local === m.save.temporada.miClub ? mp.visita : mp.local);
+  var mpReg = A6.registry.get("masterPartido");
+  var P = PARTIDO(mpReg);
+  assert(mpReg.tempo === "largo" && P.s.st.bal.tempo.minutos_por_momento === D.presets.largo,
+    "una carrera NORMAL de antes sale a la cancha en LARGO (" + mpReg.tempo + ", " + P.s.st.bal.tempo.minutos_por_momento + "')");
+  assert(JSON.parse(A6.localStorage.getItem("pampa_master_v1")).tempo === "intermedio", "y su save guarda la clave de antes: apagar la perilla la devuelve a NORMAL");
+  console.log("[5] CORTO y LARGO: CORTO marcado, el corto viejo a CORTO, normal y largo a LARGO, el save sin reescribir");
 })();
 
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
