@@ -720,7 +720,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        dos se hablan entre ellos. El mapa traduce las claves del relator a las
        de la tribuna; las que no están, no se comentan (mejor callarse que
        decir cualquier cosa). */
-    if (window.PampaTribunaUI && this._tribuna) {
+    if (window.PampaTribunaUI && this._tribuna && !(this._tribunaMudaHasta > this.time.now)) {
       const MAPA = {
         /* 23/oct · "atajada" del relator es la del arquero de ellos (tu
            remate): la tribuna tiene la suya; arquero_mio es la del nuestro */
@@ -1052,13 +1052,18 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (k >= 0) { const j = pool.splice(k, 1)[0]; mios[i] = { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
     });
     let pueblo = "RIVAL", entero = "RIVAL";
-    const rivales = slots.map(s => {
+    /* revisión final del 23/oct: todos los rivales del Master salían con el
+       mismo plantel (1 TOMI, 2 EZE, 3 LUCHO...), y el frente al arco los
+       nombra. Cada club saca los suyos del pozo según su nombre */
+    const semR = mpE && mpE.rival ? String(mpE.rival).split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) : null;
+    const rivales = slots.map((s, i) => {
       if (estrella && estrella.posicion_motor === s) {
         const j = estrella; estrella = null;
         this._estrellaNombre = j.nombre;
         return { nombre: j.nombre, pos: s, stats: j.stats_auto };
       }
-      const k = pool.findIndex(j => j.posicion_motor === s);
+      const cand = pool.reduce((arr, j, q) => (j.posicion_motor === s && arr.push(q), arr), []);
+      const k = semR == null ? pool.findIndex(j => j.posicion_motor === s) : (cand.length ? cand[(semR + i * 7) % cand.length] : -1);
       if (k >= 0) { const j = pool.splice(k, 1)[0]; pueblo = this.nombreCorto(j.pueblo); entero = j.pueblo; return { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
       return {};
     });
@@ -2331,9 +2336,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* OJOS (tanda 1.0): el roster por hash, pero nunca una cara fuera de
        rotación (la de ojos cerrados le tocaba siempre a Santi y a Mateo);
        el look elegido ya viene con su reemplazo desde validarLook */
-    const idx = (esMioElegido
+    let idx = (esMioElegido
       ? look.cara
       : (A.caraDelRoster ? A.caraDelRoster(j.nombre, esRival) : A.hashSemilla((j.nombre || "x") + (esRival ? "|r" : "|m")))) % CM.caras.length;
+    /* revisión final del 23/oct: en el cruce el rival tenía tu misma cara
+       espejada. Si le toca la tuya, pasa a la siguiente en rotación */
+    const vos = esRival && this.st ? this.st.mios.find(m => m.esVos) : null;
+    const cv = vos ? A.validarLook(vos.look || {}).cara % CM.caras.length : -1;
+    for (let k = 1; idx === cv && k < CM.caras.length; k++) {
+      const n = (cv + k) % CM.caras.length;
+      if (CM.caras[n].en_rotacion !== false) idx = n;
+    }
     const cara = CM.caras[idx];
     if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
     /* V7 §0.2: tintes OPCIONALES — el roster va con la ilustración ORIGINAL
@@ -6801,6 +6814,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.SFX && this.SFX.temaUrgente && this.SFX.temaUrgente();
         if (this.FLAGS.v4_musica && this.SFX && this.SFX.musicaUrgente) this.SFX.musicaUrgente(true);   // ANIME D: tictac EN el loop
         this.avisar("¡ÚLTIMOS MINUTOS!");
+        this.callarTribunaPorAviso();
         this.relatar("urgente");
       }
       if (this._urgente) this.txtReloj.setText("» " + this.txtReloj.text.replace("» ", ""));
@@ -7037,6 +7051,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       else if (ev.tipo === "entretiempo") {
         P.entretiempo(st); this.transicionEntretiempo(); this.relatar("entretiempo");
         aviso = "ENTRETIEMPO. Saca " + this.nombreRival;
+        this.callarTribunaPorAviso();
         /* V9 §8+§10: el 2T ARRANCA de verdad — se anuncia el cambio de lado */
         this.time.delayedCall(this.msV(2400), () => this.relatar("arranca_2t"));
       }
@@ -7164,6 +7179,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      motivo", con dos avisos ya a la vista (el perfil y el tempo al arrancar),
      salían hasta 2,7 s tarde: parecía que el toque no había andado, que es
      justo el síntoma que este arreglo vino a curar. */
+  /* revisión final del 23/oct: la frase de la tribuna caía encima de
+     ¡ÚLTIMOS MINUTOS! y del entretiempo. Mientras dura el aviso, se callan */
+  callarTribunaPorAviso() {
+    if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
+    const A = this.cfgAvisos();
+    this._tribunaMudaHasta = this.time.now + A.hold + A.fade;
+  }
   avisar(txt, op) {
     if (!txt) return;
     op = op || {};

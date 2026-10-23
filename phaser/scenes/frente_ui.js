@@ -72,7 +72,10 @@
 
     frenteAbrir(cfg) {
       var C = this.BAL.frente, K = C.camara, self = this, Fr = window.PampaFrente;
-      this.jugadonAbrir(cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·");
+      /* revisión final del 23/oct: el rótulo de abajo a la izquierda, blanco y
+         chico, caía sobre la pierna de quien patea. Va arriba, con fondo */
+      this.jugadonAbrir("");
+      this.cineContent.add(this.add.text(18, 22, cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }));
       this.estado = "FRENTE";
       if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
       this.cineBG.clear();
@@ -515,7 +518,7 @@
       var bloq = res.resultado === "bloqueo" || res.resultado === "desvio";
       var quien = bloq && res.quien ? st.mios[res.quien.ref] : null;
       var dada = {
-        bloqueado: bloq, defensoresEnLinea: bloq ? 1 : 0, defensorMasCerca: quien, motivo: "tiro_libre",
+        bloqueado: bloq, defensoresEnLinea: bloq ? 1 : 0, defensorMasCerca: quien, motivo: "tiro_libre", barrera: true,
         bonusArquero: bloq ? 0 : -res.zona.bonus
       };
       this.escenaRemateRival(tiradorIdx, false, dada);

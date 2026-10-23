@@ -719,9 +719,10 @@
         tiro_libre: "le pegó de tiro libre"
       };
       var base = M[lectura.motivo] || "";
+      /* revisión final del 23/oct: en el tiro libre había barrera y decía "no había nadie en el camino" */
       var extra = lectura.defensoresEnLinea
         ? " · " + lectura.defensoresEnLinea + (lectura.defensoresEnLinea === 1 ? " de tu equipo tapaba el tiro" : " de tu equipo tapaban el tiro")
-        : " · no había nadie en el camino";
+        : lectura.barrera ? " · le pasó a tu barrera" : " · no había nadie en el camino";
       return base + extra;
     },
 
