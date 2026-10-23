@@ -51,7 +51,9 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   assert(cuenta(MATCH, /jugada: "bloqueo", aFavor: true/g) === 1, "el bloqueo ganado");
   assert(cuenta(MATCH, /jugada: "bloqueo", aFavor: false/g) === 1, "el remate tuyo que te bloquean");
   assert(cuenta(MATCH, /jugada: a\.id, aFavor: false/g) === 1, "la defensa fallada (quite, corte o bloqueo)");
-  assert(/jugada: cfg\.alVacio \? "vacio" : "pase"/.test(V9), "el pase y el pase al vacío");
+  /* 23/oct, pedido de Rodri (balance.flujo): la misma escena del pase cuenta el centro y el pase al aire */
+  assert(/jugada: cfg\.jugada \|\| \(cfg\.alVacio \? "vacio" : "pase"\)/.test(V9), "el pase y el pase al vacío");
+  assert(/jugada: res\.zona \? "centro" : "aire"/.test(MATCH), "el centro y el pase al aire");
   assert(/if \(!onda\) this\.lineasVelocidad\(W \/ 2, H \* 0\.45/.test(MATCH),
     "con la perilla en 0 (o sin jugada) la viñeta vuelve a sus líneas radiales");
   assert(/if \(!onda\) self\.lineasVelocidad\(258/.test(V9), "y el pase también");
@@ -130,7 +132,8 @@ function figura(sc, x) { var f = sc.add.image(x, 280); sc.cineContent.add(f); re
   assert(A0.O.entrada(A0.sc, { jugada: "gambeta", flujo: -1, tNombre: 100, aFavor: true }) === null,
     "con intensidad 0 no hay onda");
 
-  ["gambeta", "pared", "pase", "vacio", "quite", "corte", "bloqueo"].forEach(function (k) {
+  /* 23/oct, pedido de Rodri (balance.flujo): el centro y el pase al aire también */
+  ["gambeta", "pared", "pase", "vacio", "quite", "corte", "bloqueo", "centro", "aire"].forEach(function (k) {
     assert(typeof armar(o).O.NOMBRES[k] === "string", "la jugada " + k + " tiene su nombre grande");
   });
 

@@ -2757,7 +2757,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const solo = k === cfg.lista.length - 1 && k % 2 === 0;
         return ["L" + k, op, [solo ? 480 : LI.x[k % 2], LI.y[Math.floor(k / 2)], LI.w, LI.h]];
       })
-      : ["N", "S", "W", "E"].map(dir => [dir, cfg.opciones[dir], CZ[dir]]);
+      : ["N", "S", "W", "E", "SW"].map(dir => [dir, cfg.opciones[dir], CZ[dir]]);
     const geo = {};
     lugares.forEach(([dir, op, caja]) => {
       if (!op) return;
@@ -2848,7 +2848,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
          y medirlos ahora es medirlos en vuelo. Acá sabemos exactamente dónde
          van a quedar: balance.legibilidad.cruz. */
       const caja = ([bx, by, bw, bh]) => ({ x: bx - bw / 2, y: by - bh / 2, w: bw, h: bh });
-      (cfg.lista ? Object.keys(geo) : ["N", "W", "E", "S"]).forEach(dir => {
+      (cfg.lista ? Object.keys(geo) : ["N", "W", "E", "S", "SW"]).forEach(dir => {
         const r = this._menuBtns[dir], op = this._menuOps[dir];
         if (!r || !op) return;
         items.push({
@@ -2943,6 +2943,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const desde = !L ? "" : L.defensores >= 2 ? "con " + L.defensores + " adelante" : L.centrado < 0.35 ? "sin ángulo"
       : L.cerca > 0.8 ? "de frente" : L.cerca < 0.35 ? "desde lejos" : L.defensores === 1 ? "con 1 adelante" : "media distancia";
     const receptores = P.receptoresPase(st);
+    const FLU = window.PampaFlujo && window.PampaFlujo.activo(st) ? window.PampaFlujo : null;
+    const aereo = FLU ? FLU.receptorAereo(st) : null;
+    const tituloFlujo = this._tituloFlujo; this._tituloFlujo = null;
     const izq = { j: st.mios[st.ctrl], aguante: st.mios[st.ctrl].aguante };
     const der = rival ? { j: rival, aguante: st.aguanteRival } : null;
     const F = this.jugadonFichas ? this.jugadonFichas() : null;
@@ -3017,7 +3020,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        es ese botón, sin grilla; la grilla vuelve si se prende otro */
     const unico = especiales.length === 1 && especiales[0].superTiro ? especiales[0] : null;
     this.abrirMenuCruz({
-      titulo: tut ? tut.texto : rival ? "¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : "¿Qué hacés? (✕ o ESC = seguir corriendo)",
+      titulo: tut ? tut.texto : rival ? "¡" + (rival.nombre || "el rival").toUpperCase() + " te sale al cruce! (eligen en secreto: quite>gambeta · corte>pase · bloqueo>tiro)" : (tituloFlujo || "¿Qué hacés? (✕ o ESC = seguir corriendo)"),
       izq, der,
       opciones: {
         N: {
@@ -3030,6 +3033,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           cb: () => this.iniciarPaseDirigido(rivalIdx, libre)
         },
         S: { texto: "PARED", sub: par.bloqueada ? null : pct(par) + "% · " + par.costo + " aguante", bloqueada: par.bloqueada, motivo: par.motivo, cb: () => this.resolverAccionAtaque(par, rivalIdx) },
+        /* 23/oct, Rodri: "hacer alguna cosita loca para dar pase al aire y
+           que el otro tire firuletes". Va abajo de PASE: también es un pase */
+        SW: FLU ? {
+          texto: aereo && aereo.zona ? "CENTRO" : "AL AIRE",
+          sub: aereo ? "a " + (st.mios[aereo.idx].esVos ? "VOS" : String(st.mios[aereo.idx].nombre || "").toUpperCase()) + " · " + aereo.pct + "%" : null,
+          bloqueada: !aereo, motivo: "NADIE PARA RECIBIRLA",
+          cb: () => this.confirmarCentro(aereo)
+        } : null,
         /* 20/oct, Rodri: adentro del área el remate lo decide EL TOQUE. Con un
            defensor al cruce, resolverTiro juega antes el duelo del bloqueo: ahí
            van el porcentaje de zafar y el aguante, y EL TOQUE como paso que sigue */
@@ -3044,7 +3055,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           volver: volverCruz
         })
       } : null),
-      volver: libre ? () => this.reanudarLibre() : null,
+      volver: libre ? () => { if (FLU) FLU.seguir(st); this.reanudarLibre(); } : null,
       salida: libre ? ["✕ SEGUIR", "corriendo"] : null
     });
   }
@@ -3475,11 +3486,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const penal = id === "chilena" ? { bonus: 5, fuera: 0.1 } : { bonus: 3, fuera: 0.06 };
     this.dispararAereo(id, this.ejDeLaSituacion(null, penal));
   }
-  dispararAereo(id, ej) {
+  dispararAereo(id, ej, prepFirulete) {
     const st = this.st, P = window.PampaPartido;
     const tirador = st.mios[st.ctrl];
     const enCamino = this.rivalesEnElCamino(tirador);
-    const prep = P.prepararRemateAereo(st, id);
+    const FIRU = prepFirulete ? this.BAL.flujo.firuletes[id] : null;
+    const prep = prepFirulete || P.prepararRemateAereo(st, id);
     const res = window.PampaDuel.resolveShot({
       shotPower: prep.shotPower, keeperSkill: prep.keeperSkill, zone: ej.zona,
       cfg: { spread: this.BAL.duelo.spread, min: this.BAL.duelo.min, max: this.BAL.duelo.max },
@@ -3494,16 +3506,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        cuadro 0, antes de que entrara la escena —, y el desenlace después
        otra vez al revelar. Ahora se toca el estado y lo que se siente espera. */
     const d = this.desenlaceRemate(res, { diferir: this.hayEscenas() });
-    const NOM = { cabezazo: "CABEZAZO", volea: "VOLEA", chilena: "CHILENA" };
+    const NOM = { cabezazo: "CABEZAZO", volea: "VOLEA", chilena: "CHILENA", taco: "TACO", palomita: "PALOMITA" };
     const fb = ej.lecturaTexto || (ej.enZona ? "le pegó bien parado" : "le pegó como pudo");
     if (this.hayEscenas()) {
       const arqR = st.rivales.find(jj => jj.pos === "ARQ");
       this.escenaCine({
-        etiqueta: id === "chilena" ? "· LA CHILENA ·" : "· " + NOM[id].toLowerCase() + " ·",
+        etiqueta: id === "chilena" ? "· LA CHILENA ·" : "· " + (FIRU ? FIRU.n : NOM[id]).toLowerCase() + " ·",
         /* V9 B3: la CHILENA usa la pose de chilena. Antes mandaba anim "volea",
            que mapea a "remate", y la pose ilustrada de la chilena no se veía nunca */
-        prota: { j: tirador, esRival: false, anim: id },
-        pose: id === "chilena" ? "chilena" : (id === "cabezazo" ? "cabezazo" : "remate"),
+        prota: { j: tirador, esRival: false, anim: FIRU ? FIRU.pose : id },
+        pose: FIRU ? FIRU.pose : id === "chilena" ? "chilena" : (id === "cabezazo" ? "cabezazo" : "remate"),
         protaAngle: id === "chilena" ? -115 : 0,       // la vuelta en el aire
         especial: id === "chilena",
         /* V6 §1 F2: ante todo tiro al arco el arquero vuela, sin excepciones.
@@ -4416,8 +4428,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st, j = st.mios[st.ctrl];
     if (!j || !j.esVos || st.posesion !== "mia") return null;
     const nivel = this._nivelCarrera || 1;
-    const lista = ((this.MEGA && this.MEGA.megatiros) || []).filter(m =>
-      nivel >= (m.nivel || 1) && j.aguante >= (m.aguante || 300) && j.x > (m.x_min || 680));
+    /* 23/oct, Rodri: "el súper tiro, excepcional, algo WOW que gasta
+       energía". Con balance.flujo gasta por lo menos super_tiro_aguante */
+    const FLU = this.BAL.flujo && this.BAL.flujo.activo ? this.BAL.flujo : null;
+    const lista = ((this.MEGA && this.MEGA.megatiros) || [])
+      .map(m => FLU ? Object.assign({}, m, { aguante: Math.max(m.aguante || 300, FLU.super_tiro_aguante) }) : m)
+      .filter(m => nivel >= (m.nivel || 1) && j.aguante >= (m.aguante || 300) && j.x > (m.x_min || 680));
     if (!lista.length) return null;
     const m = lista[lista.length - 1];
     /* la poda del 22/oct: el del nivel pone los números y se llama SÚPER TIRO */
@@ -5449,6 +5465,55 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (this.SFX) { if (enContra) this.SFX.crowd(600); else this.SFX.festejo(); }
     /* el arpegio sintetizado del gol se fue el 17/oct (sonaba a consola vieja): el festejo grabado es el grito */
     if (enContra) this.time.delayedCall(90, () => this.SFX && this.SFX.golEnContra && this.SFX.golEnContra());
+  }
+  /* ============ 23/oct · QUE EL PARTIDO FLUYA (logic/flujo.js) ============
+     La decisión que abre el flujo: con un rival encima es el cruce de
+     siempre; al recibir o cuando pasó un rato, la cruz sin rival. */
+  decisionDelFlujo(dec) {
+    const st = this.st;
+    if (dec.motivo === "rival") {
+      this.beatDeTension(st.rivales[dec.rivalIdx], true, null, () => this.abrirMenuAtaque(dec.rivalIdx, false));
+      return;
+    }
+    const j = st.mios[st.ctrl];
+    this._tituloFlujo = dec.motivo === "recibe"
+      ? (j.esVos ? "¡LA TENÉS VOS!" : "LA TIENE " + String(j.nombre || "").toUpperCase() + ":") + " ¿qué hacés de primera? (✕ o ESC = seguir)"
+      : "¿Qué hacés? Pasala, tirá un centro o seguí (✕ o ESC)";
+    this.abrirMenuAtaque(null, true);
+  }
+  /* EL CENTRO / PASE AL AIRE: la escena del pase y, si cae en la zona, el
+     firulete del que la recibe o EL TOQUE si sos VOS */
+  confirmarCentro(rec) {
+    const st = this.st, FLU = window.PampaFlujo;
+    this.limpiarMenu();
+    this.estado = "RESOLUCION";
+    const pateador = st.mios[st.ctrl], receptor = st.mios[rec.idx];
+    const nombre = receptor.esVos ? "VOS" : String(receptor.nombre || "").toUpperCase();
+    const res = FLU.resolverCentro(st, rec.idx, rec.pct);
+    const despues = () => {
+      if (!res.win) { this.relatar("corte"); return; }
+      if (res.toque) { this.entrarToque(t => { this._toqueRemate = t; this.tiroPorComandos(null); }, res.toque); return; }
+      if (res.firulete) this.dispararFirulete(res.firulete);
+    };
+    this.quitarDuelo();
+    if (this.hayEscenas() && this.escenaPase) {
+      this.zoomBase();
+      this.escenaPase({
+        etiqueta: res.zona ? "· el centro ·" : "· al aire ·", jugada: res.zona ? "centro" : "aire",
+        cortador: res.win ? null : st.rivales[st.portadorRival], win: res.win, pateador: pateador, receptor: receptor,
+        titulo: res.win ? (res.zona ? "¡CENTRO PARA " + nombre + "!" : "¡LA BAJA " + nombre + "!") : "¡LA CORTARON!",
+        sub: res.win ? (res.zona ? "le cae a " + res.caida.h.toFixed(1).replace(".", ",") + " m de altura" : "la baja y sigue la jugada") : "Se la llevó de arriba. Pelota de ellos.",
+        alFinal: despues
+      });
+      return;
+    }
+    if (res.win && (res.toque || res.firulete)) despues();
+    else this.mostrarResolucion(res.win ? "¡LA BAJA " + nombre + "!" : "¡LA CORTARON!", res.win ? "#7ee08a" : "#e3503e", { anim: "pase", gana: res.win });
+  }
+  dispararFirulete(id) {
+    const FI = this.BAL.flujo.firuletes[id];
+    const ej = this.ejDeLaSituacion(null, { bonus: FI.bonus, fuera: FI.fuera });
+    this.dispararAereo(id, ej, window.PampaFlujo.prepararFirulete(this.st, id));
   }
   reanudarLibre() {
     this.st.modo = "juego";
@@ -6807,6 +6872,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         const dx = this.target.x - ctrl.x, dy = this.target.y - ctrl.y;
         if (Math.hypot(dx, dy) > 8) input = { dx, dy }; else this.target = null;
       }
+      /* 23/oct, Rodri: "que fluya más en vez de correr con el cursor". Con
+         balance.flujo, el que lleva la pelota avanza solo por el carril más
+         libre (logic/flujo.js); tocar el mapa elige el carril un rato */
+      const FLU = window.PampaFlujo;
+      if (FLU && FLU.activo(st) && st.posesion === "mia") {
+        if (this.target) FLU.fijarCarril(st, this.target.y);
+        if (!input) input = FLU.autoInput(st);
+      }
     }
 
     /* flag e3_menus apagado = sandbox de la E1 (sin cruces, remate rival auto-resuelto) */
@@ -6874,6 +6947,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         this.time.delayedCall(this.msV(2400), () => this.relatar("arranca_2t"));
       }
       else if (ev.tipo === "final") this.finDelPartido();
+    }
+    if (!evs.length && this.estado === "LIBRE" && window.PampaFlujo) {
+      const dec = window.PampaFlujo.chequear(st);
+      if (dec) this.decisionDelFlujo(dec);
     }
 
     /* el portador (y SOLO él) se dibuja; si la pelota cambió de dueño, corte de plano.

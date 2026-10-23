@@ -731,7 +731,7 @@
     escenaPase(cfg) {
       var self = this, feel = this.BAL.feel || {}, EP = this.BAL.escena_pase || {};
       var hayCorte = !!cfg.cortador;
-      this._abrirEscena(cfg.alVacio ? "· al vacío ·" : "· el pase ·");
+      this._abrirEscena(cfg.etiqueta || (cfg.alVacio ? "· al vacío ·" : "· el pase ·"));
       var horizonte = this.fondoDeCancha(true);
 
       var tEntrada = this.msV(EP.entrada_ms || 340);
@@ -760,7 +760,7 @@
       /* LA ONDA (scenes/onda_ui.js): líneas hacia el que la recibe, la pelota
          con estela y el nombre de la jugada cuando le pega */
       var onda = window.PampaOnda ? window.PampaOnda.entrada(this, {
-        jugada: cfg.alVacio ? "vacio" : "pase", aFavor: !!cfg.win, flujo: 1, bola: bola,
+        jugada: cfg.jugada || (cfg.alVacio ? "vacio" : "pase"), aFavor: !!cfg.win, flujo: 1, bola: bola,
         tNombre: tEntrada, nombreX: W / 2
       }) : null;
 

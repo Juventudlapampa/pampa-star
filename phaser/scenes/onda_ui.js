@@ -34,7 +34,7 @@
   var W = 960, H = 540;
   var PAPEL = 0xf6efdc, TINTA = 0x0a1f13;
   var NOMBRES = {
-    gambeta: "¡GAMBETA!", pared: "¡PARED!", pase: "¡PASE!", vacio: "¡AL VACÍO!",
+    gambeta: "¡GAMBETA!", pared: "¡PARED!", pase: "¡PASE!", vacio: "¡AL VACÍO!", centro: "¡CENTRO!", aire: "¡AL AIRE!",
     quite: "¡QUITE!", corte: "¡CORTE!", bloqueo: "¡BLOQUEO!"
   };
 

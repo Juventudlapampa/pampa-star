@@ -87,7 +87,8 @@ function lineasCon(re) {
 (function () {
   /* los dos caminos que deciden ANTES de abrir la escena difieren lo sensorial */
   var simple = cuerpo(MATCH, "dispararSimple(mega, ej) {");
-  var aereo = cuerpo(MATCH, "dispararAereo(id, ej) {");
+  /* 23/oct: dispararAereo recibe además el remate del firulete (pedido de Rodri, balance.flujo) */
+  var aereo = cuerpo(MATCH, "dispararAereo(id, ej, prepFirulete) {");
   assert(/desenlaceRemate\(res, \{ diferir: true \}\)/.test(simple), "dispararSimple tiene que diferir lo que se siente");
   assert(/desenlaceRemate\(res, \{ diferir: this\.hayEscenas\(\) \}\)/.test(aereo), "dispararAereo tiene que diferir lo que se siente cuando hay escena");
   [["dispararSimple", simple], ["dispararAereo", aereo]].forEach(function (p) {
