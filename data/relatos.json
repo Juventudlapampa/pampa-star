@@ -6,7 +6,7 @@
   "PAMPA STAR.",
   "No es la historia de una estrella. Es la de alguien que patea contra el viento.",
   "Acá no nacés crack, te hacés.",
-  "Bienvenido a La Pampa."
+  "Esto es La Pampa."
  ],
  "relatores": [
   {
@@ -89,7 +89,7 @@
    "¡GOOOL! ¡GRITALO, {pueblo}!",
    "¡Golazo, papá! ¡Se escuchó hasta en la ruta 35!",
    "¡Adentro, adentro! ¡GOL de {jugador}!",
-   "¡Explotó todo! ¡Gol de los nuestros!"
+   "¡Explotó todo! ¡Gol nuestro!"
   ],
   "gol_rival": [
    "Gol de {rival}… silencio en el potrero.",
@@ -234,7 +234,7 @@
    "¡Se la bloquearon! Se metió en el camino y se la comió con el cuerpo.",
    "Le puso la pierna y la sacó. Metió el cuerpo donde duele.",
    "¡Tapada! Se tiró de cara y la pelota le rebotó en el alma.",
-   "No lo dejaron ni patear tranquilo. Ahí había un muro.",
+   "No hubo ni lugar para patear. Ahí había un muro.",
    "Se la bloqueó con todo. Después se levanta y sigue, esos son de fierro.",
    "Le adivinó la intención y se le puso adelante. Puro oficio."
   ],
@@ -303,11 +303,11 @@
  },
  "escenas": {
   "vestuario_dt": [
-   "DT: Muchachos, no tenemos botines nuevos, tenemos 90 minutos.",
+   "DT: Escuchen bien: no tenemos botines nuevos, tenemos 90 minutos.",
    "Jugador 1: Profe, hace frío.",
    "DT: Mejor, así el rival se congela y nosotros corremos.",
    "Jugador 2: ¿Juego?",
-   "DT: Jugás vos, juega Toay, juega Victorica. Hoy somos todos."
+   "DT: Jugás vos, juega Toay, juega Victorica. Hoy juega La Pampa entera."
   ],
   "amigos_bar": [
    "Tomi: Che, ¿viste el tiro ese?",
@@ -324,7 +324,7 @@
   "chill_pueblo": [
    "Vecina: ¿Y? ¿No vas a entrenar?",
    "Vos: Ya entrené, ahora tomo mate abajo del caldén.",
-   "Kiosquero: Así se hacen los cracks, tranquilo pero con hambre."
+   "Kiosquero: Así se llega lejos, con calma y con hambre."
   ]
  }
 }

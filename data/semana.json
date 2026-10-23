@@ -30,13 +30,13 @@
   {
    "id": "entrenar_aguante",
    "n": "ENTRENAR AGUANTE",
-   "sub": "correr el campo entero",
+   "sub": "correr todo el campo",
    "energia_costo": 30,
    "stat": "resistencia",
    "stat_mas": 2,
    "frase": "Diez vueltas al alambrado. Te dolió todo.",
    "lugar": "club",
-   "repaso": "corriste el campo entero, ida y vuelta",
+   "repaso": "corriste todo el campo, ida y vuelta",
    "pose": "cansado",
    "_pose": "OJOS (tanda 1.0): era 'corriendo'. La de cansado (sin aire, las manos en las rodillas, los ojos apretados del esfuerzo y las gotas de sudor) es justo lo que dice la frase: diez vueltas y te dolió todo. Acá los ojos cerrados son de esfuerzo, no de dormido."
   },

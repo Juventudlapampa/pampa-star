@@ -538,7 +538,7 @@ const GUTS_BASE_POSPARTIDO = 75;  // con cuánto aguante quedás después de un 
 const VIVIR_EVENTOS = [
   {t:"Changa de fin de semana: descargaste bolsas en el acopio.", plata:60, animo:-2},
   {t:"Asado en la pensión con todo el equipo. Se quedó hablando de fútbol hasta cualquier hora.", plata:-15, animo:8},
-  {t:"Le mandaste plata a tu familia en el pueblo. Te llamaron para agradecerte.", plata:-40, animo:10},
+  {t:"Le mandaste plata a tu familia en la localidad. Te llamaron para agradecerte.", plata:-40, animo:10},
   {t:"Viaje en micro a ver a tu familia: mates, tortas fritas y vuelta con viandas.", plata:-10, animo:9},
   {t:"Cortaste el pasto de tres patios del barrio.", plata:45, animo:0},
   {t:"Tarde de río con la gente de la pensión. Volviste con la cabeza limpia.", plata:0, animo:7},
@@ -556,7 +556,7 @@ const POSICIONES = [
 const JUNTADAS = [
   "Mates en la plaza y charla hasta que bajó el sol.",
   "Peloteada en el potrero de siempre.",
-  "Vueltas en bici por el pueblo, sin apuro.",
+  "Vueltas en bici por la localidad, sin apuro.",
   "Tarde de río: no picó nada, pero qué risa.",
   "Se quedaron cebando mates y armando el equipo soñado.",
   "Fueron a la cancha a ver a las inferiores del club.",
@@ -730,7 +730,7 @@ function renderOrigen(){
   const loc=$("in-localidad").value;
   $("localidad-fx").textContent = CIUDADES_GRANDES.includes(loc)
     ? "Ciudad grande: +1 Pase y +1 Tiro (formación técnica)."
-    : "Pueblo: +2 Carácter (jugar contra el viento forja).";
+    : "Localidad: +2 Carácter (jugar contra el viento forja).";
 }
 function initIntro(){
   const sel = $("in-club");
@@ -783,7 +783,7 @@ $("btn-intro-volver").addEventListener("click", ()=>{ nuevoPendiente=false; rend
 /* ---------- Lore de intro (adaptativo al origen) ---------- */
 function mostrarLore(){
   const club=CLUBES.find(c=>c.n===career.club)||CLUBES[0];
-  const loc=(career.origen&&career.origen.localidad)||"tu pueblo";
+  const loc=(career.origen&&career.origen.localidad)||"tu localidad";
   $("lore-txt").innerHTML =
     `En La Pampa el viento no para nunca, y hay quienes aprenden a jugar contra él antes que a favor. Vos sos de esa gente. `+
     `Naciste en <b>${esc(loc)}</b>, donde la pelota era lo único que sobraba. Jugaste donde se pudo, con lo que había, `+
@@ -1863,7 +1863,7 @@ function apuntarPase(wx, wy){
   if(!best){ banner("NADIE CERCA DE AHÍ"); return; }
   /* V4.2-C (doc §4): tocar un punto LIBRE = pase al espacio — el más cercano sale a buscarla */
   if(bd>240){
-    if(bd>430){ banner("MUY LEJOS DE TODOS"); return; }
+    if(bd>430){ banner("MUY LEJOS DE TU EQUIPO"); return; }
     return apuntarEspacio(wx, wy, best);
   }
   const cp=ctrlPos(), dx=best.x-cp.x;
@@ -2808,7 +2808,7 @@ function goalSequence(dribble, lejano, especial){
   PS.cine = {tipo:"festejo", t:0, look: quien ? quien.look : career.look};
   draw();
   flash("gol", (lejano||especial) ? "¡GOLAZO!" : "¡GOL!");
-  endLine(quien ? `¡GOL de <b>${esc(quien.nombre)}</b>! La jugada la armaron entre todos. (+1 vínculo)`
+  endLine(quien ? `¡GOL de <b>${esc(quien.nombre)}</b>! La jugada la armó todo el equipo. (+1 vínculo)`
         : especial ? `¡El ${especial.cn} rompió la red! El arquero ni la vio.`
         : dribble ? "¡Gambeteaste al arquero y la empujaste al arco vacío!"
         : lejano  ? "¡Golazo desde lejos, la clavaste en un ángulo!"
@@ -2867,7 +2867,7 @@ function renderFinal(win, draw_, lvl, nivelNuevo){
   $("f-res").className = "f-res "+(win?"win":draw_?"draw":"lose");
   $("f-tag").textContent = `${PS.club.n}  vs  ${PS.rival.n}`;
   let cr = PS.golesEnPartido>0 ? `Metiste <b>${PS.golesEnPartido} gol${PS.golesEnPartido>1?"es":""}</b>. ` : `Hoy no la pudiste mandar a guardar. `;
-  cr += win ? `Tres puntos para la <b>${PS.club.n}</b> y aplausos del pueblo.` : draw_ ? `Punto luchado en una tarde pareja.` : `Golpe duro, pero esto recién arranca.`;
+  cr += win ? `Tres puntos para la <b>${PS.club.n}</b> y aplausos de la localidad.` : draw_ ? `Punto luchado en una tarde pareja.` : `Golpe duro, pero esto recién arranca.`;
   $("f-cronica").innerHTML = cr;
   let lu = lvl ? `<div class="level-up"><div class="t">⬆ MEJORASTE</div><div class="s">${lvl} por tus goles</div></div>` : "";
   if(nivelNuevo){

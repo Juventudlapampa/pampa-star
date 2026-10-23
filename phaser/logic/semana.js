@@ -296,8 +296,8 @@
     var e = semana.energia, a = semana.animo;
     var n = nivelEnergia(e);
     if (n === "entero") {
-      if (a >= 85) return "Llegás entero y con muchas ganas";
-      if (a >= 65) return "Llegás entero y tranquilo";
+      if (a >= 85) return "Llegás con las piernas enteras y muchas ganas";
+      if (a >= 65) return "Llegás con las piernas enteras y la cabeza en calma";
       return "Llegás bien de piernas pero con la cabeza en otra cosa";
     }
     if (n === "normal") {
@@ -306,13 +306,13 @@
       return "Llegás normal, pero con algo dando vueltas";
     }
     if (n === "cansado") {
-      if (a >= 85) return "Venís cansado, pero con muchas ganas";
-      if (a >= 65) return "Venís cansado de la semana";
-      return "Venís cansado y con la cabeza en otra cosa";
+      if (a >= 85) return "Venís con poco aire, pero con muchas ganas";
+      if (a >= 65) return "La semana te dejó con poco aire";
+      return "Venís con poco aire y con la cabeza en otra cosa";
     }
-    if (a >= 85) return "Venís fundido, y aun así querés jugarlo";
-    if (a >= 65) return "Venís fundido: las piernas no te van a responder";
-    return "Venís fundido y golpeado por lo del domingo pasado";
+    if (a >= 85) return "Venís sin nafta, y aun así querés jugarlo";
+    if (a >= 65) return "Venís sin nafta: las piernas no te van a responder";
+    return "Venís sin nafta y con lo del domingo pasado encima";
   }
 
   /* ---------- el lunes después ----------

@@ -382,11 +382,11 @@
       var M = {
         ajustado: "por centímetros",
         lectura: leido ? "te leyeron la jugada" : "lo leíste bien",
-        cansado: "venías cansado",
-        entero: "llegaste entero",
+        cansado: "venías sin aire",
+        entero: "llegaste con piernas",
         envion: "con el envión a favor",
         megacosa: "el rival sacó algo de arriba",
-        rival_fundido: "los tenés fundidos",
+        rival_fundido: "al rival no le dan las piernas",
         parejo: ""
       };
       return M[res.motivo] || "";
@@ -707,7 +707,7 @@
         bloqueo: "puso el cuerpo en la línea",
         solo_ante_el_arquero: "quedó solo contra tu arquero",
         de_lejos: "le pegó de lejos y tu arquero la vio venir",
-        arquero_fundido: "tu arquero venía fundido",
+        arquero_fundido: "tu arquero venía sin aire",
         mano_a_mano: "mano a mano, cara a cara"
       };
       var base = M[lectura.motivo] || "";

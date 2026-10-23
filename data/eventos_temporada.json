@@ -331,7 +331,7 @@
    "texto": "Hay asado en el club después del partido, ganen o pierdan.",
    "opciones": [
     {
-     "texto": "Juego tranquilo",
+     "texto": "Juego con calma",
      "efecto": {
       "recuperacion": 1.4
      },
@@ -414,7 +414,7 @@
   {
    "id": "pelea",
    "categoria": "equipo",
-   "texto": "Dos compañeros se pelearon en el entrenamiento del jueves.",
+   "texto": "Dos personas del plantel se pelearon en el entrenamiento del jueves.",
    "opciones": [
     {
      "texto": "Los junto",

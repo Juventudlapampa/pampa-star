@@ -155,7 +155,7 @@
           "b": "Aplaudo, pero sentado. Se me fue la sangre."
         },
         {
-          "a": "Si sigue así, va a terminar cansado él.",
+          "a": "Si sigue así, al arquero de ellos no le dan los brazos.",
           "b": "Que atajen ellos un rato, digo yo."
         },
         {
@@ -227,7 +227,7 @@
       "intercambios": [
         {
           "a": "Esa jugada no existía. Se la inventó.",
-          "b": "Todos erramos. Yo salé el asado el domingo."
+          "b": "A cualquiera le pasa. Yo salé el asado el domingo."
         },
         {
           "a": "La quiso hacer de lujo con el partido así.",
@@ -252,7 +252,7 @@
           }
         },
         {
-          "a": "Tranquilo, que ya va a salir una bien.",
+          "a": "Calma, que ya va a salir una bien.",
           "b": "Sí, pero que salga hoy, no el domingo."
         },
         {
@@ -354,7 +354,7 @@
           }
         },
         {
-          "a": "Todos arriba. No queda otra.",
+          "a": "Con todo arriba. No queda otra.",
           "b": "Que suba hasta el arquero, ya está."
         },
         {
@@ -365,8 +365,8 @@
           }
         },
         {
-          "a": "No la revoleen. Jueguen tranquilos.",
-          "b": "Tranquilos estamos vos y yo. Nadie más."
+          "a": "No la revoleen. Jueguen con calma.",
+          "b": "Con calma estamos vos y yo. Nadie más."
         },
         {
           "a": "Esto se pierde jugando, no rezando.",
