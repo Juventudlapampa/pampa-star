@@ -566,6 +566,10 @@ function teatro(poseTiro) {
   var ME = require("./_escena_de_mentira.js"), AM = ME.armar();
   AM.registry.set("poses", POSES);
   AM.localStorage.setItem("pampa_master_v1", JSON.stringify(AM.carreraNueva()));
+  /* 23/oct, pedido de Rodri: la semana de fábrica es la de cuatro cosas
+     (test/semana_cuatro.test.js). Esto prueba la de tres días, que sigue
+     en el código y vuelve con flags.semana_cuatro en false */
+  AM.registry.get("balance").flags.semana_cuatro = false;
   var sm = AM.nueva(); sm.create();
   sm.textures.exists = function (k) { return k === "pose_calden"; };
   var calImgs = [], mascaras = [];

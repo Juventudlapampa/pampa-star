@@ -76,6 +76,10 @@ function rivalDe(sv) {
   return mp.local === sv.temporada.miClub ? mp.visita : mp.local;
 }
 (function () {
+  /* 23/oct, pedido de Rodri: la semana de fábrica es la de cuatro cosas
+     (test/semana_cuatro.test.js). Esto prueba la de tres días, que sigue
+     en el código y vuelve con flags.semana_cuatro en false */
+  A.registry.get("balance").flags.semana_cuatro = false;
   A.localStorage.setItem("pampa_master_v1", JSON.stringify(A.carreraNueva()));
   var s = escenaDesdeElSave();
   assert(s.textos().indexOf("PRIMERA B · TEMPORADA 1") >= 0, "control: la escena abre en la tabla");

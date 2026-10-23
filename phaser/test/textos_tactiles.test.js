@@ -37,6 +37,10 @@ function malos(textos) {
 /* ---------- [1] EL MASTER EN EL TELÉFONO ---------- */
 function semanaDeLaFecha1(tactil) {
   var A = M.armar({ tactil: tactil });
+  /* 23/oct, pedido de Rodri: la semana de fábrica es la de cuatro cosas
+     (test/semana_cuatro.test.js). Esto prueba la de tres días, que sigue
+     en el código y vuelve con flags.semana_cuatro en false */
+  A.registry.get("balance").flags.semana_cuatro = false;
   A.localStorage.setItem("pampa_master_v1", JSON.stringify(A.carreraNueva()));
   var s = A.nueva(); s.create();
   s.tocar(310, 460);                                   // ▶ JUGAR LA FECHA

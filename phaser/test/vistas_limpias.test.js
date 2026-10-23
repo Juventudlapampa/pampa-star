@@ -109,6 +109,10 @@ function interactivosVisibles(s) {
 /* ---------- [3] UNA TECLA, UNA RANURA, AUNQUE SE REPINTE ---------- */
 (function () {
   var s = escenaConCarrera();
+  /* 23/oct, pedido de Rodri: la semana de fábrica es la de cuatro cosas
+     (test/semana_cuatro.test.js). Esto prueba la de tres días, que sigue
+     en el código y vuelve con flags.semana_cuatro en false */
+  s.game.registry.get("balance").flags.semana_cuatro = false;
   s._semEventoResuelto = true;            // el evento no es lo que se mide acá
   s._semEvento = null;
   var rival = W.PampaTemporada.miPartido(s.save.temporada);

@@ -167,6 +167,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const necesarias = ["recibiendo"];
     if (dSem && Array.isArray(dSem.opciones)) {
       dSem.opciones.forEach((o) => { if (o && o.pose && necesarias.indexOf(o.pose) < 0) necesarias.push(o.pose); });
+      /* 23/oct · y las de la semana de cuatro cosas (ENTRENAR trae una por cualidad) */
+      (dSem.cuatro || []).forEach((c) => [c].concat(Object.values(c.que || {})).forEach((o) => { if (o.pose && necesarias.indexOf(o.pose) < 0) necesarias.push(o.pose); }));
     }
     necesarias.forEach((id) => {
       const d = pm && pm.poses && pm.poses[id];
@@ -1813,6 +1815,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     cola.fillStyle(0xf6efdc, 1); cola.fillTriangle(bx + 2, yc - 12, bx + 2, yc + 12, bx - 18, yc);
     const txt = this.add.text(bx + 18, by + 16, "", { fontFamily: window.PF.texto, fontSize: "19px", color: "#0a1f13", wordWrap: { width: bw - 36 }, lineSpacing: 4 });
     const pag = this.add.text(bx + bw - 12, by + bh - 10, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(1, 1);
+    /* la semana de cuatro cosas: lo que elegiste, dicho antes de entrar */
+    const sr = this.save.semanaResumen;
+    if (sr && sr.renglones) this.add.text(W / 2, 346, "ESTA FECHA VAS A TENER: " + sr.renglones.join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#7ee08a", align: "center", wordWrap: { width: 880 }, backgroundColor: "#0a1f13cc", padding: { x: 8, y: 4 } }).setOrigin(0.5);
     let i = 0, b = null;
     const mostrar = () => {
       pag.setText((i + 1) + " de " + pv.paginas.length + (i < pv.paginas.length - 1 ? "  ▸ seguir" : ""));
@@ -1946,6 +1951,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.pedirMusica("semana", { cierre: this.T.ultimaFecha(this.save && this.save.temporada) });
       this._musicaSemanaPuesta = true;
     }
+    if (this.semanaDeCuatro()) { this.vistaSemanaCuatro(rival, alJugar); return; }
     const W = this.scale.width, H = this.scale.height;
     const S = window.PampaSemana, D = this.game.registry.get("semana");
     if (!S || !D) { this.vistaEvento(rival, alJugar); return; }
@@ -2264,6 +2270,108 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     return im;
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     23/oct, PEDIDO DE RODRI · LA SEMANA DE CUATRO COSAS (flags.semana_cuatro).
+     "Capaz que tiene MUCHO y eso RESTA." Una sola decisión por semana:
+     ENTRENAR (TIRO, PASE o GAMBETA), DESCANSAR, VER AL RIVAL o SALIR CON LA
+     BARRA. Cada tarjeta dice con palabras qué te da en la cancha, y arriba
+     queda lo que vas a tener esta fecha, que la previa repite. Sin energía,
+     sin molestias y sin el evento de dos opciones (la entrevista y la previa
+     siguen: son la historia). La cuenta, en logic/semana.js (enLaCancha).
+     ══════════════════════════════════════════════════════════════════════ */
+  semanaDeCuatro() {
+    return ((this.game.registry.get("balance") || {}).flags || {}).semana_cuatro === true;
+  }
+  vistaSemanaCuatro(rival, alJugar) {
+    const S = window.PampaSemana, D = this.game.registry.get("semana");
+    const balS = this.game.registry.get("balance"), cfg = balS.semana;
+    /* ya cerrada (saliste a la cancha y volviste sin resultado): a la cancha como se llegó */
+    if (S.semanaCerrada(this.save)) { alJugar(); return; }
+    this._semRival = rival; this._semJugar = alJugar;
+    this.vaciarVista();
+    this._atrasVista = () => this.scene.restart();
+    if (this.fondoDelMaster) this.fondoDelMaster();
+    const W = this.scale.width;
+    const el = S.eleccionDeLaFecha(this.save), lc = S.enLaCancha(this.save, el, cfg);
+    this.add.text(W / 2, 16, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+    this.add.text(W / 2, 42, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
+    /* los dos medidores, con barra y con número: con lo elegido ya puesto */
+    const medidor = (x, y, etiqueta, valor, color) => {
+      this.add.text(x, y - 16, etiqueta, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
+      const g = this.add.graphics();
+      g.fillStyle(0x0a1f13, 0.9); g.fillRect(x, y, 300, 18);
+      g.fillStyle(color, 1); g.fillRect(x + 2, y + 2, Math.max(0, Math.min(296, 296 * valor / 100)), 14);
+      g.lineStyle(2, 0xf6efdc, 0.8); g.strokeRect(x, y, 300, 18);
+    };
+    medidor(W / 2 - 320, 80, "AGUANTE al " + lc.aguantePct + "%", lc.aguantePct, 0x7ee08a);
+    medidor(W / 2 + 20, 80, "ÁNIMO " + lc.animo + "/100", lc.animo, 0x4fc3f7);
+    /* LO QUE VAS A TENER EN LA CANCHA, con la pose de lo que elegiste */
+    const op = el ? this.opDeLaSemana(D, el) : null;
+    const PX = W / 2, PY = 176, PW = 720, PH = 84;
+    if (window.PampaSemanaUI) window.PampaSemanaUI.escenario(this, PX, PY, PW, PH, op ? op.lugar : "vacio");
+    this.add.rectangle(PX, PY, PW, PH, op ? 0x2e7d32 : 0x0a1f13, op ? 0.24 : 0.44).setStrokeStyle(3, op ? 0x7ee08a : 0x555f57, 0.9);
+    if (op) this.figuraDeAccion(op, PX - PW / 2 + 72, PY + 34, 66, { x: PX - PW / 2 + 2, y: PY - 40, w: 140, h: 80 });
+    this.add.rectangle(PX + 72, PY, PW - 168, PH - 14, 0x0a1f13, 0.86);
+    this.add.text(PX + 72, PY - 18, op ? "ESTA FECHA, EN LA CANCHA VAS A TENER" : "TODAVÍA NO ELEGISTE · así llegás", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(PX + 72, PY + 10, S.renglonesDeLaCancha(lc).join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", align: "center", wordWrap: { width: PW - 190 } }).setOrigin(0.5);
+    if (op) this.add.text(W / 2, 246, "Esta semana " + op.repaso + ".", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
+    const touch = this.sys.game.device.input.touch;
+    this.add.text(W / 2, 282, el ? "ELEGISTE " + op.n + " · la podés cambiar" : "¿QUÉ HACÉS ESTA SEMANA? · una sola cosa" + (touch ? "" : " (teclas 1 a 6)"),
+      { fontFamily: window.PF.display, fontSize: "13px", color: el ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
+    /* LAS CUATRO, a la vista. ENTRENAR lleva adentro sus tres botones */
+    const piel = balS.piel, anchoC = 222, altoC = 140, gap = 8;
+    const yC = Math.round(window.PampaPiel.yDeOpcion(0, 2, altoC, piel));
+    const TECLAS = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX"];
+    const foco = [];
+    const tocar = (obj, cb) => {
+      obj.setInteractive({ useHandCursor: true }).on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); cb(); });
+      this.atajo(TECLAS[foco.length], cb);
+      foco.push({ obj: obj, cb: cb });
+    };
+    D.cuatro.forEach((c, i) => {
+      const cx = W / 2 + (i - 1.5) * (anchoC + gap), top = yC - altoC / 2;
+      const elegida = !!el && el.id === c.id;
+      /* la elegida se dice con palabra (✓) y con borde grueso, no solo con color */
+      const r = this.add.rectangle(cx, yC, anchoC, altoC, 0xf6efdc, 0.97).setStrokeStyle(elegida ? 6 : 3, 0x0a1f13, 1);
+      this.add.text(cx, top + 6, (elegida ? "✓ " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 10 } }).setOrigin(0.5, 0);
+      this.add.text(cx, top + 28, c.efecto, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41", align: "center", lineSpacing: -2, wordWrap: { width: anchoC - 14 } }).setOrigin(0.5, 0);
+      this.add.text(cx, top + altoC - 6, "esta fecha: " + this.textoDeLaFecha(c.id, elegida ? el.que : null), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 12 } }).setOrigin(0.5, 1);
+      if (c.id !== "entrenar") { tocar(r, () => this.ponerCuatro(c.id, null)); return; }
+      S.ENTRENABLES.forEach((k, q) => {
+        const sel = elegida && el.que === k, bx = cx + (q - 1) * 72, by = top + 90;
+        const b = this.add.rectangle(bx, by, 66, 34, sel ? 0x0a1f13 : 0xffffff, 1).setStrokeStyle(sel ? 4 : 2, 0x0a1f13, 1);
+        this.add.text(bx, by, k.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: sel ? "#f6efdc" : "#0a1f13" }).setOrigin(0.5);
+        tocar(b, () => this.ponerCuatro("entrenar", k));
+      });
+    });
+    const yJugar = Math.round(window.PampaPiel.yDeOpcion(2, 3, 64, piel));
+    const jugar = () => this.cerrarSemana(alJugar);
+    const btn = this.boton(W / 2, yJugar, 340, el ? "▶ JUGAR LA FECHA" : "▶ JUGAR SIN ELEGIR NADA", el ? 0x7ee08a : 0xdcd6c2, jugar);
+    foco.push({ obj: btn, cb: jugar });
+    if (this.grupoFoco) this.grupoFoco(foco, { inicial: el ? foco.length - 1 : 0 });
+  }
+  /* lo de cada tarjeta, con las cinco palabras (y lo que dice el momento) */
+  textoDeLaFecha(id, que) {
+    const S = window.PampaSemana, cfg = this.game.registry.get("balance").semana;
+    if (id === "entrenar") return "+" + cfg.cuatro.entrenar_mas + (que ? " de " + que.toUpperCase() : " a la que elijas");
+    const lc = S.enLaCancha(this.save, { id: id }, cfg);
+    if (id === "descansar") return "AGUANTE al " + lc.aguantePct + "% (sin descansar, " + lc.aguanteSinDescanso + "%)";
+    if (id === "ver_rival") return "su defensa y su estrella, en el mapa";
+    return "ÁNIMO " + lc.animo + ", +" + lc.grande + " en las jugadas grandes";
+  }
+  opDeLaSemana(D, el) {
+    const c = D.cuatro.find(o => o.id === el.id), q = c.que ? c.que[el.que] : null;
+    return { id: c.id, n: q ? c.n + " " + el.que.toUpperCase() : c.n, sub: q ? q.sub : c.sub, lugar: c.lugar, pose: q ? q.pose : c.pose, repaso: q ? q.repaso : c.repaso };
+  }
+  ponerCuatro(id, que) {
+    const S = window.PampaSemana;
+    if (!S.elegirCuatro(this.save, id, que)) return false;
+    this.guardar();
+    const op = this.opDeLaSemana(this.game.registry.get("semana"), this.save.eleccion);
+    op.efectoCancha = "esta fecha: " + this.textoDeLaFecha(id, que);
+    this.momentoDeAccion(op, "ESTA SEMANA");
+    return true;
+  }
   relojDeLaSemana(listo, alJugar) {
     const cfg = (this.game.registry.get("balance") || {}).semana || {};
     const seg = cfg.reloj_seg | 0;
@@ -2458,14 +2566,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     const dias = ["EL LUNES", "EL MIÉRCOLES", "EL VIERNES"];
     const cx = x0 + bw / 2;
-    const tD = this.add.text(cx, y0 + 28, dias[ranura] || "", { fontFamily: window.PF.display,
+    const tD = this.add.text(cx, y0 + 28, typeof ranura === "string" ? ranura : (dias[ranura] || ""), { fontFamily: window.PF.display,
       fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     const tN = this.add.text(cx, y0 + 96, op.n, { fontFamily: window.PF.texto, fontSize: "20px",
       fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: bw - 28 } }).setOrigin(0.5);
     const tS = this.add.text(cx, y0 + 176, op.sub || "", { fontFamily: window.PF.texto,
       fontSize: "14px", color: "#dcd6c2", align: "center", wordWrap: { width: bw - 28 } }).setOrigin(0.5);
     /* lo que te deja, con numeros: la misma linea que muestra la tarjeta */
-    const tE = this.add.text(cx, y0 + MH - 30, this.textoEfecto(op), { fontFamily: window.PF.texto,
+    const tE = this.add.text(cx, y0 + MH - 30, op.efectoCancha || this.textoEfecto(op), { fontFamily: window.PF.texto,
       fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: bw - 28 } }).setOrigin(0.5);
 
     const marco = this.add.rectangle(MX, MY, MW, MH, 0x000000, 0).setStrokeStyle(4, 0x7ee08a, 0.9);
@@ -2561,7 +2669,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        techo de aguante, los permanentes a la carrera, la molestia de la
        semana commiteada— pero UNA vez por fecha: antes cada llamada sumaba,
        y recargar en medio del partido llevó tiro de +3 a +15. */
-    S.cerrarSemana(this.save, cfg);
+    if (this.semanaDeCuatro()) S.cerrarSemanaCuatro(this.save, cfg);
+    else S.cerrarSemana(this.save, cfg);
     this._semEvento = undefined;
     this._semEventoResuelto = false;   // la próxima fecha vuelve a decidir el suyo
     this.guardar();
@@ -2671,7 +2780,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          agua alta a proposito — un descenso no te saca un especial que
          ya te habias ganado. */
       nivel: this.nivelDeLaCarrera(),
-      mod: this.save.modFecha || null,
+      mod: this.semanaDeCuatro() ? null : (this.save.modFecha || null),
       origen: this.save.origen || null,
       semana: this.save.semanaResumen || null,
       mejoras: this.save.mejoras || null,
