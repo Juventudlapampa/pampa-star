@@ -83,16 +83,37 @@
         mira: { u: 0, h: 0.35 }, tipo: cfg.menu[0], t: 0, ev: [], teclas: [], botones: [], figs: [], resuelto: false
       });
       if (cfg.cpu) fr.tipo = cfg.cpu.tipo;
-      this.frenteFondo(fr);
+      /* revisión final del 23/oct: en el tiro libre la barrera de cinco tapaba
+         entero al arquero. La cámara sube (alto_cam_libre) y se ve por arriba */
+      if (cfg.libre && K.alto_cam_libre != null) { fr.altoCam = K.alto_cam_libre; fr.hz = K.horizonte_libre; }
 
       /* los de adelante, de lejos a cerca: el más cercano queda encima */
       var gente = fr.foto.defensores.map(function (d) { return { d: d, arq: false }; });
       gente.push({ d: Object.assign({ d: Fr.local(m, fr.foto.arquero).d, u: Fr.local(m, fr.foto.arquero).u }, fr.foto.arquero), arq: true });
       gente.sort(function (a, b) { return b.d.d - a.d.d; });
+      /* y en el teléfono la columna de pegadas tapaba al defensor más cercano
+         y el de la otra punta quedaba cortado: el arco va al medio de lo que
+         queda libre y, si alguien no entra, la toma se abre (hasta min_zoom) */
+      var E = K.encuadre;
+      if (E) {
+        fr.lim = { izq: E.margen, der: (cfg.cpu ? W : X_BOT - ANCHO_BOT / 2) - E.margen };
+        fr.cx = (fr.lim.izq + fr.lim.der) / 2;
+        var maxD = 0, maxI = 0;
+        gente.forEach(function (g) {
+          var r = (g.d.u - K.al_costado) * fr.k / Math.max(8, g.d.d + K.atras);
+          if (r > maxD) maxD = r; if (-r > maxI) maxI = -r;
+        });
+        var mitad = (fr.lim.der - fr.lim.izq) / 2 - E.pad;
+        fr.k *= Math.max(E.min_zoom, Math.min(1, maxD ? mitad / maxD : 1, maxI ? mitad / maxI : 1));
+      }
+      this.frenteFondo(fr);
       var rivalDeEllos = !cfg.esRival, lista = cfg.esRival ? this.st.mios : this.st.rivales;
+      /* la barrera no es la misma figura cinco veces: se alternan el lado y la altura */
+      var nB = 0, altosB = K.barrera_altos || [1];
+      var rotulos = [];
       gente.forEach(function (g) {
         var q = lista[g.d.ref], p = self.frenteP(fr, g.d.d, g.d.u, 0);
-        if (p.x < -80 || p.x > W + 80 || p.y < K.horizonte - 4) return;
+        if (p.x < -80 || p.x > W + 80 || p.y < (fr.hz || K.horizonte) - 4) return;
         var alto = 0.74 * fr.hg * p.s, img;
         if (g.arq) {
           var ka = rivalDeEllos ? (self.poseRivalNaranja && self.poseRivalNaranja("arquero_ataja")) : self.poseDePlano("arquero_ataja", q, false);
@@ -100,11 +121,14 @@
           img.setScale(self.escalaDePose("arquero_ataja", alto, img));
           self.cineContent.add(img);
         } else {
-          img = self.figuraDePlano("bloqueo", q, rivalDeEllos, p.x, p.y, alto, p.x > W / 2);
+          var enB = g.d.barrera && cfg.libre;
+          var flip = enB ? nB % 2 === 1 : p.x > (fr.cx || W / 2);
+          if (enB) { alto *= altosB[nB % altosB.length]; nB++; }
+          img = self.figuraDePlano("bloqueo", q, rivalDeEllos, p.x, p.y, alto, flip);
           img.setOrigin(0.5, 1).setPosition(p.x, p.y);
         }
         fr.figs.push({ img: img, d: g.d, arq: g.arq, y0: p.y });
-        self.frenteNumero(img, g.d.numero, rivalDeEllos, g.arq);
+        rotulos.push([img, g.d.numero, rivalDeEllos, g.arq]);
       });
 
       /* quien patea, de espaldas, abajo a la izquierda, y la pelota a su pie */
@@ -112,6 +136,9 @@
       var xT = Phaser.Math.Clamp(p0.x, 150, 300);
       fr.tirador = this.figuraDePlano("de_espaldas_sin_pelota", cfg.j, cfg.esRival, xT, H + 28, 340, false);
       fr.tirador.setOrigin(0.5, 1).setPosition(xT, H + 28);
+      /* los rótulos, después de todas las figuras (también de quien patea) y el del arquero arriba de todo */
+      rotulos.sort(function (a, b) { return (a[3] ? 1 : 0) - (b[3] ? 1 : 0); });
+      rotulos.forEach(function (r) { self.frenteNumero(r[0], r[1], r[2], r[3]); });
       var TB = this.texPelota(40);
       var pb = this.frenteP(fr, 9, 4, 0);
       fr.bolaEsc = TB.esc;
@@ -210,7 +237,7 @@
     /* proyección: d hacia el arco, u a la derecha, z para arriba (px de cancha) */
     frenteP(fr, d, u, z) {
       var K = this.BAL.frente.camara, s = fr.k / Math.max(8, d + K.atras);
-      return { x: W / 2 + (u - K.al_costado) * s, y: K.horizonte + (K.alto_cam - (z || 0)) * s, s: s };
+      return { x: (fr.cx != null ? fr.cx : W / 2) + (u - K.al_costado) * s, y: (fr.hz || K.horizonte) + ((fr.altoCam != null ? fr.altoCam : K.alto_cam) - (z || 0)) * s, s: s };
     },
     frentePuntoArco(fr, u, h) {
       var Fr = window.PampaFrente, m = fr.foto.m, L = Fr.local(m, Fr.puntoDeArco(m, u));
@@ -225,7 +252,7 @@
     },
 
     frenteFondo(fr) {
-      var K = this.BAL.frente.camara, HZ = K.horizonte, g = this.cineBG, self = this, Fr = window.PampaFrente, m = fr.foto.m;
+      var K = this.BAL.frente.camara, HZ = fr.hz || K.horizonte, g = this.cineBG, self = this, Fr = window.PampaFrente, m = fr.foto.m;
       var tinte = this.tinteIlustrado ? this.tinteIlustrado() : null;
       var pintado = !!(this.fondoCine && this.fondoCine("cancha_alta", { y0: HZ }));
       if (!pintado) { g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, HZ); g.fillStyle(0x2e7d32, 1); g.fillRect(0, HZ, W, H - HZ); }
@@ -281,6 +308,9 @@
     frenteNumero(img, numero, esRival, arq) {
       var x = img.x, y = img.y - img.displayHeight - 4;
       var t = this.add.text(x, y, (arq ? "ARQ " : "") + String(numero != null ? numero : ""), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: esRival ? "#FF8A50" : "#4FC3F7", padding: { left: 20, right: 5, top: 2, bottom: 2 } }).setOrigin(0.5, 1);
+      /* el rótulo no se corta en el borde ni queda debajo de los botones */
+      var lim = this._fr && this._fr.lim;
+      if (lim) t.x = Phaser.Math.Clamp(t.x, lim.izq + t.displayWidth / 2, lim.der - t.displayWidth / 2);
       this.cineContent.add(t);
       this.cineContent.add(this.marcaDeBando(this.add.graphics(), t.x - t.displayWidth / 2 + 10, t.y - t.displayHeight / 2, esRival, 5, 0x0a1f13));
     },
