@@ -247,13 +247,14 @@
   {
    "id": "milanesas",
    "categoria": "pueblo",
-   "texto": "Tu vieja hizo milanesas antes de salir. Comiste dos de más.",
+   "texto": "Tu vieja hizo milanesas antes de salir. Están en la mesa, recién hechas.",
    "opciones": [
     {
-     "texto": "Igual voy",
+     "texto": "Como un par y voy",
      "efecto": {
       "arranque": -4,
-      "envion": 30
+      "envion": 30,
+      "caracter": 3
      },
      "frase_relator": "Saliste con la panza llena y el alma también."
     },
@@ -536,7 +537,8 @@
      "texto": "Igual juego",
      "efecto": {
       "aguante": -90,
-      "envion": 40
+      "envion": 40,
+      "caracter": 5
      },
      "frase_relator": "Venís de doce horas de máquina y estás igual acá: el vestuario te respeta."
     },
@@ -645,7 +647,8 @@
      "texto": "Me quedo a jugar un rato",
      "efecto": {
       "envion": 35,
-      "aguante": -30
+      "aguante": -30,
+      "gambeta": 4
      },
      "frase_relator": "Te quedaste jugando con la chiquilinada: te acordaste de por qué jugás."
     },
@@ -718,7 +721,8 @@
      "texto": "Que sueñen, total ganamos",
      "efecto": {
       "envion": 40,
-      "duelo": -3
+      "duelo": -3,
+      "arranque": 5
      },
      "frase_relator": "El equipo sale convencido de que no lo para nadie."
     }

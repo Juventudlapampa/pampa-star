@@ -161,5 +161,24 @@ function poderDe(st, id) {
   console.log("[7] ninguna opción de la semana depende solo del envión (pedido del 22/oct)");
 })();
 
+/* ---- 8) revisión final del 23/oct: con el envión apagado, ninguna opción
+   queda solo restando (milanesas, cosecha, chicos y racha lo hacían) ---- */
+(function () {
+  var soloResta = [];
+  EVS.eventos.forEach(function (e) {
+    e.opciones.forEach(function (o) {
+      var ef = Object.assign({}, o.efecto); delete ef.envion;
+      var ks = Object.keys(ef);
+      var suma = ks.some(function (k) { return k === "recuperacion" ? ef[k] > 1 : ef[k] > 0; });
+      var resta = ks.some(function (k) { return k === "recuperacion" ? ef[k] < 1 : ef[k] < 0; });
+      if (resta && !suma) soloResta.push(e.id + ": " + o.texto);
+    });
+  });
+  assert(soloResta.length === 0, "SÍNTOMA: opciones que con el envión apagado solo restan: " + soloResta.join(" | "));
+  var mil = EVS.eventos.find(function (x) { return x.id === "milanesas"; });
+  assert(!/de más/.test(mil.texto), "milanesas: el texto no dice que ya comiste si una opción es dejarlas para la vuelta");
+  console.log("[8] ninguna opción de la semana solo resta con el envión apagado");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

@@ -2324,7 +2324,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (o.energia_costo) t.push("−" + o.energia_costo + " energía");
     if (o.energia_recupera) t.push("+" + o.energia_recupera + " energía");
     if (o.animo) t.push((o.animo > 0 ? "+" : "") + o.animo + " ánimo");
-    if (o.stat) t.push("+" + (o.stat_mas || 1) + " " + (o.stat === "azar" ? "a una cualidad al azar" : o.stat));
+    /* revisión final del 23/oct: ENTRENAR AGUANTE decía "+2 resistencia"; es
+       la misma cualidad (logic/semana.js techoDeAguante) y se dice como en la tarjeta */
+    if (o.stat) t.push("+" + (o.stat_mas || 1) + " " + (o.stat === "azar" ? "a una cualidad al azar" : o.stat === "resistencia" ? "aguante" : o.stat));
     if (o.cura_molestia) t.push("cura la molestia");
     if (o.espia_rival) t.push("ves cómo juega el rival");
     if (o.evita) t.push("te sacás el problema");
@@ -2510,6 +2512,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
           alSeguir();
         };
         r.on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); elegir(); });
+        /* revisión final del 23/oct: el rótulo decía "1 · " y la tecla no hacía nada */
+        if (i < 4) this.atajo(["ONE", "TWO", "THREE", "FOUR"][i], elegir);
         return { obj: r, cb: elegir };
       });
       /* el cursor, como en los demás grupos: no hay salida (el evento SE DECIDE,
