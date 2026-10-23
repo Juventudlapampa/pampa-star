@@ -42,6 +42,12 @@
     final: "segundo tiempo", envion: "envión", caracter: "carácter",
     duelo: "mano a mano", keeper: "tu arquero"
   };
+  /* visto en pantalla el 22/oct: "más primer tiempo" y "más segundo tiempo"
+     no se entendían. Los dos tramos del partido se dicen con su frase */
+  var FRASE_DE_EFECTO = {
+    arranque: ["arrancás con todo", "arrancás frío"],
+    final: ["cerrás con todo", "cerrás sin piernas"]
+  };
   /* recuperacion es un multiplicador (1 = igual); el resto, un bonus */
   function signo(k, v) { return k === "recuperacion" ? v - 1 : v; }
   function efectosOrdenados(efecto) {
@@ -62,7 +68,9 @@
     var ks = efectosOrdenados(efecto);
     if (!ks.length) return "todo igual";
     return ks.slice(0, 2).map(function (k) {
-      return (signo(k, efecto[k]) > 0 ? "más " : "menos ") + PALABRA_DE_EFECTO[k];
+      var suma = signo(k, efecto[k]) > 0;
+      if (FRASE_DE_EFECTO[k]) return FRASE_DE_EFECTO[k][suma ? 0 : 1];
+      return (suma ? "más " : "menos ") + PALABRA_DE_EFECTO[k];
     }).join(", ");
   }
 

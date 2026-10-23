@@ -71,6 +71,12 @@ var DIBUJOS = (bloque.match(/^ {6}(\w+): \(\) =>/gm) || []).map(function (l) { r
   ok(D.iconoDeEfecto({ pase: 6, tiro: -3 }) === "pase", "el dibujito es el de lo que suma");
   ok(D.bajadaDeEfecto({ recuperacion: 1.5 }) === "más recuperación", "la recuperación es un multiplicador: 1,5 es más");
   ok(D.iconoDeEfecto({}) === "igual" && D.bajadaDeEfecto({}) === "todo igual", "la opción que no cambia nada lo dice");
+  /* visto en pantalla el 22/oct: decía "más primer tiempo" */
+  ok(D.bajadaDeEfecto({ arranque: 5 }) === "arrancás con todo" && D.bajadaDeEfecto({ final: -4 }) === "cerrás sin piernas",
+    "los tramos del partido se dicen con su frase (" + D.bajadaDeEfecto({ arranque: 5 }) + " / " + D.bajadaDeEfecto({ final: -4 }) + ")");
+  VIDA.eventos.forEach(function (e) {
+    e.opciones.forEach(function (o) { ok(!/(más|menos) (primer|segundo) tiempo/.test(D.bajadaDeEfecto(o.efecto)), "evento '" + e.id + "': la bajada no dice más o menos de un tiempo (" + D.bajadaDeEfecto(o.efecto) + ")"); });
+  });
   console.log("[2] opciones cortas con bajada y dibujito: " + VIDA.origen.length * 4 + " de la entrevista, " + VIDA.eventos.length * 2 + " de eventos");
 })();
 
