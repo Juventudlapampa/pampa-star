@@ -114,7 +114,9 @@
       var rem = (poseId === "remate" || poseId === "pared") && !flip && this.remateDe ? this.remateDe(j, esRival) : null;
       if (rem) k = rem.key;
       if (k) {
-        sp = this.add.image(x, y, k);
+        /* 23/oct, Rodri: con el número de quien juega (match.js, conSuNumero) */
+        sp = this.add.image(x, y, this.conSuNumero ? this.conSuNumero(k, j, poseId) : k);
+
         if (rem) sp._pelota = rem.pelota;
         /* A3: por alto_rel del manifiesto — las figuras acostadas (el arquero
            volando mide 1905x746) necesitan su propia fraccion o se salen de

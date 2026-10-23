@@ -281,5 +281,46 @@
     };
   }
 
-  return { DEF: DEF, medir: medir, quitar: quitar, muestra: muestra, aplica: aplica, borrarNumero: borrarNumero, cajaDeNumero: cajaDeNumero };
+  /* 23/oct, Rodri: el número de quien juega escrito sobre el que se borró.
+     Un dorsal de bloque, de trazos (en un dígito de 1 de ancho por 1 de
+     alto), dibujado como el original: num es poses.<id>.numero o el de la
+     identidad, medido sobre el dibujo (centro, alto y ancho del número,
+     inclinacion en grados, trazo en fracción del alto, linea su color).
+     Si el número nuevo es más ancho que el pintado (el 11 sobre el 8), se
+     achica hasta DORSAL.cabe veces el ancho del original. Devuelve los
+     trazos en píxeles del dibujo de W x H, ya girados y en su lugar */
+  var DIG = {
+    "0": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
+    "1": [[[0.15, 0.22], [0.6, 0], [0.6, 1]]],
+    "2": [[[0, 0.16], [0.18, 0], [0.82, 0], [1, 0.16], [1, 0.4], [0, 1], [1, 1]]],
+    "3": [[[0, 0], [1, 0], [1, 0.46], [0.3, 0.48]], [[1, 0.46], [1, 1], [0, 1]]],
+    "4": [[[0.75, 1], [0.75, 0], [0, 0.68], [1, 0.68]]],
+    "5": [[[1, 0], [0, 0], [0, 0.46], [1, 0.46], [1, 1], [0, 1]]],
+    "6": [[[1, 0], [0, 0], [0, 1], [1, 1], [1, 0.5], [0, 0.5]]],
+    "7": [[[0, 0], [1, 0], [0.35, 1]]],
+    "8": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]], [[0, 0.48], [1, 0.48]]],
+    "9": [[[1, 0.5], [0, 0.5], [0, 0], [1, 0], [1, 1], [0, 1]]]
+  };
+  var DORSAL = { prop: 0.5, espacio: 0.18, cabe: 1.7, borde: 0.045, borde_min: 2 };
+  function dorsal(texto, num, W, H) {
+    var D = DORSAL, t = String(texto).split("").filter(function (ch) { return DIG[ch]; });
+    var alto = num.alto * H, anchoU = t.length * D.prop + Math.max(0, t.length - 1) * D.espacio;
+    var k = Math.min(1, (num.ancho * W / alto) * D.cabe / Math.max(D.prop, anchoU));
+    var h = alto * k, grosor = num.trazo * h, ins = grosor / 2, w = D.prop * h;
+    var a = num.inclinacion * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), cx = num.centro[0] * W, cy = num.centro[1] * H;
+    var trazos = [];
+    t.forEach(function (ch, i) {
+      var x0 = (i * (D.prop + D.espacio) - anchoU / 2) * h;
+      DIG[ch].forEach(function (pl) {
+        trazos.push(pl.map(function (p) {
+          var lx = x0 + ins + p[0] * (w - 2 * ins), ly = -h / 2 + ins + p[1] * (h - 2 * ins);
+          return { x: cx + lx * ca - ly * sa, y: cy + lx * sa + ly * ca };
+        }));
+      });
+    });
+    return { trazos: trazos, grosor: grosor, borde: Math.max(D.borde_min, D.borde * h), linea: num.linea || "#0a1f13", alto: h };
+  }
+
+  return { DEF: DEF, medir: medir, quitar: quitar, muestra: muestra, aplica: aplica, borrarNumero: borrarNumero, cajaDeNumero: cajaDeNumero, dorsal: dorsal, DIG: DIG };
+
 });

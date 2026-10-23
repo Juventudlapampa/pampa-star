@@ -9,12 +9,15 @@
       "archivo": "jugador_rulos.png",
       "equipo": "mio",
       "dorsal": 7,
+      "numero": { "caja": [0.4178, 0.1952, 0.5604, 0.3274], "sin_tocar": [0.4178, 0.1952], "centro": [0.4945, 0.2602], "alto": 0.1527, "ancho": 0.0794, "inclinacion": 45.3, "trazo": 0.15, "linea": "#050f18", "_nota": "El 7 no da eje (la pata tuerce la mancha): la inclinación es la del 8 del colorado, que es el mismo cuerpo y la misma caja." },
+      "numero_izq": { "caja": [0.4381, 0.1952, 0.5619, 0.3262], "sin_tocar": [0.4381, 0.1952], "centro": [0.501, 0.2561], "alto": 0.1396, "ancho": 0.0753, "inclinacion": -45.3, "trazo": 0.161, "linea": "#11374a", "_nota": "El 7 no da eje (la pata tuerce la mancha): la inclinación es la del 9 del rapado, que es el mismo cuerpo y la misma caja." },
       "tonos": {
         "piel": "#e7a56a",
         "camiseta": "#52c1f5"
       },
       "izq": "jugador_rulos_izq.webp",
       "remate": {
+        "numero": { "caja": [0.5179, 0.2905, 0.5847, 0.3833], "sin_tocar": [0.5179, 0.2905], "centro": [0.5508, 0.3312], "alto": 0.0921, "ancho": 0.0752, "inclinacion": -7.4, "trazo": 0.202, "linea": "#002538", "_nota": "El 7: la inclinación sale del borde de arriba de su raya (el eje de la mancha lo tuerce la pata)." },
         "archivo": "jugador_rulos_remate.webp",
         "pelota": {
           "x": 0.844,
@@ -29,12 +32,15 @@
       "archivo": "jugador_largo.png",
       "equipo": "mio",
       "dorsal": 11,
+      "numero": { "caja": [0.4178, 0.2081, 0.5621, 0.3516], "sin_tocar": [0.4178, 0.2081], "centro": [0.4866, 0.277], "alto": 0.1393, "ancho": 0.0845, "inclinacion": 41.4, "trazo": 0.157, "linea": "#091923" },
+      "numero_izq": { "caja": [0.4431, 0.2119, 0.5792, 0.3524], "sin_tocar": [0.4431, 0.2119], "centro": [0.5113, 0.2811], "alto": 0.1322, "ancho": 0.0857, "inclinacion": -42.1, "trazo": 0.163, "linea": "#12445c" },
       "tonos": {
         "piel": "#f7c199",
         "camiseta": "#59bceb"
       },
       "izq": "jugador_largo_izq.webp",
       "remate": {
+        "numero": { "caja": [0.5596, 0.3286, 0.651, 0.3905], "sin_tocar": [0.5596, 0.3286], "centro": [0.6067, 0.3611], "alto": 0.0676, "ancho": 0.1054, "inclinacion": 32.0, "trazo": 0.163, "linea": "#205460" },
         "archivo": "jugador_largo_remate.webp",
         "pelota": {
           "x": 0.656,
@@ -49,12 +55,15 @@
       "archivo": "jugador_rapado.png",
       "equipo": "mio",
       "dorsal": 9,
+      "numero": { "caja": [0.4245, 0.2065, 0.552, 0.329], "sin_tocar": [0.4245, 0.2065], "centro": [0.4899, 0.2672], "alto": 0.1409, "ancho": 0.0686, "inclinacion": 43.8, "trazo": 0.181, "linea": "#051019" },
+      "numero_izq": { "caja": [0.448, 0.2095, 0.5693, 0.331], "sin_tocar": [0.448, 0.2095], "centro": [0.5097, 0.2661], "alto": 0.1365, "ancho": 0.0684, "inclinacion": -45.3, "trazo": 0.173, "linea": "#304c57" },
       "tonos": {
         "piel": "#7d4d31",
         "camiseta": "#57b9e8"
       },
       "izq": "jugador_rapado_izq.webp",
       "remate": {
+        "numero": { "caja": [0.4279, 0.1643, 0.5332, 0.2952], "sin_tocar": [0.4279, 0.1643], "centro": [0.4822, 0.2297], "alto": 0.1495, "ancho": 0.0628, "inclinacion": 35.3, "trazo": 0.157, "linea": "#17263e" },
         "archivo": "jugador_rapado_remate.webp",
         "pelota": {
           "x": 0.381,
@@ -69,11 +78,13 @@
       "archivo": "jugador_colorado.png",
       "equipo": "mio",
       "dorsal": 8,
+      "numero": { "caja": [0.4245, 0.2065, 0.552, 0.329], "sin_tocar": [0.4245, 0.2065], "centro": [0.4869, 0.2668], "alto": 0.1402, "ancho": 0.0675, "inclinacion": 45.3, "trazo": 0.183, "linea": "#1e1c1c" },
       "tonos": {
         "piel": "#f8ceb5",
         "camiseta": "#57b9e7"
       },
       "remate": {
+        "numero": { "caja": [0.4649, 0.2976, 0.5108, 0.3524], "sin_tocar": [0.4649, 0.2976], "centro": [0.4883, 0.3247], "alto": 0.0552, "ancho": 0.0394, "inclinacion": 15.4, "trazo": 0.182, "linea": "#395464" },
         "archivo": "jugador_colorado_remate.webp",
         "pelota": {
           "x": 0.774,
@@ -126,5 +137,6 @@
   "_alineacion": "Las seis se recortaron con una CAJA COMÚN, no una por una: por eso los pies caen en la misma línea (pisos medidos: 618-619 de 620, 1px de diferencia). Si se reemplaza una sola, hay que recortarla con la misma caja o se va a ver saltar.",
   "_arte": "TANDA DE ARTE (30/jul): llegaron con fondo magenta (chroma key); se procesaron offline a alpha real, recorte común y alto 620. 4 propios (camiseta celeste) + 2 rivales (naranja a rayas), como dicen los nombres de archivo.",
   "_izq": "Pedido de Rodri del 17/oct. 'izq': la misma ilustración espejada con el número redibujado al derecho, para cuando el panel la muestra mirando a la izquierda (match.js la usa sin flip). En webp y bajada a 404x420 (la de siempre mide 596x620; en el panel se ve a unos 210 px de alto). El colorado no tiene: el 8 espejado se lee igual.",
+  "_numero": "23/oct, Rodri: el dibujo trae pintado un número (el 8 del colorado) y lo lleva otro. numero, numero_izq y remate.numero: dónde está el pintado de cada dibujo, medido con Pillow sobre el archivo (lo blanco y opaco de la camiseta, en fracciones del dibujo): caja para borrarlo (logic/halo.js, borrarNumero), centro, alto y ancho del número sin girar, inclinacion en grados (el eje de la mancha), trazo (grosor en fracción del alto) y linea (el color de su borde). match.js, conSuNumero, borra el pintado en memoria y escribe el de quien juega (logic/halo.js, dorsal). El archivo no se toca. Las del rival quedan como están: la camiseta a rayas no se rellena bien.",
   "_remate": "22/oct, pedido de Rodri: cuando remata un compañero o un rival salía la ilustración del 10 o la de correr. 'remate': la pose de remate de cada identidad (su pelo, su cara, su número), un instante antes de pegarle, mirando a la derecha; la usan EL TOQUE, la escena del remate, el súper tiro (cut-in, carga y plano del pie), 'te rematan' y el pase (match.js remateDe). 'pelota' es dónde se recortó la del dibujo (x sobre el ancho; y y r sobre el alto): el juego dibuja la suya ahí. Arte de .claude/nuevos/arte/LEEME.txt (tercera y cuarta tanda: Gemini y ChatGPT); PNG de fuente en assets/_fuente/poses/ (hasta 1742x1801). En webp bajadas a 420 de alto (calidad 72, alfa 60): las seis pesan 92 KB y entran en el tope de 8 MB de w1_peso.test.js. El colorado es el de manga corta (R8 de Gemini, 23/oct, espejado por código; reemplaza al de manga larga). Sin 'remate', sigue como antes."
 }

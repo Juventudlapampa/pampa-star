@@ -1658,7 +1658,36 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const d = del.find(x => x.dorsal === j.numero) || del[window.PampaAvatar.hashSemilla(j.nombre || "x") % del.length];
     return this.textures.exists("ident_" + d.id) ? "ident_" + d.id : null;
   }
+  /* 23/oct, Rodri: la ilustración trae pintado un número (el 8 del colorado,
+     el 10 en la espalda de de_espaldas_sin_pelota) y la lleva otro. Devuelve
+     una copia en memoria con el pintado borrado y el número de quien juega
+     escrito encima (avatar_arte.js, renumerarImagen); el archivo no se toca.
+     Las medidas son las del manifiesto (identidades: numero, numero_izq,
+     remate.numero; poses: numero con alto). VOS con el 10 dibujado, y quien
+     lleva el número que ya está pintado, quedan con el original */
+  conSuNumero(k, j, poseId) {
+    const AA = window.PampaAvatarArte;
+    if (!k || !j || j.numero == null || !AA || !AA.renumerarImagen) return k;
+    let num = null, pintado = null;
+    if (k.indexOf("ident_") === 0) {
+      const base = k.replace(/_(izq|remate)$/, "");
+      const d = this._identMan && this._identMan.identidades.find(x => "ident_" + x.id === base);
+      if (!d) return k;
+      pintado = d.dorsal;
+      num = /_izq$/.test(k) ? d.numero_izq : /_remate$/.test(k) ? (d.remate && d.remate.numero) : d.numero;
+    } else if (poseId) {
+      const man = this.game.registry.get("poses"), P = man && man.poses && man.poses[poseId];
+      num = P && P.numero && P.numero.alto ? P.numero : null;
+      pintado = num && num.dibujado;
+    }
+    /* la copia naranja del rival ya viene sin número (pedidoRivalNaranja):
+       a esa se le escribe aunque sea el 10 */
+    if (!num || !num.alto || (pintado === j.numero && k.indexOf("poseR_") !== 0)) return k;
+
+    return AA.renumerarImagen(this, k, k + "_n" + j.numero, num, String(j.numero)) || k;
+  }
   /* 22/oct, Rodri: cuando remataba un compañero o un rival salía el 10 o la
+
      ilustración de correr. La pose de remate de SU identidad (la misma que
      elige identidadDe, con su número) y dónde va la pelota del juego en ese
      dibujo. VOS y los arqueros, null: siguen con sus poses. */

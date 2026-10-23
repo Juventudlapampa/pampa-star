@@ -164,7 +164,8 @@
        pelota, así que la del juego va al pie como en el panel. */
     jugadonFiguraPortador(yo, poseId) {
       var ki = yo && !yo.esVos && this.identidadDe ? this.identidadDe(yo, false) : null;
-      if (ki) return { key: ki, pelota: { x: 0.84, y: 0.97, r: 0.04 } };
+      if (ki) return { key: this.conSuNumero ? this.conSuNumero(ki, yo) : ki, pelota: { x: 0.84, y: 0.97, r: 0.04 } };
+
       var pm = this.game.registry.get("poses"), def = pm && pm.poses && pm.poses[poseId];
       return { key: (this.poseHeroeTenida && this.poseHeroeTenida(yo, poseId)) || this.poseKey(poseId), pelota: def && def.pelota };
     },

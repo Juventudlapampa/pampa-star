@@ -496,7 +496,34 @@ window.PampaAvatarArte = (function () {
     Hl.borrarNumero(img.data, img.width, img.height, Hl.cajaDeNumero(numero, W, H, x0, y0));
     ctx.putImageData(img, x0, y0);
   }
+  /* 23/oct, Rodri: la ilustración trae pintado el número de otro (el 8 del
+     colorado, el 10 en la espalda). Copia en memoria, el archivo no se toca:
+     se borra el pintado (borrarNumero, la caja del manifiesto) y se escribe
+     el de quien juega con los trazos de logic/halo.js (dorsal), girado y del
+     alto del original, blanco con su línea */
+  function renumerarImagen(scene, srcKey, dstKey, numero, texto) {
+    if (scene.textures.exists(dstKey)) return dstKey;
+    if (!scene.textures.exists(srcKey)) return null;
+    if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(srcKey);
+    var src = scene.textures.get(srcKey).getSourceImage(), W = src.width, H = src.height;
+    var cv = scene.textures.createCanvas(dstKey, W, H), c = cv.getContext();
+    c.drawImage(src, 0, 0);
+    borrarNumeroEnCanvas(c, W, H, numero);
+    var D = window.PampaHalo.dorsal(texto, numero, W, H);
+    c.lineJoin = "round"; c.lineCap = "round";
+    [[D.linea, D.grosor + 2 * D.borde], ["#ffffff", D.grosor]].forEach(function (capa) {
+      c.strokeStyle = capa[0]; c.lineWidth = capa[1];
+      D.trazos.forEach(function (pl) {
+        c.beginPath(); c.moveTo(pl[0].x, pl[0].y);
+        for (var i = 1; i < pl.length; i++) c.lineTo(pl[i].x, pl[i].y);
+        c.stroke();
+      });
+    });
+    cv.refresh();
+    return dstKey;
+  }
   function tenirImagen(scene, srcKey, dstKey, mapa, numero) {
+
     if (scene.textures.exists(dstKey)) return dstKey;
     if (!scene.textures.exists(srcKey)) return null;
     /* V10: la fuente, sin el anillo violeta del recorte (logic/halo.js) */
@@ -651,7 +678,7 @@ window.PampaAvatarArte = (function () {
     return scene.textures.exists(P.clave) ? P.clave : null;
   }
 
-  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, KITS: KITS, bake: bake,
+  return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, renumerarImagen: renumerarImagen, KITS: KITS, bake: bake,
     claveTenida: claveTenida, mapaDeTinte: mapaDeTinte, pedidoDeTinte: pedidoDeTinte, poseTenida: poseTenida,
     reglasDeTinte: reglasDeTinte, tenirFilas: tenirFilas, trabajoDeTinte: trabajoDeTinte, trabajoDeTinteImagen: trabajoDeTinteImagen };
 })();
