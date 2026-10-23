@@ -677,7 +677,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const MAPA = {
         /* 23/oct · "atajada" del relator es la del arquero de ellos (tu
            remate): la tribuna tiene la suya; arquero_mio es la del nuestro */
-        gol: "gol", gol_rival: "gol_rival", atajada: "atajada_rival", arquero_mio: "atajada",
+        /* 23/oct, Rodri: el gol de un compañero lo comentan nombrándolo */
+        gol: (this.st && this.st.mios[this.st.goleador] && !this.st.mios[this.st.goleador].esVos) ? "gol_companero" : "gol",
+        gol_rival: "gol_rival", atajada: "atajada_rival", arquero_mio: "atajada",
         quite_win: "quite", corte: "quite", gambeta_lose: "error", afuera: "error",
         final: (this.st && this.st.golesMio > this.st.golesRival) ? "resultado_gana"
           : (this.st && this.st.golesMio < this.st.golesRival) ? "resultado_pierde" : "resultado_empate",
@@ -689,7 +691,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (!this.REL) return;
     const c = Object.assign({ rival: this.nombreRival, pueblo: this._puebloMio || "La Pampa" }, ctx || {});
-    if (!c.jugador) { const j = this.st && this.st.mios[this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "la figura"; }
+    /* el gol ya se anotó y el saque del medio movió st.ctrl: lo nombra quien la metió */
+    if (!c.jugador) { const j = this.st && this.st.mios[situacion === "gol" ? this.st.goleador : this.st.ctrl]; c.jugador = j ? (j.esVos ? "VOS" : j.nombre) : "la figura"; }
     if (!this.tickerTxt) return;
     /* 20/oct · el remate que dio en el palo tiene sus propias frases */
     const sit = situacion === "afuera" && c.palo ? "palo" : situacion;
@@ -1590,6 +1593,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        10 del flequillo); sin ella, la pose sin número (pedidoRivalNaranja) */
     if (d && esRival && d.dorsal !== j.numero) return null;
     return d && d.remate && this.textures.exists(k + "_remate") ? { key: k + "_remate", pelota: d.remate.pelota } : null;
+  }
+  /* 23/oct, Rodri: el gol de un compañero se festejaba con tu ilustración.
+     No hay festejo dibujado por identidad: festeja SU identidad (su pelo, su
+     cara), y el cartel dice su nombre y su número. VOS y los arqueros, null:
+     siguen con sus poses. */
+  festejoDe(j) {
+    if (!j || j.esVos || j.pos === "ARQ") return null;
+    return this.identidadDe(j, false);
   }
   /* TANDA DE ARTE A3 · EL CICLO DE CORRIDA. Si el manifest declara "ciclo"
      para la pose de correr, el panel alterna sus cuadros mientras el portador
@@ -3405,8 +3416,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         siluetas: enCamino,
         gana: gol,
         poseFinalProta: gol ? "festejo" : undefined,
-        titulo: gol ? "¡GOOOL DE " + NOM[id] + "!" : d.titulo,
-        sub: gol ? (id === "chilena" ? "el momento más épico del potrero · " + fb : fb) : d.sub + " · " + fb,
+        titulo: gol ? (tirador.esVos ? "¡GOOOL DE " + NOM[id] + "!" : "¡" + NOM[id] + " DE " + String(tirador.nombre).toUpperCase() + "!") : d.titulo,
+        sub: gol ? (tirador.esVos ? "" : "el " + tirador.numero + " · ") + (id === "chilena" ? "el momento más épico del potrero · " + fb : fb) : d.sub + " · " + fb,
         color: d.color,
         /* el contacto en la revelación; lo que pasó, un instante después */
         sfx: "kick", alRevelar: () => d.sentir(),
@@ -3986,7 +3997,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (RR) { RR.revelar(); return; }
         this.uiCam.flash(EP.flash_ms, 255, 255, 210);
         this.burst(ball.x, ball.y);
-        this.punch(this._megaGrito || "¡GOOOL!", this.subDelGol(), 0xffd84d);
+        this.punch(this._megaGrito || this.tituloDelGol(), this.subDelGol(), 0xffd84d);
         /* V9: la fiesta completa (tribuna + efecto + saque relatado). Acá
            decidir y ver son el mismo instante: anota y festeja junto. La red
            y la fanfarria son SUYAS. La escena se queda abierta hasta ver la
@@ -4179,18 +4190,25 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      momento, como siempre. */
   /* segunda revisión del 22/oct: el gol de un compañero (MATEO en EL TOQUE)
      decía "¡La clavaste...!": lleva su nombre */
+  /* 23/oct, Rodri: el festejo del gol de un compañero salía como tuyo. Su
+     nombre va en el título del cartel y su número en el sub. Los dos se
+     leen ANTES de anotar: el saque del medio cambia st.ctrl. */
   subDelGol() {
     const j = this.st.mios[this.st.ctrl];
-    return j && !j.esVos ? "¡" + String(j.nombre || "").toUpperCase() + " la clavó donde el viento no la saca!" : "¡La clavaste donde el viento no la saca!";
+    return j && !j.esVos ? "¡El " + j.numero + " la clavó donde el viento no la saca!" : "¡La clavaste donde el viento no la saca!";
+  }
+  tituloDelGol() {
+    const j = this.st.mios[this.st.ctrl];
+    return j && !j.esVos ? "¡GOOOL DE " + String(j.nombre || "").toUpperCase() + "!" : "¡GOOOL!";
   }
   desenlaceRemate(res, opts) {
     const st = this.st, P = window.PampaPartido;
     opts = opts || {};
     let d;
     if (res.outcome === "gol") {
-      const sub = this.subDelGol();
+      const sub = this.subDelGol(), titulo = this.tituloDelGol();
       this.anotarGolPropio();
-      d = { titulo: "¡GOOOL!", sub: sub, color: 0xffd84d, gana: true };
+      d = { titulo: titulo, sub: sub, color: 0xffd84d, gana: true };
     } else if (res.outcome === "corner") {
       const c = P.cornerMio(st);
       /* opts.sinContacto: en EL TOQUE nadie la tocó (toque_ui.js, toqueSinRemate) */
@@ -4377,7 +4395,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         gana: gol,
         poseFinalProta: gol ? "festejo" : "tiro",
         titulo: gol && mega ? mega.grito : d.titulo,
-        sub: gol ? fb : d.sub + " · " + fb,
+        sub: gol ? (tirador.esVos ? "" : "el " + tirador.numero + " · ") + fb : d.sub + " · " + fb,
         color: d.color,
         /* el contacto en la revelación, y lo que pasó un instante después:
            antes la patada sonaba al decidir (cuadro 0, sin escena) y el
@@ -4610,6 +4628,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       return this.figuraArquero(anim === "atajada" || anim === "despeje" ? "ataja" : "vuela",
         "texturaEscena(" + (esRival ? "arquero rival" : "tu arquero") + ")");
     }
+    const kFest = !esRival && anim === "festejo" ? this.festejoDe(j) : null;
+    if (kFest) return kFest;
     /* la acción de la escena → id de pose del manifest, la misma tabla que usa
        poseParaEscena para que no haya dos criterios distintos */
     const id = this.poseParaEscena({ j: j, esRival: esRival, anim: anim }, anim);
@@ -4943,8 +4963,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (sp.active && sp._esPose) {
         /* la pose final ilustrada (festejo / arquero que atajó), si existe */
         const finId = this.poseParaEscena(cfg.prota, cfg.poseFinalProta || cfg.prota.anim);
-        if (finId && this.poseKey(finId) && finId !== poseId && !cfg.pose) {
-          sp.setTexture(this.poseKey(finId));
+        const kFin = (finId === "festejo" && !cfg.prota.esRival && this.festejoDe(cfg.prota.j)) || (finId && this.poseKey(finId));
+        if (kFin && finId !== poseId && !cfg.pose) {
+          sp.setTexture(kFin);
           sp.setScale(360 / sp.height);
         }
         /* pelota naranja de arquero_ataja_v2: la del juego encima (aviso de arte) */

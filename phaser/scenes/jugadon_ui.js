@@ -538,7 +538,7 @@
           hastaExplosion = self.festejarGolPropio() || 0;
           /* REINTEGRACIÓN: el gol del jugadón con el pulido cinematográfico —
              festejo ilustrado + explosión + LA HINCHADA SALTANDO + relator */
-          var kF = self.poseKey && self.poseKey("festejo");
+          var kF = self.festejoDe(self.st.mios[self.st.goleador]) || self.poseKey("festejo");
           if (kF) { var sf = self.add.image(W * 0.78, 280, kF); sf.setScale(190 / sf.height); sf.setAlpha(0); self.cineContent.add(sf); self.tweens.add({ targets: sf, alpha: 1, y: 260, duration: 260, ease: "Back.easeOut" }); }
           self.burst && self.burst(W / 2, 250);
           /* la tribuna salta con la explosión del festejo, no acá */

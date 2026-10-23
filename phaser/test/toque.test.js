@@ -193,11 +193,15 @@ assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", 
   E.timers.forEach(function (t) { t.fn(); });
   s.toqueDibujar(0.016);
   assert(tq.prota.angle === 10, "SÍNTOMA: el golpe de MATEO termina echado atrás y no en la pose del golpe (" + tq.prota.angle + "°)");
-  /* el gol */
+  /* el gol. 23/oct, pedido de Rodri (el festejo del compañero salía como
+     tuyo): su nombre pasa al título del cartel y en el sub va su número */
+  mateo.numero = 7;
   s.st.mios = [mateo, vos];
   s.st.ctrl = 0;
-  assert(s.subDelGol() === "¡MATEO la clavó donde el viento no la saca!", "SÍNTOMA: el gol de MATEO dice '¡La clavaste...!' (" + s.subDelGol() + ")");
+  assert(s.tituloDelGol() === "¡GOOOL DE MATEO!", "SÍNTOMA: el cartel del gol de MATEO no lo nombra (" + s.tituloDelGol() + ")");
+  assert(s.subDelGol() === "¡El 7 la clavó donde el viento no la saca!", "SÍNTOMA: el gol de MATEO dice '¡La clavaste...!' (" + s.subDelGol() + ")");
   s.st.ctrl = 1;
+  assert(s.tituloDelGol() === "¡GOOOL!", "el tuyo, el grito de siempre (" + s.tituloDelGol() + ")");
   assert(s.subDelGol() === "¡La clavaste donde el viento no la saca!", "y el tuyo te habla a vos");
 })();
 

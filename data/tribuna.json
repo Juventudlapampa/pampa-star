@@ -65,6 +65,27 @@
       ]
     },
     {
+      "evento": "gol_companero",
+      "intercambios": [
+        {
+          "a": "Lo hizo {goleador}. Esa la venía pidiendo.",
+          "b": "¡{goleador}! Te dije que ese tenía gol, Nelda."
+        },
+        {
+          "a": "{goleador} la pidió y la tuvo. Así se juega.",
+          "b": "¡Qué bárbaro, {goleador}! Le pago el café a la salida."
+        },
+        {
+          "a": "Bien, {goleador}. Que no festeje mucho, que sigue.",
+          "b": "Dejalo, Nelda. Hoy a {goleador} no lo para nadie."
+        },
+        {
+          "a": "La mandó {goleador}, el que nadie miraba.",
+          "b": "Yo sí lo miraba. Un poco, entre mate y mate."
+        }
+      ]
+    },
+    {
       "evento": "gol_rival",
       "intercambios": [
         {
@@ -477,5 +498,5 @@
     }
   ],
   "_revision": "Revisado adversarialmente contra data/relatos.json: cinco lineas chocaban casi textualmente con las del RELATOR (son dos voces distintas y no pueden decir lo mismo), y habia repeticiones internas — el Tuli hablaba de gritar en cuatro de sus seis lineas del gol, y dos intercambios de atajada eran el mismo. Ninguna linea pasa los 60 caracteres. · A1 (19/ago): Nelda y el Tuli ya no usan retratos prestados del banco de futbolistas — tienen el suyo.",
-  "_si": "23/oct · LA TRIBUNA MIRA EL MARCADOR. Un intercambio puede traer \"si\" y solo sale cuando vale en ese momento (el marcador ya cuenta el gol que se comenta). Claves: va (ganando, empatando o perdiendo; uno o una lista), por (la diferencia de goles exacta), hicimos y nos_hicieron (true: al menos un gol; false: ninguno), antes_del (minuto) y jugada (las situaciones del relator que lo disparan: afuera, gambeta_lose...). Sin \"si\", vale siempre. Cada evento tiene que tener siempre al menos dos que valgan (lo vigila phaser/test/tribuna_marcador.test.js)."
+  "_si": "23/oct · LA TRIBUNA MIRA EL MARCADOR. Un intercambio puede traer \"si\" y solo sale cuando vale en ese momento (el marcador ya cuenta el gol que se comenta). Claves: va (ganando, empatando o perdiendo; uno o una lista), por (la diferencia de goles exacta), hicimos y nos_hicieron (true: al menos un gol; false: ninguno), antes_del (minuto) y jugada (las situaciones del relator que lo disparan: afuera, gambeta_lose...). Sin \"si\", vale siempre. gol_companero (23/oct, pedido de Rodri): el gol de un compañero lo comentan nombrándolo; {goleador} es su nombre (st.goleador) y lo elige relatar() en match.js. Cada evento tiene que tener siempre al menos dos que valgan (lo vigila phaser/test/tribuna_marcador.test.js)."
 }

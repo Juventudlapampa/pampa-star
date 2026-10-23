@@ -1031,6 +1031,10 @@
     st.golesMio++;
     var j = quien || st.mios[st.ctrl];
     if (j && j.esVos) st.hiceGol = true;
+    /* 23/oct, Rodri: el gol de un compañero se festejaba como tuyo. El
+       saque del medio cambia st.ctrl antes de que la escena festeje, así
+       que quién la metió se guarda acá (índice en st.mios). */
+    st.goleador = st.mios.indexOf(j);
     kickoff(st, "rival");
   }
   /* ══════════════════════════════════════════════════════════════════════

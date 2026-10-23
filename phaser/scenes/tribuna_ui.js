@@ -117,8 +117,11 @@
       t.ultimo[evento] = i;
       var inter = bloque.intercambios[i];
       var P = t.data.personajes;
-      pintar(sc, t, 0, P[0], inter.a);
-      pintar(sc, t, 1, P[1], inter.b);
+      /* 23/oct, Rodri: gol_companero nombra al que la metió */
+      var g = sc.st && sc.st.mios && sc.st.mios[sc.st.goleador];
+      var nombre = g ? g.nombre : "";
+      pintar(sc, t, 0, P[0], inter.a.replace(/\{goleador\}/g, nombre));
+      pintar(sc, t, 1, P[1], inter.b.replace(/\{goleador\}/g, nombre));
       if (!this.esquivar(sc)) return false;
       t.cont.setAlpha(1);
       if (t._irse) t._irse.remove();

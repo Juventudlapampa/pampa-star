@@ -334,7 +334,7 @@
 
          B4 (segunda acción): la tribuna no salta en el mismo cuadro que el
          efecto de cámara, entra unos milisegundos después. */
-      var j = st.mios[st.ctrl];
+      var j = st.mios[st.goleador];
       var sil = (this.texturaEscena && j) ? this.texturaEscena(j, false, "festejo", 0) : null;
       /* LA SILUETA DEL CUADRO DE IMPACTO ENTRA ENTERA. La escala 2,4 era del
          muñequito de 34x50: con la ilustración del festejo (853 px de alto)
