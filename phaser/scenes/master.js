@@ -1404,7 +1404,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* Sección 11: el nombre del club ES el apodo (antes: "Club " + localidad
        arriba y el apodo entre comillas abajo). Abajo va la localidad. */
     capa.add(this.add.text(fx + medioF, fichaY + 44, this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
-    capa.add(this.add.text(fx + medioF, fichaY + 82, "de " + sel, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    /* si el nombre ya trae la localidad ("El Bagual de Winifreda"), abajo no se repite */
+    if (this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")).indexOf(sel) < 0) capa.add(this.add.text(fx + medioF, fichaY + 82, "de " + sel, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
     capa.add(this.add.text(fx + medioF, fichaY + 112, "arranca en " + divN, { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5));
     const zN = (M.ZONAS[info.zona] || {}).n || "—";
     capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5));
@@ -2055,7 +2056,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
          que te sirve mirar mientras decidis si sacar una y poner otra.
          Ahora: el motivo se dice UNA vez, arriba del grupo (ver el titulo de la
          lista), y la tarjeta sigue mostrando SU efecto. */
-      const tE = this.add.text(cx, cy + altoO / 2 - 2, sinEnergia ? "sin energía para esto" : this.textoEfecto(o),
+      const tE = this.add.text(cx, cy + altoO / 2 - 2, sinEnergia ? "sin energía para esto" : this.textoEfecto(o, sem.energia),
         { fontFamily: window.PF.texto, fontSize: "13px", lineSpacing: -4,
           color: sinEnergia ? "#8a3226" : (alcanza ? "#365a41" : "#5a6b60"),
           fontStyle: sinEnergia ? "italic" : "normal", align: "center", wordWrap: { width: anchoO - 10 } }).setOrigin(0.5, 1);
@@ -2409,11 +2410,18 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.atajo("ENTER", cerrar);
     this.atajo("SPACE", cerrar);
   }
-  /* el texto del efecto, en números claros (nunca solo color) */
-  textoEfecto(o) {
+  /* el texto del efecto, en números claros (nunca solo color). Con la
+     energía de ahora, lo que se recupera se dice como queda: DESCANSAR con
+     75 sube 25, no 30, porque el medidor no pasa del tope */
+  textoEfecto(o, energia) {
     const t = [];
     if (o.energia_costo) t.push("−" + o.energia_costo + " energía");
-    if (o.energia_recupera) t.push("+" + o.energia_recupera + " energía");
+    if (o.energia_recupera) {
+      const tope = this.game.registry.get("balance").semana.energia_max;
+      const sube = energia == null ? o.energia_recupera
+        : Math.min(o.energia_recupera, Math.max(0, tope - energia + (o.energia_costo || 0)));
+      t.push("+" + sube + " energía" + (sube < o.energia_recupera ? " (tope " + tope + ")" : ""));
+    }
     if (o.animo) t.push((o.animo > 0 ? "+" : "") + o.animo + " ánimo");
     /* revisión final del 23/oct: ENTRENAR AGUANTE decía "+2 resistencia"; es
        la misma cualidad (logic/semana.js techoDeAguante) y se dice como en la tarjeta */
