@@ -66,7 +66,9 @@ function armar(opts) {
   var ctx = { window: window, localStorage: localStorage, navigator: navegador, console: console, Math: Math, JSON: JSON,
     Object: Object, Array: Array, String: String, Number: Number, Date: Date, Promise: Promise, require: require,
     parseInt: parseInt, isFinite: isFinite, Error: Error, TypeError: TypeError,
-    Phaser: { Scene: function () { } } };
+    /* Geom.Rectangle: la zona táctil más grande que el dibujo (revisión final del 23/oct) */
+    Phaser: { Scene: function () { }, Geom: { Rectangle: Object.assign(function (x, y, w, h) { this.x = x; this.y = y; this.width = w; this.height = h; },
+      { Contains: function (r, x, y) { return x >= r.x && y >= r.y && x <= r.x + r.width && y <= r.y + r.height; } }) } } };
   ctx.self = ctx; ctx.document = undefined;
   vm.createContext(ctx);
   var LOGICA = ["phaser/logic/temporada.js", "phaser/logic/master.js", "phaser/logic/semana.js",

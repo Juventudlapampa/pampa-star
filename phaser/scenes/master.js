@@ -2317,9 +2317,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (window.PampaSemanaUI) window.PampaSemanaUI.escenario(this, PX, PY, PW, PH, op ? op.lugar : "vacio");
     this.add.rectangle(PX, PY, PW, PH, op ? 0x2e7d32 : 0x0a1f13, op ? 0.24 : 0.44).setStrokeStyle(3, op ? 0x7ee08a : 0x555f57, 0.9);
     if (op) this.figuraDeAccion(op, PX - PW / 2 + 72, PY + 34, 66, { x: PX - PW / 2 + 2, y: PY - 40, w: 140, h: 80 });
-    this.add.rectangle(PX + 72, PY, PW - 168, PH - 14, 0x0a1f13, 0.86);
-    this.add.text(PX + 72, PY - 18, op ? "ESTA FECHA, EN LA CANCHA VAS A TENER" : "TODAVÍA NO ELEGISTE · así llegás", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(PX + 72, PY + 10, S.renglonesDeLaCancha(lc).join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", align: "center", wordWrap: { width: PW - 190 } }).setOrigin(0.5);
+    /* revisión final del 23/oct: sin elegir no hay pose, y la franja quedaba
+       corrida con la mitad izquierda vacía. Sin pose va al medio y a lo ancho */
+    const fx = op ? PX + 72 : PX, fw = op ? PW - 168 : PW - 28;
+    this.add.rectangle(fx, PY, fw, PH - 14, 0x0a1f13, 0.86);
+    this.add.text(fx, PY - 18, op ? "ESTA FECHA, EN LA CANCHA VAS A TENER" : "TODAVÍA NO ELEGISTE · así llegás", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(fx, PY + 10, S.renglonesDeLaCancha(lc).join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", align: "center", wordWrap: { width: fw - 22 } }).setOrigin(0.5);
     if (op) this.add.text(W / 2, 246, "Esta semana " + op.repaso + ".", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
     const touch = this.sys.game.device.input.touch;
     this.add.text(W / 2, 282, el ? "ELEGISTE " + op.n + " · la podés cambiar" : "¿QUÉ HACÉS ESTA SEMANA? · una sola cosa" + (touch ? "" : " (teclas 1 a 6)"),
@@ -2329,8 +2332,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const yC = Math.round(window.PampaPiel.yDeOpcion(0, 2, altoC, piel));
     const TECLAS = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX"];
     const foco = [];
-    const tocar = (obj, cb) => {
-      obj.setInteractive({ useHandCursor: true }).on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); cb(); });
+    /* area: la zona táctil, si el dibujo es más chico que el piso de un dedo */
+    const tocar = (obj, cb, area) => {
+      obj.setInteractive(area ? { hitArea: area, hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true } : { useHandCursor: true })
+        .on("pointerdown", (pp, xx, yy, e2) => { e2 && e2.stopPropagation && e2.stopPropagation(); cb(); });
       this.atajo(TECLAS[foco.length], cb);
       foco.push({ obj: obj, cb: cb });
     };
@@ -2339,15 +2344,23 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const elegida = !!el && el.id === c.id;
       /* la elegida se dice con palabra (✓) y con borde grueso, no solo con color */
       const r = this.add.rectangle(cx, yC, anchoC, altoC, 0xf6efdc, 0.97).setStrokeStyle(elegida ? 6 : 3, 0x0a1f13, 1);
+      /* revisión final del 23/oct: en la PC decía "teclas 1 a 6" sin decir cuál
+         era cuál. Cada tarjeta lleva su número (ENTRENAR, los de sus botones) */
+      if (!touch && c.id !== "entrenar") this.add.text(cx - anchoC / 2 + 8, top + 6, String(foco.length + 1), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 4, y: 2 } });
       this.add.text(cx, top + 6, (elegida ? "✓ " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 10 } }).setOrigin(0.5, 0);
       this.add.text(cx, top + 28, c.efecto, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41", align: "center", lineSpacing: -2, wordWrap: { width: anchoC - 14 } }).setOrigin(0.5, 0);
       this.add.text(cx, top + altoC - 6, "esta fecha: " + this.textoDeLaFecha(c.id, elegida ? el.que : null), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 12 } }).setOrigin(0.5, 1);
       if (c.id !== "entrenar") { tocar(r, () => this.ponerCuatro(c.id, null)); return; }
       S.ENTRENABLES.forEach((k, q) => {
-        const sel = elegida && el.que === k, bx = cx + (q - 1) * 72, by = top + 90;
-        const b = this.add.rectangle(bx, by, 66, 34, sel ? 0x0a1f13 : 0xffffff, 1).setStrokeStyle(sel ? 4 : 2, 0x0a1f13, 1);
-        this.add.text(bx, by, k.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: sel ? "#f6efdc" : "#0a1f13" }).setOrigin(0.5);
-        tocar(b, () => this.ponerCuatro("entrenar", k));
+        /* revisión final del 23/oct: medían 46x23 px reales en el teléfono. El
+           dibujo crece y la zona táctil llega al piso de un dedo (piel.tap_min
+           de alto, a 740x360 son 44 px reales) */
+        const sel = elegida && el.que === k, bx = cx + (q - 1) * 72, by = top + 90, bw = 70, bh = 46;
+        const b = this.add.rectangle(bx, by, bw, bh, sel ? 0x0a1f13 : 0xffffff, 1).setStrokeStyle(sel ? 4 : 2, 0x0a1f13, 1);
+        if (!touch) this.add.text(bx, by - 11, String(foco.length + 1), { fontFamily: window.PF.display, fontSize: "13px", color: sel ? "#ffd84d" : "#365a41" }).setOrigin(0.5);
+        this.add.text(bx, touch ? by : by + 9, k.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: sel ? "#f6efdc" : "#0a1f13" }).setOrigin(0.5);
+        const zt = Math.max(bh, (piel.tap_min || 61) + 6);
+        tocar(b, () => this.ponerCuatro("entrenar", k), new Phaser.Geom.Rectangle(-1, (bh - zt) / 2, bw + 2, zt));
       });
     });
     const yJugar = Math.round(window.PampaPiel.yDeOpcion(2, 3, 64, piel));
