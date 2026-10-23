@@ -50,7 +50,7 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
   alAtras(d) {
     if (d !== "volver" || this._vista !== "opciones") return false;
     const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
-    this.vistaMenu();
+    this.vistaMenu("opciones");
     return true;
   }
 
@@ -73,7 +73,8 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
   }
 
   /* ============ EL TÍTULO ============ */
-  vistaMenu() {
+  /* foco: "opciones" al volver de OPCIONES, para que el cursor quede donde estaba */
+  vistaMenu(foco) {
     this._vista = "menu";
     this.vaciar();
     const W = this.scale.width, H = this.scale.height;
@@ -101,13 +102,17 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
       r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
       return { obj: r, caja: { x: x - w / 2, y: y - h / 2, w: w, h: h }, cb: o.cb };
     });
-    if (this.grupoFoco) this.grupoFoco(items, { inicial: 0 });
-
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } });
     if (this.pisoTactil) this.pisoTactil(vi);
     if (!vi.input) vi.setInteractive({ useHandCursor: true });
-    vi.on("pointerdown", () => { this.game.registry.set("introPedida", true); this.irA("intro"); });
-    if (this.botonPantalla) this.botonPantalla(Math.ceil(vi.x + vi.width) + 8, 22, { largo: true, desdeArriba: true, desdeIzquierda: true });
+    const verIntro = () => { this.game.registry.set("introPedida", true); this.irA("intro"); };
+    vi.on("pointerdown", verIntro);
+    const pant = this.botonPantalla ? this.botonPantalla(Math.ceil(vi.x + vi.width) + 8, 22, { largo: true, desdeArriba: true, desdeIzquierda: true }) : null;
+    /* revisión final del 23/oct: VER INTRO y PANTALLA COMPLETA no estaban en
+       el cursor y con teclado no se llegaba; desde JUGAR CARRERA, ◀ o ▲ */
+    items.push({ obj: vi, cb: verIntro });
+    if (pant) items.push({ obj: pant.zona, cb: () => this.alternarPantallaCompleta() });
+    if (this.grupoFoco) this.grupoFoco(items, { inicial: foco === "opciones" ? OPS.findIndex(o => o.t === "OPCIONES") : 0 });
     if (this.input.keyboard && !this.sys.game.device.input.touch) {
       this.add.text(14, H - 10, "flechas y ENTER para elegir", { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0, 1);
     }
@@ -248,7 +253,7 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     const yv = H - 32, wv = 240;
     const bv = this.add.rectangle(30 + wv / 2, yv, wv, 52, 0xf6efdc, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
     this.add.text(30 + wv / 2, yv, "◀ VOLVER", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
-    const volver = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("volver"); this._aviso = ""; this._fila = 0; this.vistaMenu(); };
+    const volver = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("volver"); this._aviso = ""; this._fila = 0; this.vistaMenu("opciones"); };
     bv.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); volver(); });
     items.push({ obj: bv, caja: { x: 30, y: yv - 26, w: wv, h: 52 }, cb: volver });
     if (this._aviso) {
