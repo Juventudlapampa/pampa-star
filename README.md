@@ -1,4 +1,4 @@
-# ⚽ PAMPA STAR
+# PAMPA STAR
 
 **Fútbol pampeano jugada por jugada.** Armás tu pinta, elegís tu localidad y
 jugás tu carrera del potrero al Mundial. Un juego de la **Subsecretaría de
@@ -20,8 +20,8 @@ grande ▶ JUGAR). El juego en sí vive en `phaser/`.
 - **En la compu:** con el mouse o con el teclado (flechas, Enter y espacio).
 - **La carrera queda guardada en el navegador** donde se juega. No hay
   cuentas y el juego no mide visitas ni junta datos. Para seguirla en otro
-  aparato está el **código de carrera** (💾 CÓDIGO DE CARRERA para llevarla,
-  📋 PEGAR UN CÓDIGO para traerla).
+  aparato está el **código de carrera** (CÓDIGO DE CARRERA para llevarla,
+  PEGAR UN CÓDIGO para traerla).
 - **Para medios y sitios que quieran sumarlo** a una nota:
   [`docs/PARA_MEDIOS.md`](docs/PARA_MEDIOS.md) (el link, el código del
   iframe y un texto corto para acompañar).
@@ -42,8 +42,9 @@ celular: un link que anda en cualquier teléfono, sin descarga y sin trámite.
   frena en cada momento clave y elegís qué hacer. Con la pelota: gambeta,
   pase, pared o tiro. Defendiendo: quite, corte o bloqueo. Arriba se ve la
   escena ilustrada y abajo el mapa de la cancha; cada acción gasta aguante.
-- **La definición.** El mano a mano con el arquero, con las zonas del arco
-  marcadas con su nombre, y el freeze en silencio antes de saber qué pasó.
+- **EL TOQUE.** Adentro del área, el remate se juega: la pelota viene con
+  su curva, movés a quien patea para quedar bien parado y le pegás en el
+  momento justo, con el mouse, el dedo o el teclado.
 - **El arte.** Poses ilustradas a mano que cortan a pantalla completa en
   cada jugada grande (la pose queda quieta y se mueve todo lo demás), con
   música y sonido que siguen lo que pasa en la cancha.

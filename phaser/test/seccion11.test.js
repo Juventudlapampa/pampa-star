@@ -243,6 +243,35 @@ Object.values(div.divisiones).forEach(d => d.rivales.forEach(r => {
   CLUBES_PROF.forEach(c => assert(r.toLowerCase() !== c && !r.toLowerCase().startsWith(c), "§11 club profesional real en divisiones.json: " + r));
 }));
 const roster = JSON.parse(fs.readFileSync(path.join(RAIZ, "data", "roster_pampeano.json"), "utf8"));
+
+/* ---------- 4b) EL PATRÓN DE LOS CLUBES PAMPEANOS (ola 3, L12) ----------
+   La lista exacta de 1b llega tarde: "Sportivo General Acha" y "Unión de
+   Realicó" no estaban en ella y cruzaban los clubes reales de esas dos
+   localidades, y "Quemú Unido" sonaba al de Quemú Quemú. El club de una liga
+   pampeana se arma casi siempre igual: Sportivo, Unión, Atlético, Deportivo,
+   Juventud o Ferro pegado a una localidad real, o la localidad con Unido,
+   Juniors o FC atrás. Un nombre ficticio va con algo del lugar (Surco Hondo,
+   Sal y Cal de Macachín), no con ese molde. Las localidades salen del roster
+   y de esta lista, que son públicas. */
+const LOCALIDADES = Object.keys(roster.clubes_por_pueblo).concat([
+  "General Acha", "Quemú Quemú", "Quemú", "25 de Mayo", "General San Martín", "Ingeniero Luiggi", "Catriló", "Trenel",
+  "Rancul", "Alpachiri", "Jacinto Arauz", "Bernasconi", "Miguel Riglos", "Colonia Barón", "Lonquimay", "Uriburu",
+  "Anguil", "Ataliva Roca", "Doblas", "Embajador Martini", "Parera", "Quehué", "Telén", "Carro Quemado", "Luan Toro",
+  "Caleufú", "Speluzzi", "Dorila", "Metileo", "Monte Nievas", "Bernardo Larroudé", "Santa Isabel", "Puelches",
+  "Casa de Piedra", "La Adela", "Alta Italia", "Vértiz", "Arata", "Cochicó", "Algarrobo del Águila", "Mauricio Mayer"
+]);
+const ALT = LOCALIDADES.map(l => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+const MOLDE = new RegExp("\\b(Sportivo|Unión|Atlético|Deportivo|Juventud|Ferro)( de)? (" + ALT + ")(?![A-Za-zÁÉÍÓÚáéíóúñ])|(^|[^A-Za-zÁÉÍÓÚáéíóúñ])(" + ALT + ") (Unido|Juniors|FC)\\b");
+["Sportivo Realicó", "Unión de General Acha", "Sportivo General Acha", "Unión de Realicó", "Quemú Unido", "Atlético Toay", "Juventud de Santa Rosa", "Ferro de General Pico", "Macachín Juniors"]
+  .forEach(n => assert(MOLDE.test(n), "§11 el molde de club pampeano agarra «" + n + "»"));
+["Surco Hondo", "Sal y Cal de Macachín", "Capital de Santa Rosa", "Estrella de General Pico", "Durmiente FC"]
+  .forEach(n => assert(!MOLDE.test(n), "§11 el molde deja pasar el nombre ficticio «" + n + "»"));
+FILES.forEach(f => {
+  const s = fs.readFileSync(f, "utf8"), rel = path.relative(RAIZ, f);
+  const h = s.match(MOLDE);
+  assert(!h, "§11 club con el molde de una liga pampeana en " + rel + ": «" + (h ? h[0].trim() : "") + "» (un nombre ficticio va con algo del lugar)");
+});
+
 assert(roster.jugadores.every(j => j.nombre && j.nombre.trim().split(/s+/).length <= 2 && !j.apellido), "§11 el roster usa nombres de pila (sin apellidos: nadie identificable)");
 
 /* ---------- 5) la UI dice AGUANTE ---------- */

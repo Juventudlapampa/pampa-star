@@ -36,8 +36,8 @@ Cuatro escenas de Phaser, en el orden en que se recorren:
 
 El resto de `scenes/` son **mixins**: se suman a una escena con
 `Object.assign(window.PampaMatch.prototype, …)` y le agregan una parte sin
-agrandar `match.js`. Por ejemplo `definicion_ui.js` (el mano a mano con el
-arquero), `jugadon_ui.js`, `cartas_ui.js`, `cine_arte.js` y
+agrandar `match.js`. Por ejemplo `toque_ui.js` (EL TOQUE, el remate en el
+área), `jugadon_ui.js`, `cartas_ui.js`, `cine_arte.js` y
 `toma_remate.js`. Tres entran en las cuatro escenas: `piel_ui.js` (la piel
 común y la única puerta de la música, `pedirMusica`), `foco_ui.js` (el
 cursor para jugar con el teclado) y `pantalla_ui.js` (la pantalla

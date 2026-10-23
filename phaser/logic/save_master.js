@@ -174,7 +174,7 @@
     /* ── CUÁL ES TU CLUB (revisión del lote L03) ──
        Antes, si tu fila faltaba en la tabla, se adoptaba tabla[0]. Medido en
        node con una Primera A en la fecha 7 sin la fila de El Bagual de
-       Winifreda: la carrera pasaba a ser de Sportivo General Acha (el club, el
+       Winifreda: la carrera pasaba a ser de Jarilla de General Acha (el club, el
        escudo, el clásico, el próximo partido) y master.create la guardaba así,
        en silencio.
        Ahora tu club es el que nombra el save (si no, la temporada), y vale el

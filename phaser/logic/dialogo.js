@@ -149,7 +149,7 @@
     if (est) {
       /* el apodo ya dice de dónde es («El Bagual de Winifreda»): la historia
          va sin su "De Winifreda, " del principio; y si el nombre del club ya
-         la dijo (Unión de Realicó), el apodo va sin su " de Realicó" */
+         la dijo (Tranquera de Realicó), el apodo va sin su " de Realicó" */
       var hist = est.historia.indexOf("De " + est.pueblo + ", ") === 0 ? est.historia.slice(est.pueblo.length + 5) : est.historia;
       var fin = " de " + est.pueblo, apodo = est.apodo;
       if (dicho.indexOf(est.pueblo) >= 0 && apodo.slice(-fin.length) === fin) apodo = apodo.slice(0, -fin.length);

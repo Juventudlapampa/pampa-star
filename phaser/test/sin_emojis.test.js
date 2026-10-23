@@ -54,6 +54,12 @@ html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/g, function (_, js) {
   const e = emojisDe(l);
   if (e.length) hallados.push("phaser/index.html " + e.join("") + " " + l.trim().slice(0, 60));
 });
+/* los dos README son la cara pública del repo (ola 3, L12): el de la raíz
+   abría con una pelota y nombraba los botones con 💾 y 📋, que el juego ya no tiene */
+["README.md", "phaser/README.md"].forEach(rel => fs.readFileSync(path.join(RAIZ, rel), "utf8").split(/\r?\n/).forEach((l, i) => {
+  const e = emojisDe(l);
+  if (e.length) hallados.push(rel + ":" + (i + 1) + " " + e.join(""));
+}));
 assert(hallados.length === 0, "SÍNTOMA: textos del juego con emojis (" + hallados.length + "): " + hallados.slice(0, 12).join(" | "));
 
 /* los que nombró Rodri, con su texto nuevo */

@@ -125,5 +125,25 @@ function todosLosNombres(t) {
   console.log("[4] clásico: cada nombre viejo encuentra su club nuevo por hash");
 })();
 
+/* ---------- [5] la Primera A del 23/oct: tres nombres que cruzaban clubes reales ---------- */
+(function () {
+  var VIEJOS_A = ["Sportivo General Acha", "Unión de Realicó", "Durmiente FC", "Estrella de General Pico", "Capital de Santa Rosa",
+    "Camino de Victorica", "Sal y Cal de Macachín", "Surco Hondo", "Quemú Unido"];
+  var nuevos = DIV.primera_a.rivales;
+  assert(nuevos.length === VIEJOS_A.length, "la Primera A sigue teniendo 9 rivales");
+  ["Sportivo General Acha", "Unión de Realicó", "Quemú Unido"].forEach(function (v) { assert(nuevos.indexOf(v) < 0, "la Primera A ya no tiene a " + v); });
+  var t = T.crear({ division: "primera_a", miClub: "El Bagual de Winifreda", rivales: VIEJOS_A, semilla: 31 });
+  for (var f = 0; f < 5; f++) T.jugarFecha(t, (f + 1) % 3, f % 2);
+  var antes = t.tabla.map(function (x) { return VIEJOS_A.indexOf(x.equipo) + ":" + x.pts; });
+  assert(T.renombrarPorPosicion(t, nuevos) === true, "una temporada de Primera A a mitad de camino se migra");
+  var despues = t.tabla.map(function (x) { return nuevos.indexOf(x.equipo) + ":" + x.pts; });
+  assert(antes.join() === despues.join(), "cada puesto conserva sus puntos: " + despues.join());
+  var nombres = todosLosNombres(t);
+  ["Sportivo General Acha", "Unión de Realicó", "Quemú Unido"].forEach(function (v) { assert(nombres.indexOf(v) < 0, "no queda " + v + " en la temporada"); });
+  var ros = ROSTER.clubes_por_pueblo["Realicó"];
+  assert(ros && nuevos.indexOf(ros.clasico) >= 0, "el clásico de Realicó es un club de la Primera A (" + (ros && ros.clasico) + ")");
+  console.log("[5] Primera A: los nombres nuevos entran por posición y los puntos quedan");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);
