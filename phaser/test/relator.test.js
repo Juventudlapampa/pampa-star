@@ -94,5 +94,19 @@ function seq(vals) { var i = 0; return function () { return vals[i++ % vals.leng
   console.log("[6] bolsa barajada: ok");
 })();
 
+/* ---- 7) revisión final del 23/oct: el gol rival y los últimos minutos según el marcador ---- */
+(function () {
+  ["gol_rival_empatan", "gol_rival_adelantan", "gol_rival_amplian", "gol_rival_descuentan", "urgente_ganando", "urgente_perdiendo", "urgente_empatando"].forEach(function (k) {
+    ok(Array.isArray(data.relator[k]) && data.relator[k].length >= 2, "la clave '" + k + "' (match.js la arma con el marcador) tiene 2+ variantes");
+  });
+  var con = function (k, re) { return (data.relator[k] || []).filter(function (f) { return re.test(f); }); };
+  ok(con("gol_rival_amplian", /adelantan/i).length === 0 && con("gol_rival_descuentan", /adelantan|dar vuelta/i).length === 0, "con el rival ya arriba, o descontando, no dice que se adelantan");
+  ok(con("urgente_ganando", /dar vuelta/i).length === 0 && con("urgente_empatando", /dar vuelta/i).length === 0, "ganando o empatando no habla de darlo vuelta");
+  ok(con("gol_rival", /adelantan/i).length === 0 && con("urgente", /dar vuelta/i).length === 0, "las listas sin marcador no dan por hecho el resultado");
+  var src = fs.readFileSync(path.join(__dirname, "../scenes/match.js"), "utf8");
+  ok(/"urgente_" +/.test(src) && /"gol_rival_" +/.test(src), "relatar() arma la clave con el marcador");
+  console.log("[7] el relator mira el marcador: ok");
+})();
+
 console.log("\n" + (fail === 0 ? "✓ TODOS OK" : "✗ HUBO FALLAS") + " — " + pass + " asserts, " + fail + " fallaron.");
 process.exit(fail === 0 ? 0 : 1);

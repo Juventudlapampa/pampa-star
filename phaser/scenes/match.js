@@ -680,7 +680,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         /* 23/oct, Rodri: el gol de un compañero lo comentan nombrándolo */
         gol: (this.st && this.st.mios[this.st.goleador] && !this.st.mios[this.st.goleador].esVos) ? "gol_companero" : "gol",
         gol_rival: "gol_rival", atajada: "atajada_rival", arquero_mio: "atajada",
-        quite_win: "quite", corte: "quite", gambeta_lose: "error", afuera: "error",
+        /* revisión final del 23/oct: "corte" es el pase TUYO que cortó el rival
+           (la tribuna lo festejaba como recuperación); la recuperación tuya
+           tiene sus claves (quite_win, corte_win, bloqueo_win) */
+        quite_win: "quite", corte_win: "quite", bloqueo_win: "quite",
+        corte: "error", pared_lose: "error", defensa_lose: "error", gambeta_lose: "error", afuera: "error",
         final: (this.st && this.st.golesMio > this.st.golesRival) ? "resultado_gana"
           : (this.st && this.st.golesMio < this.st.golesRival) ? "resultado_pierde" : "resultado_empate",
         urgente: (this.st && this.st.golesMio > this.st.golesRival) ? "ganando_final"
@@ -696,7 +700,17 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.tickerTxt) return;
     /* 20/oct · el remate que dio en el palo tiene sus propias frases */
     const sit = situacion === "afuera" && c.palo ? "palo" : situacion;
-    const f = this.REL.frase(sit, c);
+    /* revisión final del 23/oct: dijo "Se adelantan ellos" con el 1-3 y
+       "todavía hay partido para dar vuelta" ganando 1-0 en el 87. El gol del
+       rival y los últimos minutos eligen su lista por el marcador, que ya
+       cuenta el gol que se relata (como la tribuna, tribuna_ui.js vale) */
+    let clave = sit;
+    if (this.st && (sit === "gol_rival" || sit === "urgente")) {
+      const dif = this.st.golesMio - this.st.golesRival;
+      clave = sit === "urgente" ? "urgente_" + (dif > 0 ? "ganando" : dif < 0 ? "perdiendo" : "empatando")
+        : "gol_rival_" + (dif > 0 ? "descuentan" : dif === 0 ? "empatan" : dif === -1 ? "adelantan" : "amplian");
+    }
+    const f = this.REL.frase(clave, c);
     if (!f) return;
     if (this.BAL.relator.fuertes.indexOf(sit) >= 0 || c.mega) { this.vinietaRelator(f); return; }
     this.anunciarEnTicker(f);
@@ -3061,7 +3075,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           titulo: esPared ? "¡PARED Y A SEGUIR!" : (megaR ? "¡LE GANASTE AL " + megaR.n.toUpperCase() + "!" : "¡LO DEJASTE PAGANDO!"),
           sub: this.subConPorQue(esPared ? "toque, devolución y seguís de largo"
             : (r.matriz === "zafaste" ? "le erraron a la marca y seguís de largo" : "puro coraje: seguís de largo"), r),
-          alFinal: () => this.relatar("gambeta_win")
+          alFinal: () => this.relatar(esPared ? "pared_win" : "gambeta_win")
         });
         /* con megacosa rival: primero el cut-in del rival, después la viñeta */
         if (megaR) this.cutInEspecial("¡" + megaR.n.toUpperCase() + "!", megaR.grito, mostrar, rivalJ, true);
@@ -3110,7 +3124,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           gana: true, color: 0xe3503e, sfx: "choque",
           titulo: r.matriz === "leyeron" ? "¡TE LEYERON LA PARED!" : "¡TE CORTARON LA PARED!",
           sub: r.matriz === "leyeron" ? "sabían que la devolvían · pelota rival" : "se metió en el medio del 1-2 · pelota rival",
-          alFinal: () => this.relatar("gambeta_lose")
+          alFinal: () => this.relatar("pared_lose")
         });
         return;
       }
@@ -3179,7 +3193,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           gana: true, sfx: "choque",
           titulo: "¡BLOQUEADO!",
           sub: this.subConPorQue(r.matriz === "leiste" ? "sabías que venía el tiro" : "pusiste el cuerpo donde dolía", r),
-          alFinal: () => this.relatar("quite_win")
+          alFinal: () => this.relatar("bloqueo_win")
         });
         return;
       }
@@ -3202,7 +3216,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           gana: true, color: 0x7ee08a, sfx: "choque",
           titulo: "¡LA CORTASTE!",
           sub: this.subConPorQue(r.matriz === "leiste" ? "le leíste la línea de pase" : "metiste la pierna a tiempo", r),
-          alFinal: () => this.relatar("quite_win")
+          alFinal: () => this.relatar("corte_win")
         });
         return;
       }
@@ -3245,7 +3259,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           poseRival: a.id === "quite" ? "corriendo" : "barrida",
           gana: true, color: 0xe3503e, sfx: "whoosh",
           titulo: t.ti, sub: this.subConPorQue(t.su, r),
-          alFinal: () => this.relatar("gambeta_lose")
+          alFinal: () => this.relatar("defensa_lose")
         });
         return;
       }
@@ -4314,7 +4328,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const m = lista[lista.length - 1];
     /* la poda del 22/oct: el del nivel pone los números y se llama SÚPER TIRO */
     return this.FLAGS.megatiros_con_nombre === false
-      ? Object.assign({}, m, { n: "Súper tiro", grito: "¡GOLAZO!", sub: "junta todo lo que le queda" })
+      ? Object.assign({}, m, { n: "Súper tiro", grito: "¡GOLAZO!", sub: "juntás todo lo que te queda" })
       : m;
   }
   /* ============ V9 §4 · SIN BARRA DE CARGA ============
@@ -6331,8 +6345,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        redondeados al tramo (balance.tempo.tramo_seg) para que se sienta correr */
     const tramo = (this.BAL.tempo && this.BAL.tempo.tramo_seg) || 15;
     const segs = Math.floor((st.minuto % 1) * 60 / tramo) * tramo;
-    const mm = (m > lim ? lim : m), ss = ("0" + segs).slice(-2);
-    const reloj = mm + ":" + ss + (m > lim ? "+" : "") + " " + (st.tiempo === 1 ? "1T" : "2T");
+    /* revisión final del 23/oct: en el descuento los minutos se quedaban en
+       45 (o 90) y los segundos seguían: 45:45+ y otra vez 45:00+. Ahora el
+       reloj sigue de largo y el "+" marca el descuento desde el 45:00 */
+    const ss = ("0" + segs).slice(-2);
+    const reloj = m + ":" + ss + (m >= lim ? "+" : "") + " " + (st.tiempo === 1 ? "1T" : "2T");
     if (this._hudReloj !== reloj) { this._hudReloj = reloj; this.txtReloj.setText(reloj); }
     /* barra de aguante del PORTADOR (si la tiene el rival, su tanque compartido) */
     const p = this.portadorActual();

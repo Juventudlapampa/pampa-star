@@ -156,5 +156,36 @@ const JUGADAS_DE = {};
   console.log("[5] todas las frases entran en el globo");
 })();
 
+/* ---------- [6] revisión final del 23/oct: el pase tuyo cortado no se festeja ---------- */
+(function () {
+  assert((JUGADAS_DE.quite || []).indexOf("corte") < 0, "SÍNTOMA: el pase tuyo que cortó el rival va al evento quite (lo festejan como recuperación)");
+  assert((JUGADAS_DE.error || []).indexOf("corte") >= 0 && (JUGADAS_DE.error || []).indexOf("defensa_lose") >= 0, "el pase cortado y el duelo de defensa perdido van al evento error");
+  ["quite_win", "corte_win", "bloqueo_win"].forEach(j => assert((JUGADAS_DE.quite || []).indexOf(j) >= 0, "la recuperación tuya (" + j + ") va al evento quite"));
+  const tuGambeta = escuchar(0, 0, 30, "error", "gambeta_lose");
+  assert(Array.from(tuGambeta).every(s => !/pasaron por al lado|taquito/.test(s)), "SÍNTOMA: con tu gambeta perdida dicen que te pasaron por al lado o que la quisiste de taquito");
+  const teGanaron = escuchar(0, 0, 30, "error", "defensa_lose");
+  assert(Array.from(teGanaron).some(s => /pasaron por al lado/.test(s)), "con el duelo de defensa perdido sale la de que le pasaron por al lado");
+  console.log("[6] el pase cortado y el duelo perdido no se festejan");
+})();
+
+/* ---------- [7] revisión final del 23/oct: en el partido rápido no hay puntos ---------- */
+(function () {
+  ["resultado_gana", "resultado_empate"].forEach(ev => {
+    for (let gm = 0; gm <= 3; gm++) {
+      const gr = ev === "resultado_gana" ? 0 : gm;
+      if (ev === "resultado_gana" && gm === 0) continue;
+      const sc = escena(gm, gr, 90); sc._rapido = true;
+      T.montar(sc);
+      const oido = new Set();
+      for (let k = 0; k < 40; k++) if (T.comentar(sc, ev, "final")) oido.add(dicho(sc));
+      assert(oido.size >= 2, ev + " " + gm + "-" + gr + " en el partido rápido: dos o más intercambios valen (" + oido.size + ")");
+      assert(Array.from(oido).every(t => !/punto/i.test(t)), "SÍNTOMA: en el partido rápido hablan de puntos (" + Array.from(oido).filter(t => /punto/i.test(t)).join(" | ") + ")");
+    }
+  });
+  const enLaCarrera = escuchar(2, 0, 90, "resultado_gana", "final");
+  assert(Array.from(enLaCarrera).some(t => /Tres puntos/.test(t)), "en una fecha de la carrera los tres puntos siguen saliendo");
+  console.log("[7] en el partido rápido no se cuentan puntos");
+})();
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

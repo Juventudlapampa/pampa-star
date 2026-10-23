@@ -230,15 +230,15 @@
           "b": "Todos erramos. Yo salé el asado el domingo."
         },
         {
-          "a": "La quiso de taquito con el partido así.",
-          "b": "Guardá el taquito para el potrero."
+          "a": "La quiso hacer de lujo con el partido así.",
+          "b": "Guardá los lujos para el potrero."
         },
         {
           "a": "Se durmió. Le pasaron por al lado.",
           "b": "Le pasó lo que a mí en la siesta.",
           "si": {
             "jugada": [
-              "gambeta_lose"
+              "defensa_lose"
             ]
           }
         },
@@ -261,6 +261,25 @@
           "si": {
             "jugada": [
               "afuera"
+            ]
+          }
+        },
+        {
+          "a": "Ese pase lo vieron venir desde el alambrado.",
+          "b": "El próximo, al pie y sin vueltas.",
+          "si": {
+            "jugada": [
+              "corte",
+              "pared_lose"
+            ]
+          }
+        },
+        {
+          "a": "La quiso llevar de más y se la sacaron.",
+          "b": "Hay que soltarla antes, te digo.",
+          "si": {
+            "jugada": [
+              "gambeta_lose"
             ]
           }
         }
@@ -418,7 +437,10 @@
         },
         {
           "a": "Tres puntos. A guardarlos.",
-          "b": "Yo guardo la campera y el susto."
+          "b": "Yo guardo la campera y el susto.",
+          "si": {
+            "carrera": true
+          }
         },
         {
           "a": "Vamos, que hay que volver por la ruta.",
@@ -431,7 +453,10 @@
       "intercambios": [
         {
           "a": "Terminó igual. Un punto es un punto.",
-          "b": "Un punto y medio corazón, me queda."
+          "b": "Un punto y medio corazón, me queda.",
+          "si": {
+            "carrera": true
+          }
         },
         {
           "a": "Empate. No le sirve del todo a nadie.",
@@ -498,5 +523,5 @@
     }
   ],
   "_revision": "Revisado adversarialmente contra data/relatos.json: cinco lineas chocaban casi textualmente con las del RELATOR (son dos voces distintas y no pueden decir lo mismo), y habia repeticiones internas — el Tuli hablaba de gritar en cuatro de sus seis lineas del gol, y dos intercambios de atajada eran el mismo. Ninguna linea pasa los 60 caracteres. · A1 (19/ago): Nelda y el Tuli ya no usan retratos prestados del banco de futbolistas — tienen el suyo.",
-  "_si": "23/oct · LA TRIBUNA MIRA EL MARCADOR. Un intercambio puede traer \"si\" y solo sale cuando vale en ese momento (el marcador ya cuenta el gol que se comenta). Claves: va (ganando, empatando o perdiendo; uno o una lista), por (la diferencia de goles exacta), hicimos y nos_hicieron (true: al menos un gol; false: ninguno), antes_del (minuto) y jugada (las situaciones del relator que lo disparan: afuera, gambeta_lose...). Sin \"si\", vale siempre. gol_companero (23/oct, pedido de Rodri): el gol de un compañero lo comentan nombrándolo; {goleador} es su nombre (st.goleador) y lo elige relatar() en match.js. Cada evento tiene que tener siempre al menos dos que valgan (lo vigila phaser/test/tribuna_marcador.test.js)."
+  "_si": "23/oct · LA TRIBUNA MIRA EL MARCADOR. Un intercambio puede traer \"si\" y solo sale cuando vale en ese momento (el marcador ya cuenta el gol que se comenta). Claves: va (ganando, empatando o perdiendo; uno o una lista), por (la diferencia de goles exacta), hicimos y nos_hicieron (true: al menos un gol; false: ninguno), antes_del (minuto) y jugada (las situaciones del relator que lo disparan: afuera, gambeta_lose...). carrera (true: solo en una fecha de la carrera; en el partido rápido no se cuentan puntos). Sin \"si\", vale siempre. gol_companero (23/oct, pedido de Rodri): el gol de un compañero lo comentan nombrándolo; {goleador} es su nombre (st.goleador) y lo elige relatar() en match.js. Cada evento tiene que tener siempre al menos dos que valgan (lo vigila phaser/test/tribuna_marcador.test.js)."
 }

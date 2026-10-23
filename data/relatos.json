@@ -65,7 +65,7 @@
    "¡Lo sentó en el pasto! Qué cintura, familia.",
    "¡Pasó uno {jugador}! La lleva atada.",
    "Amague, quiebre y adiós: puro potrero.",
-   "¡Se la llevó de taquito para adelante! No lo agarran más.",
+   "¡Se la llevó para adelante y no la alcanzan más!",
    "Enganche corto, salida larga: quedó solo.",
    "Lo pasó como si fuera un cono de entrenamiento."
   ],
@@ -88,14 +88,14 @@
   "gol": [
    "¡GOOOL! ¡GRITALO, {pueblo}!",
    "¡Golazo, papá! ¡Se escuchó hasta en la ruta 35!",
-   "¡La clavó donde el viento no la saca! ¡GOL de {jugador}!",
+   "¡Adentro, adentro! ¡GOL de {jugador}!",
    "¡Explotó todo! ¡Gol de los nuestros!"
   ],
   "gol_rival": [
    "Gol de {rival}… silencio en el potrero.",
    "La metieron ellos. A levantar la cabeza, que queda partido.",
    "Golpe duro. El viento sopla en contra, como siempre.",
-   "Se adelantan ellos. A no bajar los brazos."
+   "Gol de ellos. A no bajar los brazos."
   ],
   "atajada": [
    "¡La sacó el arquero de ellos! Qué manos, por favor.",
@@ -124,7 +124,7 @@
   "urgente": [
    "¡Últimos minutos! Corazón en la boca, se define todo.",
    "El reloj aprieta y el descuento es un misterio, como siempre.",
-   "Se va el tiempo y todavía hay partido para dar vuelta.",
+   "Se va el tiempo. Acá se juega cada pelota.",
    "Minutos finales: acá se define de un pelotazo."
   ],
   "entretiempo": [
@@ -137,6 +137,79 @@
    "¡Final del partido! Lo dado, dado está.",
    "Pitó el árbitro y se terminó. A la ducha fría, como siempre.",
    "Se acabó. El fútbol pampeano no perdona ni regala."
+  ],
+  "pared_win": [
+   "¡Uno-dos limpio! La devolvieron justo y quedó de cara.",
+   "Pared de potrero: tocó, picó al hueco y se la dieron redonda.",
+   "Toque y devolución. El defensor quedó mirando el pasto.",
+   "¡Qué pared! Se entendieron sin mirarse."
+  ],
+  "pared_lose": [
+   "La pared quedó a mitad de camino. Se la cortaron en el medio.",
+   "Tocó para la devolución y la devolución nunca llegó.",
+   "Le leyeron el uno-dos. Pelota de {rival}.",
+   "Se metió uno en el medio de la pared y se terminó la jugada."
+  ],
+  "corte_win": [
+   "¡Cortada! Leyó el pase y se quedó con la pelota.",
+   "Se cruzó en la línea del pase. Pelota nuestra.",
+   "Ese pase iba con dirección y lo interceptó en el camino.",
+   "Se anticipó y la pelota cambió de camino."
+  ],
+  "bloqueo_win": [
+   "¡Bloqueado! Se tiró al piso y se la comió con el cuerpo.",
+   "Puso el cuerpo donde duele. Remate tapado.",
+   "Se le puso adelante justo cuando armaba el remate.",
+   "Pierna firme y pelota afuera de peligro."
+  ],
+  "defensa_lose": [
+   "Ganaron el mano a mano y siguen de largo. A volver rápido.",
+   "Fue a buscarla y llegó tarde. {rival} sigue con la pelota.",
+   "Un amague y adelante. Hay que cerrar atrás.",
+   "Se escapó por al lado. Ahora a correr para atrás.",
+   "Le ganaron la posición. La pelota sigue siendo de {rival}."
+  ],
+  "gol_rival_empatan": [
+   "Lo empató {rival}. Todo de nuevo.",
+   "Gol de ellos y el partido vuelve a arrancar.",
+   "Empate. Se fue la ventaja, queda el partido.",
+   "Lo igualaron. A levantar la cabeza."
+  ],
+  "gol_rival_adelantan": [
+   "Se adelantan ellos. A no bajar los brazos.",
+   "Gol de {rival}… silencio en el potrero.",
+   "La metieron ellos. Ahora hay que ir a buscarlo.",
+   "Golpe duro. El viento sopla en contra, como siempre."
+  ],
+  "gol_rival_amplian": [
+   "Otro de {rival}. Se pone cuesta arriba.",
+   "Estiran la diferencia. Duele, pero se sigue.",
+   "Gol de ellos otra vez. El potrero no lo puede creer.",
+   "Se escapan en el marcador. Hay que achicar de a uno."
+  ],
+  "gol_rival_descuentan": [
+   "Descontó {rival}. Seguimos arriba, pero ojo.",
+   "La metieron ellos, pero el partido sigue de nuestro lado.",
+   "Se acercan. A cuidar la ventaja.",
+   "Gol de {rival}. Todavía vamos ganando, a no aflojar."
+  ],
+  "urgente_ganando": [
+   "¡Últimos minutos! A cuidar la pelota, que esto se gana.",
+   "El reloj aprieta y vamos arriba. Corazón en la boca.",
+   "Minutos finales: hay que sostener la ventaja.",
+   "Se va el tiempo y la ventaja es nuestra. A no regalar nada."
+  ],
+  "urgente_perdiendo": [
+   "¡Últimos minutos! Hay que ir con todo.",
+   "Se va el tiempo y todavía hay partido para dar vuelta.",
+   "El reloj aprieta y estamos abajo. A buscarlo de cualquier lado.",
+   "Minutos finales: acá se define de un pelotazo."
+  ],
+  "urgente_empatando": [
+   "¡Últimos minutos! Corazón en la boca, se define todo.",
+   "El reloj aprieta y el descuento es un misterio, como siempre.",
+   "Minutos finales con el empate. Una pelota lo cambia todo.",
+   "Se va el tiempo y está todo igual. Quien la meta, gana."
   ],
   "quite_win": [
    "¡Se la sacó de raíz! Quite pampeano, sin vueltas.",

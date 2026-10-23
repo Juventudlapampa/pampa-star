@@ -102,7 +102,7 @@
       /* 23/oct · LA TRIBUNA MIRA EL MARCADOR: solo los que valen ahora, y
          entre esos el que no salió en esta vuelta (la rueda sigue siendo
          la misma para todos: un intercambio no vuelve antes que los otros) */
-      var aptos = orden.filter(function (k) { return vale(bloque.intercambios[k], sc.st, jugada); });
+      var aptos = orden.filter(function (k) { return vale(bloque.intercambios[k], sc.st, jugada, !!sc._rapido); });
       if (!aptos.length) return false;
       var ronda = t.ronda[evento] || (t.ronda[evento] = []);
       var libres = aptos.filter(function (k) { return ronda.indexOf(k) < 0; });
@@ -199,10 +199,13 @@
      "si" de cada intercambio (data/tribuna.json, _si) se mira contra el
      marcador, que ya cuenta el gol que se comenta. Sin marcador (una escena
      que no es un partido) ni jugada, esa parte de la condición no filtra. */
-  function vale(inter, st, jugada) {
+  /* revisión final del 23/oct: "Tres puntos" en el partido rápido, que no
+     cuenta para la carrera. si.carrera: solo en una fecha de la carrera */
+  function vale(inter, st, jugada, rapido) {
     var si = inter.si;
     if (!si) return true;
     if (si.jugada && jugada && si.jugada.indexOf(jugada) < 0) return false;
+    if (si.carrera && rapido) return false;
     if (!st) return true;
     var dif = st.golesMio - st.golesRival;
     var va = dif > 0 ? "ganando" : (dif < 0 ? "perdiendo" : "empatando");
