@@ -156,7 +156,7 @@
     "_estilos": "20/oct, pedido de Rodri: el estilo de música se elige en OPCIONES (scenes/titulo.js, logic/opciones.js). La lista va en el orden de la pantalla. FOLKLORE son los temas de data/audio.json → temas. Los otros van en audio.json → estilos.<k>.<id del tema> (los mismos ids que temas: partido, semana, espera…) y se pueden elegir cuando traen el del partido; mientras no lo traen aparecen con próximamente. Un momento que el estilo no tenga suena el tema base del momento y después el partido del mismo estilo, nunca el FOLKLORE (logic/musica.js, mapaCompleto). Desde el 20/oct: CUARTETO, ROCK y RAP con partido, semana y espera (la espera es el de la semana).",
     "estilo_por_defecto": "folklore",
     "_mezcla": "23/oct, pedido de Rodri: la música es toda folklore, ya me aburrió. Con flags.musica_mezcla, MEZCLA va primero en OPCIONES y es la de fábrica: el juego suena en uno de los cuatro estilos y cambia en cada partido y en cada semana, nunca al mismo que venía (logic/opciones.js, rotarMezcla; el que suena, en pampa_mezcla). Las opciones v1 guardadas con FOLKLORE pasan a MEZCLA: no se puede saber si FOLKLORE era elegido o de fábrica. estilo_por_defecto sigue siendo FOLKLORE: es el estilo base (los temas de audio.json, temas) y el de fábrica con la perilla en false.",
-    "mezcla": { "k": "mezcla", "n": "MEZCLA", "d": "cambia en cada partido y cada semana" },
+    "mezcla": { "k": "mezcla", "n": "MEZCLA", "d": "cambia cada partido y semana" },
     "estilos": [
       { "k": "folklore", "n": "FOLKLORE", "d": "guitarra criolla, bombo y acordeón" },
       { "k": "cuarteto", "n": "CUARTETO" },
@@ -354,7 +354,8 @@
     "titulo_creacion": "¿CUÁNTO DURA CADA PARTIDO?",
     "dos": {
       "_nota": "23/oct, pedido de Rodri: 'en los tiempos, partido corto y largo (pero no larguísimo), solo dos opciones'. Con flags.duracion_dos estas son las duraciones de OPCIONES, de la carrera nueva y del partido rápido; con false vuelven presets y opciones de arriba (tres). Los saves y las opciones guardadas no se reescriben: guardan su clave y logic/save_master.js (duracionesActivas, tempoDe) la traduce con migrar al leerla; apagar la perilla devuelve cada carrera a la que tenía. por_defecto: la que viene marcada en una carrera nueva y en OPCIONES de fábrica [DECISIÓN MÍA: CORTO, porque Rodri pidió que el partido fluya; una carrera sin dato era NORMAL y por eso va a LARGO]. Los minutos por momento salen de la medición: ver _medido.",
-      "presets": { "corto": 3.4, "largo": 1.7 },
+      "presets": { "corto": 3.9, "largo": 2.0 },
+      "_medido": "23/oct, medido en el navegador con el partido rápido entero (nivel 3, Espejo de Sal), el reloj del juego y un piloto que decide a los 2,5 s, toca a quien recibe a los 1,2 s y le pega en EL TOQUE a los 1,4 s: con 3,4 minutos por momento el CORTO duraba 271 s (4,5 min, 23 decisiones); con 3,9, 253 s (4,2 min, 22 decisiones); el LARGO con 2,0 duró 413 s (6,9 min, 38 decisiones). Los tres terminaron 0 a 0: cada gol suma el festejo. Subir el número acorta el partido (menos momentos).",
       "opciones": [
         { "k": "corto", "n": "CORTO", "d": "unos 4 min" },
         { "k": "largo", "n": "LARGO", "d": "unos 7 min" }

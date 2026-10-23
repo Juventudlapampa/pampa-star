@@ -239,6 +239,7 @@ function centro(s, texto) {
   P.s.vistaOpciones();
   var to = P.s.textos();
   assert(to.indexOf("» MEZCLA") >= 0 && ["FOLKLORE", "CUARTETO", "ROCK", "RAP"].every(function (n) { return to.indexOf(n) >= 0; }), "OPCIONES marca MEZCLA con » y lista los cuatro estilos");
+  assert(to.indexOf(BAL_HOY.musica.mezcla.d) >= 0, "y abajo del rótulo dice qué hace la MEZCLA (" + BAL_HOY.musica.mezcla.d + ")");
   /* NORMAL queda una sola vez: es el de VELOCIDAD */
   assert(to.indexOf("» CORTO") >= 0 && to.indexOf("LARGO") >= 0 && to.filter(function (t) { return /NORMAL/.test(t); }).length === 1,
     "DURACIÓN: CORTO marcado y LARGO, sin NORMAL (" + to.filter(function (t) { return /CORTO|LARGO|NORMAL/.test(t); }).join(" | ") + ")");

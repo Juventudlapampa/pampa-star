@@ -161,7 +161,8 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
         elegir: (k) => { if (S && S.setMuted) S.setMuted(k); } },
       Object.assign({ n: "MÚSICA" }, nivel("musica")),
       Object.assign({ n: "EFECTOS" }, nivel("efectos")),
-      { n: "ESTILO DE MÚSICA", tipo: "chips",
+      /* 23/oct: con MEZCLA en la lista, abajo del rótulo se dice qué hace */
+      { n: "ESTILO DE MÚSICA", sub: estilos.some((e) => e.k === "mezcla") ? this.BAL.musica.mezcla.d : null, tipo: "chips",
         chips: estilos.map((e) => ({ k: e.k, n: e.n, d: e.disponible ? "" : "próximamente", bloqueada: !e.disponible })),
         valor: op.estilo,
         elegir: (k) => {
