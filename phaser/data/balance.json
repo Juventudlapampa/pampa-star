@@ -1136,6 +1136,121 @@
       "fuera": 1
     }
   },
+  "flujo": {
+    "_nota": "23/oct, pedido de Rodri: que el partido fluya en vez de correr con el cursor (logic/flujo.js). activo false = como antes: el portador quieto si no lo movés y el menú solo al cruce o con ESPACIO. EL AUTO-AVANCE: el que lleva la pelota va solo hacia el arco por el carril más libre (carriles parejos entre margen_px y el otro borde; un rival pesa si está adelante a menos de mira_px y a menos de ancho_carril_px del carril; peso_cambio castiga cambiar mucho de carril; histeresis sostiene el que traía; a menos de centrar_desde_px del arco tira al medio; a frena_px del fondo deja de avanzar). Tocar el mapa fija el carril carril_tocado_ms. LA DECISIÓN (ms de simulación: con el pulso, 1 s de juego son latido_ms / dt_ms = 1,47 s reales): recibe_ms después de recibir un pase, cuando un rival está a menos de radio_aviso o cada cada_ms sin decidir nada, nunca antes de min_ms de la anterior (salvo al recibir). reloj: qué parte del momento de balance.tempo gastan el pase y el centro. desmarque: volantes y delanteros se abren del rival a menos de radio_px y se corren linea_px si uno tapa la línea de pase. centro: el CENTRO / PASE AL AIRE va al mejor ubicado a menos de radio_px; la zona de remate son zona_px desde el fondo y zona_ancho_px desde el medio; la altura de la caída sale de h_base + distancia / h_por_px. firuletes: lo que hace el que la recibe en la zona según la altura y de dónde viene. super_tiro_aguante: lo mínimo que gasta el SÚPER TIRO.",
+    "activo": true,
+    "carriles": 5,
+    "margen_px": 70,
+    "mira_px": 260,
+    "ancho_carril_px": 95,
+    "peso_cambio": 0.004,
+    "histeresis": 0.25,
+    "centrar_desde_px": 300,
+    "frena_px": 120,
+    "giro_px": 60,
+    "carril_tocado_ms": 4000,
+    "recibe_ms": 1100,
+    "radio_aviso": 85,
+    "min_ms": 2500,
+    "cada_ms": 3200,
+    "reloj": {
+      "pase": 0.5,
+      "centro": 0.7
+    },
+    "desmarque": {
+      "radio_px": 90,
+      "px": 55,
+      "adelante_px": 30,
+      "linea_px": 45
+    },
+    "centro": {
+      "radio_px": 560,
+      "d_min_px": 120,
+      "zona_px": 300,
+      "zona_ancho_px": 240,
+      "base": 60,
+      "por_pase": 0.4,
+      "por_aereo": 0.3,
+      "marca_px": 60,
+      "por_marca": 0.4,
+      "d_ok_px": 280,
+      "penal_lejos": 0.04,
+      "min": 15,
+      "max": 88,
+      "bonus_zona": 25,
+      "bonus_vos": 10,
+      "costo": 40,
+      "h_base": 0.4,
+      "h_por_px": 180,
+      "h_azar": 0.6
+    },
+    "firuletes": {
+      "cabezazo": {
+        "n": "CABEZAZO",
+        "stat": {
+          "aereo": 1
+        },
+        "mult": 0.95,
+        "costo": 70,
+        "bonus": 3,
+        "fuera": 0.06,
+        "pose": "cabezazo"
+      },
+      "palomita": {
+        "n": "DE PALOMITA",
+        "stat": {
+          "aereo": 0.7,
+          "velocidad": 0.3
+        },
+        "mult": 1.05,
+        "costo": 90,
+        "bonus": 3,
+        "fuera": 0.07,
+        "pose": "cabezazo",
+        "h_desde": 1.1
+      },
+      "volea": {
+        "n": "VOLEA",
+        "stat": {
+          "tiro": 0.6,
+          "aereo": 0.4
+        },
+        "mult": 1.15,
+        "costo": 90,
+        "bonus": 3,
+        "fuera": 0.06,
+        "pose": "remate"
+      },
+      "chilena": {
+        "n": "CHILENA",
+        "stat": {
+          "tiro": 0.5,
+          "aereo": 0.5
+        },
+        "mult": 1.35,
+        "costo": 180,
+        "bonus": 5,
+        "fuera": 0.1,
+        "pose": "chilena",
+        "h_desde": 1.8,
+        "aereo_min": 65
+      },
+      "taco": {
+        "n": "DE TACO",
+        "stat": {
+          "gambeta": 0.6,
+          "tiro": 0.4
+        },
+        "mult": 1,
+        "costo": 60,
+        "bonus": 4,
+        "fuera": 0.08,
+        "pose": "remate",
+        "gambeta_min": 60
+      }
+    },
+    "super_tiro_aguante": 400
+  },
   "flags": {
     "a3_bloqueo": true,
     "_duracion_dos": "23/oct, pedido de Rodri: solo dos duraciones, CORTO y LARGO (balance.tempo.dos). false vuelve a CORTO, NORMAL y LARGO.",

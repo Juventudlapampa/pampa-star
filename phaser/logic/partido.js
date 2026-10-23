@@ -205,6 +205,7 @@
        vuelve la elasticidad vieja, solo para comparar. */
     var empuje = (st.pelota.x - st.W / 2);
     var IA = bal.ia || {};
+    var FLUJO = bal.flujo;
     /* 22/oct, Rodri: "quien juega tiene que defender". Con la pelota del
        rival, el primero de los tuyos que está en su camino SALE AL CRUCE: le
        va de frente y lo sigue siendo mientras el portador no lo pase. Al que
@@ -282,6 +283,28 @@
         if (j.pos === "ATA" && ataco) {
           var abre = (i % 2 === 0 ? -1 : 1) * (IA.ata_abre || 70);   // se ofrecen a las bandas
           ty = clamp(ty + abre, j.banda[0], j.banda[1]);
+        }
+        /* 23/oct, Rodri: "que sea mucho de decisiones de pasarla". Con
+           balance.flujo, volantes y delanteros se DESMARCAN para ofrecer la
+           línea de pase: se abren del rival que tienen encima y, si uno se
+           para en la línea desde el portador, se corren de costado. Cada
+           uno sigue adentro de su franja. */
+        var DM = FLUJO && FLUJO.activo && esMio && ataco && j.pos !== "DEF" ? FLUJO.desmarque : null;
+        if (DM) {
+          var rc = null, drc = DM.radio_px;
+          st.rivales.forEach(function (r) {
+            if (r.pos === "ARQ") return;
+            var dd = dist(r.x, r.y, j.x, j.y);
+            if (dd < drc) { drc = dd; rc = r; }
+          });
+          if (rc) {
+            var s2 = 1 - drc / DM.radio_px;
+            ty += (j.y >= rc.y ? 1 : -1) * DM.px * s2;
+            tx = clamp(tx + DM.adelante_px * s2, 20, st.W - 70);
+          }
+          var tapa = riesgoLinea(st, i).quien;
+          if (tapa) ty += (j.y >= tapa.y ? 1 : -1) * DM.linea_px;
+          ty = clamp(ty, j.banda[0], j.banda[1]);
         }
       }
       var v = V.posicionales_por_segundo || 55;
@@ -442,12 +465,15 @@
      V6 §2 R4: cada MOMENTO consume un bloque fijo de minutos (la perilla única
      TEMPO.MINUTOS_POR_MOMENTO define duración, decisiones y ritmo de una vez).
      Sin la perilla, cae al salto aleatorio clásico. */
-  function saltoReloj(st, rng) {
+  /* frac: 23/oct, con balance.flujo el pase y el centro gastan una parte del
+     momento (flujo.reloj); si no, con el doble de decisiones el partido duraba
+     la mitad */
+  function saltoReloj(st, rng, frac) {
     rng = rng || Math.random;
     var R = st.bal.ritmo, T = st.bal.tempo || {};
-    var salto = T.minutos_por_momento > 0
+    var salto = (T.minutos_por_momento > 0
       ? T.minutos_por_momento
-      : R.salto_accion_min + rng() * (R.salto_accion_max - R.salto_accion_min);
+      : R.salto_accion_min + rng() * (R.salto_accion_max - R.salto_accion_min)) * (frac != null ? frac : 1);
     st.minuto += salto;
     /* el tiempo que SALTA también recupera (si no, la regen del §7 es simbólica:
        el partido tiene ~10 min reales de juego libre y ~60' de saltos) */
@@ -849,7 +875,8 @@
     var dPase = dist(o.x, o.y, st.mios[receptorIdx].x, st.mios[receptorIdx].y);
     var rl = riesgoLinea(st, receptorIdx);          // V9 §7: quién estaba en la línea
     gastar(st, "mio", st.bal.aguante.costo_pase);
-    saltoReloj(st, rng);
+    var FL = st.bal.flujo;
+    saltoReloj(st, rng, FL && FL.activo ? FL.reloj.pase : 1);
     var roll = rng() * 100;
     var win = roll < pct;
     if (win) {
