@@ -74,7 +74,7 @@ const PRECACHE = [
   "./logic/duel.js", "./logic/perspectiva.js", "./logic/partido.js",
   "./logic/relator.js", "./logic/dialogo.js", "./logic/definicion.js", "./logic/master.js",
   "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
-  "./logic/jugadon.js", "./logic/toque.js", "./logic/flujo.js", "./logic/tutorial.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
+  "./logic/jugadon.js", "./logic/toque.js", "./logic/frente.js", "./logic/flujo.js", "./logic/tutorial.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
   "./logic/escudos.js", "./logic/ambiente.js", "./logic/vestir.js", "./logic/halo.js", "./logic/pierna.js", "./logic/lectura.js", "./logic/drama.js", "./logic/escalera.js",
   /* tanda 1.0 (L05): los seis módulos que index.html carga desde el
      verano y nunca entraron acá. Sin red, la segunda visita abría sin mapa
@@ -104,7 +104,7 @@ const PRECACHE = [
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
   "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
-  "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/toque_ui.js", "./scenes/escenas_v9.js", "./scenes/cine_arte.js", "./scenes/toma_remate.js", "./scenes/piel_ui.js",
+  "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/toque_ui.js", "./scenes/frente_ui.js", "./scenes/escenas_v9.js", "./scenes/cine_arte.js", "./scenes/toma_remate.js", "./scenes/piel_ui.js",
   "./scenes/escudos_ui.js", "./scenes/semana_ui.js", "./scenes/tribuna_ui.js", "./scenes/feel_ui.js", "./scenes/onda_ui.js", "./scenes/reloj.js",
   "./scenes/cartas_ui.js", "./scenes/foco_ui.js",
   "./data/balance.json",

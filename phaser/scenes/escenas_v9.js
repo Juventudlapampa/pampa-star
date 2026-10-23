@@ -431,7 +431,8 @@
     /* L04b · superDef: lo que se contestó en preguntarSuperDefensa (true =
        SÚPER DEFENSA, false = guardar el envión). Sin contestar (undefined) y
        con el envión lleno, primero se pregunta. */
-    escenaRemateRival(tiradorIdx, superDef) {
+    /* dada: la lectura ya hecha (el tiro libre de ellos, scenes/frente_ui.js) */
+    escenaRemateRival(tiradorIdx, superDef, dada) {
       var self = this, st = this.st, P = window.PampaPartido, D = window.PampaDefinicion;
       var feel = this.BAL.feel || {}, EP = this.BAL.escena_pase || {};
       var EV = this.BAL.envion || {};
@@ -444,7 +445,7 @@
       var aguanteMax = this.BAL.aguante.max;
 
       /* ---- LA VERDAD, UNA SOLA VEZ (antes de dibujar nada) ---- */
-      var lectura = D.remateRivalAuto({
+      var lectura = dada || D.remateRivalAuto({
         tirador: { x: tirador.x, y: tirador.y },
         arco: { x: 0, y: st.H / 2 },                       // mi arco vive en x=0 de la simulación
         defensores: st.mios.filter(function (j) { return j.pos !== "ARQ"; })
@@ -714,7 +715,8 @@
         solo_ante_el_arquero: "quedó solo contra tu arquero",
         de_lejos: "le pegó de lejos y tu arquero la vio venir",
         arquero_fundido: "tu arquero venía sin aire",
-        mano_a_mano: "mano a mano, cara a cara"
+        mano_a_mano: "mano a mano, cara a cara",
+        tiro_libre: "le pegó de tiro libre"
       };
       var base = M[lectura.motivo] || "";
       var extra = lectura.defensoresEnLinea

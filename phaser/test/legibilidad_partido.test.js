@@ -56,7 +56,7 @@ function escena(mixinsExtra, comoViene) {
   var E = PM.escena({
     logicaAntes: ["phaser/logic/duel.js", "phaser/logic/lectura.js"],
     logica: ["phaser/logic/cartas.js", "phaser/logic/jugadon.js", "phaser/logic/piel.js", "phaser/logic/tiro.js"],   // revisión final del 22/oct: el TIRO sin marca dice desde dónde pateás (tiroAuto)
-    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js", "phaser/scenes/toque_ui.js"].concat(mixinsExtra || [])   // 20/oct: el rótulo del TIRO pregunta toqueEnArea
+    mixins: ["phaser/scenes/cartas_ui.js", "phaser/scenes/jugadon_ui.js", "phaser/scenes/toque_ui.js", "phaser/scenes/frente_ui.js"].concat(mixinsExtra || [])   // 20/oct: el rótulo del TIRO pregunta toqueEnArea; 23/oct, pedido de Rodri: y frenteActivo
   });
   var s = E.s, W = E.W;
   W.PF = { texto: BAL.tipografia.texto, display: BAL.tipografia.display };

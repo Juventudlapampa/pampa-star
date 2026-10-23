@@ -64,7 +64,8 @@ function lineasCon(re) {
   var redes = lineasCon(/\.net\(\)/);
   /* L04b: la firma suma superDef (lo que se contestó a la pregunta de la
      SÚPER DEFENSA); la red del gol rival sigue sonando una vez, acá */
-  var remRival = cuerpo(V9, "escenaRemateRival(tiradorIdx, superDef) {");
+  /* 23/oct, pedido de Rodri: suma dada (la lectura del tiro libre de ellos) */
+  var remRival = cuerpo(V9, "escenaRemateRival(tiradorIdx, superDef, dada) {");
   var redesRival = (remRival.match(/\.net\(\)/g) || []).length;
   assert(redes.length === 1 + redesRival && redesRival === 1,
     "la red de un gol suena en DOS lugares: el festejo propio y el gol rival. Hay " + redes.length + ": " + redes.join(", "));

@@ -326,6 +326,7 @@
    "archivo": "pose_de_espaldas_sin_pelota.webp",
    "quien": "heroe",
    "n": "De espaldas sin la pelota",
+   "numero": { "caja": [0.33, 0.195, 0.65, 0.355], "sin_tocar": [0.33, 0.195], "_23oct": "El tiro libre de ellos (scenes/frente_ui.js) se ve desde atrás de quien patea, con esta pose teñida de naranja: sin esto salía con el 10 de la espalda y la placa decía otro número. caja: el 10, en fracciones del dibujo (en 872x1711: x 290-565, y 335-605). El archivo no se toca: la copia naranja lo borra en memoria (logic/halo.js, borrarNumero)." },
    "tonos": {
     "piel": "#f4bd91",
     "camiseta": "#71b8dd"

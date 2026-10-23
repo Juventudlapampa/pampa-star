@@ -174,6 +174,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._ladoTema = null;        // el motivo musical suena al cambiar el LADO, no en cada pase
     this._zonaTema = null;        // el tema del avance (propio/rival) arranca de cero
     this._megaRival = null;
+    this._fr = null;   // EL TIRO DE FRENTE: la foto abierta (frente_ui.js)
     this._tq = null; this._toqueN = 0; this._toqueRemate = null;   // EL TOQUE: la jugada abierta, la cuenta de semillas y lo que espera el remate
     this._hudMarc = this._hudReloj = this._hudGuts = this._hudEnvion = this._hudLblGuts = null;   // caches del HUD: el restart los recrea vacíos
     this.envionG = this.lblEnvion = this.txtEnvion = this.txtEnvionEstado = null;   // la poda del 22/oct: sin envión no se arman
@@ -715,6 +716,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            (la tribuna lo festejaba como recuperación); la recuperación tuya
            tiene sus claves (quite_win, corte_win, bloqueo_win) */
         quite_win: "quite", corte_win: "quite", bloqueo_win: "quite",
+        falta_a_favor: "falta_a_favor", falta_en_contra: "falta_en_contra",
         corte: "error", pared_lose: "error", defensa_lose: "error", gambeta_lose: "error", afuera: "error",
         final: (this.st && this.st.golesMio > this.st.golesRival) ? "resultado_gana"
           : (this.st && this.st.golesMio < this.st.golesRival) ? "resultado_pierde" : "resultado_empate",
@@ -3044,7 +3046,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         /* 20/oct, Rodri: adentro del área el remate lo decide EL TOQUE. Con un
            defensor al cruce, resolverTiro juega antes el duelo del bloqueo: ahí
            van el porcentaje de zafar y el aguante, y EL TOQUE como paso que sigue */
-        E: { texto: "TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : (libre || rivalIdx == null ? desde : pct(tir) + "%") + " · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
+        E: { texto: "TIRO", sub: !puedeT ? null : (this.FLAGS.v8_tiro_comandos !== false && !(this.frenteActivo() && !P.pelotaAltaVigente(st)) && this.toqueEnArea()) ? (libre || rivalIdx == null ? "EL TOQUE: acomodate y pegá" : pct(tir) + "% · " + this.BAL.aguante.costo_tiro + " aguante · TOQUE") : (libre || rivalIdx == null ? desde : pct(tir) + "%") + " · " + this.BAL.aguante.costo_tiro + " aguante", bloqueada: !puedeT || tir.bloqueada, motivo: !puedeT ? "de tu campo no llega" : tir.motivo, cb: () => this.resolverTiro(false, rivalIdx, libre) }
       },
       centro: unico || (listos ? {
         texto: "★ ESPECIAL", sub: listos + (listos === 1 ? " para usar" : " para elegir"),
@@ -3204,6 +3206,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         });
       }, rival, true);
     } else {
+      /* 23/oct: el quite o el bloqueo que te la saca puede ser falta (frente_ui.js) */
+      if (this.cobrarFalta({ aFavor: true, infractor: rivalJ, accion: r.accionRival, holgura: r.roll - r.chancePct / 100 })) return;
       P.perderPelota(st);
       /* oct 2026: la PARED cortada era un renglón de texto; la gambeta perdida,
          una viñeta. Misma acción, misma animación: el que se metió en el 1-2
@@ -3247,6 +3251,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const r = P.resolverDuelo(st, { accion: a.id, poder: a.poder, costo: a.costo });
     /* ANIME B (P2): las dos variantes defensivas de la gambeta — te la hacen / la defendés */
     if (r.win) {
+      /* 23/oct: tu quite o tu bloqueo también puede ser falta */
+      if (this.cobrarFalta({ aFavor: false, infractor: st.mios[st.ctrl], accion: a.id, holgura: r.chancePct / 100 - r.roll })) return;
       P.ganarDefensa(st);
       /* BLOQUE A · el quite fuera del área es TRÁMITE: se resuelve en la
          cancha y no corta. Adentro del área sube a jugada y sí se ve — es la
@@ -3375,6 +3381,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const r = P.resolverDuelo(st, { accion: "tiro", poder: acc ? acc.poder : 50, costo: 0, bonusRival: megaR ? megaR.bonus : 0 });
       if (megaR) st.aguanteRival = Math.max(0, st.aguanteRival - megaR.aguante * (this.BAL.aguante.cpu_factor_costo || 1));
       if (!r.win) {
+        /* 23/oct: el bloqueo que te tapa el tiro puede ser falta (frente_ui.js) */
+        if (!megaR && this.cobrarFalta({ aFavor: true, infractor: st.rivales[rivalIdx], accion: r.accionRival, holgura: r.roll - r.chancePct / 100 })) return;
         P.perderPelota(st);
         if (megaR) {
           const rival = st.rivales[rivalIdx];
@@ -3433,6 +3441,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this.hayEscenas()) {
       const j = st.mios[st.ctrl];
       if (j) this.quizasProfundo("tiro", { distanciaArco: Math.abs(st.W - j.x) }, { rival: true });
+    }
+    /* 23/oct, Rodri: con la pelota al pie se patea DE FRENTE AL ARCO
+       (scenes/frente_ui.js); el centro y el pase al aire siguen por EL TOQUE */
+    if (!mega && this.frenteActivo() && !P.pelotaAltaVigente(st)) {
+      this.entrarFrente({ sinIdx: !libre && rivalIdx != null ? rivalIdx : null });
+      return;
     }
     /* 20/oct, punto 5: adentro del área, EL TOQUE (scenes/toque_ui.js) decide
        la zona y el remate sigue por el camino de siempre */
@@ -6829,6 +6843,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        libre, rivales que vienen); el partido de abajo sigue congelado */
     if (this.estado === "JUGADON") { if (this.updateJugadonMini) this.updateJugadonMini(delta); return; }
     if (this.estado === "TOQUE") { this.updateToque(delta); return; }
+    if (this.estado === "FRENTE") { this.updateFrente(delta); return; }
     if (this.estado === "DEFINICION") { this.updateDefinicion(delta); return; }   // V6 §4
     /* §9 EN SERIO: fuera de LIBRE la simulación NO corre (pausa → animación → pausa,
        estados realmente separados — si no, rivalTira/final pisan la resolución) */
