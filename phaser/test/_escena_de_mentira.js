@@ -153,6 +153,22 @@ function armar(opts) {
       o.setY = function (v) { this.y = v; return this; };
       o.setDepth = function (v) { this.depth = v; return this; };
       o.setText = function (t) { this.text = String(t); medirTexto(this); return this; };
+      /* 23/oct: como Phaser, el texto envuelto al ancho de style.wordWrap
+         (con la misma letra de medirTexto); lo usa master.js escribir */
+      if (tipo === "Text") o.runWordWrap = function (t) {
+        var ww = this.style && this.style.wordWrap && this.style.wordWrap.width;
+        if (!ww) return String(t);
+        var porLetra = (parseInt(this.style.fontSize, 10) || 14) * 0.55;
+        return String(t).split("\n").map(function (par) {
+          var out = [], linea = "";
+          par.split(" ").forEach(function (p) {
+            var prueba = linea ? linea + " " + p : p;
+            if (linea && prueba.length * porLetra > ww) { out.push(linea); linea = p; } else linea = prueba;
+          });
+          out.push(linea);
+          return out.join("\n");
+        }).join("\n");
+      };
       /* 23/oct: la ×N de la semana se ubica midiendo (master.js, marcarVeces):
          la caja en pantalla y el grosor de la línea, como en Phaser */
       o.lineWidth = 0;

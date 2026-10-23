@@ -1141,6 +1141,8 @@
     "duracion_dos": true,
     "_musica_mezcla": "23/oct, pedido de Rodri: MEZCLA de estilos de música, la de fábrica (balance.musica.mezcla). false vuelve a FOLKLORE de fábrica y saca MEZCLA de OPCIONES.",
     "musica_mezcla": true,
+    "_entrevista_un_globo": "23/oct, pedido de Rodri: en la entrevista los diálogos están mal puestos y no se leen. Un solo globo que sale de quien habla, con su nombre arriba; el que escucha, apagado (master.js, globosDeLaEntrevista). false vuelve al globo de Nito con tu respuesta en una franja suelta.",
+    "entrevista_un_globo": true,
     "_toma_remate": "17/oct, pedido de Rodri: las animaciones 3D rompieron el juego. La toma del remate (scenes/toma_remate.js) queda APAGADA: vuelven la viñeta EL REMATE y, en el súper tiro, la carga y el plano del pie. El código sigue, no se borra todavía.",
     "toma_remate": false,
     "toque": true,

@@ -184,5 +184,55 @@ function interactivosVisibles(s) {
   console.log("[5] oyentes de shutdown en 4 arranques: " + cuentas.join(", "));
 })();
 
+/* ---------- [6] LA ENTREVISTA, UNA VOZ POR VEZ ----------
+   23/oct, Rodri: "en la entrevista los diálogos están mal puestos y no se
+   leen". Tu respuesta salía en una franja oscura suelta debajo del globo de
+   Nito, con el globo de Nito vacío al lado. Ahora (flags.entrevista_un_globo)
+   hay un solo globo: su nombre arriba, el texto adentro, el que escucha
+   apagado y las respuestas cuando terminó la pregunta. */
+(function () {
+  var s = escenaConCarrera();
+  s.save = null;
+  s._crearCarrera = function () { };
+  var Wd = s.scale.width;
+  var bx = 168, derecha = Wd - 160;
+  var dialogo = function () {
+    return s.children.list.filter(function (o) { return o.type === "Text" && o.active !== false && o.x === bx + 18; });
+  };
+  var velos = function () { return s.children.list.filter(function (o) { return o.type === "Rectangle" && o.fillColor === 0x060f0a; }); };
+  s.vistaOrigen("primera_b");
+  var d = dialogo();
+  assert(d.length === 2 && /NITO CARRIZO/.test(d[0].text) && d[0].y < d[1].y, "pregunta Nito: su nombre arriba y el texto abajo, en el mismo globo (" + d.map(function (t) { return t.text.slice(0, 20); }).join(" | ") + ")");
+  assert(parseInt(d[1].style.fontSize, 10) >= 17 && parseInt(d[0].style.fontSize, 10) >= 13, "el texto del globo va a 17 px y el nombre a 14");
+  var v = velos();
+  assert(v.length === 2 && v.filter(function (r) { return r.visible; }).length === 1 && v.filter(function (r) { return r.visible; })[0].x > Wd / 2,
+    "mientras pregunta Nito, el apagado es tu retrato (derecha)");
+  assert(s.tocables().length === 0, "con la pregunta escribiéndose no hay respuestas");
+  s.leerHastaElFinal();
+  var b = d[1].getBounds();
+  assert(b.left >= bx + 18 && b.right <= derecha - 18, "el texto entero entra en el ancho del globo (" + Math.round(b.left) + " a " + Math.round(b.right) + ", globo de " + bx + " a " + derecha + ")");
+  assert(s.tocables().length === 4 && s.textos().some(function (t) { return /no hay opción mala/.test(t); }), "terminada la pregunta, abajo las cuatro respuestas y la ayuda");
+  /* contestar: primero hablás vos, en el mismo globo, y Nito escucha */
+  s.teclas("ONE");
+  d = dialogo();
+  assert(d.length === 2 && d[0].text === "VOS", "tu respuesta la decís vos, con VOS arriba (" + d.map(function (t) { return t.text.slice(0, 20); }).join(" | ") + ")");
+  v = velos();
+  assert(v.filter(function (r) { return r.visible; }).length === 1 && v.filter(function (r) { return r.visible; })[0].x < Wd / 2, "mientras hablás vos, el apagado es Nito (izquierda)");
+  var sueltos = s.children.list.filter(function (o) { return o.type === "Text" && o.style && o.style.backgroundColor === "#0a1f13dd"; });
+  assert(sueltos.length === 0, "SÍNTOMA: la respuesta en una franja oscura suelta, fuera del globo (" + sueltos.length + ")");
+  s.tocarAfuera();
+  d = dialogo();
+  assert(/NITO CARRIZO/.test(d[0].text) && v.filter(function (r) { return r.visible; })[0].x > Wd / 2, "terminada tu respuesta, el globo vuelve a Nito para la pregunta siguiente");
+  assert(s.textos().filter(function (t) { return t === "VOS"; }).length === 0, "y una sola voz por vez: VOS ya no está arriba del globo");
+  /* con la perilla apagada vuelve lo de antes */
+  var s2 = escenaConCarrera();
+  s2.save = null;
+  s2.game.registry.set("balance", Object.assign({}, s2.game.registry.get("balance"), { flags: Object.assign({}, s2.game.registry.get("balance").flags, { entrevista_un_globo: false }) }));
+  s2.vistaOrigen("primera_b"); s2.leerHastaElFinal(); s2.teclas("ONE");
+  assert(s2.children.list.some(function (o) { return o.type === "Text" && o.style && o.style.backgroundColor === "#0a1f13dd"; }), "con flags.entrevista_un_globo en false vuelve la respuesta en su franja");
+  s2.game.registry.set("balance", Object.assign({}, s2.game.registry.get("balance"), { flags: Object.assign({}, s2.game.registry.get("balance").flags, { entrevista_un_globo: true }) }));
+  console.log("[6] la entrevista: un globo, nombre arriba, el que escucha apagado, respuestas al final");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);

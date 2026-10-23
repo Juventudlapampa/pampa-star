@@ -1452,9 +1452,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const E = this.game.registry.get("entrevista");
     const qe = E && E.preguntas && E.preguntas[p.id];
     this.add.text(W / 2, 34, "TU HISTORIA · " + (paso + 1) + " de 3", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    const tDice = qe ? this.entrevistador(E, qe.dice) : null;
+    /* 23/oct, Rodri: "los diálogos están mal puestos y no se leen". Con
+       flags.entrevista_un_globo habla uno por vez, en un globo que sale de
+       quien habla (globosDeLaEntrevista); con false, lo de antes */
+    const unGlobo = !!(qe && this.game.registry.get("balance").flags.entrevista_un_globo);
+    const voces = unGlobo ? this.globosDeLaEntrevista(E) : null;
+    const tDice = qe && !unGlobo ? this.entrevistador(E, qe.dice) : null;
     /* D5 · y de este lado estás vos, con la pinta que elegiste recién */
-    if (qe) this.entrevistado();
+    if (qe) { if (!unGlobo) this.entrevistado(); }
     else this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
     /* O1 · las cuatro respuestas estaban en columna desde y=150, o sea ARRIBA.
        Bajan a la franja de decisión: 4 de 52 px entran justo en los 212 útiles
@@ -1464,6 +1469,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        antes de que Nito terminara de preguntar. Aparecen cuando la pregunta
        terminó de escribirse, o cuando un toque la completa */
     const ponerOpciones = () => {
+      /* con un globo, la ayuda de las respuestas sale con ellas */
+      if (unGlobo) ayuda();
       const pielCfg = (this.game.registry.get("balance") || {}).piel;
       const _focoEnt = [];
       p.opciones.forEach((o, i) => {
@@ -1499,7 +1506,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (qe) {
       const qAntes = paso > 0 && E.preguntas[D.origen[paso - 1].id];
       const dichaAntes = qAntes && qAntes.respuestas && qAntes.respuestas[elegidas[paso - 1]];
-      if (dichaAntes) {
+      const preguntar = () => voces.decir("nito", qe.dice, ponerOpciones);
+      if (unGlobo && dichaAntes) voces.decir("vos", "«" + dichaAntes + "»", preguntar);
+      else if (unGlobo) preguntar();
+      else if (dichaAntes) {
         tDice.setText("");
         const tEco = this.add.text(W - 156, 196, "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 3 } }).setOrigin(1, 0.5);
         /* 22/oct, Rodri: el eco decía "▼ VOS:" al lado de la placa "▼ VOS" de
@@ -1511,16 +1521,74 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        opción, y quedaba tapado. Y decía dos cosas: cómo se toca (que el jugador
        descubre solo) y que no hay opción mala (que sí importa, porque saca el
        miedo a equivocarse). Queda la segunda, arriba de las opciones. */
-    this.add.text(W / 2, 246, "no hay opción mala: elegís quién sos, no cuánto sumás", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+    const ayuda = () => this.add.text(W / 2, 246, "no hay opción mala: elegís quién sos, no cuánto sumás", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+    if (!unGlobo) ayuda();
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     23/oct · LA ENTREVISTA, UNA VOZ POR VEZ (flags.entrevista_un_globo).
+
+     Rodri: "los diálogos están mal puestos y no se leen". Medido a 960x540
+     con getBounds: tu respuesta salía en una franja oscura suelta (x 300 a
+     804, y 184 a 209), debajo del globo de Nito y lejos de tu retrato,
+     mientras el globo de Nito quedaba vacío al lado; el nombre de Nito
+     ocupaba un renglón de 449 px y la pregunta iba a 15 px.
+
+     Ahora hay UN globo entre los dos retratos: sale de quien habla (la cola
+     apunta a su cara), lleva su nombre arriba, crece con el texto y el que
+     escucha queda apagado. Quién habla se lee por la cola, el nombre y el
+     retrato encendido, no por un color. Las respuestas aparecen abajo
+     cuando terminó la pregunta (vistaOrigen, ponerOpciones).
+     ══════════════════════════════════════════════════════════════════════ */
+  globosDeLaEntrevista(E) {
+    const W = this.scale.width;
+    const y = 118;                                  // la altura de las dos caras
+    this.entrevistador(E, null, y);
+    this.entrevistado();
+    /* las placas con el nombre debajo de cada cara */
+    this.add.text(96, y + 80, "NITO", {
+      fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold",
+      color: "#0a1f13", backgroundColor: "#F5C400", padding: { x: 8, y: 3 }
+    }).setOrigin(0.5);
+    /* el que escucha, apagado: un velo sobre su marco y su placa */
+    const velo = {
+      nito: this.add.rectangle(96, y + 17, 112, 150, 0x060f0a, 0.6).setVisible(false),
+      vos: this.add.rectangle(W - 92, y + 17, 112, 150, 0x060f0a, 0.6).setVisible(false)
+    };
+    const bx = 168, bw = (W - 160) - bx, top = y - 52;
+    const globo = this.add.graphics();
+    const nombre = this.add.text(bx + 18, top + 12, "", { fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: "#365a41" });
+    const cuerpo = this.add.text(bx + 18, top + 36, "", {
+      fontFamily: window.PF.texto, fontSize: "17px", color: "#0a1f13", wordWrap: { width: bw - 36 }, lineSpacing: 3
+    });
+    const nombres = { nito: (E.entrevistador && E.entrevistador.placa) || "NITO", vos: "VOS" };
+    const decir = (quien, texto, alTerminar) => {
+      /* el alto sale del texto entero ya envuelto: el globo no crece letra a letra */
+      cuerpo.setText(texto);
+      const alto = Math.max(100, 36 + cuerpo.height + 18);
+      cuerpo.setText("");
+      nombre.setText(nombres[quien]);
+      globo.clear();
+      globo.fillStyle(0xf6efdc, 0.97);
+      globo.fillRoundedRect(bx, top, bw, alto, 8);
+      if (quien === "nito") globo.fillTriangle(bx + 1, y - 10, bx + 1, y + 14, bx - 18, y + 2);
+      else globo.fillTriangle(bx + bw - 1, y - 10, bx + bw - 1, y + 14, bx + bw + 18, y + 2);
+      globo.lineStyle(3, 0x0a1f13, 1);
+      globo.strokeRoundedRect(bx, top, bw, alto, 8);
+      velo.nito.setVisible(quien !== "nito");
+      velo.vos.setVisible(quien !== "vos");
+      this.escribir(cuerpo, texto, quien, alTerminar);
+    };
+    return { decir, globo, nombre, cuerpo, velo };
   }
 
   /* O2 · EL ENTREVISTADOR: quién pregunta, y la pregunta como globo de diálogo.
      Se dibuja con Graphics — no hay retrato de periodista en assets/, y pedirlo
      era detener el punto. La silueta con el micrófono alcanza para que se
      entienda que hay alguien enfrente; el retrato queda como pedido de arte. */
-  entrevistador(E, dice) {
+  entrevistador(E, dice, yRetrato) {
     const W = this.scale.width;
-    const x = 96, y = 108;
+    const x = 96, y = yRetrato || 108;
     const g = this.add.graphics();
     /* A1 · EL RETRATO DE NITO. Antes esto era un muneco geometrico —un circulo
        de cabeza, un rectangulo de torso y un microfono dibujado— que se leia
@@ -1548,6 +1616,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     g.fillStyle(0x232323, 1); g.fillRoundedRect(x + 26, y + 2, 12, 34, 5);
     g.fillStyle(0x9fb3a5, 1); g.fillCircle(x + 32, y + 2, 9);
     }
+    /* sin pregunta, solo el retrato (la entrevista de un globo) */
+    if (dice == null) return null;
     /* el globo de diálogo */
     /* D5 · el globo llegaba hasta W-40 y ahora hay ALGUIEN de ese lado: tu
        retrato ocupa de W-144 a W-40, así que el texto se metía abajo y la
