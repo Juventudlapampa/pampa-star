@@ -500,16 +500,46 @@ window.PampaAvatarArte = (function () {
      colorado, el 10 en la espalda). Copia en memoria, el archivo no se toca:
      se borra el pintado (borrarNumero, la caja del manifiesto) y se escribe
      el de quien juega con los trazos de logic/halo.js (dorsal), girado y del
-     alto del original, blanco con su línea */
-  function renumerarImagen(scene, srcKey, dstKey, numero, texto) {
+     alto del original, blanco con su línea. Con espejo, para la figura que
+     se ve con flipX: el número va reflejado sobre su eje (el vertical girado
+     con su inclinación) y al espejarla se lee al derecho, inclinado como la
+     espalda espejada.
+     La copia va achicada a ALTO_COPIA: la de espaldas entera (872x1711) eran
+     6 MB y 43 a 94 ms por jugador; en pantalla ninguna pasa de 420 de alto en
+     el lienzo de 960x540. El pintado se borra a la medida del dibujo, en un
+     pedazo aparte con su caja, y ese pedazo se pega achicado. El pedazo
+     borrado es el mismo para todos los que usan ese dibujo: se guarda (lo
+     lento era borrar, unos 45 ms, y se hacía una vez por jugador) */
+  var ALTO_COPIA = 720, borrados = {};
+  function renumerarImagen(scene, srcKey, dstKey, numero, texto, espejo) {
     if (scene.textures.exists(dstKey)) return dstKey;
     if (!scene.textures.exists(srcKey)) return null;
     if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(srcKey);
-    var src = scene.textures.get(srcKey).getSourceImage(), W = src.width, H = src.height;
+    var src = scene.textures.get(srcKey).getSourceImage(), Wo = src.width, Ho = src.height;
+    var esc = Math.min(1, ALTO_COPIA / Ho), W = Math.round(Wo * esc), H = Math.round(Ho * esc);
     var cv = scene.textures.createCanvas(dstKey, W, H), c = cv.getContext();
-    c.drawImage(src, 0, 0);
-    borrarNumeroEnCanvas(c, W, H, numero);
+    c.drawImage(src, 0, 0, W, H);
+    var M = 9, Hl = window.PampaHalo;
+    var x0 = Math.max(0, Math.round(numero.caja[0] * Wo) - M), y0 = Math.max(0, Math.round(numero.caja[1] * Ho) - M);
+    var x1 = Math.min(Wo, Math.round(numero.caja[2] * Wo) + M + 1), y1 = Math.min(Ho, Math.round(numero.caja[3] * Ho) + M + 1);
+    var pz = borrados[srcKey];
+    if (!pz) {
+      pz = borrados[srcKey] = document.createElement("canvas"); pz.width = x1 - x0; pz.height = y1 - y0;
+      var pc = pz.getContext("2d");
+      pc.drawImage(src, x0, y0, pz.width, pz.height, 0, 0, pz.width, pz.height);
+      var img = pc.getImageData(0, 0, pz.width, pz.height);
+      Hl.borrarNumero(img.data, img.width, img.height, Hl.cajaDeNumero(numero, Wo, Ho, x0, y0));
+      pc.putImageData(img, 0, 0);
+    }
+    c.drawImage(pz, x0 * esc, y0 * esc, pz.width * esc, pz.height * esc);
     var D = window.PampaHalo.dorsal(texto, numero, W, H);
+    var a = numero.inclinacion * Math.PI / 180, ex = -Math.sin(a), ey = Math.cos(a), cx = numero.centro[0] * W, cy = numero.centro[1] * H;
+    if (espejo) D.trazos = D.trazos.map(function (pl) {
+      return pl.map(function (pt) {
+        var vx = pt.x - cx, vy = pt.y - cy, k = 2 * (vx * ex + vy * ey);
+        return { x: cx + k * ex - vx, y: cy + k * ey - vy };
+      });
+    });
     c.lineJoin = "round"; c.lineCap = "round";
     [[D.linea, D.grosor + 2 * D.borde], ["#ffffff", D.grosor]].forEach(function (capa) {
       c.strokeStyle = capa[0]; c.lineWidth = capa[1];

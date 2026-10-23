@@ -98,8 +98,52 @@ console.log("[1] " + mios.length + " identidades tuyas con su número medido, y 
   assert(s.conSuNumero("ident_rival_mohicano", { numero: 3 }) === "ident_rival_mohicano" && pedidos.length === n, "[4] las del rival (a rayas) quedan como están");
   assert(s.conSuNumero("pose_remate", { numero: 3 }, "remate") === "pose_remate", "[4] una pose sin medidas para escribir queda como está");
   const V9 = fs.readFileSync(path.join(RAIZ, "phaser/scenes/escenas_v9.js"), "utf8");
-  assert(/this\.add\.image\(x, y, this\.conSuNumero \? this\.conSuNumero\(k, j, poseId\) : k\)/.test(V9), "[4] el cine (figuraDePlano) pide la copia con su número");
+  /* revisión del 23/oct: ahora con flip, para que la espejada lleve el número al revés ([5]) */
+  assert(/this\.add\.image\(x, y, this\.conSuNumero \? this\.conSuNumero\(k, j, poseId, !!flip\) : k\)/.test(V9), "[4] el cine (figuraDePlano) pide la copia con su número");
   console.log("[4] el 2 con la del colorado, BRUNO de espaldas y el rival con el 10, con su número; VOS y el 8, el dibujo tal cual");
+}
+
+/* [5] revisión del 23/oct: la figura espejada (sin _izq) lleva el número
+   escrito al revés, para que con flipX se lea al derecho, y el número de
+   quien juega va en todos los lugares donde aparece su ilustración */
+{
+  const E = require("./_partido_de_mentira.js").escena({ mixins: ["phaser/scenes/escenas_v9.js"] });
+  const s = E.s, pedidos = [];
+  s._identMan = MAN;
+  s.game = { registry: { get: k => (k === "poses" ? POSES : null) } };
+  E.W.PampaAvatarArte = { renumerarImagen: (sc, src, dst, num, txt, espejo) => { pedidos.push({ dst, espejo }); return dst; } };
+  assert(s.conSuNumero("ident_jugador_colorado", { nombre: "Lautaro", numero: 2 }, null, true) === "ident_jugador_colorado_n2e" && pedidos[0].espejo === true,
+    "[5] SÍNTOMA: Lautaro corriendo a la izquierda con la del colorado, el 2 espejado");
+  assert(s.conSuNumero("ident_jugador_colorado", { nombre: "Lautaro", numero: 2 }) === "ident_jugador_colorado_n2" && pedidos[1].espejo === false, "[5] sin espejo, la copia de siempre");
+  assert(s.conSuNumero("ident_jugador_colorado", { nombre: "Fede", numero: 8 }, null, true) === "ident_jugador_colorado_n8e", "[5] el 8 pintado, espejado, también se reescribe");
+  const MATCH = fs.readFileSync(path.join(RAIZ, "phaser/scenes/match.js"), "utf8");
+  const TOQUE = fs.readFileSync(path.join(RAIZ, "phaser/scenes/toque_ui.js"), "utf8");
+  const ARTE = fs.readFileSync(path.join(RAIZ, "phaser/scenes/avatar_arte.js"), "utf8");
+  assert(/return this\.conSuNumero\(conIzq \? k \+ "_izq" : k, p\.j, null, izq && !conIzq\)/.test(MATCH), "[5] el panel del partido, con su número");
+  assert(/kPose = this\.conSuNumero\(kPose, cfg\.prota\.j/.test(MATCH), "[5] la escena del cine (escenaCine), con su número");
+  assert(/this\.add\.image\(-220, 290, this\.conSuNumero\(remCut\.key, j\)\)/.test(MATCH), "[5] el cut-in del súper tiro, con su número");
+  assert(/rem \? this\.conSuNumero\(rem\.key, j\)/.test(MATCH), "[5] el plano del pie, con su número");
+  assert(/this\.conSuNumero\(ki, tq\.j, null, espT\)/.test(TOQUE) && /tq\.prota\.setFlipX\(espT\)/.test(TOQUE), "[5] EL TOQUE, con su número y al derecho cuando se da vuelta");
+  /* el reflejo de renumerarImagen, sobre el eje del número girado: espejar la
+     figura después lo deja como el dorsal del otro lado con la inclinación
+     contraria (la espalda espejada) */
+  {
+    const cuerpo = ARTE.match(/if \(espejo\) D\.trazos = D\.trazos\.map\(function \(pl\) \{([\s\S]*?)\n    \}\);/);
+    assert(!!cuerpo, "[5] renumerarImagen refleja los trazos con espejo");
+    const num = { alto: 0.2, ancho: 0.2, trazo: 0.15, inclinacion: 12, centro: [0.4, 0.3] }, W = 600, H = 600;
+    const reflejar = new Function("D", "cx", "cy", "ex", "ey", "D.trazos = D.trazos.map(function (pl) {" + cuerpo[1] + "\n}); return D;");
+    const a = num.inclinacion * Math.PI / 180;
+    const R = reflejar(HALO.dorsal("27", num, W, H), num.centro[0] * W, num.centro[1] * H, -Math.sin(a), Math.cos(a));
+    const esperado = HALO.dorsal("27", Object.assign({}, num, { inclinacion: -12, centro: [1 - num.centro[0], num.centro[1]] }), W, H);
+    let err = 0;
+    R.trazos.forEach((pl, i) => pl.forEach((p, k) => { err = Math.max(err, Math.abs((W - p.x) - esperado.trazos[i][k].x), Math.abs(p.y - esperado.trazos[i][k].y)); }));
+    assert(err < 1e-6, "[5] espejada, el 27 se lee al derecho e inclinado como la espalda espejada (error " + err + ")");
+  }
+  /* la copia achicada: la de espaldas (872x1711) eran 6 MB por jugador */
+  const alto = +(ARTE.match(/var ALTO_COPIA = (\d+),/) || [])[1];
+  assert(/var pz = borrados\[srcKey\];/.test(ARTE), "[5] el pedazo borrado se hace una vez por dibujo, no una por jugador");
+  assert(alto > 0 && alto <= 760 && 872 * (alto / 1711) * alto * 4 < 1.5e6, "[5] la copia de espaldas pesa menos de 1,5 MB");
+  console.log("[5] espejada al derecho; panel, cine, cut-in, plano del pie y EL TOQUE con su número; copia achicada");
 }
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

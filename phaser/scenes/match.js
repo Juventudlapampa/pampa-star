@@ -1664,8 +1664,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      escrito encima (avatar_arte.js, renumerarImagen); el archivo no se toca.
      Las medidas son las del manifiesto (identidades: numero, numero_izq,
      remate.numero; poses: numero con alto). VOS con el 10 dibujado, y quien
-     lleva el número que ya está pintado, quedan con el original */
-  conSuNumero(k, j, poseId) {
+     lleva el número que ya está pintado, quedan con el original. espejo: la
+     figura se va a ver con flipX (sin su _izq); el número va al revés para
+     que se lea al derecho, aunque sea el pintado */
+  conSuNumero(k, j, poseId, espejo) {
     const AA = window.PampaAvatarArte;
     if (!k || !j || j.numero == null || !AA || !AA.renumerarImagen) return k;
     let num = null, pintado = null;
@@ -1682,9 +1684,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     /* la copia naranja del rival ya viene sin número (pedidoRivalNaranja):
        a esa se le escribe aunque sea el 10 */
-    if (!num || !num.alto || (pintado === j.numero && k.indexOf("poseR_") !== 0)) return k;
+    if (!num || !num.alto || (pintado === j.numero && !espejo && k.indexOf("poseR_") !== 0)) return k;
 
-    return AA.renumerarImagen(this, k, k + "_n" + j.numero, num, String(j.numero)) || k;
+    return AA.renumerarImagen(this, k, k + "_n" + j.numero + (espejo ? "e" : ""), num, String(j.numero), !!espejo) || k;
   }
   /* 22/oct, Rodri: cuando remataba un compañero o un rival salía el 10 o la
 
@@ -1822,7 +1824,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
     if (!p.j.esVos) {
       const k = this.identidadDe(p.j, p.esRival);
-      if (k) return izq && this.textures.exists(k + "_izq") ? k + "_izq" : k;
+      if (k) {
+        const conIzq = izq && this.textures.exists(k + "_izq");
+        return this.conSuNumero(conIzq ? k + "_izq" : k, p.j, null, izq && !conIzq);
+      }
     }
     /* V7-1 §4: el que corre arriba TENÉS QUE SER VOS — la pose del héroe
        teñida con tu pinta guardada (piel/pelo del catálogo + tono de camiseta
@@ -3826,7 +3831,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        foco es la pelota con el pie de apoyo al lado, y menos zoom, porque
        ese dibujo está bajado a 420 de alto */
     const rem = this.remateDe(j, false), pel = rem ? rem.pelota : def.pelota;
-    const pie = this.add.sprite(0, 0, rem ? rem.key : ((j && j.esVos && this.poseHeroeTenida(j, "remate")) || this.figuraCine("remate", "planoPie")));
+    const pie = this.add.sprite(0, 0, rem ? this.conSuNumero(rem.key, j) : ((j && j.esVos && this.poseHeroeTenida(j, "remate")) || this.figuraCine("remate", "planoPie")));
     const fx = rem ? pel.x : (pi.tobillo[0] + pi.punta[0] + pel.x) / 3, fy = rem ? pel.y - pel.r : (pi.tobillo[1] + pi.punta[1] + pel.y) / 3;
     const s = (H * (rem ? 1.6 : 2.2)) / pie.height, dW = pie.width * s, dH = pie.height * s;
     pie.setOrigin(fx, fy).setScale(s);
@@ -5049,6 +5054,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* 22/oct: un compañero o un rival que remata o toca el pase, con la pose de remate de su identidad (mira a la derecha: espejada no) */
       remProta = (poseId === "remate" || poseId === "pared") && !cfg.poseFlip && cfg.prota ? this.remateDe(cfg.prota.j, cfg.prota.esRival) : null;
       if (remProta) kPose = remProta.key;
+      /* 23/oct: con el número de quien juega, como en la viñeta del pase */
+      if (cfg.prota && cfg.prota.j) kPose = this.conSuNumero(kPose, cfg.prota.j, remProta ? null : poseId, !!cfg.poseFlip);
       sp = this.add.image(-200, H * 0.52, kPose);
       sp.setScale((cfg.especial ? 420 : 360) / sp.height);
       if (cfg.poseFlip) sp.setFlipX(true);
@@ -5459,7 +5466,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const idCut = (jRet && jRet.pos === "ARQ") ? "arquero_ataja" : (esRivalRet ? "barrida" : "remate");
     /* 22/oct: el súper tiro de un compañero, con su pose de remate y la pelota del juego al pie */
     const remCut = idCut === "remate" ? this.remateDe(j, false) : null;
-    const spr = remCut ? this.add.image(-220, 290, remCut.key) : this.poseSprite(idCut, -220, 290, 380, () => {
+    const spr = remCut ? this.add.image(-220, 290, this.conSuNumero(remCut.key, j)) : this.poseSprite(idCut, -220, 290, 380, () => {
       const im = this.add.image(0, 0, this.retratoKey(j, !!esRivalRet, esRivalRet ? "frustrado" : "triunfante"));
       im.setScale(300 / im.height);
       return im;

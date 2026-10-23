@@ -115,7 +115,7 @@
       if (rem) k = rem.key;
       if (k) {
         /* 23/oct, Rodri: con el número de quien juega (match.js, conSuNumero) */
-        sp = this.add.image(x, y, this.conSuNumero ? this.conSuNumero(k, j, poseId) : k);
+        sp = this.add.image(x, y, this.conSuNumero ? this.conSuNumero(k, j, poseId, !!flip) : k);
 
         if (rem) sp._pelota = rem.pelota;
         /* A3: por alto_rel del manifiesto — las figuras acostadas (el arquero
