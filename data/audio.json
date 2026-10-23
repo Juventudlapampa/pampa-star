@@ -89,21 +89,36 @@
   }
  },
  "estilos": {
-  "_doc": "20/oct, los estilos de OPCIONES (balance.musica.estilos). Cada estilo trae sus temas con los mismos ids de 'temas'. Un momento que el estilo no tenga suena el tema base del momento (de semana_alt pasa a semana) y, si tampoco está, el 'partido' del mismo estilo: nunca el FOLKLORE de 'temas' en medio de otro estilo (logic/musica.js, mapaCompleto). Un estilo se puede elegir cuando trae 'partido' (logic/opciones.js). Los seis salieron de Gemini, 'Crear música', instrumental, una conversación por tema; los cortes, los prompts y la licencia [FALTA DATO] están en .claude/nuevos/musica/LEEME.txt, sección del 20/10/2026. Mismo formato que los de 'temas': Opus 48 kHz estéreo 96k, -16,0 LUFS.",
+  "_doc": "20/oct, los estilos de OPCIONES (balance.musica.estilos). Cada estilo trae sus temas con los mismos ids de 'temas'. Un momento que el estilo no tenga suena el tema base del momento (de semana_alt pasa a semana) y, si tampoco está, el 'partido' del mismo estilo: nunca el FOLKLORE de 'temas' en medio de otro estilo (logic/musica.js, mapaCompleto). Un estilo se puede elegir cuando trae 'partido' (logic/opciones.js). Los dieciocho (seis por estilo) salieron de Gemini, 'Crear música', instrumental, una conversación por tema; los cortes, los prompts y la licencia [FALTA DATO] están en .claude/nuevos/musica/LEEME.txt, secciones del 20/10/2026 (partido y semana) y del 22/10/2026 (opening, tramo final, cierre y derrota). Mismo formato que los de 'temas': Opus 48 kHz estéreo 96k, -16,0 LUFS. 22/oct: con el estilo elegido, la intro, el tramo final (y la Definición y el jugadón, que lo comparten), el cierre al ganar o empatar, el cierre al perder y el ascenso suenan en ese estilo. Solo la entrada a la cancha sigue en el partido del estilo: mismo archivo, de la entrada al partido no se corta.",
   "cuarteto": {
    "partido": { "archivo": "cuarteto_partido_loop.ogg", "loop": true, "n": "El partido (cuarteto)", "_corte": "16 compases a 138,7 por minuto = 27,69 s." },
    "semana": { "archivo": "cuarteto_semana_loop.ogg", "loop": true, "n": "La semana (cuarteto)", "_corte": "24 compases a 110 por minuto = 52,38 s." },
-   "espera": { "archivo": "cuarteto_semana_loop.ogg", "loop": true, "n": "La espera (cuarteto)", "_comparte": "el de la semana: la generación trajo dos temas por estilo y el de la semana es también el del menú. Mismo archivo, mismo elemento: de la tabla a la semana sigue sin cortarse." }
+   "espera": { "archivo": "cuarteto_semana_loop.ogg", "loop": true, "n": "La espera (cuarteto)", "_comparte": "el de la semana: la generación trajo dos temas por estilo y el de la semana es también el del menú. Mismo archivo, mismo elemento: de la tabla a la semana sigue sin cortarse." },
+   "opening": { "archivo": "cuarteto_opening.ogg", "loop": false, "n": "El opening (cuarteto)", "_corte": "20,0 s desde la entrada de la última parte fuerte del tema (137,40 s), salida de 2 s: termina con el logo, como el de folklore." },
+   "partido_final": { "archivo": "cuarteto_tramo_final_loop.ogg", "loop": true, "n": "El tramo final (cuarteto)", "_corte": "16 compases a 151 por minuto = 25,43 s. Empalme: parecido 0,644, sin clic." },
+   "gol_festejo": { "archivo": "cuarteto_cierre.ogg", "loop": false, "n": "El cierre: ganaste o empataste (cuarteto)", "_corte": "El acorde final del tema del partido del cuarteto, 2,5 s: entra completo en los 2,6 s de balance.musica.final_ms." },
+   "derrota": { "archivo": "cuarteto_derrota.ogg", "loop": false, "n": "El cierre: perdiste (cuarteto)", "_corte": "2,5 s con salida de 1 s. OJO: las dos derrotas que dio Gemini terminan en Fa mayor; es la más triste de las dos, no una en menor." },
+   "hype_carrera": { "archivo": "cuarteto_opening.ogg", "loop": false, "n": "Ascenso, título, gloria (cuarteto)", "_comparte": "el opening del estilo. En folklore el ascenso es el hermano del opening; sin un hermano en cuarteto, suena el himno del estilo y no el loop del partido. Mismo archivo, mismo elemento que el opening." }
   },
   "rock": {
    "partido": { "archivo": "rock_partido_loop.ogg", "loop": true, "n": "El partido (rock)", "_corte": "16 compases a 160 por minuto = 24,00 s." },
    "semana": { "archivo": "rock_semana_loop.ogg", "loop": true, "n": "La semana (rock)", "_corte": "16 compases a 85 por minuto = 45,18 s. El empalme más flojo de los seis (similitud 0,828) y un tramo unos 2,5 dB más bajo adentro." },
-   "espera": { "archivo": "rock_semana_loop.ogg", "loop": true, "n": "La espera (rock)", "_comparte": "el de la semana, como en cuarteto" }
+   "espera": { "archivo": "rock_semana_loop.ogg", "loop": true, "n": "La espera (rock)", "_comparte": "el de la semana, como en cuarteto" },
+   "opening": { "archivo": "rock_opening.ogg", "loop": false, "n": "El opening (rock)", "_corte": "20,0 s desde el primer golpe de toda la banda (0,55 s), salida de 2 s. Tiene un hueco de toda la banda de 0,7 a 1,0 s." },
+   "partido_final": { "archivo": "rock_tramo_final_loop.ogg", "loop": true, "n": "El tramo final (rock)", "_corte": "12 compases a 152 por minuto = 18,95 s. Empalme: parecido 0,781, sin clic." },
+   "gol_festejo": { "archivo": "rock_cierre.ogg", "loop": false, "n": "El cierre: ganaste o empataste (rock)", "_corte": "El acorde final del opening del rock, 2,5 s." },
+   "derrota": { "archivo": "rock_derrota.ogg", "loop": false, "n": "El cierre: perdiste (rock)", "_corte": "El acorde final de la derrota generada, en Sol sostenido menor, 2,5 s con salida de 1 s." },
+   "hype_carrera": { "archivo": "rock_opening.ogg", "loop": false, "n": "Ascenso, título, gloria (rock)", "_comparte": "el opening del estilo, como en cuarteto" }
   },
   "rap": {
    "partido": { "archivo": "rap_partido_loop.ogg", "loop": true, "n": "El partido (rap)", "_corte": "20 compases a 93 por minuto = 51,57 s." },
    "semana": { "archivo": "rap_semana_loop.ogg", "loop": true, "n": "La semana (rap)", "_corte": "16 compases a 84 por minuto = 45,71 s." },
-   "espera": { "archivo": "rap_semana_loop.ogg", "loop": true, "n": "La espera (rap)", "_comparte": "el de la semana, como en cuarteto" }
+   "espera": { "archivo": "rap_semana_loop.ogg", "loop": true, "n": "La espera (rap)", "_comparte": "el de la semana, como en cuarteto" },
+   "opening": { "archivo": "rap_opening.ogg", "loop": false, "n": "El opening (rap)", "_corte": "20,0 s desde el primer golpe del beat (1,19 s): los dos scratches sueltos de antes quedan afuera. Salida de 2 s." },
+   "partido_final": { "archivo": "rap_tramo_final_loop.ogg", "loop": true, "n": "El tramo final (rap)", "_corte": "12 compases a 100 por minuto = 28,81 s. Empalme: parecido 0,587, sin clic." },
+   "gol_festejo": { "archivo": "rap_cierre.ogg", "loop": false, "n": "El cierre: ganaste o empataste (rap)", "_corte": "El golpe final del cierre generado con 1,6 s de resonancia, 2,5 s. Pasó por un limitador: pico -1,4 dBTP." },
+   "derrota": { "archivo": "rap_derrota.ogg", "loop": false, "n": "El cierre: perdiste (rap)", "_corte": "De la segunda derrota generada (la primera terminaba en mayor), 2,5 s con salida de 1 s." },
+   "hype_carrera": { "archivo": "rap_opening.ogg", "loop": false, "n": "Ascenso, título, gloria (rap)", "_comparte": "el opening del estilo, como en cuarteto" }
   }
  },
  "_reglas": {

@@ -101,7 +101,10 @@
      suena ENTERO en ese estilo. Cada momento busca su tema; si el estilo no
      lo tiene, el tema base del momento (de semana_alt a semana) y después el
      del partido. El FOLKLORE de audio.temas no entra: un tema de otro estilo
-     en medio suena a error. */
+     en medio suena a error. 22/oct: cada estilo trae también opening,
+     partido_final, gol_festejo, derrota y hype_carrera (el opening otra vez),
+     así que la intro, el tramo final con la Definición y el jugadón, los dos
+     cierres y el ascenso tienen tema propio; al partido cae solo la entrada. */
   function mapaCompleto(audio, fecha, base, estilo) {
     if (!audio || !audio.temas) return null;
     base = base || "../assets/musica/";

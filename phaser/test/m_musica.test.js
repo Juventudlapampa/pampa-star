@@ -317,12 +317,28 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 (function () {
   /* 20/oct: cuarteto, rock y rap traen dos temas cada uno (partido y semana).
      Un momento que el estilo no tiene suena el partido del mismo estilo, nunca
-     el FOLKLORE: un tema de otro estilo en medio suena a error. */
+     el FOLKLORE: un tema de otro estilo en medio suena a error.
+     22/oct, pedido de Rodri ("metele onda a todo"): cada estilo trae además
+     opening, tramo final, cierre y derrota, y el ascenso usa el opening del
+     estilo. Esos momentos dejan de caer al partido: suenan el suyo, con su
+     loop o sin loop. Al partido del estilo cae solo la entrada. */
   var O = require(path.join(RAIZ, "phaser/logic/opciones.js"));
   var BAL = JSON.parse(fs.readFileSync(path.join(RAIZ, "phaser/data/balance.json"), "utf8"));
   var B = "../assets/musica/";
   var folklore = Object.keys(A.temas).filter(function (k) { return A.temas[k] && A.temas[k].archivo; }).map(function (k) { return B + A.temas[k].archivo; });
   var estilos = Object.keys(A.estilos).filter(function (k) { return k.charAt(0) !== "_"; });
+  var PROPIOS = { opening: "opening", partido_final: "partido_final", definicion: "partido_final", jugadon: "partido_final",
+    gol_festejo: "gol_festejo", derrota: "derrota", hype: "hype_carrera" };
+  var finIntro = BAL.intro.planos_ms.reduce(function (t, ms) { return t + ms; }, 0) + 600;
+  /* duración de un OGG Opus: la posición de la última página menos el
+     pre-skip de la cabecera, a 48 kHz */
+  function durOpus(f) {
+    var b = fs.readFileSync(path.join(RAIZ, "assets/musica", f));
+    var cab = b.indexOf("OpusHead"), ult = b.lastIndexOf("OggS");
+    assert(cab >= 0 && ult >= 0, f + " es un OGG Opus");
+    var pos = b.readUInt32LE(ult + 6) + b.readUInt32LE(ult + 10) * 4294967296;
+    return (pos - b.readUInt16LE(cab + 10)) / 48000;
+  }
   assert(estilos.join() === "cuarteto,rock,rap", "audio.json trae cuarteto, rock y rap (" + estilos.join() + ")");
   var habilitados = O.estilos(BAL, A).filter(function (e) { return e.disponible; }).map(function (e) { return e.k; });
   estilos.forEach(function (k) {
@@ -330,7 +346,8 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
     assert(habilitados.indexOf(k) >= 0, k + " trae el tema del partido: OPCIONES lo deja elegir");
     Object.keys(E).forEach(function (id) {
       var f = E[id].archivo;
-      assert(/^[a-z]+_[a-z]+_loop\.ogg$/.test(f) && fs.existsSync(path.join(RAIZ, "assets/musica", f)), k + "." + id + ": " + f + " existe, en ASCII");
+      assert(new RegExp("^" + k + "_[a-z_]+\\.ogg$").test(f) && /_loop\.ogg$/.test(f) === !!E[id].loop && fs.existsSync(path.join(RAIZ, "assets/musica", f)),
+        k + "." + id + ": " + f + " existe, en ASCII, con el estilo adelante y _loop solo si da vueltas");
       assert(MUS.MOMENTOS[id] || Object.keys(MUS.MOMENTOS).some(function (m) { return MUS.MOMENTOS[m].tema === id; }), k + "." + id + " es un id de tema que algún momento pide");
     });
     [0, 1].forEach(function (fecha) {
@@ -342,14 +359,36 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
       assert(mezclados.length === 0, k + ", fecha " + fecha + ": estos momentos suenan FOLKLORE en medio de " + k + ": " + mezclados.join(", "));
       assert(mapa.partido.archivo === B + E.partido.archivo && mapa.semana.archivo === B + E.semana.archivo && mapa.espera.archivo === B + E.espera.archivo,
         k + ", fecha " + fecha + ": partido, semana y espera son los suyos (la alternancia por fecha no lo saca del estilo)");
-      assert(["entrada", "partido_final", "definicion", "jugadon", "opening", "hype", "gol_festejo", "derrota"].every(function (m) { return mapa[m].archivo === B + E.partido.archivo && mapa[m].loop; }),
-        k + ", fecha " + fecha + ": lo que el estilo no trae suena el partido del mismo estilo, en loop");
+      assert(mapa.entrada.archivo === B + E.partido.archivo && mapa.entrada.loop,
+        k + ", fecha " + fecha + ": la entrada, que el estilo no trae, suena el partido del mismo estilo, en loop");
+      var ajenos = Object.keys(PROPIOS).filter(function (m) {
+        var t = E[PROPIOS[m]];
+        return !t || mapa[m].archivo !== B + t.archivo || mapa[m].loop !== !!t.loop;
+      });
+      assert(ajenos.length === 0, k + ", fecha " + fecha + ": estos momentos no suenan el tema propio del estilo: " + ajenos.join(", "));
+      assert(mapa.partido_final.loop && !mapa.opening.loop && !mapa.gol_festejo.loop && !mapa.derrota.loop,
+        k + ", fecha " + fecha + ": el tramo final da vueltas; el opening y los dos cierres suenan una vez");
+      assert(mapa.hype.archivo === mapa.opening.archivo && mapa.gol_festejo.archivo !== mapa.derrota.archivo,
+        k + ", fecha " + fecha + ": el ascenso es el opening del estilo y ganar no suena igual que perder");
     });
+    /* lo que se mide en el archivo: los cierres entran completos antes del
+       silencio de vestuario y el opening termina con el logo, como el de
+       folklore */
+    ["gol_festejo", "derrota"].forEach(function (id) {
+      var d = durOpus(E[id].archivo);
+      assert(d > 1 && d * 1000 <= BAL.musica.final_ms, k + "." + id + " dura " + d.toFixed(2) + " s y entra en los " + BAL.musica.final_ms + " ms de balance.musica.final_ms");
+    });
+    var dOp = durOpus(E.opening.archivo);
+    assert(Math.abs(dOp - durOpus(A.temas.opening.archivo)) < 0.25 && dOp * 1000 <= finIntro,
+      k + ".opening dura " + dOp.toFixed(2) + " s: lo del de folklore, y termina antes de que la intro salga (" + finIntro + " ms)");
+    var dTf = durOpus(E.partido_final.archivo);
+    assert(dTf >= 15, k + ".partido_final dura " + dTf.toFixed(2) + " s: una vuelta que no se repite a cada rato");
   });
   var fol = MUS.mapaCompleto(A, 0, B, "folklore");
   assert(MUS.lista().every(function (m) { return !fol[m] || folklore.indexOf(fol[m].archivo) >= 0; }) && fol.partido.archivo === B + A.temas.partido.archivo,
     "FOLKLORE sigue sonando lo de audio.json → temas");
-  console.log("[8] cuarteto, rock y rap: 6 archivos, elegibles, sin un momento mudo ni uno en FOLKLORE, en las dos fechas");
+  console.log("[8] cuarteto, rock y rap: 6 archivos y 10 entradas por estilo, elegibles, sin un momento mudo ni uno en FOLKLORE, en las dos fechas; " +
+    "opening, tramo final, cierres y ascenso con tema propio");
 })();
 
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");

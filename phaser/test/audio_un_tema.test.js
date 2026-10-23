@@ -200,5 +200,35 @@ var VOL = 0.42;
   console.log("[8] mezcla: " + claves.length + " perillas, todas sobre efectos que existen");
 })();
 
+/* ---------- [9] CON UN ESTILO ELEGIDO: un tema a la vez y siempre del estilo ---------- */
+(function () {
+  /* 22/oct: cuarteto, rock y rap traen opening, tramo final, cierre y
+     derrota. Se recorre una carrera de punta a punta con el reproductor de
+     verdad: en cada momento suena UNO y es el del estilo */
+  var folklore = Object.keys(A.temas).filter(function (k) { return A.temas[k] && A.temas[k].archivo; })
+    .map(function (k) { return A.temas[k].archivo.replace(".ogg", ""); });
+  var recorrido = [
+    ["opening", "opening"], [null, null], ["espera", "espera"], ["semana", "semana"], [null, null],
+    ["entrada", "partido"], ["partido", "partido"], ["partido_final", "partido_final"], ["definicion", "partido_final"],
+    ["jugadon", "partido_final"], ["gol_festejo", "gol_festejo"], [null, null], ["entrada", "partido"],
+    ["partido_final", "partido_final"], ["derrota", "derrota"], [null, null], ["hype", "hype_carrera"]
+  ];
+  var vistos = [];
+  ["cuarteto", "rock", "rap"].forEach(function (k) {
+    var E = A.estilos[k];
+    S.musicaTema(null); avanzar(400);
+    S.registrarArchivos(MUS.mapaCompleto(A, 0, "../assets/musica/", k), VOL);
+    recorrido.forEach(function (paso) {
+      S.musicaTema(paso[0]); avanzar(400);
+      var esperado = paso[1] ? E[paso[1]].archivo.replace(".ogg", "") : "(nada)";
+      assert(oido() === esperado, k + ", " + (paso[0] || "silencio") + ": suena " + esperado + " y nada más (oye: " + oido() + ")");
+      assert(suenan().every(function (e) { return folklore.indexOf(nombre(e)) < 0; }), k + ", " + paso[0] + ": no se cuela un tema de folklore (oye: " + oido() + ")");
+      if (paso[0] && vistos.indexOf(oido()) < 0) vistos.push(oido());
+    });
+  });
+  assert(vistos.length === 18, "las tres carreras pasaron por los 6 temas de cada estilo (" + vistos.length + ")");
+  console.log("[9] cuarteto, rock y rap: " + recorrido.length + " pasos cada uno, un tema a la vez y del estilo (" + vistos.length + " temas)");
+})();
+
 console.log(mal === 0 ? "\n✓ TODOS OK — " + ok + " asserts, 0 fallaron." : "\n✗ " + mal + " FALLARON (" + ok + " ok)");
 process.exit(mal === 0 ? 0 : 1);
