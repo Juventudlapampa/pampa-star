@@ -144,6 +144,22 @@ AGREGADAS_DESPUES.push("assets/poses/identidades/jugador_rulos_remate.webp", "as
   AGREGADAS_DESPUES.forEach(function (f) { var d = medidas(f); antes -= MEM.mb(d.w, d.h); });
   assert(Math.abs(antes - 384.6) < 0.5, "el censo replica la medición de la auditoría (384,6 MB sin tope y con la tribuna doble): " + antes.toFixed(1));
   assert(base <= 270, "SÍNTOMA: la base de texturas es " + base.toFixed(1) + " MB y el tope es 270 (antes 384,6)");
+  /* 23/oct, pedido de Rodri · la corrida de tu pelo: con una cara que tiene la
+     suya, el partido baja ese par y no el ciclo de 'corriendo'. El censo de
+     arriba es el del clásico; el peor caso de cada cara también entra en el tope */
+  var mbDeLista = function (l) { return l.reduce(function (t, x) { var d = medidas(delRepo(x.ruta)); return t + MEM.mb(d.w, d.h); }, 0); };
+  var clasico = C.listaDelPartido({ poses: POSES, caras: CARAS });
+  var conCorrida = CARAS.caras.filter(function (c) { return C.corridaDeCara(POSES, c.id); });
+  assert(conCorrida.length >= 1, "hay caras con su corrida (data/poses_manifest.json, 'de_cara')");
+  conCorrida.forEach(function (c) {
+    var suya = C.listaDelPartido({ poses: POSES, caras: CARAS, caraVos: c.id });
+    var claves = suya.map(function (x) { return x.clave; });
+    assert(claves.indexOf("pose_corriendo_" + c.id) >= 0 && claves.indexOf("pose_corriendo_" + c.id + "_izq") >= 0 && !claves.some(function (k) { return /^pose_corriendo_c\d$/.test(k); }),
+      "con la cara '" + c.id + "' se baja su corrida (y su _izq) y no el ciclo del clásico");
+    assert(!claves.some(function (k) { return /^pose_corriendo_/.test(k) && k.indexOf("pose_corriendo_" + c.id) < 0 && k !== "pose_corriendo_izq"; }), "con la cara '" + c.id + "' no se baja la corrida de otro pelo");
+    var conEsa = base + mbDeLista(suya) - mbDeLista(clasico);
+    assert(conEsa <= 270, "SÍNTOMA: con la cara '" + c.id + "' las texturas son " + conEsa.toFixed(1) + " MB y el tope es 270");
+  });
   /* lo que no se toca */
   Object.keys(tex).forEach(function (k) {
     if (/^(pose_|cara_|ident_)/.test(k)) assert(MEM.ladoMaximo(k, BAL.arte) === 0, "'" + k + "' no lleva tope (vestir.js y halo.js miden en píxeles)");

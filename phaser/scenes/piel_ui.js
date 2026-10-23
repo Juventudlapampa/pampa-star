@@ -787,8 +787,11 @@
       var K = window.PampaCarga, reg = this.game && this.game.registry;
       if (!K || !K.listaDelPartido || !reg) return 0;
       var self = this;
+      /* 23/oct: la corrida del pelo de VOS, con la misma cuenta que el partido */
+      var M = window.PampaMatch && window.PampaMatch.prototype;
       var n = this.calentarEnSegundoPlano(K.listaDelPartido({
-        poses: reg.get("poses"), caras: reg.get("caras"), portraits: reg.get("portraits"), tribuna: reg.get("tribuna")
+        poses: reg.get("poses"), caras: reg.get("caras"), portraits: reg.get("portraits"), tribuna: reg.get("tribuna"),
+        caraVos: M && M.caraDeVos ? M.caraDeVos.call(this) : null
       }));
       if (typeof fetch === "function") {
         fetch("../data/identidades_manifest.json").then(function (r) { return r.ok ? r.json() : null; })

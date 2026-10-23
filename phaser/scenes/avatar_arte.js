@@ -623,7 +623,9 @@ window.PampaAvatarArte = (function () {
     if (!def || !def.tonos || !CAT) return mapa;
     var hx = function (v) { return parseInt(String(v).slice(1), 16); };
     var T = def.tonos, tol = def.tolerancias || {}, cmin = +def.croma_min || 0;
-    if (look.tPelo > 0 && T.pelo) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45, cmin: cmin });
+    /* 23/oct: la corrida con el pelo de una cara no admite los tintes que esa cara no admite (el colorado no va rubio) */
+    var peloFuera = Array.isArray(def.tintes_pelo_excluye) && look.tPelo > 0 && def.tintes_pelo_excluye.indexOf(CAT.colores_pelo[look.tPelo - 1].id) >= 0;
+    if (look.tPelo > 0 && T.pelo && !peloFuera) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45, cmin: cmin });
     if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80, cmin: cmin });
     if (look.tCam > 0 && T.camiseta && caras && caras.camisetas && caras.camisetas.length) mapa.push({ de: hx(T.camiseta), a: hx(caras.camisetas[(look.tCam - 1) % caras.camisetas.length].hex), tol: tol.camiseta || 95, cmin: cmin });
     return mapa;

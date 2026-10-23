@@ -548,6 +548,23 @@ var HTML = leer("phaser/index.html").replace(/\r\n/g, "\n");
     var lista = C.listaDelPartido({ poses: POSES, caras: CARAS, portraits: PORTRAITS, tribuna: TRIBUNA, identidades: IDENT }).map(function (x) { return x.ruta; }).sort();
     var faltan = pide.filter(function (r) { return lista.indexOf(r) < 0; }), sobran = lista.filter(function (r) { return pide.indexOf(r) < 0; });
     assert(faltan.length === 0 && sobran.length === 0, "SÍNTOMA: listaDelPartido (lo que bajan el editor y el Master) no es lo que pide el partido · faltan: " + faltan.join(", ") + " · sobran: " + sobran.join(", "));
+    /* 23/oct, pedido de Rodri: con una cara de VOS que tiene su corrida, el
+       partido pide ese par y no el ciclo, y la lista dice lo mismo */
+    Wm.PampaCarga = C;
+    var s2 = Object.create(Wm.PampaMatch.prototype);
+    s2.load = loaderDeMentira();
+    s2.textures = { exists: function () { return false; } };
+    s2.game = { registry: registry() };
+    s2.caraDeVos = function () { return "rulos"; };
+    s2.preload();
+    s2.load.emit("filecomplete-json-identidades_man", "identidades_man", "json", IDENT);
+    var pide2 = s2.load.pedidos.filter(function (p) { return p.tipo === "image"; }).map(function (p) { return p.ruta; }).sort();
+    var lista2 = C.listaDelPartido({ poses: POSES, caras: CARAS, portraits: PORTRAITS, tribuna: TRIBUNA, identidades: IDENT, caraVos: "rulos" }).map(function (x) { return x.ruta; }).sort();
+    assert(pide2.join("|") === lista2.join("|"), "con la cara de VOS, listaDelPartido es lo que pide el partido");
+    assert(pide2.some(function (r) { return /pose_corriendo_rulos\.webp$/.test(r); }) && pide2.some(function (r) { return /pose_corriendo_rulos_izq\.webp$/.test(r); }) &&
+      !pide2.some(function (r) { return /pose_corriendo_[123]\.webp$/.test(r) || /pose_corriendo_melena/.test(r); }) &&
+      !pide.some(function (r) { return /pose_corriendo_rulos/.test(r); }),
+      "con rulos se pide su corrida y no el ciclo ni otro pelo; sin cara, la clásica con su ciclo");
     var pesoP = lista.reduce(function (t, r) { return t + peso(delRepo(r)); }, 0);
     ["editor", "master"].forEach(function (k) {
       var src = leer("phaser/scenes/" + k + ".js").replace(/\r\n/g, "\n");

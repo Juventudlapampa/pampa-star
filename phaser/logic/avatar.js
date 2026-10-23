@@ -292,6 +292,14 @@
   /* "#rrggbb" → número (para Phaser fillStyle) */
   function hexNum(hex) { return parseInt(String(hex).replace("#", ""), 16); }
 
+  /* la pinta de VOS desde lo guardado (la carrera y los avatares sueltos del
+     editor): la arma el partido y la mira lo que baja la corrida de tu pelo */
+  function lookDeVos(career, sueltos) {
+    var avs = (career && career.avatares) || sueltos || {};
+    var nombre = career && career.name ? String(career.name).slice(0, 10) : "VOS";
+    return validarLook(avs.vos || migrarDelClasico(career && career.look) || lookProcedural(nombre));
+  }
+
   return {
     CATALOGO: CATALOGO, CAMPOS: CAMPOS,
     crearLook: crearLook, validarLook: validarLook, resolver: resolver,
@@ -300,6 +308,6 @@
     lookParaBloques: lookParaBloques, masCercano: masCercano,
     setCatalogoManifest: setCatalogoManifest, MANIFEST: MANIFEST,
     configDeCaras: configDeCaras, caraEnRotacion: caraEnRotacion,
-    caraDelRoster: caraDelRoster, ciclarCara: ciclarCara
+    caraDelRoster: caraDelRoster, ciclarCara: ciclarCara, lookDeVos: lookDeVos
   };
 });

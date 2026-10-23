@@ -500,6 +500,127 @@
    "pelota": { "x": 0.724, "y": 0.908, "r": 0.099 },
    "_17oct": "Pedido de Rodri del 17/oct: cuando la figura grande del panel mira a la izquierda, la ilustración se espejaba y el 10 se leía al revés. Esta es pose_corriendo espejada con el 10 redibujado al derecho; el panel la usa SIN flip (match.js, poseDelPanel). Tonos, pelo_y1 y 'pelota' son los de corriendo, con la x espejada."
   },
+  "corriendo_rulos": {
+   "archivo": "pose_corriendo_rulos.webp",
+   "quien": "heroe",
+   "de_cara": "rulos",
+   "n": "La corrida a fondo con rulos",
+   "tonos": { "pelo": "#1a1612", "piel": "#ce926a", "camiseta": "#52b2e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.276, "y": 0.913, "r": 0.095 },
+   "_23oct": "Pedido de Rodri del 23/oct: la figura grande de VOS corriendo lleva el pelo de la cara elegida en la pinta. Seis pelos (data/caras_manifest.json) con su _izq (el 10 al derecho, se usa SIN flip). 'de_cara' dice de qué cara es: el partido baja solo el par de tu cara y, con él, no baja el ciclo de 'corriendo' (tiene el pelo del clásico). Medidas, tonos y 'pelota' de .claude/nuevos/arte/LEEME.txt (sexta tanda); a 900 px de lado mayor y la _izq a 500, como corriendo y corriendo_izq. Rapado no declara 'pelo' (el pelo es la piel) y colorado excluye rubio y canoso, como sus caras."
+  },
+  "corriendo_rulos_izq": {
+   "archivo": "pose_corriendo_rulos_izq.webp",
+   "quien": "heroe",
+   "de_cara": "rulos",
+   "n": "La corrida a fondo con rulos, mirando a la izquierda",
+   "tonos": { "pelo": "#1a1612", "piel": "#ce926a", "camiseta": "#52b2e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.724, "y": 0.913, "r": 0.095 }
+  },
+  "corriendo_melena": {
+   "archivo": "pose_corriendo_melena.webp",
+   "quien": "heroe",
+   "de_cara": "melena",
+   "n": "La corrida a fondo con melena",
+   "tonos": { "pelo": "#021a26", "piel": "#fedabe", "camiseta": "#56b2e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.277, "y": 0.909, "r": 0.099 }
+  },
+  "corriendo_melena_izq": {
+   "archivo": "pose_corriendo_melena_izq.webp",
+   "quien": "heroe",
+   "de_cara": "melena",
+   "n": "La corrida a fondo con melena, mirando a la izquierda",
+   "tonos": { "pelo": "#021a26", "piel": "#fedabe", "camiseta": "#56b2e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.723, "y": 0.909, "r": 0.099 }
+  },
+  "corriendo_rapado": {
+   "archivo": "pose_corriendo_rapado.webp",
+   "quien": "heroe",
+   "de_cara": "rapado",
+   "n": "La corrida a fondo con la cabeza rapada",
+   "tonos": { "piel": "#8a5236", "camiseta": "#5ab6e6" },
+   "tolerancias": { "piel": 80, "camiseta": 95 },
+   "pelota": { "x": 0.277, "y": 0.908, "r": 0.1 }
+  },
+  "corriendo_rapado_izq": {
+   "archivo": "pose_corriendo_rapado_izq.webp",
+   "quien": "heroe",
+   "de_cara": "rapado",
+   "n": "La corrida a fondo con la cabeza rapada, mirando a la izquierda",
+   "tonos": { "piel": "#8a5236", "camiseta": "#5ab6e6" },
+   "tolerancias": { "piel": 80, "camiseta": 95 },
+   "pelota": { "x": 0.723, "y": 0.908, "r": 0.1 }
+  },
+  "corriendo_colorado": {
+   "archivo": "pose_corriendo_colorado.webp",
+   "quien": "heroe",
+   "de_cara": "colorado",
+   "n": "La corrida a fondo con el pelo colorado",
+   "tonos": { "pelo": "#f24a22", "piel": "#faceb6", "camiseta": "#56b6e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "tintes_pelo_excluye": ["rubio", "canoso"],
+   "pelota": { "x": 0.277, "y": 0.909, "r": 0.1 }
+  },
+  "corriendo_colorado_izq": {
+   "archivo": "pose_corriendo_colorado_izq.webp",
+   "quien": "heroe",
+   "de_cara": "colorado",
+   "n": "La corrida a fondo con el pelo colorado, mirando a la izquierda",
+   "tonos": { "pelo": "#f24a22", "piel": "#faceb6", "camiseta": "#56b6e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "tintes_pelo_excluye": ["rubio", "canoso"],
+   "pelota": { "x": 0.723, "y": 0.909, "r": 0.1 }
+  },
+  "corriendo_flequillo": {
+   "archivo": "pose_corriendo_flequillo.webp",
+   "quien": "heroe",
+   "de_cara": "flequillo",
+   "n": "La corrida a fondo con flequillo",
+   "tonos": { "pelo": "#061a26", "piel": "#fecaa6", "camiseta": "#5ab6e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.276, "y": 0.909, "r": 0.099 }
+  },
+  "corriendo_flequillo_izq": {
+   "archivo": "pose_corriendo_flequillo_izq.webp",
+   "quien": "heroe",
+   "de_cara": "flequillo",
+   "n": "La corrida a fondo con flequillo, mirando a la izquierda",
+   "tonos": { "pelo": "#061a26", "piel": "#fecaa6", "camiseta": "#5ab6e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.724, "y": 0.909, "r": 0.099 }
+  },
+  "corriendo_mohicano": {
+   "archivo": "pose_corriendo_mohicano.webp",
+   "quien": "heroe",
+   "de_cara": "mohicano",
+   "n": "La corrida a fondo con mohicano",
+   "tonos": { "pelo": "#061a2a", "piel": "#b69a56", "camiseta": "#56b2e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.276, "y": 0.91, "r": 0.098 }
+  },
+  "corriendo_mohicano_izq": {
+   "archivo": "pose_corriendo_mohicano_izq.webp",
+   "quien": "heroe",
+   "de_cara": "mohicano",
+   "n": "La corrida a fondo con mohicano, mirando a la izquierda",
+   "tonos": { "pelo": "#061a2a", "piel": "#b69a56", "camiseta": "#56b2e6" },
+   "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
+   "pelo_y1": 0.45,
+   "pelota": { "x": 0.724, "y": 0.91, "r": 0.098 }
+  },
   "pelota_vieja": {
    "archivo": "pelota_vieja.webp",
    "quien": "objeto",

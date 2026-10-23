@@ -45,7 +45,7 @@
       this.cineBG.clear();
       var arqT = this.toqueFondo();
       /* teñir las poses ahora y no en el golpe (cada una cuesta su tirón) */
-      ["corriendo", "recibiendo", "remate", "volea", "cabezazo", "chilena"].forEach(function (p) { self.poseDePlano(p, j, false); });
+      [self.corridaDe ? self.corridaDe(j, false) : "corriendo", "recibiendo", "remate", "volea", "cabezazo", "chilena"].forEach(function (p) { self.poseDePlano(p, j, false); });
       var alta = e.T.h > C.tecnicas.volea.h[1], baja = e.T.h <= C.tecnicas.remate.h[1];
       var tq = this._tq = { e: e, j: j, alFinal: alFinal, pre: 0.8, obj: null, teclado: false, ev: [], teclas: [], alta: alta, arq: arqT };
       tq.sombra = this.add.ellipse(0, 0, 32, 12, 0x000000, 0.4);
@@ -197,7 +197,9 @@
           lift = j.salto * Math.sin(f * Math.PI / 2) * HPX * pj.s;
         }
       } else if (tq.corre) pose = "corriendo";
-      if (tq.poseAhora !== pose) {
+      /* 23/oct: VOS corre con el pelo de tu pinta; mirando a la izquierda, la _izq sin espejo */
+      var idP = pose === "corriendo" && tq.j.esVos && this.corridaDe ? this.corridaDe(tq.j, !!tq.izq) : pose;
+      if (tq.poseAhora !== idP) {
         /* 20/oct, Rodri: un compañero rematando salía con tu ilustración. Va
            con su identidad, como en el jugadón (las poses de la jugada son tuyas) */
         var ki = !tq.j.esVos && this.identidadDe ? this.identidadDe(tq.j, false) : null;
@@ -205,8 +207,8 @@
            esa ilustración, quieta, como la tuya */
         var remT = ki && pose === "remate" && this.remateDe ? this.remateDe(tq.j, false) : null;
         if (remT) ki = remT.key;
-        tq.prota.setTexture(ki || this.poseDePlano(pose, tq.j, false));
-        tq.prota.setScale(this.escalaDePose(ki ? "corriendo" : pose, 1.85 * HPX * pj.s, tq.prota));
+        tq.prota.setTexture(ki || this.poseDePlano(idP, tq.j, false));
+        tq.prota.setScale(this.escalaDePose(ki ? "corriendo" : idP, 1.85 * HPX * pj.s, tq.prota));
         /* revisión del 22/oct: su identidad es una sola ilustración, la de
            correr, y al pegarle no se veía el golpe. El golpe es el cuerpo:
            se echa atrás y descarga hacia la pelota. Segunda revisión del
@@ -220,11 +222,11 @@
           }
           this.lineasVelocidad(pj.x, pj.y - 0.9 * HPX * pj.s, 0.8, 0xffffff);
         }
-        tq.poseAhora = pose;
+        tq.poseAhora = idP;
       }
       var bob = pose === "corriendo" ? Math.abs(Math.sin(this.time.now / 70)) * 4 : 0;
       tq.prota.setPosition(pj.x, pj.y - lift - bob);
-      tq.prota.setFlipX(pose === "corriendo" && !!tq.izq);
+      tq.prota.setFlipX(pose === "corriendo" && !!tq.izq && !/_izq$/.test(idP));
 
       /* el punto dulce: ahí tiene que caer la sombra de la pelota */
       var pd = T.puntoDulce(e, tq.alta ? "cabezazo" : "remate", tq.alta ? 0 : j.lado), ps = this.toqueAPantalla(pd.x, pd.z, 0);

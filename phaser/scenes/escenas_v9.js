@@ -94,6 +94,12 @@
       return this.poseDelEquipo ? (this.poseDelEquipo(poseId, j) || k) : k;
     },
     figuraDePlano(poseId, j, esRival, x, y, alto, flip) {
+      /* 23/oct: VOS corre con el pelo de tu pinta; mirando a la izquierda, la
+         _izq (el 10 al derecho) sin espejo */
+      if (poseId === "corriendo" && j && j.esVos && this.corridaDe) {
+        poseId = this.corridaDe(j, flip);
+        if (/_izq$/.test(poseId)) flip = false;
+      }
       var k = this.poseDePlano(poseId, j, esRival), sp;
       /* quien corre en la viñeta (el que recibe el pase) lleva su identidad,
          con su número; antes era tu ilustración espejada y se leía "01" */

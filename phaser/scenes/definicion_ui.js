@@ -173,7 +173,8 @@
       this.defFondo(false);
       /* V7 §0.2: tu jugador movible es la POSE ILUSTRADA del héroe con tu
          pinta (el heroico de bloques queda de fallback) — SIEMPRE revelado */
-      var kCorr = this.poseHeroeTenida ? (this.poseHeroeTenida(st.mios[st.ctrl]) || this.poseKey("corriendo")) : this.poseKey("corriendo");
+      var jC = st.mios[st.ctrl], idC = this.corridaDe ? this.corridaDe(jC, false) : "corriendo";
+      var kCorr = (this.poseHeroeTenida && this.poseHeroeTenida(jC, idC)) || this.poseKey(idC);
       if (kCorr) {
         this._def.spr = this.add.image(this._def.jug.x, this._def.jug.y, kCorr);
         this._def.spr.setScale(150 / this._def.spr.height);

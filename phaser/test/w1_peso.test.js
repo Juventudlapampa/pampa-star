@@ -39,6 +39,7 @@ function loQueCargaPorManifiesto() {
   Object.keys(P.poses || {}).forEach(function (id) {
     var p = P.poses[id];
     if (!p || p.cargar === false) return;                 // W2: guardada pero no cargada
+    if (p.de_cara) return;                                // 23/oct: se cuenta aparte (corridasPorCara)
     if (p.archivo) out.push(base + p.archivo);
     if (p.ciclo && p.ciclo.cuadros) p.ciclo.cuadros.forEach(function (c) { out.push(base + c); });
   });
@@ -116,10 +117,24 @@ function loQueCarga() {
   return loQueCargaPorManifiesto().concat(loQueCargaAparte().map(function (x) { return x.f; }))
     .filter(function (v, i, a) { return a.indexOf(v) === i; });
 }
+/* 23/oct, pedido de Rodri · LA CORRIDA DE TU PELO. Las poses con 'de_cara'
+   son VOS corriendo con el pelo de esa cara: el partido baja UN par, el de la
+   cara de VOS (logic/carga.js, corridaDeCara), y con él no baja el ciclo de
+   'corriendo'. loQueCarga() es el caso del clásico (con el ciclo); en [2] se
+   suma el peor caso: el par más pesado en lugar del ciclo, si pesa más. */
+function corridasPorCara() {
+  var P = leerJson("data/poses_manifest.json"), base = P.base || "assets/poses/", out = {};
+  Object.keys(P.poses || {}).forEach(function (id) {
+    var p = P.poses[id];
+    if (p && p.de_cara && p.archivo && p.cargar !== false) (out[p.de_cara] = out[p.de_cara] || []).push(base + p.archivo);
+  });
+  return out;
+}
 
 /* ---------- [1] NINGÚN PNG EN LO QUE CARGA EL JUEGO (salvo la deuda) ---------- */
 (function () {
-  var lista = loQueCarga();
+  var CPC = corridasPorCara();
+  var lista = loQueCarga().concat(Object.keys(CPC).reduce(function (t, c) { return t.concat(CPC[c]); }, []));
   assert(lista.length > 40, "el barrido tiene que encontrar los assets (encontró " + lista.length + ")");
   var aparte = loQueCargaAparte();
   ["caras", "identidades", "literales"].forEach(function (g) {
@@ -148,6 +163,19 @@ function loQueCarga() {
     total += fs.statSync(p).size;
   });
   assert(faltan.length === 0, "estos archivos se declaran y NO existen: " + faltan.join(", "));
+  /* 23/oct · la corrida de tu pelo, en su peor caso */
+  var P = leerJson("data/poses_manifest.json"), bp = P.base || "assets/poses/", CPC = corridasPorCara();
+  var pesoDe = function (f) { var p = path.join(RAIZ, f); if (!fs.existsSync(p)) { faltan.push(f); return 0; } return fs.statSync(p).size; };
+  var ciclo = ((P.poses.corriendo && P.poses.corriendo.ciclo && P.poses.corriendo.ciclo.cuadros) || []).reduce(function (t, c) { return t + pesoDe(bp + c); }, 0);
+  var parMax = 0, caraMax = "-";
+  Object.keys(CPC).forEach(function (c) {
+    assert(CPC[c].length === 2 && P.poses["corriendo_" + c] && P.poses["corriendo_" + c + "_izq"], "la corrida de '" + c + "' viene de a par (corriendo_" + c + " y su _izq): " + CPC[c].join(", "));
+    var pp = CPC[c].reduce(function (t, f) { return t + pesoDe(f); }, 0);
+    if (pp > parMax) { parMax = pp; caraMax = c; }
+  });
+  assert(faltan.length === 0, "estos archivos se declaran y NO existen: " + faltan.join(", "));
+  total += Math.max(0, parMax - ciclo);
+  if (parMax) console.log("[2] la corrida de tu pelo: " + Object.keys(CPC).length + " caras; se baja un par (el más pesado, " + caraMax + ", " + mb(parMax) + " MB) en lugar del ciclo (" + mb(ciclo) + " MB)");
   /* el tope: 8 MB. Se puso cuando el barrido decía 5,3 (y después 3,43) para
      dejar lugar a una tanda más, muy por debajo de los 34 que había. L06:
      contado de verdad (con caras, identidades y rutas literales) son 7,77,

@@ -70,6 +70,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const poses = this.game.registry.get("poses");
     if (poses && poses.poses) {
       const base = poses.base || "assets/poses/";
+      /* 23/oct: la corrida del pelo de VOS (logic/carga.js, corridaDeCara) */
+      const corrida = window.PampaCarga && window.PampaCarga.corridaDeCara ? window.PampaCarga.corridaDeCara(poses, this.caraDeVos()) : null;
       Object.keys(poses.poses).forEach(id => {
         const p = poses.poses[id];
         /* W2 · `cargar: false` = la pieza esta en el repo pero el juego NO la
@@ -77,10 +79,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
            nada, cargada cuesta ancho de banda en cada arranque. Cuando una
            encuentra su lugar se le pone cargar:true y ya. */
         if (p && p.cargar === false) return;
+        if (p && p.de_cara && p.de_cara !== corrida) return;
         if (p && p.archivo) this.load.image("pose_" + id, "../" + base + p.archivo);
         /* TANDA DE ARTE A3: los cuadros del CICLO (si el manifest los declara).
            Sin "ciclo" no cambia nada: se usa la pose quieta de siempre. */
-        if (p && p.ciclo && p.ciclo.cuadros) p.ciclo.cuadros.forEach((f, k) => {
+        if (p && p.ciclo && p.ciclo.cuadros && !(corrida && id === "corriendo")) p.ciclo.cuadros.forEach((f, k) => {
           this.load.image("pose_" + id + "_c" + k, "../" + base + f);
         });
       });
@@ -1041,7 +1044,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     try { const r2 = localStorage.getItem("pampa_star_avatares"); if (r2) sueltos = JSON.parse(r2); } catch (e) { }
     const avs = (career && career.avatares) || sueltos || {};
     mios.forEach((j, i) => {
-      if (j.esVos) j.look = A.validarLook(avs.vos || A.migrarDelClasico(career && career.look) || A.lookProcedural(j.nombre || "vos"));
+      if (j.esVos) j.look = A.lookDeVos(career, sueltos);
       else if (j.esAmigo) j.look = A.validarLook((avs.amigos && avs.amigos[j.nombre]) || A.migrarDelClasico(j.lookClasico) || A.lookProcedural(j.nombre));
       else j.look = A.lookProcedural((j.nombre || "compa") + "|" + i);
     });
@@ -1717,6 +1720,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       duration: 90, yoyo: true, ease: "Quad.easeOut" });
     return true;
   }
+  /* 23/oct: el id de la cara de VOS según lo guardado (la misma pinta que
+     arma armarPlanteles); el preload baja la corrida de ese pelo */
+  caraDeVos() {
+    const A = window.PampaAvatar, CM = this.game.registry.get("caras");
+    if (!A || !A.lookDeVos || !CM || !CM.caras || !CM.caras.length) return null;
+    let career = null, sueltos = null;
+    try { career = JSON.parse(localStorage.getItem("pampa_star_v1") || "null"); } catch (e) { }
+    try { sueltos = JSON.parse(localStorage.getItem("pampa_star_avatares") || "null"); } catch (e) { }
+    return CM.caras[A.lookDeVos(career, sueltos).cara % CM.caras.length].id;
+  }
+  /* 23/oct, pedido de Rodri: la ilustración grande de VOS corriendo lleva el
+     pelo de la cara elegida en la pinta (corriendo_<cara>, con su _izq). La
+     cara que no tiene la suya, y cualquiera que no sea VOS, va con la clásica. */
+  corridaDe(j, izq) {
+    let id = "corriendo";
+    const CM = j && j.esVos && j.look && this.FLAGS.v7_caras !== false ? this.game.registry.get("caras") : null;
+    if (CM && CM.caras && CM.caras.length) {
+      const cara = CM.caras[window.PampaAvatar.validarLook(j.look).cara % CM.caras.length];
+      if (cara && this.poseKey("corriendo_" + cara.id)) id = "corriendo_" + cara.id;
+    }
+    return izq && this.poseKey(id + "_izq") ? id + "_izq" : id;
+  }
   /* Pedido de Rodri del 17/oct: cuando la figura mira a la izquierda
      (_panelFlip), el espejo dejaba el número de la camiseta al revés; las que
      tienen número traen su versión _izq (el número al derecho), que se dibuja
@@ -1729,9 +1754,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       if (this.time.now < this._poseForzada.hasta) return this._poseForzada.key;
       this._poseForzada = null;
     }
+    const id = this.corridaDe(p.j, izq);
     /* VOS corriendo: el ciclo manda (salvo que tengas tintes, que van sobre la
-       pose quieta — el ciclo teñido sería un bake por cuadro y no vale la pena) */
-    if (p.j.esVos && corriendo && !this.poseHeroeTenida(p.j)) {
+       pose quieta — el ciclo teñido sería un bake por cuadro y no vale la pena).
+       El ciclo tiene el pelo del clásico: con la corrida de otro pelo, no va */
+    if (p.j.esVos && corriendo && /^corriendo(_izq)?$/.test(id) && !this.poseHeroeTenida(p.j)) {
       const c = this.cuadroDelCiclo(true);
       if (c) return c;
     }
@@ -1739,7 +1766,6 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const k = this.identidadDe(p.j, p.esRival);
       if (k) return izq && this.textures.exists(k + "_izq") ? k + "_izq" : k;
     }
-    const id = izq && this.poseKey("corriendo_izq") ? "corriendo_izq" : "corriendo";
     /* V7-1 §4: el que corre arriba TENÉS QUE SER VOS — la pose del héroe
        teñida con tu pinta guardada (piel/pelo del catálogo + tono de camiseta
        del editor v2). Fallback: la pose tal cual. */
@@ -3632,7 +3658,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* B3: acá se llamaba a PampaAvatarArte.cineJugador(), que dibuja el
        muñequito. Si no hay busto ilustrado, el primer plano va con tu pose de
        corrida TEÑIDA con tu camiseta — sigue siendo vos, sigue siendo dibujo. */
-    return this.poseHeroeTenida(j, "corriendo") || this.figuraCine("corriendo", "texturaCineJugador(sin busto)");
+    const idC = this.corridaDe(j, false);
+    return this.poseHeroeTenida(j, idC) || this.figuraCine(idC, "texturaCineJugador(sin busto)");
   }
   /* corta los tweens y relojes del desenlace anterior (planoDesenlace) */
   cortarDesenlace() {

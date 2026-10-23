@@ -210,12 +210,23 @@
       .map(function (c) { return { clave: "cara_" + c.id, ruta: "../" + base + c.archivo }; });
   }
 
+  /* 23/oct · LA CORRIDA DE TU PELO. Las poses con 'de_cara' (corriendo_rulos,
+     corriendo_rulos_izq…) son VOS corriendo con el pelo de esa cara: se baja
+     solo el par de la cara de VOS, y con él no se baja el ciclo de
+     'corriendo', que tiene el pelo del clásico y no se mostraría. Devuelve el
+     id de la cara si tiene su corrida, o null (la clásica, con su ciclo). */
+  function corridaDeCara(poses, caraId) {
+    var P = poses && poses.poses;
+    return caraId && P && P["corriendo_" + caraId] && P["corriendo_" + caraId].de_cara === caraId ? caraId : null;
+  }
+
   /* lo que pide el preload del partido (scenes/match.js), con las mismas
      reglas: cargar:false no se baja, los cuadros del ciclo, las siluetas de
      la hinchada, los fondos, las caras, los retratos del banco, los de la
      tribuna (con la clave del personaje: una sola por archivo, ver
      claveDeTribuna) y las identidades si su manifiesto ya está.
-     reg: { poses, caras, portraits, tribuna, identidades } (los JSON) */
+     reg: { poses, caras, portraits, tribuna, identidades } (los JSON) y
+     caraVos, el id de la cara de VOS (ver corridaDeCara) */
   function listaDelPartido(reg) {
     var R = reg || {}, out = [];
     var man = R.portraits;
@@ -231,11 +242,13 @@
     var P = R.poses;
     if (P && P.poses) {
       var base = P.base || "assets/poses/";
+      var corrida = corridaDeCara(P, R.caraVos);
       Object.keys(P.poses).forEach(function (id) {
         var p = P.poses[id];
         if (!p || p.cargar === false) return;
+        if (p.de_cara && p.de_cara !== corrida) return;
         if (p.archivo) out.push({ clave: "pose_" + id, ruta: "../" + base + p.archivo });
-        if (p.ciclo && p.ciclo.cuadros) p.ciclo.cuadros.forEach(function (f, k) {
+        if (p.ciclo && p.ciclo.cuadros && !(corrida && id === "corriendo")) p.ciclo.cuadros.forEach(function (f, k) {
           out.push({ clave: "pose_" + id + "_c" + k, ruta: "../" + base + f });
         });
       });
@@ -556,6 +569,6 @@
     reintentarUnaVez: reintentarUnaVez, historial: function () { return historial.slice(); },
     decidirAvisoVersion: decidirAvisoVersion,
     listaDelOpening: listaDelOpening, OPENING_DEF: OPENING_DEF, listaDelEditor: listaDelEditor, listaDelPartido: listaDelPartido,
-    claveDeTribuna: claveDeTribuna, crearCalentador: crearCalentador
+    claveDeTribuna: claveDeTribuna, crearCalentador: crearCalentador, corridaDeCara: corridaDeCara
   };
 });
