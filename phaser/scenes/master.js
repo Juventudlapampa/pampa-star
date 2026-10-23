@@ -1855,7 +1855,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* E · el PRINCIPAL de esta pantalla es contra quién jugás: es para lo que
        te estás preparando. El título de la pantalla pasa a apoyo. */
     this.add.text(W / 2, 16, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
-    this.add.text(W / 2, 42, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
+    const tContra = this.add.text(W / 2, 42, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
+    /* revisión final del 23/oct: en y=136 pisaba el rótulo EL MIÉRCOLES y la
+       línea del evento. Va al lado del rival, que es de quien habla, y los
+       dos quedan centrados juntos */
+    if (sem.espiado) {
+      const tVer = this.add.text(0, 42, "los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0, 0.5);
+      const x0 = Math.round(W / 2 - (tContra.width + 16 + tVer.width) / 2);
+      tContra.setOrigin(0, 0.5).setX(x0);
+      tVer.setX(x0 + tContra.width + 16);
+    }
 
     /* --- LOS DOS MEDIDORES: barra Y número, siempre --- */
     const medidor = (x, y, etiqueta, valor, color) => {
@@ -2056,7 +2065,6 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        para lo mismo; va el del medidor, con su palabra */
     this.add.text(W / 2, 264, llega.resumen + " · ENERGÍA " + Math.round(sem.energia) + "/100",
       { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
-    if (sem.espiado) this.add.text(W / 2, 136, "los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
 
     const listo = sem.elegidas.every(e => e);
     /* boton() toma x como CENTRO. Acá había un W/2-170 heredado del layout de
