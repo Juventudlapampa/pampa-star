@@ -80,7 +80,10 @@
     var vmax = (c.vel_base + ((s.velocidad || 50) - 50) * c.vel_stat) * (1 - c.vel_cansancio * (1 - frac));
     /* arranca lejos, pero siempre a una distancia que se llega leyendo bien */
     var d = Math.min(entre(r, c.distancia_m), vmax * (tT - c.reaccion_s) * 0.9);
-    var ang = r() * Math.PI * 2;
+    /* con tu pelota arrancás DETRÁS de donde cae (a no más de 60 grados de
+       la línea del arco): te la adelantás y vas a buscarla. Con el ángulo
+       libre, la mitad de las veces la pelota salía de tus pies para atrás */
+    var ang = propia ? Math.PI + (r() * 2 - 1) * Math.PI / 3 : r() * Math.PI * 2;
     var pie = J.pie;
     var jx = clamp(T.x + Math.cos(ang) * d, 0.4, c.cancha.L - 0.4), jz = clamp(T.z + Math.sin(ang) * d, 0.3, c.cancha.D - 0.3);
     /* la tuya arranca pegada a tu pie: org.x y org.z son cuánto adelante y al costado */

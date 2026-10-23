@@ -204,14 +204,18 @@ assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", 
    dice y sigue siendo justa. El remate del área sigue sorteando. */
 (function () {
   const propia = function (sm) { return T.crearJugada({ semilla: sm, cfg: C, origen: "propia", jugador: { stats: medio, aguanteFrac: 1, pie: "der" } }); };
-  let pegada = true, rotulo = true, noAtras = true;
+  let pegada = true, rotulo = true, noAtras = true, adelante = true;
   for (let sm = 1; sm <= 200; sm++) {
     const e = propia(sm), b0 = T.bolaEn(e, 0);
     if (Math.hypot(b0.x - e.jug.x, b0.z - e.jug.z) > 0.5) pegada = false;
+    if (!(e.T.x > b0.x && e.T.x > e.jug.x)) adelante = false;
     if (e.origen.id !== "propia" || !/ACOMOD/.test(e.origen.n)) rotulo = false;
     if (/ATR[AÁ]S/.test(e.origen.n)) noAtras = false;
   }
   assert(pegada, "SÍNTOMA: en el súper tiro la pelota no arranca en tus pies");
+  /* visto en pantalla el 22/oct: salía de tus pies y se iba para atrás, por
+     al lado tuyo. Te la adelantás: cae entre vos y el arco */
+  assert(adelante, "SÍNTOMA: con tu pelota, la pelota sale de tus pies para atrás");
   assert(rotulo && noAtras, "el rótulo dice que te la acomodás, no que te la tiran de atrás");
   let buenas = 0;
   for (let s2 = 1; s2 <= 600; s2++) if (lector(propia(s2), T.rng(s2 * 7919), 0.12, 0.035).calidad >= C.zonas[1].q) buenas++;
