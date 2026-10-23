@@ -1959,9 +1959,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     origen: (this.save.origen && this.save.origen.marcas && this.save.origen.marcas[0]) || null };
     const ops = S.opcionesPara(D, sem, ctxL);
     /* textos-tactiles: "(teclas 1 a 0)" salía en el teléfono, en la primera
-       semana de toda carrera */
+       semana de toda carrera. Revisión del 23/oct: decía "1 a 0" con ocho
+       opciones; dice las teclas que hay (la décima es el 0) */
+    const nTeclas = Math.min(ops.length, 10);
+    const teclas = nTeclas === 1 ? "tecla 1" : "teclas 1 a " + (nTeclas === 10 ? 0 : nTeclas);
     this.add.text(W / 2, 286, hechas >= 3 ? "LA SEMANA ESTÁ ARMADA · a la cancha"
-      : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3" + (this.sys.game.device.input.touch ? "" : " (teclas 1 a 0)"),
+      : "¿QUÉ HACÉS ESTA SEMANA? · elegiste " + hechas + " de 3" + (this.sys.game.device.input.touch ? "" : " (" + teclas + ")"),
       { fontFamily: window.PF.display, fontSize: "13px", color: hechas >= 3 ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
     /* O1 · las opciones van en la FRANJA DE DECISIÓN, ubicadas con el helper —
        no clavadas a mano. Tres filas: dos de acciones y la del botón de jugar,
@@ -2048,8 +2051,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
     }
     /* textos-tactiles: decía "con 1000 de aguante y 30 de envión", números
-       crudos que nada presentó todavía en la primera semana */
-    this.add.text(W / 2, 264, llega.resumen + " · las piernas al " + Math.round(llega.aguanteFrac * 100) + "%",
+       crudos que nada presentó todavía en la primera semana. Revisión del
+       23/oct: "las piernas al 86%" al lado de ENERGÍA 75/100 eran dos números
+       para lo mismo; va el del medidor, con su palabra */
+    this.add.text(W / 2, 264, llega.resumen + " · ENERGÍA " + Math.round(sem.energia) + "/100",
       { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
     if (sem.espiado) this.add.text(W / 2, 136, "los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
 

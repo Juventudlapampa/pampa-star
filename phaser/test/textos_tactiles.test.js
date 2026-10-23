@@ -53,7 +53,13 @@ function semanaDeLaFecha1(tactil) {
   assert(m1.length === 0, "SÍNTOMA: en el teléfono la semana habla de teclas: " + m1.join(" | "));
   var crudos = T.semana.filter(function (t) { return /\b1000\b|de envión|\bstat\b/.test(t); });
   assert(crudos.length === 0, "SÍNTOMA: la semana muestra números crudos o 'stat': " + crudos.join(" | "));
-  assert(T.semana.some(function (t) { return /las piernas al \d+%/.test(t); }), "cómo llegás se dice con las piernas en porcentaje (" + T.semana.filter(function (t) { return /🗓/.test(t); }).join("") + ")");
+  /* revisión del 23/oct, pedido de Rodri: "las piernas al 86%" al lado de
+     ENERGÍA 75/100 eran dos números para lo mismo. Cómo llegás se dice con
+     el número del medidor y la misma palabra */
+  var medidor = T.semana.filter(function (t) { return /^ENERGÍA \d+\/100$/.test(t); })[0];
+  var llegas = T.semana.filter(function (t) { return / · ENERGÍA \d+\/100$/.test(t); })[0];
+  assert(!!medidor && !!llegas && llegas.slice(-medidor.length) === medidor, "cómo llegás se dice con la ENERGÍA del medidor (" + medidor + " / " + llegas + ")");
+  assert(!T.semana.some(function (t) { return /piernas al \d+%/.test(t); }), "SÍNTOMA: la semana da otro número para lo mismo (las piernas en porcentaje)");
   /* "a una cualidad al azar" y no "a una de tus cualidades, al azar": con la
      segunda la tarjeta del picadito pasa a cuatro renglones y se sale (medido) */
   assert(T.semana.some(function (t) { return /a una cualidad al azar/.test(t); }), "el picadito suma a una cualidad, no a una stat");
@@ -66,7 +72,12 @@ function semanaDeLaFecha1(tactil) {
   assert(malos(te).length === 0, "SÍNTOMA: la entrevista numera las respuestas con la tecla: " + malos(te).join(" | "));
   /* con teclado, siguen las ayudas de teclado */
   var K = semanaDeLaFecha1(false);
-  assert(K.semana.some(function (t) { return /\(teclas 1 a 0\)/.test(t); }), "con teclado la semana sigue diciendo las teclas");
+  /* revisión del 23/oct, pedido de Rodri: decía "(teclas 1 a 0)" con ocho
+     opciones; dice las que hay (la décima es el 0) */
+  var SEM = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "..", "data", "semana.json"), "utf8"));
+  var nOps = SEM.opciones.filter(function (o) { return K.semana.indexOf(o.n) >= 0; }).length;
+  assert(nOps >= 2, "control: se ven las opciones de la semana (" + nOps + ")");
+  assert(K.semana.some(function (t) { return t.indexOf("(teclas 1 a " + (nOps === 10 ? 0 : nOps) + ")") >= 0; }), "con teclado la semana dice las teclas que hay (" + nOps + " opciones: " + K.semana.filter(function (t) { return /teclas/.test(t); }).join("") + ")");
   assert(K.evento.some(function (t) { return /^1 · /.test(t); }), "y el evento, el número de la opción");
   var Ak = M.armar({ tactil: false }), ek = Ak.nueva(); ek.vistaOrigen("primera_b"); ek.leerHastaElFinal();
   assert(ek.textos().some(function (t) { return /^1 · /.test(t); }), "y la entrevista también");
