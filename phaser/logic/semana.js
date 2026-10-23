@@ -494,7 +494,11 @@
   /* lo que vas a tener en la cancha con esta elección (o sin ninguna) */
   function enLaCancha(save, eleccion, cfg) {
     var C = cfg.cuatro, id = eleccion ? eleccion.id : null;
-    var animo = clamp(Math.round((save.animo != null ? save.animo : cfg.animo_inicial) + (id === "barra" ? C.barra_animo : 0)), 0, 100);
+    var conBarra = Math.round((save.animo != null ? save.animo : cfg.animo_inicial) + (id === "barra" ? C.barra_animo : 0));
+    var animo = clamp(conBarra, 0, 100);
+    /* revisión final del 23/oct: con el ÁNIMO lleno la barra no sumaba nada.
+       Lo que no entra en el ánimo va a las jugadas grandes */
+    var sobra = C.barra_sobra_a_grande ? Math.max(0, conBarra - 100) : 0;
     var sinDescanso = clamp(Math.round(C.llegada_base - (save.desgaste || 0) * C.llegada_por_desgaste), 0, 100);
     return {
       id: id,
@@ -502,7 +506,7 @@
       aguantePct: id === "descansar" ? C.llegada_descanso : sinDescanso,
       aguanteSinDescanso: sinDescanso,
       animo: animo,
-      grande: bonusGrande(animo, C),
+      grande: bonusGrande(animo, C) + Math.round(sobra * C.grande_por_punto),
       espiado: id === "ver_rival"
     };
   }

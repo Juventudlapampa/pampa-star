@@ -1453,13 +1453,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        data/entrevista.json, se cae al texto plano de siempre. */
     const E = this.game.registry.get("entrevista");
     const qe = E && E.preguntas && E.preguntas[p.id];
+    /* revisión final del 23/oct: si aprendiste solo, Nito no pregunta por quien te enseñó */
+    const sg = qe && qe.segun;
+    const dice = sg && elegidas[D.origen.findIndex(o => o.id === sg.pregunta)] === sg.respuesta ? sg.dice : qe && qe.dice;
     this.add.text(W / 2, 34, "TU HISTORIA · " + (paso + 1) + " de 3", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     /* 23/oct, Rodri: "los diálogos están mal puestos y no se leen". Con
        flags.entrevista_un_globo habla uno por vez, en un globo que sale de
        quien habla (globosDeLaEntrevista); con false, lo de antes */
     const unGlobo = !!(qe && this.game.registry.get("balance").flags.entrevista_un_globo);
     const voces = unGlobo ? this.globosDeLaEntrevista(E) : null;
-    const tDice = qe && !unGlobo ? this.entrevistador(E, qe.dice) : null;
+    const tDice = qe && !unGlobo ? this.entrevistador(E, dice) : null;
     /* D5 · y de este lado estás vos, con la pinta que elegiste recién */
     if (qe) { if (!unGlobo) this.entrevistado(); }
     else this.add.text(W / 2, 84, p.pregunta, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6efdc" }).setOrigin(0.5);
@@ -1485,7 +1488,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
            teléfono no va */
         this.dibujarIcono(W / 2 - 360 + 32, y, o.ico);
         this.add.text(W / 2, y - 9, (this.sys.game.device.input.touch ? "" : (i + 1) + " · ") + o.corto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", align: "center" }).setOrigin(0.5);
-        this.add.text(W / 2, y + 13, o.sub, { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
+        /* revisión final del 23/oct, pedido de Rodri: claras en qué influyen.
+           Después de la bajada, lo que suma y lo que resta, con palabras */
+        const efO = window.PampaDialogo ? ": " + window.PampaDialogo.bajadaDeEfecto(o.stats) : "";
+        this.add.text(W / 2, y + 13, o.sub + efO, { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41" }).setOrigin(0.5);
         const elegir = () => {
           const nuevas = elegidas.concat([i]);
           if (paso < D.origen.length - 1) this.vistaOrigen(divId, paso + 1, nuevas);
@@ -1508,7 +1514,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (qe) {
       const qAntes = paso > 0 && E.preguntas[D.origen[paso - 1].id];
       const dichaAntes = qAntes && qAntes.respuestas && qAntes.respuestas[elegidas[paso - 1]];
-      const preguntar = () => voces.decir("nito", qe.dice, ponerOpciones);
+      const preguntar = () => voces.decir("nito", dice, ponerOpciones);
       if (unGlobo && dichaAntes) voces.decir("vos", "«" + dichaAntes + "»", preguntar);
       else if (unGlobo) preguntar();
       else if (dichaAntes) {
@@ -1516,8 +1522,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         const tEco = this.add.text(W - 156, 196, "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 3 } }).setOrigin(1, 0.5);
         /* 22/oct, Rodri: el eco decía "▼ VOS:" al lado de la placa "▼ VOS" de
            tu retrato; quién habla ya lo dicen la placa y el lado */
-        this.escribir(tEco, "«" + dichaAntes + "»", "vos", () => this.escribir(tDice, qe.dice, "nito", ponerOpciones));
-      } else this.escribir(tDice, qe.dice, "nito", ponerOpciones);
+        this.escribir(tEco, "«" + dichaAntes + "»", "vos", () => this.escribir(tDice, dice, "nito", ponerOpciones));
+      } else this.escribir(tDice, dice, "nito", ponerOpciones);
     } else ponerOpciones();
     /* V1 (cantidad + alineación): estaba en H-26, o sea DEBAJO de la cuarta
        opción, y quedaba tapado. Y decía dos cosas: cómo se toca (que el jugador
@@ -2782,6 +2788,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       nivel: this.nivelDeLaCarrera(),
       mod: this.semanaDeCuatro() ? null : (this.save.modFecha || null),
       origen: this.save.origen || null,
+      pueblo: this.save.pueblo || null,
       semana: this.save.semanaResumen || null,
       mejoras: this.save.mejoras || null,
       tempo: window.PampaSaveMaster.tempoDe(this.save, this.game.registry.get("balance")),

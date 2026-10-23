@@ -1,6 +1,7 @@
 {
  "_schema": "pampa-star/vida@1",
  "_doc": "LA VIDA DE LA CARRERA (V8 A1). PARTE 1 'origen': tres pantallas al crear la carrera — elegís por identificación, no por optimizar (los números no se muestran). PARTE 2 'eventos': la SEMANA entre fechas, un evento corto en voz de cancha con dos respuestas y un modificador CHICO para ESA fecha. Dos toques y a la cancha. §11: cero gestión, cero plata, cero apuestas ni temáticas; pueblos reales (públicos), personas inventadas y sin nombre propio.",
+ "_origen_stats": "Revisión final del 23/oct, pedido de Rodri (la épica del jugador de afuera, algo simple de 3 o 4 cosas, claras en qué influyen): las respuestas de la entrevista mueven solo TIRO, PASE, GAMBETA y AGUANTE (resistencia, que la pantalla nombra aguante), y la opción lo dice abajo con palabras. Antes movían también carácter, físico, velocidad y juego aéreo, que no aparecían en ningún lado.",
  "_efectos": "Vocabulario cerrado (todo opcional, todo chico). aguante: puntos del tanque inicial (max 1000). envion: puntos del medidor al arrancar (max 100). duelo: bonus al poder de TUS acciones. keeper: bonus a tu arquero. tiro/pase/gambeta: bonus a esa stat tuya. recuperacion: multiplicador de regeneración. arranque: bonus en el 1er tiempo (se apaga en el 2º). final: bonus en el 2º tiempo. Rango sano: 3-8 en bonus de stat, 40-90 en aguante, 20-45 en envión.",
  "origen": [
   {
@@ -46,8 +47,8 @@
      "corto": "Con mi hermano mayor",
      "ico": "dos",
      "stats": {
-      "caracter": 6,
-      "aereo": 5
+      "gambeta": 5,
+      "pase": 4
      },
      "frase": "el hermano del crack"
     }
@@ -63,19 +64,18 @@
      "corto": "Laburo en el campo",
      "ico": "sol",
      "stats": {
-      "resistencia": 8,
-      "fisico": 4
+      "resistencia": 10
      },
      "frase": "el que labura el campo",
      "marca": "cosecha"
     },
     {
      "t": "Estoy en la escuela y me cuelgo con el celu",
-     "sub": "descansado pero blando",
+     "sub": "la cabeza fresca, las piernas no",
      "corto": "Escuela y celu",
      "ico": "libro",
      "stats": {
-      "velocidad": 5,
+      "pase": 5,
       "resistencia": -4
      },
      "frase": "el de la escuela",
@@ -87,8 +87,8 @@
      "corto": "Changas",
      "ico": "pala",
      "stats": {
-      "fisico": 3,
-      "caracter": 3
+      "resistencia": 4,
+      "gambeta": 3
      },
      "frase": "el de las changas"
     },
@@ -99,7 +99,7 @@
      "ico": "llave",
      "stats": {
       "tiro": 6,
-      "fisico": 3
+      "resistencia": 3
      },
      "frase": "el del taller"
     }
@@ -136,8 +136,7 @@
      "corto": "El equipo primero",
      "ico": "dos",
      "stats": {
-      "pase": 5,
-      "caracter": 4
+      "pase": 8
      },
      "frase": "el que juega para el equipo"
     },
@@ -147,8 +146,8 @@
      "corto": "Que te tengan miedo",
      "ico": "rayo",
      "stats": {
-      "caracter": 7,
-      "fisico": 3
+      "tiro": 5,
+      "resistencia": 4
      },
      "frase": "al que le enseñaron a hacerse sentir"
     }

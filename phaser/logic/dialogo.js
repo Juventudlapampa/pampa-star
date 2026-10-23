@@ -32,12 +32,12 @@
   /* EL DIBUJITO DEL EVENTO sale de lo que la opción cambia: el efecto más
      grande a favor. La palabra de abajo dice lo mismo sin números. */
   var ICONO_DE_EFECTO = {
-    tiro: "botin", pase: "pase", gambeta: "gambeta", aguante: "corazon",
+    tiro: "botin", pase: "pase", gambeta: "gambeta", aguante: "corazon", resistencia: "corazon",
     fisico: "pesa", recuperacion: "cruz", arranque: "reloj1", final: "reloj2",
     envion: "rayo", caracter: "flecha", duelo: "choque", keeper: "guante"
   };
   var PALABRA_DE_EFECTO = {
-    tiro: "tiro", pase: "pase", gambeta: "gambeta", aguante: "aguante",
+    tiro: "tiro", pase: "pase", gambeta: "gambeta", aguante: "aguante", resistencia: "aguante",
     fisico: "físico", recuperacion: "recuperación", arranque: "primer tiempo",
     final: "segundo tiempo", envion: "envión", caracter: "carácter",
     duelo: "mano a mano", keeper: "tu arquero"

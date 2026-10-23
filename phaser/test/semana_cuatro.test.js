@@ -56,6 +56,11 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
   var barra = S.enLaCancha(save, { id: "barra" }, CFG);
   assert(barra.animo === 60 + K.barra_animo && barra.grande > nada.grande, "LA BARRA: ÁNIMO " + barra.animo + " y +" + barra.grande + " en las jugadas grandes (sin ella, +" + nada.grande + ")");
   assert(S.bonusGrande(40, K) === 0 && S.bonusGrande(100, K) === K.grande_max, "el ánimo bajo no resta y el tope es " + K.grande_max);
+  /* revisión final del 23/oct: con el ÁNIMO lleno, la barra no sumaba nada */
+  var lleno = { animo: 100, temporadaN: 1, temporada: { fecha: 4 } };
+  var llenoNada = S.enLaCancha(lleno, null, CFG), llenoBarra = S.enLaCancha(lleno, { id: "barra" }, CFG);
+  assert(llenoBarra.grande - llenoNada.grande === barra.grande - nada.grande && llenoBarra.animo === 100,
+    "SÍNTOMA: con el ÁNIMO a 100 la barra no suma (sin ella +" + llenoNada.grande + ", con ella +" + llenoBarra.grande + ")");
   assert(S.enLaCancha(save, { id: "ver_rival" }, CFG).espiado === true, "VER AL RIVAL: lo ves en el partido");
   /* las palabras: TIRO, PASE, GAMBETA, AGUANTE, ÁNIMO */
   var todas = S.renglonesDeLaCancha(e).concat(S.renglonesDeLaCancha(barra), S.renglonesDeLaCancha(S.enLaCancha(save, { id: "ver_rival" }, CFG)));
