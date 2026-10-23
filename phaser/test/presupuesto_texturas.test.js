@@ -82,6 +82,10 @@ AGREGADAS_DESPUES.push("assets/poses/poseR_arquero_estirada.webp", "assets/poses
   "assets/poses/identidades/jugador_rapado_izq.webp", "assets/poses/identidades/rival_flequillo_izq.webp",
   "assets/poses/identidades/rival_mohicano_izq.webp");
 SACADAS_DESPUES.push("assets/poses/poseR_quite.webp", "assets/poses/poseR_arquero_vuela.webp");
+/* 22/oct, pedido de Rodri: la pose de remate de cada identidad (data/identidades_manifest.json, 'remate') */
+AGREGADAS_DESPUES.push("assets/poses/identidades/jugador_rulos_remate.webp", "assets/poses/identidades/jugador_largo_remate.webp",
+  "assets/poses/identidades/jugador_rapado_remate.webp", "assets/poses/identidades/jugador_colorado_remate.webp",
+  "assets/poses/identidades/rival_flequillo_remate.webp", "assets/poses/identidades/rival_mohicano_remate.webp");
 (function () {
   var tex = {};                       // clave → archivo
   var conflictos = [];

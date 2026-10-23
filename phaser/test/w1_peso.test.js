@@ -92,6 +92,8 @@ function loQueCargaAparte() {
   (I.identidades || []).forEach(function (d) {
     if (d && d.archivo) out.push({ f: (I.base || "assets/poses/identidades/") + d.archivo, de: "identidades" });
     if (d && d.izq) out.push({ f: (I.base || "assets/poses/identidades/") + d.izq, de: "identidades" });
+    /* 22/oct: y su pose de remate ('remate.archivo'), que el partido también baja */
+    if (d && d.remate && d.remate.archivo) out.push({ f: (I.base || "assets/poses/identidades/") + d.remate.archivo, de: "identidades" });
   });
   /* OJOS (tanda 1.0): las poses de la semana se bajan POR DATO (master.js
      lee data/semana.json) sin mirar cargar:false; el caldén de DESCANSAR es

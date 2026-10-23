@@ -99,8 +99,14 @@
         if (ki && flip && this.textures.exists(ki + "_izq")) { k = ki + "_izq"; flip = false; }
         else if (ki) k = ki;
       }
+      /* 22/oct, Rodri: el que remata o toca el pase, si no sos vos, con la
+         pose de remate de su identidad (su número). Mira a la derecha: no se
+         espeja. sp._pelota dice dónde va la pelota del juego en ese dibujo */
+      var rem = (poseId === "remate" || poseId === "pared") && !flip && this.remateDe ? this.remateDe(j, esRival) : null;
+      if (rem) k = rem.key;
       if (k) {
         sp = this.add.image(x, y, k);
+        if (rem) sp._pelota = rem.pelota;
         /* A3: por alto_rel del manifiesto — las figuras acostadas (el arquero
            volando mide 1905x746) necesitan su propia fraccion o se salen de
            pantalla al escalarlas por altura */
@@ -114,6 +120,15 @@
       if (flip) sp.setFlipX(true);
       this.cineContent.add(sp);
       return sp;
+    },
+    /* la pelota del juego donde la pose de identidad la declara (sp._pelota), o null */
+    bolaDePlano(sp) {
+      var p = sp && sp._pelota;
+      if (!p || !this.texPelota) return null;
+      var TP = this.texPelota(p.r * 2 * sp.displayHeight);
+      var b = this.add.sprite(sp.x + (p.x - 0.5) * sp.displayWidth, sp.y + (p.y - 0.5) * sp.displayHeight, TP.key).setScale(TP.esc);
+      this.cineContent.add(b);
+      return b;
     },
     /* placa con el nombre (forma + palabra, nunca solo el color) */
     placaDePlano(x, y, j, esRival) {
@@ -463,9 +478,10 @@
       /* las placas van sobre la cabeza: a los pies quedaban debajo del cartel
          ("¡LA BLOQUEÓ!" en y 452) y de su bajada (y 492), que las pisaban */
       this.placaDePlano(300, rem.y - rem.displayHeight / 2 - 16, tirador, true);
-      var bola = this.add.sprite(360, H * 0.66 + 70, "ball").setScale(2.4);
-      this.cineContent.add(bola);
-      this.tweens.add({ targets: rem, x: 260, duration: tEntrada, ease: "Quad.easeOut" });
+      /* con la pose de su identidad, la pelota va donde ese dibujo la tenía y entra con él */
+      var bola = this.bolaDePlano(rem), alPie = !!bola;
+      if (!bola) { bola = this.add.sprite(360, H * 0.66 + 70, "ball").setScale(2.4); this.cineContent.add(bola); }
+      this.tweens.add({ targets: alPie ? [rem, bola] : rem, x: alPie ? "-=40" : 260, duration: tEntrada, ease: "Quad.easeOut" });
 
       /* MIS defensores en el camino: saltan o se tiran (los reales, con nombre) */
       var enLinea = Math.min(3, lectura.defensoresEnLinea);
@@ -630,7 +646,7 @@
       this.fondoDeCancha(true);
       /* el rematador, donde lo pone el plano del remate: el corte al plano
          siguiente es seco y la figura no salta */
-      this.figuraDePlano("remate", tirador, true, 300, Math.round(H * 0.66), 300, false);
+      this.bolaDePlano(this.figuraDePlano("remate", tirador, true, 300, Math.round(H * 0.66), 300, false));
       this.placaDePlano(300, H * 0.92, tirador, true);
       /* la pregunta, a la derecha (el rematador ocupa de x≈150 a 450) */
       var X = 700, ANCHO = 400;
@@ -716,10 +732,10 @@
       var yPie = Math.round(H * 0.66);
       var pat = this.figuraDePlano("pared", cfg.pateador, false, 130, yPie, 300, false);
       this.placaDePlano(180, H * 0.9, cfg.pateador, false);
-      var bola = this.add.sprite(180, yPie + 96, "ball").setScale(2.4);
-      this.cineContent.add(bola);
+      var bola = this.bolaDePlano(pat), alPie = !!bola;
+      if (!bola) { bola = this.add.sprite(180, yPie + 96, "ball").setScale(2.4); this.cineContent.add(bola); }
       this.tweens.add({ targets: [pat], x: 210, duration: tEntrada, ease: "Quad.easeOut" });
-      this.tweens.add({ targets: [bola], x: 258, duration: tEntrada, ease: "Quad.easeOut" });
+      this.tweens.add({ targets: [bola], x: alPie ? "+=80" : 258, duration: tEntrada, ease: "Quad.easeOut" });
 
       /* el que la espera: más chico y más arriba = más lejos */
       var rec = this.figuraDePlano("corriendo", cfg.receptor, false, 806, Math.round(H * 0.5), 190, true);

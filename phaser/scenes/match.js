@@ -114,6 +114,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       man.identidades.forEach(d => {
         if (d && d.id && d.archivo) this.load.image("ident_" + d.id, "../" + baseI + d.archivo);
         if (d && d.id && d.izq) this.load.image("ident_" + d.id + "_izq", "../" + baseI + d.izq);
+        if (d && d.id && d.remate && d.remate.archivo) this.load.image("ident_" + d.id + "_remate", "../" + baseI + d.remate.archivo);
       });
     });
   }
@@ -1572,6 +1573,16 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!del.length) return null;
     const d = del.find(x => x.dorsal === j.numero) || del[window.PampaAvatar.hashSemilla(j.nombre || "x") % del.length];
     return this.textures.exists("ident_" + d.id) ? "ident_" + d.id : null;
+  }
+  /* 22/oct, Rodri: cuando remataba un compañero o un rival salía el 10 o la
+     ilustración de correr. La pose de remate de SU identidad (la misma que
+     elige identidadDe, con su número) y dónde va la pelota del juego en ese
+     dibujo. VOS y los arqueros, null: siguen con sus poses. */
+  remateDe(j, esRival) {
+    if (!j || j.esVos || j.pos === "ARQ") return null;
+    const k = this.identidadDe(j, esRival);
+    const d = k && this._identMan.identidades.find(x => "ident_" + x.id === k);
+    return d && d.remate && this.textures.exists(k + "_remate") ? { key: k + "_remate", pelota: d.remate.pelota } : null;
   }
   /* TANDA DE ARTE A3 · EL CICLO DE CORRIDA. Si el manifest declara "ciclo"
      para la pose de correr, el panel alterna sus cuadros mientras el portador
@@ -3587,10 +3598,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        el manifest) con la pelota del juego donde la pose la declara. La pose
        queda quieta: entra con un golpe de cámara y lo que se va es la pelota. */
     const j = this.st.mios[this.st.ctrl];
-    const def = this.game.registry.get("poses").poses.remate, pi = def.pierna, pel = def.pelota;
-    const pie = this.add.sprite(0, 0, (j && j.esVos && this.poseHeroeTenida(j, "remate")) || this.figuraCine("remate", "planoPie"));
-    const fx = (pi.tobillo[0] + pi.punta[0] + pel.x) / 3, fy = (pi.tobillo[1] + pi.punta[1] + pel.y) / 3;
-    const s = (H * 2.2) / pie.height, dW = pie.width * s, dH = pie.height * s;
+    const def = this.game.registry.get("poses").poses.remate, pi = def.pierna;
+    /* 22/oct: un compañero con su pose de remate (sin huesos medidos): el
+       foco es la pelota con el pie de apoyo al lado, y menos zoom, porque
+       ese dibujo está bajado a 420 de alto */
+    const rem = this.remateDe(j, false), pel = rem ? rem.pelota : def.pelota;
+    const pie = this.add.sprite(0, 0, rem ? rem.key : ((j && j.esVos && this.poseHeroeTenida(j, "remate")) || this.figuraCine("remate", "planoPie")));
+    const fx = rem ? pel.x : (pi.tobillo[0] + pi.punta[0] + pel.x) / 3, fy = rem ? pel.y - pel.r : (pi.tobillo[1] + pi.punta[1] + pel.y) / 3;
+    const s = (H * (rem ? 1.6 : 2.2)) / pie.height, dW = pie.width * s, dH = pie.height * s;
     pie.setOrigin(fx, fy).setScale(s);
     const TP = this.texPelota(pel.r * 2 * dH);
     const bx = (pel.x - fx) * dW, by = (pel.y - fy) * dH;
@@ -4750,7 +4765,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ARTE tanda 2: cfg.pose fuerza una pose puntual (las 4 gambetas, la pared,
        el bloqueo, la corrida) y cfg.poseFlip la espeja según quién gana */
     const poseId = cfg.pose || this.poseParaEscena(cfg.prota);
-    let sp;
+    let sp, remProta = null;
     if (poseId && this.poseKey(poseId)) {
       /* REINTEGRACIÓN (pedido de Rodri): las escenas llevan el ARTE por bando —
          el rival con su pose teñida a NARANJA; VOS con tu pinta en la corrida
@@ -4761,6 +4776,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       /* V10: si la pose viene dibujada con la camiseta del rival (bloqueo,
          barrida) y la hace uno de los tuyos, va vestida con la nuestra */
       if (cfg.prota && !cfg.prota.esRival && kPose === this.poseKey(poseId) && this.poseDelEquipo) kPose = this.poseDelEquipo(poseId, cfg.prota.j) || kPose;
+      /* 22/oct: un compañero o un rival que remata o toca el pase, con la pose de remate de su identidad (mira a la derecha: espejada no) */
+      remProta = (poseId === "remate" || poseId === "pared") && !cfg.poseFlip && cfg.prota ? this.remateDe(cfg.prota.j, cfg.prota.esRival) : null;
+      if (remProta) kPose = remProta.key;
       sp = this.add.image(-200, H * 0.52, kPose);
       sp.setScale((cfg.especial ? 420 : 360) / sp.height);
       if (cfg.poseFlip) sp.setFlipX(true);
@@ -4777,6 +4795,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const pm = this.game.registry.get("poses");
       const defP = pm && pm.poses && pm.poses[poseId];
       if (defP && defP.pelota) posePel = defP.pelota;
+      if (remProta) posePel = remProta.pelota;
     }
     if ((posePel || cfg.pelotaAlPie) && this.textures.exists("ball")) {
       const dW = sp.width * sp.scaleX, dH = sp.height * sp.scaleY;
@@ -5148,11 +5167,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* B3-E: la pose sale del PUESTO del que hace el especial, no solo del
        bando. Un arquero que hace una megaatajada tiene que verse atajando. */
     const idCut = (jRet && jRet.pos === "ARQ") ? "arquero_ataja" : (esRivalRet ? "barrida" : "remate");
-    const spr = this.poseSprite(idCut, -220, 290, 380, () => {
+    /* 22/oct: el súper tiro de un compañero, con su pose de remate y la pelota del juego al pie */
+    const remCut = idCut === "remate" ? this.remateDe(j, false) : null;
+    const spr = remCut ? this.add.image(-220, 290, remCut.key) : this.poseSprite(idCut, -220, 290, 380, () => {
       const im = this.add.image(0, 0, this.retratoKey(j, !!esRivalRet, esRivalRet ? "frustrado" : "triunfante"));
       im.setScale(300 / im.height);
       return im;
     });
+    if (remCut) {
+      spr.setScale(380 / spr.height);
+      const pc = remCut.pelota, TPc = this.texPelota(pc.r * 2 * spr.displayHeight), dx = (pc.x - 0.5) * spr.displayWidth;
+      const bolaCut = this.add.sprite(-220 + dx, 290 + (pc.y - 0.5) * spr.displayHeight, TPc.key).setScale(TPc.esc);
+      this.cineContent.add(bolaCut);
+      this.tweens.add({ targets: bolaCut, x: 300 + dx, duration: this.msV(300), ease: "Back.easeOut" });
+    }
     this.cineContent.add(spr);
     this.tweens.add({ targets: spr, x: 300, duration: this.msV(300), ease: "Back.easeOut" });
     for (let rk = 0; rk < 3; rk++) {

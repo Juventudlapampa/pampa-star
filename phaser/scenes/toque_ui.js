@@ -198,6 +198,10 @@
         /* 20/oct, Rodri: un compañero rematando salía con tu ilustración. Va
            con su identidad, como en el jugadón (las poses de la jugada son tuyas) */
         var ki = !tq.j.esVos && this.identidadDe ? this.identidadDe(tq.j, false) : null;
+        /* 22/oct: si su identidad tiene pose de remate, el golpe de pie es
+           esa ilustración, quieta, como la tuya */
+        var remT = ki && pose === "remate" && this.remateDe ? this.remateDe(tq.j, false) : null;
+        if (remT) ki = remT.key;
         tq.prota.setTexture(ki || this.poseDePlano(pose, tq.j, false));
         tq.prota.setScale(this.escalaDePose(ki ? "corriendo" : pose, 1.85 * HPX * pj.s, tq.prota));
         /* revisión del 22/oct: su identidad es una sola ilustración, la de
@@ -207,8 +211,10 @@
            son dos poses quietas con corte seco y queda en la del golpe */
         if (ki && e.golpe) {
           var prota = tq.prota;
-          prota.setAngle(-14);
-          this.time.delayedCall(this.msV(120), function () { prota.setAngle(10); });
+          if (!remT) {
+            prota.setAngle(-14);
+            this.time.delayedCall(this.msV(120), function () { prota.setAngle(10); });
+          }
           this.lineasVelocidad(pj.x, pj.y - 0.9 * HPX * pj.s, 0.8, 0xffffff);
         }
         tq.poseAhora = pose;

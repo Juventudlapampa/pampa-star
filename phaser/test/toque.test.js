@@ -160,6 +160,9 @@ assert(T.pieDe({ nombre: "Ramiro", numero: 9 }) === T.pieDe({ nombre: "Ramiro", 
     return o;
   };
   s.identidadDe = function () { return "ident_mateo"; };
+  /* 22/oct: el partido de verdad tiene el manifiesto de identidades cuando identidadDe
+     devuelve una; la de Mateo no trae pose de remate (remates_identidad.test.js prueba la que sí) */
+  s._identMan = { identidades: [{ id: "mateo" }] };
   s.poseDePlano = function () { return "pose"; };
   s.escalaDePose = function () { return 1; };
   s.lineasVelocidad = function () { };
