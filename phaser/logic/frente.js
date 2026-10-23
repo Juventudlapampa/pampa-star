@@ -279,14 +279,17 @@
     var curva = dev / largo, fuerza = clamp(largo / G.largo_px, 0, G.fuerza_max);
     var conCurva = o.menu.slice().sort(function (x, y) { return (T[y].curva || 0) - (T[x].curva || 0); })[0];
     var curvo = Math.abs(curva) >= G.curva_min && (T[conCurva].curva || 0) > 0;
-    var tipo, frac;
-    if (curvo) { tipo = conCurva; frac = fuerza; }
+    var tipo;
+    if (curvo) tipo = conCurva;
     else {
       var rectas = o.menu.filter(function (t) { return t !== conCurva; }).sort(function (x, y) { return T[x].vel - T[y].vel; });
       var n = rectas.length, k = Math.min(n - 1, Math.floor(Math.min(fuerza, 0.999) * n));
-      tipo = rectas[k]; frac = (fuerza - k / n) * n;
+      tipo = rectas[k];
     }
-    var mira = { u: clamp(u, -1.4, 1.4), h: clamp(G.alto[0] + (G.alto[1] - G.alto[0]) * frac, 0, 1.3) };
+    /* revisión del 23/oct: la altura sube pareja con el largo, en todas las
+       pegadas. Antes subía adentro de cada una y volvía al ras al pasar a la
+       siguiente: 150 px era al travesaño y 160 px al pasto */
+    var mira = { u: clamp(u, -1.4, 1.4), h: clamp(G.alto[0] + (G.alto[1] - G.alto[0]) * fuerza, 0, 1.3) };
     if (curvo) mira.lado = curva > 0 ? 1 : -1;
     var nivel = 0;
     while (nivel < G.cortes.length && fuerza >= G.cortes[nivel]) nivel++;
