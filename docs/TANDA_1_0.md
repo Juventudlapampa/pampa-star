@@ -6963,3 +6963,15 @@ LA PARED ESPECIAL (db65078). En ★ ESPECIAL, con la perilla prendida por la bar
 Lo que no entró: el número desde el editor de la pinta (se elige en la pantalla del puesto; editor.js es del otro agente), que el resto del equipo juegue más solo y te deje las decisiones de tu zona, y destrabes con perilla propia para chilena, palomita, cambio de frente, barrida y anticipo (hoy no tienen perilla que prender).
 
 Tests nuevos: puesto (9, con la carrera de Rodri copiada en test/_carrera_rodri_25oct.json) y pared (5).
+
+## 25/oct, la música que sigue al partido y los tres estilos (7ebd21e, 4cbd15e)
+
+El cuarteto rehecho del 25/oct (prompt de cuarteto cordobés estricto, sin timbales ni trompetas) reemplaza los seis cuarteto_*.ogg de assets/musica/. Cada estilo suma dos temas: la defensa (loop, suena cuando la pelota la tiene el rival) y el remate (corto, corta lo que venía en el cine del tiro, tuyo o del rival). Salen de .claude/nuevos/musica/25oct/ con los cortes y la tonalidad medida en su LEEME: once de catorce en Sol o sus relativas; el partido del cuarteto quedó en Re mayor y el tramo final en Do menor.
+
+En el partido: con la pelota suena el partido del estilo, sin la pelota su defensa; el cambio entra cuando la posesión se sostiene 1,5 s y pasaron 6 s desde el anterior, para que no prenda y apague (balance.musica.sigue, logic/musica.js seguirPosesion). El cine del remate pide el remate y al volver suena el que toque, o el tramo final si ya había entrado. Un tema a la vez, fundido de 300 ms. Perilla: flags.musica_sigue.
+
+En OPCIONES, una fila nueva, TE GUSTAN: se marcan hasta tres estilos (◄► y ENTER, o el dedo; lo marcado lleva »); la MEZCLA rota solo entre esos (logic/opciones.js, paraRotar). Con menos de dos marcados rota entre los cuatro, como antes. Con ocho filas, ◀ VOLVER sube arriba a la derecha. Perillas: flags.musica_tres_estilos y balance.musica.gustos_max. La portada dice ahora unos 20 MB (la música nueva suma 2,7).
+
+Lo que no entró: la elección de los estilos al crear la carrera (la pantalla del mapa ya lleva duración y largo de carrera; queda en OPCIONES). No se transpusieron los temas viejos lejos de Sol (rap_partido, rap_semana, rock_derrota, Last_Ten_Seconds, Low_Light_Protocol). Nada se escuchó: el cuarteto, los seis corridos de tono y los remates de rock y rap (salieron en menor) se confirman de oído.
+
+Tests nuevos: musica_sigue (4 bloques) y titulo [6] (TE GUSTAN).
