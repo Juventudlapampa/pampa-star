@@ -242,6 +242,40 @@ const CLUBES_PROF = ["river plate", "boca juniors", "racing club", "independient
 Object.values(div.divisiones).forEach(d => d.rivales.forEach(r => {
   CLUBES_PROF.forEach(c => assert(r.toLowerCase() !== c && !r.toLowerCase().startsWith(c), "§11 club profesional real en divisiones.json: " + r));
 }));
+
+/* ---------- 4a) EL MUNDIAL CON SELECCIONES FICTICIAS (25/oct, pedido de Rodri) ----------
+   La decisión de la tanda 1.0 fue que el Mundial se juega contra selecciones
+   ficticias, pero la tabla seguía con nueve países reales (Brasil, Alemania,
+   Italia...). Ahora son nombres inventados, sin banderas. Ningún rival de
+   ninguna división se llama como un país real, y los nueve de antes no
+   vuelven a ningún archivo del producto. */
+const PAISES = ["Argentina", "Bolivia", "Brasil", "Chile", "Colombia", "Ecuador", "Paraguay", "Perú", "Uruguay", "Venezuela",
+  "México", "Estados Unidos", "Canadá", "Costa Rica", "Panamá", "Honduras", "Jamaica", "Cuba", "Haití", "Guatemala", "El Salvador",
+  "Alemania", "Francia", "Italia", "España", "Portugal", "Inglaterra", "Escocia", "Gales", "Irlanda", "Países Bajos", "Holanda",
+  "Bélgica", "Suiza", "Austria", "Dinamarca", "Suecia", "Noruega", "Finlandia", "Islandia", "Polonia", "Croacia", "Serbia",
+  "Grecia", "Turquía", "Rusia", "Ucrania", "Rumania", "Hungría", "Chequia", "República Checa", "Eslovaquia", "Eslovenia",
+  "Marruecos", "Argelia", "Túnez", "Egipto", "Nigeria", "Senegal", "Camerún", "Ghana", "Costa de Marfil", "Sudáfrica", "Mali",
+  "Japón", "Corea del Sur", "Corea", "China", "Australia", "Nueva Zelanda", "Irán", "Arabia Saudita", "Catar", "Qatar", "Irak", "India"];
+const escapar = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const deLetra = n => new RegExp("(^|[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ])" + escapar(n) + "(?![A-Za-zÁÉÍÓÚÜÑáéíóúüñ])");
+Object.keys(div.divisiones).forEach(id => div.divisiones[id].rivales.forEach(r => {
+  const p = PAISES.find(n => deLetra(n).test(r));
+  assert(!p, "§11 el rival «" + r + "» (" + id + ") lleva el nombre de un país real: «" + p + "»");
+}));
+const mundialRivales = (div.divisiones.mundial || {}).rivales || [];
+assert(mundialRivales.length === 9, "§11 el Mundial tiene sus nueve selecciones ficticias (" + mundialRivales.length + ")");
+["Brasil", "Alemania", "Italia", "Francia", "Japón", "México", "Países Bajos", "Uruguay", "Inglaterra"].forEach(n => {
+  const re = deLetra(n);
+  /* Alta Italia es una localidad de La Pampa */
+  FILES.forEach(f => assert(!re.test(fs.readFileSync(f, "utf8").replace(/Alta Italia/g, "")), "§11 vuelve una selección real del Mundial de antes en " + path.relative(RAIZ, f) + ": «" + n + "»"));
+});
+/* sin banderas: ningún archivo de arte se llama bandera o flag. La silueta de
+   la tribuna que levanta un trapo (hincha_bandera) es negra y lisa, sin
+   colores de ningún país: mirada el 25/oct */
+const ARTE = [];
+(function recorrer(d) { fs.readdirSync(d, { withFileTypes: true }).forEach(e => { const full = path.join(d, e.name); if (e.isDirectory()) recorrer(full); else ARTE.push(e.name); }); })(path.join(RAIZ, "assets"));
+const banderas = ARTE.filter(n => /bandera|flag/i.test(n) && !/^hincha_bandera.(webp|png)$/.test(n));
+assert(banderas.length === 0, "§11 hay arte de banderas en assets/: " + banderas.join(", "));
 const roster = JSON.parse(fs.readFileSync(path.join(RAIZ, "data", "roster_pampeano.json"), "utf8"));
 
 /* ---------- 4b) EL PATRÓN DE LOS CLUBES PAMPEANOS (ola 3, L12) ----------

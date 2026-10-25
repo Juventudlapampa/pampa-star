@@ -1,6 +1,6 @@
 {
   "_schema": "pampa-star/divisiones@1",
-  "_doc": "V7 §2 MODO MASTER: los rivales de cada división de la escalera (9 por división + vos = 10 equipos, 18 fechas ida y vuelta). Los ids calzan con logic/master.js (dificultad fija + perfil de IA determinista por nombre). Primera B = los MISMOS 9 clubes que usa el clásico, en el MISMO ORDEN (consistencia, y el orden es lo que permite migrar partidas viejas). Primera A = clubes ficticios sobre localidades pampeanas públicas. Regional/Nacional = equipos ficticios de región. Mundial = selecciones por país (nombres de países, sin marcas). §11 (sept 2026): hasta acá la Primera B eran los nueve clubes REALES de una liga pampeana, y había un club real en la Primera A, uno en el Regional y dos nombres de ligas o torneos reales (Regional y Nacional). Todo se renombró a ficción; los nombres nuevos se verificaron en la web contra clubes y ligas reales. Nada de nombres de clubes, ligas o medios reales: phaser/test/seccion11.test.js tiene la lista de los que no pueden volver.",
+  "_doc": "V7 §2 MODO MASTER: los rivales de cada división de la escalera (9 por división + vos = 10 equipos, 18 fechas ida y vuelta). Los ids calzan con logic/master.js (dificultad fija + perfil de IA determinista por nombre). Primera B = los MISMOS 9 clubes que usa el clásico, en el MISMO ORDEN (consistencia, y el orden es lo que permite migrar partidas viejas). Primera A = clubes ficticios sobre localidades pampeanas públicas. Regional/Nacional = equipos ficticios de región. Mundial = selecciones FICTICIAS (25/oct, pedido de Rodri, la decisión de la tanda 1.0): nombres inventados que suenan a selección y no son países reales, sin banderas; hasta acá eran nueve países reales y una carrera guardada los traduce por posición (temporada.js, renombrarPorPosicion). Se buscaron en la web y no son países ni selecciones; seccion11.test.js vigila que no vuelva un país real. §11 (sept 2026): hasta acá la Primera B eran los nueve clubes REALES de una liga pampeana, y había un club real en la Primera A, uno en el Regional y dos nombres de ligas o torneos reales (Regional y Nacional). Todo se renombró a ficción; los nombres nuevos se verificaron en la web contra clubes y ligas reales. Nada de nombres de clubes, ligas o medios reales: phaser/test/seccion11.test.js tiene la lista de los que no pueden volver.",
   "divisiones": {
     "primera_b": {
       "n": "PRIMERA B",
@@ -20,7 +20,7 @@
     },
     "mundial": {
       "n": "EL MUNDIAL",
-      "rivales": ["Brasil", "Alemania", "Italia", "Francia", "Japón", "México", "Países Bajos", "Uruguay", "Inglaterra"]
+      "rivales": ["Norvania", "Montelar", "Sarvelia", "Velmora", "Islas Albas", "Gran Meridia", "Ostelia", "Kirvania", "Duranza"]
     }
   }
 }
