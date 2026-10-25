@@ -133,6 +133,15 @@ assert(rs.save.historial.length === 1 && rs.save.leyenda.defendidos === 0 && rs.
   "el saneo arregla historial, leyenda, final_visto y los goles (" + rs.reparado.join(" · ") + ")");
 
 /* ── 7 · tus goles viajan del partido al save ── */
+const P = require("../logic/partido.js");
+const misP = [{ nombre: "Arquero", pos: "ARQ" }];
+for (let i = 0; i < 10; i++) misP.push({ nombre: "C" + i, pos: "X" });
+misP[8] = { nombre: "Vos", esVos: true };
+const stP = P.crearPartido({ bal: BAL, mios: misP, rivales: [], rng: function () { return 0.5; } });
+stP.ctrl = 6; P.golMio(stP);
+stP.ctrl = 8; P.golMio(stP);
+stP.ctrl = 8; P.golMio(stP);
+assert(stP.golesMio === 3 && stP.golesVos === 2, "golMio cuenta solo tus goles (" + stP.golesVos + " de " + stP.golesMio + ")");
 const Sem = require("../logic/semana.js");
 const sv = { temporadaN: 2, temporada: { fecha: 4 } };
 Sem.anotarResultado(sv, { temporadaN: 2, fecha: 4, golesMio: 3, golesRival: 1, golesVos: 2 });
@@ -214,6 +223,14 @@ assert(e.textos().indexOf("▶ NUEVA TEMPORADA") >= 0 && e.textos().indexOf("CAM
 tocarTexto(e, "▶ NUEVA TEMPORADA");
 const a2 = JSON.parse(A.store.pampa_master_v1);
 assert(a2.division === "primera_a" && a2.historial.length === 1 && a2.golesTuyosTemporada === 0 && a2.ceremoniaVista === undefined, "NUEVA TEMPORADA cierra con historial y la ceremonia queda para la próxima");
+
+/* volver de un partido con dos goles tuyos: TU CARRERA los cuenta */
+const cg = carrera([0, 0, 0]);
+A.store.pampa_master_v1 = JSON.stringify(cg);
+A.reg.set("masterResultado", { temporadaN: 1, fecha: 0, golesMio: 3, golesRival: 1, golesVos: 2, hiceGol: true, aguanteFinalFrac: 0.5, golpeFuerte: false });
+e = escena(); e.create();
+const cg2 = JSON.parse(A.store.pampa_master_v1);
+assert(cg2.temporada.fecha === 1 && cg2.golesTuyosTemporada === 2, "el resultado del partido suma tus goles a la temporada (" + cg2.golesTuyosTemporada + ")");
 
 /* el descenso en pantalla */
 A.store.pampa_master_v1 = JSON.stringify((function () { const d = carrera([1, 1, 1]); jugar(d, 3, 0, 0); cerrar(d, Fi.veredicto(T, d, ids, cfgP)); jugar(d, 0, 3, 0); return d; })());
