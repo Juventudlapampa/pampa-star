@@ -446,6 +446,8 @@
       aguanteFinalFrac: typeof res.aguanteFinalFrac === "number" && isFinite(res.aguanteFinalFrac) ? res.aguanteFinalFrac : 0.6,
       golpeFuerte: !!res.golpeFuerte
     };
+    /* 25/oct: tus goles del partido, para TU CARRERA (logic/final.js) */
+    if (typeof res.golesVos === "number") save.resultadoPendiente.golesVos = res.golesVos | 0;
     return true;
   }
   /* de los resultados que llegan (el anotado en el save y el del registry, si

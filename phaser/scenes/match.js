@@ -5692,6 +5692,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         temporadaN: this._masterPartido.temporadaN, fecha: this._masterPartido.fecha,
         golesMio: st.golesMio, golesRival: st.golesRival,
         hiceGol: !!(this.st && this.st.hiceGol),
+        golesVos: (this.st && this.st.golesVos) | 0,
         aguanteFinalFrac: vosF ? Math.max(0, Math.min(1, vosF.aguante / this.BAL.aguante.max)) : 0.6,
         golpeFuerte: !!(this.st && this.st.golpeFuerte)
       };

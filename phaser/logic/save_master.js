@@ -339,6 +339,19 @@
     ["semanaCerradaEnFecha", "eventoFecha", "enCancha", "resultadoPendiente", "eleccion"].forEach(function (k) {
       if (s[k] != null && !esObjeto(s[k])) { delete s[k]; reparado.push(k); }
     });
+    /* el final de la carrera (25/oct, logic/final.js): se validan si están */
+    if (s.historial != null) {
+      if (!Array.isArray(s.historial)) { s.historial = []; reparado.push("historial"); }
+      else {
+        var hs = s.historial.filter(function (f) { return esObjeto(f) && esNumero(f.temporada) && esTexto(f.division); });
+        if (hs.length !== s.historial.length) { s.historial = hs; reparado.push("historial"); }
+      }
+    }
+    if (s.leyenda != null && !(esObjeto(s.leyenda) && esNumero(s.leyenda.defendidos))) { s.leyenda = { desde: entero(s.temporadaN) || 1, defendidos: 0 }; reparado.push("leyenda"); }
+    if (s.final_visto != null && typeof s.final_visto !== "boolean") { s.final_visto = !!s.final_visto; reparado.push("final visto"); }
+    ["golesTuyosTemporada", "ceremoniaVista"].forEach(function (k) {
+      if (s[k] != null && !esNumero(s[k])) { delete s[k]; reparado.push(k); }
+    });
 
     /* --- la temporada --- */
     var t = esObjeto(s.temporada) ? s.temporada : null;

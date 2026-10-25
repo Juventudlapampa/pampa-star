@@ -1068,7 +1068,7 @@
   function golMio(st, quien) {
     st.golesMio++;
     var j = quien || st.mios[st.ctrl];
-    if (j && j.esVos) st.hiceGol = true;
+    if (j && j.esVos) { st.hiceGol = true; st.golesVos = (st.golesVos | 0) + 1; }
     /* 23/oct, Rodri: el gol de un compañero se festejaba como tuyo. El
        saque del medio cambia st.ctrl antes de que la escena festeje, así
        que quién la metió se guarda acá (índice en st.mios). */

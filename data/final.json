@@ -1,0 +1,137 @@
+{
+  "_schema": "EL FINAL DE LA CARRERA (25/oct, pedido de Rodri): las ceremonias de fin de temporada, la segunda entrevista de Nito después del Mundial y los créditos. Puro texto editable; la lógica está en phaser/logic/final.js y la puesta en escena en phaser/scenes/ceremonia_ui.js.",
+  "_doc": "Marcadores: {club}, {pueblo}, {posicion}, {titulos}, {defendidos}, {respuesta} y los de cada división: {div} (la Primera B), {div_de} (de la Primera B), {div_en} (en la Primera B), {prox}, {prox_de}, {prox_a} (a la Primera A). En cada ceremonia, relator y tribuna son listas: se elige una por temporada, en rueda.",
+  "divisiones": {
+    "primera_b": { "n": "la Primera B", "de": "de la Primera B", "en": "en la Primera B", "a": "a la Primera B" },
+    "primera_a": { "n": "la Primera A", "de": "de la Primera A", "en": "en la Primera A", "a": "a la Primera A" },
+    "regional": { "n": "el Regional", "de": "del Regional", "en": "en el Regional", "a": "al Regional" },
+    "nacional": { "n": "el Nacional", "de": "del Nacional", "en": "en el Nacional", "a": "al Nacional" },
+    "mundial": { "n": "el Mundial", "de": "del Mundial", "en": "en el Mundial", "a": "al Mundial" }
+  },
+  "ceremonias": {
+    "titulo": {
+      "rotulo": "FIN DE TEMPORADA · TÍTULO",
+      "titular": "CAMPEÓN {div_de}",
+      "bajada": "▲ SUBÍS {prox_a}",
+      "pose": "festejo",
+      "relator": "pichi",
+      "dice": [
+        "¡Dio la vuelta {club}! ¡Campeón {div_de}, y la ruta se llena de bocinas!",
+        "¡Campeón! ¡Se terminó {div} y se viene {prox}! ¡Que se vayan haciendo a la idea!"
+      ],
+      "tribuna": [
+        [{ "quien": "nelda", "texto": "Yo lo dije en la primera fecha." }, { "quien": "tuli", "texto": "En la primera fecha dijiste que bajábamos, Nelda." }],
+        [{ "quien": "nelda", "texto": "Ahora viene lo difícil." }, { "quien": "tuli", "texto": "Dejame festejar un rato y después me contás." }]
+      ],
+      "lista": "LO QUE CAMBIA {prox_en}"
+    },
+    "descenso": {
+      "rotulo": "FIN DE TEMPORADA · DESCENSO",
+      "titular": "▼ BAJÁS {prox_a}",
+      "bajada": "terminaste {posicion}º {div_en}",
+      "pose": "cansado",
+      "relator": "profe",
+      "dice": [
+        "Terminó {posicion}º y toca bajar {prox_a}. La pelota es la misma y la cancha mide lo mismo.",
+        "Se baja {prox_a}. Hay temporadas así, y lo que sabés hacer no se fue a ningún lado."
+      ],
+      "tribuna": [
+        [{ "quien": "nelda", "texto": "Bajamos con el equipo. El domingo estoy en el alambrado igual." }, { "quien": "tuli", "texto": "Yo llevo el mate." }],
+        [{ "quien": "tuli", "texto": "Una temporada mala la tiene cualquiera." }, { "quien": "nelda", "texto": "Dos no, Tuli. Dos no." }]
+      ],
+      "lista": "LO QUE CAMBIA {prox_en}",
+      "conservas": "Lo que destrabaste se queda: el súper tiro no baja con vos."
+    },
+    "gloria": {
+      "rotulo": "EL MUNDIAL · LA FINAL",
+      "titular": "CAMPEÓN DEL MUNDO",
+      "bajada": "{club}, de {pueblo}",
+      "pose": "festejo",
+      "relator": "pichi",
+      "dice": [
+        "¡CAMPEÓN DEL MUNDO! ¡De la cancha de {pueblo} a la copa del mundo! ¡Se escucha hasta en la ruta 35!"
+      ],
+      "tribuna": [
+        [{ "quien": "tuli", "texto": "Nelda, ¿estás llorando?" }, { "quien": "nelda", "texto": "Es el viento, Tuli. Es el viento." }]
+      ],
+      "lista": "LO QUE SIGUE",
+      "sigue": "Nito Carrizo te espera en la radio de la tarde."
+    },
+    "defendido": {
+      "rotulo": "LEYENDA · FIN DE TEMPORADA",
+      "titular": "TÍTULO DEFENDIDO",
+      "bajada": "el {defendidos}º como leyenda",
+      "pose": "festejo",
+      "relator": "pichi",
+      "dice": [
+        "¡Otra vez! ¡La copa no se va de {pueblo}! ¡Van {defendidos} defendidos!",
+        "¡Lo defendió de nuevo! ¡Que alguien le avise al resto del mundo!"
+      ],
+      "tribuna": [
+        [{ "quien": "tuli", "texto": "Ya perdí la cuenta." }, { "quien": "nelda", "texto": "Yo no. La tengo anotada en la heladera." }]
+      ],
+      "lista": "LA LEYENDA SIGUE",
+      "sigue": "Otra temporada {div_en}, defendiendo el título."
+    }
+  },
+  "leyenda": {
+    "rotulo": "LEYENDA",
+    "sin_titulo": "Esta vez la copa se fue a otras manos. La leyenda sigue {div_en}.",
+    "renglon": "★ campeón del mundo · {defendidos_texto}"
+  },
+  "cierre": {
+    "rotulo": "TERCER TIEMPO · LA RADIO DE LA TARDE",
+    "abre": "Misma radio, misma silla. Afuera hay gente esperando para verte pasar y yo te tengo acá, con el grabador viejo. Vamos de atrás para adelante, como la primera vez.",
+    "preguntas": {
+      "donde": {
+        "nito": "Saqué la libretita de aquella tarde. Cuando te pregunté dónde aprendiste, me dijiste: «{respuesta}» ¿Seguís pensando lo mismo?",
+        "vos": [
+          "Sí. En el Mundial tampoco me dieron ventaja, y ya sabía de qué se trataba.",
+          "Los botines prestados los devolví. La escuelita me la llevé a cada cancha.",
+          "La pared del galpón sigue ahí. Le debo más goles a ella que a cualquier DT.",
+          "Mi hermano vino a la final. Ahora en la localidad le dicen el hermano del crack."
+        ]
+      },
+      "afuera": {
+        "nito": "Pará que anoto. Aquella vez me contaste de tu semana: «{respuesta}» ¿Y ahora qué hacés los lunes?",
+        "vos": [
+          "Me sigo levantando antes de que aclare. La costumbre del campo no se va.",
+          "Terminé la escuela. El celu lo tengo lleno de mensajes de la localidad.",
+          "Changas ya no hago. Pero si alguien de la localidad necesita una mano, voy.",
+          "Paso por el taller cada vez que vuelvo. Mi viejo colgó la camiseta arriba del banco."
+        ]
+      },
+      "consejo": {
+        "nito": "Y la última, que a las siete entra el informativo. La frase que te quedó, me dijiste que era esta: «{respuesta}» ¿Te sirvió allá afuera?",
+        "vos": [
+          "En la final la acaricié una sola vez. Alcanzó.",
+          "Me la acordé en cada pelota dividida. No dudé.",
+          "El título es del plantel. El equipo primero, y punto.",
+          "En el Mundial me conocían por el nombre. Algo de miedo me tenían."
+        ]
+      }
+    },
+    "sin_grabacion": {
+      "nito": "La primera vez se me trabó el casete y no quedó nada grabado. Así que te pregunto de nuevo, de atrás para adelante: ¿de dónde saliste?",
+      "vos": "De {pueblo}. Lo demás ya lo sabe la gente."
+    },
+    "cierra": "Y bueno. Treinta años haciendo esta radio y hoy me olvidé de anotar. Saliste de {pueblo} y volvés con {titulos}. Gracias por sentarte otra vez acá enfrente."
+  },
+  "creditos": {
+    "rotulo": "CRÉDITOS",
+    "lineas": [
+      { "rubro": "Un juego de", "texto": "la Subsecretaría de Juventudes de La Pampa" },
+      { "rubro": "Motor", "texto": "Phaser 3.80.1, licencia MIT" },
+      { "rubro": "Tipografías", "texto": "Archivo Black, Bowlby One, Pixelify Sans, Press Start 2P y VT323, SIL Open Font License 1.1" },
+      { "rubro": "Música", "texto": "generada con Suno y con Gemini; la autoría y la licencia las confirma la Subsecretaría antes de la difusión institucional" },
+      { "rubro": "Efectos de sonido", "texto": "generados con ElevenLabs, con la licencia a confirmar igual que la música" }
+    ]
+  },
+  "eleccion": {
+    "rotulo": "¿Y AHORA?",
+    "leyenda": "▶ SEGUIR COMO LEYENDA",
+    "leyenda_sub": "temporadas sin fin {div_en}, defendiendo el título",
+    "nueva": "NUEVA CARRERA",
+    "nueva_sub": "otra localidad, desde la Primera B; esta queda respaldada"
+  }
+}

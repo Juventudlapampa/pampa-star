@@ -272,6 +272,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       if (dvs && this.T.renombrarPorPosicion(tp, dvs.rivales)) cambio = true;
       if (cambio) this.guardar();
     }
+    /* 25/oct · Nito cita al final lo que contestaste en la primera
+       entrevista: una carrera de antes guardaba las frases y no qué
+       respuesta era. Se recupera una vez (logic/final.js) */
+    const vidaD = this.game.registry.get("vida");
+    if (this.save && window.PampaFinal && vidaD && window.PampaFinal.migrarElecciones(this.save, vidaD.origen)) this.guardar();
     /* ARTE: con la partida leída ya se sabe la división: su cancha va de fondo */
     if (this.fondoDeLaDivision) { try { this.fondoDeLaDivision(); } catch (e) { /* queda el radial */ } }
 
@@ -304,6 +309,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.save.resultadoPendiente = null;
       this.save.enCancha = null;
       this.T.jugarFecha(this.save.temporada, res.golesMio | 0, res.golesRival | 0);
+      /* 25/oct · TU CARRERA cuenta tus goles. Una temporada que empezó antes
+         de que se contaran no tiene el campo y queda sin anotar */
+      if (typeof this.save.golesTuyosTemporada === "number") this.save.golesTuyosTemporada += res.golesVos | 0;
       this._ultimo = res;
       /* ============ LA VIDA v2 · EL LUNES DESPUÉS ============
          Se recupera energía según lo que costó el partido, el ánimo sube o
@@ -1184,6 +1192,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.save = {
         v: (window.PampaSaveMaster && window.PampaSaveMaster.VERSION) || 1, club, pueblo: this.pueblos[this.pSel], division: divId, temporadaN: 1, titulos: [],
         origen: origen || null, bolsaEventos: [], modFecha: null, racha: 0,
+        historial: [], golesTuyosTemporada: 0,
         tempo: window.PampaSaveMaster.tempoDe(this._tempoDeLaCarrera),
         temporada: this.T.crear({
           division: divId, miClub: club,
@@ -1267,6 +1276,20 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const s = this.save || {};
     const nv = this.Ma.nivelDeDivision(s.division);
     return Math.max(nv, s.nivelMax | 0);
+  }
+  /* 25/oct · el final de la carrera: la lógica (logic/final.js) si la
+     perilla está prendida y data/final.json cargó; si no, null */
+  finalDeCarrera() {
+    const B = this.game.registry.get("balance") || {};
+    return B.flags && B.flags.carrera_final && window.PampaFinal && this.game.registry.get("final") ? window.PampaFinal : null;
+  }
+  /* la temporada n de tu club en esa división (la cuenta de _crearCarrera) */
+  temporadaNueva(division, n) {
+    return this.T.crear({
+      division, miClub: this.save.club,
+      rivales: this.DIV.divisiones[division].rivales,
+      semilla: this.Ma.hashClub(this.save.club) * 31 + n
+    });
   }
   /* ══════════════════════════════════════════════════════════════════════
      D4 · EL MAPA. Se redibuja entero al cambiar de pueblo: son diez puntos y
@@ -2829,10 +2852,21 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ============ VISTA 2: LA TEMPORADA ============ */
   vistaTemporada() {
     const W = this.scale.width, H = this.scale.height;
+    const t = this.save.temporada, T = this.T, Ma = this.Ma;
+    /* 25/oct · EL FINAL DE LA CARRERA (flags.carrera_final): la temporada
+       terminada con título, ascenso, descenso o gloria pasa primero por su
+       ceremonia (scenes/ceremonia_ui.js), una vez por temporada */
+    const FIN = this.finalDeCarrera();
+    const cfgP = FIN ? FIN.cfgDeLaTemporada(this.save, (this.game.registry.get("balance") || {}).partido || {})
+      : (this.game.registry.get("balance") || {}).partido || {};
+    const vFin = FIN && T.terminada(t) ? FIN.veredicto(T, this.save, Ma.DIVISIONES.map(d => d.id), cfgP) : null;
+    if (vFin && FIN.ceremoniaDe(vFin) && this.save.ceremoniaVista !== this.save.temporadaN) {
+      this.vistaCeremonia(vFin);
+      return;
+    }
     /* revisión L06: en la última fecha, la tabla ya baja el tema del título
        ("hype"), que antes nadie precargaba: sonaba recién cuando bajaba */
     this.pedirMusica("espera", { cierre: this.T.ultimaFecha(this.save && this.save.temporada) });
-    const t = this.save.temporada, T = this.T, Ma = this.Ma;
     const div = Ma.DIVISIONES.find(d => d.id === this.save.division) || Ma.DIVISIONES[0];
     /* C2 · el PRINCIPAL de la temporada es en qué escalón estás: es el dato que
        ordena todo lo demás de la pantalla, y la tabla es la consulta. */
@@ -2859,7 +2893,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
       this.irA("titulo");
     });
-    this.add.text(W / 2, 56, div.n + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
+    this.add.text(W / 2, 56, div.n + (FIN && this.save.leyenda ? " · LEYENDA" : "") + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
     /* revisión L04b: con un título decía "★ 1 títulos"; el singular como en
        el código de la carrera (vistaCodigo) */
     const nTitClub = this.save.titulos.length;
@@ -2889,8 +2923,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const pos = T.posiciones(t);
     const x0 = 70, y0 = 116;
     /* A4 · la zona de descenso se marca con FORMA (▼ + línea de corte), no con
-       color: el color solo no sirve. La zona no existe en la división más baja. */
-    const cfgP = (this.game.registry.get("balance") || {}).partido || {};
+       color: el color solo no sirve. La zona no existe en la división más baja
+       ni para la leyenda (cfgP, arriba). */
     const idsDiv = Ma.DIVISIONES.map(d => d.id);
     const hayAbajo = idsDiv.indexOf(t.division) > 0;
     const zona = hayAbajo ? T.zonaDescenso(t, cfgP) : [];
@@ -3042,33 +3076,30 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const codigo = this.accesoAlCodigo(W, H);
       const instalar = this.accesoAInstalar(W, H);
       accesos.push(salida, codigo, instalar);
-      const v = T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
+      const v = vFin || T.veredicto(t, Ma.DIVISIONES.map(d => d.id), cfgP);
       let msj, color;
       /* M4 · idem "hype" (Ascenso, título, gloria): declarado, con archivo y sin
          nadie que lo pida. Este es el momento para el que fue escrito. */
       if (v.gloria || v.asciende || v.campeon) this.pedirMusica("hype");
-      if (v.gloria) { msj = "¡CAMPEÓN DEL MUNDO! LA GLORIA ETERNA"; color = "#ffd84d"; }
+      if (v.gloria) { msj = FIN ? "★ CAMPEÓN DEL MUNDO · falta el cierre de tu carrera" : "¡CAMPEÓN DEL MUNDO! LA GLORIA ETERNA"; color = "#ffd84d"; }
+      else if (v.defendido) { msj = "★ TÍTULO DEFENDIDO · el " + (((this.save.leyenda || {}).defendidos | 0) + 1) + "º como leyenda"; color = "#ffd84d"; }
       else if (v.asciende) { msj = "¡CAMPEÓN! SUBÍS A " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#ffd84d"; }
       /* A4 · con todas las letras: se dice que se descendió y a dónde */
       else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás a " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#e3503e"; }
+      else if (v.leyenda) { msj = "Terminaste " + v.posicion + "º · la leyenda sigue en " + div.n; color = "#f6efdc"; }
       else { msj = "Terminaste " + v.posicion + "º — otra temporada en " + div.n; color = "#f6efdc"; }
       this.add.text(W / 2, H - 140, msj, { fontFamily: window.PF.display, fontSize: "13px", color }).setOrigin(0.5);
-      principal = this.boton(W / 2 - 170, H - 80, 320, "▶ NUEVA TEMPORADA", 0x7ee08a, () => {
-        if (v.campeon) this.save.titulos.push({ division: this.save.division, temporada: this.save.temporadaN });
-        this.save.division = v.proximaDivision;
-        /* marca de agua: el nivel sube con el ascenso y NO baja con el descenso.
-           Perder el Tornado Pampeano por haber terminado noveno seria sacarte
-           algo que ya te ganaste. */
-        this.save.nivelMax = Math.max(this.save.nivelMax | 0, this.Ma.nivelDeDivision(this.save.division));
-        this.save.temporadaN++;
-        this.save.temporada = this.T.crear({
-          division: this.save.division, miClub: this.save.club,
-          rivales: this.DIV.divisiones[this.save.division].rivales,
-          semilla: this.Ma.hashClub(this.save.club) * 31 + this.save.temporadaN
+      /* 25/oct · el Mundial ganado ya no se vuelve a jugar con un botón: la
+         salida es el cierre (Nito, TU CARRERA, créditos y la elección) */
+      if (FIN && v.gloria) {
+        principal = this.boton(W / 2 - 170, H - 80, 320, "▶ EL CIERRE DE TU CARRERA", 0xffd84d, () => (this.save.final_visto ? this.vistaCreditos(v) : this.vistaCierre(v)));
+      } else {
+        principal = this.boton(W / 2 - 170, H - 80, 320, "▶ NUEVA TEMPORADA", 0x7ee08a, () => {
+          window.PampaFinal.cerrarTemporada(T, this.save, v, Ma.DIVISIONES, { crear: (d, n) => this.temporadaNueva(d, n) });
+          this.guardar();
+          this.scene.restart();
         });
-        this.guardar();
-        this.scene.restart();
-      });
+      }
       editor = this.boton(W / 2 + 170, H - 80, 280, "EDITOR / PINTA", 0xf6efdc, () => this.irA("editor"));
     }
     /* ola 3 · TECLADO: la tabla es el paso entre fecha y fecha y solo andaba
@@ -3139,10 +3170,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
    L10: la lista era a mano y nombraba cuatro vistas que ya no existen
    mientras dejaba afuera vistaOrigen,
    vistaBorrarCarrera y las demás. Ahora sale de la clase: create y toda
-   vista* que tenga, así una vista nueva entra sola. */
-Object.getOwnPropertyNames(window.PampaMasterScene.prototype)
-  .filter(function (n) { return n === "create" || /^vista[A-Z]/.test(n); })
-  .forEach(function (n) {
+   vista* que tenga, así una vista nueva entra sola. Las vistas que llegan
+   después en otro archivo (scenes/ceremonia_ui.js) se envuelven al
+   sumarse, con envolverVistas. */
+window.PampaMasterScene.envolverVistas = function (nombres) {
+  nombres.forEach(function (n) {
     var orig = window.PampaMasterScene.prototype[n];
     if (typeof orig !== "function") return;
     window.PampaMasterScene.prototype[n] = function () {
@@ -3159,4 +3191,7 @@ Object.getOwnPropertyNames(window.PampaMasterScene.prototype)
       return r;
     };
   });
+};
+window.PampaMasterScene.envolverVistas(Object.getOwnPropertyNames(window.PampaMasterScene.prototype)
+  .filter(function (n) { return n === "create" || /^vista[A-Z]/.test(n); }));
 

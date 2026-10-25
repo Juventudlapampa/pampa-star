@@ -114,7 +114,12 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 (function () {
   assert(/nivelDeLaCarrera\(\)/.test(MASTER), "tiene que existir el helper de escena");
   assert(/Math\.max\(nv, s\.nivelMax \| 0\)/.test(MASTER), "el nivel que viaja tiene que ser marca de agua alta");
-  assert(/this\.save\.nivelMax = Math\.max/.test(MASTER), "el ascenso tiene que subir la marca de agua");
+  /* 25/oct, pedido de Rodri (el final de la carrera): el cierre de la
+     temporada pasó de adentro del botón NUEVA TEMPORADA a logic/final.js
+     (cerrarTemporada), donde se prueba en node. La marca de agua se busca
+     ahí y el Master tiene que llamarla */
+  var FINAL = fs.readFileSync(path.join(RAIZ, "phaser/logic/final.js"), "utf8");
+  assert(/save\.nivelMax = Math\.max/.test(FINAL) && /PampaFinal\.cerrarTemporada\(/.test(MASTER), "el ascenso tiene que subir la marca de agua");
   /* y tiene que VIAJAR: si no entra al registry, la cancha vuelve a caer en 1 */
   assert(/nivel: this\.nivelDeLaCarrera\(\)/.test(MASTER), "el nivel tiene que viajar en masterPartido");
   assert(/mp0 && mp0\.nivel/.test(MATCH), "y la cancha tiene que leerlo de ahi");

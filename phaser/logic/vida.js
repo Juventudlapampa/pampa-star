@@ -28,17 +28,20 @@
      elecciones = [idxPantalla0, idxPantalla1, idxPantalla2] */
   function aplicarOrigen(data, elecciones) {
     var pant = (data && data.origen) || [];
-    var stats = {}, frases = [], marcas = [];
+    var stats = {}, frases = [], marcas = [], elegidas = [];
     (elecciones || []).forEach(function (idx, i) {
       var p = pant[i];
       if (!p || !p.opciones) return;
-      var o = p.opciones[((idx | 0) % p.opciones.length + p.opciones.length) % p.opciones.length];
+      var k = ((idx | 0) % p.opciones.length + p.opciones.length) % p.opciones.length;
+      var o = p.opciones[k];
       if (!o) return;
+      elegidas.push(k);
       Object.keys(o.stats || {}).forEach(function (k) { stats[k] = (stats[k] || 0) + o.stats[k]; });
       if (o.frase) frases.push(o.frase);
       if (o.marca) marcas.push(o.marca);
     });
-    return { stats: stats, frases: frases, marcas: marcas };
+    /* 25/oct: qué contestaste, para que Nito lo cite al final (logic/final.js) */
+    return { stats: stats, frases: frases, marcas: marcas, elecciones: elegidas };
   }
   /* la ficha corta: "Thiago, el que aprendió en el potrero de Winifreda" */
   function fichaOrigen(nombre, origen, pueblo) {

@@ -50,8 +50,10 @@ assert(/_focoMapa\.concat\(this\._tempoFoco \|\| \[\], this\._botonesElegir \|\|
 const tabla = metodo(MA, "vistaTemporada");
 assert(/const items = \[principal, editor, menu\]\.concat\(accesos\)/.test(tabla) && /this\.grupoFoco\(items, \{ inicial: 0 \}\)/.test(tabla),
   "la tabla arranca el cursor en JUGAR (o PASAR, o NUEVA TEMPORADA), con el editor, el menú y los accesos");
-assert((tabla.match(/principal = this\.boton\(/g) || []).length === 3 && (tabla.match(/editor = this\.boton\(/g) || []).length === 2,
-  "los tres botones principales y los dos del editor entran al cursor");
+/* 25/oct, pedido de Rodri: el Mundial ganado tiene su propio principal, EL
+   CIERRE DE TU CARRERA, en vez de NUEVA TEMPORADA: son cuatro */
+assert((tabla.match(/principal = this\.boton\(/g) || []).length === 4 && (tabla.match(/editor = this\.boton\(/g) || []).length === 2,
+  "los cuatro botones principales y los dos del editor entran al cursor");
 const esc = metodo(MA, "escucharToque");
 assert(/keydown-ENTER/.test(esc) && /keydown-SPACE/.test(esc) && /completarEscritura\(\)/.test(esc),
   "lo que se escribe letra por letra se completa con ENTER o ESPACIO, como con el toque");

@@ -1355,6 +1355,11 @@
         "abajo": ["Se agacha sobre la pelota, la cabeza abajo", "El pie de apoyo bien pegado a la pelota, para pegarle al ras"]
       } }
   },
+  "final": {
+    "_nota": "25/oct, EL FINAL DE LA CARRERA (flags.carrera_final). plano_ms: cuánto dura cada uno de los tres cortes de la ceremonia (pose quieta, corte seco; un toque o ENTER saltea al último). leyenda_division: dónde se juegan las temporadas de SEGUIR COMO LEYENDA, sin descenso; los títulos de ahí cuentan como defendidos.",
+    "plano_ms": 1500,
+    "leyenda_division": "mundial"
+  },
   "flags": {
     "_penales": "23/oct, decisión que Rodri delegó: la falta adentro del área es PENAL (balance.penal, logic/penal.js). false: adentro del área no hay falta, como antes.",
     "penales": true,
@@ -1374,6 +1379,8 @@
     "_toma_remate": "17/oct, pedido de Rodri: las animaciones 3D rompieron el juego. La toma del remate (scenes/toma_remate.js) queda APAGADA: vuelven la viñeta EL REMATE y, en el súper tiro, la carga y el plano del pie. El código sigue, no se borra todavía.",
     "toma_remate": false,
     "toque": true,
+    "_carrera_final": "25/oct, pedido de Rodri: el final de la carrera. Ascenso, título, descenso y título defendido con escena propia; después del Mundial, la segunda entrevista de Nito, TU CARRERA, los créditos y la elección entre SEGUIR COMO LEYENDA o NUEVA CARRERA (balance.final, data/final.json, scenes/ceremonia_ui.js). false vuelve al renglón del veredicto con NUEVA TEMPORADA, que repite el Mundial.",
+    "carrera_final": true,
     "_poda": "22/oct, pedido de Rodri (si creés que hay cosas para sacar, sacalas, pero dame algo para probar medio definitivo): LA PODA del partido. Lo sacado se APAGA acá, el código queda y cada sistema vuelve poniendo su perilla en true. cartas: las cartas por puesto y su fila en la barra de arriba. envion: la barra del ENVIÓN, POTENCIAR, la súper defensa de te rematan y lo que los eventos de la carrera sumaban al envión. v6_secuencias: MEGACORRIDA y COMBINADA. megadefensas: las tuyas y las del rival (QUITE PAMPERO, BLOQUEO MÉDANO); LA PRESIÓN es una carta y se va con cartas. jugadon: las fichas del jugadón, su fila arriba, el SÚPER QUITE y el GAMBETA-TIRO; el SÚPER TIRO conserva sus 2 por partido (fichasNuevas().tiros). v6_definicion: LA DEFINICIÓN; el pase alto cerca del arco pasa a ser un remate común, con EL TOQUE si es en el área. megatiros_con_nombre: los megatiros de data/megacosas.json (Caldén, Atuel, Tornado) se ven como un único SÚPER TIRO con los números del nivel. pase_al_vacio: vivía en la grilla de ★ ESPECIAL, que con todo esto queda con un solo botón, el SÚPER TIRO; con más de un especial prendido vuelve la grilla.",
     "cartas": false,
     "envion": false,

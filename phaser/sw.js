@@ -73,7 +73,7 @@ const PRECACHE = [
   "./vendor/phaser.min.js",
   "./logic/duel.js", "./logic/perspectiva.js", "./logic/partido.js",
   "./logic/relator.js", "./logic/dialogo.js", "./logic/definicion.js", "./logic/master.js",
-  "./logic/temporada.js", "./logic/avatar.js", "./logic/tiro.js",
+  "./logic/temporada.js", "./logic/final.js", "./logic/avatar.js", "./logic/tiro.js",
   "./logic/jugadon.js", "./logic/toque.js", "./logic/frente.js", "./logic/penal.js", "./logic/flujo.js", "./logic/tutorial.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
   "./logic/escudos.js", "./logic/ambiente.js", "./logic/vestir.js", "./logic/halo.js", "./logic/pierna.js", "./logic/lectura.js", "./logic/drama.js", "./logic/escalera.js",
   /* tanda 1.0 (L05): los seis módulos que index.html carga desde el
@@ -103,7 +103,7 @@ const PRECACHE = [
   "./scenes/vestidas_ui.js", "./logic/vestir_obrero.js",
   "./audio/sfx.js",
   "./scenes/sprites.js", "./scenes/avatar_arte.js", "./scenes/intro.js",
-  "./scenes/editor.js", "./scenes/master.js", "./scenes/match.js",
+  "./scenes/editor.js", "./scenes/master.js", "./scenes/ceremonia_ui.js", "./scenes/match.js",
   "./scenes/definicion_ui.js", "./scenes/jugadon_ui.js", "./scenes/toque_ui.js", "./scenes/frente_ui.js", "./scenes/escenas_v9.js", "./scenes/cine_arte.js", "./scenes/toma_remate.js", "./scenes/piel_ui.js",
   "./scenes/escudos_ui.js", "./scenes/semana_ui.js", "./scenes/tribuna_ui.js", "./scenes/feel_ui.js", "./scenes/onda_ui.js", "./scenes/reloj.js",
   "./scenes/cartas_ui.js", "./scenes/foco_ui.js",
@@ -113,7 +113,7 @@ const PRECACHE = [
   "../data/megacosas.json", "../data/relatos.json",
   "../data/poses_manifest.json", "../data/caras_manifest.json",
   "../data/divisiones.json", "../data/identidades_manifest.json",
-  "../data/entrevista.json", "../data/tribuna.json", "../data/ambientes.json",
+  "../data/entrevista.json", "../data/tribuna.json", "../data/ambientes.json", "../data/final.json",
   "../assets/fonts/PressStart2P-Regular.ttf", "../assets/fonts/VT323-Regular.ttf",
   "../assets/fonts/PixelifySans-Regular.ttf",
   "../assets/fonts/ArchivoBlack-Regular.ttf", "../assets/fonts/BowlbyOne-Regular.ttf"
