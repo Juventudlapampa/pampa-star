@@ -321,7 +321,19 @@
         fr.k *= Math.max(E.min_zoom, Math.min(1, maxD ? mitad / maxD : 1, maxI ? mitad / maxI : 1));
       }
       this.frenteFondo(fr);
-      fr.rotulo = this.add.text(18, 22, cfg.penal ? "· PENAL ·" : cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } });
+      /* 25/oct, Rodri: "si esto es tiro libre nunca lo entendí, pensé que era
+         tiro común". El tiro libre se anuncia grande y queda arriba toda la
+         escena, con cómo le pega quien patea (su TIRO baja el error y su
+         ÁNIMO suma fuerza: logic/frente.errorDe y partido.prepararRemate);
+         el remate en juego dice que la pelota viene en movimiento y la regla
+         de cuándo elegís la pegada */
+      var jT = cfg.j, tiroJ = (jT && jT.stats && jT.stats.tiro) || 55, animoJ = jT && jT.esVos ? (this.st.animoGrande || 0) : 0;
+      var txtRot = cfg.penal ? "· PENAL ·"
+        : cfg.libre ? "¡TIRO LIBRE! · pelota quieta" + (cfg.esRival ? "" : "\nTIRO " + tiroJ + (animoJ ? " · ÁNIMO +" + animoJ : "") + " · " + (tiroJ >= 70 ? "le pega bien" : tiroJ < 50 ? "le pega flojo" : "le pega normal"))
+        : "REMATE · la pelota viene en movimiento\ncon la pelota al pie elegís la pegada";
+      fr.rotulo = this.add.text(18, 22, txtRot, cfg.libre
+        ? { fontFamily: window.PF.display, fontSize: "15px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 8, y: 5 }, lineSpacing: 4 }
+        : { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } });
       this.cineContent.add(fr.rotulo);
       var rivalDeEllos = !cfg.esRival, lista = cfg.esRival ? this.st.mios : this.st.rivales;
       /* la barrera no es la misma figura cinco veces: se alternan el lado y la altura */

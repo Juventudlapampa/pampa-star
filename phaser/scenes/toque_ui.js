@@ -61,7 +61,8 @@
 
       var tactil = this.sys.game.device.input.touch;
       var pie = e.jug.pie === "izq" ? "IZQUIERDO" : "DERECHO";
-      var info = this.add.text(18, 14, (j.esVos ? "VOS" : String(j.nombre || "").toUpperCase()) + " · PIE HÁBIL: " + pie,
+      /* 25/oct, Rodri: "a veces pregunta cómo pegar y a veces no". La regla, en una línea */
+      var info = this.add.text(18, 14, (j.esVos ? "VOS" : String(j.nombre || "").toUpperCase()) + " · PIE HÁBIL: " + pie + "\nte la tiraron: EL TOQUE",
         { fontFamily: window.PF.display, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 });
       var propia = origen === "propia";
       tq.propia = propia;
