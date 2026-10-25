@@ -261,6 +261,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._temaFinalPuesto = false;   // M5: el tema de urgencia entra una vez por partido
     this._temaFinalMin = null;
     this._musicaMomento = null;      // el "jugadon" de EL TOQUE del partido anterior no pide nada
+    this._musicaSigue = { suena: null, quiere: null, desde: 0, cambio: null };   // logic/musica.js, seguirPosesion
     /* TANDA 1.0 · los avisos del HUD (avisar): los que se ven y los que
        esperan. Arreglos, no banderas, pero la lección es la misma: un aviso
        encolado al final de la fecha 1 no puede salir en la fecha 2. */
@@ -1014,6 +1015,28 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._temaFinalPuesto = true;
     this._temaFinalMin = +st.minuto.toFixed(1);
     this.pedirMusica("partido_final");
+  }
+
+  /* 25/oct, Rodri: "la música tiene que seguir al partido, como en los juegos
+     de fútbol de NES" (flags.musica_sigue). La vuelta del remate o del
+     jugadón: el tramo final si ya entró; si no, con o sin la pelota */
+  musicaDelJuego() {
+    if (this._temaFinalPuesto) { this.pedirMusica("partido_final"); return; }
+    const sinPelota = this.FLAGS.musica_sigue && this.st.posesion === "rival";
+    if (sinPelota) this.pedirMusica("defensa"); else this.pedirMusica("partido");
+    this._musicaSigue.suena = sinPelota ? "defensa" : "partido";
+    this._musicaSigue.cambio = this.time.now;
+  }
+  /* con la pelota, el partido; sin la pelota, la defensa. Solo entre esos
+     dos: la entrada, el tramo final, el remate y el cierre mandan */
+  seguirMusica() {
+    if (!this.FLAGS.musica_sigue || this._temaFinalPuesto || this._musicaTrabada) return;
+    const m = this._musicaMomento;
+    if (m !== "partido" && m !== "defensa") return;
+    this._musicaSigue.suena = m;
+    const toca = window.PampaMusica.seguirPosesion(this._musicaSigue, this.st.posesion, this.time.now, this.BAL.musica.sigue);
+    if (toca === "defensa") this.pedirMusica("defensa");
+    else if (toca === "partido") this.pedirMusica("partido");
   }
 
   cerrarMusica() {
@@ -3846,6 +3869,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     vivo.tweens.forEach(t => t.remove());
   }
   entrarCine() {
+    /* 25/oct, Rodri: el remate, tuyo o del rival, corta la música con su
+       tema; al volver suena la que toque (musicaDelJuego) */
+    if (this.FLAGS.musica_sigue) this.pedirMusica("remate");
     /* un cine nuevo corta el anterior: su cadena de planos y su desenlace */
     if (this._cineTimer) { this._cineTimer.remove(false); this._cineTimer = null; }
     this.cortarDesenlace();
@@ -7377,7 +7403,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.refrescarHUD();
     /* revisión final del 22/oct: EL TOQUE pide el tema del jugadón y nadie
        volvía a pedir el del partido: el tramo final sonaba hasta el pitazo */
-    if (this._musicaMomento === "jugadon") this.pedirMusica(this._temaFinalPuesto ? "partido_final" : "partido");
+    if (this._musicaMomento === "jugadon" || this._musicaMomento === "remate") this.musicaDelJuego();
+    else this.seguirMusica();
     this.chequearTramoFinal();       // M5
     if (this._prof && this._prof.activo) this.updatePanelProfundo();
     else if (this._split) this.updatePanelEscena(delta);

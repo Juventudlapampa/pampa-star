@@ -74,6 +74,14 @@
     jugadon:    { tema: "partido_final", n: "La corrida del jugadón",
                   _comparte: "idem definicion" },
 
+    /* 25/oct, Rodri: "la música tiene que seguir al partido, como en los juegos
+       de fútbol de NES". Con la pelota suena el partido; sin la pelota, la
+       defensa; el cine del remate (tuyo o del rival) corta con un tema corto
+       y épico. Un estilo sin defensa o sin remate cae en su partido: mismo
+       archivo, no se corta (mapaCompleto) */
+    defensa:   { tema: "defensa",       n: "Sin la pelota: la tiene el rival" },
+    remate:    { tema: "remate",        n: "El remate: el cine del tiro, tuyo o del rival" },
+
     /* el silencio es un momento como cualquier otro y tiene que poder pedirse */
     silencio:  { tema: null, n: "Silencio (vestuario, salida de escena)" }
   };
@@ -141,8 +149,10 @@
     semana: ["entrada"],
     hype: ["espera"],
     entrada: ["partido"],
-    partido: ["partido_final", "gol_festejo", "derrota"],
-    partido_final: ["gol_festejo", "derrota"],
+    partido: ["defensa", "remate", "partido_final", "gol_festejo", "derrota"],
+    defensa: ["partido", "remate", "partido_final", "gol_festejo", "derrota"],
+    remate: ["partido", "defensa", "partido_final", "gol_festejo"],
+    partido_final: ["remate", "gol_festejo", "derrota"],
     gol_festejo: ["partido", "partido_final"],
     definicion: ["partido", "gol_festejo"],
     jugadon: ["partido", "gol_festejo"],
@@ -165,6 +175,23 @@
     return out;
   }
 
+  /* 25/oct · CON O SIN LA PELOTA. Qué tema le toca al juego corrido según
+     la posesión, sin que la música prenda y apague: el cambio entra cuando
+     la posesión se sostiene estable_ms y pasaron minimo_ms desde el anterior
+     (balance.musica.sigue). La pelota suelta no cambia nada. mem es de la
+     escena: { suena, quiere, desde, cambio }. Devuelve el momento a pedir o
+     null si no hay que tocar nada */
+  function seguirPosesion(mem, posesion, ahora, cfg) {
+    var quiere = posesion === "mia" ? "partido" : posesion === "rival" ? "defensa" : mem.quiere;
+    if (!quiere) return null;
+    if (quiere !== mem.quiere) { mem.quiere = quiere; mem.desde = ahora; }
+    if (quiere === mem.suena) return null;
+    if (ahora - mem.desde < cfg.estable_ms) return null;
+    if (mem.cambio != null && ahora - mem.cambio < cfg.minimo_ms) return null;
+    mem.suena = quiere; mem.cambio = ahora;
+    return quiere;
+  }
+
   /* qué momentos declarados NO tienen archivo: se anota, no se calla */
   function sinArchivo(audio) {
     if (!audio || !audio.temas) return lista().filter(function (m) { return m !== "silencio"; });
@@ -179,7 +206,7 @@
   return {
     MOMENTOS: MOMENTOS,
     existe: existe, lista: lista, temaDe: temaDe,
-    mapaCompleto: mapaCompleto, sinArchivo: sinArchivo,
+    mapaCompleto: mapaCompleto, sinArchivo: sinArchivo, seguirPosesion: seguirPosesion,
     SIGUIENTES: SIGUIENTES, SIGUIENTES_CIERRE: SIGUIENTES_CIERRE, siguientes: siguientes
   };
 });

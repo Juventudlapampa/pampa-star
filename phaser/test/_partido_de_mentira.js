@@ -62,7 +62,7 @@ function cargar(opts) {
     Array: Array, String: String, Number: Number, Date: Date, Promise: Promise, Error: Error, isFinite: isFinite };
   vm.createContext(ctx);
   /* logicaAntes: lo que partido.js toma al cargarse (duel.js, lectura.js) */
-  (opts.logicaAntes || []).concat(["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js", "phaser/logic/piel.js"], opts.logica || []).forEach(function (f) {
+  (opts.logicaAntes || []).concat(["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js", "phaser/logic/piel.js", "phaser/logic/musica.js"], opts.logica || []).forEach(function (f) {
     if (!fs.existsSync(path.join(RAIZ, f))) return;
     vm.runInContext(leer(f), ctx, { filename: f });
   });
@@ -180,6 +180,11 @@ function escena(opts) {
   });
   s.piel = function () { return { n: { caja: 0, acento: 0 }, acento: "#ffd84d", calido: "#ff6b4a" }; };
   s._avisos = []; s._avisosCola = [];
+  /* 25/oct: la música sigue al partido (el remate en el cine, con o sin la
+     pelota): la puerta de piel_ui anota el momento y nada más */
+  E.musica = [];
+  s.pedirMusica = function (m) { E.musica.push(m); s._musicaMomento = m; return true; };
+  s._musicaSigue = { suena: null, quiere: null, desde: 0, cambio: null };
   s.estado = "LIBRE";
   s.st = W.PampaPartido.crearPartido({ bal: BAL, mios: [], rivales: [], rng: function () { return 0.5; } });
   s.nombreRival = "ESPEJO DE SAL";
