@@ -3031,7 +3031,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       if (this.grupoFoco) this.grupoFoco(items, { inicial: Math.max(0, PU.PUESTOS.indexOf(this.save.puesto)), volver: salir });
     } else {
       this.add.text(W / 2, 60, "TU NÚMERO DE " + cfg.nombres[puesto], { fontFamily: window.PF.display, fontSize: "15px", color: "#ffd84d" }).setOrigin(0.5);
-      this.add.text(W / 2, 96, "El compañero que lo tenía se queda con el que dejás libre.", {
+      this.add.text(W / 2, 96, "Quien lo tenía en tu equipo se queda con el que dejás libre.", {
         fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5, 0);
       const nums = PU.numeros(puesto, cfg);
       const elegir = (n) => {
