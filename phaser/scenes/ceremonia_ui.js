@@ -84,8 +84,14 @@
       this._atrasVista = function () { self.scene.restart(); };
       if (this.fondoDelMaster) this.fondoDelMaster();
       this.pedirMusica(tipo === "descenso" ? "derrota" : "hype");
-      var armar = function () { if (self.sys.isActive()) self.vistaCeremoniaArmada(v, tipo, C); };
-      if (!faltan) { armar(); return; }
+      if (!faltan) { this.vistaCeremoniaArmada(v, tipo, C); return; }
+      /* la carga termina después: vale si la escena sigue corriendo y no se
+         pidió otra ceremonia entretanto (un restart arranca la suya) */
+      var pedido = this._ceremoniaPedida = (this._ceremoniaPedida | 0) + 1;
+      var CORRIENDO = (window.Phaser && Phaser.Scenes && Phaser.Scenes.RUNNING) || 5;
+      var armar = function () {
+        if (self._ceremoniaPedida === pedido && self.sys.settings.status === CORRIENDO) self.vistaCeremoniaArmada(v, tipo, C);
+      };
       this.add.text(this.scale.width / 2, this.scale.height / 2, "...", { fontFamily: window.PF.texto, fontSize: "19px", color: CREMA }).setOrigin(0.5);
       this.load.once("complete", armar);
       this.load.start();
@@ -200,16 +206,16 @@
           /* quién habla, por el nombre y por la forma (▲ Nelda, ▼ el Tuli,
              como en la franja del partido) */
           self.add.text(368, yy, (d.quien === "nelda" ? "▲ " : "▼ ") + (nombres[d.quien] || d.quien).toUpperCase() + ": " + d.texto, {
-            fontFamily: window.PF.texto, fontSize: "15px", color: CREMA, backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 },
+            fontFamily: window.PF.texto, fontSize: "16px", color: CREMA, backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 },
             wordWrap: { width: W - 392 }
           }).setOrigin(0, 0.5);
         });
         var items = self.listaDeCeremonia(tipo, v, C, datos);
-        var yl = 340;
-        self.add.rectangle(330, yl - 8, W - 354, 30 + items.length * 26, 0x0a1f13, 0.88).setOrigin(0, 0).setStrokeStyle(2, 0xf5c400, 0.9);
-        self.add.text(346, yl, Fi.poner(C.lista, datos).toUpperCase(), { fontFamily: window.PF.texto, fontSize: "14px", fontStyle: "bold", color: ORO });
+        var yl = 340, paso = items.length > 4 ? 21 : 26;
+        self.add.rectangle(330, yl - 8, W - 354, 30 + items.length * paso, 0x0a1f13, 0.88).setOrigin(0, 0).setStrokeStyle(2, 0xf5c400, 0.9);
+        self.add.text(346, yl, Fi.poner(C.lista, datos).toUpperCase(), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: ORO });
         items.forEach(function (it, i) {
-          self.add.text(346, yl + 24 + i * 26, it.marca + " " + it.texto, { fontFamily: window.PF.texto, fontSize: "15px", color: CREMA, wordWrap: { width: W - 390 } });
+          self.add.text(346, yl + 24 + i * paso, it.marca + " " + it.texto, { fontFamily: window.PF.texto, fontSize: "16px", color: CREMA, wordWrap: { width: W - 390 } });
         });
         botonSeguir = self.boton(W - 190, H - 34, 320, tipo === "gloria" ? "▶ A LA RADIO" : "▶ SEGUIR", festejo ? 0xffd84d : 0x7ee08a, seguir);
         if (self.grupoFoco) self.grupoFoco([{ obj: botonSeguir, cb: seguir }], { inicial: 0, volver: seguir });
@@ -238,13 +244,34 @@
       this._atrasVista = function () { self.scene.restart(); };
       if (this.fondoDelMaster) this.fondoDelMaster();
       this.pedirMusica("espera");
-      var lineas = Fi.segundaEntrevista(this.save, vida.origen, E, fin.cierre);
+      var lineas = Fi.segundaEntrevista(this.save, vida.origen, E, fin.cierre, v);
       this.add.text(W / 2, 34, fin.cierre.rotulo, { fontFamily: window.PF.display, fontSize: "13px", color: ORO }).setOrigin(0.5);
       var voces = this.globosDeLaEntrevista(E);
+      /* LA LIBRETITA: lo que contestaste la primera vez, a la vista mientras
+         Nito lo lee. El renglón del que se habla lleva ► (forma, no color) */
+      var el = this.save.origen && this.save.origen.elecciones;
+      var renglones = [];
+      if (lineas.some(function (l) { return l.ref != null; })) {
+        this.add.rectangle(W / 2, 236, 820, 156, 0x0a1f13, 0.86).setOrigin(0.5, 0).setStrokeStyle(2, 0xf5c400, 0.9);
+        this.add.text(W / 2 - 394, 248, "LA LIBRETITA DE NITO · LA PRIMERA ENTREVISTA", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" });
+        (vida.origen || []).forEach(function (p, k) {
+          var qe = E.preguntas && E.preguntas[p.id];
+          if (!qe || !qe.respuestas || !el) return;
+          renglones[k] = self.add.text(W / 2 - 394, 274 + k * 38, "  " + p.pregunta + "  «" + qe.respuestas[el[k]] + "»", {
+            fontFamily: window.PF.texto, fontSize: "15px", color: CREMA, wordWrap: { width: 780 } });
+        });
+      }
       var i = 0;
       var cuenta = this.add.text(W / 2, H - 92, "", { fontFamily: window.PF.texto, fontSize: "13px", color: CREMA }).setOrigin(0.5);
       var mostrar = function () {
         cuenta.setText((i + 1) + " de " + lineas.length);
+        renglones.forEach(function (r, k) {
+          if (!r) return;
+          var hoy = lineas[i].ref === k;
+          r.setText((hoy ? "► " : "  ") + r.text.slice(2));
+          r.setColor(hoy ? ORO : CREMA);
+          r.setFontStyle(hoy ? "bold" : "normal");
+        });
         voces.decir(lineas[i].quien, lineas[i].texto, null);
       };
       var seguir = function () {
@@ -275,7 +302,7 @@
       var vida = this.game.registry.get("vida") || {};
       var el = this.save.origen && this.save.origen.elecciones;
       var donde = el && vida.origen && vida.origen[0] && vida.origen[0].opciones[el[0]];
-      this.add.text(W / 2, 58, r.club + " · " + (r.pueblo || "La Pampa") + (donde ? " · aprendiste " + donde.corto.toLowerCase() : ""), {
+      this.add.text(W / 2, 58, r.club + (donde ? " · aprendiste: «" + donde.corto + "»" : ""), {
         fontFamily: window.PF.texto, fontSize: "15px", color: CREMA }).setOrigin(0.5);
 
       var COLS = [
@@ -285,19 +312,19 @@
       ];
       var y0 = 92;
       COLS.forEach(function (c) { self.add.text(c.x, y0, c.n, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(c.d, 0); });
-      var MAX = 13, filas = r.filas.slice(-MAX);
+      var MAX = 12, filas = r.filas.slice(-MAX);
       filas.forEach(function (f, i) {
-        var y = y0 + 22 + i * 20;
+        var y = y0 + 22 + i * 22;
         var marca = f.gloria ? "★ CAMPEÓN DEL MUNDO" : f.defendido ? "★ DEFENDIDO" : f.asciende ? "★ CAMPEÓN ▲ SUBISTE"
           : f.campeon ? "★ CAMPEÓN" : f.desciende ? "▼ BAJASTE" : "";
         var vals = f.soloTitulo
           ? [String(f.temporada), f.divisionN, "", "", "", "", "", "★ CAMPEÓN (sin la tabla anotada)"]
           : [String(f.temporada), f.divisionN, f.puesto + "º", String(f.pts), f.g + "-" + f.e + "-" + f.p, f.gf + "-" + f.gc,
             typeof f.golesTuyos === "number" ? String(f.golesTuyos) : "—", marca];
-        var est = { fontFamily: window.PF.texto, fontSize: "14px", color: f.campeon ? ORO : CREMA, fontStyle: f.campeon ? "bold" : "normal" };
+        var est = { fontFamily: window.PF.texto, fontSize: "15px", color: f.campeon ? ORO : CREMA, fontStyle: f.campeon ? "bold" : "normal" };
         COLS.forEach(function (c, k) { if (vals[k]) self.add.text(c.x, y, vals[k], est).setOrigin(c.d, 0); });
       });
-      var yT = y0 + 22 + Math.max(1, filas.length) * 20 + 14;
+      var yT = y0 + 22 + Math.max(1, filas.length) * 22 + 14;
       var totales = "★ " + Fi.titulosTexto(r.titulos) + " · " + r.temporadas + (r.temporadas === 1 ? " temporada" : " temporadas")
         + " · " + r.golesEquipo + " goles de tu equipo · " + r.golesTuyos + " tuyos";
       this.add.text(W / 2, yT, totales, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: ORO, backgroundColor: "#0a1f13cc", padding: { x: 8, y: 4 } }).setOrigin(0.5, 0);

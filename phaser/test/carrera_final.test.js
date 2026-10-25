@@ -84,13 +84,13 @@ assert(Fi.ceremoniaDe(Fi.veredicto(T, b, ids, cfgP)) === null, "una temporada de
 jugar(s, 3, 0, 2);
 const vg = Fi.veredicto(T, s, ids, cfgP);
 assert(vg.gloria && Fi.ceremoniaDe(vg) === "gloria", "campeón del Mundial: la gloria");
-const charla = Fi.segundaEntrevista(s, VIDA.origen, ENT, FIN.cierre);
+const charla = Fi.segundaEntrevista(s, VIDA.origen, ENT, FIN.cierre, vg);
 const dichas = [ENT.preguntas.donde.respuestas[0], ENT.preguntas.afuera.respuestas[3], ENT.preguntas.consejo.respuestas[1]];
 assert(dichas.every(r => charla.some(l => l.quien === "nito" && l.texto.indexOf("«" + r + "»") >= 0)), "Nito cita palabra por palabra las tres respuestas de la primera entrevista");
 assert(charla.some(l => l.quien === "vos" && l.texto === FIN.cierre.preguntas.afuera.vos[3]), "y vos contestás según lo que dijiste aquella vez");
-assert(charla[charla.length - 1].texto.indexOf("Winifreda") >= 0 && charla[charla.length - 1].texto.indexOf("5 títulos") < 0, "el cierre nombra la localidad y no cuenta un título que todavía no se anotó");
+assert(charla[charla.length - 1].texto.indexOf("Winifreda") >= 0 && charla[charla.length - 1].texto.indexOf("5 títulos") >= 0, "el cierre nombra la localidad y cuenta el Mundial, que todavía no se anotó");
 const tc = Fi.tuCarrera(T, s, Ma.DIVISIONES, vg);
-assert(tc.filas.length === 5 && tc.filas[4].gloria && tc.golesTuyos === 4 * 18 + 18 * 2 && !tc.golesSinAnotar && tc.temporadasSinAnotar === 0,
+assert(tc.titulos === 5 && tc.filas.length === 5 && tc.filas[4].gloria && tc.golesTuyos === 4 * 18 + 18 * 2 && !tc.golesSinAnotar && tc.temporadasSinAnotar === 0,
   "TU CARRERA: 5 filas, la última es la gloria, tus goles suman (" + tc.golesTuyos + ")");
 
 /* ── 5 · SEGUIR COMO LEYENDA: el Mundial ganado no vuelve como si nada ── */
@@ -138,6 +138,17 @@ const sv = { temporadaN: 2, temporada: { fecha: 4 } };
 Sem.anotarResultado(sv, { temporadaN: 2, fecha: 4, golesMio: 3, golesRival: 1, golesVos: 2 });
 assert(sv.resultadoPendiente && sv.resultadoPendiente.golesVos === 2, "anotarResultado guarda tus goles del partido");
 
+/* ── 7b · data/final.json llega al registry. Medido en el navegador: el
+   preBoot nombraba `final` y arrancarCon no lo recibía, y el juego entero no
+   arrancaba ("No terminó de bajar el juego"). Cada valor que preBoot pone en
+   el registry tiene que ser un parámetro de arrancarCon ── */
+const IDX = fs.readFileSync(path.join(RAIZ, "phaser/index.html"), "utf8");
+const params = ((IDX.match(/function arrancarCon\(([^)]*)\)/) || [])[1] || "").split(",").map(x => x.trim());
+const pre = (IDX.match(/preBoot: \(game\)=>\{([^}]*)\}/) || [])[1] || "";
+const valores = (pre.match(/registry\.set\("[a-z]+", (\w+)\)/g) || []).map(x => x.replace(/.*, (\w+)\)$/, "$1"));
+assert(valores.indexOf("final") >= 0 && valores.every(x => params.indexOf(x) >= 0), "lo que preBoot guarda en el registry lo recibe arrancarCon (" + valores.filter(x => params.indexOf(x) < 0).join(", ") + ")");
+assert(/arrancarCon\([^)]*ambientes, final\)/.test(IDX), "y arrancar le pasa el final");
+
 /* ── 8 · las vistas reales del Master, en la escena de mentira ── */
 const M = require("./_escena_de_mentira.js");
 const A = M.armar({ logicaExtra: ["phaser/logic/final.js"], escena: "phaser/scenes/ceremonia_ui.js" });
@@ -146,7 +157,6 @@ A.reg.set("poses", json("data/poses_manifest.json"));
 function escena() {
   const e = A.nueva();
   e.destello = function () { e._destellos = (e._destellos | 0) + 1; return true; };
-  e.sys.isActive = function () { return true; };
   e.load = { image: function () { }, once: function (n, fn) { e._alCargar = fn; }, start: function () { if (e._alCargar) e._alCargar(); } };
   return e;
 }
@@ -173,7 +183,7 @@ let vueltas = 0;
 while (e.textos().indexOf("TU CARRERA") < 0 && vueltas++ < 40) { e.leerHastaElFinal(); e.teclas("ENTER"); }
 const enCarrera = e.textos();
 assert(enCarrera.indexOf("TU CARRERA") >= 0 && enCarrera.some(t => /CAMPEÓN DEL MUNDO/.test(t)), "después de Nito, TU CARRERA con la fila de la gloria");
-assert(enCarrera.some(t => /aprendiste con mi hermano mayor/.test(t)), "TU CARRERA dice dónde aprendiste, como lo contestaste");
+assert(enCarrera.some(t => /aprendiste: «Con mi hermano mayor»/.test(t)), "TU CARRERA dice dónde aprendiste, como lo contestaste");
 e.teclas("ENTER");
 const enCreditos = e.textos();
 assert(enCreditos.indexOf("CRÉDITOS") >= 0 && enCreditos.some(t => /Subsecretaría de Juventudes/.test(t)) && enCreditos.some(t => /Phaser 3\.80\.1/.test(t)), "los créditos de la página");
@@ -207,7 +217,13 @@ assert(a2.division === "primera_a" && a2.historial.length === 1 && a2.golesTuyos
 
 /* el descenso en pantalla */
 A.store.pampa_master_v1 = JSON.stringify((function () { const d = carrera([1, 1, 1]); jugar(d, 3, 0, 0); cerrar(d, Fi.veredicto(T, d, ids, cfgP)); jugar(d, 0, 3, 0); return d; })());
-e = escena(); e.create(); e.teclas("ENTER");
+/* con el arte ya cargado (la segunda ceremonia de la sesión) se arma en el
+   mismo create, sin esperar al cargador: medido en el navegador, esa vuelta
+   quedaba en negro */
+e = escena();
+e.textures.exists = function () { return true; };
+e.sys.settings.status = 3;
+e.create(); e.teclas("ENTER");
 assert(e.textos().indexOf("▼ BAJÁS A LA PRIMERA B") >= 0 && e.textos().some(t => /^■ Lo que destrabaste se queda/.test(t)) && !e._destellos, "la ceremonia del descenso: sin destello y con lo que conservás");
 
 console.log((mal ? "✗" : "✓") + " carrera_final: " + ok + " bien, " + mal + " mal");

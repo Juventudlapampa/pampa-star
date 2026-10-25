@@ -36,7 +36,7 @@
         "Se baja {prox_a}. Hay temporadas así, y lo que sabés hacer no se fue a ningún lado."
       ],
       "tribuna": [
-        [{ "quien": "nelda", "texto": "Bajamos con el equipo. El domingo estoy en el alambrado igual." }, { "quien": "tuli", "texto": "Yo llevo el mate." }],
+        [{ "quien": "nelda", "texto": "Bajamos con el equipo. El domingo voy igual." }, { "quien": "tuli", "texto": "Yo llevo el mate." }],
         [{ "quien": "tuli", "texto": "Una temporada mala la tiene cualquiera." }, { "quien": "nelda", "texto": "Dos no, Tuli. Dos no." }]
       ],
       "lista": "LO QUE CAMBIA {prox_en}",
@@ -45,7 +45,7 @@
     "gloria": {
       "rotulo": "EL MUNDIAL · LA FINAL",
       "titular": "CAMPEÓN DEL MUNDO",
-      "bajada": "{club}, de {pueblo}",
+      "bajada": "de {pueblo} al mundo",
       "pose": "festejo",
       "relator": "pichi",
       "dice": [
@@ -64,7 +64,7 @@
       "pose": "festejo",
       "relator": "pichi",
       "dice": [
-        "¡Otra vez! ¡La copa no se va de {pueblo}! ¡Van {defendidos} defendidos!",
+        "¡Otra vez! ¡La copa no se va de {pueblo}! ¡Títulos defendidos: {defendidos}!",
         "¡Lo defendió de nuevo! ¡Que alguien le avise al resto del mundo!"
       ],
       "tribuna": [

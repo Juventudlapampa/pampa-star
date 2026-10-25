@@ -194,17 +194,25 @@
   }
 
   function titulosTexto(n) { return n === 1 ? "1 título" : n + " títulos"; }
+  /* los títulos de la carrera contando el de esta temporada, si se ganó y
+     todavía no se cerró (la gloria se festeja antes de anotarse) */
+  function titulosConEsta(save, v) {
+    var n = (save.titulos || []).length;
+    var anotado = (save.titulos || []).some(function (x) { return x.temporada === save.temporadaN; });
+    return n + (v && v.campeon && !anotado ? 1 : 0);
+  }
 
   /* ══ LA SEGUNDA ENTREVISTA ══
      Nito cita, palabra por palabra, la respuesta DICHA de la primera
      (data/entrevista.json, respuestas) y vos contestás desde hoy
      (data/final.json, cierre.preguntas[id].vos, una por respuesta).
      Sin respuestas guardadas no se inventan: Nito dice que la primera no
-     quedó grabada. Devuelve [{quien, texto}]. */
-  function segundaEntrevista(save, origenData, entrevista, cierre) {
+     quedó grabada. Devuelve [{quien, texto, ref}]; ref es la pregunta de la
+     primera entrevista de la que se habla (la libretita la marca). */
+  function segundaEntrevista(save, origenData, entrevista, cierre, v) {
     var datos = {
       pueblo: save.pueblo || "tu localidad", club: save.club,
-      titulos: titulosTexto((save.titulos || []).length)
+      titulos: titulosTexto(titulosConEsta(save, v))
     };
     var out = [{ quien: "nito", texto: poner(cierre.abre, datos) }];
     var el = save.origen && save.origen.elecciones;
@@ -213,8 +221,8 @@
       origenData.forEach(function (p, i) {
         var qe = entrevista.preguntas[p.id], qc = cierre.preguntas[p.id];
         if (!qe || !qc || !qe.respuestas || !qe.respuestas[el[i]]) return;
-        out.push({ quien: "nito", texto: poner(qc.nito, Object.assign({ respuesta: qe.respuestas[el[i]] }, datos)) });
-        if (qc.vos && qc.vos[el[i]]) out.push({ quien: "vos", texto: poner(qc.vos[el[i]], datos) });
+        out.push({ quien: "nito", ref: i, texto: poner(qc.nito, Object.assign({ respuesta: qe.respuestas[el[i]] }, datos)) });
+        if (qc.vos && qc.vos[el[i]]) out.push({ quien: "vos", ref: i, texto: poner(qc.vos[el[i]], datos) });
       });
     } else {
       out.push({ quien: "nito", texto: poner(cierre.sin_grabacion.nito, datos) });
@@ -259,7 +267,7 @@
         var d = divDe(divs, f.division);
         return Object.assign({}, f, { divisionN: d ? d.n : f.division });
       }),
-      titulos: (save.titulos || []).length,
+      titulos: titulosConEsta(save, v),
       temporadas: temporadas,
       temporadasSinAnotar: Math.max(0, temporadas - conDatos),
       golesEquipo: golesEquipo,
@@ -273,6 +281,6 @@
     cambiosDeDivision: cambiosDeDivision, desbloqueosDe: desbloqueosDe,
     filaDeTemporada: filaDeTemporada, cerrarTemporada: cerrarTemporada, seguirComoLeyenda: seguirComoLeyenda,
     migrarElecciones: migrarElecciones, segundaEntrevista: segundaEntrevista, tuCarrera: tuCarrera,
-    poner: poner, titulosTexto: titulosTexto
+    poner: poner, titulosTexto: titulosTexto, titulosConEsta: titulosConEsta
   };
 });

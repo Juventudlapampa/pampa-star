@@ -2110,7 +2110,7 @@
     /* L07: embebido con el PÓSTER a la vista, el juego no se crea hasta que
        el recuadro alcance para jugar (PampaPortada.cuandoAdentro). Sin
        embeber, o embebido y apaisado de sobra, arranca ya, como siempre */
-    const arrancar = () => arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes);
+    const arrancar = () => arrancarCon(bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes, final);
     if (window.PampaPortada && window.PampaPortada.cuandoAdentro) window.PampaPortada.cuandoAdentro(arrancar);
     else arrancar();
   }).catch((e)=>{
@@ -2123,7 +2123,7 @@
     R.registrar(e, "arranque");
     R.mostrar(window.PAMPA_GAME ? "trabado" : "no_bajo");
   });
-  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes){
+  function arrancarCon(balance, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes, final){
     /* RED DE ERRORES (3): ANTES de crear el juego, que esté todo lo que el
        juego usa sin preguntar. Con scenes/match.js sin bajar el juego
        arrancaba igual, en la intro, y al ir a la cancha quedaban 0 escenas y
