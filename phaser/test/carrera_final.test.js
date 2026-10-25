@@ -218,7 +218,7 @@ A.store.pampa_master_v1 = JSON.stringify(a);
 e = escena(); e.create();
 e.teclas("ENTER");
 const tx = e.textos();
-assert(tx.indexOf("CAMPEÓN DE LA PRIMERA B") >= 0 && tx.indexOf("▲ SUBÍS A LA PRIMERA A") >= 0 && tx.some(t => /^▲ Los rivales: \+16%/.test(t)), "la ceremonia del título: titular, ascenso y lo que cambia");
+assert(tx.indexOf("CAMPEÓN DE LA PRIMERA B") >= 0 && tx.indexOf("▲ SUBÍS A LA PRIMERA A") >= 0 && tx.some(t => t === "▲ Los rivales juegan un 16% mejor y los arqueros atajan más"), "la ceremonia del título: titular, ascenso y lo que cambia, en palabras y con un solo número (pedido de Rodri del 25/oct)");
 assert(!tx.some(t => /^[▲▼] [A-ZÁÉÍÓÚ ]+: /.test(t)) && tx.some(t => /^NELDA: /.test(t)), "la tribuna de la ceremonia va con el nombre y sin ▲ ni ▼, que ahí dicen subir y bajar (revisión del 25/oct)");
 tocarTexto(e, "▶ SEGUIR");
 assert(e._restarts === 1, "SEGUIR vuelve a la tabla");

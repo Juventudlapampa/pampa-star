@@ -84,7 +84,8 @@
 
   /* ══ LO QUE CAMBIA EN LA DIVISIÓN NUEVA ══
      Los rivales y su arquero salen de la escalera (logic/master.js,
-     DIVISIONES): el multiplicador de los rivales y la habilidad del arquero. */
+     DIVISIONES). Dicho en palabras y con un solo número (pedido de Rodri del
+     25/oct: "+16% en todo; el arquero, de 40 a 50" era lenguaje de desarrollo). */
   function cambiosDeDivision(divs, deId, aId) {
     var a = divDe(divs, deId), b = divDe(divs, aId);
     if (!a || !b || a === b) return [];
@@ -92,7 +93,8 @@
     var sube = pct > 0;
     return [{
       tipo: "rivales", marca: sube ? "▲" : "▼",
-      texto: "Los rivales: " + (sube ? "+" : "") + pct + "% en todo; el arquero, de " + a.keeper + " a " + b.keeper
+      texto: "Los rivales juegan un " + Math.abs(pct) + "% " + (sube ? "mejor" : "peor") +
+        " y los arqueros atajan " + (b.keeper > a.keeper ? "más" : b.keeper < a.keeper ? "menos" : "igual")
     }];
   }
 
