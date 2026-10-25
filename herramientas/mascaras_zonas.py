@@ -130,7 +130,7 @@ def cerca_de_la_cabeza(m):
     return np.isin(lab, keep)
 
 
-def piel_suelta(rgb, resto, m, base):
+def piel_suelta(rgb, resto, m, base, minimo=20):
     """los pedazos de piel que la tinta separa del resto y no traen un parche
     plano del tono base: la cara del Colorado a la izquierda (#fedccb, más
     clara que la base) y la cuña de frente entre dos mechones del Flequillo.
@@ -152,7 +152,7 @@ def piel_suelta(rgb, resto, m, base):
     tono = ndimage.median(h, lab, index=idx)
     sat = ndimage.median(c / np.maximum(1, v), lab, index=idx)
     mismo = (np.abs((tono - float(hb[0, 0]) + 180) % 360 - 180) <= 20) & (sat >= 0.6 * float(cb[0, 0] / max(1, vb[0, 0])))
-    ok = cerca & mismo & (tam >= 20) & ((dist <= 45) | (claro <= float(luma(base[None, :])[0]) + 15))
+    ok = cerca & mismo & (tam >= minimo) & ((dist <= 45) | (claro <= float(luma(base[None, :])[0]) + 15))
     return np.isin(lab, idx[ok])
 
 
@@ -248,6 +248,15 @@ def mascara(ruta, tonos, revision=None):
         m = zona(rgb, fam, base, z == "pelo", opaco, p.get("crecer", False)) & opaco & ~usado
         if z == "piel":
             m |= piel_suelta(rgb, fam & ~m, m | usado, base)
+            # las pecas del Colorado (#70431e, saturación 0,77) son agujeritos
+            # de la piel: afuera, con Piel oscura salían como anillos. Con el
+            # matiz de la piel: los puntitos grises del pelo al ras del Rapado
+            # y del Mohicano también son agujeros y siguen siendo pelo
+            agujeros = ndimage.binary_fill_holes(m) & ~m & opaco & ~usado
+            lab, n = ndimage.label(agujeros)
+            if n:
+                chicos = np.isin(lab, np.nonzero(ndimage.sum(agujeros, lab, np.arange(1, n + 1)) <= 60)[0] + 1)
+                m |= piel_suelta(rgb, chicos, m, base, minimo=1)
         usado |= m
         if m.sum() < 200:
             raise ValueError("%s: la zona %s quedó con %d píxeles (tono %s)" % (ruta, z, m.sum(), tonos[z]))
