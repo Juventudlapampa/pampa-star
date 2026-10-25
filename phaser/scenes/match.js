@@ -4295,7 +4295,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           if (kD) {
             this.tweens.killTweensOf(arq);
             arq.setTexture(kD).setAngle(0);
-            arq.setScale(this.escalaDePose("arquero_despeje_celeste", A.h * 1.1, arq));
+            /* 25/oct: parado y a escala del arco, entre los palos */
+            const LD = window.PampaPersp.arqueroEnArco(A, { w: arq.width, h: arq.height }, arq.x, this.BAL.cine.arquero_en_arco.despeje);
+            arq.setScale(LD.escala).setPosition(LD.x, LD.y);
             ball.setVisible(false);
           }
           RR.revelar();
@@ -4401,9 +4403,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const id = this._poseArqueroUltima;
     const man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
     if (!k || !def || !def.pelota) return false;
+    /* 25/oct, Rodri: quedaba arriba de la red, volando: de rodillas y a
+       escala del arco, delante de la línea y entre los palos */
     const A = this.arcoCine();
+    this.tweens.killTweensOf(arq);
     arq.setTexture(k).setAngle(0);
-    arq.setScale(this.escalaDePose(id, A.h * 1.15, arq));
+    const L = window.PampaPersp.arqueroEnArco(A, { w: arq.width, h: arq.height }, arq.x, this.BAL.cine.arquero_en_arco.agarra);
+    arq.setScale(L.escala).setPosition(L.x, L.y);
     const P = this.puntoDePose(arq, def.pelota);
     const TP = this.texPelota(Math.max(16, def.pelota.r * 2 * arq.displayHeight));
     this.tweens.killTweensOf(ball);

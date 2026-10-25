@@ -159,9 +159,22 @@
     };
   }
 
+  /* 25/oct, Rodri: "en la animación del arquero de ¡LA AGARRÓ! está arriba de
+     las redes del arco, volando". La pose de la que agarra se escalaba al
+     115% del alto del arco (de rodillas, más alto que el travesaño) y quedaba
+     donde la había dejado el salto. Acá: alto = altoFrac del arco, los pies
+     delante de la línea (adelante px) y la caja entera entre los palos.
+     A = arcoCine (izq, der, linea, h); tex = { w, h } de la pose; x = dónde
+     la quiere la escena. Devuelve escala, x, y (pies) y la caja que ocupa. */
+  function arqueroEnArco(A, tex, x, cfg) {
+    var esc = A.h * cfg.alto / tex.h, w = tex.w * esc, h = tex.h * esc;
+    var cx = clamp(x, A.izq + w / 2, A.der - w / 2), pies = A.linea + cfg.adelante;
+    return { escala: esc, x: cx, y: pies, caja: { izq: cx - w / 2, der: cx + w / 2, arriba: pies - h, abajo: pies } };
+  }
+
   return {
     clamp: clamp, proyectar: proyectar, aPantalla: aPantalla,
     esProfundo: esProfundo, viajeProfundo: viajeProfundo, frenoDelCorte: frenoDelCorte,
-    lugarDelRemate: lugarDelRemate
+    lugarDelRemate: lugarDelRemate, arqueroEnArco: arqueroEnArco
   };
 });

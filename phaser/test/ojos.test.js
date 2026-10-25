@@ -92,6 +92,8 @@ var iRulos = CARAS.caras.findIndex(function (c) { return c.id === "rulos"; });
 /* el partido de verdad (match.js) con un Phaser de mentira: solo hace falta
    _pedidoDeBusto, que lee el registry, las banderas y si la textura existe */
 var W = { Phaser: { Scene: function () { } }, PF: {}, PampaAvatar: A };
+/* 25/oct: la que agarra se acomoda en el arco con logic/perspectiva.js (arqueroEnArco) */
+W.PampaPersp = require("../logic/perspectiva.js");
 new Function("window", "Phaser", leer("phaser/scenes/match.js").replace(/\r\n/g, "\n"))(W, W.Phaser);
 /* 25/oct: el mapa del busto lo arma avatar_arte.js (mapaDeBusto), el mismo
    para el editor y el partido, como en el juego, donde se carga antes */
@@ -287,7 +289,8 @@ function escenaConPoses() {
     active: true, x: 400, y: 330, flipX: false, angle: 0,
     setTexture: function (k) { this.k = k; this.width = dAt.w; this.height = dAt.h; return this; },
     setAngle: function (a) { this.angle = a; return this; },
-    setScale: function (s) { this.scaleX = this.scaleY = s; this.displayWidth = this.width * s; this.displayHeight = this.height * s; return this; }
+    setScale: function (s) { this.scaleX = this.scaleY = s; this.displayWidth = this.width * s; this.displayHeight = this.height * s; return this; },
+    setPosition: function (x, y) { this.x = x; this.y = y; return this; }
   };
   arq.setTexture("pose_arquero_vuela");
   var ball = {
@@ -302,7 +305,12 @@ function escenaConPoses() {
   var A = e.arcoCine(), p = POSES.poses.arquero_ataja.pelota;
   var esperaX = arq.x + (p.x - 0.5) * arq.displayWidth, esperaY = arq.y - arq.displayHeight + p.y * arq.displayHeight;
   assert(hizo && arq.k === "pose_arquero_ataja", "en la revelación, el arquero rival pasa a arquero_ataja (" + arq.k + ")");
-  assert(Math.abs(arq.displayHeight - A.h * 1.15) < 0.5, "con la misma altura que el plano le da al arquero (" + arq.displayHeight.toFixed(1) + ")");
+  /* pedido de Rodri del 25/oct: "está arriba de las redes del arco, volando".
+     Antes se le pedía la altura del plano (115% del arco, más alta que el
+     travesaño); ahora la de balance.cine.arquero_en_arco.agarra, con los pies
+     delante de la línea (lo mide arquero_en_arco.test.js) */
+  var CAg = e.BAL.cine.arquero_en_arco.agarra;
+  assert(Math.abs(arq.displayHeight - A.h * CAg.alto) < 0.5 && arq.y === A.linea + CAg.adelante, "de rodillas a escala del arco y con los pies delante de la línea (" + arq.displayHeight.toFixed(1) + ", y " + arq.y + ")");
   assert(Math.abs(ball.x - esperaX) < 0.5 && Math.abs(ball.y - esperaY) < 0.5,
     "la pelota del juego queda en el hueco del manifest (" + ball.x.toFixed(1) + "," + ball.y.toFixed(1) + " contra " + esperaX.toFixed(1) + "," + esperaY.toFixed(1) + ")");
   var altoBola = ball.s * (ball.k === "ball_hd" ? 128 : 16);

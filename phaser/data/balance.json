@@ -650,6 +650,11 @@
     "drift_mult": 1.4,
     "pelota_escala_base": 0.5,
     "pelota_escala_span": 3.7,
+    "arquero_en_arco": {
+      "_nota": "Pedido de Rodri del 25/oct: 'en la animación del arquero de ¡LA AGARRÓ! está arriba de las redes del arco, volando. Acomodá todas'. La que agarra (de rodillas, la del rival) y el despeje de tu arquero se escalaban al 115% y al 110% del alto del arco, más altos que el travesaño, y quedaban donde los había dejado el salto. Ahora (logic/perspectiva.js, arqueroEnArco) alto = fracción del alto del arco, los pies adelante px delante de la línea de gol y la figura entera entre los palos.",
+      "agarra": { "alto": 0.62, "adelante": 6 },
+      "despeje": { "alto": 0.95, "adelante": 6 }
+    },
     "lugares": {
       "_nota": "Pedido de Rodri del 25/oct: 'le pegué desde un ángulo de abajo, casi lateral, y me mostró la animación como si le pegara de mitad de cancha'. EL VIAJE del cine sale de donde se pateó (logic/perspectiva.js, lugarDelRemate; la posición la guarda prepararRemate en st.remateDesde). Lugares, en px de la cancha de 1050x680 (10 px por metro): ángulo cerrado si quien patea está a menos de angulo_dx de la línea de fondo y a más de palo_px del medio del arco (afuera de los palos); lateral si el ángulo contra el eje del arco pasa lateral_grados; si no, de frente, cerca o lejos según cerca_px. Cada vista: giro = cuánto se inclina la línea de gol en radianes (la parte cercana baja del lado de quien patea), corrido = cuánto se corre el arco del centro en fracción del ancho, vpY = altura del arco en fracción del alto, arco = [ancho, alto] del arco al fondo contra el de siempre (de costado se ve angosto), viaje = multiplicador del plano_viaje_ms. De la izquierda, la pintura de la derecha en espejo. activo:false = el viaje de siempre, de frente.",
       "activo": true,
