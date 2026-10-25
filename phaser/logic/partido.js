@@ -1333,11 +1333,19 @@
   }
   /* esGol: el resultado ya decidido afuera (el penal, logic/penal.js); el
      estado del partido se mueve igual que con el duelo */
-  function resolverAtajada(st, eleccion, rng, bonus, esGol) {
-    rng = rng || Math.random;
+  /* 25/oct, Rodri: "el arquero tiene que elegir puños, atrapar, súper
+     atajada... y que se cargue % de más acierto, y que dependa de qué tan
+     bueno sea lo del otro". Como en el original: ATRAPARLA (si sale es
+     tuya, y contra un remate fuerte cuesta más), DE PUÑOS (la saca y queda
+     dividida; contra el fuerte es lo más seguro) y SÚPER ATAJADA (la de más
+     chance, gasta aguante de tu arquero). elige = el remate pasa por esa
+     pregunta: la fuerza y el ángulo del remate mueven a cada una. El botón y
+     el duelo salen de acá, así el % que se ve es el que se juega.
+     balance.partido.arquero_elige */
+  function duelAtajada(st, eleccion, bonus, elige) {
     var ops = opcionesArquero(st);
     var op = ops.find(function (o) { return o.id === eleccion; }) || ops[0];
-    op = { id: op.id, n: op.n, poder: op.poder + (bonus || 0) };   // Feel B6: MEGAATAJADA suma acá
+    var poder = op.poder + (bonus || 0);   // Feel B6: MEGAATAJADA suma acá
     /* 25/oct, Rodri: "en 5 partidos no me hicieron goles". Su temporada: 12
        atajadas y 0 goles en contra; tu arquero (bonus de nivel, tanque y
        distancia incluidos) llegaba a 88 contra 64 fijo en cualquier división.
@@ -1345,10 +1353,44 @@
        viene escalada por la división (master.aplicar). balance.partido.remate_rival */
     var RR = st.bal.partido.remate_rival || {};
     var pateador = st.rivales[st.portadorRival];
-    var atkRiv = poderRival(st) + 12 + (RR.extra || 0) + (pateador && pateador.stats ? ((pateador.stats.tiro || 50) - 50) * (RR.por_tiro || 0) : 0);
+    var atk = poderRival(st) + 12 + (RR.extra || 0) + (pateador && pateador.stats ? ((pateador.stats.tiro || 50) - 50) * (RR.por_tiro || 0) : 0);
+    var AE = st.bal.partido.arquero_elige, fuerza = 0;
+    if (elige && AE && AE.activo) {
+      if (pateador) {
+        var dx = pateador.x, dy = pateador.y - st.H / 2;
+        var seno = Math.abs(dy) / (Math.sqrt(dx * dx + dy * dy) || 1);
+        atk -= clamp((seno - AE.angulo_desde) / (1 - AE.angulo_desde), 0, 1) * AE.por_angulo;
+      }
+      fuerza = clamp((atk - AE.fuerza_desde) / AE.fuerza_escala, 0, 1);
+      if (eleccion === "atajar") poder -= fuerza * AE.atrapar_por_fuerza;
+      else if (eleccion === "despejar") poder += fuerza * AE.punos_por_fuerza;
+      else if (eleccion === "super") poder += AE.super_bonus;
+    }
+    return { poder: poder, atk: atk, fuerza: fuerza };
+  }
+  /* los tres botones con su %, antes de resolver (mismo estado que el duelo) */
+  function eleccionArquero(st, bonus) {
+    var AE = st.bal.partido.arquero_elige;
+    if (!AE || !AE.activo) return null;
+    var arq = st.mios.find(function (j) { return j.pos === "ARQ"; }) || {};
+    var pct = function (id) { var d = duelAtajada(st, id, bonus, true); return Math.round(100 * Duel.duelChance(d.poder, d.atk, st.bal.duelo)); };
+    return [
+      { id: "atajar", n: "ATRAPARLA", pct: pct("atajar"), s: "si sale, la pelota es tuya", puede: true },
+      { id: "despejar", n: "DE PUÑOS", pct: pct("despejar"), s: "la saca y queda dividida", puede: true },
+      { id: "super", n: "SÚPER ATAJADA", pct: pct("super"), s: "gasta " + AE.super_costo + " de aguante de tu arquero", puede: (arq.aguante || 0) >= AE.super_costo }
+    ];
+  }
+  function resolverAtajada(st, eleccion, rng, bonus, esGol, elige) {
+    rng = rng || Math.random;
+    var d = duelAtajada(st, eleccion, bonus, elige);
+    var AE = st.bal.partido.arquero_elige;
+    if (elige && eleccion === "super" && AE && AE.activo) {
+      var arqS = st.mios.find(function (j) { return j.pos === "ARQ"; });
+      if (arqS) arqS.aguante = Math.max(0, arqS.aguante - AE.super_costo);
+    }
     gastar(st, "rival", st.bal.aguante.costo_tiro);
     saltoReloj(st, rng);
-    var ataja = esGol != null ? !esGol : rng() < Duel.duelChance(op.poder, atkRiv, st.bal.duelo);
+    var ataja = esGol != null ? !esGol : rng() < Duel.duelChance(d.poder, d.atk, st.bal.duelo);
     if (!ataja) { st.golesRival++; kickoff(st, "mia"); return { golRival: true, eleccion: eleccion }; }
     if (eleccion === "despejar") {
       /* dividida al medio: 50/50 */
@@ -1444,7 +1486,7 @@
     golMio: golMio, tiroFallado: tiroFallado, cornerMio: cornerMio,
     saqueArquero: saqueArquero,   // A4: atajada y afuera dejan la pelota en el arquero rival
     saqueLargoPct: saqueLargoPct, saqueLargo: saqueLargo,
-    opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,
+    opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada, eleccionArquero: eleccionArquero,
     repeticion: repeticion, pesosCPU: pesosCPU,
     cambiarA: cambiarA, cambiarAlMasCercano: cambiarAlMasCercano,
     poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota,

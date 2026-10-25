@@ -462,9 +462,14 @@
       if (superDef === true && P.gastarEnvionSuper(st)) {
         lectura = D.conSuperDefensa(lectura, st.mios.find(function (x) { return x.esVos; }) || null);
       }
+      /* 25/oct, Rodri: EL ARQUERO ELIGE. Si nadie la bloquea, antes del cine
+         elegís con tu arquero (preguntarArquero, más abajo); la elección
+         vuelve dentro de la lectura y el duelo juega el mismo % del botón */
+      var opsArq = !lectura.bloqueado && !lectura.eleccion && this.preguntarArquero ? P.eleccionArquero(st, lectura.bonusArquero) : null;
+      if (opsArq) { this.preguntarArquero(tiradorIdx, superDef, lectura, opsArq); return; }
       var res = lectura.bloqueado
         ? { golRival: false, bloqueado: true }
-        : P.resolverAtajada(st, "atajar", null, lectura.bonusArquero);
+        : P.resolverAtajada(st, lectura.eleccion || "atajar", null, lectura.bonusArquero, null, !!lectura.eleccion);
       if (lectura.bloqueado) {
         P.saltoReloj(st);
         st.posesion = "mia";
@@ -547,6 +552,7 @@
         if (res.retiene && self.abrirSaqueArquero) self.abrirSaqueArquero();
       };
 
+      var eligio = lectura.eleccion ? " · " + lectura.eleccionN.toLowerCase() + " al " + lectura.eleccionPct + "%" : "";
       if (!lectura.bloqueado) {
         var alCine = function () {
           if (esc.cerrado) return; esc.cerrado = true;
@@ -567,13 +573,16 @@
             revelar: function () {
               if (res.golRival) {
                 self.SFX && self.SFX.net && self.SFX.net();
-                self.punch("GOL " + (self.nombreRival ? "DE " + String(self.nombreRival).toUpperCase() : "DEL RIVAL"), self.porQueRemateRival(lectura, res), 0xe3503e);
+                self.punch("GOL " + (self.nombreRival ? "DE " + String(self.nombreRival).toUpperCase() : "DEL RIVAL"), self.porQueRemateRival(lectura, res) + eligio, 0xe3503e);
                 if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
                 if (self.efectoGol) self.efectoGol(true);
               } else {
                 self.destello(self.uiCam, 60, 255, 255, 255);
                 self.SFX && self.SFX.gloves && self.SFX.gloves();
-                self.punch("¡ATAJADÓN!", self.porQueRemateRival(lectura, res), 0x5bb8e8);
+                /* lo que eligió es lo que se cuenta: de puños queda dividida */
+                var tit = res.dividida ? "¡DE PUÑOS!" : lectura.eleccion === "super" ? "¡SÚPER ATAJADA!" : lectura.eleccion === "atajar" ? "¡LA AGARRÓ!" : "¡ATAJADÓN!";
+                var sub = res.dividida ? "la sacó de puños · la dividida es " + (res.mia ? "nuestra" : "del rival") : self.porQueRemateRival(lectura, res) + eligio;
+                self.punch(tit, sub, 0x5bb8e8);
                 if (self.tribunaSaltando) self.tribunaSaltando();
                 self.SFX && self.SFX.festejo && self.SFX.festejo(900);
               }
@@ -710,6 +719,69 @@
       };
       var espera = EV.super_espera_ms != null ? EV.super_espera_ms : 450;
       if (espera > 0) this.time.delayedCall(espera, poner);
+      else poner();
+    },
+    /* 25/oct, Rodri: "el arquero tiene que elegir puños, atrapar, súper
+       atajada... y que se cargue % de más acierto, y que dependa de qué tan
+       bueno sea lo del otro". Como en el original: tres botones con su %
+       (logic/partido.js, eleccionArquero), al lado del que patea. La SÚPER
+       sin aguante se ve y no se toca. La elección vuelve a escenaRemateRival
+       dentro de la lectura, que ya trae el bloqueo decidido. */
+    preguntarArquero(tiradorIdx, superDef, lectura, ops) {
+      var self = this, st = this.st, AE = this.BAL.partido.arquero_elige;
+      var tirador = st.rivales[tiradorIdx != null ? tiradorIdx : st.portadorRival] || st.rivales[0];
+      var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
+      var tap = ((this.BAL.legibilidad || {}).tap_min) || 61;
+      this._abrirEscena("· tu arquero ·");
+      this.estado = "ARQUERO";
+      this._escSkip = null;
+      if (window.PampaTribunaUI && window.PampaTribunaUI.callar) window.PampaTribunaUI.callar(this);
+      this.fondoDeCancha(true);
+      this.bolaDePlano(this.figuraDePlano("remate", tirador, true, 300, Math.round(H * 0.66), 300, false));
+      this.placaDePlano(300, H * 0.92, tirador, true);
+      var X = 700, ANCHO = 400;
+      var nom = String((tirador && tirador.nombre) || "el rival").toUpperCase();
+      var t1 = this.add.text(X, 110, "¡" + nom + " TE REMATA!", {
+        fontFamily: window.PF.display, fontSize: "16px", color: "#ffd84d", align: "center",
+        backgroundColor: "#0a1f13dd", padding: { x: 10, y: 6 }, wordWrap: { width: ANCHO }
+      }).setOrigin(0.5);
+      var t2 = this.add.text(X, 156, "¿Qué hace " + String((arqM && arqM.nombre) || "tu arco") + "?", {
+        fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc",
+        backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 }
+      }).setOrigin(0.5);
+      this.cineContent.add(t1); this.cineContent.add(t2);
+      var decidido = false;
+      var decidir = function (op) {
+        if (decidido || !op.puede) return;
+        decidido = true;
+        if (self.cerrarFoco) self.cerrarFoco();
+        var l = {}, k;
+        for (k in lectura) if (Object.prototype.hasOwnProperty.call(lectura, k)) l[k] = lectura[k];
+        l.eleccion = op.id; l.eleccionN = op.n; l.eleccionPct = op.pct;
+        self.escenaRemateRival(tiradorIdx, superDef, l);
+      };
+      var COLOR = { atajar: 0xf6efdc, despejar: 0x9fd3f0, super: 0xffd84d };
+      var poner = function () {
+        if (decidido || self.estado !== "ARQUERO") return;
+        var items = [];
+        ops.forEach(function (op, i) {
+          var y = 236 + i * 82;
+          var r = self.add.rectangle(X, y, ANCHO, tap, op.puede ? COLOR[op.id] : 0x55645a, 0.97).setStrokeStyle(3, 0x0a1f13);
+          var tt = self.add.text(X, y - 11, op.n + "  " + op.pct + "%", { fontFamily: window.PF.display, fontSize: "15px", color: op.puede ? "#0a1f13" : "#d6dccf" }).setOrigin(0.5);
+          var ts = self.add.text(X, y + 15, op.puede ? op.s : "sin aguante para la súper", { fontFamily: window.PF.texto, fontSize: "13px", color: op.puede ? "#365a41" : "#d6dccf" }).setOrigin(0.5);
+          self.cineContent.add(r); self.cineContent.add(tt); self.cineContent.add(ts);
+          if (!op.puede) return;
+          r.setInteractive({ useHandCursor: true });
+          r.on("pointerdown", function (p, xx, yy, ev) {
+            ev && ev.stopPropagation && ev.stopPropagation();
+            self._uiTocado = self.time.now;
+            decidir(op);
+          });
+          items.push({ obj: r, caja: { x: X - ANCHO / 2, y: y - tap / 2, w: ANCHO, h: tap }, cb: function () { decidir(op); } });
+        });
+        if (self.grupoFoco) self.grupoFoco(items, { inicial: 0 });
+      };
+      if (AE.espera_ms > 0) this.time.delayedCall(AE.espera_ms, poner);
       else poner();
     },
     /* la línea corta de por qué (C1 usa el motivo de la lógica pura) */

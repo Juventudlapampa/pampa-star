@@ -236,6 +236,10 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     tap = E.BAL.legibilidad.tap_min;
     if (op.sinPregunta) E.BAL.envion.super_pregunta = false;
     if (!op.comoViene) E.BAL.flags.envion = true;   // poda del 22/oct: la perilla lo vuelve a prender
+    /* 25/oct, pedido de Rodri: EL ARQUERO ELIGE pregunta antes del cine. Lo
+       de este archivo mide el remate sin esa pregunta (activo:false, que
+       sigue existiendo); la pregunta se mide abajo, con conArquero */
+    if (!op.conArquero) E.BAL.partido.arquero_elige.activo = false;
     s.st.posesion = "rival"; s.st.portadorRival = 9; s.estado = "BEAT";
     s.st.envion = op.envion != null ? op.envion : E.BAL.envion.max;
     /* el cine: capas y lo que dibuja (no es lo que se mide) */
@@ -461,6 +465,29 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
   assert(s3.estado === "SUPERDEF", "ENTER sostenido no decide");
   E3.tecla("ENTER", {});
   assert(s3.st.envion === 0 && s3.st.posesion === "mia", "ENTER elige la SÚPER DEFENSA");
+
+  /* 25/oct, pedido de Rodri: EL ARQUERO ELIGE. Sin envión (no hay súper
+     defensa) y sin bloqueo, antes del cine van los tres botones con su %, y
+     el que tocás es el que se juega y el que cuenta el cartel */
+  var E6 = armar({ conArquero: true, envion: 0 }), s6 = E6.s;
+  s6.st.mios.forEach(function (j) { if (j.pos !== "ARQ") { j.x = 900; j.y = 40; } });   // nadie en la línea: no hay bloqueo
+  s6.escenaRemateRival(9);
+  assert(s6.estado === "ARQUERO" && s6.st.posesion === "rival" && E6.punch.length === 0, "SÍNTOMA: te rematan sin la pregunta del arquero (estado " + s6.estado + ")");
+  assert(botonesCine(E6).length === 0, "los botones del arquero esperan espera_ms (ESPACIO venía apretado)");
+  E6.correrTimers();
+  var b6 = botonesCine(E6), t6 = textosCine(E6).map(function (t) { return t.text; });
+  assert(b6.length >= 2 && ["ATRAPARLA", "DE PUÑOS", "SÚPER ATAJADA"].every(function (n) { return t6.some(function (x) { return x.indexOf(n) === 0 && /\d+%$/.test(x); }); }),
+    "tres botones, cada uno con su palabra y su % (" + t6.join(" | ") + ")");
+  assert(b6.every(function (b) { return b.height >= tap; }) && !textosCine(E6).some(function (t) { return parseInt(t.style && t.style.fontSize, 10) < 13; }),
+    "los botones miden el piso táctil y ningún texto baja de 13 px");
+  var aguArq = s6.st.mios.filter(function (x) { return x.pos === "ARQ"; })[0];
+  var pctSuper = t6.filter(function (x) { return x.indexOf("SÚPER ATAJADA") === 0; })[0];
+  E6.tocar(b6[b6.length - 1]);
+  correrTodo(E6);
+  assert(aguArq.aguante < E6.BAL.aguante.max, "la SÚPER ATAJADA le gastó aguante a tu arquero (" + aguArq.aguante + ")");
+  assert(E6.punch.length === 1 && /SÚPER ATAJADA|GOL/.test(E6.punch[0]) && E6.punch[0].indexOf(pctSuper.split("  ")[1]) > 0,
+    "el cartel dice lo que elegiste y con qué % (" + E6.punch.join(" · ") + ")");
+  assert(s6.estado === "LIBRE" && s6._remRival == null, "y el partido sigue (" + s6.estado + ")");
 
   /* 200 remates con súper defensa: ninguno entra */
   var goles = 0;

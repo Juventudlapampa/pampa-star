@@ -513,6 +513,19 @@
       "extra": 24,
       "por_tiro": 0.6
     },
+    "arquero_elige": {
+      "_nota": "Pedido de Rodri del 25/oct: 'el arquero tiene que elegir puños, atrapar, súper atajada, y que se cargue % de más acierto, y que dependa de qué tan bueno sea lo del otro'. Cuando te rematan, antes del cine elegís con tu arquero (scenes/escenas_v9.js, preguntarArquero; la lógica en logic/partido.js, eleccionArquero y duelAtajada). La fuerza del remate va de 0 (ataque de fuerza_desde) a 1 (fuerza_desde + fuerza_escala); el ataque es el del remate rival de siempre (remate_rival) menos por_angulo si le pega cerrado (el seno del ángulo contra el eje del arco pasa angulo_desde). ATRAPARLA pierde atrapar_por_fuerza de poder con la fuerza toda; DE PUÑOS es el despeje de siempre (8 más que atrapar) y suma punos_por_fuerza; SÚPER ATAJADA suma super_bonus y le saca super_costo de aguante a tu arquero (sin ese aguante no se ofrece). espera_ms: los botones responden recién ahí, como la súper defensa (ESPACIO venía apretado). activo:false = sin pregunta, tu arquero ataja como antes.",
+      "activo": true,
+      "fuerza_desde": 80,
+      "fuerza_escala": 24,
+      "angulo_desde": 0.55,
+      "por_angulo": 10,
+      "atrapar_por_fuerza": 8,
+      "punos_por_fuerza": 4,
+      "super_bonus": 18,
+      "super_costo": 260,
+      "espera_ms": 450
+    },
     "salida_arquero": {
       "_nota": "Pedido de Rodri del 22/oct: después de cada atajada la pelota arrancaba siempre en x 200, al medio. Ahora el arquero se la da a uno de los dos defensores del lado contrario al remate; x sale entre x[0] y x[1] (más por_fisico por cada punto de físico del arquero sobre 50) y la altura, de la franja de ese defensor más o menos y_juego / 2.",
       "x": [
