@@ -182,6 +182,57 @@
   function nivel(n) { return (JERARQUIA[n] || 12) + "px"; }
   function nivelPx(n) { return JERARQUIA[n] || 12; }
 
+  /* EL TELÉFONO LEGIBLE (25/oct). Con Scale.FIT el lienzo de 960x540 se ve a
+     640x360 en un teléfono apaisado de 360 de alto: 13 px lógicos son 8,7
+     reales. `escalaReal` es ancho visible / 960. El factor lleva el texto de
+     ref_logico_px a min_real_px reales y nunca achica (en la PC da 1). Cada
+     texto suma lo mismo que el de referencia y los más chicos crecen en
+     proporción, así un título de 40 no se come la pantalla. */
+  function factorTexto(escalaReal, cfg) {
+    if (!cfg || !(escalaReal > 0)) return 1;
+    var f = cfg.min_real_px / (cfg.ref_logico_px * escalaReal);
+    return Math.max(1, Math.min(cfg.tope_factor, f));
+  }
+  function tamTexto(px, factor, cfg) {
+    if (!(factor > 1) || !(px > 0)) return px;
+    return Math.round((px + Math.min(px, cfg.ref_logico_px) * (factor - 1)) * 10) / 10;
+  }
+  /* el factor del juego que corre: cuánto se ve el lienzo y el bloque
+     balance.legibilidad.telefono (sin el bloque, 1) */
+  function factorDe(game) {
+    var L = game.registry.get("balance").legibilidad;
+    return factorTexto(game.scale.displaySize.width / game.scale.width, L && L.telefono);
+  }
+  /* un título y su bajada puestos a mano (y-9 y y+13) se pisan cuando la
+     letra crece en el teléfono. Si se tocan, se abren parejo alrededor de su
+     medio; si no, quedan donde estaban, así en la PC no se mueve nada.
+     Devuelve el alto que ocupan los dos. */
+  function separarRenglones(a, b, aire) {
+    var A = a.getBounds(), B = b.getBounds();
+    var falta = A.bottom + (aire || 0) - B.y;
+    if (falta > 0) { a.y -= falta / 2; b.y += falta / 2; }
+    return Math.max(A.bottom, B.bottom) - Math.min(A.y, B.y) + Math.max(0, falta);
+  }
+  /* lo mismo para una columna de textos de arriba abajo: cada uno queda en
+     su lugar o, si pisa al de arriba, baja lo justo. Devuelve dónde termina
+     el último. */
+  /* un botón o una caja que crece: el dibujo y, si se toca, su zona */
+  function estirar(r, w, h) {
+    r.setSize(w, h);
+    if (r.input && r.input.hitArea) r.input.hitArea.setSize(w, h);
+    return r;
+  }
+  function apilarSiPisa(textos, aire) {
+    var fondo = -Infinity;
+    textos.forEach(function (t) {
+      if (!t) return;
+      var b = t.getBounds();
+      if (b.y < fondo + (aire || 0)) t.y += fondo + (aire || 0) - b.y;
+      fondo = t.getBounds().bottom;
+    });
+    return fondo;
+  }
+
   /* ¿entran n opciones de ese alto sin solaparse? El helper reparte lo que le
      pidan; decidir cuántas caben es del que dibuja. Sin esto, pedirle 5 de
      52 px a una franja de 232 devuelve posiciones a 40 px de distancia y las
@@ -298,6 +349,8 @@
     escala: escala, tam: tam,
     franja: franja, yDeOpcion: yDeOpcion, enFranja: enFranja, caben: caben, lugarLibre: lugarLibre,
     nombreCorto: nombreCorto, CONECTORES: CONECTORES,
-    JERARQUIA: JERARQUIA, nivel: nivel, nivelPx: nivelPx
+    JERARQUIA: JERARQUIA, nivel: nivel, nivelPx: nivelPx,
+    factorTexto: factorTexto, tamTexto: tamTexto, factorDe: factorDe,
+    separarRenglones: separarRenglones, apilarSiPisa: apilarSiPisa, estirar: estirar
   };
 });

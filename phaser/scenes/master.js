@@ -510,8 +510,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   /* ---- botón grande accesible (texto + borde, no solo color) ---- */
   boton(x, y, w, texto, bg, cb, sub) {
     const r = this.add.rectangle(x, y, w, 52, bg, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.add.text(x, sub ? y - 9 : y, texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
-    if (sub) this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
+    const t = this.add.text(x, sub ? y - 9 : y, texto, { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
+    const s = sub ? this.add.text(x, y + 11, sub, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41", align: "center", wordWrap: { width: w - 16 } }).setOrigin(0.5) : null;
+    /* en el teléfono la bajada crece (y puede ir en dos renglones): los dos
+       se abren y el botón se estira a lo que ocupan */
+    const alto = s ? window.PampaPiel.separarRenglones(t, s, 0) + 8 : 0;
+    if (alto > 52) {
+      window.PampaPiel.estirar(r, w, alto);
+      const corre = y - (t.getBounds().y + s.getBounds().bottom) / 2;
+      t.y += corre; s.y += corre;
+    }
     r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
     return r;
   }
@@ -1107,7 +1115,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        ve en la primera captura). Y el alto termina arriba del botón.
        TEMPO-1: el mapa bajó de 254 a 242 de alto y la nota de las ubicaciones
        pasó debajo de la ficha, para que entre la pregunta del tempo. */
-    const anchoFicha = 232, aire = 18, anchoMapa = 330;
+    /* el mapa es esquemático: en el teléfono, con la letra más grande, se
+       ensancha para que los diez nombres no se pisen */
+    const anchoFicha = 232, aire = 18, anchoMapa = Math.round(330 * window.PampaPiel.factorDe(this.game));
     const x0Bloque = Math.round((W - (anchoMapa + aire + anchoFicha)) / 2);
     this.mapaCaja = { x: x0Bloque, y: 66, w: anchoMapa, h: 242, wFicha: anchoFicha, aire };
 
@@ -1328,7 +1338,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* EL CURSOR EN EL MAPA. Ya se navegaba con ◄► pero en una lista circular:
        en un mapa eso no tiene sentido, porque los pueblos estan en el espacio.
        Con foco geometrico, la flecha de abajo lleva al pueblo de abajo. */
-    const _focoMapa = [], blancos = [];
+    const _focoMapa = [], blancos = [], _nombresMapa = [];
+    const pSel = ubic.find(p => p.nombre === sel);
+    const est = pSel ? this.add.text(aX(pSel.x) - 26, aY(pSel.y), "★", { fontFamily: window.PF.texto, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5) : null;
+    if (est) _nombresMapa.push(est.getBounds());
     ubic.forEach(p => {
       const x = aX(p.x), y = aY(p.y);
       const esSel = p.nombre === sel;
@@ -1339,7 +1352,6 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         /* FORMA además de color: anillo + estrella. Un punto que solo cambia
            de tono no se distingue, y esa es una regla del proyecto. */
         const anillo = this.add.circle(x, y, 16).setStrokeStyle(3, 0xffd84d, 1);
-        const est = this.add.text(x - 26, y, "★", { fontFamily: window.PF.texto, fontSize: "16px", color: "#ffd84d" }).setOrigin(0.5);
         capa.add([anillo, est]);
       }
       /* el nombre siempre visible: son diez, entran */
@@ -1347,6 +1359,21 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         { fontFamily: window.PF.texto, fontSize: "13px",
           fontStyle: esSel ? "bold" : "normal", color: esSel ? "#ffd84d" : "#dcd6c2",
           backgroundColor: "#0a1f13cc", padding: { x: 3, y: 1 } }).setOrigin(0.5, 0);
+      /* en el teléfono la letra crece y dos nombres vecinos se pisan: el que
+         llega después prueba arriba de su punto, a la derecha y a la izquierda */
+      const d = esSel ? 16 : 11;
+      const lugares = [[x, y + d, 0.5, 0], [x, y - d, 0.5, 1], [x + d, y, 0, 0.5], [x - d, y, 1, 0.5]];
+      const pisa = () => { const b = nom.getBounds(); return _nombresMapa.some(o => b.x < o.right && o.x < b.right && b.y < o.bottom && o.y < b.bottom); };
+      const afuera = () => { const b = nom.getBounds(); return b.x < C.x || b.right > C.x + C.w; };
+      if (pisa()) {
+        let k = 1;
+        for (; k < lugares.length; k++) {
+          nom.setPosition(lugares[k][0], lugares[k][1]).setOrigin(lugares[k][2], lugares[k][3]);
+          if (!pisa() && !afuera()) break;
+        }
+        if (k === lugares.length) nom.setPosition(lugares[0][0], lugares[0][1]).setOrigin(0.5, 0);
+      }
+      _nombresMapa.push(nom.getBounds());
       capa.add(nom);
       _focoMapa.push({ obj: punto, cb: () => {
         const k = this.pueblos.indexOf(p.nombre);
@@ -1429,15 +1456,22 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const fichaY = C.y + 14;
     const ficha = this.add.rectangle(fx + medioF, fichaY + 66, anchoF, 148, 0x0a1f13, 0.72).setStrokeStyle(3, 0xffd84d, 0.9);
     capa.add(ficha);
-    capa.add(this.add.text(fx + medioF, fichaY + 12, "★ TU CLUB", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(0.5));
+    const renglones = [];
+    renglones.push(this.add.text(fx + medioF, fichaY + 12, "★ TU CLUB", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(0.5));
     /* Sección 11: el nombre del club ES el apodo (antes: "Club " + localidad
        arriba y el apodo entre comillas abajo). Abajo va la localidad. */
-    capa.add(this.add.text(fx + medioF, fichaY + 44, this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    renglones.push(this.add.text(fx + medioF, fichaY + 44, this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#f6efdc", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
     /* si el nombre ya trae la localidad ("El Bagual de Winifreda"), abajo no se repite */
-    if (this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")).indexOf(sel) < 0) capa.add(this.add.text(fx + medioF, fichaY + 82, "de " + sel, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
-    capa.add(this.add.text(fx + medioF, fichaY + 112, "arranca en " + divN, { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5));
+    if (this.Ma.nombreDeTuClub(sel, this.game.registry.get("roster")).indexOf(sel) < 0) renglones.push(this.add.text(fx + medioF, fichaY + 82, "de " + sel, { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a", align: "center", wordWrap: { width: 200 } }).setOrigin(0.5));
+    renglones.push(this.add.text(fx + medioF, fichaY + 112, "arranca en " + divN, { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(0.5));
     const zN = (M.ZONAS[info.zona] || {}).n || "—";
-    capa.add(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5));
+    renglones.push(this.add.text(fx + medioF, fichaY + 132, "zona " + zN.toLowerCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" }).setOrigin(0.5));
+    capa.add(renglones);
+    /* en el teléfono la letra crece: los renglones bajan y la ficha se estira */
+    const antes = renglones.map(t => t.y);
+    const finTexto = window.PampaPiel.apilarSiPisa(renglones, 0);
+    const finFicha = renglones.some((t, i) => t.y !== antes[i]) ? Math.max(fichaY + 140, finTexto + 4) : fichaY + 140;
+    if (finFicha > fichaY + 140) window.PampaPiel.estirar(ficha, anchoF, finFicha - (fichaY - 8)).setY((fichaY - 8 + finFicha) / 2);
 
     if (this.grupoFoco && _focoMapa.length) {
       const iSel = ubic.findIndex(p => p.nombre === sel);
@@ -1449,7 +1483,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        la pregunta del tempo. 20/oct, Rodri: la nota "mapa por zonas · las
        ubicaciones exactas van cuando estén los datos" sonaba a pendiente de
        desarrollo; la zona ya la dice la ficha, y acá va cómo se cambia */
-    capa.add(this.add.text(fx + medioF, fichaY + 152, "tocá otra localidad para cambiar",
+    capa.add(this.add.text(fx + medioF, Math.max(fichaY + 152, finFicha + 12), "tocá otra localidad para cambiar",
       { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5", align: "center", wordWrap: { width: anchoF } }).setOrigin(0.5, 0));
   }
 
@@ -1846,7 +1880,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const pag = this.add.text(bx + bw - 12, by + bh - 10, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(1, 1);
     /* la semana de cuatro cosas: lo que elegiste, dicho antes de entrar */
     const sr = this.save.semanaResumen;
-    if (sr && sr.renglones) this.add.text(W / 2, 346, "ESTA FECHA VAS A TENER: " + sr.renglones.join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#7ee08a", align: "center", wordWrap: { width: 880 }, backgroundColor: "#0a1f13cc", padding: { x: 8, y: 4 } }).setOrigin(0.5);
+    /* arriba fijo y no al medio: en el teléfono va en dos renglones y crece
+       para abajo, sin tapar el nombre de quien habla */
+    if (sr && sr.renglones) this.add.text(W / 2, 333, "ESTA FECHA VAS A TENER: " + sr.renglones.join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#7ee08a", align: "center", wordWrap: { width: 880 }, backgroundColor: "#0a1f13cc", padding: { x: 8, y: 4 } }).setOrigin(0.5, 0);
     let i = 0, b = null;
     const mostrar = () => {
       pag.setText((i + 1) + " de " + pv.paginas.length + (i < pv.paginas.length - 1 ? "  ▸ seguir" : ""));
@@ -2322,8 +2358,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (this.fondoDelMaster) this.fondoDelMaster();
     const W = this.scale.width;
     const el = S.eleccionDeLaFecha(this.save), lc = S.enLaCancha(this.save, el, cfg);
-    this.add.text(W / 2, 16, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
-    this.add.text(W / 2, 42, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
+    const semL1 = this.add.text(W / 2, 16, "LA SEMANA · fecha " + ((this.save.temporada.fecha | 0) + 1), { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 2 } }).setOrigin(0.5);
+    const semTit = this.add.text(W / 2, 42, "contra " + rival.toUpperCase(), { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#f6efdc" }).setOrigin(0.5);
+    /* en el teléfono los medidores bajan lo que crece el título */
+    const yMed = Math.max(80, Math.ceil(window.PampaPiel.apilarSiPisa([semL1, semTit], 2) + 30));
     /* los dos medidores, con barra y con número: con lo elegido ya puesto */
     const medidor = (x, y, etiqueta, valor, color) => {
       this.add.text(x, y - 16, etiqueta, { fontFamily: window.PF.texto, fontSize: window.PampaPiel.nivel(3), fontStyle: "bold", color: "#f6efdc" }).setOrigin(0, 0.5);
@@ -2332,24 +2370,30 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       g.fillStyle(color, 1); g.fillRect(x + 2, y + 2, Math.max(0, Math.min(296, 296 * valor / 100)), 14);
       g.lineStyle(2, 0xf6efdc, 0.8); g.strokeRect(x, y, 300, 18);
     };
-    medidor(W / 2 - 320, 80, "AGUANTE al " + lc.aguantePct + "%", lc.aguantePct, 0x7ee08a);
-    medidor(W / 2 + 20, 80, "ÁNIMO " + lc.animo + "/100", lc.animo, 0x4fc3f7);
+    medidor(W / 2 - 320, yMed, "AGUANTE al " + lc.aguantePct + "%", lc.aguantePct, 0x7ee08a);
+    medidor(W / 2 + 20, yMed, "ÁNIMO " + lc.animo + "/100", lc.animo, 0x4fc3f7);
     /* LO QUE VAS A TENER EN LA CANCHA, con la pose de lo que elegiste */
     const op = el ? this.opDeLaSemana(D, el) : null;
-    const PX = W / 2, PY = 176, PW = 720, PH = 84;
-    if (window.PampaSemanaUI) window.PampaSemanaUI.escenario(this, PX, PY, PW, PH, op ? op.lugar : "vacio");
-    this.add.rectangle(PX, PY, PW, PH, op ? 0x2e7d32 : 0x0a1f13, op ? 0.24 : 0.44).setStrokeStyle(3, op ? 0x7ee08a : 0x555f57, 0.9);
-    if (op) this.figuraDeAccion(op, PX - PW / 2 + 72, PY + 34, 66, { x: PX - PW / 2 + 2, y: PY - 40, w: 140, h: 80 });
+    const desdePanel = this.children.list.length;
+    const PX = W / 2, PY = 176, PW = 720;
     /* revisión final del 23/oct: sin elegir no hay pose, y la franja quedaba
        corrida con la mitad izquierda vacía. Sin pose va al medio y a lo ancho */
     const fx = op ? PX + 72 : PX, fw = op ? PW - 168 : PW - 28;
+    const tFranja = this.add.text(fx, PY - 18, op ? "ESTA FECHA, EN LA CANCHA VAS A TENER" : "TODAVÍA NO ELEGISTE · así llegás", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    const rFranja = this.add.text(fx, PY + 10, S.renglonesDeLaCancha(lc).join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", align: "center", wordWrap: { width: fw - 22 } }).setOrigin(0.5);
+    /* en el teléfono lo de la cancha va en dos renglones: la franja crece */
+    const PH = Math.max(84, Math.ceil(window.PampaPiel.separarRenglones(tFranja, rFranja, 2) + 24));
+    if (PH > 84) { const corre = PY - (tFranja.getBounds().y + rFranja.getBounds().bottom) / 2; tFranja.y += corre; rFranja.y += corre; }
+    if (window.PampaSemanaUI) window.PampaSemanaUI.escenario(this, PX, PY, PW, PH, op ? op.lugar : "vacio");
+    this.add.rectangle(PX, PY, PW, PH, op ? 0x2e7d32 : 0x0a1f13, op ? 0.24 : 0.44).setStrokeStyle(3, op ? 0x7ee08a : 0x555f57, 0.9);
+    if (op) this.figuraDeAccion(op, PX - PW / 2 + 72, PY + 34, 66, { x: PX - PW / 2 + 2, y: PY - 40, w: 140, h: 80 });
     this.add.rectangle(fx, PY, fw, PH - 14, 0x0a1f13, 0.86);
-    this.add.text(fx, PY - 18, op ? "ESTA FECHA, EN LA CANCHA VAS A TENER" : "TODAVÍA NO ELEGISTE · así llegás", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
-    this.add.text(fx, PY + 10, S.renglonesDeLaCancha(lc).join(" · "), { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", align: "center", wordWrap: { width: fw - 22 } }).setOrigin(0.5);
-    if (op) this.add.text(W / 2, 246, "Esta semana " + op.repaso + ".", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
+    this.children.bringToTop(tFranja); this.children.bringToTop(rFranja);
+    const repaso = !op ? null : this.add.text(W / 2, 246, "Esta semana " + op.repaso + ".", { fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2", align: "center", wordWrap: { width: 880 } }).setOrigin(0.5);
     const touch = this.sys.game.device.input.touch;
     this.add.text(W / 2, 282, el ? "ELEGISTE " + op.n + " · la podés cambiar" : "¿QUÉ HACÉS ESTA SEMANA? · una sola cosa" + (touch ? "" : " (teclas 1 a 6)"),
       { fontFamily: window.PF.display, fontSize: "13px", color: el ? "#7ee08a" : "#ffd84d" }).setOrigin(0.5);
+    const hastaPanel = this.children.list.length;
     /* LAS CUATRO, a la vista. ENTRENAR lleva adentro sus tres botones */
     const piel = balS.piel, anchoC = 222, altoC = 140, gap = 8;
     const yC = Math.round(window.PampaPiel.yDeOpcion(0, 2, altoC, piel));
@@ -2362,31 +2406,66 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.atajo(TECLAS[foco.length], cb);
       foco.push({ obj: obj, cb: cb });
     };
-    D.cuatro.forEach((c, i) => {
+    const tarjetas = D.cuatro.map((c, i) => {
       const cx = W / 2 + (i - 1.5) * (anchoC + gap), top = yC - altoC / 2;
       const elegida = !!el && el.id === c.id;
+      const T = { botones: [] };
       /* la elegida se dice con palabra (✓) y con borde grueso, no solo con color */
-      const r = this.add.rectangle(cx, yC, anchoC, altoC, 0xf6efdc, 0.97).setStrokeStyle(elegida ? 6 : 3, 0x0a1f13, 1);
+      T.r = this.add.rectangle(cx, yC, anchoC, altoC, 0xf6efdc, 0.97).setStrokeStyle(elegida ? 6 : 3, 0x0a1f13, 1);
       /* revisión final del 23/oct: en la PC decía "teclas 1 a 6" sin decir cuál
          era cuál. Cada tarjeta lleva su número (ENTRENAR, los de sus botones) */
-      if (!touch && c.id !== "entrenar") this.add.text(cx - anchoC / 2 + 8, top + 6, String(foco.length + 1), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 4, y: 2 } });
-      this.add.text(cx, top + 6, (elegida ? "✓ " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 10 } }).setOrigin(0.5, 0);
-      this.add.text(cx, top + 28, c.efecto, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41", align: "center", lineSpacing: -2, wordWrap: { width: anchoC - 14 } }).setOrigin(0.5, 0);
-      this.add.text(cx, top + altoC - 6, this.textoDeLaFecha(c.id, elegida ? el.que : null), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 12 } }).setOrigin(0.5, 1);
-      if (c.id !== "entrenar") { tocar(r, () => this.ponerCuatro(c.id, null)); return; }
+      if (!touch && c.id !== "entrenar") T.num = this.add.text(cx - anchoC / 2 + 8, top + 6, String(foco.length + 1), { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 4, y: 2 } });
+      T.tit = this.add.text(cx, top + 6, (elegida ? "✓ " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 10 } }).setOrigin(0.5, 0);
+      T.efe = this.add.text(cx, top + 28, c.efecto, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41", align: "center", lineSpacing: -2, wordWrap: { width: anchoC - 14 } }).setOrigin(0.5, 0);
+      T.fec = this.add.text(cx, top + altoC - 6, this.textoDeLaFecha(c.id, elegida ? el.que : null), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#0a1f13", align: "center", wordWrap: { width: anchoC - 12 } }).setOrigin(0.5, 1);
+      if (c.id !== "entrenar") { tocar(T.r, () => this.ponerCuatro(c.id, null)); return T; }
       S.ENTRENABLES.forEach((k, q) => {
         /* revisión final del 23/oct: medían 46x23 px reales en el teléfono. El
            dibujo crece y la zona táctil llega al piso de un dedo (piel.tap_min
            de alto, a 740x360 son 44 px reales) */
         const sel = elegida && el.que === k, bx = cx + (q - 1) * 72, by = top + 90, bw = 70, bh = 46;
         const b = this.add.rectangle(bx, by, bw, bh, sel ? 0x0a1f13 : 0xffffff, 1).setStrokeStyle(sel ? 4 : 2, 0x0a1f13, 1);
-        if (!touch) this.add.text(bx, by - 11, String(foco.length + 1), { fontFamily: window.PF.display, fontSize: "13px", color: sel ? "#ffd84d" : "#365a41" }).setOrigin(0.5);
-        this.add.text(bx, touch ? by : by + 9, k.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: sel ? "#f6efdc" : "#0a1f13" }).setOrigin(0.5);
+        const n = !touch ? this.add.text(bx, by - 11, String(foco.length + 1), { fontFamily: window.PF.display, fontSize: "13px", color: sel ? "#ffd84d" : "#365a41" }).setOrigin(0.5) : null;
+        const t = this.add.text(bx, touch ? by : by + 9, k.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: sel ? "#f6efdc" : "#0a1f13" }).setOrigin(0.5);
+        if (n) window.PampaPiel.separarRenglones(n, t, 0);
         const zt = Math.max(bh, (piel.tap_min || 61) + 6);
         tocar(b, () => this.ponerCuatro("entrenar", k), new Phaser.Geom.Rectangle(-1, (bh - zt) / 2, bw + 2, zt));
+        T.botones.push([b, n, t]);
       });
+      return T;
     });
-    const yJugar = Math.round(window.PampaPiel.yDeOpcion(2, 3, 64, piel));
+    let yJugar = Math.round(window.PampaPiel.yDeOpcion(2, 3, 64, piel));
+    /* EL TELÉFONO LEGIBLE (25/oct). Con la letra grande el efecto y lo de la
+       fecha van en tres renglones y no entran en 140: la tarjeta crece a lo
+       que pide la más llena, lo de arriba (la franja, el repaso y la pregunta)
+       sube hasta 8 debajo de los medidores y JUGAR baja lo que haga falta. En
+       la PC entran y nada se mueve. */
+    const pideC = Math.max(...tarjetas.map(T => {
+      const medio = T.botones.length ? 46 + 12 : 8;
+      return Math.ceil(6 + T.tit.height + 2 + T.efe.height + medio + T.fec.height + 6);
+    }));
+    if (pideC > altoC) {
+      const arriba = this.children.list.slice(desdePanel, hastaPanel);
+      const sube = Math.max(0, PY - PH / 2 - (yMed + 18 + 8));
+      arriba.forEach(o => { o.y -= sube; });
+      const pregunta = this.children.list[hastaPanel - 1];
+      /* [DECISIÓN MÍA] con algo elegido, el repaso ("Esta semana te quedaste
+         pateando...") ya se vio en la escena de lo que elegiste: en el
+         teléfono, si las tarjetas no entran, se deja para la PC */
+      if (repaso) repaso.setVisible(false);
+      pregunta.setY(Math.ceil(PY + PH / 2 - sube + 6 + pregunta.height / 2));
+      const topC = Math.ceil(pregunta.getBounds().bottom + 6);
+      yJugar = Math.max(yJugar, topC + pideC + 8 + 26);
+      tarjetas.forEach(T => {
+        window.PampaPiel.estirar(T.r, anchoC, pideC).setY(topC + pideC / 2);
+        if (T.num) T.num.setY(topC + 6);
+        T.tit.setY(topC + 6);
+        T.efe.setY(T.tit.getBounds().bottom + 2);
+        const by = T.efe.getBounds().bottom + 6 + 23;
+        T.botones.forEach(([b, n, t]) => { const dy = by - b.y; b.y += dy; t.y += dy; if (n) n.y += dy; });
+        T.fec.setY(topC + pideC - 6);
+      });
+    }
     const jugar = () => this.cerrarSemana(alJugar);
     const btn = this.boton(W / 2, yJugar, 340, el ? "▶ JUGAR LA FECHA" : "▶ JUGAR SIN ELEGIR NADA", el ? 0x7ee08a : 0xdcd6c2, jugar);
     foco.push({ obj: btn, cb: jugar });
@@ -2893,7 +2972,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
       this.irA("titulo");
     });
-    this.add.text(W / 2, 56, div.n + (FIN && this.save.leyenda ? " · LEYENDA" : "") + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
+    const titTabla = this.add.text(W / 2, 56, div.n + (FIN && this.save.leyenda ? " · LEYENDA" : "") + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
     /* revisión L04b: con un título decía "★ 1 títulos"; el singular como en
        el código de la carrera (vistaCodigo) */
     const nTitClub = this.save.titulos.length;
@@ -2917,7 +2996,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const x0 = Math.round(W / 2 - total / 2);
       clubTxt.setOrigin(0, 0.5).setX(x0);
       resTxt.setX(Math.round(x0 + clubTxt.width + aire));
-    }
+      window.PampaPiel.separarRenglones(titTabla, clubTxt, 0);
+      resTxt.setY(clubTxt.y);
+    } else window.PampaPiel.separarRenglones(titTabla, clubTxt, 0);
 
     /* LA TABLA (monospace, forma antes que color: ► marca mi fila) */
     const pos = T.posiciones(t);
@@ -2954,7 +3035,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       { k: "pts", n: "PTS", x: 534 }
     ];
     var estiloCab = { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" };
-    this.add.text(x0, y0 - 2, "#", estiloCab);
+    const cab = this.add.text(x0, y0 - 2, "#", estiloCab);
+    /* en el teléfono la letra crece: las filas se abren a su alto medido */
+    const paso = Math.max(19, Math.ceil(cab.height) - 1);
     this.add.text(x0 + 34, y0 - 2, "EQUIPO", estiloCab);
     COLS.forEach(function (c) {
       this.add.text(x0 + c.x, y0 - 2, c.n, estiloCab).setOrigin(1, 0);
@@ -2963,7 +3046,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const mio = f.equipo === t.miClub;
       const enZona = zona.indexOf(i + 1) >= 0;
       const dg = f.gf - f.gc;
-      const y = y0 + 18 + i * 19;
+      const y = y0 - 2 + Math.max(20, paso) + i * paso;
       /* el nombre pasa por el mismo recorte que el marcador del partido: por
          palabra, nunca a la mitad. Antes era slice(0,17) y salia "Deportivo
          Winifre". */

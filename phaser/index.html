@@ -1566,6 +1566,25 @@
      contorno, la sombra y el interletrado de balance.tipografia. Un estilo
      que declara stroke/shadow explícito manda (nada se pisa a la fuerza). */
   (function(){
+    /* EL TELÉFONO LEGIBLE (pedido de Rodri del 25/oct). Phaser arma la letra
+       de cada texto en TextStyle._font (al crearlo, en setStyle y en
+       setFontSize): ahí, y solo ahí, el tamaño lógico pasa por
+       balance.legibilidad.telefono según cuánto se ve el lienzo (logic/piel.js,
+       factorTexto y tamTexto). style.fontSize queda lógico; el ancho y el alto
+       medidos (width, height, getBounds) ya son los de la letra que se ve. */
+    window.PF.tamReal = function (px, game) {
+      var f = window.PampaPiel.factorDe(game);
+      return f > 1 ? window.PampaPiel.tamTexto(px, f, game.registry.get("balance").legibilidad.telefono) : px;
+    };
+    Object.defineProperty(Phaser.GameObjects.TextStyle.prototype, "_font", {
+      configurable: true,
+      get: function () { return this.__font; },
+      set: function (v) {
+        var px = parseFloat(this.fontSize);
+        var real = px > 0 ? window.PF.tamReal(px, this.parent.scene.sys.game) : px;
+        this.__font = real === px ? v : [this.fontStyle, real + "px", this.fontFamily].join(" ").trim();
+      }
+    });
     var orig = Phaser.GameObjects.GameObjectFactory.prototype.text;
     Phaser.GameObjects.GameObjectFactory.register("text", function (x, y, text, style) {
       style = style || {};
@@ -1588,7 +1607,7 @@
       if (style.letterSpacing === undefined) {
         var em = window.PF.trackingMayus;
         if (em && window.PampaPiel && window.PampaPiel.esMayusculas(text)) {
-          var px = parseFloat(String(style.fontSize || "12px")) || 12;
+          var px = window.PF.tamReal(parseFloat(String(style.fontSize || "12px")) || 12, this.scene.sys.game);
           style.letterSpacing = window.PampaPiel.trackingPx(px, em);
         } else if (window.PF.letras) {
           style.letterSpacing = window.PF.letras;
@@ -1602,7 +1621,8 @@
         var setTextOrig = t.setText.bind(t);
         t.setText = function (v) {
           var esMay = window.PampaPiel.esMayusculas(v);
-          var pxAhora = parseFloat(String(t.style.fontSize || "12px")) || 12;
+          var pxLog = parseFloat(String(t.style.fontSize || "12px")) || 12;
+          var pxAhora = t.scene ? window.PF.tamReal(pxLog, t.scene.sys.game) : pxLog;
           var quiere = esMay ? window.PampaPiel.trackingPx(pxAhora, window.PF.trackingMayus) : (window.PF.letras || 0);
           if (t.style.letterSpacing !== quiere) t.setLetterSpacing(quiere);
           return setTextOrig(v);

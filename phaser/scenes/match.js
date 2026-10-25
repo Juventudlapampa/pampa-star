@@ -790,7 +790,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const quien = (this.game.registry.get("relatos").relatores || []).find(r => r.id === man.partido);
     const tex = this.textures.get("relatores");
     if (!tex.has(man.partido)) { const r = man.caras[man.partido]; tex.add(man.partido, 0, r[0], r[1], r[2], r[3]); }
-    const cx = 66, cy = 166, lado = 92, bx = 134, by = 104, bw = 196, bh = 176;
+    /* en el teléfono la letra crece: el globo se ensancha para que la frase
+       entre en sus 176 de alto */
+    const cx = 66, cy = 166, lado = 92, bx = 134, by = 104, bw = Math.round(196 * window.PampaPiel.factorDe(this.game)), bh = 176;
     const g = this.add.graphics();
     /* las líneas de velocidad detrás de la cara */
     g.lineStyle(3, 0x0a1f13, 0.85);
@@ -805,7 +807,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const cara = this.add.image(cx, cy, "relatores", man.partido).setDisplaySize(lado, lado);
     const marco = this.add.graphics();
     marco.lineStyle(3, 0xf5c400, 1); marco.strokeRect(cx - lado / 2 - 5, cy - lado / 2 - 5, lado + 10, lado + 10);
-    const nombre = this.add.text(cx, cy + lado / 2 + 20, quien ? quien.nombre : "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", backgroundColor: "#f5c400", padding: { x: 6, y: 1 } }).setOrigin(0.5);
+    const nombre = this.add.text(cx, cy + lado / 2 + 20, quien ? quien.nombre : "", { fontFamily: window.PF.texto, fontSize: "15px", color: "#0a1f13", backgroundColor: "#f5c400", padding: { x: 6, y: 1 }, align: "center" }).setOrigin(0.5);
+    /* en el teléfono el nombre no entra entre el borde y el globo: va en dos
+       renglones debajo de la cara, con el de arriba donde estaba */
+    if (nombre.width > 2 * cx) {
+      const arriba = nombre.getBounds().y;
+      nombre.setWordWrapWidth(2 * (cx - 4) - 12).setOrigin(0.5, 0).setY(arriba);
+    }
     const txt = this.add.text(bx + 12, by + bh / 2, "", { fontFamily: window.PF.texto, fontSize: "24px", color: "#0a1f13", wordWrap: { width: bw - 24 }, lineSpacing: 2 }).setOrigin(0, 0.5);
     this._vin = this.add.container(0, 0, [g, cara, marco, nombre, txt]).setVisible(false);
     this._vinTxt = txt;
@@ -2431,6 +2439,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const barBg = this.add.rectangle(x, 480, 96, 9, 0x0a1f13, 0.9).setStrokeStyle(1, 0xf6efdc, 0.7);
     const bar = this.add.rectangle(x - 48 + 48 * frac, 480, 96 * frac, 7, barCol, 1);
     const aguante = this.add.text(x, 495, "AGUANTE " + Math.round(gutsVal), { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    /* en el teléfono la letra crece: el nombre sale de abajo del marco y la
+       barra y el número bajan detrás (en la PC entran y no se mueven) */
+    const piso = marco.getBounds().bottom;
+    if (nom.getBounds().y < piso - 2) nom.y += piso + 2 - nom.getBounds().y;
+    const yBar = Math.max(480, Math.ceil(nom.getBounds().bottom + 7));
+    barBg.setY(yBar); bar.setY(yBar);
+    aguante.setY(Math.max(495, Math.ceil(yBar + 7 + aguante.height / 2)));
     this.menuLayer.add([marco, img, nom, barBg, bar, aguante]);
   }
 
@@ -2558,6 +2573,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const lineaTut = this.add.rectangle(480, 319, 960, 2, 0xf5c400, 0.65);
     const caja = this.add.text(480, 360, c.texto, { fontFamily: window.PF.texto, fontSize: "16px", color: "#f6efdc", align: "center", lineSpacing: 6 }).setOrigin(0.5);
     const pie = this.add.text(480, 413, (tactil ? "tocá" : "clic o ENTER") + " para seguir ▸", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+    /* en el teléfono los tres renglones crecen: el pie baja y la franja con él */
+    const finTut = window.PampaPiel.apilarSiPisa([caja, pie], 2) + 8;
+    if (finTut > 426) franjaTut.setSize(960, finTut - 318).setY((318 + finTut) / 2);
     const anillo = this.add.graphics();
     anillo.lineStyle(4, 0xffd84d, 1);
     ANILLOS.forEach(a => { if (a) anillo.strokeRoundedRect(a.x - a.w / 2, a.y - a.h / 2, a.w, a.h, 12); });
@@ -2802,7 +2820,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       window.PampaFeel.empujar(this, this._escalonActual || 2);
     }
     const strip = this.add.rectangle(480, 404, 960, 216, 0x0a1f13, 0.42);
-    const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: 660 } }).setOrigin(0.5);
+    const tit = this.add.text(480, 306, cfg.titulo, { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 8, y: 3 }, align: "center", wordWrap: { width: Math.min(900, Math.round(660 * window.PampaPiel.factorDe(this.game))) } }).setOrigin(0.5);
+    /* en el teléfono la letra crece: el título va más a lo ancho y, si llega
+       sobre los retratos (desde y 315, hasta x 178), sube a dejarlos libres;
+       el nombre del panel (10 · VOS, a la izquierda) queda a la vista */
+    const pn = this.panelNombre && this.panelNombre.visible ? this.panelNombre.getBounds() : null;
+    if (pn && tit.getBounds().x < pn.right + 6) tit.setWordWrapWidth(2 * (480 - pn.right - 8));
+    const bTit = tit.getBounds();
+    if (bTit.x < 178 && bTit.bottom > 313) tit.y -= bTit.bottom - 313;
     this.menuLayer.add([strip, tit]);
     if (cfg.izq) this.retratoPanel(104, cfg.izq.j, !!cfg.izq.esRival, cfg.izq.aguante);
     if (cfg.der) this.retratoPanel(856, cfg.der.j, cfg.der.esRival !== false, cfg.der.aguante);
@@ -5863,6 +5888,13 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         ? "PASE: tocá " + dondeToca + " a quién se la pasás, o su botón"
         : "PASE: ▲▼ elegís a quién · ENTER se la pasás · ESC vuelve (o tocalo " + dondeToca + ")",
       { fontFamily: window.PF.texto, fontSize: px, color: "#0a1f13", backgroundColor: "#ffd84d", padding: { x: 6, y: 3 }, align: "center" }).setOrigin(0.5, 1);
+    /* con la letra grande la ayuda llegaba al nombre del panel (10 · VOS):
+       se corre a la derecha y, si llega a VOLVER, va en dos renglones */
+    const pnP = this.panelNombre && this.panelNombre.visible ? this.panelNombre.getBounds() : null, bH = hint.getBounds();
+    if (pnP && bH.x < pnP.right + 8 && bH.bottom > pnP.y) {
+      hint.x += pnP.right + 8 - bH.x;
+      if (hint.getBounds().right > 776) { hint.setOrigin(0, 1).setX(pnP.right + 8).setWordWrapWidth(776 - pnP.right - 8); }
+    }
     this._paseCancelar = () => this.abrirMenuAtaque(rivalIdx, libre);
     /* la columna de compañeros: balance.legibilidad.cruz.pase */
     const CP = this.BAL.legibilidad.cruz.pase, aire = this.BAL.legibilidad.cruz.aire;
@@ -6369,6 +6401,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        mapa (arranca en 320), que además es donde está mirando el ojo. */
     const REL = this.BAL.relator || {};
     this.tickerTxt = this.add.text(480, REL.y || 300, "", { fontFamily: window.PF.texto, fontSize: REL.ticker_px + "px", color: "#f6efdc", backgroundColor: "#0a1f13dd", padding: { x: 10, y: 4 }, align: "center", wordWrap: { width: 560 } }).setOrigin(0.5).setAlpha(0).setDepth(50);
+    /* en el teléfono la letra crece y el ticker va en dos renglones: crece
+       para arriba, sobre la cancha, sin bajar al mapa. Con 560 de ancho no
+       llega al nombre del panel (10 · VOS, a la izquierda) */
+    if (window.PampaPiel.factorDe(this.game) > 1) this.tickerTxt.setOrigin(0.5, 1).setY((REL.y || 300) + 16);
     this.hudLayer.add(this.tickerTxt);
     /* Pedido de Rodri del 17/oct ("un juego CLARO"): el 🔊 suelto de la barra,
        que era solo un ícono, se fue. El sonido se prende y se apaga en la

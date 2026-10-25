@@ -62,7 +62,7 @@ function cargar(opts) {
     Array: Array, String: String, Number: Number, Date: Date, Promise: Promise, Error: Error, isFinite: isFinite };
   vm.createContext(ctx);
   /* logicaAntes: lo que partido.js toma al cargarse (duel.js, lectura.js) */
-  (opts.logicaAntes || []).concat(["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js"], opts.logica || []).forEach(function (f) {
+  (opts.logicaAntes || []).concat(["phaser/logic/partido.js", "phaser/logic/foco.js", "phaser/logic/atras.js", "phaser/logic/piel.js"], opts.logica || []).forEach(function (f) {
     if (!fs.existsSync(path.join(RAIZ, f))) return;
     vm.runInContext(leer(f), ctx, { filename: f });
   });
@@ -95,7 +95,15 @@ function escena(opts) {
     var o = new Emisor();
     o.type = tipo; o.x = x || 0; o.y = y || 0; o.width = w || 0; o.height = h || 0;
     o.visible = true; o.alpha = 1; o.active = true; o.input = null; o.scale = 1; o.fillAlpha = 1;
-    o.setOrigin = function () { return this; };
+    /* el origen de Phaser: los textos arriba a la izquierda, lo demás al medio */
+    o.originX = o.originY = tipo === "Text" ? 0 : 0.5;
+    o.setOrigin = function (a, b) { this.originX = a == null ? 0.5 : a; this.originY = b == null ? this.originX : b; return this; };
+    /* 25/oct, el teléfono legible: la caja en pantalla y el ancho de envoltura */
+    o.getBounds = function () {
+      var l = this.x - this.originX * this.width, t = this.y - this.originY * this.height;
+      return { x: l, y: t, left: l, top: t, width: this.width, height: this.height, right: l + this.width, bottom: t + this.height };
+    };
+    o.setWordWrapWidth = function () { return this; };
     o.setDepth = function () { return this; };
     o.setStrokeStyle = function () { return this; };
     o.setFillStyle = function (c, a) { this.fillAlpha = a == null ? 1 : a; return this; };
@@ -152,7 +160,8 @@ function escena(opts) {
   s.events = new Emisor();
   var reg = new Map();
   reg.set("balance", BAL);
-  s.game = { registry: { get: function (k) { return reg.get(k); }, set: function (k, v) { reg.set(k, v); }, remove: function (k) { reg.delete(k); } }, events: new Emisor() };
+  s.game = { registry: { get: function (k) { return reg.get(k); }, set: function (k, v) { reg.set(k, v); }, remove: function (k) { reg.delete(k); } }, events: new Emisor(),
+    scale: { width: 960, height: 540, displaySize: { width: 960, height: 540 } } };
   s.scene = { restart: function () { E.restarts++; }, start: function (k) { E.irA.push("start:" + k); } };
   /* opts.tactil: un teléfono (device.input.touch de Phaser) */
   s.sys = { settings: { key: "match", status: 5 }, isActive: function () { return true; },

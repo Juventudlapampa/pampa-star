@@ -105,6 +105,8 @@ function armar(opts) {
     /* el removeAll del DisplayList de 3.80.1, tal cual: SACA y no destruye.
        Está para poder correr el master.js de antes y ver el bug */
     children.removeAll = function () { children.list.length = 0; return children; };
+    /* 25/oct: lo que se dibuja arriba de su botón (la pastilla de OPCIONES) */
+    children.bringToTop = function (o) { var i = children.list.indexOf(o); if (i >= 0) { children.list.splice(i, 1); children.list.push(o); } return o; };
     var input = new Emisor();
     input._list = [];
     input.keyboard = new Emisor();
@@ -113,7 +115,11 @@ function armar(opts) {
     s.events = new Emisor();
     /* el emisor del JUEGO (game.events), que sobrevive a las escenas: desde
        L04 el Master se cuelga ahí del atrás del teléfono ("atras") */
-    s.game = { registry: registry, events: juegoEventos };
+    /* 25/oct, el teléfono legible: cuánto se ve el lienzo. Sin opts.lienzo,
+       la PC (960 de ancho visible, factor 1); con opts.lienzo (el ancho visible,
+       640 en un teléfono de 360 de alto) la letra se mide como la ve Phaser
+       después de la fábrica de index.html (PampaPiel.tamTexto) */
+    s.game = { registry: registry, events: juegoEventos, scale: { width: 960, height: 540, displaySize: { width: opts.lienzo || 960, height: (opts.lienzo || 960) * 540 / 960 } } };
     s.scale = { width: 960, height: 540 };
     /* get: una textura con todos sus cuadros (la cara del relator de la previa) */
     s.textures = { exists: function () { return false; }, get: function () { return { has: function () { return true; }, add: function () { } }; } };
@@ -152,6 +158,8 @@ function armar(opts) {
       o.setScale = function (a, b) { this.scaleX = a; this.scaleY = b == null ? a : b; return this; };
       o.setPosition = function (a, b) { this.x = a; if (b != null) this.y = b; return this; };
       o.setX = function (v) { this.x = v; return this; };
+      /* 25/oct: el botón que crece en el teléfono (PampaPiel.estirar) */
+      o.setSize = function (w, h) { this.width = w; this.height = h; return this; };
       o.setY = function (v) { this.y = v; return this; };
       o.setDepth = function (v) { this.depth = v; return this; };
       o.setText = function (t) { this.text = String(t); medirTexto(this); return this; };
@@ -160,7 +168,7 @@ function armar(opts) {
       if (tipo === "Text") o.runWordWrap = function (t) {
         var ww = this.style && this.style.wordWrap && this.style.wordWrap.width;
         if (!ww) return String(t);
-        var porLetra = (parseInt(this.style.fontSize, 10) || 14) * 0.55;
+        var porLetra = letraDe(this).ancho;
         return String(t).split("\n").map(function (par) {
           var out = [], linea = "";
           par.split(" ").forEach(function (p) {
@@ -209,11 +217,22 @@ function armar(opts) {
       if (!sinLista) children.list.push(o);
       return o;
     }
-    function medirTexto(o) {
+    /* la letra de un texto: su tamaño y lo que ocupa cada letra. Con
+       opts.lienzo (el teléfono, 25/oct) el tamaño es el que dibuja la fábrica
+       de index.html y el ancho se acerca al de cada familia (medido en el
+       navegador: la de texto 0,44 em por letra, la de títulos 0,6) */
+    function letraDe(o) {
       var fsz = parseInt(o.style && o.style.fontSize, 10) || 14;
-      var lineas = String(o.text).split("\n");
-      o.width = Math.max.apply(null, lineas.map(function (l) { return l.length; })) * fsz * 0.55;
-      o.height = lineas.length * fsz * 1.25;
+      if (!opts.lienzo) return { fsz: fsz, ancho: fsz * 0.55 };
+      fsz = window.PampaPiel.tamTexto(fsz, window.PampaPiel.factorDe(s.game), datos.balance.legibilidad.telefono);
+      return { fsz: fsz, ancho: fsz * (o.style.fontFamily === window.PF.display ? 0.6 : 0.45) };
+    }
+    function medirTexto(o) {
+      var L = letraDe(o);
+      /* con opts.lienzo se envuelve al ancho de wordWrap, como Phaser */
+      var lineas = String(opts.lienzo && o.runWordWrap ? o.runWordWrap(o.text) : o.text).split("\n");
+      o.width = Math.max.apply(null, lineas.map(function (l) { return l.length; })) * L.ancho;
+      o.height = lineas.length * L.fsz * 1.25;
     }
     /* lo que lee master.js renglonesDe de un Text de Phaser: los renglones,
        la métrica de la letra (con los mismos números que medirTexto) y el

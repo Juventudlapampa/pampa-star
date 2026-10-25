@@ -96,11 +96,18 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     const items = OPS.map((o, i) => {
       const y = 168 + i * 100;
       const r = this.add.rectangle(x, y, w, h, o.color, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-      this.add.text(x, y - 13, o.t, { fontFamily: window.PF.display, fontSize: "17px", color: "#0a1f13" }).setOrigin(0.5);
-      this.add.text(x, y + 17, o.s, { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41", align: "center", wordWrap: { width: w - 24 } }).setOrigin(0.5);
+      const ti = this.add.text(x, y - 13, o.t, { fontFamily: window.PF.display, fontSize: "17px", color: "#0a1f13" }).setOrigin(0.5);
+      const su = this.add.text(x, y + 17, o.s, { fontFamily: window.PF.texto, fontSize: "15px", color: "#365a41", align: "center", wordWrap: { width: w - 24 } }).setOrigin(0.5);
+      /* en el teléfono la bajada va en dos renglones: el botón crece */
+      const hh = Math.max(h, Math.ceil(window.PampaPiel.separarRenglones(ti, su, 0) + 8));
+      if (hh > h) {
+        window.PampaPiel.estirar(r, w, hh);
+        const corre = y - (ti.getBounds().y + su.getBounds().bottom) / 2;
+        ti.y += corre; su.y += corre;
+      }
       const cb = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("confirmar"); o.cb(); };
       r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); cb(); });
-      return { obj: r, caja: { x: x - w / 2, y: y - h / 2, w: w, h: h }, cb: o.cb };
+      return { obj: r, caja: { x: x - w / 2, y: y - hh / 2, w: w, h: hh }, cb: o.cb };
     });
     const vi = this.add.text(14, 12, "▶ VER INTRO", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 6, y: 4 } });
     if (this.pisoTactil) this.pisoTactil(vi);
@@ -240,13 +247,22 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     /* L11: con MOVIMIENTO son siete filas. Cada 60 desde 88, la última termina
        en 474 y ◀ VOLVER baja a H-32: ningún área táctil (61 de alto) pisa el
        dibujo de otra fila ni el de VOLVER */
-    const x0 = 300, alto = 52;
-    const items = filas.map((f, i) => {
+    const alto = 52;
+    const lbls = filas.map((f, i) => {
       const y = 88 + i * 60;
       const lbl = this.add.text(40, f.sub ? y - 9 : y, f.n, { fontFamily: window.PF.texto, fontSize: "19px", color: "#f6c11d" }).setOrigin(0, 0.5);
-      if (f.sub) this.add.text(40, y + 13, f.sub, { fontFamily: window.PF.texto, fontSize: "13px", color: "#cfe9d4" }).setOrigin(0, 0.5);
+      const sub = f.sub ? this.add.text(40, y + 13, f.sub, { fontFamily: window.PF.texto, fontSize: "13px", color: "#cfe9d4" }).setOrigin(0, 0.5) : null;
+      if (sub) window.PampaPiel.separarRenglones(lbl, sub, 0);
+      return [lbl, sub];
+    });
+    /* los controles arrancan en 300 o, en el teléfono, después del rótulo
+       más largo */
+    const x0 = Math.max(300, Math.ceil(Math.max(...lbls.flat().filter(Boolean).map(t => t.getBounds().right)) + 12));
+    const items = filas.map((f, i) => {
+      const y = 88 + i * 60;
+      const lbl = lbls[i][0];
       if (f.tipo === "nivel") this.dibujarNivel(f, x0, y, i);
-      else this.dibujarChips(f, x0, y, i);
+      else this.dibujarChips(f, x0, y, i, Math.min(620, W - 30 - x0));
       return { obj: lbl, caja: { x: 30, y: y - alto / 2 - 2, w: W - 60, h: alto + 4 },
         cb: () => (f.tipo === "nivel" ? f.cambiar(1) : this.moverChip(f, 1)) };
     });
@@ -303,17 +319,29 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
   }
 
   /* una pastilla por valor; la elegida va llena y con ✔ (no solo el color) */
-  dibujarChips(f, x0, y, fila) {
+  dibujarChips(f, x0, y, fila, ancho) {
     const n = f.chips.length, aire = 10;
-    const w = Math.min(150, Math.floor((620 - aire * (n - 1)) / n));
+    const cabe = Math.floor((ancho - aire * (n - 1)) / n);
+    /* las letras primero: en el teléfono "animaciones enteras" no entra en
+       150 y la pastilla se estira hasta lo que deja la fila */
+    const letras = f.chips.map((c) => {
+      const si = c.k === f.valor;
+      const col = si ? "#0a1f13" : c.bloqueada ? "#9fb3a5" : "#f6efdc";
+      const t = this.add.text(0, c.d ? y - 10 : y, (si ? "» " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "19px", color: col }).setOrigin(0.5);
+      const d = c.d ? this.add.text(0, y + 13, c.d, { fontFamily: window.PF.texto, fontSize: "13px", color: si ? "#365a41" : "#cfe9d4" }).setOrigin(0.5) : null;
+      const alto = d ? window.PampaPiel.separarRenglones(t, d, 0) : t.height;
+      return [t, d, alto];
+    });
+    const pide = Math.max(...letras.map(([t, d]) => Math.max(t.width, d ? d.width : 0) + 16));
+    const w = Math.min(Math.max(150, Math.ceil(pide)), cabe);
+    /* y crece de alto hasta 58 (las filas van cada 60) si lo de adentro no entra en 52 */
+    const hC = Math.min(58, Math.max(52, Math.ceil(Math.max(...letras.map(l => l[2])) + 6)));
     f.chips.forEach((c, k) => {
       const x = x0 + w / 2 + k * (w + aire);
       const si = c.k === f.valor;
-      const r = this.add.rectangle(x, y, w, 52, si ? 0xffd84d : 0x0d2a18, 1)
+      const r = this.add.rectangle(x, y, w, hC, si ? 0xffd84d : 0x0d2a18, 1)
         .setStrokeStyle(2, si ? 0x0a1f13 : 0xf6efdc, c.bloqueada ? 0.4 : 0.9).setInteractive({ useHandCursor: true });
-      const col = si ? "#0a1f13" : c.bloqueada ? "#9fb3a5" : "#f6efdc";
-      this.add.text(x, c.d ? y - 10 : y, (si ? "» " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "19px", color: col }).setOrigin(0.5);
-      if (c.d) this.add.text(x, y + 13, c.d, { fontFamily: window.PF.texto, fontSize: "13px", color: si ? "#365a41" : "#cfe9d4" }).setOrigin(0.5);
+      letras[k].slice(0, 2).forEach(t => { if (t) { t.setX(x); this.children.bringToTop(t); } });
       r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._fila = fila; this.elegirChip(f, c); });
     });
   }

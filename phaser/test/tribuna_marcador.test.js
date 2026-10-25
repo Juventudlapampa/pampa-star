@@ -30,7 +30,9 @@ function objeto() {
     setPosition(x, y) { this.x = x; this.y = y; return this; },
     setAlpha(a) { this.alpha = a; return this; },
     setVisible() { return this; }, setText(s) { this.texto = s; return this; },
-    setTexture() { return this; }, setScale() { return this; }
+    setTexture() { return this; }, setScale() { return this; },
+    /* 25/oct: el globo crece a lo que ocupa el texto (en la PC, sin alto, como antes) */
+    getBounds() { return { x: this.x, y: this.y, right: this.x, bottom: this.y, width: 0, height: 0 }; }
   };
 }
 function escena(golesMio, golesRival, minuto) {

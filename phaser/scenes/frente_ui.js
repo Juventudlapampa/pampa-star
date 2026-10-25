@@ -76,11 +76,39 @@
     },
     /* lo de tu arquero mientras el otro se perfila: cinco botones (1 a 5),
        las flechas y ENTER, o tocar el arco donde te querés tirar */
+    /* EL TELÉFONO LEGIBLE (25/oct): con la letra grande la columna de la
+       derecha no entra y la ayuda se salía por abajo. De abajo para arriba,
+       cada pieza sube lo justo para no pisar a la de abajo: la ayuda hasta
+       536, la barra con su rótulo (AHORA o SE PERFILA) y, si hace falta, lo
+       que dice la pegada con los botones. En la PC entra y no se mueve. */
+    /* la lectura de arriba (LO TAPA EL 4, ¡bien perfilado!...) va al medio de
+       la cancha; en el teléfono, con la letra grande, llegaba al rótulo de
+       arriba a la izquierda (· DE FRENTE AL ARCO ·) y se corre lo justo */
+    frenteLectura(fr, txt) {
+      fr.lectura.setText(txt).setX(W / 2 - 60);
+      var bRot = fr.rotulo.getBounds(), bLec = fr.lectura.getBounds();
+      if (txt && bLec.x < bRot.right + 8 && bLec.y < bRot.bottom) fr.lectura.x += bRot.right + 8 - bLec.x;
+    },
+    frenteColumna(fr, rotulo, dichos) {
+      var sobra = fr.ayuda.getBounds().bottom - 536;
+      if (sobra <= 0) return;
+      fr.ayuda.y -= sobra;
+      var sube = Math.max(0, fr.barra.y + 18 - (fr.ayuda.getBounds().y - 4));
+      fr.barra.y -= sube; rotulo.y -= sube;
+      /* lo que dice la pegada cambia al elegir: se mide con el más largo */
+      var ahoraDice = fr.dice.text, alto = fr.dice.height;
+      dichos.forEach(function (d) { alto = Math.max(alto, fr.dice.setText(d || "").height); });
+      fr.dice.setText(ahoraDice);
+      var falta = fr.dice.getBounds().y + alto + 4 - rotulo.getBounds().y;
+      if (falta <= 0) return;
+      fr.dice.y -= falta;
+      fr.botones.forEach(function (o) { o.b.y -= falta; o.t.y -= falta; });
+    },
     penalArqueroUI(fr, cfg) {
       var self = this, C = this.BAL.frente, PC = this.BAL.penal, Pn = window.PampaPenal;
       var tactil = this.sys.game.device.input.touch;
       fr.penalArq = true; fr.penalDir = null; fr.perfila = this.msV(PC.perfila_ms);
-      fr.lectura.setText("¡PENAL PARA ELLOS!");
+      this.frenteLectura(fr, "¡PENAL PARA ELLOS!");
       var lado = cfg.cpu.pista.dir;
       /* la postura: el cuerpo inclinado para el lado de la pista */
       if (fr.tirador && (lado === "izquierda" || lado === "derecha")) fr.tirador.setAngle(lado === "izquierda" ? -7 : 7);
@@ -106,6 +134,7 @@
       fr.ayuda = this.add.text(X_BOT - ANCHO_BOT / 2, 486, tactil ? "Tocá un lado del arco o un botón antes de que patee"
         : "Flechas o 1 a 5 · ENTER: al medio · clic en el arco", { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, wordWrap: { width: ANCHO_BOT } }).setOrigin(0, 0);
       [fr.dice, fr.ayuda].forEach(function (o) { self.cineContent.add(o); });
+      this.frenteColumna(fr, fr.perfilaTxt, []);
       var tocar = function (p, sobre) {
         if (self._fr !== fr || fr.resuelto || (sobre && sobre.length)) return;
         var mm = self.frenteMiraDePantalla(fr, p.x, p.y);
@@ -285,7 +314,8 @@
         fr.k *= Math.max(E.min_zoom, Math.min(1, maxD ? mitad / maxD : 1, maxI ? mitad / maxI : 1));
       }
       this.frenteFondo(fr);
-      this.cineContent.add(this.add.text(18, 22, cfg.penal ? "· PENAL ·" : cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }));
+      fr.rotulo = this.add.text(18, 22, cfg.penal ? "· PENAL ·" : cfg.libre ? "· TIRO LIBRE ·" : "· DE FRENTE AL ARCO ·", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc", backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } });
+      this.cineContent.add(fr.rotulo);
       var rivalDeEllos = !cfg.esRival, lista = cfg.esRival ? this.st.mios : this.st.rivales;
       /* la barrera no es la misma figura cinco veces: se alternan el lado y la altura */
       var nB = 0, altosB = K.barrera_altos || [1];
@@ -350,7 +380,7 @@
       if (cfg.cpu) {
         /* la barra es de quien patea con la mano en el mouse: la CPU no la usa */
         fr.barraG.setVisible(false); ahora.setVisible(false);
-        fr.lectura.setText(cfg.esRival ? "¡TE PATEAN EL TIRO LIBRE!" : "");
+        this.frenteLectura(fr, cfg.esRival ? "¡TE PATEAN EL TIRO LIBRE!" : "");
         var ayudaR = this.add.text(X_BOT, 506, "Patea " + quien + " · tu arquero espera", { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, align: "center", wordWrap: { width: ANCHO_BOT } }).setOrigin(0.5, 0.5);
         this.cineContent.add(ayudaR);
         this.pedirMusica("jugadon");
@@ -381,6 +411,7 @@
         : "Mouse: apuntá · rueda, Q o E: la pegada · clic: le pegás",
         { fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4, wordWrap: { width: ANCHO_BOT } }).setOrigin(0, 0);
       this.cineContent.add(fr.ayuda);
+      this.frenteColumna(fr, ahora, cfg.menu.map(function (tid) { return C.tipos[tid].dice; }));
       this.frenteElegir(fr.tipo);
 
       var sobreBoton = function (sobre) { return !!(sobre && sobre.length); };
@@ -644,7 +675,7 @@
         txt = "PENAL · " + this.penalAdonde(window.PampaPenal.zonaDe(L.mira.u, L.mira.h, PC)).toUpperCase() + (Math.abs(L.mira.u) > PC.esquina_desde ? " · AL ÁNGULO" : "");
       }
       if (fr.cpu) txt = fr.esRival ? "¡TE PATEAN EL TIRO LIBRE!" : txt;
-      if (fr.lectura.text !== txt) fr.lectura.setText(txt);
+      if (fr.lectura.text !== txt) this.frenteLectura(fr, txt);
       /* la barra del perfil */
       var B = fr.barra, PF = C.perfil, bg = fr.barraG, pos = this.frentePos(fr);
       bg.clear();
@@ -676,7 +707,7 @@
       }
       this.frenteFrame(fr);
       this.SFX && this.SFX.kickFuerte && this.SFX.kickFuerte();
-      fr.lectura.setText(fr.penalArq ? "¡PATEÓ!" : C.tipos[fr.tipo].n + " · " + (q > 0.75 ? "¡bien perfilado!" : q > 0.35 ? "más o menos parado" : "a destiempo"));
+      this.frenteLectura(fr, fr.penalArq ? "¡PATEÓ!" : C.tipos[fr.tipo].n + " · " + (q > 0.75 ? "¡bien perfilado!" : q > 0.35 ? "más o menos parado" : "a destiempo"));
       if (fr.dice) fr.dice.setText(fr.penalArq ? "" : C.tipos[fr.tipo].dice);
       if (fr.penal) {
         if (fr.dedoTxt) fr.dedoTxt.setText(fr.penalArq ? "Te tirás " + this.penalLado(res.penal.dir) : "El arquero se tira " + this.penalLado(res.penal.dir));
@@ -706,7 +737,7 @@
           b.setScale(Math.max(0.15, fr.bolaEsc * Math.min(1, s.s / (fr.k / 90))));
         }
       });
-      if (res.resultado === "bloqueo" && fr.foto.libre) fr.lectura.setText("¡A LA BARRERA!");
+      if (res.resultado === "bloqueo" && fr.foto.libre) this.frenteLectura(fr, "¡A LA BARRERA!");
       this.time.delayedCall(this.msV(900), function () { self.frenteCerrar(res); });
     },
     frenteTDe(tray, j) {

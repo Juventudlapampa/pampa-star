@@ -166,7 +166,7 @@
       var lugar = { dx: 0, dy: 0 };
       if (sc._figurasCine) {
         var AIRE = 10, MARGEN = 8, W = 960, H = 540;
-        var x0 = X - SANGRIA, y0 = Y0, w = ANCHO + SANGRIA, h = 2 * ALTO_GLOBO + 10;
+        var x0 = X - SANGRIA, y0 = Y0, w = ANCHO + SANGRIA, h = Math.max(2 * ALTO_GLOBO + 10, t.alto || 0);
         var cajas = sc._figurasCine.map(function (f) {
           var izq = f.x - f.displayWidth * f.originX, arriba = f.y - f.displayHeight * f.originY;
           return { left: izq, top: arriba, right: izq + f.displayWidth, bottom: arriba + f.displayHeight };
@@ -221,12 +221,24 @@
   function pintar(sc, t, idx, personaje, texto) {
     var b = t.globos[idx];
     var x0 = X + b.dx;
+    /* EL TELÉFONO LEGIBLE (25/oct): con la letra grande el nombre y lo que
+       dice no entraban en 58. Lo que dice va debajo del nombre, el globo crece
+       a lo que ocupa y el de abajo arranca 10 después (en la PC, como antes) */
+    if (b.y0 == null) b.y0 = b.y;
+    b.y = idx === 1 ? Math.max(b.y0, t.globos[0].fin + 10) : b.y0;
+    b.quien.setPosition(x0 + 50, b.y + 4);
+    b.quien.setText((personaje && personaje.nombre) || "");
+    b.dice.setPosition(x0 + 50, Math.max(b.y + 20, Math.ceil(b.quien.getBounds().bottom) - 2));
+    b.dice.setText(texto || "");
+    var altoG = Math.max(ALTO_GLOBO, Math.ceil(b.dice.getBounds().bottom - b.y + 1));
+    b.fin = b.y + altoG;
+    if (idx === 1) t.alto = b.fin - Y0;
     b.g.clear();
     /* fondo del globo */
     b.g.fillStyle(0x0a1f13, 0.9);
-    b.g.fillRoundedRect(x0, b.y, ANCHO, ALTO_GLOBO, 8);
+    b.g.fillRoundedRect(x0, b.y, ANCHO, altoG, 8);
     b.g.lineStyle(2, idx === 0 ? 0x54bcec : 0xff8c3a, 0.9);
-    b.g.strokeRoundedRect(x0, b.y, ANCHO, ALTO_GLOBO, 8);
+    b.g.strokeRoundedRect(x0, b.y, ANCHO, altoG, 8);
     /* P4 · LA FLECHA: quién habla se sabe por la FORMA, no por el color.
        La de arriba apunta arriba, la de abajo apunta abajo. */
     var fx = x0 + ANCHO - 11, fy = b.y + 11;
@@ -234,7 +246,7 @@
     if (idx === 0) b.g.fillTriangle(fx, fy - 5, fx - 5, fy + 4, fx + 5, fy + 4);
     else b.g.fillTriangle(fx, fy + 5, fx - 5, fy - 4, fx + 5, fy - 4);
 
-    var cx = x0 + 26, cy = b.y + ALTO_GLOBO / 2, R = 21;
+    var cx = x0 + 26, cy = b.y + altoG / 2, R = 21;
     /* P4 · EL RETRATO. Si el personaje declaró uno en data/tribuna.json y la
        textura cargó, va la cara de verdad recortada en redondo. Si no cargó
        (sin server, archivo movido), queda el borrón de antes: feo, pero nunca
@@ -248,11 +260,10 @@
       b.cara.setPosition(cx, cy).setVisible(true);
       if (!b.mask) {
         b.maskG = sc.make.graphics({ x: 0, y: 0, add: false });
-        b.maskG.fillStyle(0xffffff);
-        b.maskG.fillCircle(cx, cy, R);
         b.mask = b.maskG.createGeometryMask();
         b.cara.setMask(b.mask);
       }
+      b.maskG.clear().fillStyle(0xffffff).fillCircle(cx, cy, R);
       /* el aro: le da borde a la cara y la separa del fondo del globo */
       b.g.lineStyle(2, idx === 0 ? 0x54bcec : 0xff8c3a, 1);
       b.g.strokeCircle(cx, cy, R);
@@ -262,9 +273,5 @@
       b.g.fillCircle(cx, cy, 11);
       b.g.fillRoundedRect(cx - 12, cy + 9, 24, 14, 5);
     }
-    b.quien.setPosition(x0 + 50, b.y + 4);
-    b.dice.setPosition(x0 + 50, b.y + 20);
-    b.quien.setText((personaje && personaje.nombre) || "");
-    b.dice.setText(texto || "");
   }
 })();

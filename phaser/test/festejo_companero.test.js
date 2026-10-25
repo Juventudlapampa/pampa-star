@@ -108,7 +108,9 @@ function escena() {
       setPosition(x, y) { this.x = x; this.y = y; return this; },
       setAlpha(a) { this.alpha = a; return this; },
       setVisible() { return this; }, setText(t) { this.texto = t; return this; },
-      setTexture() { return this; }, setScale() { return this; }
+      setTexture() { return this; }, setScale() { return this; },
+      /* 25/oct: el globo de la tribuna crece a lo que ocupa el texto */
+      getBounds() { return { x: this.x, y: this.y, right: this.x, bottom: this.y, width: 0, height: 0 }; }
     };
   }
   function oir(goleador, evento) {

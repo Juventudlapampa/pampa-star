@@ -93,7 +93,8 @@ function jugar(masterPartido, opts) {
   s.sys = stub("this.sys", anotar);
   s.sys.game = { device: { input: { touch: !!opts.tactil } } };
   s.game = { registry: { get: function (k) { return reg[k]; }, set: function (k, v) { reg[k] = v; }, remove: function (k) { delete reg[k]; } },
-    events: stub("game.events"), scene: stub("game.scene"), canvas: stub("canvas"), loop: stub("loop"), device: stub("device") };
+    events: stub("game.events"), scene: stub("game.scene"), canvas: stub("canvas"), loop: stub("loop"), device: stub("device"),
+    scale: { width: 960, height: 540, displaySize: { width: 960, height: 540 } } };
   s.scene = stub("this.scene");
   var e;
   Object.defineProperty(s, "estado", { get: function () { return e; }, set: function (v) { e = v; estados.push(v); } });

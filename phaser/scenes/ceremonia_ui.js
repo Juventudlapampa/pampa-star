@@ -127,7 +127,7 @@
       this.add.rectangle(0, 0, W, H, 0x06120b, festejo ? 0.5 : 0.7).setOrigin(0, 0);
 
       this.add.text(W - 16, 14, C.rotulo, { fontFamily: window.PF.texto, fontSize: "13px", color: CREMA, backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 } }).setOrigin(1, 0);
-      var cortes = [], k = 0, ev = null, botonSeguir = null;
+      var cortes = [], k = 0, ev = null, botonSeguir = null, finGlobo = 0;
       var seguir = function () {
         if (k < cortes.length) { saltar(); return; }
         self.save.ceremoniaVista = self.save.temporadaN;
@@ -178,12 +178,15 @@
         }
         var bx = xg + 86, bw = W - 24 - bx;
         var txt = self.add.text(bx + 14, yg + 26, dice, { fontFamily: window.PF.texto, fontSize: "17px", color: OSCURO, wordWrap: { width: bw - 28 }, lineSpacing: 2 });
-        var alto = Math.max(72, txt.height + 36);
+        var quien = self.add.text(bx + 14, yg + 6, rel ? rel.nombre.toUpperCase() : "EL RELATOR", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#365a41" }).setDepth(1);
+        /* en el teléfono el nombre crece: la frase baja a dejarlo libre */
+        txt.y = Math.max(txt.y, Math.ceil(quien.getBounds().bottom) - 2);
+        var alto = Math.max(72, txt.y - (yg + 26) + txt.height + 36);
+        finGlobo = yg - 2 + alto;
         var globo = self.add.graphics();
         globo.fillStyle(0xf6efdc, 0.97); globo.fillRoundedRect(bx, yg - 2, bw, alto, 6);
         globo.fillTriangle(bx + 1, yg + 22, bx + 1, yg + 42, bx - 14, yg + 32);
         globo.lineStyle(3, 0x0a1f13, 1); globo.strokeRoundedRect(bx, yg - 2, bw, alto, 6);
-        self.add.text(bx + 14, yg + 6, rel ? rel.nombre.toUpperCase() : "EL RELATOR", { fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#365a41" });
         txt.setDepth(1);
       });
 
@@ -193,8 +196,25 @@
         var nombres = {};
         (trib.personajes || []).forEach(function (p) { nombres[p.id] = p.nombre; });
         var y = 262;
+        /* EL TELÉFONO LEGIBLE (25/oct): con la letra grande el globo del
+           relator crece y cada renglón de la tribuna puede ir en dos. Lo de
+           abajo queda en su lugar o baja lo justo para no pisar lo de arriba
+           (en la PC entra y nada se mueve); la cara va con su renglón */
+        var dichos = (elegir(C.tribuna) || []).map(function (d, i) {
+          /* quién habla, por el nombre y por la forma (▲ Nelda, ▼ el Tuli,
+             como en la franja del partido) */
+          return self.add.text(368, y + i * 34, (d.quien === "nelda" ? "▲ " : "▼ ") + (nombres[d.quien] || d.quien).toUpperCase() + ": " + d.texto, {
+            fontFamily: window.PF.texto, fontSize: "16px", color: CREMA, backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 },
+            wordWrap: { width: W - 392 }
+          }).setOrigin(0, 0.5);
+        });
+        if (dichos.length) {
+          var baja = Math.max(0, finGlobo + 2 - dichos[0].getBounds().y);
+          dichos.forEach(function (t) { t.y += baja; });
+        }
+        var finDichos = window.PampaPiel.apilarSiPisa(dichos, 4);
         (elegir(C.tribuna) || []).forEach(function (d, i) {
-          var yy = y + i * 34;
+          var yy = dichos[i].y;
           var clave = "personaje_" + d.quien;
           if (self.textures.exists(clave)) {
             var R = 14, im = self.add.image(346, yy, clave);
@@ -203,20 +223,16 @@
             mk.fillStyle(0xffffff); mk.fillCircle(346, yy, R);
             im.setMask(mk.createGeometryMask());
           }
-          /* quién habla, por el nombre y por la forma (▲ Nelda, ▼ el Tuli,
-             como en la franja del partido) */
-          self.add.text(368, yy, (d.quien === "nelda" ? "▲ " : "▼ ") + (nombres[d.quien] || d.quien).toUpperCase() + ": " + d.texto, {
-            fontFamily: window.PF.texto, fontSize: "16px", color: CREMA, backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 },
-            wordWrap: { width: W - 392 }
-          }).setOrigin(0, 0.5);
         });
         var items = self.listaDeCeremonia(tipo, v, C, datos);
-        var yl = 340, paso = items.length > 4 ? 21 : 26;
-        self.add.rectangle(330, yl - 8, W - 354, 30 + items.length * paso, 0x0a1f13, 0.88).setOrigin(0, 0).setStrokeStyle(2, 0xf5c400, 0.9);
-        self.add.text(346, yl, Fi.poner(C.lista, datos).toUpperCase(), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: ORO });
+        var yl = Math.max(340, Math.ceil(finDichos + 14)), paso = items.length > 4 ? 21 : 26;
+        var caja = self.add.rectangle(330, yl - 8, W - 354, 30 + items.length * paso, 0x0a1f13, 0.88).setOrigin(0, 0).setStrokeStyle(2, 0xf5c400, 0.9);
+        var renglones = [self.add.text(346, yl, Fi.poner(C.lista, datos).toUpperCase(), { fontFamily: window.PF.texto, fontSize: "15px", fontStyle: "bold", color: ORO })];
         items.forEach(function (it, i) {
-          self.add.text(346, yl + 24 + i * paso, it.marca + " " + it.texto, { fontFamily: window.PF.texto, fontSize: "16px", color: CREMA, wordWrap: { width: W - 390 } });
+          renglones.push(self.add.text(346, yl + 24 + i * paso, it.marca + " " + it.texto, { fontFamily: window.PF.texto, fontSize: "16px", color: CREMA, wordWrap: { width: W - 390 } }));
         });
+        var finLista = window.PampaPiel.apilarSiPisa(renglones, 2) + 4;
+        if (finLista > yl - 8 + caja.height) caja.setSize(caja.width, finLista - (yl - 8));
         botonSeguir = self.boton(W - 190, H - 34, 320, tipo === "gloria" ? "▶ A LA RADIO" : "▶ SEGUIR", festejo ? 0xffd84d : 0x7ee08a, seguir);
         if (self.grupoFoco) self.grupoFoco([{ obj: botonSeguir, cb: seguir }], { inicial: 0, volver: seguir });
         if (self.vestirPendientes) self.vestirPendientes();
@@ -354,9 +370,11 @@
       this.add.text(W / 2, 30, cr.rotulo, { fontFamily: window.PF.display, fontSize: "19px", color: ORO }).setOrigin(0.5);
       var y = 64;
       cr.lineas.forEach(function (l) {
-        self.add.text(W / 2, y, l.rubro.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(0.5, 0);
+        var rubro = self.add.text(W / 2, y, l.rubro.toUpperCase(), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" }).setOrigin(0.5, 0);
         var t = self.add.text(W / 2, y + 17, l.texto, { fontFamily: window.PF.texto, fontSize: "15px", color: CREMA, align: "center", wordWrap: { width: 780 } }).setOrigin(0.5, 0);
-        y += 17 + t.height + 12;
+        /* en el teléfono el rubro crece: el texto baja a dejarlo libre */
+        window.PampaPiel.apilarSiPisa([rubro, t], -1);
+        y = t.y + t.height + 12;
       });
       var datos = { div_en: (fin.divisiones[(bal.final || {}).leyenda_division] || {}).en || "" };
       this.add.text(W / 2, Math.max(y + 8, 372), el.rotulo, { fontFamily: window.PF.display, fontSize: "15px", color: ORO }).setOrigin(0.5);

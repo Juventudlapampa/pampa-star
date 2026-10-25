@@ -759,6 +759,8 @@
     "texto_info_min": 12,
     "_texto_info_min": "px lógicos mínimos para un texto que lleva INFORMACIÓN (no decorativo). 12 lógicos = 8,7 px reales en teléfono. Los títulos y el cuerpo ya están por encima; esto es el piso duro.",
     "texto_decision_min": 13,
+    "telefono": { "min_real_px": 12, "ref_logico_px": 13, "tope_factor": 1.5 },
+    "_telefono": "Pedido de Rodri del 25/oct: que se lea en el teléfono. El lienzo de 960x540 se ve a 640x360 en un apaisado de 360 de alto y 13 px lógicos daban 8,7 reales. Todo texto pasa por la fábrica de index.html (TextStyle._font): se le suma lo que le falta al de ref_logico_px para verse a min_real_px reales, y los más chicos crecen en proporción (logic/piel.js, factorTexto y tamTexto). A 740x360 el factor es 1,385 (13 lógicos → 18), a 844x390 1,278 (→ 16,6); en la PC (1280x720 o más) da 1 y nada cambia. tope_factor frena las ventanas muy chicas.",
     "_texto_decision_min": "TANDA 1.0 · L09 (legibilidad-partido). px lógicos mínimos para el texto con el que se DECIDE: la cruz del partido, su centro, los botones de la Definición y del jugadón, las fichas. Iban a 9-10 px: 6,5-7,2 px reales en un teléfono de 844x390 (factor 0,7222) y 6,0-6,7 en uno de 800x360 (factor 0,6667, el chico de referencia desde este lote). 13 lógicos son 9,4 reales en el de 844 y 8,7 en el de 800. Nunca se achica la letra para que un rótulo entre: se acomoda la caja o se recorta el texto (match.js, encajarTexto).",
     "cruz": {
       "N": [480, 340, 230, 44],
