@@ -102,5 +102,24 @@ function amontonados(bal) {
   assert(/accion: "al_perder"/.test(M), "la escena la cobra al perder la defensa");
 }
 
+/* [6] el saque de tu arquero se elige: corto (seguro) o largo (al delantero) */
+{
+  const SL = BAL.partido.saque_largo;
+  const armar = () => { const st = partido(); P.kickoff(st, "rival"); P.resolverAtajada(st, "atajar", () => 0.5, 200); return st; };
+  let st = armar();
+  assert(st.posesion === "mia" && st.mios[st.ctrl].pos === "DEF", "después de la atajada la tiene un defensor tuyo: es el SAQUE CORTO");
+  const s0 = P.saqueLargoPct(st);
+  assert(s0 && st.mios[s0.idx].pos === "ATA" && s0.pct >= SL.min && s0.pct <= SL.max, "el SAQUE LARGO va a un delantero tuyo, con su % (" + (s0 && s0.pct) + ")");
+  st.rivales.forEach(r => { if (r.pos !== "ARQ") { r.x = s0.x + 10; r.y = s0.y + 10; } });
+  assert(P.saqueLargoPct(st).pct < s0.pct, "con rivales donde cae, la chance baja");
+  st = armar(); let r = P.saqueLargo(st, () => 0);
+  assert(r.win && st.posesion === "mia" && st.ctrl === r.receptorIdx && st.mios[st.ctrl].x >= st.W * SL.x_min - 1, "si sale, la baja el delantero pasando la mitad de la cancha");
+  st = armar(); r = P.saqueLargo(st, () => 0.999);
+  assert(!r.win && st.posesion === "rival" && st.rivales[st.portadorRival].pos !== "ARQ" && st._crucesDef === 0 && st.modo === "juego",
+    "si sale mal, la gana un rival de campo y vuelve a haber defensa");
+  const V9 = fs.readFileSync(path.join(RAIZ, "scenes", "escenas_v9.js"), "utf8");
+  assert(V9.indexOf("if (res.retiene && self.abrirSaqueArquero) self.abrirSaqueArquero();") >= 0, "la escena pregunta el saque cuando tu arquero la retiene");
+}
+
 console.log((mal ? "✗" : "✓") + " no_se_puede_jugar: " + ok + " ok, " + mal + " mal");
 process.exit(mal ? 1 : 0);

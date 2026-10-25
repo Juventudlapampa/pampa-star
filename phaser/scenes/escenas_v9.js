@@ -543,6 +543,8 @@
         self._figurasCine = null;
         if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(self);
         self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
+        /* 25/oct, Rodri: tu arquero la agarró y elige el saque */
+        if (res.retiene && self.abrirSaqueArquero) self.abrirSaqueArquero();
       };
 
       if (!lectura.bloqueado) {

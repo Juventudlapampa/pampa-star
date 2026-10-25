@@ -486,6 +486,18 @@
       "activo": true,
       "a": "DEF"
     },
+    "saque_largo": {
+      "_nota": "Pedido de Rodri del 25/oct: después de la atajada tu arquero elige SAQUE CORTO (al defensor, seguro: es lo de siempre) o SAQUE LARGO (al delantero tuyo más adelantado, que la baja entre x_min y x_max del ancho de la cancha). La chance: base, más por_pase por cada punto de PASE del arquero sobre 50, menos por_marca por cada rival a menos de marca_px de donde cae, entre min y max. Si sale mal, la gana el rival más cerca de la caída. activo false = no se pregunta, sale corto.",
+      "activo": true,
+      "base": 62,
+      "por_pase": 0.4,
+      "marca_px": 90,
+      "por_marca": 12,
+      "min": 25,
+      "max": 85,
+      "x_min": 0.5,
+      "x_max": 0.68
+    },
     "reacomodo": {
       "_nota": "Pedido de Rodri del 25/oct: 'cuando están todos juntos... que cambien los jugadores del campo'. Después de cada duelo (ganar o perder la pelota, ganar o perder la defensa) el equipo que la tiene sube sube_px y se abre a su franja (abre: qué fracción del camino hace), el otro baja baja_px y se arma (arma), y después nadie queda a menos de dist_min_px de otro: los dos se separan, y si uno es el portador se corre solo el otro. vueltas: pasadas de esa separación. Medido en node: cuántos latidos tienen 4 o más jugadores en 60 px (docs/TANDA_1_0.md). activo false = como antes.",
       "activo": true,

@@ -1379,6 +1379,43 @@
     st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
     return { golRival: false, retiene: true, eleccion: eleccion };
   }
+  /* 25/oct, Rodri: "hacete cargo: es jugador o es arquero". Después de la
+     atajada tu arquero elige: SAQUE CORTO es lo de resolverAtajada (al
+     defensor, seguro); SAQUE LARGO va al delantero tuyo más adelantado, que la
+     baja pasando la mitad de la cancha: más avance y más riesgo (si lo marca
+     un rival en la caída, baja la chance). balance.partido.saque_largo */
+  function saqueLargoPct(st) {
+    var SL = st.bal.partido.saque_largo;
+    if (!SL || !SL.activo) return null;
+    var arq = st.mios.find(function (j) { return j.pos === "ARQ"; }) || { stats: {} };
+    var idx = -1;
+    st.mios.forEach(function (j, i) { if (j.pos === "ATA" && (idx < 0 || j.x > st.mios[idx].x)) idx = i; });
+    if (idx < 0) return null;
+    var r = st.mios[idx], x = clamp(Math.max(r.x, st.W * SL.x_min), 20, st.W * SL.x_max), marca = 0;
+    st.rivales.forEach(function (o) { if (o.pos !== "ARQ" && dist(o.x, o.y, x, r.y) < SL.marca_px) marca++; });
+    var pct = clamp(Math.round(SL.base + ((arq.stats.pase || 50) - 50) * SL.por_pase - marca * SL.por_marca), SL.min, SL.max);
+    return { idx: idx, pct: pct, x: x, y: r.y };
+  }
+  function saqueLargo(st, rng) {
+    rng = rng || Math.random;
+    var s = saqueLargoPct(st);
+    if (!s) return null;
+    var win = rng() * 100 < s.pct;
+    st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+    if (win) {
+      var r = st.mios[s.idx];
+      r.x = s.x; st.ctrl = s.idx; st.posesion = "mia";
+      st.pelota.x = r.x + 12; st.pelota.y = r.y;
+      return { win: true, pct: s.pct, receptorIdx: s.idx };
+    }
+    var mejor = -1, md = 1e9;
+    st.rivales.forEach(function (o, i) { if (o.pos === "ARQ") return; var d = dist(o.x, o.y, s.x, s.y); if (d < md) { md = d; mejor = i; } });
+    st.posesion = "rival"; st.portadorRival = mejor; st._crucesDef = 0;
+    st.pelota.x = st.rivales[mejor].x - 12; st.pelota.y = st.rivales[mejor].y;
+    st.ctrl = masCercanoAPelota(st);
+    st.esperaRival = st.bal.ritmo.arranque_rival_ms;
+    return { win: false, pct: s.pct, receptorIdx: s.idx, rivalIdx: mejor };
+  }
   function reubicar(st) {
     var c = st.mios[st.ctrl]; c.x = st.W / 2 - 14; c.y = st.H / 2;
   }
@@ -1406,6 +1443,7 @@
     puedeTirar: puedeTirar, puedeCalden: puedeCalden, prepararRemate: prepararRemate,
     golMio: golMio, tiroFallado: tiroFallado, cornerMio: cornerMio,
     saqueArquero: saqueArquero,   // A4: atajada y afuera dejan la pelota en el arquero rival
+    saqueLargoPct: saqueLargoPct, saqueLargo: saqueLargo,
     opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,
     repeticion: repeticion, pesosCPU: pesosCPU,
     cambiarA: cambiarA, cambiarAlMasCercano: cambiarAlMasCercano,

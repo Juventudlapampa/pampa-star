@@ -4457,6 +4457,29 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return j && !j.esVos ? "¡El " + j.numero + " la clavó donde el viento no la saca!" : "¡La clavaste donde el viento no la saca!";
   }
   /* grito: el del súper tiro ("¡GOLAZO!"); sin él, el de siempre */
+  /* 25/oct, Rodri: después de la atajada tu arquero elige el saque. CORTO
+     es seguro (ya la tiene el defensor, logic/partido.resolverAtajada);
+     LARGO va al delantero con más avance y más riesgo (partido.saqueLargo) */
+  abrirSaqueArquero() {
+    const st = this.st, P = window.PampaPartido;
+    const arq = st.mios.find(j => j.pos === "ARQ"), def = st.mios[st.ctrl], lar = P.saqueLargoPct(st);
+    if (!arq || !lar || st.posesion !== "mia") return;
+    const ata = st.mios[lar.idx], nom = j => j.numero + ", " + String(j.nombre || "").toUpperCase();
+    const corto = () => this.mostrarResolucion("SAQUE CORTO\nLa tiene el " + nom(def) + ".", "#7ee08a", null);
+    this.abrirMenuCruz({
+      titulo: "¡LA TIENE TU ARQUERO! ¿Cómo saca? (✕ o ESC = corto)",
+      izq: { j: arq, esRival: false, aguante: arq.aguante }, der: { j: ata, esRival: false, aguante: ata.aguante },
+      opciones: {
+        W: { texto: "SAQUE CORTO", sub: "al " + def.numero + " · seguro", cb: corto },
+        E: { texto: "SAQUE LARGO", sub: lar.pct + "% · al " + ata.numero + " · más avance", cb: () => {
+          const r = P.saqueLargo(st);
+          if (r.win) this.mostrarResolucion("¡SAQUE LARGO!\nLa baja el " + nom(st.mios[r.receptorIdx]) + ".", "#7ee08a", null);
+          else this.mostrarResolucion("¡LA GANARON DE ARRIBA!\nLa recuperó el " + nom(st.rivales[r.rivalIdx]) + ", del rival.", "#e3503e", null);
+        } }
+      },
+      volver: corto
+    });
+  }
   /* 25/oct: "saca corto para el 3, TOMI" (logic/partido.saqueArquero) */
   textoSaqueCorto(sq) {
     const r = sq && sq.receptorIdx != null && sq.receptorIdx !== sq.arqueroIdx ? this.st.rivales[sq.receptorIdx] : null;
