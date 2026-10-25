@@ -715,16 +715,23 @@ window.PampaAvatarArte = (function () {
      la ORIGINAL DE TU CARA (medida en su ilustración, data/zonas_manifest):
      con los Rulos en Original el remate salía con la piel clara y el pelo
      azul de la pose, y el retrato con la piel trigueña. Si la cara y la pose
-     ya traen casi el mismo tono (menos de 40 de distancia), no se tiñe. */
+     ya traen casi la misma rampa (medio y brillo a menos de 40), no se tiñe. */
   function rampaOriginalDeCara(zona, def, look, caras) {
     var Z = window.__PAMPA_ZONAS;
     if (!Z || !Z.def || !def || def.quien !== "heroe" || def.de_cara || !caras || !caras.caras || !caras.caras.length) return null;
     var cara = caras.caras[look.cara % caras.caras.length];
     var zc = cara && Z.def["cara_" + cara.id], zp = Z.def["pose_" + def._id];
     if (!zc || !zc.zonas[zona] || !zp || !zp.zonas[zona]) return null;
-    var A = window.PampaAvatar, a = A.hexNum(zc.zonas[zona].rampa[1]), b = A.hexNum(zp.zonas[zona].rampa[1]);
-    var dr = ((a >> 16) & 255) - ((b >> 16) & 255), dg = ((a >> 8) & 255) - ((b >> 8) & 255), db = (a & 255) - (b & 255);
-    return dr * dr + dg * dg + db * db < 1600 ? null : zc.zonas[zona].rampa;
+    /* el medio y el brillo de la rampa: desde que el medio del pelo es la
+       mediana de la zona, el castaño de los Rulos (#1a1411) y el azul marino
+       del Remate (#0a1b2c) quedan a menos de 40 y solo el brillo los separa.
+       La sombra no cuenta: depende de cuánta tinta tiene cada dibujo */
+    var A = window.PampaAvatar, igual = [1, 2].every(function (i) {
+      var a = A.hexNum(zc.zonas[zona].rampa[i]), b = A.hexNum(zp.zonas[zona].rampa[i]);
+      var dr = ((a >> 16) & 255) - ((b >> 16) & 255), dg = ((a >> 8) & 255) - ((b >> 8) & 255), db = (a & 255) - (b & 255);
+      return dr * dr + dg * dg + db * db < 1600;
+    });
+    return igual ? null : zc.zonas[zona].rampa;
   }
   /* el mapa de tonos: lo que el manifest declara de origen → lo del catálogo.
      Cada entrada lleva su zona y su rampa (el teñido por zonas) y, si la

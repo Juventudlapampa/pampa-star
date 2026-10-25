@@ -53,6 +53,14 @@ RETOQUE = {
     "pose_festejo.webp": {"medir": "figura"},
     # pelo castaño muy oscuro #1c1414 con brillo #443c3c: el brillo está a 2,7 veces la base
     "pose_de_espaldas.webp": {"pelo": {"kmax": 3.0}},
+    # puntas finas de los mechones: el núcleo erosionado no las alcanzaba y
+    # quedaban naranjas (Colorado) o azules y violetas (Clásico); el pelo crece
+    # adentro de su familia hasta tocar todo lo conectado
+    "pose_corriendo_colorado.webp": {"pelo": {"crecer": True, "tol": 60}},
+    "pose_corriendo_colorado_izq.webp": {"pelo": {"crecer": True, "tol": 60}},
+    "cara_colorado.png": {"pelo": {"crecer": True, "tol": 60}},
+    "pose_corriendo.webp": {"pelo": {"crecer": True, "tol": 60, "dh": 60}},
+    "pose_corriendo_izq.webp": {"pelo": {"crecer": True, "tol": 60, "dh": 60}},
 }
 
 
@@ -122,7 +130,33 @@ def cerca_de_la_cabeza(m):
     return np.isin(lab, keep)
 
 
-def zona(rgb, fam, base, llenar, opaco):
+def piel_suelta(rgb, resto, m, base):
+    """los pedazos de piel que la tinta separa del resto y no traen un parche
+    plano del tono base: la cara del Colorado a la izquierda (#fedccb, más
+    clara que la base) y la cuña de frente entre dos mechones del Flequillo.
+    Entran si están a menos de 6 píxeles de la piel o del pelo (la cara del
+    Colorado queda a 45 de la piel del cuello) y son del tono o más
+    oscuros (el blanco rosado del ojo es más claro y se aleja de la base)"""
+    lab, n = ndimage.label(resto, structure=np.ones((3, 3)))
+    if n == 0:
+        return resto
+    idx = np.arange(1, n + 1)
+    cerca = ndimage.sum(ndimage.binary_dilation(m, iterations=6), lab, index=idx) > 0
+    tam = ndimage.sum(resto, lab, index=idx)
+    dist = ndimage.median(np.linalg.norm(rgb - base, axis=-1), lab, index=idx)
+    claro = ndimage.median(luma(rgb), lab, index=idx)
+    # y con el matiz y la saturación de la piel: la vincha gris verdosa de la
+    # Melena y el pelo gris pardo del Tiro también tocan la piel
+    h, c, v = matiz(rgb)
+    hb, cb, vb = matiz(base[None, None, :])
+    tono = ndimage.median(h, lab, index=idx)
+    sat = ndimage.median(c / np.maximum(1, v), lab, index=idx)
+    mismo = (np.abs((tono - float(hb[0, 0]) + 180) % 360 - 180) <= 20) & (sat >= 0.6 * float(cb[0, 0] / max(1, vb[0, 0])))
+    ok = cerca & mismo & (tam >= 20) & ((dist <= 45) | (claro <= float(luma(base[None, :])[0]) + 15))
+    return np.isin(lab, idx[ok])
+
+
+def zona(rgb, fam, base, llenar, opaco, crecer=False):
     """dos pasadas: las regiones con el tono base medido y, después, las que
     tienen el tono oscuro más frecuente de esas (la nuca de la Melena es toda
     sombra #001020 y queda separada del resto por la línea del cuello)"""
@@ -144,7 +178,7 @@ def zona(rgb, fam, base, llenar, opaco):
     # chicos (brillos, mechones); un hueco grande es otra cosa encerrada
     nucleo = ndimage.binary_erosion(m, iterations=1)
     nucleo = con_semillas(nucleo, rgb, base, 1) | con_semillas(nucleo, rgb, sombra, 1) if osc.sum() > 200 else con_semillas(nucleo, rgb, base, 1)
-    m = cerca_de_la_cabeza(ndimage.binary_dilation(nucleo, iterations=2, mask=fam))
+    m = cerca_de_la_cabeza(ndimage.binary_dilation(nucleo, iterations=0 if crecer else 2, mask=fam))
     # el pelo casi negro (Pase, Quite, Cansado: #080800 con reflejos #283848)
     # no se distingue de la tinta por color: entra la mancha oscura gruesa
     # que toca el pelo, sin los dos píxeles de borde, que siguen siendo la
@@ -161,15 +195,26 @@ def zona(rgb, fam, base, llenar, opaco):
     lab, n = ndimage.label(huecos)
     if n:
         tam = ndimage.sum(huecos, lab, index=np.arange(1, n + 1))
-        m |= np.isin(lab, np.nonzero(tam <= max(400, 0.03 * m.sum()))[0] + 1)
+        # el brillo del ojo que encierra el flequillo es blanco: no es pelo
+        _, c, v = matiz(rgb)
+        blanco = ndimage.mean((luma(rgb) > 180) & (c / np.maximum(1, v) < 0.25), lab, index=np.arange(1, n + 1))
+        m |= np.isin(lab, np.nonzero((tam <= max(400, 0.03 * m.sum())) & (blanco < 0.5))[0] + 1)
     return m
 
 
-def luz_de(rgb, m, base):
-    """luminancia y color de la sombra, el tono base y el brillo de la zona"""
+def luz_de(rgb, m, base, mediana=False):
+    """luminancia y color de la sombra, el tono base y el brillo de la zona.
+    En el pelo el punto del medio es la mediana de la zona y no el tono base
+    del manifiesto: la base del retrato del Flequillo (44,5) quedaba arriba
+    del pelo típico (29) y la de su corrida abajo (21,4 contra 28), así que el
+    mismo rubio salía mostaza en el retrato y dorado en la corrida"""
     y = luma(rgb[m])
-    ym = float(luma(base[None, :])[0])
     col = rgb[m]
+    if mediana:
+        base = np.median(col, axis=0)
+        ym = float(np.median(y))
+    else:
+        ym = float(luma(base[None, :])[0])
     osc = (y < ym - 10) & (y > 4)
     cla = y > ym + 10
     if osc.sum() >= 0.05 * len(y):
@@ -199,11 +244,14 @@ def mascara(ruta, tonos, revision=None):
             continue
         p = dict(PARAM[z], **ret.get(z, {}))
         base = hexrgb(tonos[z])
-        m = zona(rgb, familia(rgb, base, p) & opaco & ~usado, base, z == "pelo", opaco) & opaco & ~usado
+        fam = familia(rgb, base, p) & opaco & ~usado
+        m = zona(rgb, fam, base, z == "pelo", opaco, p.get("crecer", False)) & opaco & ~usado
+        if z == "piel":
+            m |= piel_suelta(rgb, fam & ~m, m | usado, base)
         usado |= m
         if m.sum() < 200:
             raise ValueError("%s: la zona %s quedó con %d píxeles (tono %s)" % (ruta, z, m.sum(), tonos[z]))
-        zonas[z] = dict(luz_de(rgb, m, base), px=int(m.sum()))
+        zonas[z] = dict(luz_de(rgb, m, base, z == "pelo"), px=int(m.sum()))
         zonas[z]["_m"] = m
     out = np.zeros(opaco.shape, np.uint8)
     for z, d in zonas.items():
