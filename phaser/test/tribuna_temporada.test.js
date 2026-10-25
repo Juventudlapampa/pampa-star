@@ -173,6 +173,13 @@ const LARGA = medir(VUELTAS.larga * 9);
   assert(/tribuna: this\.save\.tribuna && this\.save\.tribuna\.temporadaN === c\.temporadaN/.test(MASTER),
     "irALaCancha manda al partido lo dicho en ESTA temporada (la de otra temporada no cuenta)");
   assert(/this\.save\.tribuna = \{ temporadaN: res\.temporadaN, usados: res\.tribuna \}/.test(MASTER), "el resultado de la fecha guarda en el save lo que dijo la tribuna");
+  /* el resultado se anota en el save al pitazo (resultadoPendiente) y tiene que
+     llevarla: en el navegador, la primera vez, la memoria se perdía ahí */
+  const S = require("../logic/semana.js");
+  const sv = { temporadaN: 1, temporada: { fecha: 0 } };
+  S.anotarResultado(sv, { temporadaN: 1, fecha: 0, golesMio: 1, golesRival: 0, tribuna: { gol: [2], error: [5] } });
+  assert(sv.resultadoPendiente && sv.resultadoPendiente.tribuna && sv.resultadoPendiente.tribuna.gol[0] === 2,
+    "el resultado anotado al pitazo lleva lo que dijo la tribuna (" + JSON.stringify(sv.resultadoPendiente) + ")");
   assert(/tribuna: \(this\._tribuna && this\._tribuna\.usados\) \|\| null/.test(MATCH), "el resultado del partido lleva lo que dijo la tribuna");
   /* sanear: una memoria con forma pasa, una rota se olvida */
   const base = () => ({ v: 1, club: "Toay", division: "primera_b", temporadaN: 1, titulos: [], bolsaEventos: [], racha: 0,

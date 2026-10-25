@@ -448,6 +448,8 @@
     };
     /* 25/oct: tus goles del partido, para TU CARRERA (logic/final.js) */
     if (typeof res.golesVos === "number") save.resultadoPendiente.golesVos = res.golesVos | 0;
+    /* 25/oct: lo que dijo la tribuna en la temporada (tribuna_ui.js) */
+    if (res.tribuna && typeof res.tribuna === "object") save.resultadoPendiente.tribuna = res.tribuna;
     return true;
   }
   /* de los resultados que llegan (el anotado en el save y el del registry, si
