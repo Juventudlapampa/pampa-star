@@ -667,10 +667,52 @@
   /* la CPU elige su intención OCULTA (con pesos): la adivinanza es el juego mental */
   function eleccionCPU(st, rng) {
     rng = rng || Math.random;
-    var pesos = st.bal.partido.cpu_pesos, r = rng(), acc = 0;
+    var pesos = pesosCPU(st), r = rng(), acc = 0;
     var claves = Object.keys(pesos);
     for (var i = 0; i < claves.length; i++) { acc += pesos[claves[i]]; if (r < acc) return claves[i]; }
     return claves[claves.length - 1];
+  }
+  /* los pesos con que marca la CPU, ya corridos si te leyó la repetición */
+  function pesosCPU(st) {
+    var pesos = st.bal.partido.cpu_pesos, rep = repeticion(st, "ataque");
+    if (!rep) return pesos;
+    var out = {};
+    Object.keys(pesos).forEach(function (k) { out[k] = pesos[k] * (1 - rep.k) + (k === CONTRA[rep.accion] ? rep.k : 0); });
+    return out;
+  }
+
+  /* 25/oct, pedido de Rodri ("que no se gane apretando ENTER"): la CPU te lee
+     la REPETICIÓN. Cada duelo anota lo que elegiste, con olvido; si una acción
+     pasa de `desde` de lo último que hiciste, la CPU se corre hacia la que le
+     gana, hasta peso_max: en ataque marca lo que le gana a tu jugada, en
+     defensa evita lo que le gana tu defensa. Variar la deja en sus pesos de
+     siempre. Perillas en balance.partido.lee_repeticion (activo false: como antes) */
+  function leeCfg(st) { var L = st.bal.partido.lee_repeticion; return L && L.activo ? L : null; }
+  function anotarEleccion(st, lado, accion) {
+    if (!leeCfg(st)) return;
+    var olvido = leeCfg(st).olvido;
+    var m = (st.repeticion = st.repeticion || { ataque: {}, defensa: {} })[lado];
+    Object.keys(m).forEach(function (k) { m[k] *= 1 - olvido; });
+    m[accion] = (m[accion] || 0) + 1;
+  }
+  /* lo que te tienen leído de ese lado y cuánto se corren (k de 0 a peso_max), o null */
+  function repeticion(st, lado) {
+    var L = leeCfg(st), m = st.repeticion && st.repeticion[lado];
+    if (!L || !m) return null;
+    var tot = 0, top = null;
+    Object.keys(m).forEach(function (k) { tot += m[k]; if (!top || m[k] > m[top]) top = k; });
+    if (tot < L.min_peso) return null;
+    var k = clamp((m[top] / tot - L.desde) / (1 - L.desde), 0, 1) * L.peso_max;
+    return k > 0 ? { accion: top, k: k } : null;
+  }
+  /* defiendo: la intención oculta de la CPU, pareja entre las tres si no te leyó */
+  function ataqueCPU(st, rng) {
+    var tres = ["gambeta", "pase", "tiro"], rep = repeticion(st, "defensa"), r = rng();
+    if (!rep) return tres[Math.floor(r * 3)];
+    var w = tres.map(function (a) { return CONTRA[a] === rep.accion ? (1 - rep.k) / 3 : 1 / 3; });
+    var tot = w[0] + w[1] + w[2], acc = 0;
+    for (var i = 0; i < 3; i++) { acc += w[i] / tot; if (r < acc) return tres[i]; }
+    return tres[2];
   }
 
   /* ---------- V6 §2 R3: el MEDIDOR DE ENVIÓN (mérito acumulado, no reflejo) ----------
@@ -727,12 +769,14 @@
     /* V9 §7: el aguante entra ANTES de gastar — se guarda para poder contarlo */
     var bA = bonusAguante(st);
     var fracRival = clamp((st.aguanteRival || 0) / bal.aguante.max, 0, 1);
-    var chance = 0, roll = 1, aporte = null;
+    var chance = 0, roll = 1, aporte = null, repetida = false;
     if (st.posesion === "mia") {
+      var repA = repeticion(st, "ataque");
       accionRival = eleccionCPU(st, rng);
+      anotarEleccion(st, "ataque", opts.accion);
       var atk = (opts.poder != null ? opts.poder : statCtrl(st, opts.accion === "tiro" ? "tiro" : opts.accion === "gambeta" ? "gambeta" : "pase")) + bA + envBonus;
       var def = poderRival(st);
-      if (CONTRA[opts.accion] === accionRival) { def += B; matriz = "leyeron"; }   // te adivinaron
+      if (CONTRA[opts.accion] === accionRival) { def += B; matriz = "leyeron"; repetida = !!repA && repA.accion === opts.accion; }   // te adivinaron
       else { atk += B * 0.6; matriz = "zafaste"; }                                  // esquivaste la marca equivocada
       def += opts.bonusRival || 0;   // Feel B6: la megacosa defensiva del rival pega acá
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
@@ -742,11 +786,13 @@
       aporte = { aguante: bA, envion: envBonus, matriz: matriz === "leyeron" ? -B : B * 0.6, megaRival: -(opts.bonusRival || 0), rivalFrac: fracRival };
     } else {
       /* defiendo: la CPU "ataca" con intención oculta */
-      accionRival = ["gambeta", "pase", "tiro"][Math.floor(rng() * 3)];
+      var repD = repeticion(st, "defensa");
+      accionRival = ataqueCPU(st, rng);
+      anotarEleccion(st, "defensa", opts.accion);
       var defMio = (opts.poder != null ? opts.poder : 50) + bA + envBonus;
       var atkRiv = poderRival(st) + 4;
       if (CONTRA[accionRival] === opts.accion) { defMio += B; matriz = "leiste"; }  // le adivinaste la intención
-      else { atkRiv += B * 0.6; matriz = "teEngano"; }
+      else { atkRiv += B * 0.6; matriz = "teEngano"; repetida = !!repD && repD.accion === opts.accion; }
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
       chance = Duel.duelChance(defMio, atkRiv, bal.duelo);
       roll = rng();
@@ -776,7 +822,7 @@
     }
     saltoReloj(st, rng);
     return {
-      win: win, accionRival: accionRival, matriz: matriz,
+      win: win, accionRival: accionRival, matriz: matriz, repetida: repetida,
       chancePct: Math.round(chance * 100), roll: Math.round(roll * 1000) / 1000,
       aporte: aporte, motivo: motivoDuelo(win, matriz, aporte, chance, roll)
     };
@@ -1265,6 +1311,7 @@
     golMio: golMio, tiroFallado: tiroFallado, cornerMio: cornerMio,
     saqueArquero: saqueArquero,   // A4: atajada y afuera dejan la pelota en el arquero rival
     opcionesArquero: opcionesArquero, resolverAtajada: resolverAtajada,
+    repeticion: repeticion, pesosCPU: pesosCPU,
     cambiarA: cambiarA, cambiarAlMasCercano: cambiarAlMasCercano,
     poderRival: poderRival, rendido: rendido, masCercanoAPelota: masCercanoAPelota,
     mejorMarcador: mejorMarcador, segPorMinuto: segPorMinuto,

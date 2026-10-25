@@ -477,6 +477,8 @@
       "y_juego": 60
     },
     "matriz_bonus": 12,
+    "_lee_repeticion": "25/oct, pedido de Rodri: que no se gane apretando ENTER. La CPU te lee la REPETICION en los duelos (logic/partido.js, repeticion): cada duelo anota lo que elegiste y lo viejo se olvida de a olvido por duelo; cuando una accion pasa de desde de lo ultimo (y hay al menos min_peso anotado), la CPU se corre hacia la que le gana, hasta peso_max (en ataque marca lo que le gana a tu jugada; en defensa evita lo que le gana tu defensa). Variar la deja en sus pesos. activo false: como antes. Medido en phaser/test/enter_siempre.test.js.",
+    "lee_repeticion": { "activo": true, "olvido": 0.25, "min_peso": 2.5, "desde": 0.55, "peso_max": 0.6 },
     "cpu_pesos": {
       "quite": 0.4,
       "corte": 0.3,

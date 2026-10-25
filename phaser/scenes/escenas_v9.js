@@ -389,7 +389,7 @@
       var leido = res.matriz === "leyeron" || res.matriz === "teEngano";
       var M = {
         ajustado: "por centímetros",
-        lectura: leido ? "te leyeron la jugada" : "lo leíste bien",
+        lectura: leido ? (res.repetida ? "te leyeron: venís haciendo siempre lo mismo" : "te leyeron la jugada") : "lo leíste bien",
         cansado: "venías sin aire",
         entero: "llegaste con piernas",
         envion: "con el envión a favor",
