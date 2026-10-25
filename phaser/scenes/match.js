@@ -6362,7 +6362,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           g.lineTo(a.x + (b.x - a.x) * Math.min(1, (q + 1) / n), a.y + (b.y - a.y) * Math.min(1, (q + 1) / n)); g.strokePath();
         }
       }
-      const t = rot("_rotDefensa", "SU DEFENSA"), top = defs[0].f;
+      /* 25/oct, Rodri (85' 2T): "NO SÉ QUÉ SON ESAS FLECHAS". Las rayas
+         amarillas entre sus triángulos son su línea de defensa, y el rótulo
+         lo dice entero */
+      const t = rot("_rotDefensa", "SU LÍNEA DE DEFENSA"), top = defs[0].f;
       t.setPosition(Phaser.Math.Clamp(top.x, R.x + t.width / 2 + 2, R.x + R.w - t.width / 2 - 2), Math.max(R.y + t.height + 2, top.y - RF - 4)).setVisible(true);
     }
     const e = F[this._estrellaIdx];

@@ -223,7 +223,9 @@ var PALABRAS_VIEJAS = /energ|molestia|cualidad|envi[oó]n|resistencia|f[ií]sico
   assert(avisos.some(function (x) { return /^Los fuiste a ver: su defensa juega /.test(x); }) && avisos.some(function (x) { return x === "Su estrella es el " + s.st.rivales[s._estrellaIdx].numero + ", " + estrella.nombre.toUpperCase(); }),
     "al arrancar te dice cómo se para su defensa y quién es la estrella (" + avisos.join(" | ") + ")");
   var MS = fs.readFileSync(path.join(RAIZ, "phaser/scenes/match.js"), "utf8");
-  assert(/if \(this\._vioAlRival\) this\.dibujarLoQueViste\(g, R, RF\);/.test(MS) && /"SU DEFENSA"/.test(MS) && /"ESTRELLA"/.test(MS), "el mapa dibuja su defensa y la estrella, con palabra");
+  /* 25/oct, pedido de Rodri ("no sé qué son esas flechas"): el rótulo pasó
+     de SU DEFENSA a SU LÍNEA DE DEFENSA */
+  assert(/if \(this\._vioAlRival\) this\.dibujarLoQueViste\(g, R, RF\);/.test(MS) && /"SU LÍNEA DE DEFENSA"/.test(MS) && /"ESTRELLA"/.test(MS), "el mapa dibuja su defensa y la estrella, con palabra");
   /* 25/oct, pedido de Rodri: el renglón de números sale en LA SEMANA y en la
      previa; en el partido lo dice el relator una vez, sin el cartel ESTA FECHA */
   assert(/anunciarEnTicker\(this\._llegadaRelato, null, \{ prioridad: true \}\)/.test(MS) && MS.indexOf('"ESTA FECHA: "') < 0,
