@@ -3006,9 +3006,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     const primeraVez = PU.falta(this.save, cfg);
     this.vaciarVista();
     if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
-    const salir = primeraVez ? () => this.irA("titulo") : () => this.vistaTemporada();
+    const salir = primeraVez ? () => this.irA("titulo") : () => this.scene.restart();
     this._atrasVista = puesto ? () => this.vistaPuesto() : salir;
-    const piel = (this.game.registry.get("balance") || {}).piel;
     const items = [];
     if (!puesto) {
       this.add.text(W / 2, 60, "TU PUESTO", { fontFamily: window.PF.display, fontSize: "15px", color: "#ffd84d" }).setOrigin(0.5);
@@ -3020,7 +3019,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         const d = cfg.destrabes[p][0];
         const prog = ((this.save.barrita || {})[p]) | 0;
         const sub = "tu barrita destraba " + d.nombre + (prog ? " · vas " + Math.min(prog, d.umbral) + " de " + d.umbral : "");
-        const y = Math.round(window.PampaPiel.yDeOpcion(i, 3, 64, piel)) + 30;
+        const y = 200 + i * 80;
         const elegido = this.save.puesto === p;
         const b = this.boton(W / 2, y, 520, (elegido ? "► " : "") + cfg.nombres[p], elegido ? 0xffd84d : 0xf6efdc, () => this.vistaPuesto(p), sub);
         items.push({ obj: b, cb: () => this.vistaPuesto(p) });
@@ -3038,7 +3037,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const elegir = (n) => {
         PU.elegir(this.save, puesto, n, cfg);
         this.guardar();
-        this.vistaTemporada();
+        this.scene.restart();
       };
       nums.forEach((n, i) => {
         const x = Math.round(W / 2 + (i - (nums.length - 1) / 2) * 140);
@@ -3054,12 +3053,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
 
   /* arriba a la derecha de la tabla: tu puesto, tu número y la barrita, con
+     el primer renglón corto para que en el teléfono no pise el título, y
      la cuenta escrita (no solo el largo de la barra). Tocarla cambia puesto o número */
   fichaDelPuesto(W) {
     const cfg = this.cfgDelPuesto(), PU = window.PampaPuesto;
     const prox = PU.proximo(this.save, cfg);
     const x = W - 14, ancho = 200;
-    const t1 = this.add.text(x, 44, "TU PUESTO: " + cfg.nombres[this.save.puesto] + " · EL " + this.save.numero, {
+    const t1 = this.add.text(x, 44, cfg.nombres[this.save.puesto] + " · EL " + this.save.numero, {
       fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 8, y: 3 } }).setOrigin(1, 0);
     const yb = t1.getBounds().bottom + 5;
     const frac = prox ? (prox.progreso - prox.desde) / (prox.umbral - prox.desde) : 1;
