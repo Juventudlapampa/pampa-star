@@ -1,12 +1,13 @@
 /* PAMPA STAR · "alJugar is not a function" (25/oct)
-   En la consola de una sesión anterior quedó ese error, con la pila en el
-   cierre del momento de la semana (master.js). Por la pantalla no se llega:
-   todas las llamadas a vistaSemana le pasan la función que juega la fecha.
-   Se llega abriendo la semana sin esa función, como se hizo desde la consola
-   (vistaSemana con el rival solo, o una tarjeta sin la semana abierta): la
-   semana se dibujaba igual y reventaba recién al cerrarla, lejos de la causa.
-   Ahora la entrada lo dice en el momento, el momento vuelve a la semana de la
-   que salió y su reloj se va con la vista.
+   En la consola del navegador quedó ese error, con esta pila: el reloj del
+   momento de la semana (cerrar) → vistaSemana → vistaSemanaCuatro, en la
+   línea de "ya cerrada: a la cancha", que llama alJugar(). O sea: la semana
+   ya se había cerrado (JUGAR LA FECHA mientras el momento seguía arriba) y
+   el reloj del momento, que nadie quitaba, volvía a entrar a la semana. Con
+   la función guardada, mandaba a la previa por segunda vez; sin ella (una
+   escena que no abrió la semana), reventaba. Ahora el reloj se va con la
+   vista, el momento vuelve a la semana de la que salió y la entrada sin la
+   función lo dice ahí mismo.
    node phaser/test/semana_aljugar.test.js */
 "use strict";
 var fs = require("fs"), path = require("path");
@@ -79,6 +80,20 @@ var RIVAL = "Espejo de Sal";
   reiniciar(s);
   assert(s._semJugar === null && s._semRival === null, "al reiniciar la escena no queda la semana de la vuelta anterior");
   console.log("[4] el momento no pinta una semana que ya no está, y reiniciar la olvida");
+})();
+
+/* ---------- [5] la pila de la consola: JUGAR con el momento arriba ---------- */
+(function () {
+  var s = carreraNueva().nueva(); s.create();
+  var jugadas = 0;
+  /* lo que hace la previa de verdad: pinta su vista */
+  var alJugar = function () { jugadas++; s.vaciarVista(); };
+  s.vistaSemana(RIVAL, alJugar);
+  s.ponerCuatro("descansar", null);                  // el momento arriba
+  s.cerrarSemana(alJugar);                           // JUGAR LA FECHA antes de que cierre
+  var e = lanza(function () { s.correrTimers(); });
+  assert(!e && jugadas === 1, "el reloj del momento no vuelve a entrar a la semana ya cerrada (previa " + jugadas + " vez/veces" + (e ? ", " + e.message : "") + ")");
+  console.log("[5] JUGAR con el momento arriba: una sola previa y ningún error");
 })();
 
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
