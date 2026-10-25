@@ -63,6 +63,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this._largoElegido = largoDeVuelta || this.game.registry.get("balance").carrera.por_defecto;
     this._largoDeLaCarrera = null;
     this._carreraFoco = null;
+    /* la semana abierta y su momento: la instancia se reusa, así que una
+       semana de la vuelta anterior no queda colgada (P1) */
+    this._semRival = null; this._semJugar = null; this._momentoSem = null;
     this._botonesElegir = null;
   }
 
@@ -89,6 +92,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     this.soltarAtajos();
     this._atrasVista = null;   // L04: cada vista dice a dónde vuelve (ver alAtras)
     if (this._relojSem) { this._relojSem.remove(false); this._relojSem = null; }
+    if (this._momentoSem) { this._momentoSem.remove(false); this._momentoSem = null; }
     this.cortarEscritura();
     this._mapaCapa = null;
     this.children.list.slice().forEach((o) => { if (o && o.destroy) o.destroy(); });
@@ -2039,6 +2043,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      costos de la semana" y nunca fue cierto — el evento no entra ni al ctx de
      la semana ni al balance. */
   vistaSemana(rival, alJugar) {
+    /* 25/oct · "alJugar is not a function" (visto en la consola de una sesión
+       anterior): la semana se abría sin la función que juega la fecha y
+       reventaba recién al cerrarla. Se avisa acá, en la entrada */
+    if (typeof alJugar !== "function") throw new Error("vistaSemana(" + rival + "): falta la función que juega la fecha");
     /* PASADA DE COHERENCIA · esto se llamaba en CADA repintado de la vista, o
        sea 3 o 4 veces al armar la semana. No se escucha (el motor ignora el
        pedido si ya suena ese tema) pero es una llamada de mas por cuadro y
@@ -2655,6 +2663,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      el acuse de recibo de una decisión.
      ══════════════════════════════════════════════════════════════════════ */
   momentoDeAccion(op, ranura) {
+    if (typeof this._semJugar !== "function") throw new Error("momentoDeAccion: la semana no está abierta");
     /* ══════════════════════════════════════════════════════════════════════
        REHECHO despues de mirarlo con el metodo correcto.
 
@@ -2740,13 +2749,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     if (S && S.temaCampo) S.temaCampo("rival");
 
     /* dura lo que dura un gesto, y se puede saltear tocando */
+    /* vuelve a la semana de la que salió (25/oct: su reloj se va con la vista) */
+    const rival = this._semRival, alJugar = this._semJugar;
     const cerrar = () => {
       if (capa.__ido) return; capa.__ido = true;
+      if (this._momentoSem) { this._momentoSem.remove(false); this._momentoSem = null; }
       capa.destroy(true);
-      this.vistaSemana(this._semRival, this._semJugar);
+      this.vistaSemana(rival, alJugar);
     };
     const ms = ((this.game.registry.get("balance") || {}).semana || {}).momento_ms;
-    this.time.delayedCall(ms != null ? ms : 950, cerrar);
+    this._momentoSem = this.time.delayedCall(ms != null ? ms : 950, cerrar);
     velo.setInteractive().on("pointerdown", cerrar);
     /* y con teclado también se saltea (el dedo ya podía) */
     this.atajo("ENTER", cerrar);
