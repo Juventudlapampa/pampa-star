@@ -507,11 +507,41 @@ function partidoNuevo(rng, balDe) {
     }
     return hechos;
   }
-  var dos = mitadDeCancha(bal), una = mitadDeCancha(balUna);
+  /* 25/oct, pedido de Rodri ("por ahora no se puede jugar: es todo recuperar,
+     recuperar, recuperar"): el balance pasó a UNA defensa decisiva por pelota
+     del rival. La segunda línea queda probada con la perilla en 2 (y sin el
+     salto al remate), y lo nuevo con el balance de verdad, más abajo. */
+  var balDos = JSON.parse(JSON.stringify(bal));
+  balDos.ritmo.cruce_def.por_posesion = 2; balDos.ritmo.cruce_def.salto_al_remate = false;
+  balUna.ritmo.cruce_def.salto_al_remate = false;
+  var dos = mitadDeCancha(balDos), una = mitadDeCancha(balUna);
   ok(dos.length === 3 && /^cruz/.test(dos[0]) && /^cruz/.test(dos[1]) && dos[2] === "rivalTira",
     "si perdés la cruz en la mitad de la cancha, sale la segunda línea antes del tiro (" + dos.join(", ") + ")");
   ok(una.length === 2 && /^cruz/.test(una[0]) && una[1] === "rivalTira",
     "con la perilla en 1, después de la primera cruz llega solo hasta el tiro (" + una.join(", ") + ")");
+  /* el balance de verdad (25/oct): una cruz decisiva y, si la perdés, el
+     partido salta al remate: el que te pasó queda a tiro y te rematan en el
+     latido siguiente, sin caminar media cancha */
+  ok(bal.ritmo.cruce_def.por_posesion === 1 && bal.flujo.defensa.tope === 1 && bal.ritmo.cruce_def.salto_al_remate === true,
+    "25/oct: una sola defensa por pelota del rival (cruce_def.por_posesion y flujo.defensa.tope en 1) y salto al remate");
+  var stS = partidoNuevo(seq([0.5]), bal);
+  P.kickoff(stS, "rival"); stS.cooldown = 0; stS.esperaRival = 0;
+  var prS = stS.rivales[stS.portadorRival];
+  prS.x = 900; prS.y = stS.H / 2;
+  stS.mios.forEach(function (j) { if (j.pos !== "ARQ") { j.x = 1000; j.y = 60; } });
+  var adS = stS.mios.findIndex(function (j) { return j.pos !== "ARQ"; });
+  stS.mios[adS].x = 800; stS.mios[adS].y = stS.H / 2;
+  var hechosS = [], latidoTiro = -1, latidoCruz = -1;
+  for (var tS = 0; tS < 300 && latidoTiro < 0; tS++) {
+    var evS = P.tick(stS, 300, null);
+    evS.forEach(function (e) {
+      hechosS.push(e.tipo);
+      if (e.tipo === "encuentroDef") { latidoCruz = tS; P.perderDefensa(stS); }
+      else if (e.tipo === "rivalTira") latidoTiro = tS;
+    });
+  }
+  ok(hechosS.join(",") === "encuentroDef,rivalTira" && latidoTiro === latidoCruz + 1,
+    "25/oct: perdés la defensa decisiva y te rematan en el latido siguiente (" + hechosS.join(", ") + ", cruz en " + latidoCruz + ", tiro en " + latidoTiro + ")");
   /* la perilla la apaga y vuelve lo de antes */
   var balSin = JSON.parse(JSON.stringify(bal));
   balSin.ritmo.cruce_def.activo = false;

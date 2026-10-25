@@ -4454,6 +4454,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     return j && !j.esVos ? "¡El " + j.numero + " la clavó donde el viento no la saca!" : "¡La clavaste donde el viento no la saca!";
   }
   /* grito: el del súper tiro ("¡GOLAZO!"); sin él, el de siempre */
+  /* 25/oct: "saca corto para el 3, TOMI" (logic/partido.saqueArquero) */
+  textoSaqueCorto(sq) {
+    const r = sq && sq.receptorIdx != null && sq.receptorIdx !== sq.arqueroIdx ? this.st.rivales[sq.receptorIdx] : null;
+    return r ? " Saca corto para el " + r.numero + ", " + String(r.nombre || "").toUpperCase() + "." : " Saca él desde el fondo.";
+  }
   tituloDelGol(grito) {
     const j = this.st.mios[this.st.ctrl], base = grito || "¡GOOOL!";
     return j && !j.esVos ? base.replace(/!$/, " DE " + String(j.nombre || "").toUpperCase() + "!") : base;
@@ -4474,18 +4479,20 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     } else if (res.outcome === "atajada") {
       /* A4 · la tiene el arquero rival, en SU área — no un defensor cualquiera
          cerca del medio, que es lo que hacía la vieja tiroFallado */
-      P.saqueArquero(st, "atajada");
-      d = { titulo: "¡LA AGARRÓ!", sub: opts.sinContacto ? "Nadie la tocó y el arquero la abrazó. Saca él." : "El arquero la abrazó. Saca él desde el fondo.", color: 0x5bb8e8, gana: false, saque: true };
+      /* 25/oct, Rodri: el arquero saca corto a un defensor suyo (no corre con
+         la pelota): el texto dice a quién */
+      const sq = P.saqueArquero(st, "atajada");
+      d = { titulo: "¡LA AGARRÓ!", sub: (opts.sinContacto ? "Nadie la tocó y el arquero la abrazó." : "El arquero la abrazó.") + this.textoSaqueCorto(sq), color: 0x5bb8e8, gana: false, saque: true };
     } else {
       /* A4 · se fue: saque de arco, que es lo que pasa de verdad. Con
          opts.palo pegó en el palo (17/oct: lo pide planoDesenlace, que es
          donde se ve) */
-      P.saqueArquero(st, "afuera");
+      const sq = P.saqueArquero(st, "afuera"), corto = this.textoSaqueCorto(sq);
       d = opts.sinContacto
-        ? { titulo: "¡DE LARGO!", sub: "Nadie la tocó y se fue por el fondo. Saque de arco.", color: 0xe3503e, gana: false, saque: true }
+        ? { titulo: "¡DE LARGO!", sub: "Nadie la tocó y se fue por el fondo." + corto, color: 0xe3503e, gana: false, saque: true }
         : opts.palo
-        ? { titulo: "¡AL PALO!", sub: "Pegó en el palo y se fue. Saque de arco.", color: 0xe3503e, gana: false, saque: true, palo: true }
-        : { titulo: "¡AFUERA!", sub: "Se fue por centímetros. Saque de arco.", color: 0xe3503e, gana: false, saque: true };
+        ? { titulo: "¡AL PALO!", sub: "Pegó en el palo y se fue." + corto, color: 0xe3503e, gana: false, saque: true, palo: true }
+        : { titulo: "¡AFUERA!", sub: "Se fue por centímetros." + corto, color: 0xe3503e, gana: false, saque: true };
     }
     let sentido = false;
     d.sentir = (o) => {

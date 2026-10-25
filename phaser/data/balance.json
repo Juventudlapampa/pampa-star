@@ -21,7 +21,10 @@
       "_nota": "Pedido de Rodri del 22/oct: la cruz de defensa casi no salía (con la pelota del rival, solo el marcador que movías podía cruzarlo). Ahora el tuyo que está en el camino del portador se corre de costado hasta su línea y lo espera; si lo toca, abre QUITE / CORTE / BLOQUEO / NO MOVERSE con ese jugador. alcance_y = cuánto se corre de costado como máximo (px); por_posesion = tope de salidas automáticas por cada pelota del rival, para que no sea una seguidilla de menús (el marcador que movés vos cruza siempre, como antes). activo:false = solo el marcador, como antes. Visto jugando el 22/oct con 1: si perdías la cruz en la mitad de la cancha, el rival caminaba hasta tu área sin que nadie le saliera (en 300 pelotas medidas en node, 9 de cada 10 tiros llegaban hasta 19 latidos después de la última cruz). Con 2 sale la segunda línea: 49 de 300 pelotas tienen dos cruces (nunca tres, porque la segunda ya es en el área) y el tiro llega a 1 o 2 latidos de la última; entre una y otra corre el cooldown_encuentro_ms.",
       "activo": true,
       "alcance_y": 120,
-      "por_posesion": 2,
+      "por_posesion": 1,
+      "_25oct": "Pedido de Rodri del 25/oct: 'por ahora no se puede jugar: es todo recuperar, recuperar, recuperar'. Como en el clásico de fútbol de NES, con la pelota del rival hay UNA defensa decisiva por pelota (por_posesion 1, y flujo.defensa.tope 1): si la ganás es tuya, si la perdés el partido salta al remate (salto_al_remate: el que te pasó queda a tiro y te rematan). bonus_decisiva es la ventaja de tu equipo en esa jugada grande (se suma a tu defensa). Medido en node antes y después en docs/TANDA_1_0.md.",
+      "bonus_decisiva": 6,
+      "salto_al_remate": true,
       "_ultimo": "Revisión final del 22/oct: la pelota que el rival roba cerca de tu área (x 270 a 350) llegaba al remate durante el cooldown y sin ninguna cruz (en la página, 2 de 6 robos; 6 segundos mirando). Con ultimo:true, si en esa pelota no hubo cruz, antes del remate sale el tuyo que está más cerca, se pone delante del portador y abre la cruz aunque corra el cooldown. false = como antes.",
       "ultimo": true
     },
@@ -478,6 +481,26 @@
       "max_mult": 1.8,
       "costado_px": 40
     },
+    "saque_arquero": {
+      "_nota": "Pedido de Rodri del 25/oct: 'cuando saca el arquero es como si fuese un jugador: hacete cargo'. El arquero rival no corre con la pelota: después de una atajada o un saque de arco SACA CORTO, automático, al jugador de su equipo con puesto a (DEF) que tenga más lejos a los tuyos, y ese la recibe en su lugar. activo false = la lleva el arquero, como antes.",
+      "activo": true,
+      "a": "DEF"
+    },
+    "reacomodo": {
+      "_nota": "Pedido de Rodri del 25/oct: 'cuando están todos juntos... que cambien los jugadores del campo'. Después de cada duelo (ganar o perder la pelota, ganar o perder la defensa) el equipo que la tiene sube sube_px y se abre a su franja (abre: qué fracción del camino hace), el otro baja baja_px y se arma (arma), y después nadie queda a menos de dist_min_px de otro: los dos se separan, y si uno es el portador se corre solo el otro. vueltas: pasadas de esa separación. Medido en node: cuántos latidos tienen 4 o más jugadores en 60 px (docs/TANDA_1_0.md). activo false = como antes.",
+      "activo": true,
+      "sube_px": 50,
+      "baja_px": 50,
+      "abre": 0.6,
+      "arma": 0.4,
+      "dist_min_px": 60,
+      "vueltas": 4
+    },
+    "remate_rival": {
+      "_nota": "Pedido de Rodri del 25/oct: 'en 5 partidos no me hicieron goles'. En su temporada de la Primera B: 12 atajadas y 0 goles en contra en 9 partidos. Tu arquero llegaba a 88 (base más nivel, tanque y distancia) contra un remate de 64 fijo en todas las divisiones: atajaba 9 de cada 10. extra se suma a todo remate rival y por_tiro por cada punto de TIRO de quien patea sobre 50 (sus stats ya vienen escaladas por la división en master.aplicar, así que en las altas pega más).",
+      "extra": 28,
+      "por_tiro": 0.6
+    },
     "salida_arquero": {
       "_nota": "Pedido de Rodri del 22/oct: después de cada atajada la pelota arrancaba siempre en x 200, al medio. Ahora el arquero se la da a uno de los dos defensores del lado contrario al remate; x sale entre x[0] y x[1] (más por_fisico por cada punto de físico del arquero sobre 50) y la altura, de la franja de ese defensor más o menos y_juego / 2.",
       "x": [
@@ -629,6 +652,8 @@
     "def_colchon": 60,
     "def_apoyo": 90,
     "vol_sigue": 0.7,
+    "vol_apoyo": 80,
+    "_vol_apoyo": "Pedido de Rodri del 25/oct: 'queda medio raro tantos atrás' (en el mapa, casi todos detrás de la pelota). En ataque el volante suma vol_apoyo px adelante de su altura de siempre. 0 = como antes.",
     "ata_descuelga": 120,
     "ata_baja": 140,
     "ata_abre": 70,
@@ -1206,9 +1231,10 @@
     "_defensa": "Revisión final del 23/oct: con la pelota del rival el partido seguía trabado (medido en el teléfono: ratos de 7 s de mediana y 10,4 s de máximo, el 63% del tiempo en que no pasaba nada). Si en cada_ms (de simulación) nadie le salió al cruce, sale el tuyo más cerca de los que están entre el portador y tu arco, a menos de alcance_px, y se abre la cruz de defensa. tope: cruces por cada pelota del rival, contando los de ritmo.cruce_def. recupera_ms: la que recuperás se decide a ese rato, como un pase recibido (la jugada sale jugando en vez de esperar cada_ms). Medido en node con 60 partidos: con la pelota del rival, mediana de 7 a 4,4 s y máximo de 15 a 6 s; jugadas con pase o centro de 55 a 63%. activo false = como antes.",
     "defensa": {
       "activo": true,
-      "cada_ms": 2600,
+      "cada_ms": 1200,
       "alcance_px": 320,
-      "tope": 3,
+      "tope": 1,
+      "_25oct": "Pedido de Rodri del 25/oct (ver ritmo.cruce_def._25oct): una sola defensa por pelota del rival (tope 1) y que llegue rápido (cada_ms 1200, era 2600 con tope 3).",
       "recupera_ms": 2000
     },
     "_centro": "Revisión final del 23/oct: en cuatro partidos no hubo ningún firulete de un compañero con 6 a 8 centros por partido (los cortaban o caían afuera de la zona). base subió de 68 a 74, por_marca bajó de 0,3 a 0,2 y bonus_zona de 25 a 40 (el centro busca más al que está en la zona). Para volver: 68, 0,3 y 25.",
@@ -1331,7 +1357,8 @@
     "barrera": { "dist_px": 92, "n": [5, 4, 3], "cerca_px": 220, "media_px": 290, "hombro_px": 7, "afuera_px": 3, "centrado": 0.25, "arquero_u": 0.15, "arquero_adelante_px": 6, "arquero_adivina": 0.5, "arquero_se_tira": 0.55, "salta": 0.55 },
     "tiro_libre": { "directo_max_px": 330, "directo_ancho_px": 260, "px_por_metro": 10, "aviso_ms": 2400 },
     "_al_pasar": "Revisión final del 23/oct: en cuatro partidos no hubo ningún tiro libre tuyo, porque la falta a favor solo nacía donde el rival te ganaba la pelota, casi siempre lejos de su arco (43 y 66 m). Medido en node (60 partidos con piloto): 0,02 tiros libres directos tuyos por partido. Ahora hay dos faltas tácticas, que solo se cobran a tiro de tiro libre directo y afuera del área (solo_a_tiro): base.al_cierre, la del que te sale al cruce y te para antes de que elijas, y base.al_pasar, la del que dejaste pagando con la GAMBETA o la PARED. Son del rival: el tuyo no hace faltas tácticas. Con las dos, 0,6 por partido. 0 = como antes.",
-    "falta": { "base": { "quite": 0.12, "bloqueo": 0.08, "al_cierre": 0.22, "al_pasar": 0.35 }, "solo_a_tiro": ["al_cierre", "al_pasar"], "agresividad": { "garra": 1.5, "pelotazo": 1.15, "estrella": 1.0, "toque": 0.7, "vos": 0.9, "otro": 1.0 }, "por_justo": 0.6, "holgura_justa": 0.3, "por_cansancio": 0.8, "max": 0.4, "en_area": true, "_en_area": "23/oct, penales (decisión que Rodri delegó): adentro del área la falta se cobra con la probabilidad de afuera por en_area_mult y es PENAL (balance.penal, flags.penales). Las que pueden ser penal: penal.acciones.", "en_area_mult": 0.6 },
+    "_falta_25oct": "Pedido de Rodri del 25/oct: 'hubo pocas faltas, hacé más faltas'. Su temporada: 2 a favor y 3 en contra en 9 partidos. Subieron las cuatro bases (quite 0.12 a 0.14, bloqueo 0.08 a 0.16, al_cierre 0.22 a 0.35, al_pasar 0.35 a 0.45), la agresividad tuya (vos 0.9 a 1.2) y bajó en_area_mult (0.6 a 0.35) para que haya algún penal sin que sea uno por ataque. Medido en node en docs/TANDA_1_0.md.",
+    "falta": { "base": { "quite": 0.14, "bloqueo": 0.16, "al_cierre": 0.35, "al_pasar": 0.45 }, "solo_a_tiro": ["al_cierre", "al_pasar"], "agresividad": { "garra": 1.5, "pelotazo": 1.15, "estrella": 1.0, "toque": 0.7, "vos": 1.2, "otro": 1.0 }, "por_justo": 0.6, "holgura_justa": 0.3, "por_cansancio": 0.8, "max": 0.4, "en_area": true, "_en_area": "23/oct, penales (decisión que Rodri delegó): adentro del área la falta se cobra con la probabilidad de afuera por en_area_mult y es PENAL (balance.penal, flags.penales). Las que pueden ser penal: penal.acciones.", "en_area_mult": 0.35 },
     "cpu": { "grilla_u": [-0.85, -0.45, 0, 0.45, 0.85], "grilla_h": [0.1, 0.5, 0.85], "ruido": 0.35, "calidad": [0.25, 0.85] },
     "_camara_23oct": "Revisión final del 23/oct. alto_cam_libre y horizonte_libre: en el tiro libre la cámara sube y el arquero se ve por arriba de la barrera (con 30, la barrera de cinco lo tapaba entero); el horizonte sube para que la barrera no se corte abajo. encuadre: el arco va al medio de lo que dejan libre los botones (entre margen y el borde de la columna) y, si un defensor no entra con pad de aire, la toma se abre hasta min_zoom; los rótulos no pasan esos bordes. barrera_altos: la altura de cada uno de la barrera, para que no sean la misma figura en fila (también se alterna el lado). null en cada una = como antes.",
     "camara": { "horizonte": 150, "alto_cam": 30, "atras": 70, "al_costado": 22, "ancho_cerca": 500, "ancho_lejos": 300, "d_cerca": 60, "d_lejos": 360, "paso_u": 0.15, "paso_h": 0.35,

@@ -186,17 +186,53 @@ function rematando() {
   assert(st.minuto > m0, "después del córner el reloj tiene que correr solo (minuto " + m0 + " → " + st.minuto + ")");
   assert(st.mios[iC].x < x0 - 1, "y las flechas tienen que mover al que saca (x " + Math.round(x0) + " → " + Math.round(st.mios[iC].x) + ")");
 
-  /* ATAJADA → la tiene el ARQUERO rival, en su área */
-  st = rematando(); Pt.saqueArquero(st, "atajada");
+  /* ATAJADA → la agarra el ARQUERO rival y SACA. 25/oct, pedido de Rodri
+     ("cuando saca el arquero es como si fuese un jugador: hacete cargo"):
+     antes el arquero quedaba de portador y corría por la cancha con el 1 en
+     el rótulo. Ahora saca corto, automático, a un defensor suyo, que la
+     recibe en su puesto; el arquero vuelve a su lugar. */
+  st = rematando(); var sq = Pt.saqueArquero(st, "atajada");
+  var arqR = st.rivales[iArq], rec = st.rivales[st.portadorRival];
   assert(st.posesion === "rival", "A4 atajada: la pelota es del rival");
-  assert(st.portadorRival === iArq, "y la tiene EL ARQUERO, no un defensor cualquiera");
-  assert(st.pelota.x > st.W * 0.9, "y está en SU área, no en el medio (dio " + Math.round(st.pelota.x) + ")");
+  assert(sq.arquero === true && sq.arqueroIdx === iArq, "y la sacó SU ARQUERO (arqueroIdx " + sq.arqueroIdx + ")");
+  assert(st.portadorRival !== iArq && rec.pos === "DEF" && sq.receptorIdx === st.portadorRival,
+    "25/oct: el arquero no se queda con la pelota: saca a un DEFENSOR suyo (portador " + st.portadorRival + ", " + rec.pos + ")");
+  assert(Math.abs(arqR.x - Math.max(12, Math.min(st.W - 12, arqR.ax))) < 1, "y el arquero vuelve a su lugar");
+  assert(Math.abs(rec.x - Math.max(20, Math.min(st.W - 20, rec.ax))) < 1 && Math.hypot(st.pelota.x - rec.x, st.pelota.y - rec.y) < 30,
+    "y el defensor la recibe en SU puesto, con la pelota al pie (x " + Math.round(rec.x) + ")");
+  assert(st.pelota.x > st.W * 0.75, "y la jugada arranca en el fondo del rival, no en el medio (dio " + Math.round(st.pelota.x) + ")");
   assert(st.esperaRival > 0, "y la pisa un momento: te da tiempo de armarte");
 
-  /* AFUERA → saque de arco, mismo lugar */
+  /* AFUERA → saque de arco, igual */
   st = rematando(); Pt.saqueArquero(st, "afuera");
-  assert(st.portadorRival === iArq && st.pelota.x > st.W * 0.9, "A4 afuera: saque de arco, igual");
+  assert(st.rivales[st.portadorRival].pos === "DEF" && st.pelota.x > st.W * 0.75, "A4 afuera: saque de arco, igual");
   assert(st.ultimoSaque === "afuera", "y queda anotado el motivo, que es lo que cuenta el relator");
+
+  /* 25/oct: con la perilla apagada vuelve lo de antes (la lleva el arquero) */
+  var balSinSaque = JSON.parse(JSON.stringify(BAL)); balSinSaque.partido.saque_arquero.activo = false;
+  st = rematando(); st.bal = balSinSaque; Pt.saqueArquero(st, "atajada");
+  assert(st.portadorRival === iArq && st.pelota.x > st.W * 0.9, "con saque_arquero.activo false la tiene el arquero, como antes");
+
+  /* 25/oct: el arquero rival NUNCA es portador fuera de su área. 60
+     partidos de lógica pura: robos, saques y remates al azar, latido a latido */
+  var afuera = 0, latidosArq = 0, AR = BAL.toque.area.largo_px;
+  for (var sem = 1; sem <= 60; sem++) {
+    var sd = sem * 7919, rg = function () { sd = (sd * 1664525 + 1013904223) >>> 0; return sd / 4294967296; };
+    var sp = partido(); Pt.kickoff(sp, "rival");
+    for (var lt = 0; lt < 400; lt++) {
+      var evp = Pt.tick(sp, 300, sp.posesion === "mia" ? { dx: 1, dy: rg() - 0.5 } : null);
+      evp.forEach(function (e) {
+        if (e.tipo === "encuentro") { if (rg() < 0.5) Pt.perderPelota(sp, rg); else Pt.saqueArquero(sp, rg() < 0.5 ? "atajada" : "afuera"); }
+        else if (e.tipo === "encuentroDef") { if (rg() < 0.5) Pt.ganarDefensa(sp); else Pt.perderDefensa(sp); }
+        else if (e.tipo === "rivalTira") Pt.resolverAtajada(sp, "atajar", rg);
+        else if (e.tipo === "entretiempo") Pt.entretiempo(sp);
+      });
+      if (sp.modo !== "juego" && sp.modo !== "congelado") break;
+      sp.modo = "juego";
+      if (sp.posesion === "rival" && sp.rivales[sp.portadorRival].pos === "ARQ") { latidosArq++; if (sp.rivales[sp.portadorRival].x < sp.W - AR) afuera++; }
+    }
+  }
+  assert(afuera === 0, "25/oct: el arquero rival nunca lleva la pelota fuera de su área (" + afuera + " latidos afuera, " + latidosArq + " con él de portador)");
 
   /* la vieja perderPelota NO puede seguir resolviendo un remate */
   st = rematando(); Pt.perderPelota(st);

@@ -31,6 +31,7 @@ const Fr = require(path.join(RAIZ, "logic", "frente.js"));
 const Ma = require(path.join(RAIZ, "logic", "master.js"));
 const SM = require(path.join(RAIZ, "logic", "save_master.js"));
 const Pn = require(path.join(RAIZ, "logic", "penal.js"));
+const Df = require(path.join(RAIZ, "logic", "definicion.js"));
 
 let ok = 0, mal = 0;
 function assert(cond, msg) { if (cond) ok++; else { mal++; console.error("✗ " + msg); } }
@@ -260,7 +261,18 @@ function jugar(division, perfil, politica, s, lee) {
     for (const ev of evs) {
       if (ev.tipo === "encuentro") decidir(ev.rivalIdx, false);
       else if (ev.tipo === "encuentroDef") defender();
-      else if (ev.tipo === "rivalTira") { if (P.resolverAtajada(st, "atajar", rng).golRival) m.golesRival++; }
+      /* 25/oct (lote "no se puede jugar"): TE REMATAN como la escena
+         (escenas_v9.escenaRemateRival): tus defensores en la línea pueden
+         bloquearla y el arquero suma su bonus de nivel, tanque y distancia.
+         Antes el piloto lo resolvía sin nada de eso y daba 1,1 goles en contra
+         por partido con ELIGE BIEN, contra 0 en la temporada de Rodri. */
+      else if (ev.tipo === "rivalTira") {
+        const t = st.rivales[ev.rivalIdx != null ? ev.rivalIdx : st.portadorRival], arq = st.mios.find(j => j.pos === "ARQ");
+        const lec = Df.remateRivalAuto({ tirador: { x: t.x, y: t.y }, arco: { x: 0, y: st.H / 2 }, defensores: st.mios.filter(j => j.pos !== "ARQ").map(j => ({ x: j.x, y: j.y })),
+          arquero: { nivel: P.nivelArqueroDe(arq.stats), aguante: arq.aguante }, aguanteMax: st.bal.aguante.max, cfg: st.bal.definicion, rng });
+        if (lec.bloqueado) { P.saltoReloj(st, rng); P.ganarDefensa(st); }
+        else if (P.resolverAtajada(st, "atajar", rng, lec.bonusArquero).golRival) m.golesRival++;
+      }
       else if (ev.tipo === "entretiempo") P.entretiempo(st);
       else if (ev.tipo === "final") fin = true;
     }

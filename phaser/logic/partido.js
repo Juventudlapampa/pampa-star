@@ -108,6 +108,15 @@
       st.pelota.x = W / 2 + 12; st.pelota.y = H / 2;
       st.esperaRival = st.bal.ritmo.arranque_rival_ms;   // la pisa un momento: tenés tiempo de reaccionar
     }
+    /* 25/oct: en el saque del medio volante y delantero de la misma franja
+       quedaban a 25 px; medido en node, los goles en contra subían los
+       amontonamientos. Se separan como después de un duelo, cada uno en su mitad */
+    var RA = st.bal.partido.reacomodo;
+    if (RA && RA.activo) {
+      separar(st, quien === "mia" ? st.mios[st.ctrl] : st.rivales[st.portadorRival], RA);
+      st.mios.forEach(function (j) { j.x = Math.min(j.x, W / 2 - 20); });
+      st.rivales.forEach(function (j) { j.x = Math.max(j.x, W / 2 + 20); });
+    }
   }
   function masCercanoAPelota(st) {
     var mejor = 0, md = 1e9;
@@ -266,7 +275,9 @@
           else txE = Math.max(Math.min(axE + linea, pxE - (IA.def_colchon || 60)), 30);   // la espalda SIEMPRE cubierta
         } else if (j.pos === "VOL") {
           var s = IA.vol_sigue || 0.7;
-          txE = pxE * s + axE * (1 - s) + linea;
+          /* 25/oct, Rodri: "queda medio raro tantos atrás". En ataque el
+             volante se suma a la altura de la pelota (ia.vol_apoyo) */
+          txE = pxE * s + axE * (1 - s) + linea + (ataco ? (IA.vol_apoyo || 0) : 0);
         } else {   // ATA
           if (ataco) {
             txE = Math.min(Math.max(axE, pxE + (IA.ata_descuelga || 120)) + linea, st.W - 70);
@@ -791,6 +802,11 @@
       anotarEleccion(st, "defensa", opts.accion);
       var defMio = (opts.poder != null ? opts.poder : 50) + bA + envBonus;
       var atkRiv = poderRival(st) + 4;
+      /* 25/oct (lote "no se puede jugar"): con la pelota del rival hay UNA
+         defensa decisiva, y como en el clásico de NES tu equipo tiene la ventaja en
+         esa jugada grande. balance.ritmo.cruce_def.bonus_decisiva */
+      var CDd = bal.ritmo.cruce_def || {};
+      if (CDd.bonus_decisiva && (st._crucesDef || 0) >= (CDd.por_posesion || 1)) defMio += CDd.bonus_decisiva;
       if (CONTRA[accionRival] === opts.accion) { defMio += B; matriz = "leiste"; }  // le adivinaste la intención
       else { atkRiv += B * 0.6; matriz = "teEngano"; repetida = !!repD && repD.accion === opts.accion; }
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));
@@ -854,6 +870,45 @@
     if (rivalIdx != null && st.rivales[rivalIdx])
       st.rivales[rivalIdx].x = clamp(st.rivales[rivalIdx].x + sep * 0.8, 20, st.W - 20);   // queda pagando, atrás
     st.cooldown = st.bal.ritmo.cooldown_encuentro_ms; st.modo = "juego";
+    reacomodar(st);
+  }
+  /* 25/oct, Rodri: "cuando están todos juntos... que cambien los jugadores
+     del campo". Después de cada duelo los dos equipos se reacomodan de
+     verdad: el que tiene la pelota sube y se abre a su franja, el otro baja
+     y se arma, y nadie queda a menos de dist_min_px de otro (el portador no
+     se mueve: los demás le abren espacio). Perillas en
+     balance.partido.reacomodo; activo false = como antes. */
+  function reacomodar(st) {
+    var RA = st.bal.partido.reacomodo;
+    if (!RA || !RA.activo) return;
+    var mioAtaca = st.posesion === "mia";
+    var portador = mioAtaca ? st.mios[st.ctrl] : st.rivales[st.portadorRival];
+    var mover = function (lista, esMio) {
+      var ataca = esMio === mioAtaca, sentido = esMio ? 1 : -1;
+      lista.forEach(function (j) {
+        if (j === portador || j.pos === "ARQ") return;
+        j.x = clamp(j.x + (ataca ? RA.sube_px : -RA.baja_px) * sentido, 20, st.W - 20);
+        var mitad = (j.banda[0] + j.banda[1]) / 2;
+        j.y += (mitad - j.y) * (ataca ? RA.abre : RA.arma);
+      });
+    };
+    mover(st.mios, true); mover(st.rivales, false);
+    separar(st, portador, RA);
+  }
+  /* nadie a menos de dist_min_px de otro; el portador no se mueve */
+  function separar(st, portador, RA) {
+    var todos = st.mios.concat(st.rivales).filter(function (j) { return j.pos !== "ARQ"; });
+    for (var v = 0; v < (RA.vueltas || 4); v++) {
+      for (var a = 0; a < todos.length; a++) for (var b = a + 1; b < todos.length; b++) {
+        var A = todos[a], B = todos[b], d = dist(A.x, A.y, B.x, B.y);
+        if (d >= RA.dist_min_px) continue;
+        var ux = d > 0.01 ? (A.x - B.x) / d : 0, uy = d > 0.01 ? (A.y - B.y) / d : 1;
+        var falta = (RA.dist_min_px - d) / 2;
+        var mA = A === portador ? 0 : (B === portador ? 2 : 1), mB = B === portador ? 0 : (A === portador ? 2 : 1);
+        A.x = clamp(A.x + ux * falta * mA, 14, st.W - 14); A.y = clamp(A.y + uy * falta * mA, 14, st.H - 14);
+        B.x = clamp(B.x - ux * falta * mB, 14, st.W - 14); B.y = clamp(B.y - uy * falta * mB, 14, st.H - 14);
+      }
+    }
   }
   function perderPelota(st, rng) {
     rng = rng || Math.random;
@@ -871,6 +926,7 @@
        (y lo recuerda un rato para que el automático tampoco vuelva a él) */
     st._perdioIdx = st.ctrl;
     st._perdioHasta = st._t + 3000;
+    reacomodar(st);
     var cand = mejorMarcador(st, st._perdioIdx);
     st.ctrl = cand >= 0 ? cand : masCercanoAPelota(st);
     st.esperaRival = st.bal.ritmo.arranque_rival_ms;
@@ -881,12 +937,21 @@
     var sep = st.bal.partido.separacion_duelo || 90;
     var pr = st.rivales[st.portadorRival];
     if (pr) pr.x = clamp(pr.x + sep * 0.8, 20, st.W - 20);
+    reacomodar(st);
     st.pelota.x = st.mios[st.ctrl].x + 12; st.pelota.y = st.mios[st.ctrl].y;
   }
   function perderDefensa(st) {
     var pr = st.rivales[st.portadorRival];
     var sep = st.bal.partido.separacion_duelo || 90;
     pr.x = clamp(pr.x - sep, 20, st.W - 20);   // R2: te dejó pagando, gana metros de verdad
+    /* 25/oct (lote "no se puede jugar"): si era la defensa decisiva, el
+       partido salta al momento decisivo, como el clásico de NES con la pelota de la
+       CPU: el que te pasó queda a tiro y te rematan (tick lo larga en el
+       latido siguiente). balance.ritmo.cruce_def.salto_al_remate */
+    var CD = st.bal.ritmo.cruce_def || {};
+    if (CD.salto_al_remate && (st._crucesDef || 0) >= (CD.por_posesion || 1))
+      pr.x = Math.min(pr.x, st.bal.partido.dist_remate_rival - 1);
+    reacomodar(st);
     st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
   }
 
@@ -1175,6 +1240,29 @@
     });
     /* y el control queda en el que va a recibir el saque, no en un central
        cualquiera: el más cercano a la pelota que no sea tu arquero */
+    /* 25/oct, Rodri: "cuando saca el arquero es como si fuese un jugador:
+       hacete cargo". El arquero no corre con la pelota por la cancha: SACA
+       CORTO, automático, al defensor suyo más libre, que la recibe en su
+       puesto. Perilla balance.partido.saque_arquero (activo false = la tiene
+       el arquero, como antes). */
+    var SQ = st.bal.partido.saque_arquero, recibe = -1;
+    if (SQ && SQ.activo) {
+      var masLibre = -1;
+      st.rivales.forEach(function (r, i) {
+        if (r.pos !== (SQ.a || "DEF")) return;
+        var rx = clamp(r.ax, 20, st.W - 20), ry = (r.banda[0] + r.banda[1]) / 2, libre = 1e9;
+        st.mios.forEach(function (j) { if (j.pos !== "ARQ") libre = Math.min(libre, dist(j.ax, (j.banda[0] + j.banda[1]) / 2, rx, ry)); });
+        if (libre > masLibre) { masLibre = libre; recibe = i; }
+      });
+    }
+    if (recibe >= 0) {
+      var rr = st.rivales[recibe];
+      rr.x = clamp(rr.ax, 20, st.W - 20);
+      rr.y = (rr.banda[0] + rr.banda[1]) / 2;
+      st.portadorRival = recibe;
+      st.pelota.x = rr.x - 12;
+      st.pelota.y = rr.y;
+    }
     st.ctrl = masCercanoAPelota(st);
     st._perdioIdx = -1;
     st._perdioHasta = 0;
@@ -1182,7 +1270,7 @@
        saque del medio. Sin esto, saca de una y no llegás a acomodarte. */
     st.esperaRival = st.bal.ritmo.arranque_rival_ms;
     st.ultimoSaque = motivo || "saque";
-    return { motivo: motivo, arquero: true, arqueroIdx: iArq };
+    return { motivo: motivo, arquero: true, arqueroIdx: iArq, receptorIdx: recibe >= 0 ? recibe : iArq };
   }
   /* la vieja tiroFallado queda como alias: había un solo llamador por fuera de
      acá y no vale la pena romper una firma pública por un rename. */
@@ -1249,7 +1337,14 @@
     var ops = opcionesArquero(st);
     var op = ops.find(function (o) { return o.id === eleccion; }) || ops[0];
     op = { id: op.id, n: op.n, poder: op.poder + (bonus || 0) };   // Feel B6: MEGAATAJADA suma acá
-    var atkRiv = poderRival(st) + 12;
+    /* 25/oct, Rodri: "en 5 partidos no me hicieron goles". Su temporada: 12
+       atajadas y 0 goles en contra; tu arquero (bonus de nivel, tanque y
+       distancia incluidos) llegaba a 88 contra 64 fijo en cualquier división.
+       Ahora el remate rival suma extra y la puntería de quien patea, que ya
+       viene escalada por la división (master.aplicar). balance.partido.remate_rival */
+    var RR = st.bal.partido.remate_rival || {};
+    var pateador = st.rivales[st.portadorRival];
+    var atkRiv = poderRival(st) + 12 + (RR.extra || 0) + (pateador && pateador.stats ? ((pateador.stats.tiro || 50) - 50) * (RR.por_tiro || 0) : 0);
     gastar(st, "rival", st.bal.aguante.costo_tiro);
     saltoReloj(st, rng);
     var ataja = esGol != null ? !esGol : rng() < Duel.duelChance(op.poder, atkRiv, st.bal.duelo);
