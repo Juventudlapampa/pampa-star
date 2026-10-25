@@ -280,7 +280,12 @@
       /* revisión final del 23/oct: el rótulo de abajo a la izquierda, blanco y
          chico, caía sobre la pierna de quien patea. Va arriba, con fondo */
       this.jugadonAbrir("");
-      this.estado = "FRENTE";
+      /* 25/oct, el error de frenteDibujar sin su gráfico: el estado FRENTE se
+         ponía acá y fr.g nace más abajo, después de las figuras. Si algo tiraba
+         en el medio, cada cuadro llamaba a frenteDibujar sin fr.g y ese error
+         tapaba al primero. El estado se pone recién con el frente armado (en
+         las tres salidas de abajo); mientras tanto queda en JUGADON, que no
+         dibuja nada */
       if (window.PampaTribunaUI) window.PampaTribunaUI.callar(this);
       this.cineBG.clear();
       var m = cfg.foto.m, D = m.dist;
@@ -376,7 +381,7 @@
       var ahora = this.add.text(fr.barra.x + PF.dulce * fr.barra.w, fr.barra.y - 12, "AHORA", { fontFamily: window.PF.display, fontSize: "13px", color: "#f6efdc", stroke: "#0a1f13", strokeThickness: 4 }).setOrigin(0.5, 1);
       this.cineContent.add(fr.barraG); this.cineContent.add(ahora);
 
-      if (cfg.cpu && cfg.penal) { ahora.setVisible(false); this.penalArqueroUI(fr, cfg); return; }
+      if (cfg.cpu && cfg.penal) { ahora.setVisible(false); this.penalArqueroUI(fr, cfg); this.estado = "FRENTE"; return; }
       if (cfg.cpu) {
         /* la barra es de quien patea con la mano en el mouse: la CPU no la usa */
         fr.barraG.setVisible(false); ahora.setVisible(false);
@@ -391,6 +396,7 @@
         });
         this.time.delayedCall(t0 + this.msV(1000), function () { if (self._fr === fr) self.frenteGolpe(cfg.cpu.calidad); });
         this.frenteDibujar();
+        this.estado = "FRENTE";
         return;
       }
 
@@ -481,6 +487,7 @@
       }
       this.pedirMusica("jugadon");
       this.frenteDibujar();
+      this.estado = "FRENTE";
     },
 
     /* proyección: d hacia el arco, u a la derecha, z para arriba (px de cancha) */
@@ -738,7 +745,7 @@
         }
       });
       if (res.resultado === "bloqueo" && fr.foto.libre) this.frenteLectura(fr, "¡A LA BARRERA!");
-      this.time.delayedCall(this.msV(900), function () { self.frenteCerrar(res); });
+      this.time.delayedCall(this.msV(900), function () { self.frenteCerrar(res, fr); });
     },
     frenteTDe(tray, j) {
       var mejor = 1e9, tb = 0.5;
@@ -755,9 +762,11 @@
       fr.g.clear();
     },
 
-    frenteCerrar(res) {
-      var fr = this._fr, self = this;
-      if (!fr) return;
+    /* fr: el frente que pateó. Si en esos 900 ms se abrió otro, el cierre
+       viejo no se lleva puesto al nuevo */
+    frenteCerrar(res, fr) {
+      var self = this;
+      if (!fr || fr !== this._fr) return;
       this._fr = null;
       fr.ev.forEach(function (p) { self.input.off(p[0], p[1]); });
       if (this.input.keyboard) fr.teclas.forEach(function (p) { self.input.keyboard.off(p[0], p[1]); });
