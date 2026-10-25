@@ -310,6 +310,7 @@ const ASSETS_HUELLA = {
   "assets/retratos/retrato_pibe_4.webp": "20654-31c04dac59eb",
   "assets/retratos/retrato_pibe_5.webp": "20396-8a5998cfeb4e",
   "assets/retratos/retrato_pibe_6.webp": "21100-28dbfa397832",
+  "assets/retratos/retrato_profe.webp": "353466-c8c156fec9e6",
   "assets/retratos/retrato_tuli.webp": "166254-3c9f9cd9c46a",
   "assets/retratos/retrato_utilero.webp": "217130-8771d18a33ca",
   "assets/sonidos/guantes.ogg": "7340-79b815bf44d0",

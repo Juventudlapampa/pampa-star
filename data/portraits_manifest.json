@@ -13,6 +13,10 @@
       "pichi": [40, 22, 280, 280],
       "profe": [380, 30, 280, 280],
       "delfina": [712, 22, 280, 280]
+    },
+    "retratos": {
+      "_nota": "25/oct (Rodri: EL PROFE PARECE PERIODISTA): la cara de profe en relatores.webp tiene auriculares y micrófono. Un relator con retrato propio usa este archivo y no el cuadro de arriba; cara: el cuadrado que se ve (x, y, lado en píxeles del archivo).",
+      "profe": { "archivo": "assets/retratos/retrato_profe.webp", "cara": [230, 20, 760] }
     }
   },
   "personajes": [

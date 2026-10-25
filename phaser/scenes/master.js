@@ -195,6 +195,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     }
     /* 20/oct · las caras de los relatores, para la previa de la fecha */
     if (man && man.relator && !this.textures.exists("relatores")) this.load.image("relatores", "../" + man.relator.archivo);
+    if (man && man.relator && man.relator.retratos) Object.keys(man.relator.retratos).forEach(id => {
+      if (id[0] !== "_" && !this.textures.exists("relator_" + id)) this.load.image("relator_" + id, "../" + man.relator.retratos[id].archivo);
+    });
   }
 
   create() {
@@ -1868,9 +1871,14 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
      (portraits_manifest.relator.caras), sin tocar el archivo */
   caraDeRelator(x, y, lado, id) {
     const man = this.game.registry.get("portraits");
-    const tex = this.textures.get("relatores");
-    if (!tex.has(id)) { const r = man.relator.caras[id]; tex.add(id, 0, r[0], r[1], r[2], r[3]); }
-    return this.add.image(x, y, "relatores", id).setDisplaySize(lado, lado);
+    const clave = this.textures.exists("relator_" + id) ? "relator_" + id : "relatores";
+    const tex = this.textures.get(clave);
+    if (!tex.has(id)) {
+      const c = clave === "relatores" ? null : man.relator.retratos[id].cara;
+      const r = c ? c.concat(c[2]) : man.relator.caras[id];
+      tex.add(id, 0, r[0], r[1], r[2], r[3]);
+    }
+    return this.add.image(x, y, clave, id).setDisplaySize(lado, lado);
   }
 
   /* ══════════════════════════════════════════════════════════════════════
