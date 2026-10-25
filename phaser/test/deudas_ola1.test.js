@@ -187,9 +187,10 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     if (!res || !club) return;
     /* revisión L04b: con un título decía "★ 1 títulos" (el caso de abajo,
        perdiste 1-3, tiene uno y no se leía el texto). Singular y plural
-       como en vistaCodigo. */
+       como en vistaCodigo. Pedido del 25/oct (revisión final): cinco estrellas
+       con "6 títulos" no cerraban; va una sola estrella con la cuenta. */
     var cola = c.titulos === 0 ? "" : " " + (c.titulos === 1 ? "1 título" : c.titulos + " títulos");
-    assert(club.text === s.save.club + (c.titulos ? " · ★".repeat(Math.min(5, c.titulos)) + cola : ""),
+    assert(club.text === s.save.club + (c.titulos ? " · ★" + cola : ""),
       "SÍNTOMA: " + c.n + ": el renglón del club dice \"" + club.text + "\"");
     var cr = caja(res), cc = caja(club);
     assert(!cruzan(cr, cc), "SÍNTOMA: " + c.n + ": el resultado [" + Math.round(cr.x0) + "," + Math.round(cr.y0) + "→" + Math.round(cr.x1) + "," + Math.round(cr.y1) +

@@ -253,7 +253,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
        renglón de y=56 arrancando en 278, el área (de y=0 a tap_min) solo
        roza el principio de ese renglón, que no se toca. Sin API (iPhone) o
        con la app instalada, no aparece. */
-    if (this.botonPantalla) this.botonPantalla(Math.ceil(vi.x + vi.width) + 8, 22, { largo: true, desdeArriba: true, desdeIzquierda: true });
+    const bPant = this.botonPantalla ? this.botonPantalla(Math.ceil(vi.x + vi.width) + 8, 22, { largo: true, desdeArriba: true, desdeIzquierda: true }) : null;
     this.txtToast = this.add.text(W / 2, H - 86, "", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0);
     /* TANDA 1.0 · LA VERSIÓN A LA VISTA. Si alguien de una localidad avisa
        "se me trabó", lo primero que hay que saber es qué versión tenía, y no
@@ -264,6 +264,28 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     if (window.PAMPA_VERSION) {
       this.add.text(W - 10, 8, "versión " + window.PAMPA_VERSION, { fontFamily: window.PF.texto, fontSize: "13px", color: "#9fb3a5" })
         .setOrigin(1, 0).setAlpha(0.85);
+    }
+    /* revisión del 25/oct: en el teléfono la letra crece y PANTALLA COMPLETA
+       tapaba "PASO" del título. Si se cruzan, el título va al hueco entre el
+       botón y la versión y, si no entra, se achica lo justo; en la PC no se
+       tocan y nada se mueve. Se rehace al entrar y salir de pantalla completa,
+       que cambia el largo del botón */
+    if (bPant) {
+      const ver = this.children.list.find(o => o.type === "Text" && /^versión /.test(o.text || ""));
+      const acomodarTitulo = () => {
+        if (!titPinta.scene) return;
+        titPinta.setScale(1).setX(W / 2);
+        const z = bPant.zona, der = z.x + z.width / 2 + 8;
+        const tb = titPinta.getBounds();
+        if (!bPant.t.visible || tb.x >= der || tb.y > z.y + z.height / 2) return;
+        const izq = ver ? ver.getBounds().x - 8 : W - 10;
+        titPinta.setScale(Math.min(1, (izq - der) / tb.width)).setX((der + izq) / 2);
+      };
+      acomodarTitulo();
+      const EV = Phaser.Scale.Events;
+      this.scale.on(EV.ENTER_FULLSCREEN, acomodarTitulo);
+      this.scale.on(EV.LEAVE_FULLSCREEN, acomodarTitulo);
+      this.events.once("shutdown", () => { this.scale.off(EV.ENTER_FULLSCREEN, acomodarTitulo); this.scale.off(EV.LEAVE_FULLSCREEN, acomodarTitulo); });
     }
     /* L10: el sonido, debajo de la versión (arriba a la izquierda están
        VER INTRO y PANTALLA COMPLETA); su área baja hasta y≈74 y la flecha de

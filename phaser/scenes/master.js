@@ -1222,7 +1222,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     /* TEMPO-1: con IMPORTAR, los dos arranques van lado a lado en la misma fila */
     const hayClasico = !!(clasico && clasico.name);
     const botones = [];
-    botones.push(this.boton(hayClasico ? W / 2 - 205 : W / 2, H - 102, hayClasico ? 400 : 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id)));
+    botones.push(this.boton(hayClasico ? W / 2 - 205 : W / 2, H - 96, hayClasico ? 400 : 420, "▶ ARRANCAR EN LA PRIMERA B", 0x7ee08a, () => arrancarEn(this.Ma.DIVISIONES[0].id)));
     /* el gate era `clasico.nivel`, un campo que el clasico no guarda nunca:
        el boton no aparecio jamas y la mudanza entera era inalcanzable. El nivel
        se CALCULA (logic/master.nivelDeCarreraClasica). Gate nuevo: que haya
@@ -1234,16 +1234,16 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* TEMPO-1: lo del respaldo va adentro del botón (era un renglón de
          10 px abajo, con el nombre de la clave de localStorage, y ya no
          entraba entre esta fila y la de abajo) */
-      botones.push(this.boton(W / 2 + 205, H - 102, 400, "IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
+      botones.push(this.boton(W / 2 + 205, H - 96, 400, "IMPORTAR TU CARRERA (nivel " + nvImp + " → " + divImp.n + ")", 0xffd84d, () => arrancarEn(divImp.id),
         "tu carrera de antes queda guardada, sin tocar"));
     }
     /* tanda 1.0: el código de carrera se pega acá, donde se empieza. Va al
        lado de VOLVER, del mismo tamaño: es la otra forma de entrar */
     if (window.PampaCarrera) {
-      botones.push(this.boton(W / 2 - 160, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo")));
-      botones.push(this.boton(W / 2 + 160, H - 40, 300, "PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo()));
+      botones.push(this.boton(W / 2 - 160, H - 34, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo")));
+      botones.push(this.boton(W / 2 + 160, H - 34, 300, "PEGAR UN CÓDIGO", 0xffd84d, () => this.pegarCodigo()));
     } else {
-      botones.push(this.boton(W / 2, H - 40, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo")));
+      botones.push(this.boton(W / 2, H - 34, 300, "◀ VOLVER AL MENÚ", 0xf6efdc, () => this.irA("titulo")));
     }
     /* ola 3 · TECLADO: con flechas se elegía la localidad y la duración, pero
        ARRANCAR, IMPORTAR, VOLVER y PEGAR UN CÓDIGO solo andaban con el
@@ -1377,7 +1377,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       capa.add(nom);
       _focoMapa.push({ obj: punto, cb: () => {
         const k = this.pueblos.indexOf(p.nombre);
-        if (k >= 0 && k !== this.pSel) { this.pSel = k; this.dibujarMapa(); }
+        if (k >= 0 && k !== this.pSel) { this.pSel = k; this.dibujarMapa(); return; }
+        /* revisión del 25/oct: ENTER sobre la localidad ya elegida no hacía
+           nada a la vista; ahora lleva el cursor a ARRANCAR */
+        if (k === this.pSel && this._foco && (this._botonesElegir || []).length)
+          this._foco.mover(_focoMapa.length + (this._tempoFoco || []).length);
       } });
       blancos.push({ nombre: p.nombre, x, y, caja: nom.getBounds() });
     });
@@ -2974,9 +2978,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     });
     const titTabla = this.add.text(W / 2, 56, div.n + (FIN && this.save.leyenda ? " · LEYENDA" : "") + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
     /* revisión L04b: con un título decía "★ 1 títulos"; el singular como en
-       el código de la carrera (vistaCodigo) */
+       el código de la carrera (vistaCodigo). Revisión del 25/oct: con seis
+       decía cinco estrellas y "6 títulos"; va una sola, con la cuenta */
     const nTitClub = this.save.titulos.length;
-    const clubTxt = this.add.text(W / 2, 78, this.save.club + (nTitClub ? " · ★".repeat(Math.min(5, nTitClub)) + " " + (nTitClub === 1 ? "1 título" : nTitClub + " títulos") : ""), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
+    const clubTxt = this.add.text(W / 2, 78, this.save.club + (nTitClub ? " · ★ " + (nTitClub === 1 ? "1 título" : nTitClub + " títulos") : ""), { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5);
 
     /* resultado de la última fecha jugada (si venimos del partido) */
     /* L04b · EL RESULTADO PISABA AL CLUB. Iba centrado en y=84 y el club en
@@ -3164,11 +3169,15 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* M4 · idem "hype" (Ascenso, título, gloria): declarado, con archivo y sin
          nadie que lo pida. Este es el momento para el que fue escrito. */
       if (v.gloria || v.asciende || v.campeon) this.pedirMusica("hype");
+      /* revisión del 25/oct: decía "SUBÍS A EL MUNDIAL"; va con el artículo
+         de data/final.json, como en la ceremonia ("AL REGIONAL") */
+      const divFin = (this.game.registry.get("final") || {}).divisiones || {};
+      const aDiv = id => divFin[id] ? divFin[id].a : "a " + (Ma.DIVISIONES.find(d => d.id === id) || {}).n;
       if (v.gloria) { msj = FIN ? "★ CAMPEÓN DEL MUNDO · falta el cierre de tu carrera" : "¡CAMPEÓN DEL MUNDO! LA GLORIA ETERNA"; color = "#ffd84d"; }
       else if (v.defendido) { msj = "★ TÍTULO DEFENDIDO · el " + (((this.save.leyenda || {}).defendidos | 0) + 1) + "º como leyenda"; color = "#ffd84d"; }
-      else if (v.asciende) { msj = "¡CAMPEÓN! SUBÍS A " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#ffd84d"; }
+      else if (v.asciende) { msj = "¡CAMPEÓN! SUBÍS " + aDiv(v.proximaDivision).toUpperCase(); color = "#ffd84d"; }
       /* A4 · con todas las letras: se dice que se descendió y a dónde */
-      else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás a " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#e3503e"; }
+      else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás " + aDiv(v.proximaDivision); color = "#e3503e"; }
       else if (v.leyenda) { msj = "Terminaste " + v.posicion + "º · la leyenda sigue en " + div.n; color = "#f6efdc"; }
       else { msj = "Terminaste " + v.posicion + "º y seguís en " + div.n; color = "#f6efdc"; }
       this.add.text(W / 2, H - 140, msj, { fontFamily: window.PF.display, fontSize: "13px", color }).setOrigin(0.5);

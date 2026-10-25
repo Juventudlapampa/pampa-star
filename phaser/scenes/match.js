@@ -920,6 +920,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const R = this.BAL.relator || {}, hold = R.hold_ms || 2800;
     this.tweens.killTweensOf(this.tickerTxt);
     this.tickerTxt.setText(linea).setAlpha(1);
+    this.acomodarAvisos();
     this._tickerDesde = this.time.now;
     this._tickerFijo = prio ? this.time.now + hold : 0;
     this.tweens.add({ targets: this.tickerTxt, alpha: 0, delay: hold, duration: R.fade_ms || 500 });
@@ -7375,6 +7376,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!this._avisos) return;
     const A = this.cfgAvisos();
     let y = A.yBase;
+    /* revisión del 25/oct: en el teléfono el renglón del relator va en dos
+       renglones y crece para arriba; "Su estrella es el 9..." le tapaba
+       "ESTA FECHA". Si el relator está a la vista y se cruzan, los avisos
+       apoyan arriba de él (en la PC no se tocan y nada se mueve) */
+    const tk = this.tickerTxt;
+    if (tk && tk.active && tk.alpha > 0 && tk.text) {
+      const b = tk.getBounds();
+      if (b.x < A.x + A.ancho + 20 && b.y < y) y = Math.min(y, Math.floor(b.y) - A.gap);
+    }
     for (let i = this._avisos.length - 1; i >= 0; i--) {
       const o = this._avisos[i].obj;
       if (!o || !o.active) continue;

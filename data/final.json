@@ -17,11 +17,17 @@
       "relator": "pichi",
       "dice": [
         "¡Dio la vuelta {club}! ¡Campeón {div_de}, y la ruta se llena de bocinas!",
-        "¡Campeón! ¡Se terminó {div} y se viene {prox}! ¡Que se vayan haciendo a la idea!"
+        "¡Campeón! ¡Se terminó {div} y se viene {prox}! ¡Que se vayan haciendo a la idea!",
+        "¡Vuelta olímpica en {pueblo}! ¡{club} campeón {div_de}, y el año que viene a jugar {prox_en}!",
+        "¡Levantó la copa {club}! ¡Que vayan poniendo otra silla {prox_en}, que ahí llega!",
+        "¡Campeón {div_de}! ¡Cierren la tranquera, que este equipo se va {prox_a}!"
       ],
       "tribuna": [
         [{ "quien": "nelda", "texto": "Yo lo dije en la primera fecha." }, { "quien": "tuli", "texto": "En la primera fecha dijiste que bajábamos, Nelda." }],
-        [{ "quien": "nelda", "texto": "Ahora viene lo difícil." }, { "quien": "tuli", "texto": "Dejame festejar un rato y después me contás." }]
+        [{ "quien": "nelda", "texto": "Ahora viene lo difícil." }, { "quien": "tuli", "texto": "Dejame festejar un rato y después me contás." }],
+        [{ "quien": "nelda", "texto": "Le mando un audio a mi hermana, que no me cree." }, { "quien": "tuli", "texto": "Mandale una foto, Nelda. Tus audios duran diez minutos." }],
+        [{ "quien": "tuli", "texto": "¿Y ahora quién nos para?" }, { "quien": "nelda", "texto": "El de la boletería, si no pagás la entrada." }],
+        [{ "quien": "nelda", "texto": "Mañana hago pastelitos para toda la cuadra." }, { "quien": "tuli", "texto": "Para toda la cuadra no. Para mí primero." }]
       ],
       "lista": "LO QUE CAMBIA {prox_en}"
     },
@@ -32,7 +38,7 @@
       "pose": "cansado",
       "relator": "profe",
       "dice": [
-        "Terminó {posicion}º y toca bajar {prox_a}. La pelota es la misma y la cancha mide lo mismo.",
+        "Terminaste {posicion}º y toca bajar {prox_a}. La pelota es la misma y la cancha mide lo mismo.",
         "Se baja {prox_a}. Hay temporadas así, y lo que sabés hacer no se fue a ningún lado."
       ],
       "tribuna": [
@@ -43,10 +49,10 @@
       "conservas": "Lo que destrabaste se queda: el súper tiro no baja con vos."
     },
     "gloria": {
-      "rotulo": "EL MUNDIAL · LA FINAL",
+      "rotulo": "FIN DE TEMPORADA · EL MUNDIAL",
       "titular": "CAMPEÓN DEL MUNDO",
       "bajada": "de {pueblo} al mundo",
-      "pose": "festejo",
+      "pose": "celebracion",
       "relator": "pichi",
       "dice": [
         "¡CAMPEÓN DEL MUNDO! ¡De la cancha de {pueblo} a la copa del mundo! ¡Se escucha hasta en la ruta 35!"
@@ -89,7 +95,7 @@
           "Sí. En el Mundial tampoco me dieron ventaja, y ya sabía de qué se trataba.",
           "Los botines prestados los devolví. La escuelita me la llevé a cada cancha.",
           "La pared del galpón sigue ahí. Le debo más goles a ella que a cualquier DT.",
-          "Mi hermano vino a la final. Ahora en la localidad le dicen el hermano del crack."
+          "Mi hermano vino a la última fecha. Ahora en la localidad le dicen el hermano del crack."
         ]
       },
       "afuera": {
@@ -104,7 +110,7 @@
       "consejo": {
         "nito": "Y la última, que a las siete entra el informativo. La frase que te quedó, me dijiste que era esta: «{respuesta}» ¿Te sirvió allá afuera?",
         "vos": [
-          "En la final la acaricié una sola vez. Alcanzó.",
+          "En la última fecha la acaricié una sola vez, y alcanzó.",
           "Me la acordé en cada pelota dividida. No dudé.",
           "El título es del plantel. El equipo primero, y punto.",
           "En el Mundial me conocían por el nombre. Algo de miedo me tenían."
@@ -115,7 +121,7 @@
       "nito": "La primera vez se me trabó el casete y no quedó nada grabado. Así que te pregunto de nuevo, de atrás para adelante: ¿de dónde saliste?",
       "vos": "De {pueblo}. Lo demás ya lo sabe la gente."
     },
-    "cierra": "Y bueno. Treinta años haciendo esta radio y hoy me olvidé de anotar. Saliste de {pueblo} y volvés con {titulos}. Gracias por sentarte otra vez acá enfrente."
+    "cierra": "Y bueno, cierro la libretita. Saliste de {pueblo} y volvés con {titulos}. Gracias por sentarte otra vez acá enfrente."
   },
   "creditos": {
     "rotulo": "CRÉDITOS",
@@ -123,8 +129,8 @@
       { "rubro": "Un juego de", "texto": "la Subsecretaría de Juventudes de La Pampa" },
       { "rubro": "Motor", "texto": "Phaser 3.80.1, licencia MIT" },
       { "rubro": "Tipografías", "texto": "Archivo Black, Bowlby One, Pixelify Sans, Press Start 2P y VT323, SIL Open Font License 1.1" },
-      { "rubro": "Música", "texto": "generada con Suno y con Gemini; la autoría y la licencia las confirma la Subsecretaría antes de la difusión institucional" },
-      { "rubro": "Efectos de sonido", "texto": "generados con ElevenLabs, con la licencia a confirmar igual que la música" }
+      { "rubro": "Música", "texto": "generada con Suno y con Gemini" },
+      { "rubro": "Efectos de sonido", "texto": "generados con ElevenLabs" }
     ]
   },
   "eleccion": {
@@ -132,6 +138,6 @@
     "leyenda": "▶ SEGUIR COMO LEYENDA",
     "leyenda_sub": "temporadas sin fin {div_en}, defendiendo el título",
     "nueva": "NUEVA CARRERA",
-    "nueva_sub": "otra localidad, desde la Primera B; esta queda respaldada"
+    "nueva_sub": "otra localidad, desde la Primera B; esta carrera se borra"
   }
 }

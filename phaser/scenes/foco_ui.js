@@ -169,6 +169,11 @@
           var c = G.cajas[G.i];
           self.tweens.add({ targets: cap, x: { from: -4, to: 0 }, duration: 70, yoyo: true, repeat: 1 });
           if (it.motivo && self.avisar) self.avisar("✗ " + it.motivo, { clave: "motivo", toque: true });
+          /* revisión del 25/oct: el cursor quedaba en la bloqueada y cada
+             ENTER repetía el ✗ (en la cruz, el partido esperando). Después
+             del motivo pasa a la primera que se puede usar */
+          var otra = F.primero(G.cajas, null);
+          if (otra >= 0 && otra !== G.i && !G.cajas[otra].bloqueada) G.mover(otra);
           return false;
         }
         if (S && S.ui) S.ui("confirmar");

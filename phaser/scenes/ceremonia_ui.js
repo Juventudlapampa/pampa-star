@@ -201,9 +201,9 @@
            abajo queda en su lugar o baja lo justo para no pisar lo de arriba
            (en la PC entra y nada se mueve); la cara va con su renglón */
         var dichos = (elegir(C.tribuna) || []).map(function (d, i) {
-          /* quién habla, por el nombre y por la forma (▲ Nelda, ▼ el Tuli,
-             como en la franja del partido) */
-          return self.add.text(368, y + i * 34, (d.quien === "nelda" ? "▲ " : "▼ ") + (nombres[d.quien] || d.quien).toUpperCase() + ": " + d.texto, {
+          /* quién habla, por el nombre y la cara. Sin el ▲ y el ▼ de la
+             franja del partido: acá esos signos dicen subir y bajar */
+          return self.add.text(368, y + i * 34, (nombres[d.quien] || d.quien).toUpperCase() + ": " + d.texto, {
             fontFamily: window.PF.texto, fontSize: "16px", color: CREMA, backgroundColor: "#0a1f13cc", padding: { x: 6, y: 3 },
             wordWrap: { width: W - 392 }
           }).setOrigin(0, 0.5);
@@ -266,10 +266,10 @@
       /* LA LIBRETITA: lo que contestaste la primera vez, a la vista mientras
          Nito lo lee. El renglón del que se habla lleva ► (forma, no color) */
       var el = this.save.origen && this.save.origen.elecciones;
-      var renglones = [];
+      var renglones = [], cajaLib = null, tituloLib = null;
       if (lineas.some(function (l) { return l.ref != null; })) {
-        this.add.rectangle(W / 2, 236, 820, 156, 0x0a1f13, 0.86).setOrigin(0.5, 0).setStrokeStyle(2, 0xf5c400, 0.9);
-        this.add.text(W / 2 - 394, 248, "LA LIBRETITA DE NITO · LA PRIMERA ENTREVISTA", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" });
+        cajaLib = this.add.rectangle(W / 2, 236, 820, 156, 0x0a1f13, 0.86).setOrigin(0.5, 0).setStrokeStyle(2, 0xf5c400, 0.9);
+        tituloLib = this.add.text(W / 2 - 394, 248, "LA LIBRETITA DE NITO · LA PRIMERA ENTREVISTA", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6c11d" });
         (vida.origen || []).forEach(function (p, k) {
           var qe = E.preguntas && E.preguntas[p.id];
           if (!qe || !qe.respuestas || !el) return;
@@ -277,6 +277,15 @@
             fontFamily: window.PF.texto, fontSize: "15px", color: CREMA, wordWrap: { width: 780 } });
         });
       }
+      /* en el teléfono una respuesta larga va en dos renglones (y el marcado,
+         en negrita, puede ocupar uno más): cada uno baja lo justo para no
+         pisar al de arriba y la caja crece con ellos; en la PC no se mueve */
+      var acomodarLibretita = function () {
+        if (!cajaLib) return;
+        renglones.forEach(function (r, k) { if (r) r.y = 274 + k * 38; });
+        var fondo = window.PampaPiel.apilarSiPisa([tituloLib].concat(renglones), 4);
+        cajaLib.setSize(cajaLib.width, Math.max(156, Math.ceil(fondo) + 10 - 236));
+      };
       var i = 0;
       var cuenta = this.add.text(W / 2, H - 92, "", { fontFamily: window.PF.texto, fontSize: "13px", color: CREMA }).setOrigin(0.5);
       var mostrar = function () {
@@ -288,6 +297,7 @@
           r.setColor(hoy ? ORO : CREMA);
           r.setFontStyle(hoy ? "bold" : "normal");
         });
+        acomodarLibretita();
         voces.decir(lineas[i].quien, lineas[i].texto, null);
       };
       var seguir = function () {
@@ -314,11 +324,13 @@
       this.pedirMusica("opening");
       var r = Fi.tuCarrera(this.T, this.save, this.Ma.DIVISIONES, v);
       this.add.text(W / 2, 30, "TU CARRERA", { fontFamily: window.PF.display, fontSize: "19px", color: ORO }).setOrigin(0.5);
-      /* de dónde saliste: la localidad y dónde aprendiste, como lo dijiste */
+      /* de dónde saliste: la localidad y dónde aprendiste, con el rótulo corto
+         de la entrevista. Sin comillas (revisión del 25/oct): la cita palabra
+         por palabra es la de Nito, y dos citas distintas no cerraban */
       var vida = this.game.registry.get("vida") || {};
       var el = this.save.origen && this.save.origen.elecciones;
       var donde = el && vida.origen && vida.origen[0] && vida.origen[0].opciones[el[0]];
-      this.add.text(W / 2, 58, r.club + (donde ? " · aprendiste: «" + donde.corto + "»" : ""), {
+      this.add.text(W / 2, 58, r.club + (donde ? " · aprendiste: " + donde.corto : ""), {
         fontFamily: window.PF.texto, fontSize: "15px", color: CREMA }).setOrigin(0.5);
 
       var COLS = [
@@ -386,7 +398,14 @@
       var nueva = function () { self.vistaBorrarCarrera(); };
       var bL = this.boton(W / 2 - 228, H - 64, 430, el.leyenda, 0xffd84d, leyenda, Fi.poner(el.leyenda_sub, datos));
       var bN = this.boton(W / 2 + 228, H - 64, 430, el.nueva, 0xf6efdc, nueva, el.nueva_sub);
-      if (this.grupoFoco) this.grupoFoco([{ obj: bL, cb: leyenda }, { obj: bN, cb: nueva }], { inicial: 0, volver: function () { self.vistaTuCarrera(v); } });
+      /* el cursor arranca en volver: un ENTER de más al pasar desde TU
+         CARRERA no elige la leyenda sin haber leído la elección. Arriba a la
+         derecha: a la izquierda va SONIDO */
+      var volver = function () { self.vistaTuCarrera(v); };
+      var bV = this.add.text(W - 16, 14, "◀ TU CARRERA", { fontFamily: window.PF.texto, fontSize: "13px", color: CREMA, backgroundColor: "#0a1f13cc", padding: { x: 6, y: 4 } }).setOrigin(1, 0)
+        .setInteractive({ useHandCursor: true });
+      bV.on("pointerdown", volver);
+      if (this.grupoFoco) this.grupoFoco([{ obj: bV, cb: volver }, { obj: bL, cb: leyenda }, { obj: bN, cb: nueva }], { inicial: 0, volver: volver });
     }
   };
 

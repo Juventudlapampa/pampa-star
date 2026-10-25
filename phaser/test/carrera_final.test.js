@@ -192,11 +192,14 @@ let vueltas = 0;
 while (e.textos().indexOf("TU CARRERA") < 0 && vueltas++ < 40) { e.leerHastaElFinal(); e.teclas("ENTER"); }
 const enCarrera = e.textos();
 assert(enCarrera.indexOf("TU CARRERA") >= 0 && enCarrera.some(t => /CAMPEÓN DEL MUNDO/.test(t)), "después de Nito, TU CARRERA con la fila de la gloria");
-assert(enCarrera.some(t => /aprendiste: «Con mi hermano mayor»/.test(t)), "TU CARRERA dice dónde aprendiste, como lo contestaste");
+assert(enCarrera.some(t => /aprendiste: Con mi hermano mayor$/.test(t)), "TU CARRERA dice dónde aprendiste, con el rótulo de la entrevista y sin comillas (pedido del 25/oct: la cita es la de Nito)");
 e.teclas("ENTER");
 const enCreditos = e.textos();
 assert(enCreditos.indexOf("CRÉDITOS") >= 0 && enCreditos.some(t => /Subsecretaría de Juventudes/.test(t)) && enCreditos.some(t => /Phaser 3\.80\.1/.test(t)), "los créditos de la página");
 assert(enCreditos.indexOf("▶ SEGUIR COMO LEYENDA") >= 0 && enCreditos.indexOf("NUEVA CARRERA") >= 0 && enCreditos.indexOf("▶ NUEVA TEMPORADA") < 0, "las dos salidas, y ninguna repite el Mundial");
+/* revisión del 25/oct: un ENTER de más al pasar desde TU CARRERA elegía la leyenda */
+assert(enCreditos.indexOf("◀ TU CARRERA") >= 0 && e._foco && e._foco.i === 0, "en los créditos el cursor arranca en ◀ TU CARRERA y no en SEGUIR COMO LEYENDA");
+assert(!enCreditos.some(t => /a confirmar|confirma la Subsecretaría/.test(t)), "los créditos no muestran notas internas de licencias");
 /* volver a la tabla sin elegir: el botón lleva al cierre, no a otra temporada */
 e = escena(); e.create();
 assert(e.textos().indexOf("▶ EL CIERRE DE TU CARRERA") >= 0 && e.textos().indexOf("▶ NUEVA TEMPORADA") < 0, "en la tabla, el Mundial ganado ofrece EL CIERRE y no NUEVA TEMPORADA");
@@ -216,10 +219,12 @@ e = escena(); e.create();
 e.teclas("ENTER");
 const tx = e.textos();
 assert(tx.indexOf("CAMPEÓN DE LA PRIMERA B") >= 0 && tx.indexOf("▲ SUBÍS A LA PRIMERA A") >= 0 && tx.some(t => /^▲ Los rivales: \+16%/.test(t)), "la ceremonia del título: titular, ascenso y lo que cambia");
+assert(!tx.some(t => /^[▲▼] [A-ZÁÉÍÓÚ ]+: /.test(t)) && tx.some(t => /^NELDA: /.test(t)), "la tribuna de la ceremonia va con el nombre y sin ▲ ni ▼, que ahí dicen subir y bajar (revisión del 25/oct)");
 tocarTexto(e, "▶ SEGUIR");
 assert(e._restarts === 1, "SEGUIR vuelve a la tabla");
 e = escena(); e.create();
 assert(e.textos().indexOf("▶ NUEVA TEMPORADA") >= 0 && e.textos().indexOf("CAMPEÓN DE LA PRIMERA B") < 0, "en la tabla la ceremonia no se repite y está NUEVA TEMPORADA");
+assert(e.textos().indexOf("¡CAMPEÓN! SUBÍS A LA PRIMERA A") >= 0, "la tabla dice a dónde subís con el artículo, como la ceremonia (revisión del 25/oct: decía SUBÍS A EL MUNDIAL)");
 tocarTexto(e, "▶ NUEVA TEMPORADA");
 const a2 = JSON.parse(A.store.pampa_master_v1);
 assert(a2.division === "primera_a" && a2.historial.length === 1 && a2.golesTuyosTemporada === 0 && a2.ceremoniaVista === undefined, "NUEVA TEMPORADA cierra con historial y la ceremonia queda para la próxima");
