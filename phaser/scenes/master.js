@@ -2960,7 +2960,10 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* 25/oct · lo que la tribuna ya dijo en ESTA temporada (una copia: el
          partido la llena y vuelve con el resultado) */
       tribuna: this.save.tribuna && this.save.tribuna.temporadaN === c.temporadaN
-        ? JSON.parse(JSON.stringify(this.save.tribuna.usados)) : {}
+        ? JSON.parse(JSON.stringify(this.save.tribuna.usados)) : {},
+      /* y cuántas fechas quedan, esta incluida: la tribuna reparte lo que
+         le falta decir (tribuna_ui.js, balance.tribuna.reparto_por_temporada) */
+      fechasQuedan: this.save.temporada.fixture.length - this.save.temporada.fecha
     });
     this.save.enCancha = { temporadaN: c.temporadaN, fecha: c.fecha, rival };
     this.guardar();

@@ -41,6 +41,19 @@
     montar: function (sc) {
       var D = sc.game.registry.get("tribuna");
       if (!D || !D.dialogos || !D.personajes) return null;
+      var B = (sc.BAL && sc.BAL.tribuna) || {}, mp = sc._masterPartido;
+      var usados = (mp && mp.tribuna) || null, tope = B.tope_por_partido || null;
+      /* revisión del 25/oct: con el tope fijo la tribuna hablaba un tercio de
+         lo que hablaba (el error se pedía de 7 a 11 veces y salía una). En la
+         carrera cada evento reparte lo que le queda sin decir entre las fechas
+         que faltan; el tope de balance queda de piso */
+      if (tope && usados && B.reparto_por_temporada && mp.fechasQuedan > 0) {
+        tope = {};
+        D.dialogos.forEach(function (d) {
+          var resto = d.intercambios.length - (usados[d.evento] || []).length;
+          tope[d.evento] = Math.ceil(resto / mp.fechasQuedan);
+        });
+      }
       var t = {
         data: D,
         orden: {},           // el orden barajado de cada evento
@@ -53,8 +66,8 @@
            con el resultado; lo dicho no sale más hasta la temporada que
            viene y, si no queda nada nuevo que valga, se callan. Cada evento
            habla a lo sumo balance.tribuna.tope_por_partido veces por partido */
-        usados: (sc._masterPartido && sc._masterPartido.tribuna) || null,
-        tope: (sc.BAL && sc.BAL.tribuna && sc.BAL.tribuna.tope_por_partido) || null,
+        usados: usados,
+        tope: tope,
         cont: sc.add.container(0, 0),
         globos: []
       };

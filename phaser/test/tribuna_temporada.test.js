@@ -53,10 +53,10 @@ function objeto() {
     getBounds() { return { x: this.x, y: this.y, right: this.x, bottom: this.y, width: 0, height: 0 }; }
   };
 }
-function escena(memoria) {
+function escena(memoria, quedan) {
   return {
     estado: "LIBRE", BAL: BAL,
-    _masterPartido: memoria ? { tribuna: memoria } : null,
+    _masterPartido: memoria ? { tribuna: memoria, fechasQuedan: quedan } : null,
     st: { golesMio: 0, golesRival: 0, minuto: 0, mios: [{ nombre: "Rulo" }], goleador: 0 },
     game: { registry: { get: k => (k === "tribuna" ? TRIBUNA : null) } },
     add: {
@@ -103,17 +103,20 @@ function partido(sc, rng, oir) {
   oir(dif > 0 ? "resultado_gana" : dif < 0 ? "resultado_pierde" : "resultado_empate", "final");
 }
 /* UNA TEMPORADA: la memoria pasa de fecha en fecha como lo hace el save */
-function temporada(fechas, s) {
+/* reparto: el partido sabe cuántas fechas quedan (masterPartido.fechasQuedan) */
+function temporada(fechas, s, reparto) {
   const rng = semilla(s);
   let memoria = {};
   const dichos = new Map();
-  let ocasiones = 0, callados = 0, repetidos = 0;
+  let ocasiones = 0, callados = 0, repetidos = 0, pedidos = 0, mudos = 0;
   const calladosPor = {};
   for (let f = 0; f < fechas; f++) {
-    const sc = escena(memoria);
+    const sc = escena(memoria, reparto ? fechas - f : undefined);
     T.montar(sc);
     const t = sc._tribuna;
+    const pedidoAca = {};
     partido(sc, rng, (evento, jugada) => {
+      pedidoAca[evento] = true;
       if ((t.dichos[evento] || 0) >= t.tope[evento]) return;
       ocasiones++;
       if (!T.comentar(sc, evento, jugada)) { callados++; calladosPor[evento] = (calladosPor[evento] || 0) + 1; return; }
@@ -123,8 +126,10 @@ function temporada(fechas, s) {
     });
     /* lo que vuelve con el resultado y el save guarda (y sanear deja pasar) */
     memoria = JSON.parse(JSON.stringify(t.usados));
+    /* un evento que se pidió en la fecha y no dijo nada: la tribuna muda */
+    Object.keys(pedidoAca).forEach(e => { pedidos++; if (!t.dichos[e]) mudos++; });
   }
-  return { ocasiones, callados, repetidos, calladosPor };
+  return { ocasiones, callados, repetidos, calladosPor, fechas, pedidos, mudos };
 }
 
 /* ---------- [1] los topes de balance cubren cada evento de la data ---------- */
@@ -137,11 +142,12 @@ function temporada(fechas, s) {
 
 /* ---------- [2] ni un intercambio repetido en una temporada, CORTA ni LARGA ---------- */
 const N = 200;
-const medir = fechas => {
-  const t = { ocasiones: 0, callados: 0, repetidos: 0, calladosPor: {} };
+const medir = (fechas, reparto) => {
+  const t = { ocasiones: 0, callados: 0, repetidos: 0, calladosPor: {}, pedidos: 0, mudos: 0 };
   for (let s = 1; s <= N; s++) {
-    const r = temporada(fechas, 9000 + s);
+    const r = temporada(fechas, 9000 + s, reparto);
     t.ocasiones += r.ocasiones; t.callados += r.callados; t.repetidos += r.repetidos;
+    t.pedidos += r.pedidos; t.mudos += r.mudos;
     Object.keys(r.calladosPor).forEach(e => { t.calladosPor[e] = (t.calladosPor[e] || 0) + r.calladosPor[e]; });
   }
   return t;
@@ -221,6 +227,39 @@ const LARGA = medir(VUELTAS.larga * 9);
   });
   assert(/Fi\.vueltaDeCeremonia\(this\.save, tipo\)/.test(leer("phaser/scenes/ceremonia_ui.js")), "la escena elige la frase con vueltaDeCeremonia");
   console.log("[5] en una carrera con 6 títulos, 2 descensos, el Mundial y 9 defendidos no se repite una frase de ceremonia");
+})();
+
+/* ---------- [6] y hablan: lo que queda sin decir se reparte entre las fechas que faltan ----------
+   Revisión del 25/oct: con el tope fijo, dos partidos enteros con piloto
+   tuvieron 16 y 22 pedidos a la tribuna y 5 dichos en cada uno (el error se
+   pidió de 7 a 11 veces y salió una). Con balance.tribuna.reparto_por_temporada
+   cada evento puede decir, en cada fecha, lo que le queda dividido las fechas
+   que faltan (el tope de balance es el piso). Rodri pidió más frases: tienen
+   que escucharse más, sin repetir en la temporada y sin quedarse sin nada. */
+(function () {
+  assert(BAL.tribuna.reparto_por_temporada === true, "la perilla balance.tribuna.reparto_por_temporada está prendida");
+  const dichos = t => t.ocasiones - t.callados;
+  const C2 = medir(VUELTAS.corta * 9, true), L2 = medir(VUELTAS.larga * 9, true);
+  const pct = t => 100 * t.callados / t.ocasiones;
+  console.log("    con reparto, por partido: CORTA " + (dichos(C2) / N / (VUELTAS.corta * 9)).toFixed(1) + " dichos (antes " + (dichos(CORTA) / N / (VUELTAS.corta * 9)).toFixed(1) +
+    "), LARGA " + (dichos(L2) / N / (VUELTAS.larga * 9)).toFixed(1) + " (antes " + (dichos(LARGA) / N / (VUELTAS.larga * 9)).toFixed(1) + ")");
+  const peores = t => Object.keys(t.calladosPor).sort((a, b) => t.calladosPor[b] - t.calladosPor[a]).slice(0, 3)
+    .map(e => e + " " + t.calladosPor[e]).join(", ");
+  console.log("    silencios: CORTA " + pct(C2).toFixed(2) + "% (" + peores(C2) + "), LARGA " + pct(L2).toFixed(2) + "% (" + peores(L2) + ")");
+  assert(C2.repetidos === 0 && L2.repetidos === 0, "SÍNTOMA: con reparto salió un intercambio repetido en la temporada (" + C2.repetidos + " y " + L2.repetidos + ")");
+  assert(dichos(C2) >= 1.5 * dichos(CORTA), "SÍNTOMA DE LA TRIBUNA MUDA: en la CARRERA CORTA el reparto tiene que hablar al menos 1,5 veces lo del tope fijo (" + dichos(C2) + " contra " + dichos(CORTA) + ")");
+  assert(dichos(L2) > dichos(LARGA), "en la CARRERA LARGA el reparto habla más que el tope fijo (" + dichos(L2) + " contra " + dichos(LARGA) + ")");
+  /* con reparto un error de una jugada puede no tener frase propia y callarse,
+     y el siguiente error del partido habla: lo que cuenta es el evento que se
+     pidió en la fecha y no dijo nada */
+  const muda = t => 100 * t.mudos / t.pedidos;
+  console.log("    eventos pedidos que no dijeron nada en la fecha: CORTA " + muda(C2).toFixed(2) + "% (antes " + muda(CORTA).toFixed(2) + "%), LARGA " + muda(L2).toFixed(2) + "% (antes " + muda(LARGA).toFixed(2) + "%)");
+  assert(muda(C2) <= muda(CORTA) + 0.5 && muda(L2) <= muda(LARGA) + 0.5,
+    "SÍNTOMA: con reparto la tribuna se queda muda en más fechas que con el tope fijo (" + muda(C2).toFixed(2) + "% y " + muda(L2).toFixed(2) + "%)");
+  const MASTER = leer("phaser/scenes/master.js");
+  assert(/fechasQuedan: this\.save\.temporada\.fixture\.length - this\.save\.temporada\.fecha/.test(MASTER),
+    "irALaCancha manda al partido cuántas fechas quedan, esta incluida");
+  console.log("[6] con reparto la tribuna habla más, sin repetir y sin quedarse sin frases");
 })();
 
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
