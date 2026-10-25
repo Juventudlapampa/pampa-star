@@ -345,6 +345,26 @@
       "corner": 0.35,
       "rebote": 0.3
     },
+    "bloqueo_salidas": {
+      "_nota": "Pedido de Rodri del 25/oct, EL BLOQUEO, en 'te rematan' (scenes/escenas_v9.js pasa estas perillas a remateRivalAuto; logic/definicion.js, bloqueoDelTiro y poseDeBloqueo). Seis salidas: no la toca; la toca y no alcanza (sigue siendo del que patea); la roza y sigue con menos fuerza (roza_bonus para tu arquero); la desvía y descoloca al arquero (descoloca_malus); la bloquea y la agarra el mismo; la bloquea y la agarra otro de su equipo. toca = la chance de siempre (bloqueo_base, bloqueo_radio, bloqueo_cercania, bloqueo_max) por toca_mult, hasta toca_max. Entre lo que se toca reparten los pesos w: la fuerza (TIRO de quien patea, de tiro_desde a tiro_desde + tiro_escala) y estar corrido de la línea (hasta lat_ref px) suben el roce y el desvío y bajan el bloqueo; estar pegado al que patea (a menos de cerca_ref px) sube que le pegue en el cuerpo y rebote. La agarra otro con otro_base, más otro_por_companero por cada compañero a menos de companero_px y otro_por_pegado, hasta otro_max. La pose: a menos de espaldas_px del que patea se da vuelta; a más de costado_px de la línea se tira al piso de costado; si no, salta de frente. Calibrado para que lo que se frena (bloquea o no alcanza) quede cerca del bloqueo de antes: medido en phaser/test/bloqueo_salidas.test.js. activo:false = el bloqueo de siempre (una tirada, la pelota tuya).",
+      "activo": true,
+      "toca_mult": 1.35,
+      "toca_max": 0.8,
+      "tiro_desde": 40,
+      "tiro_escala": 50,
+      "lat_ref": 120,
+      "cerca_ref": 160,
+      "w": { "queda_atacante": 0.12, "roza": 0.12, "descoloca": 0.06, "bloquea": 0.6 },
+      "otro_base": 0.15,
+      "otro_por_companero": 0.12,
+      "otro_por_pegado": 0.25,
+      "otro_max": 0.6,
+      "companero_px": 140,
+      "roza_bonus": 12,
+      "descoloca_malus": 25,
+      "espaldas_px": 110,
+      "costado_px": 55
+    },
     "_bloqueo_reparto_nota": "A3 · que pasa DESPUES de un bloqueo. corner = la desvio afuera y el corner es tuyo. rebote = queda picando, seguis vos ahi mismo. El resto (1 - corner - rebote) es despeje: la pelota es de ellos. Medido en 20.000 remates: con el rebote adentro los goles por remate pasan de 51,7% a 46,0% y los corners suben 49%. La chance de que te bloqueen sale de bloqueo_base, que es COMPARTIDA con el remate del rival contra vos: bajarla afloja los dos arcos."
   },
   "tempo": {

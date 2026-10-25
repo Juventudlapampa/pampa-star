@@ -455,27 +455,44 @@
         /* idem: el nivel del arquero se deriva, no sale de un campo inexistente */
         arquero: { nivel: window.PampaPartido.nivelArqueroDe(arqM && arqM.stats), aguante: arqM ? arqM.aguante : aguanteMax },
         aguanteMax: aguanteMax,
-        cfg: this.BAL.definicion || {}
+        cfg: this.BAL.definicion || {},
+        /* 25/oct, Rodri: EL BLOQUEO con sus seis salidas y la pose según dónde está */
+        salidas: (this.BAL.definicion || {}).bloqueo_salidas,
+        tiro: tirador.stats && tirador.stats.tiro
       });
       /* L04b: la SÚPER DEFENSA gasta el envión y el remate no entra; pone el
          cuerpo quien juega (logic/definicion.conSuperDefensa) */
       if (superDef === true && P.gastarEnvionSuper(st)) {
         lectura = D.conSuperDefensa(lectura, st.mios.find(function (x) { return x.esVos; }) || null);
       }
+      /* la toca y no alcanza: no llega al arco y sigue siendo del rival */
+      var frena = lectura.bloqueado || lectura.salida === "queda_atacante";
       /* 25/oct, Rodri: EL ARQUERO ELIGE. Si nadie la bloquea, antes del cine
          elegís con tu arquero (preguntarArquero, más abajo); la elección
          vuelve dentro de la lectura y el duelo juega el mismo % del botón */
-      var opsArq = !lectura.bloqueado && !lectura.eleccion && this.preguntarArquero ? P.eleccionArquero(st, lectura.bonusArquero) : null;
+      var opsArq = !frena && !lectura.eleccion && this.preguntarArquero ? P.eleccionArquero(st, lectura.bonusArquero) : null;
       if (opsArq) { this.preguntarArquero(tiradorIdx, superDef, lectura, opsArq); return; }
       var res = lectura.bloqueado
         ? { golRival: false, bloqueado: true }
+        : frena ? { golRival: false, quedaRival: true }
         : P.resolverAtajada(st, lectura.eleccion || "atajar", null, lectura.bonusArquero, null, !!lectura.eleccion);
-      if (lectura.bloqueado) {
+      if (frena) {
         P.saltoReloj(st);
-        st.posesion = "mia";
-        var idxDef = st.mios.findIndex(function (x) { return x.pos === "DEF"; });
-        st.ctrl = idxDef >= 0 ? idxDef : st.ctrl;
         st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+      }
+      if (lectura.bloqueado) {
+        st.posesion = "mia";
+        /* la agarra el que bloqueó u otro de los tuyos (lectura.recupera) */
+        var rec = lectura.recupera && !lectura.superDefensa ? lectura.recupera.nombre : null;
+        var idxRec = rec ? st.mios.findIndex(function (x) { return x.nombre === rec; }) : -1;
+        var idxDef = st.mios.findIndex(function (x) { return x.pos === "DEF"; });
+        st.ctrl = idxRec >= 0 ? idxRec : (idxDef >= 0 ? idxDef : st.ctrl);
+      } else if (frena) {
+        /* rebota y le cae al rival más cerca del que la tocó */
+        var tq = lectura.defensorMasCerca || tirador, idxR = st.portadorRival, dR = 1e9;
+        st.rivales.forEach(function (o, i) { var d = Math.abs(o.x - tq.x) + Math.abs(o.y - tq.y); if (o.pos !== "ARQ" && d < dR) { dR = d; idxR = i; } });
+        st.portadorRival = idxR;
+        st.pelota.x = st.rivales[idxR].x; st.pelota.y = st.rivales[idxR].y;
       }
 
       /* ---- EL TEATRO ----
@@ -505,15 +522,25 @@
       /* MIS defensores en el camino: saltan o se tiran (los reales, con nombre) */
       var enLinea = Math.min(3, lectura.defensoresEnLinea);
       var figs = [];
+      /* 25/oct, Rodri: "en el bloqueo se pone de brazos cruzados". El que
+         bloquea salta, se tira o se da vuelta según dónde está respecto del
+         tiro (lectura.poseBloqueo). Con el arte nuevo en el manifiesto
+         (bloqueo_salto, bloqueo_piso, bloqueo_espaldas) va ese; mientras no
+         entre, el que hay: el plantado de frente, la barrida de costado y de
+         espaldas sin pelota. La súper defensa sigue plantada: es poner el cuerpo */
+      var PB = { salto: ["bloqueo_salto", "bloqueo"], piso: ["bloqueo_piso", "barrida"], espaldas: ["bloqueo_espaldas", "de_espaldas_sin_pelota"] };
+      var pb = !lectura.superDefensa && lectura.poseBloqueo ? PB[lectura.poseBloqueo.pose] : null;
+      var pose0 = pb ? (this.poseKey(pb[0]) ? pb[0] : pb[1]) : "bloqueo";
+      var flip0 = !(pb && lectura.poseBloqueo.pose === "espaldas");
       for (var k = 0; k < enLinea; k++) {
         var jd = lectura.defensorMasCerca && k === 0 ? lectura.defensorMasCerca : null;
-        var f = this.figuraDePlano(k === 0 ? "bloqueo" : "barrida", jd, false, 560 + k * 90, Math.round(H * 0.6) - k * 20, 230 - k * 22, true);
+        var f = this.figuraDePlano(k === 0 ? pose0 : "barrida", jd, false, 560 + k * 90, Math.round(H * 0.6) - k * 20, 230 - k * 22, k === 0 ? flip0 : true);
         figs.push(f);
         if (jd) this.placaDePlano(560, f.y - f.displayHeight / 2 - 16, jd, false);
       }
       /* el arquero, al fondo, solo si la bloquean: si no, su momento es el
          desenlace del cine, y dos veces el mismo salto se lee repetido */
-      var arqSpr = lectura.bloqueado ? this.figuraDePlano("arquero_estirada_celeste", arqM, false, 840, Math.round(H * 0.46), 190, true) : null;
+      var arqSpr = frena ? this.figuraDePlano("arquero_estirada_celeste", arqM, false, 840, Math.round(H * 0.46), 190, true) : null;
       /* los globos de Nelda y el Tuli le caían encima al arquero: se corren
          adonde no tapen a nadie (tribuna_ui.js), los que ya están a la vista
          y los que salgan durante la escena */
@@ -527,13 +554,13 @@
         self.destello(self.uiCam, 70, 255, 200, 120);
         self.SFX && self.SFX.kickFuerte && self.SFX.kickFuerte();
         /* si la bloquean, el vuelo suena acá; si no, lo pone el viaje del cine */
-        if (lectura.bloqueado) {
+        if (frena) {
           self.SFX && self.SFX.whoosh && self.SFX.whoosh();
           self.SFX && self.SFX.riserRemate && self.SFX.riserRemate(tVuelo);
           self.musicaDuck(tVuelo + silencio);
         }
         self.lineasVelocidad(360, H * 0.6, 1.1, 0xff8a50);
-        var destinoX = lectura.bloqueado ? 560 : 830;
+        var destinoX = frena ? 560 : 830;
         self.tweens.add({ targets: bola, x: destinoX, y: H * 0.5, angle: 900, duration: tVuelo, ease: "Sine.easeIn" });
         figs.forEach(function (f, i) {
           self.tweens.add({ targets: f, y: "-=" + (30 + i * 8), angle: -14, duration: 260, yoyo: true });   // saltan
@@ -547,13 +574,13 @@
       var volverAlPartido = function () {
         self._figurasCine = null;
         if (window.PampaTribunaUI) window.PampaTribunaUI.esquivar(self);
-        self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
+        if (!res.quedaRival) self.relatar(lectura.bloqueado ? "quite_win" : (res.golRival ? "gol_rival" : "arquero_mio"));
         /* 25/oct, Rodri: tu arquero la agarró y elige el saque */
         if (res.retiene && self.abrirSaqueArquero) self.abrirSaqueArquero();
       };
 
       var eligio = lectura.eleccion ? " · " + lectura.eleccionN.toLowerCase() + " al " + lectura.eleccionPct + "%" : "";
-      if (!lectura.bloqueado) {
+      if (!frena) {
         var alCine = function () {
           if (esc.cerrado) return; esc.cerrado = true;
           self._escSkip = null;
@@ -620,10 +647,15 @@
            la pose "bloqueo" (de pie, brazos cruzados: el cuerpo en la
            línea; l04b_4_super_defensa_revela.png). El cartel dice lo que
            se ve, como el bloqueo común de abajo. */
+        var NOM = quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "";
+        var otro = lectura.salida === "bloquea_otro" && lectura.recupera && lectura.recupera !== quien ? lectura.recupera : null;
         if (lectura.superDefensa) self.punch("¡SÚPER DEFENSA!", "pusiste el cuerpo con todo el envión · pelota nuestra", 0xffd84d);
-        else self.punch("¡LA BLOQUEÓ" + (quien ? " " + String(quien.esVos ? "VOS" : quien.nombre).toUpperCase() : "") + "!",
-          "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
-        if (self.tribunaSaltando) self.tribunaSaltando();
+        else if (res.quedaRival) self.punch("¡LA TOCÓ" + NOM + "!", "no le alcanzó · la pelota sigue siendo del rival", 0xf6efdc);
+        else self.punch("¡LA BLOQUEÓ" + NOM + "!",
+          otro ? "rebotó y le cayó a " + (otro.esVos ? "VOS" : otro.nombre) + " · pelota nuestra"
+            : lectura.salida === "bloquea_mismo" ? "puso el cuerpo y se quedó con la pelota"
+            : "puso el cuerpo en la línea · pelota nuestra", 0x7ee08a);
+        if (!res.quedaRival && self.tribunaSaltando) self.tribunaSaltando();
       };
       var cerrarYa = function () {
         if (esc.cerrado) return; esc.cerrado = true;
@@ -794,6 +826,10 @@
         mano_a_mano: "mano a mano, cara a cara",
         tiro_libre: "le pegó de tiro libre"
       };
+      /* 25/oct, EL BLOQUEO: el que la tocó, con su nombre */
+      var dm = lectura.defensorMasCerca, quienT = dm ? (dm.esVos ? "vos" : dm.nombre) : "tu defensa";
+      M.roce = "la rozó " + quienT + " y perdió fuerza";
+      M.descoloco = "se desvió en " + quienT + " y descolocó a tu arquero";
       var base = M[lectura.motivo] || "";
       /* revisión final del 23/oct: en el tiro libre había barrera y decía "no había nadie en el camino" */
       var extra = lectura.defensoresEnLinea

@@ -133,7 +133,21 @@
     }
     var distMedia = enLinea.length ? dTotal / enLinea.length : 999;
     var pBloqueo = chanceBloqueo(enLinea.length, distMedia, cfg);
-    var bloqueado = rng() < pBloqueo;
+    /* 25/oct (EL BLOQUEO): con p.salidas, el que está en la línea no bloquea
+       o no bloquea: hay seis salidas (bloqueoDelTiro) y la pose sale de dónde
+       está respecto del tiro (poseDeBloqueo). Sin p.salidas, la tirada de siempre */
+    var S = p.salidas && p.salidas.activo && masCerca ? p.salidas : null, sal = null, pose = null, recupera = null;
+    if (S) {
+      var cerca = Math.sqrt((masCerca.x - t.x) * (masCerca.x - t.x) + (masCerca.y - t.y) * (masCerca.y - t.y));
+      var vecinos = defs.filter(function (o) { return o !== masCerca && Math.abs(o.x - masCerca.x) + Math.abs(o.y - masCerca.y) < S.companero_px; });
+      sal = bloqueoDelTiro({ pBloqueo: pBloqueo, tiro: p.tiro, cerca: cerca, lat: dMasCerca, companeros: vecinos.length, cfg: S, rng: rng });
+      pose = poseDeBloqueo(t, arco, masCerca, S);
+      if (sal.salida === "bloquea_otro") {
+        recupera = defs.filter(function (o) { return o !== masCerca; })
+          .sort(function (a, b) { return Math.abs(a.x - masCerca.x) + Math.abs(a.y - masCerca.y) - Math.abs(b.x - masCerca.x) - Math.abs(b.y - masCerca.y); })[0] || masCerca;
+      } else if (sal.salida === "bloquea_mismo") recupera = masCerca;
+    }
+    var bloqueado = S ? (sal.salida === "bloquea_mismo" || sal.salida === "bloquea_otro") : rng() < pBloqueo;
     /* 2) el ARQUERO: su nivel, su tanque y la distancia del remate */
     var nivel = clamp((p.arquero && p.arquero.nivel) || 55, 1, 99);
     var fracArq = clamp(((p.arquero && p.arquero.aguante) != null ? p.arquero.aguante : aguanteMax) / aguanteMax, 0, 1);
@@ -141,19 +155,87 @@
     var bonus = Math.round((nivel - 55) * (cfg.arquero_peso_nivel || 0.6)
       + (fracArq - 0.5) * (cfg.arquero_peso_aguante || 20)
       + lejos * (cfg.arquero_peso_lejos || 18));
+    /* la rozó: el tiro pierde fuerza; la desvió: el arquero quedó vendido */
+    if (sal && sal.salida === "roza") bonus += S.roza_bonus;
+    if (sal && sal.salida === "descoloca") bonus -= S.descoloca_malus;
     /* 3) POR QUÉ salió así (vocabulario cerrado, lo traduce la UI) */
     /* el motivo nombra lo que MÁS movió la aguja, no lo primero que se cumple:
        un arquero en el piso explica más que "quedó solo" (las dos son ciertas) */
+    var MOT = { roza: "roce", descoloca: "descoloco", queda_atacante: "no_alcanza" };
     var motivo = bloqueado ? "bloqueo"
+      : (sal && MOT[sal.salida]) ? MOT[sal.salida]
       : (fracArq < 0.4 ? "arquero_fundido"
         : (lejos > 0.75 ? "de_lejos"
           : (enLinea.length === 0 ? "solo_ante_el_arquero" : "mano_a_mano")));
-    return {
+    var out = {
       bloqueado: bloqueado, bonusArquero: bonus, pBloqueo: Math.round(pBloqueo * 100) / 100,
       defensoresEnLinea: enLinea.length, defensorMasCerca: masCerca,
       distMedia: Math.round(distMedia), distanciaRemate: Math.round(largo),
       motivo: motivo
     };
+    if (sal) { out.salida = sal.salida; out.probs = sal.probs; out.poseBloqueo = pose; out.recupera = recupera; }
+    return out;
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     25/oct, pedido de Rodri · EL BLOQUEO.
+
+     "En el bloqueo se pone de brazos cruzados. Que haga la animación como
+     que salta o se tira, o se da vuelta, de acuerdo a la posición en el mapa
+     respecto del tiro." poseDeBloqueo mira dónde está el que bloquea
+     respecto de la línea tirador→arco: pegado al que patea no llega a
+     reaccionar y se da vuelta (espaldas); corrido de la línea se tira al
+     piso de costado (piso, lado = de qué lado de la línea está); en la
+     línea y con tiempo, salta abierto de frente (salto).
+
+     bloqueoDelTiro reparte las seis salidas. toca = pBloqueo (la chance de
+     siempre, por cuántos y qué tan cerca de la línea) por toca_mult: no
+     todo lo que se toca se frena. Entre lo que se toca, los pesos w: un
+     remate fuerte (TIRO de quien patea) y un cuerpo corrido de la línea
+     rozan y desvían más y frenan menos; pegado al que patea, la pelota le
+     pega en el cuerpo y rebota (frena más y la controla menos). Lo que se
+     frena lo agarra el mismo o, con compañeros cerca, otro de su equipo.
+     Las perillas en balance.definicion.bloqueo_salidas.
+     ══════════════════════════════════════════════════════════════════════ */
+  function poseDeBloqueo(tirador, arco, def, cfg) {
+    var dx = arco.x - tirador.x, dy = arco.y - tirador.y, L2 = dx * dx + dy * dy || 1;
+    var u = ((def.x - tirador.x) * dx + (def.y - tirador.y) * dy) / L2;
+    var px = tirador.x + dx * u, py = tirador.y + dy * u;
+    var lat = Math.sqrt((def.x - px) * (def.x - px) + (def.y - py) * (def.y - py));
+    var cerca = Math.sqrt((def.x - tirador.x) * (def.x - tirador.x) + (def.y - tirador.y) * (def.y - tirador.y));
+    var lado = dx * (def.y - tirador.y) - dy * (def.x - tirador.x) >= 0 ? 1 : -1;
+    var pose = cerca < cfg.espaldas_px ? "espaldas" : (lat > cfg.costado_px ? "piso" : "salto");
+    return { pose: pose, lado: lado, lat: Math.round(lat), cerca: Math.round(cerca) };
+  }
+  var SALIDAS = ["no_toca", "queda_atacante", "roza", "descoloca", "bloquea_mismo", "bloquea_otro"];
+  function bloqueoDelTiro(p) {
+    var B = p.cfg, W = B.w, rng = p.rng || Math.random;
+    var fuerza = clamp(((p.tiro != null ? p.tiro : 50) - B.tiro_desde) / B.tiro_escala, 0, 1);
+    var corrido = clamp(p.lat / B.lat_ref, 0, 1);
+    var pegado = 1 - clamp(p.cerca / B.cerca_ref, 0, 1);
+    var toca = clamp(p.pBloqueo * B.toca_mult, 0, B.toca_max);
+    var w = {
+      queda_atacante: W.queda_atacante * (1 + pegado),
+      roza: W.roza * (1 + fuerza) * (0.5 + corrido),
+      descoloca: W.descoloca * (1 + fuerza) * (0.5 + corrido),
+      bloquea: W.bloquea * (1.5 - 0.5 * fuerza) * (1.25 - 0.5 * corrido) * (1 + 0.5 * pegado)
+    };
+    var suma = w.queda_atacante + w.roza + w.descoloca + w.bloquea;
+    var otro = clamp(B.otro_base + (p.companeros || 0) * B.otro_por_companero + pegado * B.otro_por_pegado, 0, B.otro_max);
+    var probs = {
+      no_toca: 1 - toca,
+      queda_atacante: toca * w.queda_atacante / suma,
+      roza: toca * w.roza / suma,
+      descoloca: toca * w.descoloca / suma,
+      bloquea_mismo: toca * w.bloquea / suma * (1 - otro),
+      bloquea_otro: toca * w.bloquea / suma * otro
+    };
+    var r = rng(), acum = 0, salida = "no_toca";
+    for (var i = 0; i < SALIDAS.length; i++) {
+      acum += probs[SALIDAS[i]];
+      if (r < acum) { salida = SALIDAS[i]; break; }
+    }
+    return { salida: salida, probs: probs, fuerza: fuerza };
   }
 
   /* ══════════════════════════════════════════════════════════════════════
@@ -217,6 +299,7 @@
     ZONAS: ZONAS, zona: zona, distZonas: distZonas, eleccionCPU: eleccionCPU,
     remateAuto: remateAuto, desenlaceBloqueo: desenlaceBloqueo,   // A3: la misma ley para los dos arcos
     conSuperDefensa: conSuperDefensa,                             // L04b: el envión lleno bloquea un remate
+    bloqueoDelTiro: bloqueoDelTiro, poseDeBloqueo: poseDeBloqueo, SALIDAS: SALIDAS,   // 25/oct: EL BLOQUEO
     bonusArqueroPorZona: bonusArqueroPorZona, efectoTiming: efectoTiming,
     desvioDeEjecucion: desvioDeEjecucion,
     chanceBloqueo: chanceBloqueo, efectoAchicar: efectoAchicar,

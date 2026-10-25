@@ -489,6 +489,30 @@ function refrescar(E) { return E.W.PampaMatch.prototype.refrescarHUD.call(E.s); 
     "el cartel dice lo que elegiste y con qué % (" + E6.punch.join(" · ") + ")");
   assert(s6.estado === "LIBRE" && s6._remRival == null, "y el partido sigue (" + s6.estado + ")");
 
+  /* 25/oct, pedido de Rodri: EL BLOQUEO. La pose sale de dónde está el que
+     bloquea (sin el arte nuevo cargado, la barrida para tirarse de costado y
+     de espaldas sin pelota para darse vuelta) y la salida dice quién se
+     queda con la pelota. La escena falsa suma poseKey: el arte nuevo no está */
+  var defLinea = function (sx) { return sx.st.mios.filter(function (x) { return x.pos === "DEF"; }); };
+  var E7 = armar({ envion: 0 }), s7 = E7.s, d7 = defLinea(s7);
+  s7.poseKey = function () { return null; };
+  var dada7 = { bloqueado: true, salida: "bloquea_otro", bonusArquero: 0, defensoresEnLinea: 1, motivo: "bloqueo",
+    defensorMasCerca: { x: d7[0].x, y: d7[0].y, nombre: d7[0].nombre }, recupera: { x: d7[1].x, y: d7[1].y, nombre: d7[1].nombre },
+    poseBloqueo: { pose: "piso", lado: 1 } };
+  s7.escenaRemateRival(9, false, dada7);
+  correrTodo(E7);
+  assert(E7.figs.some(function (f) { return f.pose === "barrida" && f.j && f.j.nombre === d7[0].nombre; }), "de costado se tira al piso (barrida mientras no entre bloqueo_piso)");
+  assert(s7.st.posesion === "mia" && s7.st.mios[s7.st.ctrl].nombre === d7[1].nombre, "la bloquea y la agarra otro de su equipo (" + s7.st.mios[s7.st.ctrl].nombre + ")");
+  assert(E7.punch.length === 1 && E7.punch[0].indexOf("le cayó a " + d7[1].nombre) > 0, "el cartel dice a quién le cayó (" + E7.punch.join(" · ") + ")");
+  var E8 = armar({ envion: 0 }), s8 = E8.s, d8 = defLinea(s8);
+  s8.poseKey = function () { return null; };
+  s8.escenaRemateRival(9, false, { bloqueado: false, salida: "queda_atacante", bonusArquero: 0, defensoresEnLinea: 1, motivo: "no_alcanza",
+    defensorMasCerca: { x: d8[0].x, y: d8[0].y, nombre: d8[0].nombre }, poseBloqueo: { pose: "espaldas", lado: 1 } });
+  correrTodo(E8);
+  assert(E8.figs.some(function (f) { return f.pose === "de_espaldas_sin_pelota"; }), "pegado al que patea se da vuelta (de espaldas sin pelota mientras no entre bloqueo_espaldas)");
+  assert(s8.st.posesion === "rival" && s8.estado === "LIBRE" && E8.planos.indexOf("· el viaje ·") < 0 && /LA TOCÓ/.test(E8.punch[0] || ""),
+    "la toca y no alcanza: sin cine, la pelota sigue siendo del rival y lo dice (" + E8.punch.join(" · ") + ")");
+
   /* 200 remates con súper defensa: ninguno entra */
   var goles = 0;
   for (var k = 0; k < 200; k++) {
