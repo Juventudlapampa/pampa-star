@@ -258,5 +258,26 @@ function centro(s, texto) {
   console.log("[5] MEZCLA de fábrica, rota sin repetir · FOLKLORE v1 a MEZCLA · CORTO y LARGO en OPCIONES y en el partido rápido");
 })();
 
+/* ---------- [6] 25/OCT, RODRI: "QUE TE GUSTEN 3 ESTILOS" ---------- */
+(function () {
+  var AU = JSON.parse(leer("data/audio.json"));
+  var P = armarTitulo(null, BAL_HOY);
+  P.A.registry.set("audio", AU);
+  P.s.vistaOpciones();
+  var to = P.s.textos();
+  assert(to.indexOf("TE GUSTAN") >= 0 && to.indexOf("◀ VOLVER") >= 0, "OPCIONES suma la fila TE GUSTAN y VOLVER sigue");
+  P.s._fila = 4;
+  ["RIGHT", "ENTER", "RIGHT", "ENTER", "RIGHT", "ENTER"].forEach(function (k) { P.s.teclas(k); });
+  assert(JSON.parse(P.A.store[O.CLAVE]).gustos.join() === "cuarteto,rock,rap", "con ◄► y ENTER se marcan CUARTETO, ROCK y RAP, guardados (" + P.A.store[O.CLAVE] + ")");
+  assert(P.s.textos().indexOf("» ROCK") >= 0, "lo marcado lleva », no solo el color");
+  P.sonidos.length = 0;
+  P.s.teclas("RIGHT"); P.s.teclas("ENTER");
+  assert(JSON.parse(P.A.store[O.CLAVE]).gustos.length === 3 && P.sonidos.join() === "bloqueado" &&
+    P.s.textos().some(function (t) { return /ya marcaste 3/.test(t); }), "un cuarto no entra: suena el no y se dice por qué");
+  P.s.teclas("LEFT"); P.s.teclas("ENTER");
+  assert(JSON.parse(P.A.store[O.CLAVE]).gustos.join() === "cuarteto,rock", "ENTER sobre uno marcado lo desmarca");
+  console.log("[6] TE GUSTAN: hasta tres estilos, con » y guardados");
+})();
+
 if (mal === 0) console.log("\n✓ TODOS OK — " + ok + " asserts, 0 fallaron.");
 else { console.error("\n✗ " + mal + " FALLARON (" + ok + " ok)"); process.exit(1); }

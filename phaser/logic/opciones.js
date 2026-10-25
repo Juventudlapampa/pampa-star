@@ -9,6 +9,8 @@
      musica, efectos   volumen de 0 a NIVELES (10 = la mezcla medida de
                        audio/sfx.js tal cual; menos, la atenúa)
      estilo            una clave de balance.musica.estilos con tema del partido
+     gustos            25/oct: los estilos que te gustan (hasta
+                       balance.musica.gustos_max); la MEZCLA rota entre esos
      duracion          una clave de balance.tempo.presets (la del partido
                        rápido y la que la carrera nueva trae marcada)
 
@@ -63,8 +65,12 @@
      de este aparato: sin almacenamiento, vale la copia de la sesión).
      ══════════════════════════════════════════════════════════════════════ */
   var mezclaSesion = { k: null, turno: null };
-  function paraRotar(bal, audio) {
-    return estilos(bal, audio).filter(function (e) { return e.disponible && e.k !== bal.musica.mezcla.k; }).map(function (e) { return e.k; });
+  /* 25/oct, Rodri: "que te gusten 3 estilos". Con flags.musica_tres_estilos
+     y dos gustos o más, la MEZCLA rota solo entre esos */
+  function paraRotar(bal, audio, gustos) {
+    var todos = estilos(bal, audio).filter(function (e) { return e.disponible && e.k !== bal.musica.mezcla.k; }).map(function (e) { return e.k; });
+    if (!(bal.flags && bal.flags.musica_tres_estilos) || !gustos || gustos.length < 2) return todos;
+    return todos.filter(function (k) { return gustos.indexOf(k) >= 0; });
   }
   function leerMezcla(storage) {
     try { var g = JSON.parse(storage.getItem(CLAVE_MEZCLA)); if (g && typeof g === "object") return g; } catch (e) { }
@@ -72,9 +78,9 @@
   }
   /* el estilo que suena de verdad: el elegido, o el de turno si es MEZCLA */
   function estiloQueSuena(storage, bal, audio) {
-    var elegido = leer(storage, bal, audio).estilo;
+    var op = leer(storage, bal, audio), elegido = op.estilo;
     if (!conMezcla(bal) || elegido !== bal.musica.mezcla.k) return elegido;
-    var lista = paraRotar(bal, audio), g = leerMezcla(storage);
+    var lista = paraRotar(bal, audio, op.gustos), g = leerMezcla(storage);
     if (lista.indexOf(g.k) >= 0) return g.k;
     /* la primera vez no arranca en FOLKLORE, que es lo que aburrió */
     var otros = lista.filter(function (k) { return k !== bal.musica.estilo_por_defecto; });
@@ -90,10 +96,11 @@
      y entrar de nuevo), no cambia. Devuelve el estilo que queda sonando */
   function rotarMezcla(storage, bal, audio, turno, rng) {
     var antes = estiloQueSuena(storage, bal, audio);
-    if (!conMezcla(bal) || leer(storage, bal, audio).estilo !== bal.musica.mezcla.k) return antes;
+    var op = leer(storage, bal, audio);
+    if (!conMezcla(bal) || op.estilo !== bal.musica.mezcla.k) return antes;
     var g = leerMezcla(storage);
     if (turno != null && g.turno === turno && g.k === antes) return antes;
-    var otros = paraRotar(bal, audio).filter(function (k) { return k !== antes; });
+    var otros = paraRotar(bal, audio, op.gustos).filter(function (k) { return k !== antes; });
     var nuevo = otros.length ? otros[Math.floor((rng || Math.random)() * otros.length)] : antes;
     return guardarMezcla(storage, nuevo, turno == null ? null : turno);
   }
@@ -113,7 +120,7 @@
   }
 
   function porDefecto(bal) {
-    return { v: VERSION, musica: NIVELES, efectos: NIVELES, estilo: estiloPorDefecto(bal), duracion: saveMaster().duracionesActivas(bal).porDefecto };
+    return { v: VERSION, musica: NIVELES, efectos: NIVELES, estilo: estiloPorDefecto(bal), gustos: [], duracion: saveMaster().duracionesActivas(bal).porDefecto };
   }
 
   function nivelValido(n) { return typeof n === "number" && n === Math.round(n) && n >= 0 && n <= NIVELES; }
@@ -126,6 +133,12 @@
     var estilo = crudo.estilo;
     if (conMezcla(bal) && !(crudo.v >= 2) && estilo === bal.musica.estilo_por_defecto) estilo = bal.musica.mezcla.k;
     if (estilos(bal, audio).some(function (e) { return e.k === estilo && e.disponible; })) op.estilo = estilo;
+    /* los gustos: estilos que existen, sin repetir, hasta gustos_max. Sin
+       gustos (las opciones de antes del 25/oct) rota entre todos */
+    if (Array.isArray(crudo.gustos)) {
+      var validos = paraRotar(bal, audio, null);
+      crudo.gustos.forEach(function (k) { if (validos.indexOf(k) >= 0 && op.gustos.indexOf(k) < 0 && op.gustos.length < bal.musica.gustos_max) op.gustos.push(k); });
+    }
     /* una duración de antes del 23/oct se traduce (el corto viejo va a
        CORTO; normal y largo, a LARGO) */
     var dur = saveMaster().duracionesActivas(bal).migrar[crudo.duracion] || crudo.duracion;

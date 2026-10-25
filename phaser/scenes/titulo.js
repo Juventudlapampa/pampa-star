@@ -161,6 +161,7 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     const O = this.O, op = this.op, S = window.PampaSFX;
     const audio = this.game.registry.get("audio");
     const estilos = O.estilos(this.BAL, audio);
+    const gustables = estilos.filter((e) => e.disponible && e.k !== this.BAL.musica.mezcla.k);
     const nivel = (k) => ({ tipo: "nivel", valor: op[k], cambiar: (d) => this.cambiarNivel(k, d) });
     return [
       { n: "SONIDO", tipo: "chips",
@@ -177,6 +178,20 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
           if (this.registrarMusicaGlobal) this.registrarMusicaGlobal(true);
           this.pedirMusica("espera");
         } },
+      /* 25/oct, Rodri: "que te gusten 3 estilos". Se marcan hasta
+         gustos_max; la MEZCLA rota entre esos (logic/opciones.js) */
+      ...(this.BAL.flags.musica_tres_estilos && gustables.length > this.BAL.musica.gustos_max ? [
+        { n: "TE GUSTAN", sub: op.gustos.length < 2 ? "marcá hasta " + this.BAL.musica.gustos_max + " y la mezcla rota entre esos" : "la mezcla rota entre estos", tipo: "chips", multi: true,
+          chips: gustables.map((e) => ({ k: e.k, n: e.n })), valor: op.gustos,
+          elegir: (k) => {
+            const i = op.gustos.indexOf(k);
+            if (i >= 0) op.gustos.splice(i, 1);
+            else if (op.gustos.length >= this.BAL.musica.gustos_max) { this._aviso = "ya marcaste " + op.gustos.length + ": desmarcá uno para cambiarlo"; return false; }
+            else op.gustos.push(k);
+            this.guardarOpciones();
+            if (this.registrarMusicaGlobal) this.registrarMusicaGlobal(true);
+            this.pedirMusica("espera");
+          } }] : []),
       { n: "DURACIÓN", sub: "partido rápido y carrera nueva", tipo: "chips",
         chips: O.duraciones(this.BAL).map((o) => ({ k: o.k, n: o.n, d: o.d })), valor: op.duracion,
         elegir: (k) => { op.duracion = k; this.guardarOpciones(); } },
@@ -213,6 +228,8 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
      ninguno para ese lado suena el "no" y se dice por qué */
   moverChip(f, d) {
     const S = window.PampaSFX;
+    /* en TE GUSTAN (varias marcadas) ◄► mueven el cursor y ENTER marca */
+    if (f.multi) { this._cursorChip = ((this._cursorChip | 0) + d + f.chips.length) % f.chips.length; this.vistaOpciones(); return; }
     const i0 = f.chips.findIndex((c) => c.k === f.valor);
     const n = f.chips.length;
     for (let paso = 1; paso < n; paso++) {
@@ -225,7 +242,7 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
   elegirChip(f, c) {
     const S = window.PampaSFX;
     if (c.bloqueada) { this.chipBloqueado(f); if (S && S.ui) S.ui("bloqueado"); return; }
-    f.elegir(c.k);
+    if (f.elegir(c.k) === false) { if (S && S.ui) S.ui("bloqueado"); this.vistaOpciones(); return; }
     if (S && S.ui) S.ui("confirmar");
     this.vistaOpciones();
   }
@@ -240,9 +257,13 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     this._vista = "opciones";
     this.vaciar();
     const W = this.scale.width, H = this.scale.height;
-    this.add.text(40, 34, "OPCIONES", { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0, 0.5);
-    this.add.text(W - 40, 34, "se guarda solo, en este aparato", { fontFamily: window.PF.texto, fontSize: "15px", color: "#cfe9d4" }).setOrigin(1, 0.5);
+    const titulo = this.add.text(40, 34, "OPCIONES", { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0, 0.5);
     const filas = this.filasDeOpciones();
+    /* 25/oct: con TE GUSTAN son ocho filas y la octava cae donde estaba
+       ◀ VOLVER: VOLVER sube arriba a la derecha y la nota (o el aviso) va
+       entre el título y VOLVER */
+    const arriba = filas.length > 7;
+    if (!arriba) this.add.text(W - 40, 34, "se guarda solo, en este aparato", { fontFamily: window.PF.texto, fontSize: "15px", color: "#cfe9d4" }).setOrigin(1, 0.5);
 
     /* L11: con MOVIMIENTO son siete filas. Cada 60 desde 88, la última termina
        en 474 y ◀ VOLVER baja a H-32: ningún área táctil (61 de alto) pisa el
@@ -264,16 +285,19 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
       if (f.tipo === "nivel") this.dibujarNivel(f, x0, y, i);
       else this.dibujarChips(f, x0, y, i, Math.min(620, W - 30 - x0));
       return { obj: lbl, caja: { x: 30, y: y - alto / 2 - 2, w: W - 60, h: alto + 4 },
-        cb: () => (f.tipo === "nivel" ? f.cambiar(1) : this.moverChip(f, 1)) };
+        cb: () => (f.tipo === "nivel" ? f.cambiar(1) : f.multi ? this.elegirChip(f, f.chips[this._cursorChip | 0]) : this.moverChip(f, 1)) };
     });
     /* VOLVER, abajo a la izquierda; el aviso (si hay) a su derecha */
-    const yv = H - 32, wv = 240;
-    const bv = this.add.rectangle(30 + wv / 2, yv, wv, 52, 0xf6efdc, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
-    this.add.text(30 + wv / 2, yv, "◀ VOLVER", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
+    const yv = arriba ? 34 : H - 32, wv = 240, xv = arriba ? W - 30 - wv : 30;
+    const bv = this.add.rectangle(xv + wv / 2, yv, wv, 52, 0xf6efdc, 1).setStrokeStyle(3, 0x0a1f13).setInteractive({ useHandCursor: true });
+    this.add.text(xv + wv / 2, yv, "◀ VOLVER", { fontFamily: window.PF.display, fontSize: "13px", color: "#0a1f13" }).setOrigin(0.5);
     const volver = () => { const S = window.PampaSFX; if (S && S.ui) S.ui("volver"); this._aviso = ""; this._fila = 0; this.vistaMenu("opciones"); };
     bv.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); volver(); });
-    items.push({ obj: bv, caja: { x: 30, y: yv - 26, w: wv, h: 52 }, cb: volver });
-    if (this._aviso) {
+    items.push({ obj: bv, caja: { x: xv, y: yv - 26, w: wv, h: 52 }, cb: volver });
+    if (arriba) {
+      const xn = Math.ceil(titulo.getBounds().right) + 24;
+      this.add.text(xn, yv, this._aviso ? "✗ " + this._aviso : "se guarda solo, en este aparato", { fontFamily: window.PF.texto, fontSize: "15px", color: this._aviso ? "#f6efdc" : "#cfe9d4", wordWrap: { width: xv - xn - 16 } }).setOrigin(0, 0.5);
+    } else if (this._aviso) {
       this.add.text(30 + wv + 24, yv, "✗ " + this._aviso, { fontFamily: window.PF.texto, fontSize: "15px", color: "#f6efdc", wordWrap: { width: W - wv - 100 } }).setOrigin(0, 0.5);
     }
     /* las flechas: ↑↓ cambian de fila, ◄► cambian el valor (como el editor
@@ -324,8 +348,9 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     const cabe = Math.floor((ancho - aire * (n - 1)) / n);
     /* las letras primero: en el teléfono "animaciones enteras" no entra en
        150 y la pastilla se estira hasta lo que deja la fila */
+    const marcada = (c) => (f.multi ? f.valor.indexOf(c.k) >= 0 : c.k === f.valor);
     const letras = f.chips.map((c) => {
-      const si = c.k === f.valor;
+      const si = marcada(c);
       const col = si ? "#0a1f13" : c.bloqueada ? "#9fb3a5" : "#f6efdc";
       const t = this.add.text(0, c.d ? y - 10 : y, (si ? "» " : "") + c.n, { fontFamily: window.PF.texto, fontSize: "19px", color: col }).setOrigin(0.5);
       const d = c.d ? this.add.text(0, y + 13, c.d, { fontFamily: window.PF.texto, fontSize: "13px", color: si ? "#365a41" : "#cfe9d4" }).setOrigin(0.5) : null;
@@ -338,11 +363,13 @@ window.PampaTitulo = class PampaTitulo extends Phaser.Scene {
     const hC = Math.min(58, Math.max(52, Math.ceil(Math.max(...letras.map(l => l[2])) + 6)));
     f.chips.forEach((c, k) => {
       const x = x0 + w / 2 + k * (w + aire);
-      const si = c.k === f.valor;
+      const si = marcada(c);
+      /* el cursor de TE GUSTAN: borde grueso (forma, no solo color) */
+      const cursor = f.multi && this._fila === fila && k === (this._cursorChip | 0);
       const r = this.add.rectangle(x, y, w, hC, si ? 0xffd84d : 0x0d2a18, 1)
-        .setStrokeStyle(2, si ? 0x0a1f13 : 0xf6efdc, c.bloqueada ? 0.4 : 0.9).setInteractive({ useHandCursor: true });
+        .setStrokeStyle(cursor ? 5 : 2, si ? 0x0a1f13 : 0xf6efdc, c.bloqueada ? 0.4 : 0.9).setInteractive({ useHandCursor: true });
       letras[k].slice(0, 2).forEach(t => { if (t) { t.setX(x); this.children.bringToTop(t); } });
-      r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._fila = fila; this.elegirChip(f, c); });
+      r.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); this._fila = fila; if (f.multi) this._cursorChip = k; this.elegirChip(f, c); });
     });
   }
 };
