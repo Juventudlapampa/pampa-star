@@ -533,6 +533,16 @@
     if (lc.espiado) r.push("ves su defensa y su estrella");
     return r;
   }
+  /* 25/oct, pedido de Rodri: el renglón de números se ve en LA SEMANA y en la
+     previa; en el partido lo dice el relator una vez al arrancar, con sus
+     palabras y sin el cartel de ESTA FECHA */
+  function relatoDeLaLlegada(ll) {
+    var partes = [];
+    if (ll.entrena) partes.push("+" + ll.entrena.mas + " de " + ll.entrena.stat.toUpperCase());
+    partes.push("el aguante al " + Math.round(ll.aguanteFrac * 100) + "%");
+    partes.push("el ánimo en " + ll.animo);
+    return "¡Llegás con " + partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1] + "!";
+  }
   /* cerrar con la elección: lo que viaja a la cancha, una vez por fecha igual
      que cerrarSemana. Entrenar deja su +1 para siempre en save.mejoras, que
      leen statsDeHoy y el partido */
@@ -568,7 +578,7 @@
 
   return {
     CUATRO: CUATRO, ENTRENABLES: ENTRENABLES, eleccionDeLaFecha: eleccionDeLaFecha, elegirCuatro: elegirCuatro,
-    bonusGrande: bonusGrande, enLaCancha: enLaCancha, textoEntrena: textoEntrena, renglonesDeLaCancha: renglonesDeLaCancha, cerrarSemanaCuatro: cerrarSemanaCuatro,
+    bonusGrande: bonusGrande, enLaCancha: enLaCancha, textoEntrena: textoEntrena, renglonesDeLaCancha: renglonesDeLaCancha, relatoDeLaLlegada: relatoDeLaLlegada, cerrarSemanaCuatro: cerrarSemanaCuatro,
     RANURAS: RANURAS, clamp: clamp,
     claveDeFecha: claveDeFecha, esLaFecha: esLaFecha, semanaCerrada: semanaCerrada,
     cerrarSemana: cerrarSemana, eventoDeLaFecha: eventoDeLaFecha,

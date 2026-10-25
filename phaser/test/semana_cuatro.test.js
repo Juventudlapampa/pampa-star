@@ -224,7 +224,14 @@ var PALABRAS_VIEJAS = /energ|molestia|cualidad|envi[oó]n|resistencia|f[ií]sico
     "al arrancar te dice cómo se para su defensa y quién es la estrella (" + avisos.join(" | ") + ")");
   var MS = fs.readFileSync(path.join(RAIZ, "phaser/scenes/match.js"), "utf8");
   assert(/if \(this\._vioAlRival\) this\.dibujarLoQueViste\(g, R, RF\);/.test(MS) && /"SU DEFENSA"/.test(MS) && /"ESTRELLA"/.test(MS), "el mapa dibuja su defensa y la estrella, con palabra");
-  assert(/ESTA FECHA: " \+ this\._renglonesSemana\.join/.test(MS), "el relator dice al arrancar lo que trajiste de la semana");
+  /* 25/oct, pedido de Rodri: el renglón de números sale en LA SEMANA y en la
+     previa; en el partido lo dice el relator una vez, sin el cartel ESTA FECHA */
+  assert(/anunciarEnTicker\(this\._llegadaRelato, null, \{ prioridad: true \}\)/.test(MS) && MS.indexOf('"ESTA FECHA: "') < 0,
+    "el relator dice al arrancar lo que trajiste de la semana, sin el cartel ESTA FECHA");
+  var semP = mpCon("entrenar", "pase").semana;
+  assert(pase.s._llegadaRelato === "¡Llegás con +" + semP.entrena.mas + " de PASE, el aguante al " + Math.round(semP.aguanteFrac * 100) + "% y el ánimo en " + semP.animo + "!",
+    "lo que dice el relator con PASE entrenado (" + pase.s._llegadaRelato + ")");
+  assert(/^¡Llegás con el aguante al \d+% y el ánimo en \d+!$/.test(base.s._llegadaRelato), "sin entrenar, el aguante y el ánimo (" + base.s._llegadaRelato + ")");
   console.log("[5] el partido: PASE " + vosDe(base).stats.pase + " → " + vosDe(pase).stats.pase + " · ánimo barra +6 · VER AL RIVAL con " + avisos.length + " avisos");
 })();
 

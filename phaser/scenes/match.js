@@ -308,7 +308,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._megaGrito = null;
     this._lecturaSemana = 0;
     this._semanaResumen = "";
-    this._vioAlRival = false; this._renglonesSemana = null; this._estrellaNombre = null; this._estrellaIdx = -1;
+    this._vioAlRival = false; this._llegadaRelato = null; this._estrellaNombre = null; this._estrellaIdx = -1;
     this._dueloJ = null;
     this._menuOps = null; this._menuSel = null; this._menuVolver = null; this._paseCancelar = null; this._menuBtns = {};
     this._receptores = null; this._recSel = 0;
@@ -494,7 +494,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (k && vos && vos.stats && vos.stats[k] != null) vos.stats[k] = Phaser.Math.Clamp(vos.stats[k] + sem.entrena.mas, 20, 99);
         this.st.animoGrande = sem.grande || 0;
         this._vioAlRival = !!sem.espiado;
-        this._renglonesSemana = sem.renglones || null;
+        this._llegadaRelato = window.PampaSemana.relatoDeLaLlegada(sem);
         this._estrellaIdx = this._estrellaNombre ? this.st.rivales.findIndex(j => j.nombre === this._estrellaNombre) : -1;
       }
     }
@@ -672,7 +672,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        velo y salen al cerrarlo. */
     this.tutorialSiHaceFalta();
     if (this._vidaFicha) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._vidaFicha, null, { prioridad: true }));
-    if (this._renglonesSemana) this.time.delayedCall(1400, () => this.anunciarEnTicker("ESTA FECHA: " + this._renglonesSemana.join(" · "), null, { prioridad: true }));
+    /* 25/oct, pedido de Rodri: el relator dice una vez cómo llegás (logic/semana.js) */
+    if (this._llegadaRelato) this.time.delayedCall(1400, () => this.anunciarEnTicker(this._llegadaRelato, null, { prioridad: true }));
     if (this._vioAlRival) this.avisarDelRival();
 
     /* flag v4_vista APAGADO = comportamiento v2 exacto: también sin cambio automático */
