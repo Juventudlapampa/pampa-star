@@ -660,10 +660,16 @@
   }
   function accionesDefensa(st) {
     var A = st.bal.aguante, rend = rendido(st);
+    /* 25/oct (lote "no se puede jugar"): con la pelota del rival hay UNA
+       defensa decisiva, y como en el clásico de NES tu equipo tiene la
+       ventaja en esa jugada grande. Va en el poder, así el % del botón la
+       cuenta. balance.ritmo.cruce_def.bonus_decisiva */
+    var CD = st.bal.ritmo.cruce_def || {};
+    var dec = CD.bonus_decisiva && (st._crucesDef || 0) >= (CD.por_posesion || 1) ? CD.bonus_decisiva : 0;
     return conBonusVida(st, [
-      { id: "quite", n: "QUITE", ico: "", costo: A.costo_quite, poder: statCtrl(st, "fisico"), bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null },
-      { id: "corte", n: "CORTE DE PASE", ico: "", costo: A.costo_corte, poder: statCtrl(st, "velocidad"), bloqueada: false },
-      { id: "bloqueo", n: "BLOQUEO", ico: "", costo: A.costo_bloqueo, poder: statCtrl(st, "fisico") * 0.55 + statCtrl(st, "aereo") * 0.45, bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null }
+      { id: "quite", n: "QUITE", ico: "", costo: A.costo_quite, poder: statCtrl(st, "fisico") + dec, bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null },
+      { id: "corte", n: "CORTE DE PASE", ico: "", costo: A.costo_corte, poder: statCtrl(st, "velocidad") + dec, bloqueada: false },
+      { id: "bloqueo", n: "BLOQUEO", ico: "", costo: A.costo_bloqueo, poder: statCtrl(st, "fisico") * 0.55 + statCtrl(st, "aereo") * 0.45 + dec, bloqueada: rend, motivo: rend ? "SIN AGUANTE" : null }
     ]);
   }
   function hayCompaCerca(st) {
@@ -802,11 +808,6 @@
       anotarEleccion(st, "defensa", opts.accion);
       var defMio = (opts.poder != null ? opts.poder : 50) + bA + envBonus;
       var atkRiv = poderRival(st) + 4;
-      /* 25/oct (lote "no se puede jugar"): con la pelota del rival hay UNA
-         defensa decisiva, y como en el clásico de NES tu equipo tiene la ventaja en
-         esa jugada grande. balance.ritmo.cruce_def.bonus_decisiva */
-      var CDd = bal.ritmo.cruce_def || {};
-      if (CDd.bonus_decisiva && (st._crucesDef || 0) >= (CDd.por_posesion || 1)) defMio += CDd.bonus_decisiva;
       if (CONTRA[accionRival] === opts.accion) { defMio += B; matriz = "leiste"; }  // le adivinaste la intención
       else { atkRiv += B * 0.6; matriz = "teEngano"; repetida = !!repD && repD.accion === opts.accion; }
       gastar(st, "mio", opts.costo || 0); gastar(st, "rival", (bal.aguante["costo_" + accionRival] || bal.aguante.max * 0.06));

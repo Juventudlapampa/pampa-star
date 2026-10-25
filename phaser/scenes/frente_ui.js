@@ -887,6 +887,9 @@
         this.frenteRival(st.portadorRival, aviso);
       } else {
         st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+        /* 25/oct: con una sola defensa por pelota del rival, la falta corta la
+           jugada y la que sacan rápido es otra pelota: vuelve a haber defensa */
+        st._crucesDef = 0;
         this.mostrarResolucion(aviso + "\nLa juegan rápido.", "#e3503e", { anim: "quite", gana: false });
       }
       return true;

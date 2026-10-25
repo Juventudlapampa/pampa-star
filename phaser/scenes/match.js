@@ -3442,6 +3442,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       this.mostrarResolucion("¡RECUPERASTE!" + (r.matriz === "leiste" ? "\n(le leíste la intención)" : ""), "#7ee08a", { anim: "quite", gana: true });
     }
     else {
+      /* 25/oct, Rodri: "hacé más faltas". Te pasaron en la defensa decisiva:
+         a veces lo parás con falta (balance.frente.falta.base.al_perder) */
+      if (this.cobrarFalta({ aFavor: false, infractor: st.mios[st.ctrl], accion: "al_perder", holgura: r.roll - r.chancePct / 100 })) return;
       P.perderDefensa(st);
       /* V9 §3 · TODA defensa fallada se VE — antes solo el quite tenía escena
          y el BLOQUEO FALLIDO (el peor caso: te tirás y el rival se te va) se
