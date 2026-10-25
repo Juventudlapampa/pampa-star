@@ -301,9 +301,35 @@
        del remate: en la misma cancha la pelota sigue a las manos del
        arquero, al córner o de largo por el fondo. this.res ya lo decidió
        el que llama (resolveShot con la zona sin contacto) */
+    toquePasaDeLargo(tq) {
+      var st = this.st, C = this.BAL.cine, self = this;
+      var sigue = window.PampaFlujo.quienLaSigue(st);
+      var j = sigue.quien === "rival" ? st.rivales[sigue.idx] : (sigue.quien === "mio" ? st.mios[sigue.idx] : null);
+      var nom = j ? String(j.nombre || "").toUpperCase() : "";
+      var d = sigue.quien === "rival" ? { titulo: "¡LA RECUPERÓ EL " + j.numero + "!", sub: "Pasó de largo y la agarró " + nom + ", del rival.", color: 0xe3503e }
+        : sigue.quien === "mio" ? { titulo: "¡SIGUE " + nom + "!", sub: "Pasó de largo y la agarró el " + j.numero + ", que venía atrás.", color: 0x7ee08a }
+        : { titulo: "¡DE LARGO!", sub: "Nadie la alcanzó y se fue por el fondo." + this.textoSaqueCorto(sigue.saque), color: 0xe3503e };
+      var D = this.BAL.toque.cancha.D, b = window.PampaToque.bolaEn(tq.e, tq.e.t);
+      var meta = this.toqueAPantalla(12.3, b.z < D / 2 ? 0.4 : D - 0.4, 0);
+      tq.abajo.forEach(function (o) { o.setVisible(false); });
+      this.tweens.add({ targets: tq.sombra, alpha: 0, duration: 200 });
+      this.tweens.add({
+        targets: tq.bola, x: meta.x, y: meta.y, scale: tq.bolaEsc * 0.8, duration: this.msV(520), ease: "Quad.easeOut",
+        onComplete: function () {
+          self.punch(d.titulo, d.sub, d.color);
+          self.time.delayedCall(self.msV(C.desenlace_leer_ms), function () { self.salirCine(); });
+        }
+      });
+    },
+
     toqueSinRemate() {
       var tq = this._tqSigue, res = this.res, C = this.BAL.cine, self = this;
       this._tqSigue = null;
+      /* 25/oct, Rodri: "tiré el centro, medio que le erré y igual cabeceó".
+         En el centro sin contacto la pelota pasa de largo y la sigue el más
+         cerca en la cancha de verdad (logic/flujo.quienLaSigue) */
+      var FLU = window.PampaFlujo;
+      if (!tq.propia && FLU && FLU.activo(this.st) && this.BAL.flujo.no_llego) { this.toquePasaDeLargo(tq); return; }
       var d = this.desenlaceRemate(res, { sinContacto: true, diferir: true });
       var b = window.PampaToque.bolaEn(tq.e, tq.e.t), D = this.BAL.toque.cancha.D;
       var arriba = b.z < D / 2, meta, despues = null;

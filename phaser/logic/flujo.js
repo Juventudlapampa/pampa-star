@@ -152,6 +152,41 @@
     st.modo = "congelado";
     return { motivo: "defensa", rivalIdx: st.portadorRival };
   }
+  /* 25/oct, Rodri: "tiré el centro, medio que le erré y igual cabeceó". Si en
+     EL TOQUE no la tocó, la pelota pasa de largo y la sigue el que esté más
+     cerca de donde pica, en la cancha de verdad: un rival que la recupera,
+     un compañero tuyo que viene atrás (sigue la jugada con él) o, si no hay
+     nadie a radio_px, saque de arco. Perillas en balance.flujo.no_llego */
+  function quienLaSigue(st, rng) {
+    var NL = cfg(st) && cfg(st).no_llego;
+    var c = st.mios[st.ctrl], px = clamp(c.x + ((NL && NL.pasa_px) || 0), 0, st.W), py = c.y;
+    var mejor = null, md = (NL && NL.radio_px) || 0;
+    var mirar = function (lista, lado) {
+      lista.forEach(function (j, i) {
+        if (j.pos === "ARQ" || (lado === "mio" && i === st.ctrl)) return;
+        var d = dist(j.x, j.y, px, py);
+        if (d < md) { md = d; mejor = { lado: lado, idx: i }; }
+      });
+    };
+    mirar(st.rivales, "rival"); mirar(st.mios, "mio");
+    if (!mejor) { var sq = P.saqueArquero(st, "afuera"); return { quien: "saque", idx: sq.receptorIdx, saque: sq }; }
+    if (mejor.lado === "rival") {
+      st.posesion = "rival"; st.portadorRival = mejor.idx;
+      var r = st.rivales[mejor.idx];
+      st.pelota.x = r.x - 12; st.pelota.y = r.y;
+      st._perdioIdx = st.ctrl; st._perdioHasta = st._t + 3000;
+      var cand = P.mejorMarcador(st, st._perdioIdx);
+      st.ctrl = cand >= 0 ? cand : P.masCercanoAPelota(st);
+      st.esperaRival = st.bal.ritmo.arranque_rival_ms;
+    } else {
+      st.ctrl = mejor.idx;
+      var m = st.mios[mejor.idx];
+      st.pelota.x = m.x + 12; st.pelota.y = m.y;
+    }
+    st.modo = "juego"; st.cooldown = st.bal.ritmo.cooldown_encuentro_ms;
+    return { quien: mejor.lado, idx: mejor.idx };
+  }
+
   /* SEGUIR (o cualquier decisión que no cambia de dueño): la cuenta arranca de nuevo */
   function seguir(st) {
     var F = cfg(st);
@@ -249,7 +284,7 @@
 
   return {
     activo: activo, autoInput: autoInput, elegirCarril: elegirCarril, fijarCarril: fijarCarril,
-    chequear: chequear, seguir: seguir,
+    chequear: chequear, seguir: seguir, quienLaSigue: quienLaSigue,
     enZona: enZona, receptorAereo: receptorAereo, caidaDe: caidaDe, firuleteDe: firuleteDe,
     origenToque: origenToque, resolverCentro: resolverCentro, prepararFirulete: prepararFirulete
   };

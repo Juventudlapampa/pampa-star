@@ -169,12 +169,15 @@
       if (!mejor || ratio < mejor.ratio) mejor = { lado: lado, err: err, ratio: ratio };
     });
     var contacto = mejor.ratio < c.contacto_max;
+    /* 25/oct, Rodri: "tiré el centro, medio que le erré y igual cabeceó".
+       Pasado el tope de contacto no la tocó; si quedó cerca, no la alcanzó */
+    var noLlego = !contacto && c.no_llego_max != null && mejor.ratio < c.no_llego_max;
     var q = contacto ? clamp(1 - mejor.ratio + (e.r() - 0.5) * c.azar, 0, 1) : 0;
     return {
       contacto: contacto, calidad: q, tecnica: g.tecnica,
       pie: mejor.lado === 0 ? null : (mejor.lado === j.lado ? "habil" : "otro"),
       pieUsado: mejor.lado === 0 ? null : (mejor.lado > 0 ? "der" : "izq"),
-      error: mejor.err, bola: b, motivo: contacto ? "golpe" : "pifia"
+      error: mejor.err, bola: b, motivo: contacto ? "golpe" : (noLlego ? "no_llego" : "pifia")
     };
   }
 
@@ -184,7 +187,10 @@
     /* sin tocarla no hay gol: la pifia y la que se pasa van por su zona */
     if (res.contacto === false) {
       var sc = cfg.sin_contacto;
-      return { id: sc.id, n: sc.n, dice: res.motivo === "se_paso" ? (deOtro ? sc.dice_se_paso_otro : sc.dice_se_paso) : (deOtro ? sc.dice_otro : sc.dice), bonus: sc.bonus, fuera: sc.fuera, gy: 0 };
+      var dice = res.motivo === "se_paso" ? (deOtro ? sc.dice_se_paso_otro : sc.dice_se_paso)
+        : res.motivo === "no_llego" ? (deOtro ? sc.dice_no_llego_otro : sc.dice_no_llego)
+        : (deOtro ? sc.dice_otro : sc.dice);
+      return { id: sc.id, n: sc.n, dice: dice, bonus: sc.bonus, fuera: sc.fuera, gy: 0 };
     }
     var z = cfg.zonas[cfg.zonas.length - 1];
     for (var i = 0; i < cfg.zonas.length; i++) if (res.calidad >= cfg.zonas[i].q) { z = cfg.zonas[i]; break; }
@@ -199,6 +205,7 @@
   }
   function textoDeContacto(res, cfg, deOtro) {
     if (res.motivo === "se_paso") return deOtro ? "la dejó pasar" : "la dejaste pasar";
+    if (res.motivo === "no_llego") return deOtro ? "no la alcanzó" : "no la alcanzaste";
     var tec = cfg.tecnicas[res.tecnica];
     var pie = res.pieUsado ? (res.pieUsado === "der" ? " con la derecha" : " con la izquierda") : "";
     return tec.de + pie + (res.pie === "otro" ? ", la menos hábil" : "");

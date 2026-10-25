@@ -1143,7 +1143,9 @@
       "bonus": -3,
       "fuera": 0.04
     },
-    "contacto_max": 1.5,
+    "contacto_max": 1.0,
+    "no_llego_max": 1.5,
+    "_contacto_25oct": "Pedido de Rodri del 25/oct: 'tiré el centro, medio que le erré y igual cabeceó'. contacto_max era 1.5: con el error hasta 1,5 veces la tolerancia de la técnica contaba como golpe ('¡SIN FUERZA!') y se veía el cabezazo entero. Ahora pasada la tolerancia (1.0) no la tocó; hasta no_llego_max es 'no la alcanzaste' y más lejos, la pifia. Sin contacto no hay cabezazo: la pelota pasa de largo y la sigue el más cerca (flujo.no_llego).",
     "azar": 0.14,
     "tope_pasada_s": 0.7,
     "zonas": [
@@ -1193,6 +1195,8 @@
       "_otro": "Revisión del 22/oct: cuando remata un compañero el cartel habla de él, no de quien juega.",
       "dice_otro": "¡LA PIFIÓ!",
       "dice_se_paso_otro": "¡SE LE PASÓ!",
+      "dice_no_llego": "¡NO LA ALCANZASTE!",
+      "dice_no_llego_otro": "¡NO LA ALCANZÓ!",
       "bonus": -8,
       "fuera": 1
     }
@@ -1236,6 +1240,11 @@
       "tope": 1,
       "_25oct": "Pedido de Rodri del 25/oct (ver ritmo.cruce_def._25oct): una sola defensa por pelota del rival (tope 1) y que llegue rápido (cada_ms 1200, era 2600 con tope 3).",
       "recupera_ms": 2000
+    },
+    "no_llego": {
+      "_nota": "Pedido de Rodri del 25/oct: 'tiré el centro, medio que le erré y igual cabeceó'. Si en EL TOQUE no la tocás, la pelota pasa de largo pasa_px hacia el arco y la sigue el que esté más cerca de ahí, a menos de radio_px: un rival que la recupera o un compañero tuyo que sigue la jugada; si no hay nadie, saque de arco (logic/flujo.quienLaSigue).",
+      "pasa_px": 80,
+      "radio_px": 220
     },
     "_centro": "Revisión final del 23/oct: en cuatro partidos no hubo ningún firulete de un compañero con 6 a 8 centros por partido (los cortaban o caían afuera de la zona). base subió de 68 a 74, por_marca bajó de 0,3 a 0,2 y bonus_zona de 25 a 40 (el centro busca más al que está en la zona). Para volver: 68, 0,3 y 25.",
     "centro": {
