@@ -1,0 +1,785 @@
+{
+ "v": 1,
+ "club": "El Caldén de Toay",
+ "pueblo": "Toay",
+ "division": "primera_b",
+ "temporadaN": 1,
+ "titulos": [],
+ "origen": {
+  "stats": {
+   "pase": 11,
+   "tiro": 12,
+   "resistencia": 3
+  },
+  "frases": [
+   "el de la escuelita del club",
+   "el del taller",
+   "al que le enseñaron a acariciarla"
+  ],
+  "marcas": [],
+  "elecciones": [
+   1,
+   3,
+   0
+  ]
+ },
+ "bolsaEventos": [],
+ "modFecha": null,
+ "racha": 0,
+ "historial": [],
+ "golesTuyosTemporada": 6,
+ "tempo": "corto",
+ "largoCarrera": "corta",
+ "temporada": {
+  "division": "primera_b",
+  "miClub": "El Caldén de Toay",
+  "semilla": 2715136379,
+  "fixture": [
+   [
+    {
+     "local": "El Caldén de Toay",
+     "visita": "Tolvanera FC"
+    },
+    {
+     "local": "Jagüel Viejo",
+     "visita": "Cauce Viejo"
+    },
+    {
+     "local": "Espejo de Sal",
+     "visita": "Cardo Ruso FC"
+    },
+    {
+     "local": "Viento Oeste",
+     "visita": "Alpataco FC"
+    },
+    {
+     "local": "Rescoldo FC",
+     "visita": "Guanaco Bravo"
+    }
+   ],
+   [
+    {
+     "local": "Jagüel Viejo",
+     "visita": "El Caldén de Toay"
+    },
+    {
+     "local": "Espejo de Sal",
+     "visita": "Tolvanera FC"
+    },
+    {
+     "local": "Viento Oeste",
+     "visita": "Cauce Viejo"
+    },
+    {
+     "local": "Rescoldo FC",
+     "visita": "Cardo Ruso FC"
+    },
+    {
+     "local": "Guanaco Bravo",
+     "visita": "Alpataco FC"
+    }
+   ],
+   [
+    {
+     "local": "El Caldén de Toay",
+     "visita": "Espejo de Sal"
+    },
+    {
+     "local": "Viento Oeste",
+     "visita": "Jagüel Viejo"
+    },
+    {
+     "local": "Rescoldo FC",
+     "visita": "Tolvanera FC"
+    },
+    {
+     "local": "Guanaco Bravo",
+     "visita": "Cauce Viejo"
+    },
+    {
+     "local": "Alpataco FC",
+     "visita": "Cardo Ruso FC"
+    }
+   ],
+   [
+    {
+     "local": "Viento Oeste",
+     "visita": "El Caldén de Toay"
+    },
+    {
+     "local": "Rescoldo FC",
+     "visita": "Espejo de Sal"
+    },
+    {
+     "local": "Guanaco Bravo",
+     "visita": "Jagüel Viejo"
+    },
+    {
+     "local": "Alpataco FC",
+     "visita": "Tolvanera FC"
+    },
+    {
+     "local": "Cardo Ruso FC",
+     "visita": "Cauce Viejo"
+    }
+   ],
+   [
+    {
+     "local": "El Caldén de Toay",
+     "visita": "Rescoldo FC"
+    },
+    {
+     "local": "Guanaco Bravo",
+     "visita": "Viento Oeste"
+    },
+    {
+     "local": "Alpataco FC",
+     "visita": "Espejo de Sal"
+    },
+    {
+     "local": "Cardo Ruso FC",
+     "visita": "Jagüel Viejo"
+    },
+    {
+     "local": "Cauce Viejo",
+     "visita": "Tolvanera FC"
+    }
+   ],
+   [
+    {
+     "local": "Guanaco Bravo",
+     "visita": "El Caldén de Toay"
+    },
+    {
+     "local": "Alpataco FC",
+     "visita": "Rescoldo FC"
+    },
+    {
+     "local": "Cardo Ruso FC",
+     "visita": "Viento Oeste"
+    },
+    {
+     "local": "Cauce Viejo",
+     "visita": "Espejo de Sal"
+    },
+    {
+     "local": "Tolvanera FC",
+     "visita": "Jagüel Viejo"
+    }
+   ],
+   [
+    {
+     "local": "El Caldén de Toay",
+     "visita": "Alpataco FC"
+    },
+    {
+     "local": "Cardo Ruso FC",
+     "visita": "Guanaco Bravo"
+    },
+    {
+     "local": "Cauce Viejo",
+     "visita": "Rescoldo FC"
+    },
+    {
+     "local": "Tolvanera FC",
+     "visita": "Viento Oeste"
+    },
+    {
+     "local": "Jagüel Viejo",
+     "visita": "Espejo de Sal"
+    }
+   ],
+   [
+    {
+     "local": "Cardo Ruso FC",
+     "visita": "El Caldén de Toay"
+    },
+    {
+     "local": "Cauce Viejo",
+     "visita": "Alpataco FC"
+    },
+    {
+     "local": "Tolvanera FC",
+     "visita": "Guanaco Bravo"
+    },
+    {
+     "local": "Jagüel Viejo",
+     "visita": "Rescoldo FC"
+    },
+    {
+     "local": "Espejo de Sal",
+     "visita": "Viento Oeste"
+    }
+   ],
+   [
+    {
+     "local": "El Caldén de Toay",
+     "visita": "Cauce Viejo"
+    },
+    {
+     "local": "Tolvanera FC",
+     "visita": "Cardo Ruso FC"
+    },
+    {
+     "local": "Jagüel Viejo",
+     "visita": "Alpataco FC"
+    },
+    {
+     "local": "Espejo de Sal",
+     "visita": "Guanaco Bravo"
+    },
+    {
+     "local": "Viento Oeste",
+     "visita": "Rescoldo FC"
+    }
+   ]
+  ],
+  "tabla": [
+   {
+    "equipo": "El Caldén de Toay",
+    "pj": 9,
+    "g": 6,
+    "e": 3,
+    "p": 0,
+    "gf": 9,
+    "gc": 0,
+    "pts": 21
+   },
+   {
+    "equipo": "Jagüel Viejo",
+    "pj": 9,
+    "g": 3,
+    "e": 3,
+    "p": 3,
+    "gf": 14,
+    "gc": 12,
+    "pts": 12
+   },
+   {
+    "equipo": "Espejo de Sal",
+    "pj": 9,
+    "g": 3,
+    "e": 2,
+    "p": 4,
+    "gf": 16,
+    "gc": 17,
+    "pts": 11
+   },
+   {
+    "equipo": "Viento Oeste",
+    "pj": 9,
+    "g": 3,
+    "e": 2,
+    "p": 4,
+    "gf": 9,
+    "gc": 12,
+    "pts": 11
+   },
+   {
+    "equipo": "Rescoldo FC",
+    "pj": 9,
+    "g": 5,
+    "e": 2,
+    "p": 2,
+    "gf": 17,
+    "gc": 10,
+    "pts": 17
+   },
+   {
+    "equipo": "Guanaco Bravo",
+    "pj": 9,
+    "g": 2,
+    "e": 2,
+    "p": 5,
+    "gf": 12,
+    "gc": 17,
+    "pts": 8
+   },
+   {
+    "equipo": "Alpataco FC",
+    "pj": 9,
+    "g": 1,
+    "e": 2,
+    "p": 6,
+    "gf": 11,
+    "gc": 18,
+    "pts": 5
+   },
+   {
+    "equipo": "Cardo Ruso FC",
+    "pj": 9,
+    "g": 5,
+    "e": 1,
+    "p": 3,
+    "gf": 13,
+    "gc": 14,
+    "pts": 16
+   },
+   {
+    "equipo": "Cauce Viejo",
+    "pj": 9,
+    "g": 1,
+    "e": 6,
+    "p": 2,
+    "gf": 9,
+    "gc": 10,
+    "pts": 9
+   },
+   {
+    "equipo": "Tolvanera FC",
+    "pj": 9,
+    "g": 3,
+    "e": 3,
+    "p": 3,
+    "gf": 15,
+    "gc": 15,
+    "pts": 12
+   }
+  ],
+  "fecha": 9,
+  "resultados": [
+   {
+    "fecha": 0,
+    "partidos": [
+     {
+      "local": "El Caldén de Toay",
+      "visita": "Tolvanera FC",
+      "gl": 1,
+      "gv": 0
+     },
+     {
+      "local": "Jagüel Viejo",
+      "visita": "Cauce Viejo",
+      "gl": 1,
+      "gv": 1
+     },
+     {
+      "local": "Espejo de Sal",
+      "visita": "Cardo Ruso FC",
+      "gl": 2,
+      "gv": 3
+     },
+     {
+      "local": "Viento Oeste",
+      "visita": "Alpataco FC",
+      "gl": 3,
+      "gv": 2
+     },
+     {
+      "local": "Rescoldo FC",
+      "visita": "Guanaco Bravo",
+      "gl": 3,
+      "gv": 1
+     }
+    ]
+   },
+   {
+    "fecha": 1,
+    "partidos": [
+     {
+      "local": "Jagüel Viejo",
+      "visita": "El Caldén de Toay",
+      "gl": 0,
+      "gv": 1
+     },
+     {
+      "local": "Espejo de Sal",
+      "visita": "Tolvanera FC",
+      "gl": 4,
+      "gv": 4
+     },
+     {
+      "local": "Viento Oeste",
+      "visita": "Cauce Viejo",
+      "gl": 1,
+      "gv": 1
+     },
+     {
+      "local": "Rescoldo FC",
+      "visita": "Cardo Ruso FC",
+      "gl": 3,
+      "gv": 2
+     },
+     {
+      "local": "Guanaco Bravo",
+      "visita": "Alpataco FC",
+      "gl": 1,
+      "gv": 3
+     }
+    ]
+   },
+   {
+    "fecha": 2,
+    "partidos": [
+     {
+      "local": "El Caldén de Toay",
+      "visita": "Espejo de Sal",
+      "gl": 0,
+      "gv": 0
+     },
+     {
+      "local": "Viento Oeste",
+      "visita": "Jagüel Viejo",
+      "gl": 2,
+      "gv": 0
+     },
+     {
+      "local": "Rescoldo FC",
+      "visita": "Tolvanera FC",
+      "gl": 2,
+      "gv": 0
+     },
+     {
+      "local": "Guanaco Bravo",
+      "visita": "Cauce Viejo",
+      "gl": 2,
+      "gv": 2
+     },
+     {
+      "local": "Alpataco FC",
+      "visita": "Cardo Ruso FC",
+      "gl": 0,
+      "gv": 1
+     }
+    ]
+   },
+   {
+    "fecha": 3,
+    "partidos": [
+     {
+      "local": "Viento Oeste",
+      "visita": "El Caldén de Toay",
+      "gl": 0,
+      "gv": 0
+     },
+     {
+      "local": "Rescoldo FC",
+      "visita": "Espejo de Sal",
+      "gl": 3,
+      "gv": 1
+     },
+     {
+      "local": "Guanaco Bravo",
+      "visita": "Jagüel Viejo",
+      "gl": 2,
+      "gv": 2
+     },
+     {
+      "local": "Alpataco FC",
+      "visita": "Tolvanera FC",
+      "gl": 1,
+      "gv": 2
+     },
+     {
+      "local": "Cardo Ruso FC",
+      "visita": "Cauce Viejo",
+      "gl": 0,
+      "gv": 2
+     }
+    ]
+   },
+   {
+    "fecha": 4,
+    "partidos": [
+     {
+      "local": "El Caldén de Toay",
+      "visita": "Rescoldo FC",
+      "gl": 1,
+      "gv": 0
+     },
+     {
+      "local": "Guanaco Bravo",
+      "visita": "Viento Oeste",
+      "gl": 2,
+      "gv": 1
+     },
+     {
+      "local": "Alpataco FC",
+      "visita": "Espejo de Sal",
+      "gl": 2,
+      "gv": 3
+     },
+     {
+      "local": "Cardo Ruso FC",
+      "visita": "Jagüel Viejo",
+      "gl": 2,
+      "gv": 1
+     },
+     {
+      "local": "Cauce Viejo",
+      "visita": "Tolvanera FC",
+      "gl": 1,
+      "gv": 1
+     }
+    ]
+   },
+   {
+    "fecha": 5,
+    "partidos": [
+     {
+      "local": "Guanaco Bravo",
+      "visita": "El Caldén de Toay",
+      "gl": 0,
+      "gv": 2
+     },
+     {
+      "local": "Alpataco FC",
+      "visita": "Rescoldo FC",
+      "gl": 2,
+      "gv": 2
+     },
+     {
+      "local": "Cardo Ruso FC",
+      "visita": "Viento Oeste",
+      "gl": 2,
+      "gv": 1
+     },
+     {
+      "local": "Cauce Viejo",
+      "visita": "Espejo de Sal",
+      "gl": 0,
+      "gv": 1
+     },
+     {
+      "local": "Tolvanera FC",
+      "visita": "Jagüel Viejo",
+      "gl": 2,
+      "gv": 3
+     }
+    ]
+   },
+   {
+    "fecha": 6,
+    "partidos": [
+     {
+      "local": "El Caldén de Toay",
+      "visita": "Alpataco FC",
+      "gl": 1,
+      "gv": 0
+     },
+     {
+      "local": "Cardo Ruso FC",
+      "visita": "Guanaco Bravo",
+      "gl": 1,
+      "gv": 0
+     },
+     {
+      "local": "Cauce Viejo",
+      "visita": "Rescoldo FC",
+      "gl": 1,
+      "gv": 3
+     },
+     {
+      "local": "Tolvanera FC",
+      "visita": "Viento Oeste",
+      "gl": 2,
+      "gv": 0
+     },
+     {
+      "local": "Jagüel Viejo",
+      "visita": "Espejo de Sal",
+      "gl": 2,
+      "gv": 1
+     }
+    ]
+   },
+   {
+    "fecha": 7,
+    "partidos": [
+     {
+      "local": "Cardo Ruso FC",
+      "visita": "El Caldén de Toay",
+      "gl": 0,
+      "gv": 3
+     },
+     {
+      "local": "Cauce Viejo",
+      "visita": "Alpataco FC",
+      "gl": 1,
+      "gv": 1
+     },
+     {
+      "local": "Tolvanera FC",
+      "visita": "Guanaco Bravo",
+      "gl": 2,
+      "gv": 1
+     },
+     {
+      "local": "Jagüel Viejo",
+      "visita": "Rescoldo FC",
+      "gl": 1,
+      "gv": 1
+     },
+     {
+      "local": "Espejo de Sal",
+      "visita": "Viento Oeste",
+      "gl": 3,
+      "gv": 0
+     }
+    ]
+   },
+   {
+    "fecha": 8,
+    "partidos": [
+     {
+      "local": "El Caldén de Toay",
+      "visita": "Cauce Viejo",
+      "gl": 0,
+      "gv": 0
+     },
+     {
+      "local": "Tolvanera FC",
+      "visita": "Cardo Ruso FC",
+      "gl": 2,
+      "gv": 2
+     },
+     {
+      "local": "Jagüel Viejo",
+      "visita": "Alpataco FC",
+      "gl": 4,
+      "gv": 0
+     },
+     {
+      "local": "Espejo de Sal",
+      "visita": "Guanaco Bravo",
+      "gl": 1,
+      "gv": 3
+     },
+     {
+      "local": "Viento Oeste",
+      "visita": "Rescoldo FC",
+      "gl": 1,
+      "gv": 0
+     }
+    ]
+   }
+  ]
+ },
+ "eleccion": {
+  "temporadaN": 1,
+  "fecha": 8,
+  "id": "entrenar",
+  "que": "tiro"
+ },
+ "semanaResumen": null,
+ "semanaCerradaEnFecha": {
+  "temporadaN": 1,
+  "fecha": 8
+ },
+ "enCancha": null,
+ "resultadoPendiente": null,
+ "tribuna": {
+  "temporadaN": 1,
+  "usados": {
+   "quite": [
+    1,
+    16,
+    10,
+    5,
+    9,
+    15,
+    12,
+    0,
+    6,
+    13,
+    2,
+    3,
+    14,
+    7,
+    17,
+    8,
+    11,
+    4
+   ],
+   "gol": [
+    19,
+    17,
+    5,
+    0,
+    28,
+    9
+   ],
+   "cansancio": [
+    8,
+    17
+   ],
+   "error": [
+    22,
+    9,
+    18,
+    14,
+    10,
+    6,
+    12,
+    11,
+    23,
+    8,
+    1,
+    4,
+    0,
+    2,
+    13,
+    19
+   ],
+   "atajada": [
+    16,
+    0,
+    1,
+    17,
+    7,
+    12,
+    3,
+    9,
+    8,
+    2,
+    14,
+    15
+   ],
+   "resultado_gana": [
+    14,
+    13,
+    19,
+    5,
+    0,
+    8
+   ],
+   "gol_companero": [
+    11,
+    3,
+    9
+   ],
+   "falta_a_favor": [
+    1,
+    0
+   ],
+   "resultado_empate": [
+    7,
+    17,
+    12
+   ],
+   "falta_en_contra": [
+    9,
+    13,
+    10
+   ],
+   "atajada_rival": [
+    16
+   ]
+  }
+ },
+ "animo": 100,
+ "desgaste": 10,
+ "molestia": false,
+ "semana": null,
+ "entrenado": {
+  "tiro": 2,
+  "gambeta": 2,
+  "pase": 2
+ },
+ "mejoras": {
+  "tiro": 2,
+  "gambeta": 2,
+  "pase": 2
+ },
+ "ceremoniaVista": 1
+}

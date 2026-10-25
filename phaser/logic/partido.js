@@ -47,7 +47,7 @@
             stats: p.stats || { pase: 50, tiro: 50, gambeta: 50, velocidad: 50, resistencia: 50, fisico: 50, aereo: 50, caracter: 50 },
             esVos: !!p.esVos, esAmigo: !!p.esAmigo, vinculo: p.vinculo || 0,
             look: p.look || null,               // el avatar por capas (Bloque C) viaja con el plantel
-            numero: slot + 1,                   // camiseta 1-11 por orden de formación (radar v2)
+            numero: p.numero != null ? p.numero : slot + 1,   // 1-11 por formación; el tuyo, el que elegiste (logic/puesto.js)
 
             aguante: bal.aguante.max,
             ax: ax, banda: banda,

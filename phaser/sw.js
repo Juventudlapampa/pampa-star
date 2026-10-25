@@ -73,7 +73,7 @@ const PRECACHE = [
   "./vendor/phaser.min.js",
   "./logic/duel.js", "./logic/perspectiva.js", "./logic/partido.js",
   "./logic/relator.js", "./logic/dialogo.js", "./logic/definicion.js", "./logic/master.js",
-  "./logic/temporada.js", "./logic/final.js", "./logic/avatar.js", "./logic/tiro.js",
+  "./logic/temporada.js", "./logic/final.js", "./logic/puesto.js", "./logic/avatar.js", "./logic/tiro.js",
   "./logic/jugadon.js", "./logic/toque.js", "./logic/frente.js", "./logic/penal.js", "./logic/flujo.js", "./logic/tutorial.js", "./logic/vida.js", "./logic/semana.js", "./logic/piel.js",
   "./logic/escudos.js", "./logic/ambiente.js", "./logic/vestir.js", "./logic/halo.js", "./logic/pierna.js", "./logic/lectura.js", "./logic/drama.js", "./logic/escalera.js",
   /* tanda 1.0 (L05): los seis módulos que index.html carga desde el

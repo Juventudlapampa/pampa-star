@@ -324,6 +324,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* 25/oct · TU CARRERA cuenta tus goles. Una temporada que empezó antes
          de que se contaran no tiene el campo y queda sin anotar */
       if (typeof this.save.golesTuyosTemporada === "number") this.save.golesTuyosTemporada += res.golesVos | 0;
+      /* 25/oct · la barrita de tu puesto sube con lo que hiciste en él */
+      const cfgPu = this.cfgDelPuesto();
+      if (cfgPu) window.PampaPuesto.sumar(this.save, res, cfgPu);
       /* 25/oct: lo que la tribuna ya dijo en esta temporada (tribuna_ui.js) */
       if (res.tribuna) this.save.tribuna = { temporadaN: res.temporadaN, usados: res.tribuna };
       this._ultimo = res;
@@ -2963,7 +2966,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         ? JSON.parse(JSON.stringify(this.save.tribuna.usados)) : {},
       /* y cuántas fechas quedan, esta incluida: la tribuna reparte lo que
          le falta decir (tribuna_ui.js, balance.tribuna.reparto_por_temporada) */
-      fechasQuedan: this.save.temporada.fixture.length - this.save.temporada.fecha
+      fechasQuedan: this.save.temporada.fixture.length - this.save.temporada.fecha,
+      /* 25/oct · tu puesto, tu número y lo que su barrita destrabó (match.js) */
+      puesto: this.save.puesto || null,
+      numero: this.save.numero || null,
+      destrabados: this.cfgDelPuesto() ? window.PampaPuesto.destrabados(this.save, this.cfgDelPuesto()) : []
     });
     this.save.enCancha = { temporadaN: c.temporadaN, fecha: c.fecha, rival };
     this.guardar();
@@ -2982,8 +2989,97 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   }
 
   /* ============ VISTA 2: LA TEMPORADA ============ */
+  /* 25/oct · TU PUESTO Y TU NÚMERO (logic/puesto.js). Pedido de Rodri: "que
+     puedas elegir tu posición y que en la cancha sepas cuál sos vos" y "que te
+     deje optar por número de remera, que no estén todas las opciones". Con la
+     perilla flags.puesto apagada devuelve null y nada de esto aparece. */
+  cfgDelPuesto() {
+    const B = this.game.registry.get("balance") || {};
+    return B.flags && B.flags.puesto && B.puesto && window.PampaPuesto ? B.puesto : null;
+  }
+
+  /* la pantalla corta: primero el puesto, después el número. Una carrera que
+     no los tiene (las de antes del 25/oct, y toda carrera nueva) pasa por acá
+     antes de la tabla y no pierde nada; después se cambia desde la tabla */
+  vistaPuesto(puesto) {
+    const W = this.scale.width, H = this.scale.height, PU = window.PampaPuesto, cfg = this.cfgDelPuesto();
+    const primeraVez = PU.falta(this.save, cfg);
+    this.vaciarVista();
+    if (this.fondoDelMaster) this.fondoDelMaster(); else this.fondoDePiel();
+    const salir = primeraVez ? () => this.irA("titulo") : () => this.vistaTemporada();
+    this._atrasVista = puesto ? () => this.vistaPuesto() : salir;
+    const piel = (this.game.registry.get("balance") || {}).piel;
+    const items = [];
+    if (!puesto) {
+      this.add.text(W / 2, 60, "TU PUESTO", { fontFamily: window.PF.display, fontSize: "15px", color: "#ffd84d" }).setOrigin(0.5);
+      this.add.text(W / 2, 96, primeraVez && this.save.temporada && this.save.temporada.resultados.length
+        ? "Tu carrera sigue como estaba. Elegí dónde jugás y con qué número: en la cancha te vas a ver con ese número y la palabra VOS."
+        : "Elegí dónde jugás y con qué número: en la cancha te vas a ver con ese número y la palabra VOS.", {
+        fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5, 0);
+      PU.PUESTOS.forEach((p, i) => {
+        const d = cfg.destrabes[p][0];
+        const prog = ((this.save.barrita || {})[p]) | 0;
+        const sub = "tu barrita destraba " + d.nombre + (prog ? " · vas " + Math.min(prog, d.umbral) + " de " + d.umbral : "");
+        const y = Math.round(window.PampaPiel.yDeOpcion(i, 3, 64, piel)) + 30;
+        const elegido = this.save.puesto === p;
+        const b = this.boton(W / 2, y, 520, (elegido ? "► " : "") + cfg.nombres[p], elegido ? 0xffd84d : 0xf6efdc, () => this.vistaPuesto(p), sub);
+        items.push({ obj: b, cb: () => this.vistaPuesto(p) });
+      });
+      if (!primeraVez) {
+        const v = this.boton(W / 2, H - 40, 300, "◀ VOLVER A LA TABLA", 0xf6efdc, salir);
+        items.push({ obj: v, cb: salir });
+      }
+      if (this.grupoFoco) this.grupoFoco(items, { inicial: Math.max(0, PU.PUESTOS.indexOf(this.save.puesto)), volver: salir });
+    } else {
+      this.add.text(W / 2, 60, "TU NÚMERO DE " + cfg.nombres[puesto], { fontFamily: window.PF.display, fontSize: "15px", color: "#ffd84d" }).setOrigin(0.5);
+      this.add.text(W / 2, 96, "El compañero que lo tenía se queda con el que dejás libre.", {
+        fontFamily: window.PF.texto, fontSize: "14px", color: "#f6efdc", align: "center", wordWrap: { width: 760 } }).setOrigin(0.5, 0);
+      const nums = PU.numeros(puesto, cfg);
+      const elegir = (n) => {
+        PU.elegir(this.save, puesto, n, cfg);
+        this.guardar();
+        this.vistaTemporada();
+      };
+      nums.forEach((n, i) => {
+        const x = Math.round(W / 2 + (i - (nums.length - 1) / 2) * 140);
+        const elegido = this.save.puesto === puesto && this.save.numero === n;
+        const b = this.boton(x, H / 2, 120, (elegido ? "► " : "") + "EL " + n, elegido ? 0xffd84d : 0x7ee08a, () => elegir(n));
+        items.push({ obj: b, cb: () => elegir(n) });
+      });
+      const otro = this.boton(W / 2, H - 90, 300, "◀ OTRO PUESTO", 0xf6efdc, () => this.vistaPuesto());
+      items.push({ obj: otro, cb: () => this.vistaPuesto() });
+      if (this.grupoFoco) this.grupoFoco(items, { inicial: Math.max(0, nums.indexOf(this.save.numero)), volver: () => this.vistaPuesto() });
+    }
+    this.vestirPendientes && this.vestirPendientes();
+  }
+
+  /* arriba a la derecha de la tabla: tu puesto, tu número y la barrita, con
+     la cuenta escrita (no solo el largo de la barra). Tocarla cambia puesto o número */
+  fichaDelPuesto(W) {
+    const cfg = this.cfgDelPuesto(), PU = window.PampaPuesto;
+    const prox = PU.proximo(this.save, cfg);
+    const x = W - 14, ancho = 200;
+    const t1 = this.add.text(x, 44, "TU PUESTO: " + cfg.nombres[this.save.puesto] + " · EL " + this.save.numero, {
+      fontFamily: window.PF.texto, fontSize: "13px", fontStyle: "bold", color: "#f6efdc", backgroundColor: "#0a1f13aa", padding: { x: 8, y: 3 } }).setOrigin(1, 0);
+    const yb = t1.getBounds().bottom + 5;
+    const frac = prox ? (prox.progreso - prox.desde) / (prox.umbral - prox.desde) : 1;
+    this.add.rectangle(x - ancho, yb, ancho, 8, 0x0a1f13, 0.8).setOrigin(0, 0).setStrokeStyle(1, 0xf6efdc);
+    if (frac > 0) this.add.rectangle(x - ancho, yb, Math.round(ancho * Math.min(1, frac)), 8, 0xffd84d, 1).setOrigin(0, 0);
+    this.add.text(x, yb + 12, prox ? "faltan " + prox.falta + " para " + prox.nombre : "destrabaste todo lo de tu puesto", {
+      fontFamily: window.PF.texto, fontSize: "13px", color: "#dcd6c2" }).setOrigin(1, 0);
+    if (this.pisoTactil) this.pisoTactil(t1);
+    if (!t1.input) t1.setInteractive({ useHandCursor: true });
+    t1.on("pointerdown", (p, xx, yy, ev) => {
+      ev && ev.stopPropagation && ev.stopPropagation();
+      const S = window.PampaSFX; if (S && S.ui) S.ui("abrir");
+      this.vistaPuesto();
+    });
+    return t1;
+  }
+
   vistaTemporada() {
     const W = this.scale.width, H = this.scale.height;
+    if (this.cfgDelPuesto() && window.PampaPuesto.falta(this.save, this.cfgDelPuesto())) { this.vistaPuesto(); return; }
     const t = this.save.temporada, T = this.T, Ma = this.Ma;
     /* 25/oct · EL FINAL DE LA CARRERA (flags.carrera_final): la temporada
        terminada con título, ascenso, descenso o gloria pasa primero por su
@@ -3025,7 +3121,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       const S = window.PampaSFX; if (S && S.ui) S.ui("volver");
       this.irA("titulo");
     });
-    const titTabla = this.add.text(W / 2, 56, div.n + (FIN && this.save.leyenda ? " · LEYENDA" : "") + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
+    if (this.cfgDelPuesto()) this.fichaDelPuesto(W);
+    const titTabla =this.add.text(W / 2, 56, div.n + (FIN && this.save.leyenda ? " · LEYENDA" : "") + " · TEMPORADA " + this.save.temporadaN, { fontFamily: window.PF.display, fontSize: window.PampaPiel.nivel(1), color: "#ffd84d" }).setOrigin(0.5);
     /* revisión L04b: con un título decía "★ 1 títulos"; el singular como en
        el código de la carrera (vistaCodigo). Revisión del 25/oct: con seis
        decía cinco estrellas y "6 títulos"; va una sola, con la cuenta */

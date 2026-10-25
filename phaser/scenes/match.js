@@ -144,6 +144,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* FEATURE FLAGS por etapa (regla de la sesión): se apagan desde balance.json → flags.
        Apagado = comportamiento de la etapa anterior. partido_phaser (fusión) vive en la Etapa Final. */
     this.FLAGS = Object.assign({ e3_menus: true, e4_arte: true, e5_guts: true, e6_cine: true, v4_vista: true, v4_escenas: true, v4_musica: true, v4_relator: true, v4_aereo: true, v4_retratos64: true, v6_tempo: true, v6_definicion: true, v6_secuencias: true, pantalla_partida: true, pulso: true }, this.BAL.flags || {});
+    /* 25/oct · lo que la barrita de tu puesto ya destrabó se prende en tu partido */
+    const mpF = this.game.registry.get("masterPartido");
+    if (this.FLAGS.puesto && mpF && window.PampaPuesto) this.FLAGS = window.PampaPuesto.flagsDelPartido(this.FLAGS, mpF.destrabados);
     /* ANIME v4 Bloque A: VISTA TÁCTICA ELEVADA (flag v4_vista; apagado = cámara v2).
        La cámara sube a ver la cancha, los 22 son fichas simples, el radar sobra. */
     this._vista4 = !!this.FLAGS.v4_vista;
@@ -1067,10 +1070,21 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         if (idx >= 0 && a.nombre) { usados.add(idx); mios[idx] = { nombre: String(a.nombre).slice(0, 12), pos: p, stats: a.stats, esAmigo: true, vinculo: a.vinculo || 0, lookClasico: a.look }; }
       });
     }
+    /* 25/oct · tu puesto y tu número (logic/puesto.js) viajan en masterPartido;
+       sin ellos, el 10 de delantero de siempre */
+    const mpP = this.game.registry.get("masterPartido");
+    const PU = window.PampaPuesto, cfgPu = this.BAL.puesto;
+    const conPuesto = this.FLAGS.puesto && mpP && PU && !PU.falta(mpP, cfgPu);
     const atas = slots.reduce((arr, s, i) => (s === "ATA" && arr.push(i), arr), []);
-    const vosIdx = atas[1] != null ? atas[1] : atas[0];
+    let vosIdx = conPuesto ? PU.slotDeVos(this.BAL.partido.formacion, mpP.puesto) : (atas[1] != null ? atas[1] : atas[0]);
+    if (conPuesto && usados.has(vosIdx)) {
+      /* un amigo ocupaba tu lugar: pasa al primero libre de su línea, o de cualquiera */
+      const libre = slots.findIndex((s, i) => s === slots[vosIdx] && !usados.has(i));
+      const otro = libre >= 0 ? libre : slots.findIndex((s, i) => s !== "ARQ" && !usados.has(i));
+      if (otro >= 0) { mios[otro] = Object.assign({}, mios[vosIdx], { pos: slots[otro] }); usados.add(otro); }
+    }
     usados.add(vosIdx);
-    mios[vosIdx] = { nombre: (career && career.name) ? String(career.name).slice(0, 10) : "VOS", pos: "ATA", stats: career && career.stats, esVos: true };
+    mios[vosIdx] = { nombre: (career && career.name) ? String(career.name).slice(0, 10) : "VOS", pos: slots[vosIdx], stats: career && career.stats, esVos: true };
     /* Anime E: tu pueblo (del origen de la carrera) para el grito de gol del relator */
     /* revisión final del 23/oct: la carrera del Master no trae origen.localidad
        y el relator gritaba "LA PAMPA" en Winifreda. La localidad viaja en masterPartido */
@@ -1088,6 +1102,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       const k = pool.findIndex(j => j.posicion_motor === s);
       if (k >= 0) { const j = pool.splice(k, 1)[0]; mios[i] = { nombre: j.nombre, pos: s, stats: j.stats_auto }; }
     });
+    /* el que tenía tu número se queda con el que dejaste libre */
+    if (conPuesto) PU.numerosDelPlantel(this.BAL.partido.formacion, vosIdx, mpP.numero).forEach((n, i) => { mios[i].numero = n; });
     let pueblo = "RIVAL", entero = "RIVAL";
     /* revisión final del 23/oct: todos los rivales del Master salían con el
        mismo plantel (1 TOMI, 2 EZE, 3 LUCHO...), y el frente al arco los
@@ -2319,6 +2335,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     };
     this.radarNumsMios = this.st.mios.map(j => mkNum(j.numero));
     this.radarNumsRiv = this.st.rivales.map(j => mkNum(j.numero));
+    /* 25/oct · "ni idea quién soy yo": tu ficha lleva la palabra VOS arriba */
+    this.radarVos = this.FLAGS.puesto ? mkNum("VOS").setFontSize(Math.max(13, numPx - 2)).setColor("#ffd84d").setStroke("#0a1f13", 3) : null;
     /* zona interactiva (el pase dirigible y el cambio en defensa la usan en la Etapa 3) */
     this.radarZona = this.add.zone(rx + rw / 2, ry + rh / 2, rw, rh).setInteractive();
     this.hudLayer.add(this.radarZona);
@@ -5739,6 +5757,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     apagar.push(this.radarMarco, this._radarTuArco, this._rotDefensa, this._rotEstrella, this.panelNombre);
     apagar.forEach(o => o && o.setVisible(false));
     (this.radarNumsMios || []).forEach(t => t.setVisible(false));
+    if (this.radarVos) this.radarVos.setVisible(false);
     (this.radarNumsRiv || []).forEach(t => t.setVisible(false));
     if (this._btnCambiar) this._btnCambiar.forEach(o => o.setVisible(false));
     if (this._btnPausa) this._btnPausa.forEach(o => o.setVisible(false));   // L04: no hay nada que pausar
@@ -6375,6 +6394,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       g.fillStyle(this._colorMapaMio, 1); g.fillCircle(x, y, RF);
       g.lineStyle(1.5, this._tintaMapaMio, 0.9); g.strokeCircle(x, y, RF);
       if (i === st.ctrl) { g.lineStyle(3, 0xffffff, 1); g.strokeCircle(x, y, RF + 3.5); }
+      /* VOS: aro doble dorado y estrella, además de la palabra (no solo color) */
+      if (j.esVos && this.radarVos) {
+        g.lineStyle(2, 0xffd84d, 1); g.strokeCircle(x, y, RF + 7); g.strokeCircle(x, y, RF + 10);
+        const sx = x + RF + 8, sy = y - RF - 6, pts = [];
+        for (let q = 0; q < 10; q++) { const a = -Math.PI / 2 + q * Math.PI / 5, r = q % 2 ? 2.8 : 7; pts.push({ x: sx + r * Math.cos(a), y: sy + r * Math.sin(a) }); }
+        g.fillStyle(0xffd84d, 1); g.fillPoints(pts, true);
+        g.lineStyle(1, 0x0a1f13, 1); g.strokePoints(pts, true, true);
+        this.radarVos.setPosition(x, y - RF - 18).setVisible(true);
+      }
       this.radarNumsMios[i].setPosition(x, y);
     });
     /* apuntando el pase: CUADRADO (forma) alrededor de cada receptor; grueso =

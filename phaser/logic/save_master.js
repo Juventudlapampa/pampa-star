@@ -336,6 +336,14 @@
       s.semana = null; s.semanaResumen = null; reparado.push("semana en curso");
     }
     if (s.semanaResumen != null && !esObjeto(s.semanaResumen)) { s.semanaResumen = null; reparado.push("cómo llegás"); }
+    /* tu puesto y tu número (25/oct, logic/puesto.js): sin forma, se borran
+       los dos y la carrera vuelve a preguntarlos; la barrita se conserva */
+    if ((s.puesto != null || s.numero != null) && !(["DEF", "VOL", "ATA"].indexOf(s.puesto) >= 0 && entero(s.numero) === s.numero)) {
+      delete s.puesto; delete s.numero; reparado.push("puesto y número");
+    }
+    if (s.barrita != null && !(esObjeto(s.barrita) && Object.keys(s.barrita).every(function (k) { return esNumero(s.barrita[k]); }))) {
+      s.barrita = {}; reparado.push("barrita del puesto");
+    }
     /* las marcas por fecha (tanda 1.0): objeto o nada */
     ["semanaCerradaEnFecha", "eventoFecha", "enCancha", "resultadoPendiente", "eleccion"].forEach(function (k) {
       if (s[k] != null && !esObjeto(s[k])) { delete s[k]; reparado.push(k); }

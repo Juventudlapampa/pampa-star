@@ -1518,6 +1518,19 @@
     "jugadon": false,
     "v6_definicion": false,
     "megatiros_con_nombre": false,
-    "pase_al_vacio": false
+    "pase_al_vacio": false,
+    "_puesto": "25/oct, pedido de Rodri: elegir el puesto y el número, saber en la cancha cuál sos y una barrita por puesto que destraba de a una lo que la poda apagó. puesto en false: VOS vuelve al 10 de delantero de siempre, sin pantalla de puesto ni barrita (logic/puesto.js, scenes/master.js vistaPuesto, match.js armarPlanteles).",
+    "puesto": true
+  },
+  "puesto": {
+    "_nota": "logic/puesto.js. nombres: cómo se dice cada puesto en pantalla. numeros: los que se ofrecen en cada puesto (pocos y con sentido); el compañero que tenía el tuyo se queda con el que dejaste libre. barrita: puntos por partido jugado más lo propio del puesto (gol tuyo de delantero, triunfo de volante, valla invicta de defensor). destrabes: en orden, cada uno prende su perilla de flags solo en tus partidos del Master cuando la barrita de ese puesto llega al umbral.",
+    "nombres": { "DEF": "DEFENSOR", "VOL": "VOLANTE", "ATA": "DELANTERO" },
+    "numeros": { "DEF": [2, 3, 4, 6], "VOL": [5, 8, 10], "ATA": [7, 9, 11] },
+    "barrita": { "por_partido": 1, "por_gol_tuyo": 2, "por_triunfo": 2, "por_valla_invicta": 2 },
+    "destrabes": {
+      "DEF": [{ "flag": "megadefensas", "nombre": "LAS MEGADEFENSAS", "umbral": 6 }],
+      "VOL": [{ "flag": "pase_al_vacio", "nombre": "EL PASE AL VACÍO", "umbral": 6 }],
+      "ATA": [{ "flag": "megatiros_con_nombre", "nombre": "EL SÚPER TIRO CON NOMBRE", "umbral": 6 }]
+    }
   }
 }
