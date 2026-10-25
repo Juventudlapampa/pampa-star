@@ -270,6 +270,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this._relPendiente = null;
     this._relPendientePrio = false;
     this._tickerFijo = 0;
+    /* 25/oct: las fichas que esperan detrás de otra ficha. La de la semana y
+       el relato de la llegada salen en el mismo cuadro; con un solo lugar de
+       espera la segunda pisaba a la primera y la ficha no se veía nunca */
+    this._relFichas = [];
     this._tickerDesde = null;        // L04b: cuándo se pintó la frase a la vista (apartarTicker)
     /* 20/oct · la viñeta del relator es de esta escena: se rearma en cada partido */
     this._vin = null; this._vinTxt = null; this._vinPendiente = null; this._vinTiempo = null;
@@ -899,8 +903,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.tweens.killTweensOf(t);
     t.setAlpha(0);
     this._tickerFijo = 0;
-    /* el lugar de espera es uno: una frase no desplaza a una ficha que espera */
-    if ((prio || sinLeer) && !(this._relPendiente && this._relPendientePrio && !prio)) {
+    /* el lugar de espera es uno: una frase no desplaza a una ficha que espera.
+       Una ficha apartada vuelve adelante de la que esperaba (salió antes) */
+    if (prio && this._relPendiente && this._relPendientePrio) {
+      this._relFichas.unshift(this._relPendiente); this._relPendiente = t.text;
+    } else if ((prio || sinLeer) && !(this._relPendiente && this._relPendientePrio && !prio)) {
       this._relPendiente = t.text; this._relPendientePrio = prio;
     }
   }
@@ -908,8 +915,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (!f || !this.tickerTxt) return;
     const linea = (icono ? icono + " " : "") + f, prio = !!(op && op.prioridad);
     const fichaALaVista = this._tickerFijo && this.time.now < this._tickerFijo;
-    if (!this.tickerSeLee() || this.vinietaALaVista() || (fichaALaVista && !prio)) {
-      if (!(this._relPendiente && this._relPendientePrio && !prio)) {
+    /* una ficha a la vista no se deja pisar, tampoco por otra ficha */
+    if (!this.tickerSeLee() || this.vinietaALaVista() || fichaALaVista) {
+      if (prio && this._relPendiente && this._relPendientePrio) this._relFichas.push(linea);
+      else if (!(this._relPendiente && this._relPendientePrio && !prio)) {
         this._relPendiente = linea; this._relPendientePrio = prio;
       }
       return;
@@ -930,9 +939,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      ficha a la vista (si hay) terminó su tiempo */
   soltarRelatoPendiente() {
     if (!this._relPendiente || !this.tickerSeLee() || this.vinietaALaVista()) return;
-    if (!this._relPendientePrio && this._tickerFijo && this.time.now < this._tickerFijo) return;
+    if (this._tickerFijo && this.time.now < this._tickerFijo) return;
     const f = this._relPendiente, prio = this._relPendientePrio;
     this._relPendiente = null; this._relPendientePrio = false;
+    if (this._relFichas && this._relFichas.length) { this._relPendiente = this._relFichas.shift(); this._relPendientePrio = true; }
     this._pintarRelato(f, prio);
   }
   /* helpers de música (flag v4_musica; el mute vive en SFX, compartido con el clásico) */

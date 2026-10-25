@@ -663,6 +663,31 @@ var TEXTOS_MUNDO_OK = {
      13/oct); el otro velo que tapa la franja es el de la PAUSA */
   s9.estado = "PAUSA"; s9.anunciarEnTicker("Se juega.", "🎙");
   assert(s9.tickerTxt.text === "🎙 ¡Qué gambeta!", "detrás de la pausa tampoco se escribe");
+  /* 25/oct · LA FICHA PISADA POR LA LLEGADA: la ficha de la semana y el
+     relato de la llegada salen en el mismo cuadro, las dos con prioridad.
+     Una ficha dejaba que otra la pisara y el lugar de espera era uno solo,
+     así que la de la semana no se veía nunca en un partido de la carrera */
+  s9.estado = "LIBRE"; s9._relPendiente = null; s9._relPendientePrio = false; s9._relFichas = []; s9._tickerFijo = 0;
+  s9.time.now = 20000;
+  s9.anunciarEnTicker("FICHA DE LA SEMANA", null, { prioridad: true });
+  s9.anunciarEnTicker("LLEGADA", null, { prioridad: true });
+  assert(s9.tickerTxt.text === "FICHA DE LA SEMANA" && s9._relPendiente === "LLEGADA",
+    "SÍNTOMA DE LA FICHA TAPADA: una ficha a la vista no la pisa otra ficha; la segunda espera (" + s9.tickerTxt.text + ")");
+  s9.soltarRelatoPendiente();
+  assert(s9.tickerTxt.text === "FICHA DE LA SEMANA", "la que espera no sale antes de que la ficha cumpla su tiempo");
+  s9.time.now = 20000 + HOLD + 1; s9.soltarRelatoPendiente();
+  assert(s9.tickerTxt.text === "LLEGADA", "y sale después");
+  s9.time.now = 40000; s9.estado = "TUTORIAL";
+  s9.anunciarEnTicker("FICHA DE LA SEMANA", null, { prioridad: true });
+  s9.anunciarEnTicker("LLEGADA", null, { prioridad: true });
+  assert(s9._relPendiente === "FICHA DE LA SEMANA" && s9._relFichas.length === 1,
+    "SÍNTOMA DE LA FICHA REEMPLAZADA: con la franja tapada las dos fichas esperan, en orden");
+  s9.estado = "LIBRE"; s9.soltarRelatoPendiente();
+  assert(s9.tickerTxt.text === "FICHA DE LA SEMANA" && s9._relPendiente === "LLEGADA", "al destaparse sale la primera");
+  s9.time.now = 40000 + HOLD + 1; s9.soltarRelatoPendiente();
+  assert(s9.tickerTxt.text === "LLEGADA" && !s9._relFichas.length, "y después la segunda");
+  assert(/this\._relFichas = \[\];/.test(SRC_M.slice(SRC_M.indexOf("  init() {"), SRC_M.indexOf("  create() {"))),
+    "init() vacía las fichas que esperaban (patrón P1)");
   /* y lo que se encontró verificando esto en pantalla: el perfil del rival y
      la ficha se soltaban con el estado todavía en LIBRE, y el tutorial se
      abría encima un renglón después. Desde TEMPO-1 no hay menú de tempo: el
