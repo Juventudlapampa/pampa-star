@@ -68,12 +68,20 @@ t("destraba de a una, y la próxima dice cuánto falta", () => {
   while (PU.destrabados(s, cfg).length === 0) { PU.sumar(s, { golesMio: 0, golesRival: 1, golesVos: 0 }, cfg); jugados++; }
   assert.ok(jugados > 1, "no se destraba en un partido");
   assert.deepStrictEqual(PU.destrabados(s, cfg), [d.flag]);
+  /* la que sigue cuenta desde la anterior, y al final no queda ninguna */
+  cfg.destrabes.ATA.slice(1).forEach((d2, k) => {
+    const pr = PU.proximo(s, cfg);
+    assert.strictEqual(pr.nombre, d2.nombre);
+    assert.strictEqual(pr.desde, cfg.destrabes.ATA[k].umbral);
+    while (PU.destrabados(s, cfg).length < k + 2) PU.sumar(s, { golesMio: 0, golesRival: 1, golesVos: 0 }, cfg);
+  });
   assert.strictEqual(PU.proximo(s, cfg), null);
+  assert.strictEqual(PU.destrabados(s, cfg).length, cfg.destrabes.ATA.length);
   /* cada puesto tiene la suya: cambiar de puesto no trae lo del otro */
   PU.elegir(s, "DEF", 2, cfg);
   assert.deepStrictEqual(PU.destrabados(s, cfg), []);
   PU.elegir(s, "ATA", 7, cfg);
-  assert.deepStrictEqual(PU.destrabados(s, cfg), [d.flag]);
+  assert.deepStrictEqual(PU.destrabados(s, cfg), cfg.destrabes.ATA.map(x => x.flag));
 });
 
 t("cada destrabe prende una perilla que existe y que la poda apagó", () => {

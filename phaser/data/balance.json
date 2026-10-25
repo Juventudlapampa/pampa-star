@@ -1520,7 +1520,9 @@
     "megatiros_con_nombre": false,
     "pase_al_vacio": false,
     "_puesto": "25/oct, pedido de Rodri: elegir el puesto y el número, saber en la cancha cuál sos y una barrita por puesto que destraba de a una lo que la poda apagó. puesto en false: VOS vuelve al 10 de delantero de siempre, sin pantalla de puesto ni barrita (logic/puesto.js, scenes/master.js vistaPuesto, match.js armarPlanteles).",
-    "puesto": true
+    "puesto": true,
+    "_pared_especial": "25/oct, pedido de Rodri: LA PARED ESPECIAL (logic/pared.js, match.js paredEspecial). Apagada para todos: la prende en tus partidos la barrita del puesto (balance.puesto.destrabes, DELANTERO y VOLANTE).",
+    "pared_especial": false
   },
   "puesto": {
     "_nota": "logic/puesto.js. nombres: cómo se dice cada puesto en pantalla. numeros: los que se ofrecen en cada puesto (pocos y con sentido); el compañero que tenía el tuyo se queda con el que dejaste libre. barrita: puntos por partido jugado más lo propio del puesto (gol tuyo de delantero, triunfo de volante, valla invicta de defensor). destrabes: en orden, cada uno prende su perilla de flags solo en tus partidos del Master cuando la barrita de ese puesto llega al umbral.",
@@ -1529,8 +1531,15 @@
     "barrita": { "por_partido": 1, "por_gol_tuyo": 2, "por_triunfo": 2, "por_valla_invicta": 2 },
     "destrabes": {
       "DEF": [{ "flag": "megadefensas", "nombre": "LAS MEGADEFENSAS", "umbral": 6 }],
-      "VOL": [{ "flag": "pase_al_vacio", "nombre": "EL PASE AL VACÍO", "umbral": 6 }],
-      "ATA": [{ "flag": "megatiros_con_nombre", "nombre": "EL SÚPER TIRO CON NOMBRE", "umbral": 6 }]
+      "VOL": [{ "flag": "pase_al_vacio", "nombre": "EL PASE AL VACÍO", "umbral": 6 }, { "flag": "pared_especial", "nombre": "LA PARED ESPECIAL", "umbral": 16 }],
+      "ATA": [{ "flag": "megatiros_con_nombre", "nombre": "EL SÚPER TIRO CON NOMBRE", "umbral": 6 }, { "flag": "pared_especial", "nombre": "LA PARED ESPECIAL", "umbral": 16 }]
     }
+  },
+  "pared": {
+    "_nota": "LA PARED ESPECIAL (logic/pared.js). costo: aguante de VOS. desde_frac: desde qué parte de la cancha se ofrece (0,5 = del medio para adelante). El compañero es el de mejor pase a menos de radio_px y no más de atras_px detrás tuyo. La pared (tu pase y su devolución): base + pase tuyo y suyo por sus pesos, menos por_marca por cada rival a menos de marca_px de cualquiera de los dos, entre min y max. El centro: centro_base + su pase por centro_por_pase, entre centro_min y centro_max; lo resuelve flujo.resolverCentro y la altura elige el remate de EL TOQUE. pique_x_px y pique_y_px: adónde picás (desde el fondo y desde el medio). super_calidad: con EL TOQUE a esa calidad o más, y aguante para el súper tiro, sale el súper tiro.",
+    "costo": 180, "desde_frac": 0.5, "radio_px": 300, "atras_px": 120,
+    "base": 30, "por_pase_vos": 0.3, "por_pase_compa": 0.3, "por_marca": 8, "marca_px": 70, "min": 20, "max": 85,
+    "centro_base": 45, "centro_por_pase": 0.4, "centro_min": 30, "centro_max": 85,
+    "pique_x_px": 150, "pique_y_px": 60, "super_calidad": 0.8
   }
 }

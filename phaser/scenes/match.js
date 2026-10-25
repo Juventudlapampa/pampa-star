@@ -3113,6 +3113,15 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     if (corrida) especiales.push({ texto: "MEGACORRIDA", sub: corrida.costo + " aguante · los dejás atrás", cb: () => this.secuenciaMegacorrida() });
     const combinada = !par.bloqueada ? this.secuenciaDisponible("combinada") : null;
     if (combinada) especiales.push({ texto: "COMBINADA", sub: combinada.costo + " aguante · él define", cb: () => this.secuenciaCombinada() });
+    /* 25/oct · LA PARED ESPECIAL: la prende la barrita de tu puesto (logic/puesto.js) */
+    const paredE = this.FLAGS.pared_especial && window.PampaPared && this.hayEscenas() ? window.PampaPared.disponible(st, this.BAL.pared) : null;
+    if (paredE) {
+      especiales.push({
+        texto: "PARED ESPECIAL",
+        sub: "con " + String(st.mios[paredE.companero].nombre || "").toUpperCase().slice(0, 10) + " · " + paredE.pct + "% · " + paredE.costo + " aguante",
+        cb: () => this.paredEspecial()
+      });
+    }
     const carta = this.centroDeCarta ? this.centroDeCarta("ataque", () => {
       const c = (this.manoActual() || []).map(m => m.carta).find(c2 => c2.clase === "ataque");
       if (!c) { this.reanudarLibre(); return; }
@@ -5543,6 +5552,61 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           volver: null
         });
       }
+    });
+  }
+
+  /* 25/oct · LA PARED ESPECIAL (logic/pared.js), en tres golpes con corte
+     seco: se la das al de mejor pase cerca, picás al área y te la tira. El
+     centro es el de siempre (flujo.resolverCentro) y termina en EL TOQUE, que
+     elige el remate por la altura; clavado en el momento justo, y con un
+     súper tiro en la mano, sale el súper tiro */
+  paredEspecial() {
+    const st = this.st, PA = window.PampaPared, C = this.BAL.pared;
+    const vos = st.mios[st.ctrl];
+    const r = PA.resolver(st, C);
+    const compa = st.mios[r.companero];
+    const nom = String(compa.nombre || "EL COMPA").toUpperCase().slice(0, 10);
+    if (!r.win) {
+      this.escenaCine({
+        etiqueta: "· la pared especial ·",
+        prota: { j: st.rivales[st.portadorRival], esRival: true, anim: "pase" }, rival: null,
+        gana: true, color: 0xe3503e, sfx: "choque",
+        titulo: "¡CORTARON LA PARED!", sub: "leyeron la devolución de " + nom,
+        alFinal: () => this.relatar("corte")
+      });
+      return;
+    }
+    const centro = () => {
+      const res = window.PampaFlujo.resolverCentro(st, r.vosIdx, r.pctCentro);
+      const despues = () => {
+        if (!res.win) { this.relatar("corte"); return; }
+        this.entrarToque(t => {
+          const F = this.jugadonFichas ? this.jugadonFichas() : null;
+          const mega = PA.esSuperTiro(t, C) && F && F.tiros > 0 ? this.megaDisponible() : null;
+          if (mega && window.PampaJugadon.gastarFicha(F, "tiros")) this.dispararConCine(mega, this.ejDeLaSituacion(mega, null, t));
+          else { this._toqueRemate = t; this.tiroPorComandos(null); }
+        }, res.toque);
+      };
+      this.escenaPase({
+        etiqueta: "· PARED ESPECIAL 3 de 3 ·", jugada: "centro",
+        cortador: res.win ? null : st.rivales[st.portadorRival], win: res.win, pateador: compa, receptor: vos,
+        titulo: res.win ? "¡TE LA TIRA " + nom + "!" : "¡LA CORTARON!",
+        sub: res.win ? "te cae a " + res.caida.h.toFixed(1).replace(".", ",") + " m de altura" : "Se la llevó de arriba. Pelota del rival.",
+        alFinal: despues
+      });
+    };
+    this.escenaCine({
+      etiqueta: "· PARED ESPECIAL 1 de 3 ·",
+      prota: { j: vos, esRival: false, anim: "pase" }, rival: null,
+      pose: "pared", gana: true, sfx: "kick",
+      titulo: "¡SE LA DAS A " + nom + "!", sub: "y salís corriendo",
+      alFinal: () => this.escenaCine({
+        etiqueta: "· PARED ESPECIAL 2 de 3 ·",
+        prota: { j: vos, esRival: false, anim: "gambeta" }, rival: null,
+        pose: "corriendo", gana: true, sfx: "whoosh",
+        titulo: "¡PICÁS AL ÁREA!", sub: nom + " levanta la cabeza",
+        alFinal: centro
+      })
     });
   }
 
