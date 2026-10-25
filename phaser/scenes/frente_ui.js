@@ -714,6 +714,7 @@
       }
       this.frenteFrame(fr);
       this.SFX && this.SFX.kickFuerte && this.SFX.kickFuerte();
+      if (!fr.penalArq && q >= this.BAL.patada_epica.frente_q_min) this.patadaEpica();
       this.frenteLectura(fr, fr.penalArq ? "¡PATEÓ!" : C.tipos[fr.tipo].n + " · " + (q > 0.75 ? "¡bien perfilado!" : q > 0.35 ? "más o menos parado" : "a destiempo"));
       if (fr.dice) fr.dice.setText(fr.penalArq ? "" : C.tipos[fr.tipo].dice);
       if (fr.penal) {

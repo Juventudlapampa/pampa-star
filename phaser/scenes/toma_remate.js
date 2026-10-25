@@ -313,6 +313,7 @@
            Rodri: "sonido épico"); el especial se distingue por el flash, el
            temblor y el hitstop */
         snd && snd.kickFuerte();
+        if (especial) self.patadaEpica();
         self.destello(self.uiCam, especial ? 140 : 90, 255, 255, 235);
         self.sacudir(self.uiCam, especial ? 300 : 200, especial ? 0.014 : 0.009);
         if (FE && FE.hitstop) FE.hitstop(self, "fuerte", especial ? 3 : 2);

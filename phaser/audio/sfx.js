@@ -216,7 +216,7 @@
     var c = ensure(); if (c && c.state === "suspended") c.resume();
     var el = archivoSonando;
     if (!el || !el.paused || el.ended || el.__saliendo || musicaEnPausa()) return;
-    try { el.muted = muted; var pr = el.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) { }
+    tocar(el);
   }
   function now() { return ctx ? ctx.currentTime : 0; }
 
@@ -448,10 +448,13 @@
     ponerCama();
     if (el && el !== archivoSonando) { rebobinar(el); el = null; }   // ya no es el tema
     if (quieto && quieto !== el) rebobinar(quieto);                  // se cambió o se calló en la pausa
-    if (!el) return true;
-    try { el.muted = muted; } catch (e) { }
-    try { el.volume = 0; var pr = el.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) { }
+    /* 25/oct: el de turno que estaba parado sin terminar (su play() no
+       arrancó) vuelve a tener su vigía */
+    if (!el) { if (archivoSonando && parado(archivoSonando)) vigilar(archivoSonando, 1); return true; }
+    try { el.volume = 0; } catch (e) { }
+    tocar(el);
     rampa(el, 0, volArchivo, FUNDIDO_MS);
+    vigilar(el, 1);
     return true;
   }
 
@@ -514,8 +517,10 @@
     return true;
   }
 
-  function registrarArchivos(mapa, volumen) {
+  /* cfg: balance.musica (vigia_ms, vigia_intentos), ver EL TEMA QUE NO ARRANCÓ */
+  function registrarArchivos(mapa, volumen, cfg) {
     if (volumen != null) volBase = volumen;
+    if (cfg) { VIGIA.ms = cfg.vigia_ms | 0; VIGIA.intentos = cfg.vigia_intentos | 0; }
     volArchivo = volBase * volMusica;
     /* UN ARCHIVO = UN ELEMENTO. definicion, jugadon y partido_final comparten
        pista (Last Ten Seconds); si cada uno tuviera su propio <audio>, entrar
@@ -631,13 +636,70 @@
     return n;
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     25/oct · EL TEMA QUE NO ARRANCÓ ("arranco el partido y es solo
+     murmullo, sin música" y "se activa y se desactiva la música").
+
+     Con cuarteto, rock y rap la entrada a la cancha y el partido son el
+     MISMO archivo (los estilos no traen entrada propia: logic/musica.js), o
+     sea el mismo elemento. Si el play() de la entrada no arrancaba (el
+     navegador lo frenó, o un pause o un load lo cortó antes de que llegara
+     el archivo), el pedido del partido a los 11 s encontraba "el mismo tema
+     ya sonando" y se iba sin volver a intentar: el partido con la cama de la
+     hinchada sola, la música recién en el remate (que pide el tema del
+     jugadón, otro archivo) y al volver al partido otra vez el elemento
+     parado. La música se prendía y se apagaba.
+
+     Ahora: (1) pedir el tema que ya es el de turno, si está parado sin haber
+     terminado, lo vuelve a tocar; (2) cada tema que entra tiene un vigía
+     (balance.musica.vigia_ms): si a ese tiempo sigue parado, o dice que
+     suena pero no tiene datos y no está bajando (o dio error), se lo vuelve
+     a pedir, hasta vigia_intentos veces. Un
+     tema que todavía baja (networkState 2) no se corta: se lo espera. El
+     motivo del último freno queda en el elemento (__frenado). vigia_ms en 0
+     apaga el vigía.
+     ══════════════════════════════════════════════════════════════════════ */
+  var VIGIA = { ms: 0, intentos: 0 };
+  function tocar(el) {
+    try { el.muted = muted; } catch (e) { }
+    el.__frenado = null;
+    try {
+      var pr = el.play();
+      if (pr && pr.catch) pr.catch(function (er) { el.__frenado = (er && er.name) || "Error"; });
+    } catch (e) { el.__frenado = (e && e.name) || "Error"; }
+  }
+  function parado(el) {
+    return el === archivoSonando && !el.__saliendo && !el.ended && el.paused && !musicaEnPausa();
+  }
+  function vigilar(el, intento) {
+    if (!(VIGIA.ms > 0) || intento > VIGIA.intentos) return;
+    clearTimeout(el.__vigia);
+    el.__vigia = setTimeout(function () {
+      el.__vigia = null;
+      if (el !== archivoSonando || el.__saliendo || el.ended || musicaEnPausa()) return;
+      var trabado = !el.paused && (!!el.error || el.readyState < 3);
+      if (trabado && !el.error && el.networkState === 2) { vigilar(el, intento); return; }   // todavía baja: se espera
+      if (!el.paused && !trabado) return;
+      if (trabado && typeof el.load === "function") { try { el.load(); } catch (e) { } }
+      tocar(el);
+      rampa(el, el.volume, duck.el === el ? volArchivo * DUCK : volArchivo, FUNDIDO_MS);
+      vigilar(el, intento + 1);
+    }, VIGIA.ms);
+  }
+
   function musicaTema(nombre, seco) {
     var id = nombre === "propia" ? "propia_propio" : nombre;
     /* el mismo tema ya sonando: no se reinicia (cortaría el loop al pedo).
        Pero los demás se van igual: si algo quedó colgado, éste es el momento
-       de limpiarlo. */
+       de limpiarlo. 25/oct: y si el de turno quedó parado sin terminar (su
+       play() no arrancó), se lo vuelve a tocar */
     if (id && archivos[id] && archivoSonando === archivos[id].audio && !archivoSonando.__saliendo) {
       despedirLosDemas(archivoSonando, seco);
+      if (parado(archivoSonando)) {
+        tocar(archivoSonando);
+        rampa(archivoSonando, 0, volArchivo, FUNDIDO_MS);
+        vigilar(archivoSonando, 1);
+      }
       return;
     }
 
@@ -660,8 +722,8 @@
         return;
       }
       despedirLosDemas(entrante, seco);
-      try { entrante.muted = muted; } catch (e) {}
-      try { var pr = entrante.play(); if (pr && pr.catch) pr.catch(function () { }); } catch (e) {}
+      tocar(entrante);
+      vigilar(entrante, 1);
       /* el volumen de destino es siempre el de crucero: el mute lo hace la
          propiedad muted del elemento. Antes el destino era 0 si estabas en
          mute, y al sacar el mute el tema quedaba en volumen 0 hasta el
@@ -853,6 +915,18 @@
     /* el contacto del súper tiro: más cuerpo y el chasquido del cuero */
     kickFuerte: function () { if (ensure()) muestra("patada_fuerte"); },
     whoosh: function () { if (ensure()) muestra("viento_remate"); },
+    /* 25/oct, Rodri: "HAY QUE HACER SONIDO Y EFECTO CUANDO PATEA, Y CUANDO
+       PATEA ÉPICAMENTE". La patada épica (súper tiro, EL TOQUE al ángulo,
+       el tiro de frente bien perfilado) son tres capas encima del golpe
+       fuerte: el silbido de la pelota que sale (silbido_ms después del
+       contacto) y la hinchada que se levanta (hinchada_ms de largo, sube en
+       hinchada_sube_ms). El golpe fuerte lo da la escena en el contacto, como
+       en cualquier remate, y también pide el corte de música (musicaDuck).
+       e = balance.patada_epica */
+    patadaEpica: function (e) {
+      setTimeout(function () { SFX.whoosh(); }, e.silbido_ms);
+      SFX.crowd(e.hinchada_ms, e.hinchada_sube_ms);
+    },
     /* el golpe en la RED y el roce de la malla */
     net: function () { if (ensure()) muestra("red"); },
     /* los guantes son solo del arquero; el choque de un quite, un corte o un

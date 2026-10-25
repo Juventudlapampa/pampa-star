@@ -1040,6 +1040,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     }
   }
   musicaDuck(ms) { if (this.FLAGS.v4_musica && this.FLAGS.e6_cine && this.SFX && this.SFX.musicaDuck) this.SFX.musicaDuck(ms); }
+  /* 25/oct · la patada épica: sus capas de sonido (audio/sfx.js, patadaEpica)
+     y el corte de música. La piden el súper tiro, EL TOQUE al ángulo y el
+     tiro de frente bien perfilado (balance.patada_epica) */
+  patadaEpica() {
+    const E = this.BAL.patada_epica;
+    if (this.SFX) this.SFX.patadaEpica(E);
+    this.musicaDuck(E.musica_corte_ms);
+  }
 
   /* plantel: VOS + amigos de la Capa 3 (save clásico, tolerante) + roster —
      idéntico al partido anterior: los saves existentes cargan igual */

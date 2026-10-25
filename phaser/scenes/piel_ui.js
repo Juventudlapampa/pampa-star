@@ -508,7 +508,7 @@
       var vol = (bal.musica && bal.musica.vol_archivo != null) ? bal.musica.vol_archivo : 0.42;
       var mapa = M.mapaCompleto(audio, fecha, "../assets/musica/", estilo);
       if (!mapa) return 0;
-      var n = S.registrarArchivos(mapa, vol);
+      var n = S.registrarArchivos(mapa, vol, bal.musica);
       MUSICA_REGISTRADA = true;
       window.__PAMPA_MUSICA_FECHA = fecha;
       window.__PAMPA_MUSICA_ESTILO = estilo;
