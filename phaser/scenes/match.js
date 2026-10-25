@@ -4464,7 +4464,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     const st = this.st, P = window.PampaPartido;
     const arq = st.mios.find(j => j.pos === "ARQ"), def = st.mios[st.ctrl], lar = P.saqueLargoPct(st);
     if (!arq || !lar || st.posesion !== "mia") return;
-    const ata = st.mios[lar.idx], nom = j => j.numero + ", " + String(j.nombre || "").toUpperCase();
+    const ata = st.mios[lar.idx], nom = j => j.numero + ", " + String(j.nombre || "").toUpperCase().replace(/\.+$/, "");
     const corto = () => this.mostrarResolucion("SAQUE CORTO\nLa tiene el " + nom(def) + ".", "#7ee08a", null);
     this.abrirMenuCruz({
       titulo: "¡LA TIENE TU ARQUERO! ¿Cómo saca? (✕ o ESC = corto)",
@@ -4483,7 +4483,8 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
   /* 25/oct: "saca corto para el 3, TOMI" (logic/partido.saqueArquero) */
   textoSaqueCorto(sq) {
     const r = sq && sq.receptorIdx != null && sq.receptorIdx !== sq.arqueroIdx ? this.st.rivales[sq.receptorIdx] : null;
-    return r ? " Saca corto para el " + r.numero + ", " + String(r.nombre || "").toUpperCase() + "." : " Saca él desde el fondo.";
+    /* los nombres con inicial ("THIAGO A.") ya traen su punto */
+    return r ? " Saca corto para el " + r.numero + ", " + String(r.nombre || "").toUpperCase().replace(/\.+$/, "") + "." : " Saca él desde el fondo.";
   }
   tituloDelGol(grito) {
     const j = this.st.mios[this.st.ctrl], base = grito || "¡GOOOL!";
