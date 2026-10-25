@@ -446,7 +446,7 @@
        ====================================================================== */
     entrarJugadonTiro() {
       var st = this.st, J = window.PampaJugadon, self = this;
-      this.jugadonAbrir("SÚPER TIRO · ¿dónde la ponés? — la física decide");
+      this.jugadonAbrir("SÚPER TIRO · ¿dónde la ponés? La física decide");
       /* el ARCO grande (400×140 de lógica, ×1.8 en pantalla) */
       var AW = J.ARCO.w * 1.8, AH = J.ARCO.h * 1.8, ax = W / 2, ayPiso = 380;
       var g = this.add.graphics();
@@ -490,7 +490,7 @@
           self.jugadonTirar({ x: o.x, y: o.y }, ax, ayPiso, AW, AH);
         });
       });
-      var tAyuda = this.add.text(W / 2, H - 96, "elegí DÓNDE la ponés — la física decide si entra", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
+      var tAyuda = this.add.text(W / 2, H - 96, "elegí DÓNDE la ponés: la física decide si entra", { fontFamily: window.PF.texto, fontSize: "13px", color: "#f6efdc" }).setOrigin(0.5).setAlpha(0.9);
       this.cineContent.add(tAyuda);
       /* M2 · "urgente" no existía ni en el synth ni en el mapa: no sonaba nada */
       this.pedirMusica("jugadon");

@@ -274,7 +274,7 @@ assert(mundialRivales.length === 9, "§11 el Mundial tiene sus nueve selecciones
    colores de ningún país: mirada el 25/oct */
 const ARTE = [];
 (function recorrer(d) { fs.readdirSync(d, { withFileTypes: true }).forEach(e => { const full = path.join(d, e.name); if (e.isDirectory()) recorrer(full); else ARTE.push(e.name); }); })(path.join(RAIZ, "assets"));
-const banderas = ARTE.filter(n => /bandera|flag/i.test(n) && !/^hincha_bandera.(webp|png)$/.test(n));
+const banderas = ARTE.filter(n => /bandera|flag/i.test(n) && !/^hincha_bandera\.(webp|png)$/.test(n));
 assert(banderas.length === 0, "§11 hay arte de banderas en assets/: " + banderas.join(", "));
 const roster = JSON.parse(fs.readFileSync(path.join(RAIZ, "data", "roster_pampeano.json"), "utf8"));
 

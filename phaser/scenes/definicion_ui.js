@@ -564,7 +564,7 @@
         }, w);
         self._def.zonaRects.push(r);
       });
-      var ayuda = this.add.text(W / 2, H - 86, "¿DÓNDE la ponés? — el arquero ya eligió su palo, a ciegas",
+      var ayuda = this.add.text(W / 2, H - 86, "¿DÓNDE la ponés? El arquero ya eligió su palo, a ciegas",
         { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d", backgroundColor: "#0a1f13dd", padding: { x: 8, y: 4 } }).setOrigin(0.5);
       this.cineContent.add(ayuda);
       this._def.botones.push(ayuda);

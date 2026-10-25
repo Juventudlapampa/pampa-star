@@ -129,7 +129,7 @@
   "gambeta_gana": {
    "archivo": "pose_gambeta_gana.webp",
    "quien": "heroe",
-   "n": "Gambeta ganada — quiebre limpio",
+   "n": "Gambeta ganada, quiebre limpio",
    "pelota": {
     "x": 0.902,
     "y": 0.872,
@@ -147,7 +147,7 @@
   "gambeta_pierde": {
    "archivo": "pose_gambeta_pierde.webp",
    "quien": "heroe",
-   "n": "Gambeta perdida — trastabillando",
+   "n": "Gambeta perdida, trastabillando",
    "tonos": {
     "piel": "#fecda7",
     "camiseta": "#4fc2f6"
@@ -160,7 +160,7 @@
   "pared": {
    "archivo": "pose_pared.webp",
    "quien": "heroe",
-   "n": "Pared — toque de primera",
+   "n": "Pared, toque de primera",
    "pelota": {
     "x": 0.811,
     "y": 0.909,
@@ -625,7 +625,7 @@
   "pelota_vieja": {
    "archivo": "pelota_vieja.webp",
    "quien": "objeto",
-   "n": "La pelota de potrero, gastada — reemplaza el círculo con gajos"
+   "n": "La pelota de potrero, gastada: reemplaza el círculo con gajos"
   },
   "calden": {
    "archivo": "calden.webp",

@@ -35,7 +35,10 @@ const PROHIBIDAS = [
   { re: palabra("enteros?|cansados?|fundidos?|golpeados?|tranquilos?|contentos?|nerviosos?|preparados?|convocados?"), por: "adjetivo con género para quien juega" },
   { re: palabra("tú|tienes|puedes|quieres|eres|vienes|sabes|haces|juegas|elige|pulsa|presiona|haz|contigo"), por: "tuteo: el juego habla de vos" },
   { re: palabra("todes|elles|chiques|amigues|compañeres|nosotres|jugadores?/as?|[" + L + "]+@s?|[" + L + "]+xs"), por: "lenguaje con e, x o arroba" },
-  { re: new RegExp("[" + L + "]/(a|as|o|os)(?![" + L + "])|(^|[^" + L + "])(el|los|un|unos)/(la|las|una|unas)(?![" + L + "])", "i"), por: "barras de género" }
+  { re: new RegExp("[" + L + "]/(a|as|o|os)(?![" + L + "])|(^|[^" + L + "])(el|los|un|unos)/(la|las|una|unas)(?![" + L + "])", "i"), por: "barras de género" },
+  /* 25/oct, pedido de Rodri: sin raya de inciso en lo que se ve del juego (la
+     raya sola de una celda sin dato no es inciso). Solo escenas, lógica y data */
+  { re: new RegExp("[" + L + "0-9.,;:!?)»]\\s*[—–]\\s*[" + L + "0-9¿¡(«]"), por: "raya de inciso", solo: /^(phaser\/scenes|phaser\/logic|data|phaser\/data)\// }
 ];
 /* lo que se queda, con su porqué: el texto exacto (o un pedazo) y el archivo */
 const PERMITIDOS = [
@@ -54,6 +57,7 @@ function revisar(rel, donde, txt) {
   if (!txt || pareceId(txt)) return;
   const t = limpio(txt);
   for (const P of PROHIBIDAS) {
+    if (P.solo && !P.solo.test(rel)) continue;
     const m = t.match(P.re);
     if (m && !permitido(rel, txt)) { hallados.push(rel + " " + donde + " «" + t.trim().slice(0, 90) + "» (" + P.por + ")"); return; }
   }
