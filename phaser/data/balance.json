@@ -1374,7 +1374,7 @@
     "por_defecto": "corta",
     "opciones": [
       { "k": "corta", "n": "CORTA", "d": "9 fechas, solo ida" },
-      { "k": "larga", "n": "LARGA", "d": "18 fechas, ida y vuelta" }
+      { "k": "larga", "n": "LARGA", "d": "18, ida y vuelta" }
     ]
   },
   "flags": {
