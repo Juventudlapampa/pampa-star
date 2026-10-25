@@ -2,12 +2,6 @@
  "_schema": "pampa-star/relatos@1",
  "_fuente": "PAMPA_DIALOGOS_CONVERSACIONES (Rodri, jul 2026)",
  "_notas": "Voces y escenas FICTICIAS y ORIGINALES (Pichi el Bagual, El Profe, Delfina Roldan). NUNCA personas reales ni medios reales. Texto de sabor para intro, relato y momentos; data separada del codigo.",
- "narrador_inicio": [
-  "PAMPA STAR.",
-  "No es la historia de una estrella. Es la de alguien que patea contra el viento.",
-  "Acá no nacés crack, te hacés.",
-  "Esto es La Pampa."
- ],
  "relatores": [
   {
    "id": "pichi",
@@ -18,7 +12,7 @@
     "¡Se levantó el viento y se la llevó puesta!",
     "¡La clavó en el ángulo como si fuera un caldén!",
     "¡Qué patada, papá! ¡Se escuchó hasta en la ruta 35!",
-    "Dale campeón, que acá no hay VAR, hay corazón."
+    "¡Dale, que acá se juega con el corazón!"
    ]
   },
   {
@@ -26,9 +20,9 @@
    "nombre": "El Profe",
    "estilo": "analisis tactico pampeano",
    "previa": [
-    "Señores, en La Pampa la pelota no rueda, pelea contra el viento.",
-    "El equipo juega con lo que hay, y hoy hay mucho huevo.",
-    "No es tiki-tiki, es garra pampeana.",
+    "En La Pampa la pelota pelea contra el viento.",
+    "El equipo juega con lo que hay, y hoy hay mucho corazón.",
+    "Hoy se juega con garra pampeana.",
     "El mediocampo es un caldén: firme, no se mueve.",
     "Si no la metés, que por lo menos el arquero tenga que volar."
    ]
@@ -40,7 +34,7 @@
    "previa": [
     "Buenas tardes desde General Pico, con el mate recién cebado.",
     "Hoy juega la promesa que se vino a probar a Santa Rosa.",
-    "La tribuna está vacía pero la localidad está escuchando.",
+    "La tribuna está a medio llenar y la localidad entera está escuchando.",
     "¿Se puede soñar? Acá en La Pampa soñamos con viento en contra."
    ]
   }
@@ -93,12 +87,12 @@
   ],
   "gol_rival": [
    "Gol de {rival}… silencio en el potrero.",
-   "La metieron ellos. A levantar la cabeza, que queda partido.",
+   "La metió el rival. A levantar la cabeza, que queda partido.",
    "Golpe duro. El viento sopla en contra, como siempre.",
-   "Gol de ellos. A no bajar los brazos."
+   "Gol del rival. A no bajar los brazos."
   ],
   "atajada": [
-   "¡La sacó el arquero de ellos! Qué manos, por favor.",
+   "¡La sacó el arquero rival! Qué manos, por favor.",
    "¡Voló el arquero rival y la manoteó! Se salvaron.",
    "El arquero dijo que no: esa no entraba ni con permiso.",
    "La sacó de las manos del gol. Aplauso para el arquero rival."
@@ -171,25 +165,25 @@
   ],
   "gol_rival_empatan": [
    "Lo empató {rival}. Todo de nuevo.",
-   "Gol de ellos y el partido vuelve a arrancar.",
+   "Gol del rival y el partido vuelve a arrancar.",
    "Empate. Se fue la ventaja, queda el partido.",
    "Lo igualaron. A levantar la cabeza."
   ],
   "gol_rival_adelantan": [
-   "Se adelantan ellos. A no bajar los brazos.",
+   "Se adelanta el rival. Hay tiempo para darlo vuelta.",
    "Gol de {rival}… silencio en el potrero.",
-   "La metieron ellos. Ahora hay que ir a buscarlo.",
+   "La metió el rival. Ahora hay que ir a buscarlo.",
    "Golpe duro. El viento sopla en contra, como siempre."
   ],
   "gol_rival_amplian": [
    "Otro de {rival}. Se pone cuesta arriba.",
    "Estiran la diferencia. Duele, pero se sigue.",
-   "Gol de ellos otra vez. El potrero no lo puede creer.",
+   "Gol del rival otra vez. El potrero no lo puede creer.",
    "Se escapan en el marcador. Hay que achicar de a uno."
   ],
   "gol_rival_descuentan": [
    "Descontó {rival}. Seguimos arriba, pero ojo.",
-   "La metieron ellos, pero el partido sigue de nuestro lado.",
+   "La metió el rival, pero el partido sigue de nuestro lado.",
    "Se acercan. A cuidar la ventaja.",
    "Gol de {rival}. Todavía vamos ganando, a no aflojar."
   ],
@@ -256,7 +250,7 @@
   ],
   "saque_arquero": [
    "La abrazó el arquero. Se la queda él y saca desde el fondo.",
-   "Se fue afuera. Saque de arco para ellos y a empezar de nuevo.",
+   "Se fue afuera. Saque de arco para el rival y a empezar de nuevo.",
    "La tiene el arquero rival. Ahora hay que ir a buscarla otra vez."
   ],
   "falta_a_favor": [
@@ -267,7 +261,7 @@
   ],
   "falta_en_contra": [
    "Pitazo. Falta y tiro libre para {rival}.",
-   "El árbitro no la dejó pasar: falta y tiro libre para ellos.",
+   "El árbitro no la dejó pasar: falta y tiro libre para el rival.",
    "Llegada tarde y tiro libre en contra. A parar bien la barrera.",
    "Falta en contra. Ahora hay que armar la barrera y aguantar."
   ],
@@ -279,7 +273,7 @@
   "penal_en_contra": [
    "Penal para {rival}. Llegada tarde adentro del área.",
    "El árbitro señala el punto. Penal en contra: todo queda en tu arquero.",
-   "Falta en el área y penal para ellos. A adivinar el lado."
+   "Falta en el área y penal para el rival. A adivinar el lado."
   ],
   "penal_errado": [
    "¡Lo erró! El penal se fue y {pueblo} respira.",
@@ -298,7 +292,7 @@
   "tabla": "Llega {puesto} en la tabla.",
   "tabla_en_cero": "Es la primera fecha: todos los equipos arrancan sin puntos.",
   "estrella": [
-   "La figura de ellos es {nombre}, «{apodo}», {puesto_cancha}.",
+   "La figura del rival es {nombre}, «{apodo}», {puesto_cancha}.",
    "Ojo con {nombre}, el {puesto_cancha} al que le dicen «{apodo}».",
    "Hay que mirar a {nombre}, «{apodo}», que juega de {puesto_cancha}."
   ],
@@ -324,7 +318,7 @@
   ],
   "lejos": [
    "{rival} viene de lejos, con muchas horas de ruta encima.",
-   "Los de {rival} nunca jugaron con este viento en contra.",
+   "En {rival} nunca jugaron con este viento en contra.",
    "{rival} llega con plantel largo y bolsos nuevos, y la cancha es la misma de siempre."
   ]
  },
@@ -332,7 +326,7 @@
   "vestuario_dt": [
    "DT: Escuchen bien: no tenemos botines nuevos, tenemos 90 minutos.",
    "Jugador 1: Profe, hace frío.",
-   "DT: Mejor, así el rival se congela y nosotros corremos.",
+   "DT: Mejor, así el rival se congela y el equipo corre.",
    "Jugador 2: ¿Juego?",
    "DT: Jugás vos, juega Toay, juega Victorica. Hoy juega La Pampa entera."
   ],
@@ -346,7 +340,7 @@
    "Periodista: ¿Cómo viste el gol?",
    "Vos: Lo vi como veo la pampa: infinito.",
    "Periodista: ¿Y el rival?",
-   "Vos: Duro, pero nosotros tenemos más polvo en las rodillas."
+   "Vos: Duro, pero en este equipo tenemos más polvo en las rodillas."
   ],
   "chill_pueblo": [
    "Vecina: ¿Y? ¿No vas a entrenar?",

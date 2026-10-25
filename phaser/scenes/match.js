@@ -3522,7 +3522,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           const rivalJ = rivalIdx != null ? st.rivales[rivalIdx] : null;
           this.escenaDelBloqueo(rivalJ, {
             titulo: r.matriz === "leyeron" ? "¡TE LO LEYERON!" : "¡TE LO TAPARON!",
-            sub: r.matriz === "leyeron" ? "Sabían que ibas a patear." : "Se le tiró encima. Pelota de ellos.",
+            sub: r.matriz === "leyeron" ? "Sabían que ibas a patear." : "Se le tiró encima. Pelota del rival.",
             desenlace: "despeje",
             relato: r.matriz === "leyeron" ? "bloqueo_leido" : "bloqueo"
           });
@@ -5633,7 +5633,7 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         etiqueta: res.zona ? "· el centro ·" : "· al aire ·", jugada: res.zona ? "centro" : "aire",
         cortador: res.win ? null : st.rivales[st.portadorRival], win: res.win, pateador: pateador, receptor: receptor,
         titulo: res.win ? (res.zona ? "¡CENTRO PARA " + nombre + "!" : "¡LA BAJA " + nombre + "!") : "¡LA CORTARON!",
-        sub: res.win ? (res.zona ? "le cae a " + res.caida.h.toFixed(1).replace(".", ",") + " m de altura" : "la baja y sigue la jugada") : "Se la llevó de arriba. Pelota de ellos.",
+        sub: res.win ? (res.zona ? "le cae a " + res.caida.h.toFixed(1).replace(".", ",") + " m de altura" : "la baja y sigue la jugada") : "Se la llevó de arriba. Pelota del rival.",
         alFinal: despues
       });
       return;

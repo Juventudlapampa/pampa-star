@@ -3170,7 +3170,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* A4 · con todas las letras: se dice que se descendió y a dónde */
       else if (v.desciende) { msj = "▼ DESCENSO · terminaste " + v.posicion + "º y bajás a " + (Ma.DIVISIONES.find(d => d.id === v.proximaDivision) || {}).n; color = "#e3503e"; }
       else if (v.leyenda) { msj = "Terminaste " + v.posicion + "º · la leyenda sigue en " + div.n; color = "#f6efdc"; }
-      else { msj = "Terminaste " + v.posicion + "º — otra temporada en " + div.n; color = "#f6efdc"; }
+      else { msj = "Terminaste " + v.posicion + "º y seguís en " + div.n; color = "#f6efdc"; }
       this.add.text(W / 2, H - 140, msj, { fontFamily: window.PF.display, fontSize: "13px", color }).setOrigin(0.5);
       /* 25/oct · el Mundial ganado ya no se vuelve a jugar con un botón: la
          salida es el cierre (Nito, TU CARRERA, créditos y la elección) */

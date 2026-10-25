@@ -565,7 +565,7 @@
             revelar: function () {
               if (res.golRival) {
                 self.SFX && self.SFX.net && self.SFX.net();
-                self.punch("GOL DE " + String(self.nombreRival || "ELLOS").toUpperCase(), self.porQueRemateRival(lectura, res), 0xe3503e);
+                self.punch("GOL " + (self.nombreRival ? "DE " + String(self.nombreRival).toUpperCase() : "DEL RIVAL"), self.porQueRemateRival(lectura, res), 0xe3503e);
                 if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
                 if (self.efectoGol) self.efectoGol(true);
               } else {

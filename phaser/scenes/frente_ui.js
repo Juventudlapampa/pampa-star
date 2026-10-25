@@ -108,7 +108,7 @@
       var self = this, C = this.BAL.frente, PC = this.BAL.penal, Pn = window.PampaPenal;
       var tactil = this.sys.game.device.input.touch;
       fr.penalArq = true; fr.penalDir = null; fr.perfila = this.msV(PC.perfila_ms);
-      this.frenteLectura(fr, "¡PENAL PARA ELLOS!");
+      this.frenteLectura(fr, "¡PENAL PARA EL RIVAL!");
       var lado = cfg.cpu.pista.dir;
       /* la postura: el cuerpo inclinado para el lado de la pista */
       if (fr.tirador && (lado === "izquierda" || lado === "derecha")) fr.tirador.setAngle(lado === "izquierda" ? -7 : 7);
@@ -226,7 +226,7 @@
         revelar: function () {
           if (gol) {
             self.SFX && self.SFX.net && self.SFX.net();
-            self.punch("GOL DE " + String(self.nombreRival || "ELLOS").toUpperCase(), porque, 0xe3503e);
+            self.punch("GOL " + (self.nombreRival ? "DE " + String(self.nombreRival).toUpperCase() : "DEL RIVAL"), porque, 0xe3503e);
             if (self.hinchadaEstalla) self.hinchadaEstalla(-1);
             if (self.efectoGol) self.efectoGol(true);
           } else {
@@ -868,7 +868,7 @@
         if (o.aFavor) this.penalMio(avisoP); else this.penalRival(st.portadorRival, avisoP);
         return true;
       }
-      var aviso = "¡FALTA " + del(o.infractor) + " SOBRE " + aQuien(sobre) + "!\nTiro libre " + (o.aFavor ? "a " + tl.metros + " m del arco" : "para ellos a " + tl.metros + " m");
+      var aviso = "¡FALTA " + del(o.infractor) + " SOBRE " + aQuien(sobre) + "!\nTiro libre " + (o.aFavor ? "a " + tl.metros + " m del arco" : "para el rival a " + tl.metros + " m");
       this.relatar(o.aFavor ? "falta_a_favor" : "falta_en_contra", {});
       this.quitarDuelo(); this.limpiarMenu();
       if (o.aFavor && tl.directo) {

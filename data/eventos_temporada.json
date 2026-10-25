@@ -31,9 +31,9 @@
      "frase": "el de la escuelita del club"
     },
     {
-     "t": "Solo, pateando contra la pared del galpón",
+     "t": "Por mi cuenta, pateando contra la pared del galpón",
      "sub": "mil tiros por tarde",
-     "corto": "Solo, contra la pared",
+     "corto": "Contra la pared del galpón",
      "ico": "casa",
      "stats": {
       "tiro": 8,
@@ -442,7 +442,7 @@
    "id": "clasico",
    "categoria": "rival",
    "condicion": "clasico",
-   "texto": "Es el clásico. Ellos andan diciendo que este año te comen crudo.",
+   "texto": "Es el clásico. En la otra localidad andan diciendo que este año te comen crudo.",
    "opciones": [
     {
      "texto": "Que hablen",

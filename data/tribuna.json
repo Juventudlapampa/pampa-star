@@ -155,8 +155,8 @@
           "b": "Aplaudo, pero sentado. Se me fue la sangre."
         },
         {
-          "a": "Si sigue así, al arquero de ellos no le dan los brazos.",
-          "b": "Que atajen ellos un rato, digo yo."
+          "a": "Si sigue así, al arquero rival no le van a dar los brazos.",
+          "b": "Que trabaje el otro arquero un rato, digo yo."
         },
         {
           "a": "No la soltó. Con este viento, no es poco.",
@@ -208,7 +208,7 @@
         { "a": "Falta sin necesidad. Ahora hay que armar la barrera.", "b": "Yo no miro. Avisame cuando pase." },
         { "a": "Llegada tarde. Se paga con tiro libre.", "b": "Y con mi presión, que me sube a veinte." },
         { "a": "Calma. Una barrera bien puesta vale un gol.", "b": "Que salten a la vez, como en el baile." },
-        { "a": "El árbitro la cobró rápido, eh.", "b": "Ese árbitro desayunó con ellos, seguro." }
+        { "a": "El árbitro la cobró rápido, eh.", "b": "Ese árbitro desayunó con el rival, seguro." }
       ]
     },
     {
@@ -368,7 +368,7 @@
           "b": "No lo digas. Recién ahí se pierde."
         },
         {
-          "a": "El reloj corre para nosotros hoy.",
+          "a": "Hoy el reloj corre a favor.",
           "b": "Que corra más rápido, por favor."
         },
         {
@@ -466,7 +466,7 @@
           }
         },
         {
-          "a": "Le ganamos al viento y a ellos.",
+          "a": "Le ganamos al viento y al rival.",
           "b": "Al viento nunca se le gana del todo."
         },
         {

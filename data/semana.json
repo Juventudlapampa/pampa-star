@@ -9,7 +9,7 @@
            "pase": {"pose": "pared", "sub": "paredes contra el paredón del club", "repaso": "estuviste tirando paredes hasta que se fue la luz"},
            "gambeta": {"pose": "gambeta_gana", "sub": "conos, amagues y cintura", "repaso": "estuviste entre los conos hasta que te dolieron los tobillos"}}},
   {"id": "descansar", "n": "DESCANSAR", "efecto": "llegás con más AGUANTE", "sub": "no hacer nada, y que sea sagrado", "lugar": "casa", "pose": "calden", "repaso": "no hiciste nada, y estuvo bien"},
-  {"id": "ver_rival", "n": "VER AL RIVAL", "efecto": "en el partido ves cómo se para su defensa y quién es su estrella", "sub": "te fuiste a la cancha de ellos a mirar", "lugar": "ruta", "pose": "recibiendo", "repaso": "te fuiste a verlos jugar"},
+  {"id": "ver_rival", "n": "VER AL RIVAL", "efecto": "en el partido ves cómo se para su defensa y quién es su estrella", "sub": "te fuiste a la cancha del rival a mirar", "lugar": "ruta", "pose": "recibiendo", "repaso": "fuiste a ver jugar al rival"},
   {"id": "barra", "n": "SALIR CON LA BARRA", "efecto": "más ÁNIMO, que ayuda en el SÚPER TIRO, EL TOQUE y el tiro libre", "sub": "asado, guitarra y campeonatos ganados de memoria", "lugar": "patio", "pose": "celebracion", "repaso": "saliste con la barra"}
  ],
  "opciones": [
@@ -110,9 +110,9 @@
    "sub": "espiarlos el domingo",
    "energia_costo": 20,
    "espia_rival": true,
-   "frase": "Te fuiste a la cancha de ellos a mirar cómo juegan.",
+   "frase": "Te fuiste a la cancha del rival a mirar cómo juega.",
    "lugar": "ruta",
-   "repaso": "te fuiste a verlos jugar",
+   "repaso": "fuiste a ver jugar al rival",
    "pose": "recibiendo",
    "pose_falta": "nadie mirando desde afuera: la de recibir esta de frente y sirve de prestado"
   },

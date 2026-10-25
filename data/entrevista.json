@@ -13,7 +13,7 @@
       "respuestas": [
         "En el potrero, contra los más grandes. Nunca me dieron ventaja.",
         "En la escuelita del club. Con botines prestados.",
-        "Solo. Pateando contra la pared del galpón.",
+        "Por mi cuenta. Pateando contra la pared del galpón.",
         "Con mi hermano mayor, que era el crack de la localidad."
       ]
     },
@@ -29,7 +29,7 @@
     "consejo": {
       "dice": "Y última, que a las siete entra el informativo y me corren. De quien te enseñó a jugar, la frase que te quedó. ¿Qué te dijo?",
       "_segun": "Revisión final del 23/oct: si en 'donde' respondiste que aprendiste solo, Nito no te pregunta por quien te enseñó. respuesta es el índice de la opción de esa pregunta.",
-      "segun": { "pregunta": "donde", "respuesta": 2, "dice": "Y última, que a las siete entra el informativo y me corren. Aprendiste solo, pero algo te habrán dicho en la cancha. La frase que te quedó. ¿Cuál fue?" },
+      "segun": { "pregunta": "donde", "respuesta": 2, "dice": "Y última, que a las siete entra el informativo y me corren. Aprendiste por tu cuenta, pero algo te habrán dicho en la cancha. La frase que te quedó. ¿Cuál fue?" },
       "respuestas": [
         "Que la pelota se acaricia. Eso me dijo.",
         "Que si dudás te pasan por arriba.",

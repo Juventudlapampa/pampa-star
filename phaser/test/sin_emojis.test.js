@@ -41,18 +41,21 @@ function revisarJson(rel) {
 }
 ["phaser/scenes", "phaser/logic"].forEach(d => fs.readdirSync(path.join(RAIZ, d)).filter(f => f.endsWith(".js")).forEach(f => revisarJs(d + "/" + f)));
 ["data", "phaser/data"].forEach(d => fs.readdirSync(path.join(RAIZ, d)).filter(f => f.endsWith(".json")).forEach(f => revisarJson(d + "/" + f)));
-/* el HTML: sin comentarios, y los scripts como código */
-const html = fs.readFileSync(path.join(RAIZ, "phaser/index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+/* el HTML: sin comentarios, y los scripts como código. 25/oct, pedido de Rodri
+   (la parte no jugable): también la portada del sitio, que tenía 📋 en COPIAR EL CÓDIGO */
+["phaser/index.html", "index.html"].forEach(function (relH) {
+const html = fs.readFileSync(path.join(RAIZ, relH), "utf8").replace(/<!--[\s\S]*?-->/g, "");
 html.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/g, function (_, js) {
   js.replace(/\/\*[\s\S]*?\*\//g, "").split(/\r?\n/).forEach(l => {
     const m = l.match(/(^|[^:"'\\])\/\/ /);
     const e = emojisDe(m ? l.slice(0, m.index) : l);
-    if (e.length) hallados.push("phaser/index.html (script) " + e.join("") + " " + l.trim().slice(0, 60));
+    if (e.length) hallados.push(relH + " (script) " + e.join("") + " " + l.trim().slice(0, 60));
   });
   return "";
 }).replace(/<style\b[^>]*>[\s\S]*?<\/style>/g, "").split(/\r?\n/).forEach(l => {
   const e = emojisDe(l);
-  if (e.length) hallados.push("phaser/index.html " + e.join("") + " " + l.trim().slice(0, 60));
+  if (e.length) hallados.push(relH + " " + e.join("") + " " + l.trim().slice(0, 60));
+});
 });
 /* los dos README son la cara pública del repo (ola 3, L12): el de la raíz
    abría con una pelota y nombraba los botones con 💾 y 📋, que el juego ya no tiene */

@@ -36,15 +36,18 @@ celular: un link que anda en cualquier teléfono, sin descarga y sin trámite.
 - **La carrera (Modo Master).** Elegís tu localidad en el mapa de La Pampa,
   armás tu pinta y te entrevista Nito. Arrancás en la Primera B y el
   campeón sube: Primera B, Primera A, Regional, Nacional y el Mundial. Fecha
-  a fecha, con tabla de posiciones, y entre fecha y fecha una semana para
-  entrenar, descansar, estudiar o ayudar en casa.
+  a fecha, con tabla de posiciones, y entre fecha y fecha una semana con una
+  sola elección: entrenar TIRO, PASE o GAMBETA, descansar, ver al rival o
+  salir con la barra. Cada ascenso tiene su escena y, si ganás el Mundial,
+  Nito te vuelve a entrevistar y te recuerda lo que contestaste al empezar.
 - **El partido por comandos.** No se corre atrás de la pelota: el partido se
-  frena en cada momento clave y elegís qué hacer. Con la pelota: gambeta,
+  frena cada vez que hay que decidir y elegís qué hacer. Con la pelota: gambeta,
   pase, pared o tiro. Defendiendo: quite, corte o bloqueo. Arriba se ve la
   escena ilustrada y abajo el mapa de la cancha; cada acción gasta aguante.
-- **EL TOQUE.** Adentro del área, el remate se juega: la pelota viene con
-  su curva, movés a quien patea para quedar bien parado y le pegás en el
-  momento justo, con el mouse, el dedo o el teclado.
+- **De frente al arco.** El remate se juega mirando el arco, con el
+  arquero y la defensa del rival: elegís el hueco y la pegada y le pegás
+  en el momento justo. En el teléfono se patea arrastrando el dedo desde la
+  pelota. Los tiros libres y los penales se patean igual.
 - **El arte.** Poses ilustradas a mano que cortan a pantalla completa en
   cada jugada grande (la pose queda quieta y se mueve todo lo demás), con
   música y sonido que siguen lo que pasa en la cancha.

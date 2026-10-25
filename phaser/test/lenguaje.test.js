@@ -28,6 +28,9 @@ const PROHIBIDAS = [
   { re: palabra("bienvenidos?"), por: "bienvenido: masculino genérico" },
   { re: palabra("compañeros"), por: "compañeros: masculino genérico (el equipo, el plantel)" },
   { re: palabra("nuestros"), por: "nuestros: masculino genérico" },
+  /* 25/oct, pedido de Rodri (la parte no jugable): "gol de ellos", "penal para
+     ellos", "Señores" en la previa y "nosotros" en la tribuna */
+  { re: palabra("ellos|nosotros|señores"), por: "ellos, nosotros, señores: masculino genérico (el rival, el equipo)" },
   { re: palabra("todos"), por: "todos: masculino genérico" },
   { re: palabra("enteros?|cansados?|fundidos?|golpeados?|tranquilos?|contentos?|nerviosos?|preparados?|convocados?"), por: "adjetivo con género para quien juega" },
   { re: palabra("tú|tienes|puedes|quieres|eres|vienes|sabes|haces|juegas|elige|pulsa|presiona|haz|contigo"), por: "tuteo: el juego habla de vos" },
