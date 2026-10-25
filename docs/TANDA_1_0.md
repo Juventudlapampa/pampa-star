@@ -6975,3 +6975,9 @@ En OPCIONES, una fila nueva, TE GUSTAN: se marcan hasta tres estilos (◄► y E
 Lo que no entró: la elección de los estilos al crear la carrera (la pantalla del mapa ya lleva duración y largo de carrera; queda en OPCIONES). No se transpusieron los temas viejos lejos de Sol (rap_partido, rap_semana, rock_derrota, Last_Ten_Seconds, Low_Light_Protocol). Nada se escuchó: el cuarteto, los seis corridos de tono y los remates de rock y rap (salieron en menor) se confirman de oído.
 
 Tests nuevos: musica_sigue (4 bloques) y titulo [6] (TE GUSTAN).
+
+## 25/oct noche: la ceremonia y El Profe (corte por tope semanal al 57%)
+
+La ceremonia ya no dice "+16% en todo; el arquero, de 40 a 50". Ahora dice "Los rivales juegan un 16% mejor y los arqueros atajan más" (o peor y menos, si bajás), con un solo número (logic/final.js, cambiosDeDivision; carrera_final.test.js actualizado por su pedido). El Profe tiene en LA PREVIA el retrato de DT de .claude/nuevos/arte/25oct (gorra, silbato, planilla, sin auriculares), copiado a assets/retratos/retrato_profe.webp y declarado en portraits_manifest.json (relator.retratos, con el cuadrado de la cara). Se probó en PC con la previa forzada a El Profe. En el teléfono no se miró: el armado de la previa es el mismo y solo cambió la imagen.
+
+No llegaron por el tope: LA SEMANA más simple, los momentos de la semana con tu pinta, los colores de cada club en la ilustración, los retratos y el minimapa, y la práctica de tiros libres, penales y EL TOQUE.
