@@ -2416,21 +2416,14 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
        (cada cara ya trae su color propio); VOS/amigos con los tintes elegidos.
        Un tinte de pelo que esta cara no admite (manifest) se trata como Original.
        El RIVAL siempre lleva la camiseta teñida a naranja (identidad de bando). */
-    const peloOk = cara.tintes_pelo !== false &&
-      !(Array.isArray(cara.tintes_pelo_excluye) && look.tPelo > 0 && cara.tintes_pelo_excluye.indexOf(A.CATALOGO.colores_pelo[look.tPelo - 1].id) >= 0);
+    const peloOk = A.tintePeloValido(cara, look.tPelo);
     const tPiel = esMioElegido ? look.tPiel : 0;
     const tPelo = esMioElegido && peloOk ? look.tPelo : 0;
     const tCam = esMioElegido ? look.tCam : 0;
     const base = "cara_" + cara.id;
     if (!tPiel && !tPelo && !tCam && !esRival) return { base: base, clave: base, mapa: null };   // Original puro
     const key = "caraT_" + idx + "_" + tPiel + "_" + tPelo + "_" + tCam + (esRival ? "_r" : "");
-    const hx = s => parseInt(String(s).slice(1), 16);
-    const T = cara.tonos || {}, tol = CM.tolerancias || {};
-    const CAT = A.CATALOGO;
-    const mapa = [];
-    if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 46, y1: cara.pelo_y1 != null ? cara.pelo_y1 : 0.5 });
-    if (tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[tPiel - 1].hex), tol: tol.piel || 85 });
-    if (T.camiseta && (esRival || tCam > 0)) mapa.push({ de: hx(T.camiseta), a: esRival ? 0xFF8A50 : hx(CM.camisetas[(tCam - 1) % CM.camisetas.length].hex), tol: tol.camiseta || 95 });
+    const mapa = window.PampaAvatarArte.mapaDeBusto(cara, { tPiel: tPiel, tPelo: tPelo, tCam: tCam }, CM, esRival);
     return { base: base, clave: key, mapa: mapa };
   }
   retratoKey(j, esRival, expresion) {

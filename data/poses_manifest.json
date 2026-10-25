@@ -568,7 +568,7 @@
    "tonos": { "pelo": "#f24a22", "piel": "#faceb6", "camiseta": "#56b6e6" },
    "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
    "pelo_y1": 0.45,
-   "tintes_pelo_excluye": ["rubio", "canoso"],
+   "pelo_propio": "colorado",
    "pelota": { "x": 0.277, "y": 0.909, "r": 0.1 }
   },
   "corriendo_colorado_izq": {
@@ -579,7 +579,7 @@
    "tonos": { "pelo": "#f24a22", "piel": "#faceb6", "camiseta": "#56b6e6" },
    "tolerancias": { "pelo": 60, "piel": 80, "camiseta": 95 },
    "pelo_y1": 0.45,
-   "tintes_pelo_excluye": ["rubio", "canoso"],
+   "pelo_propio": "colorado",
    "pelota": { "x": 0.723, "y": 0.909, "r": 0.1 }
   },
   "corriendo_flequillo": {

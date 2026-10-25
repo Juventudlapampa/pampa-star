@@ -310,13 +310,17 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
   estadoAtras() { return { escena: "editor", pendiente: !!this.game.registry.get("carreraPendiente") }; }
 
   tinteValido(cara, tPelo) {
-    if (tPelo === 0) return true;
-    if (cara.tintes_pelo === false) return false;
-    if (Array.isArray(cara.tintes_pelo_excluye)) {
-      const id = window.PampaAvatar.CATALOGO.colores_pelo[tPelo - 1].id;
-      if (cara.tintes_pelo_excluye.indexOf(id) >= 0) return false;
-    }
-    return true;
+    return window.PampaAvatar.tintePeloValido(cara, tPelo);
+  }
+  /* 25/oct: la fila de color de pelo dice qué es el Original de esa cara
+     ("Original (negro)": por eso Negro no aparece) y, en la que no tiene pelo
+     para teñir, lo dice en vez de quedarse muda */
+  nombrePelo(cara, tPelo) {
+    const CAT = window.PampaAvatar.CATALOGO;
+    if (tPelo > 0) return CAT.colores_pelo[tPelo - 1].n;
+    if (cara.tintes_pelo === false) return "Sin pelo para teñir";
+    const propio = CAT.colores_pelo.find(c => c.id === cara.pelo_propio);
+    return propio ? "Original (" + propio.n.toLowerCase() + ")" : "Original";
   }
   mover(campo, d) {
     /* 20/oct, Rodri: cambiar la pinta no sonaba. Suena como el cursor del
@@ -368,18 +372,11 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const l = A.validarLook(look);
     const cara = this.CM.caras[l.cara % this.CM.caras.length];
     if (!cara || !this.textures.exists("cara_" + cara.id)) return null;
-    const CAT = A.CATALOGO;
     const tPelo = this.tinteValido(cara, l.tPelo) ? l.tPelo : 0;
     if (!l.tPiel && !tPelo && !l.tCam) return "cara_" + cara.id;   // Original puro
     const key = "caraT_" + l.cara + "_" + l.tPiel + "_" + tPelo + "_" + l.tCam;
     if (!this.textures.exists(key)) {
-      const hx = s => parseInt(String(s).slice(1), 16);
-      const T = cara.tonos || {}, tol = this.CM.tolerancias || {};
-      const mapa = [];
-      if (tPelo > 0 && T.pelo && T.pelo !== T.piel) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[tPelo - 1].hex), tol: tol.pelo || 46, y1: cara.pelo_y1 != null ? cara.pelo_y1 : 0.5 });
-      if (l.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[l.tPiel - 1].hex), tol: tol.piel || 85 });
-      if (l.tCam > 0 && T.camiseta && this.CM.camisetas) mapa.push({ de: hx(T.camiseta), a: hx(this.CM.camisetas[(l.tCam - 1) % this.CM.camisetas.length].hex), tol: tol.camiseta || 95 });
-      Arte.tenirImagen(this, "cara_" + cara.id, key, mapa);
+      Arte.tenirImagen(this, "cara_" + cara.id, key, Arte.mapaDeBusto(cara, Object.assign({}, l, { tPelo: tPelo }), this.CM));
     }
     return this.textures.exists(key) ? key : "cara_" + cara.id;
   }
@@ -413,7 +410,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const CAT = A.CATALOGO;
     const nTin = (v, lista) => v > 0 ? lista[v - 1].n : "Original";
     this.txtLabel.setText(this._v2
-      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · piel " + nTin(l.tPiel, CAT.pieles).toLowerCase().replace(/^piel /, "") + " · pelo " + nTin(l.tPelo, CAT.colores_pelo).toLowerCase())
+      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · piel " + nTin(l.tPiel, CAT.pieles).toLowerCase().replace(/^piel /, "") + " · pelo " + this.nombrePelo(this.CM.caras[l.cara % this.CM.caras.length], l.tPelo).toLowerCase())
       : A.lookLabel(p.look));
     /* etiquetas de los steppers (cada variante con NOMBRE) + la fila activa
        del teclado marcada con ► y color (forma + color, no solo color) */
@@ -425,7 +422,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     if (this.filas.cara) this.filas.cara.setText(this.CM.caras[l.cara % this.CM.caras.length].n);
     if (this.filas.piel) this.filas.piel.setText(this._v2 ? nTin(l.tPiel, CAT.pieles) : r.piel.n);
     if (this.filas.corte) this.filas.corte.setText(r.corte.n);
-    if (this.filas.colorPelo) this.filas.colorPelo.setText(this._v2 ? nTin(l.tPelo, CAT.colores_pelo) : r.colorPelo.n);
+    if (this.filas.colorPelo) this.filas.colorPelo.setText(this._v2 ? this.nombrePelo(this.CM.caras[l.cara % this.CM.caras.length], l.tPelo) : r.colorPelo.n);
     if (this.filas.ojos) this.filas.ojos.setText(r.ojos.n);
     if (this.filas.cejas) this.filas.cejas.setText(r.cejas.n);
     if (this.filas.boca) this.filas.boca.setText(r.boca.n);

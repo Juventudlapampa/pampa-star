@@ -1,0 +1,2070 @@
+{
+ "_schema": "pampa-star/zonas@1",
+ "_doc": "Generado por herramientas/mascaras_zonas.py (no se edita a mano). Por textura: la ilustración (fuente), su tamaño, la máscara de zonas (gris: 80 pelo, 160 piel, 240 camiseta), los tonos base usados y, por zona, la luz medida [sombra, base, brillo] en luminancia 0-255 y la rampa ORIGINAL de esa ilustración (los colores de esos tres puntos). El teñido (logic/avatar.js, lutDeZona) lleva cada luminancia a la rampa del color elegido.",
+ "imagenes": {
+  "cara_clasico": {
+   "fuente": "assets/poses/caras/cara_clasico.png",
+   "mascara": "assets/mascaras/cara_clasico.png",
+   "tam": [
+    706,
+    700
+   ],
+   "tonos": {
+    "pelo": "#183448",
+    "piel": "#fbe1ca",
+    "camiseta": "#4dbff3"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      17.6,
+      45.9,
+      62.9
+     ],
+     "rampa": [
+      "#001624",
+      "#183448",
+      "#214763"
+     ],
+     "px": 92006
+    },
+    "piel": {
+     "luz": [
+      141.1,
+      230.2,
+      255.0
+     ],
+     "rampa": [
+      "#b1816b",
+      "#fbe1ca",
+      "#fff9e0"
+     ],
+     "px": 100104
+    },
+    "camiseta": {
+     "luz": [
+      85.2,
+      162.8,
+      209.4
+     ],
+     "rampa": [
+      "#20639a",
+      "#4dbff3",
+      "#63f6ff"
+     ],
+     "px": 58652
+    }
+   }
+  },
+  "cara_rulos": {
+   "fuente": "assets/poses/caras/cara_rulos.png",
+   "mascara": "assets/mascaras/cara_rulos.png",
+   "tam": [
+    706,
+    700
+   ],
+   "tonos": {
+    "pelo": "#332925",
+    "piel": "#cc9168",
+    "camiseta": "#4ebef3"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      19.9,
+      43.5,
+      57.7
+     ],
+     "rampa": [
+      "#181310",
+      "#332925",
+      "#443631"
+     ],
+     "px": 117659
+    },
+    "piel": {
+     "luz": [
+      89.9,
+      158.0,
+      198.8
+     ],
+     "rampa": [
+      "#884b2f",
+      "#cc9168",
+      "#ffb783"
+     ],
+     "px": 91326
+    },
+    "camiseta": {
+     "luz": [
+      83.5,
+      162.6,
+      210.0
+     ],
+     "rampa": [
+      "#1f6198",
+      "#4ebef3",
+      "#65f5ff"
+     ],
+     "px": 59009
+    }
+   }
+  },
+  "cara_melena": {
+   "fuente": "assets/poses/caras/cara_melena.png",
+   "mascara": "assets/mascaras/cara_melena.png",
+   "tam": [
+    706,
+    700
+   ],
+   "tonos": {
+    "pelo": "#183246",
+    "piel": "#fbe1ca",
+    "camiseta": "#4dbef4"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      17.6,
+      44.5,
+      60.6
+     ],
+     "rampa": [
+      "#001624",
+      "#183246",
+      "#21445f"
+     ],
+     "px": 107024
+    },
+    "piel": {
+     "luz": [
+      139.7,
+      230.2,
+      255.0
+     ],
+     "rampa": [
+      "#b08069",
+      "#fbe1ca",
+      "#fff9e0"
+     ],
+     "px": 93154
+    },
+    "camiseta": {
+     "luz": [
+      83.9,
+      162.4,
+      209.5
+     ],
+     "rampa": [
+      "#1e6298",
+      "#4dbef4",
+      "#63f5ff"
+     ],
+     "px": 59363
+    }
+   }
+  },
+  "cara_rapado": {
+   "fuente": "assets/poses/caras/cara_rapado.png",
+   "mascara": "assets/mascaras/cara_rapado.png",
+   "tam": [
+    711,
+    700
+   ],
+   "tonos": {
+    "piel": "#875033",
+    "camiseta": "#4cbff4"
+   },
+   "zonas": {
+    "piel": {
+     "luz": [
+      50.8,
+      93.1,
+      118.5
+     ],
+     "rampa": [
+      "#4f2919",
+      "#875033",
+      "#ac6641"
+     ],
+     "px": 170921
+    },
+    "camiseta": {
+     "luz": [
+      84.9,
+      162.7,
+      209.3
+     ],
+     "rampa": [
+      "#20629a",
+      "#4cbff4",
+      "#62f6ff"
+     ],
+     "px": 60110
+    }
+   }
+  },
+  "cara_colorado": {
+   "fuente": "assets/poses/caras/cara_colorado.png",
+   "mascara": "assets/mascaras/cara_colorado.png",
+   "tam": [
+    697,
+    700
+   ],
+   "tonos": {
+    "pelo": "#f84824",
+    "piel": "#fee8d9",
+    "camiseta": "#4dbef4"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      73.1,
+      120.5,
+      149.0
+     ],
+     "rampa": [
+      "#a3260f",
+      "#f84824",
+      "#ff592d"
+     ],
+     "px": 94340
+    },
+    "piel": {
+     "luz": [
+      163.1,
+      236.9,
+      255.0
+     ],
+     "rampa": [
+      "#be9a8b",
+      "#fee8d9",
+      "#fffaea"
+     ],
+     "px": 92957
+    },
+    "camiseta": {
+     "luz": [
+      94.4,
+      162.4,
+      203.1
+     ],
+     "rampa": [
+      "#256ea5",
+      "#4dbef4",
+      "#60eeff"
+     ],
+     "px": 57488
+    }
+   }
+  },
+  "cara_flequillo": {
+   "fuente": "assets/poses/caras/cara_flequillo.png",
+   "mascara": "assets/mascaras/cara_flequillo.png",
+   "tam": [
+    708,
+    700
+   ],
+   "tonos": {
+    "pelo": "#183246",
+    "piel": "#fbe1ca",
+    "camiseta": "#4dbef4"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      17.6,
+      44.5,
+      60.6
+     ],
+     "rampa": [
+      "#001624",
+      "#183246",
+      "#21445f"
+     ],
+     "px": 126855
+    },
+    "piel": {
+     "luz": [
+      139.4,
+      230.2,
+      255.0
+     ],
+     "rampa": [
+      "#b07f69",
+      "#fbe1ca",
+      "#fff9e0"
+     ],
+     "px": 81137
+    },
+    "camiseta": {
+     "luz": [
+      83.5,
+      162.4,
+      209.7
+     ],
+     "rampa": [
+      "#1f6197",
+      "#4dbef4",
+      "#63f5ff"
+     ],
+     "px": 59461
+    }
+   }
+  },
+  "cara_mohicano": {
+   "fuente": "assets/poses/caras/cara_mohicano.png",
+   "mascara": "assets/mascaras/cara_mohicano.png",
+   "tam": [
+    706,
+    700
+   ],
+   "tonos": {
+    "pelo": "#183347",
+    "piel": "#b79c55",
+    "camiseta": "#4dbef4"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      16.2,
+      45.2,
+      62.6
+     ],
+     "rampa": [
+      "#011522",
+      "#183347",
+      "#214762"
+     ],
+     "px": 23306
+    },
+    "piel": {
+     "luz": [
+      88.5,
+      156.0,
+      196.5
+     ],
+     "rampa": [
+      "#6d5727",
+      "#b79c55",
+      "#e6c46b"
+     ],
+     "px": 144192
+    },
+    "camiseta": {
+     "luz": [
+      85.0,
+      162.4,
+      208.8
+     ],
+     "rampa": [
+      "#20629a",
+      "#4dbef4",
+      "#63f4ff"
+     ],
+     "px": 59404
+    }
+   }
+  },
+  "pose_remate": {
+   "fuente": "assets/poses/pose_remate.webp",
+   "mascara": "assets/mascaras/pose_remate.png",
+   "tam": [
+    900,
+    854
+   ],
+   "tonos": {
+    "piel": "#fdd1b5",
+    "camiseta": "#4dc0f6",
+    "pelo": "#0b1d2e"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      7.0,
+      25.6,
+      60.8
+     ],
+     "rampa": [
+      "#02080f",
+      "#0b1d2e",
+      "#22435e"
+     ],
+     "px": 15555
+    },
+    "piel": {
+     "luz": [
+      156.9,
+      219.0,
+      255.0
+     ],
+     "rampa": [
+      "#ab9a8e",
+      "#fdd1b5",
+      "#fff3d3"
+     ],
+     "px": 38575
+    },
+    "camiseta": {
+     "luz": [
+      83.4,
+      163.8,
+      212.0
+     ],
+     "rampa": [
+      "#1c6296",
+      "#4dc0f6",
+      "#64f9ff"
+     ],
+     "px": 71029
+    }
+   }
+  },
+  "pose_chilena": {
+   "fuente": "assets/poses/pose_chilena.webp",
+   "mascara": "assets/mascaras/pose_chilena.png",
+   "tam": [
+    900,
+    795
+   ],
+   "tonos": {
+    "piel": "#fbd0b3",
+    "camiseta": "#4ec1f8",
+    "pelo": "#0b1d2e"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      6.6,
+      25.6,
+      62.0
+     ],
+     "rampa": [
+      "#020711",
+      "#0b1d2e",
+      "#214460"
+     ],
+     "px": 14742
+    },
+    "piel": {
+     "luz": [
+      155.1,
+      217.6,
+      230.6
+     ],
+     "rampa": [
+      "#a8978a",
+      "#fbd0b3",
+      "#fce1ce"
+     ],
+     "px": 37014
+    },
+    "camiseta": {
+     "luz": [
+      83.8,
+      164.9,
+      213.5
+     ],
+     "rampa": [
+      "#206397",
+      "#4ec1f8",
+      "#65faff"
+     ],
+     "px": 62480
+    }
+   }
+  },
+  "pose_cabezazo": {
+   "fuente": "assets/poses/pose_cabezazo.webp",
+   "mascara": "assets/mascaras/pose_cabezazo.png",
+   "tam": [
+    900,
+    855
+   ],
+   "tonos": {
+    "piel": "#fbd0b5",
+    "camiseta": "#4bc0f8",
+    "pelo": "#0a1d30"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      5.7,
+      25.5,
+      66.2
+     ],
+     "rampa": [
+      "#030510",
+      "#0a1d30",
+      "#1e4a68"
+     ],
+     "px": 16266
+    },
+    "piel": {
+     "luz": [
+      155.5,
+      217.8,
+      255.0
+     ],
+     "rampa": [
+      "#ab978e",
+      "#fbd0b5",
+      "#fff4d4"
+     ],
+     "px": 42740
+    },
+    "camiseta": {
+     "luz": [
+      84.8,
+      163.4,
+      210.5
+     ],
+     "rampa": [
+      "#1c6396",
+      "#4bc0f8",
+      "#61f7ff"
+     ],
+     "px": 67566
+    }
+   }
+  },
+  "pose_festejo": {
+   "fuente": "assets/poses/pose_celebracion.webp",
+   "mascara": "assets/mascaras/pose_celebracion.png",
+   "tam": [
+    1016,
+    2074
+   ],
+   "tonos": {
+    "piel": "#fac194",
+    "camiseta": "#8cc5e9",
+    "pelo": "#0e2d33"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      10.5,
+      36.4,
+      78.1
+     ],
+     "rampa": [
+      "#040e0c",
+      "#0e2d33",
+      "#315869"
+     ],
+     "px": 38062
+    },
+    "piel": {
+     "luz": [
+      151.1,
+      204.9,
+      237.2
+     ],
+     "rampa": [
+      "#d28655",
+      "#fac194",
+      "#ffdfab"
+     ],
+     "px": 219213
+    },
+    "camiseta": {
+     "luz": [
+      122.3,
+      184.1,
+      210.4
+     ],
+     "rampa": [
+      "#4888b6",
+      "#8cc5e9",
+      "#b7d9f0"
+     ],
+     "px": 220741
+    }
+   }
+  },
+  "pose_gambeta_gana": {
+   "fuente": "assets/poses/pose_gambeta_gana.webp",
+   "mascara": "assets/mascaras/pose_gambeta_gana.png",
+   "tam": [
+    900,
+    896
+   ],
+   "tonos": {
+    "piel": "#ffcea8",
+    "camiseta": "#4fc2f7",
+    "pelo": "#0f2026"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      6.8,
+      27.6,
+      60.7
+     ],
+     "rampa": [
+      "#01090b",
+      "#0f2026",
+      "#274454"
+     ],
+     "px": 17807
+    },
+    "piel": {
+     "luz": [
+      139.9,
+      216.3,
+      255.0
+     ],
+     "rampa": [
+      "#af816e",
+      "#ffcea8",
+      "#fff3c6"
+     ],
+     "px": 66753
+    },
+    "camiseta": {
+     "luz": [
+      102.6,
+      165.7,
+      203.5
+     ],
+     "rampa": [
+      "#33769d",
+      "#4fc2f7",
+      "#61eeff"
+     ],
+     "px": 62550
+    }
+   }
+  },
+  "pose_gambeta_pierde": {
+   "fuente": "assets/poses/pose_gambeta_pierde.webp",
+   "mascara": "assets/mascaras/pose_gambeta_pierde.png",
+   "tam": [
+    900,
+    830
+   ],
+   "tonos": {
+    "piel": "#fecda7",
+    "camiseta": "#4fc2f6",
+    "pelo": "#0e2126"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      8.4,
+      27.9,
+      60.5
+     ],
+     "rampa": [
+      "#020b0c",
+      "#0e2126",
+      "#274451"
+     ],
+     "px": 19142
+    },
+    "piel": {
+     "luz": [
+      139.9,
+      215.3,
+      255.0
+     ],
+     "rampa": [
+      "#af806d",
+      "#fecda7",
+      "#fff3c6"
+     ],
+     "px": 77719
+    },
+    "camiseta": {
+     "luz": [
+      102.7,
+      165.5,
+      203.2
+     ],
+     "rampa": [
+      "#32779e",
+      "#4fc2f6",
+      "#61eeff"
+     ],
+     "px": 70999
+    }
+   }
+  },
+  "pose_pared": {
+   "fuente": "assets/poses/pose_pared.webp",
+   "mascara": "assets/mascaras/pose_pared.png",
+   "tam": [
+    900,
+    877
+   ],
+   "tonos": {
+    "piel": "#fdcba5",
+    "camiseta": "#4ebdf1",
+    "pelo": "#0d1f25"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      8.1,
+      26.3,
+      65.2
+     ],
+     "rampa": [
+      "#020a0e",
+      "#0d1f25",
+      "#2c4955"
+     ],
+     "px": 15738
+    },
+    "piel": {
+     "luz": [
+      139.4,
+      213.6,
+      255.0
+     ],
+     "rampa": [
+      "#ae806b",
+      "#fdcba5",
+      "#fff2c5"
+     ],
+     "px": 58568
+    },
+    "camiseta": {
+     "luz": [
+      102.3,
+      161.7,
+      197.4
+     ],
+     "rampa": [
+      "#31769e",
+      "#4ebdf1",
+      "#5fe7ff"
+     ],
+     "px": 70788
+    }
+   }
+  },
+  "pose_corriendo": {
+   "fuente": "assets/poses/pose_corriendo.webp",
+   "mascara": "assets/mascaras/pose_corriendo.png",
+   "tam": [
+    900,
+    898
+   ],
+   "tonos": {
+    "pelo": "#0c2424",
+    "piel": "#fccca4",
+    "camiseta": "#54bcec"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      8.1,
+      28.8,
+      69.8
+     ],
+     "rampa": [
+      "#020a0d",
+      "#0c2424",
+      "#2f4d5a"
+     ],
+     "px": 22627
+    },
+    "piel": {
+     "luz": [
+      137.4,
+      213.8,
+      255.0
+     ],
+     "rampa": [
+      "#ad7d6b",
+      "#fccca4",
+      "#fff3c4"
+     ],
+     "px": 64061
+    },
+    "camiseta": {
+     "luz": [
+      102.3,
+      162.4,
+      198.4
+     ],
+     "rampa": [
+      "#30769e",
+      "#54bcec",
+      "#67e6ff"
+     ],
+     "px": 70022
+    }
+   }
+  },
+  "pose_quite": {
+   "fuente": "assets/poses/pose_quite.webp",
+   "mascara": "assets/mascaras/pose_quite.png",
+   "tam": [
+    1275,
+    1773
+   ],
+   "tonos": {
+    "piel": "#f6c69a",
+    "camiseta": "#72bce6",
+    "pelo": "#2a4556"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      6.9,
+      62.9,
+      96.4
+     ],
+     "rampa": [
+      "#04080a",
+      "#2a4556",
+      "#406a84"
+     ],
+     "px": 40004
+    },
+    "piel": {
+     "luz": [
+      140.9,
+      207.3,
+      247.2
+     ],
+     "rampa": [
+      "#ba7e61",
+      "#f6c69a",
+      "#ffecb8"
+     ],
+     "px": 153213
+    },
+    "camiseta": {
+     "luz": [
+      111.9,
+      170.7,
+      205.9
+     ],
+     "rampa": [
+      "#3381b8",
+      "#72bce6",
+      "#8ae3ff"
+     ],
+     "px": 136017
+    }
+   }
+  },
+  "pose_volea": {
+   "fuente": "assets/poses/pose_volea.webp",
+   "mascara": "assets/mascaras/pose_volea.png",
+   "tam": [
+    1341,
+    1331
+   ],
+   "tonos": {
+    "piel": "#fbc69a",
+    "camiseta": "#82b5e4",
+    "pelo": "#2c231d"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      22.2,
+      37.0,
+      91.8
+     ],
+     "rampa": [
+      "#1a1511",
+      "#2c231d",
+      "#695949"
+     ],
+     "px": 30915
+    },
+    "piel": {
+     "luz": [
+      154.7,
+      208.8,
+      241.3
+     ],
+     "rampa": [
+      "#c88d68",
+      "#fbc69a",
+      "#ffe5b2"
+     ],
+     "px": 153845
+    },
+    "camiseta": {
+     "luz": [
+      118.8,
+      171.1,
+      202.5
+     ],
+     "rampa": [
+      "#4d82ab",
+      "#82b5e4",
+      "#9ad6ff"
+     ],
+     "px": 168135
+    }
+   }
+  },
+  "pose_tiro": {
+   "fuente": "assets/poses/pose_tiro.webp",
+   "mascara": "assets/mascaras/pose_tiro.png",
+   "tam": [
+    1844,
+    1206
+   ],
+   "tonos": {
+    "piel": "#fec391",
+    "camiseta": "#5ebaed",
+    "pelo": "#251f09"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      11.9,
+      30.3,
+      58.3
+     ],
+     "rampa": [
+      "#120b03",
+      "#251f09",
+      "#413a28"
+     ],
+     "px": 22092
+    },
+    "piel": {
+     "luz": [
+      163.1,
+      206.9,
+      233.3
+     ],
+     "rampa": [
+      "#db9460",
+      "#fec391",
+      "#ffdca3"
+     ],
+     "px": 148099
+    },
+    "camiseta": {
+     "luz": [
+      120.1,
+      164.3,
+      196.4
+     ],
+     "rampa": [
+      "#4089b4",
+      "#5ebaed",
+      "#6be7fd"
+     ],
+     "px": 184317
+    }
+   }
+  },
+  "pose_pase": {
+   "fuente": "assets/poses/pose_pase.webp",
+   "mascara": "assets/mascaras/pose_pase.png",
+   "tam": [
+    1280,
+    1635
+   ],
+   "tonos": {
+    "piel": "#f2be91",
+    "camiseta": "#61a6d3",
+    "pelo": "#293d45"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      9.1,
+      55.9,
+      84.0
+     ],
+     "rampa": [
+      "#090a04",
+      "#293d45",
+      "#3e5c68"
+     ],
+     "px": 29822
+    },
+    "piel": {
+     "luz": [
+      144.4,
+      200.4,
+      234.1
+     ],
+     "rampa": [
+      "#bb8460",
+      "#f2be91",
+      "#ffdea9"
+     ],
+     "px": 165639
+    },
+    "camiseta": {
+     "luz": [
+      97.4,
+      150.5,
+      182.3
+     ],
+     "rampa": [
+      "#1e76a4",
+      "#61a6d3",
+      "#76c9ff"
+     ],
+     "px": 150596
+    }
+   }
+  },
+  "pose_cabezazo_v2": {
+   "fuente": "assets/poses/pose_cabezazo_v2.webp",
+   "mascara": "assets/mascaras/pose_cabezazo_v2.png",
+   "tam": [
+    817,
+    1761
+   ],
+   "tonos": {
+    "piel": "#cb8a62",
+    "camiseta": "#65bde4",
+    "pelo": "#593c24"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      29.1,
+      65.9,
+      96.7
+     ],
+     "rampa": [
+      "#261b10",
+      "#593c24",
+      "#735c48"
+     ],
+     "px": 39969
+    },
+    "piel": {
+     "luz": [
+      91.7,
+      152.9,
+      203.5
+     ],
+     "rampa": [
+      "#7a533b",
+      "#cb8a62",
+      "#f7c096"
+     ],
+     "px": 177929
+    },
+    "camiseta": {
+     "luz": [
+      102.8,
+      167.1,
+      178.2
+     ],
+     "rampa": [
+      "#32779d",
+      "#65bde4",
+      "#7dc5e2"
+     ],
+     "px": 199170
+    }
+   }
+  },
+  "pose_cansado": {
+   "fuente": "assets/poses/pose_cansado.webp",
+   "mascara": "assets/mascaras/pose_cansado.png",
+   "tam": [
+    942,
+    2077
+   ],
+   "tonos": {
+    "piel": "#fed1aa",
+    "camiseta": "#00c2ee",
+    "pelo": "#07161f"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      11.1,
+      18.5,
+      44.1
+     ],
+     "rampa": [
+      "#040d13",
+      "#07161f",
+      "#0c3749"
+     ],
+     "px": 59245
+    },
+    "piel": {
+     "luz": [
+      170.1,
+      218.0,
+      246.8
+     ],
+     "rampa": [
+      "#c4a388",
+      "#fed1aa",
+      "#ffedc0"
+     ],
+     "px": 219662
+    },
+    "camiseta": {
+     "luz": [
+      103.9,
+      141.0,
+      163.3
+     ],
+     "rampa": [
+      "#008eb4",
+      "#00c2ee",
+      "#00e1ff"
+     ],
+     "px": 300178
+    }
+   }
+  },
+  "pose_celebracion": {
+   "fuente": "assets/poses/pose_festejo.webp",
+   "mascara": "assets/mascaras/pose_festejo.png",
+   "tam": [
+    729,
+    900
+   ],
+   "tonos": {
+    "piel": "#fcceb4",
+    "camiseta": "#4bbff8",
+    "pelo": "#0c141d"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      6.6,
+      18.6,
+      30.4
+     ],
+     "rampa": [
+      "#020710",
+      "#0c141d",
+      "#102232"
+     ],
+     "px": 11001
+    },
+    "piel": {
+     "luz": [
+      147.9,
+      216.8,
+      230.7
+     ],
+     "rampa": [
+      "#ae8f84",
+      "#fcceb4",
+      "#fee0cf"
+     ],
+     "px": 37215
+    },
+    "camiseta": {
+     "luz": [
+      84.1,
+      162.8,
+      210.0
+     ],
+     "rampa": [
+      "#1c6397",
+      "#4bbff8",
+      "#61f6ff"
+     ],
+     "px": 54481
+    }
+   }
+  },
+  "pose_de_espaldas": {
+   "fuente": "assets/poses/pose_de_espaldas.webp",
+   "mascara": "assets/mascaras/pose_de_espaldas.png",
+   "tam": [
+    1159,
+    1823
+   ],
+   "tonos": {
+    "piel": "#c28a6d",
+    "camiseta": "#4daae6",
+    "pelo": "#1c1613"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      14.1,
+      23.5,
+      29.1
+     ],
+     "rampa": [
+      "#110d0b",
+      "#1c1613",
+      "#231b18"
+     ],
+     "px": 31144
+    },
+    "piel": {
+     "luz": [
+      90.9,
+      151.4,
+      209.6
+     ],
+     "rampa": [
+      "#745341",
+      "#c28a6d",
+      "#fec69b"
+     ],
+     "px": 130640
+    },
+    "camiseta": {
+     "luz": [
+      109.2,
+      149.0,
+      172.9
+     ],
+     "rampa": [
+      "#347db2",
+      "#4daae6",
+      "#59c5ff"
+     ],
+     "px": 185858
+    }
+   }
+  },
+  "pose_de_espaldas_sin_pelota": {
+   "fuente": "assets/poses/pose_de_espaldas_sin_pelota.webp",
+   "mascara": "assets/mascaras/pose_de_espaldas_sin_pelota.png",
+   "tam": [
+    872,
+    1711
+   ],
+   "tonos": {
+    "piel": "#f4bd91",
+    "camiseta": "#71b8dd",
+    "pelo": "#012941"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      19.1,
+      31.8,
+      39.4
+     ],
+     "rampa": [
+      "#011927",
+      "#012941",
+      "#013351"
+     ],
+     "px": 47940
+    },
+    "piel": {
+     "luz": [
+      149.1,
+      200.4,
+      231.3
+     ],
+     "rampa": [
+      "#c8865b",
+      "#f4bd91",
+      "#ffdaa7"
+     ],
+     "px": 116688
+    },
+    "camiseta": {
+     "luz": [
+      107.4,
+      167.0,
+      202.8
+     ],
+     "rampa": [
+      "#3e78a3",
+      "#71b8dd",
+      "#89dfff"
+     ],
+     "px": 200198
+    }
+   }
+  },
+  "pose_recibiendo": {
+   "fuente": "assets/poses/pose_recibiendo.webp",
+   "mascara": "assets/mascaras/pose_recibiendo.png",
+   "tam": [
+    1250,
+    1818
+   ],
+   "tonos": {
+    "piel": "#fabb8b",
+    "camiseta": "#71b2de",
+    "pelo": "#05161e"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      10.7,
+      17.8,
+      22.1
+     ],
+     "rampa": [
+      "#030d12",
+      "#05161e",
+      "#061b25"
+     ],
+     "px": 25800
+    },
+    "piel": {
+     "luz": [
+      155.8,
+      200.4,
+      227.1
+     ],
+     "rampa": [
+      "#d78a5b",
+      "#fabb8b",
+      "#ffd49e"
+     ],
+     "px": 168114
+    },
+    "camiseta": {
+     "luz": [
+      114.2,
+      163.6,
+      193.2
+     ],
+     "rampa": [
+      "#3b81b7",
+      "#71b2de",
+      "#85d2ff"
+     ],
+     "px": 213309
+    }
+   }
+  },
+  "pose_gambeta_encara": {
+   "fuente": "assets/poses/pose_gambeta_encara.webp",
+   "mascara": "assets/mascaras/pose_gambeta_encara.png",
+   "tam": [
+    715,
+    760
+   ],
+   "tonos": {
+    "piel": "#fecba6",
+    "camiseta": "#55bbed",
+    "pelo": "#13242c"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      10.5,
+      31.8,
+      44.6
+     ],
+     "rampa": [
+      "#040d0f",
+      "#13242c",
+      "#1b323e"
+     ],
+     "px": 15751
+    },
+    "piel": {
+     "luz": [
+      143.3,
+      214.0,
+      255.0
+     ],
+     "rampa": [
+      "#b18471",
+      "#fecba6",
+      "#fff2c6"
+     ],
+     "px": 52998
+    },
+    "camiseta": {
+     "luz": [
+      107.6,
+      162.2,
+      195.0
+     ],
+     "rampa": [
+      "#3b7b9e",
+      "#55bbed",
+      "#66e1ff"
+     ],
+     "px": 51747
+    }
+   }
+  },
+  "pose_corriendo_izq": {
+   "fuente": "assets/poses/pose_corriendo_izq.webp",
+   "mascara": "assets/mascaras/pose_corriendo_izq.png",
+   "tam": [
+    501,
+    500
+   ],
+   "tonos": {
+    "pelo": "#0c2424",
+    "piel": "#fccca4",
+    "camiseta": "#54bcec"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      8.2,
+      28.8,
+      63.9
+     ],
+     "rampa": [
+      "#020b0d",
+      "#0c2424",
+      "#2e4650"
+     ],
+     "px": 6551
+    },
+    "piel": {
+     "luz": [
+      137.6,
+      213.8,
+      255.0
+     ],
+     "rampa": [
+      "#ac7e6b",
+      "#fccca4",
+      "#fff3c4"
+     ],
+     "px": 19963
+    },
+    "camiseta": {
+     "luz": [
+      102.3,
+      162.4,
+      198.4
+     ],
+     "rampa": [
+      "#31769d",
+      "#54bcec",
+      "#67e6ff"
+     ],
+     "px": 22128
+    }
+   }
+  },
+  "pose_corriendo_rulos": {
+   "fuente": "assets/poses/pose_corriendo_rulos.webp",
+   "mascara": "assets/mascaras/pose_corriendo_rulos.png",
+   "tam": [
+    879,
+    900
+   ],
+   "tonos": {
+    "pelo": "#1a1612",
+    "piel": "#ce926a",
+    "camiseta": "#52b2e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      13.6,
+      22.7,
+      45.2
+     ],
+     "rampa": [
+      "#100d0b",
+      "#1a1612",
+      "#342b26"
+     ],
+     "px": 32248
+    },
+    "piel": {
+     "luz": [
+      98.6,
+      159.4,
+      195.8
+     ],
+     "rampa": [
+      "#8b5639",
+      "#ce926a",
+      "#fdb382"
+     ],
+     "px": 59490
+    },
+    "camiseta": {
+     "luz": [
+      98.2,
+      155.2,
+      189.5
+     ],
+     "rampa": [
+      "#357094",
+      "#52b2e6",
+      "#64d9ff"
+     ],
+     "px": 66003
+    }
+   }
+  },
+  "pose_corriendo_rulos_izq": {
+   "fuente": "assets/poses/pose_corriendo_rulos_izq.webp",
+   "mascara": "assets/mascaras/pose_corriendo_rulos_izq.png",
+   "tam": [
+    488,
+    500
+   ],
+   "tonos": {
+    "pelo": "#1a1612",
+    "piel": "#ce926a",
+    "camiseta": "#52b2e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      13.6,
+      22.7,
+      44.6
+     ],
+     "rampa": [
+      "#100d0b",
+      "#1a1612",
+      "#342a26"
+     ],
+     "px": 9976
+    },
+    "piel": {
+     "luz": [
+      98.9,
+      159.4,
+      195.7
+     ],
+     "rampa": [
+      "#8b563a",
+      "#ce926a",
+      "#fdb382"
+     ],
+     "px": 18665
+    },
+    "camiseta": {
+     "luz": [
+      98.2,
+      155.2,
+      189.5
+     ],
+     "rampa": [
+      "#357094",
+      "#52b2e6",
+      "#64d9ff"
+     ],
+     "px": 20806
+    }
+   }
+  },
+  "pose_corriendo_melena": {
+   "fuente": "assets/poses/pose_corriendo_melena.webp",
+   "mascara": "assets/mascaras/pose_corriendo_melena.png",
+   "tam": [
+    900,
+    890
+   ],
+   "tonos": {
+    "pelo": "#021a26",
+    "piel": "#fedabe",
+    "camiseta": "#56b2e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      12.1,
+      20.2,
+      46.8
+     ],
+     "rampa": [
+      "#011017",
+      "#021a26",
+      "#1b3449"
+     ],
+     "px": 23243
+    },
+    "piel": {
+     "luz": [
+      137.5,
+      225.6,
+      255.0
+     ],
+     "rampa": [
+      "#ad7e68",
+      "#fedabe",
+      "#fff6d7"
+     ],
+     "px": 63475
+    },
+    "camiseta": {
+     "luz": [
+      102.3,
+      156.4,
+      188.9
+     ],
+     "rampa": [
+      "#387499",
+      "#56b2e6",
+      "#68d7ff"
+     ],
+     "px": 69723
+    }
+   }
+  },
+  "pose_corriendo_melena_izq": {
+   "fuente": "assets/poses/pose_corriendo_melena_izq.webp",
+   "mascara": "assets/mascaras/pose_corriendo_melena_izq.png",
+   "tam": [
+    500,
+    494
+   ],
+   "tonos": {
+    "pelo": "#021a26",
+    "piel": "#fedabe",
+    "camiseta": "#56b2e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      7.1,
+      20.2,
+      46.8
+     ],
+     "rampa": [
+      "#00090e",
+      "#021a26",
+      "#1b3448"
+     ],
+     "px": 7290
+    },
+    "piel": {
+     "luz": [
+      137.7,
+      225.6,
+      255.0
+     ],
+     "rampa": [
+      "#ac7f69",
+      "#fedabe",
+      "#fff6d7"
+     ],
+     "px": 19783
+    },
+    "camiseta": {
+     "luz": [
+      102.2,
+      156.4,
+      189.0
+     ],
+     "rampa": [
+      "#387399",
+      "#56b2e6",
+      "#68d7ff"
+     ],
+     "px": 21949
+    }
+   }
+  },
+  "pose_corriendo_rapado": {
+   "fuente": "assets/poses/pose_corriendo_rapado.webp",
+   "mascara": "assets/mascaras/pose_corriendo_rapado.png",
+   "tam": [
+    900,
+    879
+   ],
+   "tonos": {
+    "piel": "#8a5236",
+    "camiseta": "#5ab6e6"
+   },
+   "zonas": {
+    "piel": {
+     "luz": [
+      60.2,
+      95.6,
+      116.8
+     ],
+     "rampa": [
+      "#5a3220",
+      "#8a5236",
+      "#a96442"
+     ],
+     "px": 74611
+    },
+    "camiseta": {
+     "luz": [
+      104.6,
+      160.0,
+      193.2
+     ],
+     "rampa": [
+      "#39779b",
+      "#5ab6e6",
+      "#6ddcff"
+     ],
+     "px": 69964
+    }
+   }
+  },
+  "pose_corriendo_rapado_izq": {
+   "fuente": "assets/poses/pose_corriendo_rapado_izq.webp",
+   "mascara": "assets/mascaras/pose_corriendo_rapado_izq.png",
+   "tam": [
+    500,
+    488
+   ],
+   "tonos": {
+    "piel": "#8a5236",
+    "camiseta": "#5ab6e6"
+   },
+   "zonas": {
+    "piel": {
+     "luz": [
+      60.3,
+      95.6,
+      116.7
+     ],
+     "rampa": [
+      "#5a3321",
+      "#8a5236",
+      "#a96442"
+     ],
+     "px": 23196
+    },
+    "camiseta": {
+     "luz": [
+      104.6,
+      160.0,
+      193.2
+     ],
+     "rampa": [
+      "#39769a",
+      "#5ab6e6",
+      "#6ddcff"
+     ],
+     "px": 22065
+    }
+   }
+  },
+  "pose_corriendo_colorado": {
+   "fuente": "assets/poses/pose_corriendo_colorado.webp",
+   "mascara": "assets/mascaras/pose_corriendo_colorado.png",
+   "tam": [
+    900,
+    886
+   ],
+   "tonos": {
+    "pelo": "#f24a22",
+    "piel": "#faceb6",
+    "camiseta": "#56b6e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      75.3,
+      119.7,
+      146.3
+     ],
+     "rampa": [
+      "#a22a12",
+      "#f24a22",
+      "#ff5a2a"
+     ],
+     "px": 25760
+    },
+    "piel": {
+     "luz": [
+      139.9,
+      216.4,
+      229.3
+     ],
+     "rampa": [
+      "#ae816f",
+      "#faceb6",
+      "#fedecc"
+     ],
+     "px": 63347
+    },
+    "camiseta": {
+     "luz": [
+      104.9,
+      158.8,
+      191.1
+     ],
+     "rampa": [
+      "#3b779b",
+      "#56b6e6",
+      "#68dbff"
+     ],
+     "px": 69644
+    }
+   }
+  },
+  "pose_corriendo_colorado_izq": {
+   "fuente": "assets/poses/pose_corriendo_colorado_izq.webp",
+   "mascara": "assets/mascaras/pose_corriendo_colorado_izq.png",
+   "tam": [
+    500,
+    492
+   ],
+   "tonos": {
+    "pelo": "#f24a22",
+    "piel": "#faceb6",
+    "camiseta": "#56b6e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      75.6,
+      119.7,
+      146.1
+     ],
+     "rampa": [
+      "#a22b13",
+      "#f24a22",
+      "#ff5a2a"
+     ],
+     "px": 8091
+    },
+    "piel": {
+     "luz": [
+      139.8,
+      216.4,
+      255.0
+     ],
+     "rampa": [
+      "#ad806f",
+      "#faceb6",
+      "#fff3d6"
+     ],
+     "px": 17347
+    },
+    "camiseta": {
+     "luz": [
+      104.8,
+      158.8,
+      191.2
+     ],
+     "rampa": [
+      "#3b769a",
+      "#56b6e6",
+      "#68dbff"
+     ],
+     "px": 21975
+    }
+   }
+  },
+  "pose_corriendo_flequillo": {
+   "fuente": "assets/poses/pose_corriendo_flequillo.webp",
+   "mascara": "assets/mascaras/pose_corriendo_flequillo.png",
+   "tam": [
+    900,
+    889
+   ],
+   "tonos": {
+    "pelo": "#061a26",
+    "piel": "#fecaa6",
+    "camiseta": "#5ab6e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      12.8,
+      21.4,
+      47.8
+     ],
+     "rampa": [
+      "#041017",
+      "#061a26",
+      "#1b3645"
+     ],
+     "px": 27262
+    },
+    "piel": {
+     "luz": [
+      136.1,
+      213.4,
+      255.0
+     ],
+     "rampa": [
+      "#ab7d67",
+      "#fecaa6",
+      "#fff1c6"
+     ],
+     "px": 63037
+    },
+    "camiseta": {
+     "luz": [
+      101.3,
+      160.0,
+      195.2
+     ],
+     "rampa": [
+      "#377397",
+      "#5ab6e6",
+      "#6edeff"
+     ],
+     "px": 69632
+    }
+   }
+  },
+  "pose_corriendo_flequillo_izq": {
+   "fuente": "assets/poses/pose_corriendo_flequillo_izq.webp",
+   "mascara": "assets/mascaras/pose_corriendo_flequillo_izq.png",
+   "tam": [
+    500,
+    494
+   ],
+   "tonos": {
+    "pelo": "#061a26",
+    "piel": "#fecaa6",
+    "camiseta": "#5ab6e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      12.8,
+      21.4,
+      47.8
+     ],
+     "rampa": [
+      "#041017",
+      "#061a26",
+      "#1b3545"
+     ],
+     "px": 8465
+    },
+    "piel": {
+     "luz": [
+      136.2,
+      213.4,
+      255.0
+     ],
+     "rampa": [
+      "#aa7d68",
+      "#fecaa6",
+      "#fff1c6"
+     ],
+     "px": 19713
+    },
+    "camiseta": {
+     "luz": [
+      101.3,
+      160.0,
+      195.2
+     ],
+     "rampa": [
+      "#377396",
+      "#5ab6e6",
+      "#6edeff"
+     ],
+     "px": 21980
+    }
+   }
+  },
+  "pose_corriendo_mohicano": {
+   "fuente": "assets/poses/pose_corriendo_mohicano.webp",
+   "mascara": "assets/mascaras/pose_corriendo_mohicano.png",
+   "tam": [
+    900,
+    895
+   ],
+   "tonos": {
+    "pelo": "#061a2a",
+    "piel": "#b69a56",
+    "camiseta": "#56b2e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      13.1,
+      21.8,
+      46.6
+     ],
+     "rampa": [
+      "#041019",
+      "#061a2a",
+      "#1c3347"
+     ],
+     "px": 6303
+    },
+    "piel": {
+     "luz": [
+      97.6,
+      154.6,
+      188.8
+     ],
+     "rampa": [
+      "#77602f",
+      "#b69a56",
+      "#debc69"
+     ],
+     "px": 72263
+    },
+    "camiseta": {
+     "luz": [
+      101.3,
+      156.4,
+      189.5
+     ],
+     "rampa": [
+      "#367497",
+      "#56b2e6",
+      "#68d8ff"
+     ],
+     "px": 69825
+    }
+   }
+  },
+  "pose_corriendo_mohicano_izq": {
+   "fuente": "assets/poses/pose_corriendo_mohicano_izq.webp",
+   "mascara": "assets/mascaras/pose_corriendo_mohicano_izq.png",
+   "tam": [
+    500,
+    497
+   ],
+   "tonos": {
+    "pelo": "#061a2a",
+    "piel": "#b69a56",
+    "camiseta": "#56b2e6"
+   },
+   "zonas": {
+    "pelo": {
+     "luz": [
+      13.1,
+      21.8,
+      45.6
+     ],
+     "rampa": [
+      "#041019",
+      "#061a2a",
+      "#1c3245"
+     ],
+     "px": 2017
+    },
+    "piel": {
+     "luz": [
+      97.7,
+      154.6,
+      188.8
+     ],
+     "rampa": [
+      "#776131",
+      "#b69a56",
+      "#debc69"
+     ],
+     "px": 22430
+    },
+    "camiseta": {
+     "luz": [
+      101.3,
+      156.4,
+      189.5
+     ],
+     "rampa": [
+      "#367397",
+      "#56b2e6",
+      "#68d8ff"
+     ],
+     "px": 22034
+    }
+   }
+  }
+ }
+}

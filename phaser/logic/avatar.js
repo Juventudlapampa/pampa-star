@@ -292,6 +292,93 @@
   /* "#rrggbb" → número (para Phaser fillStyle) */
   function hexNum(hex) { return parseInt(String(hex).replace("#", ""), 16); }
 
+  /* ---------- LAS RAMPAS DE COLOR (pedido de Rodri del 25/oct) ----------
+     "Que tenga sentido el pelo y la piel": el teñido viejo cambiaba un solo
+     tono por zona y las sombras quedaban con el color de la ilustración (el
+     rubio del Flequillo salía rubio arriba y negro abajo, porque la sombra
+     del pelo, #04121f, es más de la mitad del pelo). Ahora cada color es una
+     RAMPA de tres tonos [sombra, medio, brillo] y cada píxel de la zona
+     (máscaras de herramientas/mascaras_zonas.py) toma el tono de la rampa
+     que le toca por su luz: las sombras del rubio son rubio oscuro.
+     El tono MEDIO es el de la muestra del editor (el hex del catálogo; lo
+     fija la suite, phaser/test/zonas.test.js). Un solo lugar para todas.
+     "Naranja rival" es la camiseta de bando del rival en las ilustraciones. */
+  var RAMPAS = {
+    pelo: {
+      negro: ["#0a0807", "#1c1613", "#3d342e"],
+      castano: ["#26170a", "#4a2e15", "#7a5532"],
+      rubio: ["#8c6a12", "#c9a227", "#f0d77a"],
+      colorado: ["#6b2410", "#a53f1f", "#d9703f"],
+      canoso: ["#77736a", "#b9b4a8", "#ebe8e1"]
+    },
+    piel: {
+      clara: ["#c48a64", "#e9b58c", "#f8d6b8"],
+      triguena: ["#9a6740", "#c68e5f", "#e0ae82"],
+      morena: ["#663e26", "#8d5a3a", "#b07a56"],
+      oscura: ["#3f2515", "#5f3a24", "#83563a"]
+    },
+    camiseta: {
+      "Celeste titular": ["#2a87b8", "#4FC3F7", "#a8e2fb"],
+      "Celeste profundo": ["#1a6e9c", "#2FA8E0", "#86cdee"],
+      "Blanco pampa": ["#a9bcc8", "#E8F4FA", "#ffffff"],
+      "Verde caldén": ["#1a4d1d", "#2E7D32", "#5fa863"],
+      "Bordó salitral": ["#4a121e", "#7B2233", "#a94a5c"],
+      "Naranja atardecer": ["#a84a17", "#E8712F", "#f6a36f"],
+      "Violeta jarilla": ["#41246a", "#6A3FA0", "#9a74c8"],
+      "Amarillo trigo": ["#a8851a", "#E8C33A", "#f6e08a"],
+      "Negro tranquera": ["#0e0e0e", "#232323", "#4a4a4a"],
+      "Naranja rival": ["#c4561f", "#FF8A50", "#ffbe94"]
+    }
+  };
+  /* el MAPA DE DEGRADÉ de una zona: luz = [sombra, base, brillo] medidos en
+     la ilustración (luminancia 0-255, data/zonas_manifest.json) y rampa =
+     los tres tonos destino. Devuelve 256 colores RGB: la luminancia de cada
+     píxel elige el suyo. Abajo de la sombra va hacia el negro de la línea
+     (el borde suavizado de la tinta sigue siendo tinta) y arriba del brillo,
+     hacia medio camino del blanco (los reflejos). */
+  function lutDeZona(luz, rampa) {
+    var ym = Math.max(3, Math.min(252, +luz[1]));
+    var ys = Math.min(+luz[0], ym - 2), yb = Math.max(+luz[2], ym + 2);
+    if (!(ys > 0)) ys = Math.max(1, ym * 0.6);
+    if (yb >= 254) yb = ym + (255 - ym) / 2;
+    var c = rampa.map(function (h) { var v = hexNum(h); return [(v >> 16) & 255, (v >> 8) & 255, v & 255]; });
+    var tope = c[2].map(function (v) { return v + (255 - v) * 0.5; });
+    var paradas = [[0, [0, 0, 0]], [ys, c[0]], [ym, c[1]], [yb, c[2]], [255, tope]];
+    var lut = new Uint8Array(768);
+    for (var y = 0, k = 0; y < 256; y++) {
+      while (k < paradas.length - 2 && y > paradas[k + 1][0]) k++;
+      var a = paradas[k], b = paradas[k + 1], t = Math.max(0, Math.min(1, (y - a[0]) / Math.max(1e-6, b[0] - a[0])));
+      for (var ch = 0; ch < 3; ch++) lut[y * 3 + ch] = Math.round(a[1][ch] + (b[1][ch] - a[1][ch]) * t);
+    }
+    return lut;
+  }
+  /* la zona de cada píxel en la máscara (gris: 80 pelo, 160 piel, 240 camiseta) */
+  var ZONAS = ["pelo", "piel", "camiseta"];
+  function zonaDeMascara(v) { return v < 40 ? -1 : (v < 120 ? 0 : (v < 200 ? 1 : 2)); }
+  /* tiñe bytes RGBA por zonas: d y m (la máscara, mismos píxeles) arrancan en
+     la misma fila; luts[z] null = esa zona queda como está. Lo transparente
+     (alfa < 128, el borde del recorte) no se toca, como antes */
+  function tenirZonas(d, m, luts) {
+    for (var i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 128) continue;
+      var z = zonaDeMascara(m[i]);
+      if (z < 0 || !luts[z]) continue;
+      var k = ((d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000 | 0) * 3, L = luts[z];
+      d[i] = L[k]; d[i + 1] = L[k + 1]; d[i + 2] = L[k + 2];
+    }
+  }
+  /* qué color de pelo admite una cara (o una pose dibujada con su pelo):
+     'tintes_pelo': false = ninguno (el Rapado: el pelo es la piel);
+     'pelo_propio' = el color que ya trae (el Colorado no se tiñe de
+     colorado: es lo mismo que el Original, que en el editor se llama
+     "Original (colorado)"); 'tintes_pelo_excluye' = otros que no van */
+  function tintePeloValido(def, tPelo) {
+    if (!(tPelo > 0)) return true;
+    if (!def || def.tintes_pelo === false) return false;
+    var c = CATALOGO.colores_pelo[tPelo - 1];
+    return !!c && c.id !== def.pelo_propio && !(Array.isArray(def.tintes_pelo_excluye) && def.tintes_pelo_excluye.indexOf(c.id) >= 0);
+  }
+
   /* la pinta de VOS desde lo guardado (la carrera y los avatares sueltos del
      editor): la arma el partido y la mira lo que baja la corrida de tu pelo */
   function lookDeVos(career, sueltos) {
@@ -308,6 +395,8 @@
     lookParaBloques: lookParaBloques, masCercano: masCercano,
     setCatalogoManifest: setCatalogoManifest, MANIFEST: MANIFEST,
     configDeCaras: configDeCaras, caraEnRotacion: caraEnRotacion,
-    caraDelRoster: caraDelRoster, ciclarCara: ciclarCara, lookDeVos: lookDeVos
+    caraDelRoster: caraDelRoster, ciclarCara: ciclarCara, lookDeVos: lookDeVos,
+    RAMPAS: RAMPAS, ZONAS: ZONAS, lutDeZona: lutDeZona, zonaDeMascara: zonaDeMascara,
+    tenirZonas: tenirZonas, tintePeloValido: tintePeloValido
   };
 });

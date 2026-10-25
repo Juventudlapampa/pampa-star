@@ -435,8 +435,22 @@ window.PampaAvatarArte = (function () {
   /* L06 (trabas-cine): las reglas y el bucle del teñido, aparte, para que el
      teñido entero (abajo) y el teñido por tajadas (trabajoDeTinte) hagan
      EXACTAMENTE la misma cuenta, píxel por píxel. */
-  function reglasDeTinte(mapa, alto) {
-    return (mapa || []).map(function (m) {
+  function reglasDeTinte(mapa, alto, zonas) {
+    /* 25/oct (Rodri: "que tenga sentido el pelo y la piel, todo mezclado"):
+       si la ilustración tiene máscara de zonas (data/zonas_manifest.json), no
+       se busca un tono: cada zona entera va por su MAPA DE DEGRADÉ
+       (logic/avatar.js, lutDeZona) y sus sombras pasan a la sombra del color
+       elegido. Lo de abajo queda para las que no tienen máscara (las poses
+       del rival y los arqueros) */
+    if (zonas) {
+      var A = window.PampaAvatar, luts = [null, null, null];
+      (mapa || []).forEach(function (m) {
+        var k = A.ZONAS.indexOf(m.zona), z = zonas.zonas[m.zona];
+        if (k >= 0 && z && m.rampa) luts[k] = A.lutDeZona(z.luz, m.rampa);
+      });
+      return { luts: luts };
+    }
+    return (mapa || []).filter(function (m) { return m.de != null; }).map(function (m) {
       var r = (m.de >> 16) & 255, g = (m.de >> 8) & 255, b = m.de & 255;
       return {
         r: r, g: g, b: b,
@@ -455,7 +469,12 @@ window.PampaAvatarArte = (function () {
     });
   }
   /* tiñe los bytes RGBA de una banda de filas: d empieza en la fila yBase */
-  function tenirFilas(d, ancho, reglas, yBase) {
+  function tenirFilas(d, ancho, reglas, yBase, mascara) {
+    if (reglas.luts) {
+      if (!mascara || mascara.length !== d.length) throw new Error("teñido por zonas sin su máscara (" + (mascara ? mascara.length : 0) + " de " + d.length + " bytes)");
+      window.PampaAvatar.tenirZonas(d, mascara, reglas.luts);
+      return;
+    }
     var fila = ancho * 4;
     for (var i = 0; i < d.length; i += 4) {
       /* A4 (playtest): el borde recortado se veía sucio porque los píxeles
@@ -552,6 +571,25 @@ window.PampaAvatarArte = (function () {
     cv.refresh();
     return dstKey;
   }
+  /* la máscara de zonas de una textura (index.html la baja con
+     data/zonas_manifest.json): { def, img } o null si esa ilustración no
+     tiene. Si la tiene y no coincide en tamaño con la fuente, es un error
+     del generador (herramientas/mascaras_zonas.py), no algo que se tape */
+  function zonasDe(srcKey, src) {
+    var Z = window.__PAMPA_ZONAS, def = Z && Z.def && Z.def[srcKey];
+    if (!def) return null;
+    var img = Z.img[srcKey];
+    if (!img) throw new Error("la máscara de " + srcKey + " no se bajó (" + def.mascara + ")");
+    if (src && (img.width !== src.width || img.height !== src.height))
+      throw new Error("la máscara de " + srcKey + " mide " + img.width + "x" + img.height + " y la ilustración " + src.width + "x" + src.height);
+    return { def: def, img: img };
+  }
+  function lienzoDeMascara(Z) {
+    var mc = document.createElement("canvas"); mc.width = Z.img.width; mc.height = Z.img.height;
+    var c = mc.getContext("2d", { willReadFrequently: true });
+    c.drawImage(Z.img, 0, 0);
+    return c;
+  }
   function tenirImagen(scene, srcKey, dstKey, mapa, numero) {
 
     if (scene.textures.exists(dstKey)) return dstKey;
@@ -559,11 +597,13 @@ window.PampaAvatarArte = (function () {
     /* V10: la fuente, sin el anillo violeta del recorte (logic/halo.js) */
     if (window.PampaHaloAsegurar) window.PampaHaloAsegurar(srcKey);
     var src = scene.textures.get(srcKey).getSourceImage();
+    var Z = zonasDe(srcKey, src);
     var cv = scene.textures.createCanvas(dstKey, src.width, src.height);
     var c2 = cv.getContext();
     c2.drawImage(src, 0, 0);
     var img = c2.getImageData(0, 0, src.width, src.height);
-    tenirFilas(img.data, src.width, reglasDeTinte(mapa, src.height), 0);
+    var mc = Z ? lienzoDeMascara(Z) : null;
+    tenirFilas(img.data, src.width, reglasDeTinte(mapa, src.height, Z && Z.def), 0, mc ? mc.getImageData(0, 0, src.width, src.height).data : null);
     c2.putImageData(img, 0, 0);
     if (numero) borrarNumeroEnCanvas(c2, src.width, src.height, numero);
     cv.refresh();
@@ -611,7 +651,7 @@ window.PampaAvatarArte = (function () {
   function trabajoDeTinteImagen(scene, base, clave, mapa, numero) {
     if (!scene || !base || !clave || !mapa || !mapa.length || scene.textures.exists(clave)) return null;
     var P = { base: base, clave: clave, mapa: mapa, numero: numero };
-    var fase = 0, cv = null, c = null, src = null, w = 0, h = 0, y = 0, banda = BANDA_MIN, reglas = null;
+    var fase = 0, cv = null, c = null, src = null, w = 0, h = 0, y = 0, banda = BANDA_MIN, reglas = null, mc = null;
     function vivo() { return scene.sys && scene.sys.settings && scene.sys.settings.status <= 5 && scene.sys.settings.status >= 2; }
     return {
       clave: "tinte:" + P.clave,
@@ -627,7 +667,9 @@ window.PampaAvatarArte = (function () {
           banda = Math.max(BANDA_MIN, Math.floor(BANDA_PX / Math.max(1, w)));
           cv = document.createElement("canvas"); cv.width = w; cv.height = h;
           c = cv.getContext("2d", { willReadFrequently: true });
-          reglas = reglasDeTinte(P.mapa, h);
+          var Z = zonasDe(P.base, src);
+          reglas = reglasDeTinte(P.mapa, h, Z && Z.def);
+          mc = Z ? lienzoDeMascara(Z) : null;
           fase = 1;
           if (reloj() >= fin) return false;
         }
@@ -636,7 +678,7 @@ window.PampaAvatarArte = (function () {
             var alto = Math.min(banda, h - y);
             c.drawImage(src, 0, y, w, alto, 0, y, w, alto);
             var img = c.getImageData(0, y, w, alto);
-            tenirFilas(img.data, w, reglas, y);
+            tenirFilas(img.data, w, reglas, y, mc ? mc.getImageData(0, y, w, alto).data : null);
             c.putImageData(img, 0, y);
             y += alto;
             if (y < h && reloj() >= fin) return false;
@@ -647,7 +689,7 @@ window.PampaAvatarArte = (function () {
         if (P.numero) borrarNumeroEnCanvas(c, w, h, P.numero);
         var ct = scene.textures.createCanvas(P.clave, w, h);
         if (ct) { ct.getContext().drawImage(cv, 0, 0); ct.refresh(); }
-        cv = null; c = null; src = null;
+        cv = null; c = null; src = null; mc = null;
         return true;
       }
     };
@@ -663,10 +705,31 @@ window.PampaAvatarArte = (function () {
      escenas piden acá y la clave es una: "poseT_<pose>_<piel>_<pelo>_<cam>".
      Devuelve la clave teñida, o null si no hay nada que teñir (todo en
      Original, la pose sin tonos en el manifest, o sin la pose cargada). */
-  function claveTenida(id, look) {
-    return "poseT_" + id + "_" + look.tPiel + "_" + look.tPelo + "_" + look.tCam;
+  function claveTenida(id, look, marcas) {
+    var m = marcas || { piel: look.tPiel, pelo: look.tPelo, cam: look.tCam };
+    return "poseT_" + id + "_" + m.piel + "_" + m.pelo + "_" + m.cam;
+  }
+  /* 25/oct · LA MISMA PINTA EN TODOS LADOS. La rampa de cada zona sale del
+     color elegido; si quedó en Original y la pose es una de las genéricas
+     del héroe (no la corrida dibujada con tu cara, 'de_cara'), la rampa es
+     la ORIGINAL DE TU CARA (medida en su ilustración, data/zonas_manifest):
+     con los Rulos en Original el remate salía con la piel clara y el pelo
+     azul de la pose, y el retrato con la piel trigueña. Si la cara y la pose
+     ya traen casi el mismo tono (menos de 40 de distancia), no se tiñe. */
+  function rampaOriginalDeCara(zona, def, look, caras) {
+    var Z = window.__PAMPA_ZONAS;
+    if (!Z || !Z.def || !def || def.quien !== "heroe" || def.de_cara || !caras || !caras.caras || !caras.caras.length) return null;
+    var cara = caras.caras[look.cara % caras.caras.length];
+    var zc = cara && Z.def["cara_" + cara.id], zp = Z.def["pose_" + def._id];
+    if (!zc || !zc.zonas[zona] || !zp || !zp.zonas[zona]) return null;
+    var A = window.PampaAvatar, a = A.hexNum(zc.zonas[zona].rampa[1]), b = A.hexNum(zp.zonas[zona].rampa[1]);
+    var dr = ((a >> 16) & 255) - ((b >> 16) & 255), dg = ((a >> 8) & 255) - ((b >> 8) & 255), db = (a & 255) - (b & 255);
+    return dr * dr + dg * dg + db * db < 1600 ? null : zc.zonas[zona].rampa;
   }
   /* el mapa de tonos: lo que el manifest declara de origen → lo del catálogo.
+     Cada entrada lleva su zona y su rampa (el teñido por zonas) y, si la
+     pose declara el tono de origen, también 'de'/'a'/'tol' para el teñido
+     por distancia de las ilustraciones sin máscara.
      Revisión de OJOS: 'croma_min' (opcional, por pose) va a TODAS sus reglas.
      En pose_celebracion (la del gol desde OJOS) la sombra gris del short
      queda a 66 del tono de camiseta (#8cc5e9, tolerancia 95): lo que la piel
@@ -677,14 +740,54 @@ window.PampaAvatarArte = (function () {
      croma 0-9 y la camiseta casi toda 20 o más. */
   function mapaDeTinte(def, look, caras) {
     var A = window.PampaAvatar, CAT = A && A.CATALOGO, mapa = [];
+    mapa.marcas = { piel: 0, pelo: 0, cam: 0 };
     if (!def || !def.tonos || !CAT) return mapa;
     var hx = function (v) { return parseInt(String(v).slice(1), 16); };
     var T = def.tonos, tol = def.tolerancias || {}, cmin = +def.croma_min || 0;
-    /* 23/oct: la corrida con el pelo de una cara no admite los tintes que esa cara no admite (el colorado no va rubio) */
-    var peloFuera = Array.isArray(def.tintes_pelo_excluye) && look.tPelo > 0 && def.tintes_pelo_excluye.indexOf(CAT.colores_pelo[look.tPelo - 1].id) >= 0;
-    if (look.tPelo > 0 && T.pelo && !peloFuera) mapa.push({ de: hx(T.pelo), a: hx(CAT.colores_pelo[look.tPelo - 1].hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45, cmin: cmin });
-    if (look.tPiel > 0 && T.piel) mapa.push({ de: hx(T.piel), a: hx(CAT.pieles[look.tPiel - 1].hex), tol: tol.piel || 80, cmin: cmin });
-    if (look.tCam > 0 && T.camiseta && caras && caras.camisetas && caras.camisetas.length) mapa.push({ de: hx(T.camiseta), a: hx(caras.camisetas[(look.tCam - 1) % caras.camisetas.length].hex), tol: tol.camiseta || 95, cmin: cmin });
+    var cara = caras && caras.caras && caras.caras.length ? caras.caras[look.cara % caras.caras.length] : null;
+    if (look.tPelo > 0 && A.tintePeloValido(def, look.tPelo) && (!cara || A.tintePeloValido(cara, look.tPelo))) {
+      var cp = CAT.colores_pelo[look.tPelo - 1];
+      mapa.push({ zona: "pelo", rampa: A.RAMPAS.pelo[cp.id], de: T.pelo ? hx(T.pelo) : null, a: hx(cp.hex), tol: tol.pelo || 60, y1: def.pelo_y1 != null ? def.pelo_y1 : 0.45, cmin: cmin });
+      mapa.marcas.pelo = look.tPelo;
+    } else {
+      var rp = rampaOriginalDeCara("pelo", def, look, caras);
+      if (rp) { mapa.push({ zona: "pelo", rampa: rp }); mapa.marcas.pelo = "o" + look.cara; }
+    }
+    if (look.tPiel > 0) {
+      var pi = CAT.pieles[look.tPiel - 1];
+      mapa.push({ zona: "piel", rampa: A.RAMPAS.piel[pi.id], de: T.piel ? hx(T.piel) : null, a: hx(pi.hex), tol: tol.piel || 80, cmin: cmin });
+      mapa.marcas.piel = look.tPiel;
+    } else {
+      var rpi = rampaOriginalDeCara("piel", def, look, caras);
+      if (rpi) { mapa.push({ zona: "piel", rampa: rpi }); mapa.marcas.piel = "o" + look.cara; }
+    }
+    if (look.tCam > 0 && caras && caras.camisetas && caras.camisetas.length) {
+      var ca = caras.camisetas[(look.tCam - 1) % caras.camisetas.length];
+      mapa.push({ zona: "camiseta", rampa: A.RAMPAS.camiseta[ca.n], de: T.camiseta ? hx(T.camiseta) : null, a: hx(ca.hex), tol: tol.camiseta || 95, cmin: cmin });
+      mapa.marcas.cam = look.tCam;
+    }
+    return mapa;
+  }
+  /* el busto (las caras del editor, del duelo y del panel): lo elegido, y
+     el rival siempre con la camiseta naranja de bando. Mismo mapa que las
+     poses; el editor y el partido lo piden acá */
+  function mapaDeBusto(cara, look, caras, rival) {
+    var A = window.PampaAvatar, CAT = A.CATALOGO, mapa = [];
+    var hx = function (v) { return parseInt(String(v).slice(1), 16); };
+    var T = cara.tonos || {}, tol = (caras && caras.tolerancias) || {};
+    if (look.tPelo > 0 && A.tintePeloValido(cara, look.tPelo)) {
+      var cp = CAT.colores_pelo[look.tPelo - 1];
+      mapa.push({ zona: "pelo", rampa: A.RAMPAS.pelo[cp.id], de: T.pelo && T.pelo !== T.piel ? hx(T.pelo) : null, a: hx(cp.hex), tol: tol.pelo || 46, y1: cara.pelo_y1 != null ? cara.pelo_y1 : 0.5 });
+    }
+    if (look.tPiel > 0) {
+      var pi = CAT.pieles[look.tPiel - 1];
+      mapa.push({ zona: "piel", rampa: A.RAMPAS.piel[pi.id], de: T.piel ? hx(T.piel) : null, a: hx(pi.hex), tol: tol.piel || 85 });
+    }
+    if (rival) mapa.push({ zona: "camiseta", rampa: A.RAMPAS.camiseta["Naranja rival"], de: T.camiseta ? hx(T.camiseta) : null, a: 0xFF8A50, tol: tol.camiseta || 95 });
+    else if (look.tCam > 0 && caras && caras.camisetas && caras.camisetas.length) {
+      var ca = caras.camisetas[(look.tCam - 1) % caras.camisetas.length];
+      mapa.push({ zona: "camiseta", rampa: A.RAMPAS.camiseta[ca.n], de: T.camiseta ? hx(T.camiseta) : null, a: hx(ca.hex), tol: tol.camiseta || 95 });
+    }
     return mapa;
   }
   /* qué hay que teñir: { base, clave, mapa } o null si nada */
@@ -695,10 +798,10 @@ window.PampaAvatarArte = (function () {
     if (!def || !def.tonos || !lookCrudo) return null;
     var look;
     try { look = A.validarLook(lookCrudo); } catch (e) { return null; }
-    if (!look || (!look.tPiel && !look.tPelo && !look.tCam)) return null;
-    var mapa = mapaDeTinte(def, look, scene.game.registry.get("caras"));
+    if (!look) return null;
+    var mapa = mapaDeTinte(Object.assign({ _id: id }, def), look, scene.game.registry.get("caras"));
     if (!mapa.length) return null;
-    return { base: base, clave: claveTenida(id, look), mapa: mapa };
+    return { base: base, clave: claveTenida(id, look, mapa.marcas), mapa: mapa };
   }
   function poseTenida(scene, id, lookCrudo) {
     var P = pedidoDeTinte(scene, id, lookCrudo);
@@ -710,5 +813,6 @@ window.PampaAvatarArte = (function () {
 
   return { cara: cara, jugador: jugador, cineJugador: cineJugador, heroico: heroico, retrato64: retrato64, velloDe: velloDe, tenirImagen: tenirImagen, renumerarImagen: renumerarImagen, KITS: KITS, bake: bake,
     claveTenida: claveTenida, mapaDeTinte: mapaDeTinte, pedidoDeTinte: pedidoDeTinte, poseTenida: poseTenida,
-    reglasDeTinte: reglasDeTinte, tenirFilas: tenirFilas, trabajoDeTinte: trabajoDeTinte, trabajoDeTinteImagen: trabajoDeTinteImagen };
+    reglasDeTinte: reglasDeTinte, tenirFilas: tenirFilas, trabajoDeTinte: trabajoDeTinte, trabajoDeTinteImagen: trabajoDeTinteImagen,
+    mapaDeBusto: mapaDeBusto, zonasDe: zonasDe };
 })();

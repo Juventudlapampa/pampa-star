@@ -203,8 +203,13 @@ W.PampaAvatar.setCatalogoManifest && W.PampaAvatar.setCatalogoManifest({ caras: 
   var def = POSES.poses.remate, w = 40, h = 70;
   var look = W.PampaAvatar.validarLook({ cara: 2, tPiel: 3, tPelo: 2, tCam: 3 });
   var mapa = AA.mapaDeTinte(def, look, CARAS);
-  var declarados = ["pelo", "piel", "camiseta"].filter(function (k) { return def.tonos[k]; }).length;
-  assert(mapa.length === declarados && mapa.length >= 2, "el mapa de tonos tiene un cambio por cada tono que declara la pose (" + mapa.length + " de " + declarados + ")");
+  /* 25/oct (pedido de Rodri, "que tenga sentido el pelo"): el pelo de las
+     poses de VOS se tiñe aunque la pose no declare su tono (va por la
+     máscara de zonas); el look de acá pide las tres zonas */
+  var declarados = ["pelo", "piel", "camiseta"].filter(function (k) { return def.tonos[k] || (k === "pelo" && def.quien === "heroe"); }).length;
+  assert(mapa.length === declarados && mapa.length >= 2, "el mapa de tonos tiene un cambio por cada zona de la pose (" + mapa.length + " de " + declarados + ")");
+  assert(mapa.filter(function (m) { return m.de != null; }).length === ["pelo", "piel", "camiseta"].filter(function (k) { return def.tonos[k]; }).length,
+    "y el teñido sin máscara solo busca los tonos que la pose declara");
   var hx = function (v) { var n = parseInt(String(v).slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   var tonos = ["pelo", "piel", "camiseta"].filter(function (k) { return def.tonos[k]; }).map(function (k) { return hx(def.tonos[k]); }).concat([[10, 10, 10], [200, 200, 200]]);
   var base = new Uint8ClampedArray(w * h * 4);
@@ -417,7 +422,8 @@ W.PampaAvatar.setCatalogoManifest && W.PampaAvatar.setCatalogoManifest({ caras: 
   new Function("window", "Phaser", leer("phaser/scenes/match.js").replace(/\r\n/g, "\n"))(Wm, Wm.Phaser);
   var s = Object.create(Wm.PampaMatch.prototype);
   var hechos = [];
-  Wm.PampaAvatarArte = { tenirImagen: function (sc, base, clave, mapa) { hechos.push({ base: base, clave: clave, mapa: mapa }); } };
+  /* 25/oct: el mapa del busto es el de avatar_arte.js (mapaDeBusto), el de verdad */
+  Wm.PampaAvatarArte = { tenirImagen: function (sc, base, clave, mapa) { hechos.push({ base: base, clave: clave, mapa: mapa }); }, mapaDeBusto: W.PampaAvatarArte.mapaDeBusto };
   s.FLAGS = {};
   s.game = { registry: { get: function (k) { return k === "caras" ? CARAS : null; } } };
   s.textures = { exists: function (k) { return /^cara_/.test(k); } };

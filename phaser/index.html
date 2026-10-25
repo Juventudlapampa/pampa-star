@@ -354,7 +354,7 @@
   (function () {
     "use strict";
     var C = window.PampaCartel = {
-      SCRIPTS: 69, DATOS: 16,
+      SCRIPTS: 69, DATOS: 17,
       PESOS: { scripts: 0.73, datos: 0.18, escena: 0.09 },
       scripts: 0, datos: 0, escena: 0, pct: 0, fuera: false
     };
@@ -2078,6 +2078,22 @@
   /* LA LUZ DE LA ESCALERA: las paletas de los fondos pintados del cine. Si
      falta, cada plano dibuja su fondo de siempre (cine_arte.js devuelve false). */
   const pAmbientes = jsonConTope("../data/ambientes.json", null);
+  /* 25/oct · LAS ZONAS DE PELO, PIEL Y CAMISETA de las ilustraciones de VOS
+     (herramientas/mascaras_zonas.py): el manifiesto y sus máscaras, chicas
+     (unos 100 KB las 39). El teñido (scenes/avatar_arte.js, zonasDe) las
+     lee sin esperar; una que no llega queda afuera de window.__PAMPA_ZONAS
+     y anotada en los topes de la red, y esa ilustración se tiñe como antes */
+  const pZonas = jsonConTope("../data/zonas_manifest.json", null).then((z)=>{
+    if (!z || !z.imagenes) return null;
+    const def = {}, img = {};
+    return Promise.all(Object.keys(z.imagenes).map((k)=>new Promise((r)=>{
+      const im = new Image(), reloj = setTimeout(()=>{ im.src = ""; falla(); }, TOPE_JSON_MS);
+      function falla(){ try { window.__PAMPA_RED.topes.push(z.imagenes[k].mascara); } catch (e) { } r(); }
+      im.onload = ()=>{ clearTimeout(reloj); def[k] = z.imagenes[k]; img[k] = im; r(); };
+      im.onerror = ()=>{ clearTimeout(reloj); falla(); };
+      im.src = "../" + z.imagenes[k].mascara;
+    }))).then(()=>{ window.__PAMPA_ZONAS = { def: def, img: img }; });
+  });
   /* V8 §5: esperar las fuentes antes de crear textos — tope 8s (en celu con
      red lenta 2.5s no alcanzaba y los ACENTOS quedaban rasterizados con el
      fallback para siempre). Y si igual llegan tarde, el fonts.ready de abajo
@@ -2105,7 +2121,7 @@
       });
     }catch(e){}
   });
-  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pSemana, pEntrevista, pTribuna, pAudio, pAmbientes, pFinal, pFuentes]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes, final])=>{
+  Promise.all([pBal, pRoster, pRetratos, pMega, pRelatos, pPoses, pCaras, pDivisiones, pVida, pSemana, pEntrevista, pTribuna, pAudio, pAmbientes, pFinal, pFuentes, pZonas]).then(([bal, roster, retratos, mega, relatos, poses, caras, divisiones, vida, semanaData, entrevista, tribuna, audio, ambientes, final])=>{
     window.__PAMPA_VIDA = vida;
     if(window.PAMPA_GAME){ try{ window.PAMPA_GAME.destroy(true); }catch(e){} }
     window.__PAMPA_ROSTER = roster;

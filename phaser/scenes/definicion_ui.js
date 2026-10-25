@@ -145,7 +145,7 @@
          espalda. El 4 de la barrida es de la camiseta del rival: a él no se
          le borra (a los tuyos sí, al vestirla: vestidas_ui.js) */
       var man = this.game.registry.get("poses"), def = man && man.poses && man.poses[id];
-      return { base: src, clave: "poseR_" + id, mapa: [{ de: 0x54bcec, a: 0xFF8A50, tol: 95 }], numero: def && def.quien === "heroe" ? def.numero : null };
+      return { base: src, clave: "poseR_" + id, mapa: [{ zona: "camiseta", rampa: window.PampaAvatar.RAMPAS.camiseta["Naranja rival"], de: 0x54bcec, a: 0xFF8A50, tol: 95 }], numero: def && def.quien === "heroe" ? def.numero : null };
     },
 
     /* ============ ENTRADAS ============ */

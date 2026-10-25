@@ -273,7 +273,9 @@ var DEUDA_HOY = null;
 var LEIDOS_OK = {
   /* L06: la función que repinta el renglón de ?perf=1 la escribe index.html
      (el script de LA RED), que este barrido no lee; si no está, no se pinta */
-  "__PAMPA_RED_PINTAR": "la escribe index.html (LA RED): repinta ?perf=1 cuando cambian las texturas"
+  "__PAMPA_RED_PINTAR": "la escribe index.html (LA RED): repinta ?perf=1 cuando cambian las texturas",
+  /* 25/oct: el manifiesto de zonas y sus máscaras los baja index.html, con los JSON del arranque */
+  "__PAMPA_ZONAS": "la escribe index.html (pZonas): las máscaras de pelo, piel y camiseta que lee el teñido"
 };
 /* asas y sellos: referencias que se dejan puestas para limpiar, para inspeccionar
    o para que las use quien tenga el objeto. No son contenido que no corre. */

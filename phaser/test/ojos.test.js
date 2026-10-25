@@ -93,6 +93,9 @@ var iRulos = CARAS.caras.findIndex(function (c) { return c.id === "rulos"; });
    _pedidoDeBusto, que lee el registry, las banderas y si la textura existe */
 var W = { Phaser: { Scene: function () { } }, PF: {}, PampaAvatar: A };
 new Function("window", "Phaser", leer("phaser/scenes/match.js").replace(/\r\n/g, "\n"))(W, W.Phaser);
+/* 25/oct: el mapa del busto lo arma avatar_arte.js (mapaDeBusto), el mismo
+   para el editor y el partido, como en el juego, donde se carga antes */
+new Function("window", "document", leer("phaser/scenes/avatar_arte.js"))(W, null);
 var escena = Object.create(W.PampaMatch.prototype);
 escena.FLAGS = { v7_caras: true };
 escena.game = { registry: { get: function (k) { return k === "caras" ? CARAS : null; } } };
