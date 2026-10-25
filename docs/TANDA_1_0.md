@@ -6895,3 +6895,43 @@ Lo que cambia (audio/sfx.js, EL TEMA QUE NO ARRANCÓ): pedir el tema de turno, s
 La patada épica (balance.patada_epica): el súper tiro, EL TOQUE al ángulo y el tiro de frente bien perfilado suman al golpe fuerte el silbido de la pelota, la hinchada que se levanta y el bajón de música. Cada patada ya sonaba (pase, centro, remate, tiro de frente, tiro libre, penal, EL TOQUE, bloqueo): lo nuevo son las capas.
 
 El mapa: las rayas amarillas entre los triángulos del rival (VER AL RIVAL) ya tenían rótulo, SU DEFENSA, arriba de la línea; ahora dice SU LÍNEA DE DEFENSA.
+
+
+### El lote de "no se puede jugar" (25/oct)
+
+Pedidos de Rodri: "por ahora no se puede jugar: es todo recuperar, recuperar, recuperar", "cuando están todos juntos... que cambien los jugadores del campo", "hubo pocas faltas", "en 5 partidos no me hicieron goles", "cuando saca el arquero es como si fuese un jugador" y "tiré el centro, medio que le erré y igual cabeceó".
+
+Lo que se tomó del clásico de fútbol de NES (de memoria, sin buscar en la web): con la pelota de la CPU el partido no te hace mirar cómo camina, salta al cruce que decide; cada encuentro se resuelve en una elección; tu equipo tiene ventaja en las jugadas grandes y el reloj corre con la jugada.
+
+Lo que cambia, todo con perilla en balance.json:
+- UNA defensa decisiva por pelota del rival (ritmo.cruce_def.por_posesion 1, flujo.defensa.tope 1, flujo.defensa.cada_ms 2600 a 1200). Si la ganás es tuya; si la perdés, el que te pasó queda a tiro y te rematan en el latido siguiente (salto_al_remate). En esa defensa tu equipo suma bonus_decisiva 6, metido en el poder de la acción para que el % del botón lo cuente.
+- El arquero rival ya no corre con la pelota: después de una atajada o un saque de arco saca corto, automático, al defensor suyo más libre (partido.saque_arquero). El cartel dice a quién: "Saca corto para el 3, THIAGO A.". El rótulo "RIVAL · 1" con el dibujo de otro jugador salía de eso: el 1 era el portador.
+- Tu arquero, después de atajar, elige SAQUE CORTO (al defensor, seguro) o SAQUE LARGO (al delantero, con su %: partido.saque_largo).
+- El reacomodo (partido.reacomodo): después de cada duelo el que tiene la pelota sube 50 px y se abre a su franja, el otro baja y se arma, y nadie queda a menos de 60 px de otro; también en el saque del medio. En ataque el volante se suma a la altura de la pelota (ia.vol_apoyo 80).
+- El remate rival pega más (partido.remate_rival: extra 24 y 0,6 por punto de TIRO de quien patea, que ya viene escalado por la división). Tu arquero atajaba 9 de cada 10: llegaba a 88 contra 64 fijo en todas las divisiones.
+- Más faltas (frente.falta): quite 0.12 a 0.14, bloqueo 0.08 a 0.16, al_cierre 0.22 a 0.35, al_pasar 0.35 a 0.45, vos 0.9 a 1.2, en_area_mult 0.6 a 0.35, y una nueva tuya, al_perder 0.3: te pasaron en la defensa decisiva y lo parás con falta, a tiro del arco (tiro libre directo para ellos) o en el área (penal). Tu falta lejos del arco corta la jugada: la sacan rápido y vuelve a haber defensa. La base del quite no pasó de 0.14 porque frente.test [5] pide que el quite holgado de un club "estrella" no sea falta con 0.15.
+- EL TOQUE: contacto_max 1.5 a 1.0. Entre 1 y 1,5 veces la tolerancia contaba como golpe ("¡SIN FUERZA!") y se veía el cabezazo entero. Ahora es "¡NO LA ALCANZASTE!" (no_llego_max 1.5) y en el centro la pelota pasa de largo y la sigue el más cerca en la cancha: un rival que la recupera, tu compañero que viene atrás o el saque de arco (flujo.no_llego, flujo.quienLaSigue). El remate de tu pelota sin contacto sigue como estaba.
+
+Medido en node (.claude/shots/tmp_medir_flujo.js, 40 partidos CORTO por división con el piloto de flujo.test.js, el remate rival como la escena y las faltas de los dos lados; antes = 0b7a4e7):
+
+| | antes | después |
+|---|---|---|
+| tu posesión, tiempo de juego | 55% | 72% |
+| defensas por pelota del rival (B) | 1,28 (64 de 282 con 2 o más) | 1,02 (16 de 300 con 2: la falta tuya lejos del arco corta la jugada y vuelve a haber defensa) |
+| en recuperarla, mediana y p90 | 7,6 s y 17,0 s | 5,4 s y 9,5 s |
+| goles por partido B (tuyos a rival) | 2,27 a 0,33 | 2,90 a 1,15 |
+| goles por partido A | 2,17 a 0,30 | 2,70 a 1,20 |
+| goles por partido Nacional | 1,32 a 0,20 | 1,65 a 1,48 |
+| partidos al cero en contra (B) | 70% | 20% |
+| perdidos en 40 (B / A / Nacional) | 0 / 0 / 1 | 3 / 5 / 13 |
+| faltas por partido (a favor + en contra, B) | 0,70 + 0,35 | 1,30 + 0,45 |
+| latidos con 4 o más en 60 px (B) | 23% | 19% (en partidos de lógica pura sin piloto, 22% a 9%) |
+| latidos con el arquero rival de portador | 18 a 35 por partido | 0 |
+
+Los % de los botones contra lo que pasa (todas las divisiones, después): defensa dice 60 y sale 59, pase 71 y 70, centro 73 y 78, gambeta y pared 61 y 69. La gambeta sale 8 puntos arriba de lo que dice porque esquivar la marca (la matriz que se elige en secreto) suma y el botón no lo puede saber; era igual antes (52 y 63). Tus goles en el piloto (2,9 en la B) están muy arriba de los de Rodri (1 por partido en su temporada): el piloto patea sin la escena de frente al arco. Contra los datos de su carrera (12 atajadas y 0 goles en contra en 9 partidos), el remate rival del piloto daba 0,33 por partido: el número a mirar jugando es si te hacen alrededor de 1 por partido en la Primera A.
+
+enter_siempre.test.js resolvía TE REMATAN sin el bloqueo de tus defensores ni el bonus de tu arquero (1,1 goles en contra por partido con ELIGE BIEN, contra 0 en la temporada de Rodri). Ahora va como la escena; con eso ENTER SIEMPRE baja de 0,88 a 0,63 puntos por partido en la B y ELIGE BIEN recibe 1,3 goles por partido en la B y 1,9 en el Mundial.
+
+Tests: no_se_puede_jugar.test.js y no_llego.test.js nuevos; a_remate.test.js (el saque del arquero, por pedido de Rodri del 25/oct, con el arquero rival que nunca lleva la pelota fuera de su área en 60 partidos), partido.test.js (la segunda línea queda probada con la perilla en 2; lo de verdad es una defensa y te rematan en el latido siguiente) y enter_siempre.test.js (el remate como la escena). Verificado en el navegador: el menú de SAQUE CORTO / SAQUE LARGO después de una atajada forzada y su resolución, el cartel del saque corto del rival y EL TOQUE sin contacto en un centro ("¡LA RECUPERÓ EL 2!", sin cine de remate).
+
+Quedó sin hacer: las fichas más chicas en el mapa. A 13 px el número de dos cifras entra en un círculo de radio 11 (hoy 14, balance.legibilidad.ficha_r), pero en el teléfono la letra crece sola (13 a 18 px a 740x360) y el radio no: hay que escalarlo con el mismo factor antes de achicarlo. La PRÁCTICA desde el título (tiros libres, penales y EL TOQUE sueltos) tampoco entró.
