@@ -317,7 +317,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
      para teñir, lo dice en vez de quedarse muda */
   nombrePelo(cara, tPelo) {
     const CAT = window.PampaAvatar.CATALOGO;
-    if (tPelo > 0) return CAT.colores_pelo[tPelo - 1].n;
+    if (tPelo > 0 && this.tinteValido(cara, tPelo)) return CAT.colores_pelo[tPelo - 1].n;
     if (cara.tintes_pelo === false) return "Sin pelo para teñir";
     const propio = CAT.colores_pelo.find(c => c.id === cara.pelo_propio);
     return propio ? "Original (" + propio.n.toLowerCase() + ")" : "Original";
@@ -410,7 +410,7 @@ window.PampaEditor = class PampaEditor extends Phaser.Scene {
     const CAT = A.CATALOGO;
     const nTin = (v, lista) => v > 0 ? lista[v - 1].n : "Original";
     this.txtLabel.setText(this._v2
-      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · piel " + nTin(l.tPiel, CAT.pieles).toLowerCase().replace(/^piel /, "") + " · pelo " + this.nombrePelo(this.CM.caras[l.cara % this.CM.caras.length], l.tPelo).toLowerCase())
+      ? (this.CM.caras[l.cara % this.CM.caras.length].n + " · piel " + nTin(l.tPiel, CAT.pieles).toLowerCase().replace(/^piel /, "") + " · " + (this.CM.caras[l.cara % this.CM.caras.length].tintes_pelo === false ? "sin pelo" : "pelo " + this.nombrePelo(this.CM.caras[l.cara % this.CM.caras.length], l.tPelo).toLowerCase()))
       : A.lookLabel(p.look));
     /* etiquetas de los steppers (cada variante con NOMBRE) + la fila activa
        del teclado marcada con ► y color (forma + color, no solo color) */
