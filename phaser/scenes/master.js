@@ -1586,7 +1586,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        opción, y quedaba tapado. Y decía dos cosas: cómo se toca (que el jugador
        descubre solo) y que no hay opción mala (que sí importa, porque saca el
        miedo a equivocarse). Queda la segunda, arriba de las opciones. */
-    const ayuda = () => this.add.text(W / 2, 246, "no hay opción mala: elegís quién sos, no cuánto sumás", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
+    const ayuda = () => this.add.text(W / 2, 246, "no hay opción mala: cada respuesta te da algo distinto", { fontFamily: window.PF.texto, fontSize: "13px", color: "#7ee08a" }).setOrigin(0.5).setAlpha(0.9);
     if (!unGlobo) ayuda();
   }
 
@@ -2049,7 +2049,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        línea del evento. Va al lado del rival, que es de quien habla, y los
        dos quedan centrados juntos */
     if (sem.espiado) {
-      const tVer = this.add.text(0, 42, "los fuiste a ver: sabés a qué juegan", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0, 0.5);
+      const tVer = this.add.text(0, 42, "fuiste a ver al rival: sabés a qué juega", { fontFamily: window.PF.texto, fontSize: "13px", color: "#ffd84d" }).setOrigin(0, 0.5);
       const x0 = Math.round(W / 2 - (tContra.width + 16 + tVer.width) / 2);
       tContra.setOrigin(0, 0.5).setX(x0);
       tVer.setX(x0 + tContra.width + 16);

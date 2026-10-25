@@ -60,8 +60,8 @@
         return Math.abs(sb) - Math.abs(sa);
       });
   }
-  /* seis opciones no cambian nada (efecto vacío): "Las dejo para la vuelta",
-     "Estudio después"... también llevan dibujito y bajada */
+  /* una opción sin efecto también lleva dibujito y bajada (desde el 25/oct
+     ningún evento la tiene: eventos_efecto.test.js) */
   function iconoDeEfecto(efecto) {
     var ks = efectosOrdenados(efecto);
     return ks.length ? ICONO_DE_EFECTO[ks[0]] : "igual";
