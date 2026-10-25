@@ -419,9 +419,11 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
       }
       const md = this._masterPartido.mod;
       if (md && md.mod) {
-        const M = md.mod, A = this.BAL.aguante;
-        if (M.aguante) this.st.mios.forEach(j => { j.aguante = Phaser.Math.Clamp(j.aguante + M.aguante, 60, A.max); });
+        const M = md.mod;
         if (M.envion) this.st.envion = Phaser.Math.Clamp((this.st.envion || 0) + M.envion, 0, (this.BAL.envion && this.BAL.envion.max) || 100);
+        /* 25/oct, pedido de Rodri: el ÁNIMO de un evento se juega como el de la
+           semana, en tus jugadas grandes (partido.prepararRemate) */
+        if (M.animo) this.st.animoGrande = (this.st.animoGrande || 0) + Math.round(M.animo * this.game.registry.get("balance").semana.cuatro.grande_por_punto);
         /* el efecto keeper escribia en stats.quite, un campo que NO EXISTE en
            el esquema de stats y que nadie lee para el arquero (su poder sale de
            fisico*0.7 + caracter*0.4). Ahora viaja en st.modVida y lo suma
@@ -477,6 +479,12 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
           this.st.mios.forEach(j => { if (j.esVos) j.aguanteMax = techo; });
         }
       }
+      /* 25/oct, pedido de Rodri (la parte no jugable): el AGUANTE de un evento
+         se suma acá, después de la semana y de las mejoras. Antes se sumaba
+         arriba y la semana pisaba el tuyo con su aguante inicial: la opción
+         no hacía nada */
+      const M = this.st.modVida;
+      if (M && M.aguante) this.st.mios.forEach(j => { j.aguante = Phaser.Math.Clamp(j.aguante + M.aguante, 60, window.PampaPartido.techoAguante(j, this.st.bal)); });
       /* 23/oct, pedido de Rodri · LA SEMANA DE CUATRO COSAS: lo que elegiste
          se juega esta fecha (logic/semana.js, cerrarSemanaCuatro). ENTRENAR
          sube esa cualidad, la BARRA trae el ánimo de las jugadas grandes

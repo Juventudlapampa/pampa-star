@@ -106,7 +106,7 @@
   }
 
   /* efectos → el modificador de ESA fecha (vocabulario cerrado y acotado) */
-  var TOPES = { aguante: 120, envion: 60, duelo: 10, keeper: 12, tiro: 10, pase: 10, gambeta: 10, fisico: 10, caracter: 10, arranque: 10, final: 10, recuperacion: 2 };
+  var TOPES = { animo: 30, aguante: 120, envion: 60, duelo: 10, keeper: 12, tiro: 10, pase: 10, gambeta: 10, fisico: 10, caracter: 10, arranque: 10, final: 10, recuperacion: 2 };
   function aplicarEleccion(evento, idxOpcion) {
     if (!evento || !evento.opciones) return null;
     var o = evento.opciones[((idxOpcion | 0) % evento.opciones.length + evento.opciones.length) % evento.opciones.length];

@@ -34,10 +34,12 @@
   var ICONO_DE_EFECTO = {
     tiro: "botin", pase: "pase", gambeta: "gambeta", aguante: "corazon", resistencia: "corazon",
     fisico: "pesa", recuperacion: "cruz", arranque: "reloj1", final: "reloj2",
-    envion: "rayo", caracter: "flecha", duelo: "choque", keeper: "guante"
+    envion: "rayo", caracter: "flecha", duelo: "choque", keeper: "guante", animo: "sol"
   };
+  /* 25/oct, pedido de Rodri: lo que da un evento se dice con las palabras de
+     la semana, como en sus tarjetas y en la previa */
   var PALABRA_DE_EFECTO = {
-    tiro: "tiro", pase: "pase", gambeta: "gambeta", aguante: "aguante", resistencia: "aguante",
+    tiro: "TIRO", pase: "PASE", gambeta: "GAMBETA", aguante: "AGUANTE", resistencia: "AGUANTE", animo: "ÁNIMO",
     fisico: "físico", recuperacion: "recuperación", arranque: "primer tiempo",
     final: "segundo tiempo", envion: "envión", caracter: "carácter",
     duelo: "mano a mano", keeper: "tu arquero"

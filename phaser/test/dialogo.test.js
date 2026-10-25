@@ -67,7 +67,8 @@ var DIBUJOS = (bloque.match(/^ {6}(\w+): \(\) =>/gm) || []).map(function (l) { r
       ok(baj.length > 0 && baj.length <= 40 && !/\d/.test(baj), "evento '" + e.id + "': la bajada dice el efecto con palabras y sin números (" + baj + ")");
     });
   });
-  ok(D.bajadaDeEfecto({ pase: 6, tiro: -3 }) === "más pase, menos tiro", "lo que suma va antes que lo que resta");
+  /* 25/oct, pedido de Rodri: con las palabras de la semana, como en sus tarjetas */
+  ok(D.bajadaDeEfecto({ pase: 6, tiro: -3 }) === "más PASE, menos TIRO", "lo que suma va antes que lo que resta");
   ok(D.iconoDeEfecto({ pase: 6, tiro: -3 }) === "pase", "el dibujito es el de lo que suma");
   ok(D.bajadaDeEfecto({ recuperacion: 1.5 }) === "más recuperación", "la recuperación es un multiplicador: 1,5 es más");
   ok(D.iconoDeEfecto({}) === "igual" && D.bajadaDeEfecto({}) === "todo igual", "la opción que no cambia nada lo dice");

@@ -123,7 +123,9 @@ function poderDe(st, id) {
     var max = Math.max.apply(null, usos[k].map(Math.abs));
     assert(max <= V.TOPES[k], "'" + k + "' llega a " + max + " y el tope es " + V.TOPES[k]);
   });
-  assert(Object.keys(usos).length >= 10, "los eventos tienen que usar el vocabulario (usan " + Object.keys(usos).length + ")");
+  /* 25/oct, pedido de Rodri: los eventos dan solo lo que dice la semana. Antes
+     pedía diez efectos distintos; ahora, las cinco palabras y ninguna otra */
+  assert(Object.keys(usos).sort().join(",") === "aguante,animo,gambeta,pase,tiro", "los eventos usan las cinco palabras de la semana (usan " + Object.keys(usos).join(",") + ")");
   console.log("[6] " + Object.keys(usos).length + " efectos usados por los eventos, todos adentro de su tope");
 })();
 
@@ -133,7 +135,7 @@ function poderDe(st, id) {
    lee, y el relato tiene de qué hablar. ---- */
 (function () {
   var D = require(path.join(RAIZ, "phaser/logic/dialogo.js"));
-  var leidos = ["aguante", "duelo", "keeper", "tiro", "pase", "gambeta", "fisico", "caracter", "recuperacion", "arranque", "final"];
+  var leidos = ["aguante", "animo", "duelo", "keeper", "tiro", "pase", "gambeta", "fisico", "caracter", "recuperacion", "arranque", "final"];
   var soloEnvion = [];
   EVS.eventos.forEach(function (e) {
     e.opciones.forEach(function (o) {
@@ -142,9 +144,15 @@ function poderDe(st, id) {
     });
   });
   assert(soloEnvion.length === 0, "SÍNTOMA: opciones que con el envión apagado no hacen nada: " + soloEnvion.join(" | "));
+  /* 25/oct, pedido de Rodri: ninguna opción nombra el envión (eventos_efecto.test.js);
+     la que lo daba es la que se mira */
+  var conEnvion = [];
+  EVS.eventos.forEach(function (e) { e.opciones.forEach(function (o) { if ((o.efecto || {}).envion != null) conEnvion.push(e.id + ": " + o.texto); }); });
+  assert(conEnvion.length === 0, "opciones que todavía dan envión: " + conEnvion.join(" | "));
+  var laQueDaba = { micro: 0, asado: 1, fiesta: 0, radio: 0, mala_racha: 0 };
   ["micro", "asado", "fiesta", "radio", "mala_racha"].forEach(function (id) {
     var e = EVS.eventos.find(function (x) { return x.id === id; });
-    var o = e.opciones.find(function (op) { return (op.efecto || {}).envion > 0; });
+    var o = e.opciones[laQueDaba[id]];
     var sinEnvion = Object.assign({}, o.efecto); delete sinEnvion.envion;
     assert(D.bajadaDeEfecto(sinEnvion) !== "todo igual", id + ": '" + o.texto + "' dice " + D.bajadaDeEfecto(sinEnvion));
     assert(Object.keys(sinEnvion).every(function (k) { return leidos.indexOf(k) >= 0; }), id + ": su efecto lo lee la cancha (" + Object.keys(sinEnvion).join(",") + ")");

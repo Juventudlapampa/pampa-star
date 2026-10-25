@@ -2,7 +2,7 @@
  "_schema": "pampa-star/vida@1",
  "_doc": "LA VIDA DE LA CARRERA (V8 A1). PARTE 1 'origen': tres pantallas al crear la carrera — elegís por identificación, no por optimizar (los números no se muestran). PARTE 2 'eventos': la SEMANA entre fechas, un evento corto en voz de cancha con dos respuestas y un modificador CHICO para ESA fecha. Dos toques y a la cancha. §11: cero gestión, cero plata, cero apuestas ni temáticas; pueblos reales (públicos), personas inventadas y sin nombre propio.",
  "_origen_stats": "Revisión final del 23/oct, pedido de Rodri (la épica del jugador de afuera, algo simple de 3 o 4 cosas, claras en qué influyen): las respuestas de la entrevista mueven solo TIRO, PASE, GAMBETA y AGUANTE (resistencia, que la pantalla nombra aguante), y la opción lo dice abajo con palabras. Antes movían también carácter, físico, velocidad y juego aéreo, que no aparecían en ningún lado.",
- "_efectos": "Vocabulario cerrado (todo opcional, todo chico). aguante: puntos del tanque inicial (max 1000). envion: puntos del medidor al arrancar (max 100). duelo: bonus al poder de TUS acciones. keeper: bonus a tu arquero. tiro/pase/gambeta: bonus a esa stat tuya. recuperacion: multiplicador de regeneración. arranque: bonus en el 1er tiempo (se apaga en el 2º). final: bonus en el 2º tiempo. Rango sano: 3-8 en bonus de stat, 40-90 en aguante, 20-45 en envión.",
+ "_efectos": "25/oct, pedido de Rodri: el efecto de cada opción se dice con las palabras de la semana y solo con ellas. tiro, pase, gambeta: bonus a esa cualidad tuya esa fecha (3 a 8). aguante: puntos del tanque con el que arrancás (40 a 90, sobre 1000). animo: puntos de ÁNIMO de esa fecha (10 a 25), que se juegan en tus jugadas grandes como el de la semana (balance.semana.cuatro.grande_por_punto). Nada de envión ni de lo apagado por la poda. Toda opción suma algo, aunque reste otra cosa (eventos_efecto.test.js lo vigila). duelo, keeper, arranque, final, recuperacion, fisico y caracter siguen en logic/vida.js TOPES y en la cancha, sin evento que los use.",
  "origen": [
   {
    "id": "donde",
@@ -193,7 +193,7 @@
      "texto": "Juego liviano, sin pelear",
      "efecto": {
       "gambeta": 6,
-      "fisico": -3
+      "tiro": -2
      },
      "frase_relator": "Elegiste no chocar: hoy te escapás por los costados."
     }
@@ -207,17 +207,17 @@
     {
      "texto": "Tomo agua y aflojo",
      "efecto": {
-      "recuperacion": 1.5
+      "aguante": 80
      },
      "frase_relator": "Te cuidaste del calor: vas a llegar con piernas al final."
     },
     {
      "texto": "Salgo a matar los primeros veinte",
      "efecto": {
-      "arranque": 8,
-      "final": -4
+      "animo": 20,
+      "aguante": -50
      },
-     "frase_relator": "Salís a quemarlo todo temprano, después Dios dirá."
+     "frase_relator": "Salís a quemarlo todo temprano: el calor se va a sentir al final."
     }
    ]
   },
@@ -251,16 +251,17 @@
     {
      "texto": "Como un par y voy",
      "efecto": {
-      "arranque": -4,
-      "envion": 30,
-      "caracter": 3
+      "animo": 20,
+      "aguante": -40
      },
      "frase_relator": "Saliste con la panza llena y el alma también."
     },
     {
      "texto": "Las dejo para la vuelta",
-     "efecto": {},
-     "frase_relator": "Las milanesas te esperan: eso también es motivación."
+     "efecto": {
+      "aguante": 50
+     },
+     "frase_relator": "Con la panza liviana y las milanesas esperando a la vuelta."
     }
    ]
   },
@@ -270,17 +271,18 @@
    "texto": "Fletaron el micro de la hinchada. Van treinta de la localidad a verte.",
    "opciones": [
     {
-     "texto": "Salgo a jugar para ellos",
+     "texto": "Salgo a jugar para la hinchada",
      "efecto": {
-      "envion": 40,
-      "caracter": 4
+      "animo": 25
      },
      "frase_relator": "Con la hinchada de la localidad en la tribuna, entrás con todo."
     },
     {
      "texto": "Trato de no pensarlo",
-     "efecto": {},
-     "frase_relator": "Preferís no mirar a la tribuna: a lo tuyo."
+     "efecto": {
+      "pase": 5
+     },
+     "frase_relator": "Preferís no mirar a la tribuna: a lo tuyo, simple y para el equipo."
     }
    ]
   },
@@ -292,15 +294,16 @@
     {
      "texto": "Lo llevo",
      "efecto": {
-      "envion": 35,
-      "caracter": 3
+      "animo": 20
      },
      "frase_relator": "Trajiste a tu hermanito: si hacés un gol ya sabemos para quién es."
     },
     {
      "texto": "Que vaya el domingo que viene",
-     "efecto": {},
-     "frase_relator": "Lo dejás para la próxima, con menos nervios encima."
+     "efecto": {
+      "gambeta": 5
+     },
+     "frase_relator": "Lo dejás para la próxima y jugás suelto, sin nervios encima."
     }
    ]
   },
@@ -313,14 +316,16 @@
      "texto": "Los estreno hoy",
      "efecto": {
       "tiro": 7,
-      "arranque": -4
+      "aguante": -40
      },
-     "frase_relator": "Estrenás botines: le vas a pegar fuerte aunque al principio cuesten."
+     "frase_relator": "Estrenás botines: le vas a pegar fuerte aunque te aprieten."
     },
     {
      "texto": "Voy con los viejos",
-     "efecto": {},
-     "frase_relator": "Los de siempre, los que ya conocen tu pie."
+     "efecto": {
+      "pase": 5
+     },
+     "frase_relator": "Los de siempre, los que ya conocen tu pie: hoy la tocás de memoria."
     }
    ]
   },
@@ -332,15 +337,15 @@
     {
      "texto": "Juego con calma",
      "efecto": {
-      "recuperacion": 1.4
+      "aguante": 60
      },
-     "frase_relator": "Sabés que después hay asado: jugás suelto."
+     "frase_relator": "Sabés que después hay asado: jugás con calma y te sobra resto."
     },
     {
      "texto": "Me lo quiero ganar",
      "efecto": {
-      "envion": 35,
-      "final": 5
+      "animo": 15,
+      "tiro": 3
      },
      "frase_relator": "Querés sentarte a la mesa con el partido ganado."
     }
@@ -376,9 +381,9 @@
     {
      "texto": "Escucho y hago caso",
      "efecto": {
-      "duelo": 5
+      "pase": 6
      },
-     "frase_relator": "Venís con la lección aprendida del técnico."
+     "frase_relator": "Venís con la lección aprendida del técnico: hoy la pelota se mueve como pidió."
     },
     {
      "texto": "Yo sé lo que tengo que hacer",
@@ -398,15 +403,16 @@
     {
      "texto": "Hablo yo",
      "efecto": {
-      "envion": 45,
-      "caracter": 4
+      "animo": 25
      },
      "frase_relator": "Hablaste vos en el vestuario: el equipo salió otro."
     },
     {
      "texto": "No es mi lugar",
-     "efecto": {},
-     "frase_relator": "Preferiste callar y dejar que hable la experiencia del plantel."
+     "efecto": {
+      "pase": 5
+     },
+     "frase_relator": "Preferiste callar y dejar que hable la experiencia del plantel: vos, a jugar simple."
     }
    ]
   },
@@ -416,18 +422,17 @@
    "texto": "Dos personas del plantel se pelearon en el entrenamiento del jueves.",
    "opciones": [
     {
-     "texto": "Los junto",
+     "texto": "Hablo con las dos",
      "efecto": {
-      "envion": 30,
-      "pase": 3
+      "pase": 6
      },
-     "frase_relator": "Los sentaste frente a frente y arreglaron: se nota en la cancha."
+     "frase_relator": "Sentaste a las dos frente a frente y arreglaron: hoy la pelota circula."
     },
     {
      "texto": "Que se arreglen",
      "efecto": {
-      "duelo": 5,
-      "envion": -15
+      "gambeta": 5,
+      "pase": -2
      },
      "frase_relator": "No te metiste: estás en lo tuyo, con la cabeza en el partido."
     }
@@ -442,17 +447,17 @@
     {
      "texto": "Que hablen",
      "efecto": {
-      "duelo": 6
+      "animo": 20
      },
      "frase_relator": "No contestaste nada en la semana. Vas a contestar acá."
     },
     {
      "texto": "Me caliento",
      "efecto": {
-      "fisico": 6,
+      "tiro": 6,
       "pase": -4
      },
-     "frase_relator": "Venís caliente de la semana: ojo con los primeros cruces."
+     "frase_relator": "Venís caliente de la semana: le vas a pegar con bronca."
     }
    ]
   },
@@ -465,16 +470,15 @@
     {
      "texto": "Me guardo para el contragolpe",
      "efecto": {
-      "final": 7,
-      "arranque": -3
+      "aguante": 70
      },
      "frase_relator": "Plan claro: aguantar y salir de contra."
     },
     {
      "texto": "Voy a buscarlo desde el arranque",
      "efecto": {
-      "arranque": 8,
-      "final": -3
+      "tiro": 5,
+      "aguante": -40
      },
      "frase_relator": "Salís a buscarlo de entrada, sin respetar nada."
     }
@@ -489,17 +493,16 @@
     {
      "texto": "Ojo que muerden: paciencia",
      "efecto": {
-      "duelo": 5,
-      "arranque": -2
+      "pase": 5
      },
-     "frase_relator": "Sabés que el que viene último es el más peligroso."
+     "frase_relator": "Sabés que el equipo que viene último es el más peligroso: la movés con paciencia."
     },
     {
-     "texto": "A estos hay que matarlos temprano",
+     "texto": "Hay que liquidarlo temprano",
      "efecto": {
-      "arranque": 7
+      "tiro": 6
      },
-     "frase_relator": "Querés liquidarlo antes de que se ilusionen."
+     "frase_relator": "Querés el gol temprano, antes de que se ilusionen."
     }
    ]
   },
@@ -520,7 +523,7 @@
      "texto": "Juego para el equipo",
      "efecto": {
       "pase": 5,
-      "envion": 25
+      "animo": 15
      },
      "frase_relator": "Que te miren jugando para el equipo."
     }
@@ -535,19 +538,17 @@
     {
      "texto": "Igual juego",
      "efecto": {
-      "aguante": -90,
-      "envion": 40,
-      "caracter": 5
+      "animo": 25,
+      "aguante": -90
      },
      "frase_relator": "Venís de doce horas de máquina y estás igual acá: el vestuario te respeta."
     },
     {
-     "texto": "Pido salir en el segundo tiempo",
+     "texto": "Duermo la siesta antes de ir",
      "efecto": {
-      "final": -5,
-      "recuperacion": 1.3
+      "aguante": 60
      },
-     "frase_relator": "Avisaste que vas a aguantar lo que puedas."
+     "frase_relator": "Dormiste una siesta entre la máquina y la cancha: llegás con algo de resto."
     }
    ]
   },
@@ -559,14 +560,16 @@
     {
      "texto": "Estudio antes del partido",
      "efecto": {
-      "duelo": -4,
-      "aguante": 40
+      "pase": 5,
+      "tiro": -2
      },
-     "frase_relator": "Venís con la cabeza en el examen del lunes."
+     "frase_relator": "Estudiaste antes de venir: con la cabeza tranquila, jugás simple."
     },
     {
      "texto": "Estudio después",
-     "efecto": {},
+     "efecto": {
+      "animo": 15
+     },
      "frase_relator": "El examen puede esperar: ahora hay partido."
     }
    ]
@@ -579,17 +582,17 @@
     {
      "texto": "Voy después del partido",
      "efecto": {
-      "envion": 30,
-      "gambeta": 4
+      "gambeta": 5,
+      "animo": 10
      },
      "frase_relator": "Después hay fiesta: querés llegar con algo para festejar."
     },
     {
-     "texto": "Me la pierdo, estoy enfocado",
+     "texto": "Me la pierdo, primero el partido",
      "efecto": {
-      "duelo": 5
+      "aguante": 60
      },
-     "frase_relator": "Te perdiste la fiesta de la localidad por este partido."
+     "frase_relator": "Te perdiste la fiesta de la localidad por este partido: llegás con resto."
     }
    ]
   },
@@ -599,20 +602,19 @@
    "texto": "Se rompió el colectivo camino al partido. Llegaron sobre la hora.",
    "opciones": [
     {
-     "texto": "Entro en frío",
+     "texto": "Entro igual, sin precalentar",
      "efecto": {
-      "arranque": -6,
-      "final": 5
+      "animo": 15,
+      "gambeta": -3
      },
-     "frase_relator": "Sin precalentar, entrás en frío: ojo los primeros minutos."
+     "frase_relator": "Sin precalentar, entrás igual: ganas no te faltan."
     },
     {
-     "texto": "Pido entrar más adelante",
+     "texto": "Estiro al costado de la ruta",
      "efecto": {
-      "aguante": 60,
-      "arranque": -3
+      "aguante": 50
      },
-     "frase_relator": "Preferiste esperar un rato antes de meterte de lleno."
+     "frase_relator": "Estiraste al costado de la ruta mientras arreglaban el colectivo: las piernas llegan a punto."
     }
    ]
   },
@@ -624,9 +626,9 @@
     {
      "texto": "Me quedo a patearle",
      "efecto": {
-      "keeper": 8
+      "tiro": 6
      },
-     "frase_relator": "Le pateaste hasta que oscureció: el arquero llega afiladísimo."
+     "frase_relator": "Le pateaste al arquero hasta que oscureció: hoy la pelota te sale con mira."
     },
     {
      "texto": "Me voy a descansar",
@@ -645,16 +647,16 @@
     {
      "texto": "Me quedo a jugar un rato",
      "efecto": {
-      "envion": 35,
-      "aguante": -30,
-      "gambeta": 4
+      "gambeta": 5,
+      "animo": 10,
+      "aguante": -30
      },
      "frase_relator": "Te quedaste jugando con la chiquilinada: te acordaste de por qué jugás."
     },
     {
      "texto": "Firmo y sigo a entrenar",
      "efecto": {
-      "duelo": 3
+      "pase": 4
      },
      "frase_relator": "Firmaste, saludaste y te fuiste a entrenar. Puntual como siempre."
     }
@@ -668,8 +670,8 @@
     {
      "texto": "Voy y hablo del equipo",
      "efecto": {
-      "envion": 30,
-      "pase": 4
+      "pase": 4,
+      "animo": 10
      },
      "frase_relator": "En la radio nombraste a todo el plantel: el equipo se agrandó."
     },
@@ -690,16 +692,16 @@
     {
      "texto": "Pruebo los botines viejos",
      "efecto": {
-      "duelo": 4
+      "gambeta": 5
      },
-     "frase_relator": "Fuiste a probar el piso en la semana: hoy estás bien parado."
+     "frase_relator": "Fuiste a probar el piso en la semana: hoy pisás firme."
     },
     {
-     "texto": "Le aviso al arquero cómo pica",
+     "texto": "Practico el pique alto",
      "efecto": {
-      "keeper": 6
+      "tiro": 5
      },
-     "frase_relator": "El arquero ya sabe cómo pica acá: se lo avisaste."
+     "frase_relator": "Practicaste el pique alto: hoy la agarrás de volea."
     }
    ]
   },
@@ -712,16 +714,15 @@
     {
      "texto": "Pido pies en la tierra",
      "efecto": {
-      "duelo": 5
+      "pase": 5
      },
-     "frase_relator": "Pediste humildad en el vestuario: nadie se cree nada."
+     "frase_relator": "Pediste humildad en el vestuario: nadie se cree nada y la pelota circula."
     },
     {
      "texto": "Que sueñen, total ganamos",
      "efecto": {
-      "envion": 40,
-      "duelo": -3,
-      "arranque": 5
+      "animo": 20,
+      "pase": -3
      },
      "frase_relator": "El equipo sale convencido de que no lo para nadie."
     }
@@ -734,18 +735,17 @@
    "texto": "Hace tres fechas que no ganan y el vestuario está pesado.",
    "opciones": [
     {
-     "texto": "Los junto y hablamos",
+     "texto": "Junto al plantel y hablamos",
      "efecto": {
-      "envion": 45,
-      "arranque": 5
+      "animo": 25
      },
      "frase_relator": "Hablaste de frente en el vestuario: hoy salen a romperla."
     },
     {
-     "texto": "Cada uno que se haga cargo",
+     "texto": "Cada cual que se haga cargo",
      "efecto": {
-      "duelo": 6,
-      "envion": -20
+      "tiro": 5,
+      "pase": -2
      },
      "frase_relator": "Cada cual con lo suyo: vos te vas a hacer cargo de lo tuyo."
     }
@@ -760,15 +760,15 @@
     {
      "texto": "Salgo a comerme la cancha",
      "efecto": {
-      "arranque": 8,
+      "animo": 20,
       "aguante": -40
      },
-     "frase_relator": "Debutás con toda la ansiedad encima."
+     "frase_relator": "Debutás con toda la ansiedad encima y ganas de comerte la cancha."
     },
     {
      "texto": "Voy de a poco, a entrar en el partido",
      "efecto": {
-      "final": 6
+      "aguante": 60
      },
      "frase_relator": "Empezás con calma: el partido es largo."
     }
