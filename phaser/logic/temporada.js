@@ -1,8 +1,9 @@
 /* ============================================================================
    PAMPA STAR · phaser/logic/temporada.js — LA TEMPORADA DEL MODO MASTER
    (lógica PURA, V7 §2: la carrera adentro del Phaser)
-   Fixture round-robin por el método del círculo (10 equipos, 18 fechas ida y
-   vuelta — el mismo esquema que la temporada del clásico), tabla con
+   Fixture round-robin por el método del círculo (10 equipos: 9 fechas de
+   ida en la CARRERA CORTA, 18 de ida y vuelta en la LARGA, el esquema de la
+   temporada del clásico), tabla con
    PJ G E P GF GC DG PTS, simulación DETERMINISTA de los partidos ajenos
    (PRNG con semilla: misma temporada, mismos resultados — resumible), y el
    veredicto de fin de temporada (el CAMPEÓN asciende; nadie desciende).
@@ -25,9 +26,13 @@
     };
   }
 
+  /* 25/oct, pedido de Rodri: CARRERA CORTA (solo ida) o LARGA (ida y vuelta) */
+  var VUELTAS = { corta: 1, larga: 2 };
+
   /* método del círculo: n equipos (si viene impar se agrega "LIBRE"),
-     n-1 fechas de ida + espejo de vuelta con localía invertida */
-  function fixture(equipos) {
+     n-1 fechas de ida + espejo de vuelta con localía invertida. Con
+     vueltas 1, solo la ida; sin el dato, ida y vuelta (las carreras de antes) */
+  function fixture(equipos, vueltas) {
     var eqs = equipos.slice();
     if (eqs.length % 2 === 1) eqs.push("LIBRE");
     var n = eqs.length, fechas = [];
@@ -44,6 +49,7 @@
       fechas.push(partidos);
       rueda.push(rueda.shift());
     }
+    if (vueltas === 1) return fechas;
     var vuelta = fechas.map(function (ps) {
       return ps.map(function (p) { return { local: p.visita, visita: p.local }; });
     });
@@ -61,7 +67,7 @@
       division: opts.division,
       miClub: opts.miClub,
       semilla: (opts.semilla || 1) >>> 0,
-      fixture: fixture(equipos),
+      fixture: fixture(equipos, opts.vueltas),
       tabla: equipos.filter(function (e) { return e !== "LIBRE"; }).map(filaNueva),
       fecha: 0,          // próxima fecha a jugar (0-based)
       resultados: []     // [{fecha, partidos:[{local,visita,gl,gv}]}]
@@ -234,7 +240,7 @@
 
   return {
     renombrarPorPosicion: renombrarPorPosicion, renombrarEquipos: renombrarEquipos,
-    fixture: fixture, crear: crear, jugarFecha: jugarFecha, miPartido: miPartido,
+    VUELTAS: VUELTAS, fixture: fixture, crear: crear, jugarFecha: jugarFecha, miPartido: miPartido,
     posiciones: posiciones, miPosicion: miPosicion, terminada: terminada, ultimaFecha: ultimaFecha,
     veredicto: veredicto, rng: rng,
     zonaDescenso: zonaDescenso, enZonaDescenso: enZonaDescenso

@@ -56,6 +56,13 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       : window.PampaSaveMaster.duracionesActivas(this.game.registry.get("balance")).porDefecto);
     this._tempoDeLaCarrera = null;
     this._tempoFoco = null;
+    /* 25/oct, pedido de Rodri: CARRERA CORTA o LARGA. Al arrancar queda en
+       largoDeVuelta, por si se vuelve del paso 1 (arrancarEn) */
+    const largoDeVuelta = this.game.registry.get("largoDeVuelta");
+    this.game.registry.set("largoDeVuelta", null);
+    this._largoElegido = largoDeVuelta || this.game.registry.get("balance").carrera.por_defecto;
+    this._largoDeLaCarrera = null;
+    this._carreraFoco = null;
     this._botonesElegir = null;
   }
 
@@ -206,6 +213,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       this.game.registry.set("carreraPendiente", null);
       this._pendienteOrigen = pend.division;
       this._tempoDeLaCarrera = pend.tempo;
+      this._largoDeLaCarrera = pend.largo;
     }
     const W = this.scale.width, H = this.scale.height;
     /* PIEL P1: fondo radial (ver editor.js) */
@@ -748,10 +756,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
   opcionesDeSaneo() {
     return {
       rivalesDe: (div) => ((this.DIV.divisiones[div] || {}).rivales || null),
-      crearTemporada: (div, club, n) => this.T.crear({
+      crearTemporada: (div, club, n, largo) => this.T.crear({
         division: div, miClub: club,
         rivales: this.DIV.divisiones[div].rivales,
-        semilla: this.Ma.hashClub(club) * 31 + (n | 0 || 1)
+        semilla: this.Ma.hashClub(club) * 31 + (n | 0 || 1),
+        vueltas: this.T.VUELTAS[largo]
       })
     };
   }
@@ -1133,42 +1142,56 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        entran al cursor del mapa (dibujarMapa arma el grupo con ellas).
        ══════════════════════════════════════════════════════════════════════ */
     const TB = this.game.registry.get("balance").tempo;
+    /* 25/oct, pedido de Rodri: al lado de la duración, CARRERA CORTA (solo
+       ida, 9 fechas) o LARGA (ida y vuelta, 18), de balance.carrera. Las dos
+       preguntas comparten la fila: cada grupo con su título encima y su marca
+       debajo (ELEGIDO la duración, ELEGIDA la carrera) */
+    const CB = this.game.registry.get("balance").carrera;
     const yT = 362, anchoT = 200, altoT = 48, pasoT = 216;
-    this.add.text(W / 2, yT - 38, TB.titulo_creacion, { fontFamily: window.PF.display, fontSize: "14px", color: "#ffd84d" }).setOrigin(0.5);
-    const caraT = this.add.graphics();
-    const marcaT = this.add.text(0, yT + 37, "ELEGIDO", { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
     const durT = window.PampaSaveMaster.duracionesActivas(this.game.registry.get("balance")).opciones;
-    const opsT = durT.map((o, i) => ({ o, x: W / 2 + (i - (durT.length - 1) / 2) * pasoT }));
-    const pintarT = () => {
-      const PP = window.PampaPiel, P = this.piel();
-      caraT.clear();
-      opsT.forEach(({ o, x }) => {
-        const sel = o.k === this._tempoElegido;
-        const C = PP.capasBoton(sel ? 0xffd84d : 0xf6efdc, P);
-        const x0 = x - anchoT / 2, y0 = yT - altoT / 2;
-        caraT.fillStyle(C.canto, 1).fillRoundedRect(x0, y0 + C.cantoPx, anchoT, altoT, C.radio);
-        caraT.fillStyle(C.cara, 1).fillRoundedRect(x0, y0, anchoT, altoT, C.radio);
-        caraT.lineStyle(sel ? 5 : 2, 0x0a1f13, 1).strokeRoundedRect(x0, y0, anchoT, altoT, C.radio);
-        if (sel) {
-          const tx = x0 + 16, ty = yT - 9;
-          caraT.lineStyle(4, 0x0a1f13, 1).beginPath();
-          caraT.moveTo(tx - 6, ty).lineTo(tx - 1, ty + 6).lineTo(tx + 8, ty - 7).strokePath();
-          marcaT.setX(x);
-        }
+    const paso = Math.min(pasoT, Math.floor((W - 48) / (durT.length + CB.opciones.length + 0.5)));
+    const ancho = Math.min(anchoT, paso - 16);
+    const fila = (titulo, opciones, xCentro, palabra, elegida, alElegir) => {
+      this.add.text(xCentro, yT - 38, titulo, { fontFamily: window.PF.display, fontSize: "14px", color: "#ffd84d" }).setOrigin(0.5);
+      const cara = this.add.graphics();
+      const marca = this.add.text(0, yT + 37, palabra, { fontFamily: window.PF.display, fontSize: "13px", color: "#ffd84d" }).setOrigin(0.5);
+      const ops = opciones.map((o, i) => ({ o, x: xCentro + (i - (opciones.length - 1) / 2) * paso }));
+      const pintar = () => {
+        const PP = window.PampaPiel, P = this.piel();
+        cara.clear();
+        ops.forEach(({ o, x }) => {
+          const sel = o.k === elegida();
+          const C = PP.capasBoton(sel ? 0xffd84d : 0xf6efdc, P);
+          const x0 = x - ancho / 2, y0 = yT - altoT / 2;
+          cara.fillStyle(C.canto, 1).fillRoundedRect(x0, y0 + C.cantoPx, ancho, altoT, C.radio);
+          cara.fillStyle(C.cara, 1).fillRoundedRect(x0, y0, ancho, altoT, C.radio);
+          cara.lineStyle(sel ? 5 : 2, 0x0a1f13, 1).strokeRoundedRect(x0, y0, ancho, altoT, C.radio);
+          if (sel) {
+            const tx = x0 + 16, ty = yT - 9;
+            cara.lineStyle(4, 0x0a1f13, 1).beginPath();
+            cara.moveTo(tx - 6, ty).lineTo(tx - 1, ty + 6).lineTo(tx + 8, ty - 7).strokePath();
+            marca.setX(x);
+          }
+        });
+      };
+      const foco = ops.map(({ o, x }) => {
+        this.add.text(x, yT - 9, o.n, { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13" }).setOrigin(0.5);
+        this.add.text(x, yT + 11, o.d, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
+        /* zona de toque transparente: la cara la pinta pintar (vestirPendientes no la viste) */
+        const zona = this.add.rectangle(x, yT, ancho, altoT, 0x000000, 0);
+        if (this.pisoTactil) this.pisoTactil(zona);
+        if (!zona.input) zona.setInteractive({ useHandCursor: true });
+        const elegir = () => { alElegir(o.k); pintar(); };
+        zona.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
+        return { obj: zona, cb: elegir };
       });
+      pintar();
+      return foco;
     };
-    this._tempoFoco = opsT.map(({ o, x }) => {
-      this.add.text(x, yT - 9, o.n, { fontFamily: window.PF.display, fontSize: "14px", color: "#0a1f13" }).setOrigin(0.5);
-      this.add.text(x, yT + 11, o.d, { fontFamily: window.PF.texto, fontSize: "13px", color: "#365a41" }).setOrigin(0.5);
-      /* zona de toque transparente: la cara la pinta pintarT (vestirPendientes no la viste) */
-      const zona = this.add.rectangle(x, yT, anchoT, altoT, 0x000000, 0);
-      if (this.pisoTactil) this.pisoTactil(zona);
-      if (!zona.input) zona.setInteractive({ useHandCursor: true });
-      const elegir = () => { this._tempoElegido = o.k; pintarT(); };
-      zona.on("pointerdown", (p, xx, yy, ev) => { ev && ev.stopPropagation && ev.stopPropagation(); elegir(); });
-      return { obj: zona, cb: elegir };
-    });
-    pintarT();
+    this._tempoFoco = fila(TB.titulo_creacion, durT, W / 2 - (CB.opciones.length + 0.5) * paso / 2, "ELEGIDO",
+      () => this._tempoElegido, k => { this._tempoElegido = k; });
+    this._carreraFoco = fila(CB.titulo_creacion, CB.opciones, W / 2 + (durT.length + 0.5) * paso / 2, "ELEGIDA",
+      () => this._largoElegido, k => { this._largoElegido = k; });
     this.dibujarMapa();
     /* ola 3: con el cursor, las flechas van por el mapa, la duración y los
        botones, y ENTER elige. Estas dos cambiaban la localidad desde
@@ -1194,7 +1217,9 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
        carrera, solo que hay algo pendiente. */
     const arrancarEn = (divId) => {
       this.backupClasico();   // V7 §3: la mudanza respalda el clásico primero
-      this.game.registry.set("carreraPendiente", { division: divId, tempo: this._tempoElegido });
+      this.game.registry.set("carreraPendiente", { division: divId, tempo: this._tempoElegido, largo: this._largoElegido });
+      /* si en el paso 1 se toca VOLVER, el mapa vuelve con CORTA o LARGA marcada (init la consume) */
+      this.game.registry.set("largoDeVuelta", this._largoElegido);
       this.irA("editor");
     };
     this._crearCarrera = (divId, origen) => {
@@ -1206,10 +1231,12 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         origen: origen || null, bolsaEventos: [], modFecha: null, racha: 0,
         historial: [], golesTuyosTemporada: 0,
         tempo: window.PampaSaveMaster.tempoDe(this._tempoDeLaCarrera),
+        largoCarrera: this._largoDeLaCarrera,
         temporada: this.T.crear({
           division: divId, miClub: club,
           rivales: this.DIV.divisiones[divId].rivales,
-          semilla: this.Ma.hashClub(club) * 31 + 1
+          semilla: this.Ma.hashClub(club) * 31 + 1,
+          vueltas: this.T.VUELTAS[this._largoDeLaCarrera]
         })
       };
       this.guardar();
@@ -1300,7 +1327,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
     return this.T.crear({
       division, miClub: this.save.club,
       rivales: this.DIV.divisiones[division].rivales,
-      semilla: this.Ma.hashClub(this.save.club) * 31 + n
+      semilla: this.Ma.hashClub(this.save.club) * 31 + n,
+      vueltas: this.T.VUELTAS[this.save.largoCarrera]
     });
   }
   /* ══════════════════════════════════════════════════════════════════════
@@ -1383,7 +1411,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
         /* revisión del 25/oct: ENTER sobre la localidad ya elegida no hacía
            nada a la vista; ahora lleva el cursor a ARRANCAR */
         if (k === this.pSel && this._foco && (this._botonesElegir || []).length)
-          this._foco.mover(_focoMapa.length + (this._tempoFoco || []).length);
+          this._foco.mover(_focoMapa.length + (this._tempoFoco || []).length + (this._carreraFoco || []).length);
       } });
       blancos.push({ nombre: p.nombre, x, y, caja: nom.getBounds() });
     });
@@ -1481,7 +1509,7 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
 
     if (this.grupoFoco && _focoMapa.length) {
       const iSel = ubic.findIndex(p => p.nombre === sel);
-      this.grupoFoco(_focoMapa.concat(this._tempoFoco || [], this._botonesElegir || []), { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
+      this.grupoFoco(_focoMapa.concat(this._tempoFoco || [], this._carreraFoco || [], this._botonesElegir || []), { inicial: iSel >= 0 ? iSel : 0, sinTeclado: false });
       /* el cursor hace tocable cada punto; en el mapa el dedo va a la zona */
       _focoMapa.forEach(it => it.obj.disableInteractive());
     }

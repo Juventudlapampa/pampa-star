@@ -1369,13 +1369,12 @@
     "tope_por_partido": { "gol": 2, "gol_companero": 1, "gol_rival": 2, "atajada": 1, "atajada_rival": 1, "falta_a_favor": 1, "falta_en_contra": 1, "penal_a_favor": 1, "penal_en_contra": 1, "quite": 1, "error": 1, "cansancio": 1, "ganando_final": 1, "perdiendo_final": 1, "empate": 1, "resultado_gana": 1, "resultado_empate": 1, "resultado_pierde": 1 }
   },
   "carrera": {
-    "_nota": "25/oct, pedido de Rodri: al crear la carrera se elige CARRERA CORTA (temporadas de solo ida, 9 fechas) o CARRERA LARGA (ida y vuelta, 18). vueltas: cuántas ruedas del fixture tiene cada temporada (logic/temporada.js). por_defecto: la que viene marcada. Las carreras guardadas antes de esto no tienen el dato y se leen como LARGA, que es lo que venían jugando (logic/save_master.js).",
-    "titulo_creacion": "¿CUÁNTAS FECHAS POR TEMPORADA?",
-    "vueltas": { "corta": 1, "larga": 2 },
+    "_nota": "25/oct, pedido de Rodri: al crear la carrera se elige CARRERA CORTA (temporadas de solo ida, 9 fechas) o CARRERA LARGA (ida y vuelta, 18). Las vueltas de cada una (1 y 2) están en logic/temporada.js, VUELTAS. por_defecto: la que viene marcada. Las carreras guardadas antes de esto no tienen el dato y se leen como LARGA, que es lo que venían jugando (logic/save_master.js).",
+    "titulo_creacion": "¿CARRERA CORTA O LARGA?",
     "por_defecto": "corta",
     "opciones": [
-      { "k": "corta", "n": "CARRERA CORTA", "d": "9 fechas, solo ida" },
-      { "k": "larga", "n": "CARRERA LARGA", "d": "18 fechas, ida y vuelta" }
+      { "k": "corta", "n": "CORTA", "d": "9 fechas, solo ida" },
+      { "k": "larga", "n": "LARGA", "d": "18 fechas, ida y vuelta" }
     ]
   },
   "flags": {

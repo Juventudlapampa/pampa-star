@@ -108,6 +108,7 @@
     return _T;
   }
 
+  var VUELTAS_DE = { corta: 1, larga: 2 };   // logic/temporada.js, VUELTAS
   function esObjeto(x) { return !!x && typeof x === "object" && !Array.isArray(x); }
   function esTexto(x) { return typeof x === "string" && x.trim().length > 0; }
   function esNumero(x) { return typeof x === "number" && isFinite(x); }
@@ -169,7 +170,7 @@
      Devuelve null si quedó jugable; { rehacer, motivo } si no tiene arreglo
      y conviene empezarla de nuevo (la carrera se conserva); { roto } si no
      hay forma. */
-  function repararTemporada(t, club, division, opts, reparado) {
+  function repararTemporada(t, club, division, opts, reparado, vueltas) {
     if (!esTexto(t.miClub)) { t.miClub = club; reparado.push("tu club en la temporada"); }
     if (t.division !== division) { t.division = division; reparado.push("división de la temporada"); }
     if (!esNumero(t.semilla)) { t.semilla = 1; reparado.push("semilla"); }
@@ -246,7 +247,7 @@
     if (!fixtureOk) {
       var T = temporadaLogica();
       if (!T) return { roto: "el fixture no se puede leer" };
-      t.fixture = T.fixture(equipos); reparado.push("fixture");
+      t.fixture = T.fixture(equipos, vueltas); reparado.push("fixture");
     }
     if (!tablaOk || faltanFilas) {
       t.tabla = tablaDesdeResultados(equipos, t.resultados);
@@ -358,6 +359,11 @@
       if (s[k] != null && !esNumero(s[k])) { delete s[k]; reparado.push(k); }
     });
 
+    /* CARRERA CORTA o LARGA (25/oct). Una carrera de antes no lo dice y se
+       lee como LARGA, que es lo que venía jugando (18 fechas): el save no se
+       toca. Un valor que no es ninguna de las dos se borra y queda LARGA */
+    if (s.largoCarrera != null && !VUELTAS_DE[s.largoCarrera]) { delete s.largoCarrera; reparado.push("largo de la carrera"); }
+
     /* --- la temporada --- */
     var t = esObjeto(s.temporada) ? s.temporada : null;
     var club = esTexto(s.club) ? s.club : (t && esTexto(t.miClub) ? t.miClub : null);
@@ -368,7 +374,7 @@
     var rehacer = function (div, por) {
       if (!opts.crearTemporada) return false;
       var nueva = null;
-      try { nueva = opts.crearTemporada(div, club, s.temporadaN); } catch (e) { nueva = null; }
+      try { nueva = opts.crearTemporada(div, club, s.temporadaN, s.largoCarrera); } catch (e) { nueva = null; }
       if (!esObjeto(nueva)) return false;
       s.division = div; s.temporada = nueva; t = nueva;
       s.semana = null; s.semanaResumen = null;
@@ -387,7 +393,7 @@
     } else if (!t) {
       if (!rehacer(division, "la temporada no estaba: vuelve a empezar")) return resultado(null, true, "falta la temporada");
     } else {
-      var rt = repararTemporada(t, club, division, opts, reparado);
+      var rt = repararTemporada(t, club, division, opts, reparado, VUELTAS_DE[s.largoCarrera]);
       if (rt && rt.roto) return resultado(null, true, rt.roto);
       if (rt && !rehacer(division, rt.rehacer)) return resultado(null, true, rt.motivo);
     }

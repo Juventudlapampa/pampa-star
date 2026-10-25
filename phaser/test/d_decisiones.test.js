@@ -235,8 +235,9 @@ function assert(c, m) { if (c) ok++; else { mal++; console.error("  ✗ " + m); 
 (function () {
   /* TANDA 1.0, TEMPO-1: el pendiente lleva también el tempo elegido en el
      mapa (decisión de Rodri: se elige al crear la carrera), que cruza el
-     editor hasta _crearCarrera */
-  assert(/this\.game\.registry\.set\("carreraPendiente", \{ division: divId, tempo: this\._tempoElegido \}\);/.test(MASTER),
+     editor hasta _crearCarrera. 25/oct, pedido de Rodri: y CARRERA CORTA o
+     LARGA (largo) */
+  assert(/this\.game\.registry\.set\("carreraPendiente", \{ division: divId, tempo: this\._tempoElegido, largo: this\._largoElegido \}\);/.test(MASTER),
     "D5: arrancar una carrera tiene que dejar el pendiente y mandarte al editor");
   /* el cambio de pantalla dejó de ser scene.start() y pasa por irA(), que hace
      el fundido y RECIÉN AHÍ arranca la escena. Lo que este assert cuida no es

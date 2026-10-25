@@ -146,8 +146,9 @@ const medir = fechas => {
   }
   return t;
 };
-const CORTA = medir(BAL.carrera.vueltas.corta * 9);
-const LARGA = medir(BAL.carrera.vueltas.larga * 9);
+const VUELTAS = require("../logic/temporada.js").VUELTAS;
+const CORTA = medir(VUELTAS.corta * 9);
+const LARGA = medir(VUELTAS.larga * 9);
 (function () {
   assert(CORTA.repetidos === 0, "SÍNTOMA: en una temporada CORTA salió un intercambio repetido (" + CORTA.repetidos + " en " + N + " temporadas)");
   assert(LARGA.repetidos === 0, "SÍNTOMA: en una temporada LARGA salió un intercambio repetido (" + LARGA.repetidos + " en " + N + " temporadas)");

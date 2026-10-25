@@ -45,8 +45,9 @@ vistas.forEach(v => {
 const elegir = metodo(MA, "vistaElegir");
 assert((elegir.match(/botones\.push\(this\.boton\(/g) || []).length === 5 && /this\._botonesElegir = botones\.map/.test(elegir),
   "los botones del mapa (ARRANCAR, IMPORTAR, VOLVER y PEGAR UN CÓDIGO) quedan anotados para el cursor");
-assert(/_focoMapa\.concat\(this\._tempoFoco \|\| \[\], this\._botonesElegir \|\| \[\]\)/.test(metodo(MA, "dibujarMapa")),
-  "y el cursor del mapa los suma después de las localidades y la duración");
+/* 25/oct, pedido de Rodri: entre la duración y los botones, CARRERA CORTA o LARGA */
+assert(/_focoMapa\.concat\(this\._tempoFoco \|\| \[\], this\._carreraFoco \|\| \[\], this\._botonesElegir \|\| \[\]\)/.test(metodo(MA, "dibujarMapa")),
+  "y el cursor del mapa los suma después de las localidades, la duración y el largo de la carrera");
 const tabla = metodo(MA, "vistaTemporada");
 assert(/const items = \[principal, editor, menu\]\.concat\(accesos\)/.test(tabla) && /this\.grupoFoco\(items, \{ inicial: 0 \}\)/.test(tabla),
   "la tabla arranca el cursor en JUGAR (o PASAR, o NUEVA TEMPORADA), con el editor, el menú y los accesos");
