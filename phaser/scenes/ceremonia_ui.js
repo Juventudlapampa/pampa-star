@@ -107,7 +107,7 @@
       this.vaciarVista();
       this._atrasVista = function () { seguir(); };
       if (this.fondoDelMaster) this.fondoDelMaster();
-      var vuelta = (this.save.temporadaN | 0);
+      var vuelta = Fi.vueltaDeCeremonia(this.save, tipo);
       var elegir = function (lista) { return lista && lista.length ? lista[vuelta % lista.length] : null; };
 
       /* fondo: la tribuna a lo ancho, la hinchada abajo y un velo para leer */

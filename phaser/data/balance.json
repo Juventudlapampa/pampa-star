@@ -1364,6 +1364,20 @@
     "plano_ms": 1500,
     "leyenda_division": "mundial"
   },
+  "tribuna": {
+    "_nota": "25/oct, pedido de Rodri: en una temporada de la carrera Nelda y el Tuli no repiten un intercambio (la memoria va en el save, save.tribuna, y se borra al empezar otra temporada; si no queda nada nuevo que valga para ese marcador, se callan). tope_por_partido: cuántas veces por partido habla cada evento; con 1, el primer error del partido se comenta y los demás los dice solo el relator. data/tribuna.json tiene que alcanzar para una CARRERA LARGA (18 fechas) con estos topes: lo mide phaser/test/tribuna_temporada.test.js.",
+    "tope_por_partido": { "gol": 2, "gol_companero": 1, "gol_rival": 2, "atajada": 1, "atajada_rival": 1, "falta_a_favor": 1, "falta_en_contra": 1, "penal_a_favor": 1, "penal_en_contra": 1, "quite": 1, "error": 1, "cansancio": 1, "ganando_final": 1, "perdiendo_final": 1, "empate": 1, "resultado_gana": 1, "resultado_empate": 1, "resultado_pierde": 1 }
+  },
+  "carrera": {
+    "_nota": "25/oct, pedido de Rodri: al crear la carrera se elige CARRERA CORTA (temporadas de solo ida, 9 fechas) o CARRERA LARGA (ida y vuelta, 18). vueltas: cuántas ruedas del fixture tiene cada temporada (logic/temporada.js). por_defecto: la que viene marcada. Las carreras guardadas antes de esto no tienen el dato y se leen como LARGA, que es lo que venían jugando (logic/save_master.js).",
+    "titulo_creacion": "¿CUÁNTAS FECHAS POR TEMPORADA?",
+    "vueltas": { "corta": 1, "larga": 2 },
+    "por_defecto": "corta",
+    "opciones": [
+      { "k": "corta", "n": "CARRERA CORTA", "d": "9 fechas, solo ida" },
+      { "k": "larga", "n": "CARRERA LARGA", "d": "18 fechas, ida y vuelta" }
+    ]
+  },
   "flags": {
     "_penales": "23/oct, decisión que Rodri delegó: la falta adentro del área es PENAL (balance.penal, logic/penal.js). false: adentro del área no hay falta, como antes.",
     "penales": true,

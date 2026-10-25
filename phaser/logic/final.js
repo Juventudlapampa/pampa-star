@@ -74,6 +74,14 @@
     return null;
   }
 
+  /* 25/oct, pedido de Rodri: en una carrera no se repiten las frases de las
+     ceremonias. Cada tipo dice su lista en orden: la n-ésima ceremonia de un
+     tipo dice la n-ésima frase. Las anteriores las cuenta el historial (la
+     fila de esta temporada entra recién al cerrarla, después de la ceremonia) */
+  function vueltaDeCeremonia(save, tipo) {
+    return (Array.isArray(save.historial) ? save.historial : []).filter(function (f) { return ceremoniaDe(f) === tipo; }).length;
+  }
+
   /* ══ LO QUE CAMBIA EN LA DIVISIÓN NUEVA ══
      Los rivales y su arquero salen de la escalera (logic/master.js,
      DIVISIONES): el multiplicador de los rivales y la habilidad del arquero. */
@@ -277,7 +285,7 @@
   }
 
   return {
-    cfgDeLaTemporada: cfgDeLaTemporada, veredicto: veredicto, ceremoniaDe: ceremoniaDe,
+    cfgDeLaTemporada: cfgDeLaTemporada, veredicto: veredicto, ceremoniaDe: ceremoniaDe, vueltaDeCeremonia: vueltaDeCeremonia,
     cambiosDeDivision: cambiosDeDivision, desbloqueosDe: desbloqueosDe,
     filaDeTemporada: filaDeTemporada, cerrarTemporada: cerrarTemporada, seguirComoLeyenda: seguirComoLeyenda,
     migrarElecciones: migrarElecciones, segundaEntrevista: segundaEntrevista, tuCarrera: tuCarrera,

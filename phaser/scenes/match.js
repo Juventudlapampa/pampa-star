@@ -5728,7 +5728,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
         hiceGol: !!(this.st && this.st.hiceGol),
         golesVos: (this.st && this.st.golesVos) | 0,
         aguanteFinalFrac: vosF ? Math.max(0, Math.min(1, vosF.aguante / this.BAL.aguante.max)) : 0.6,
-        golpeFuerte: !!(this.st && this.st.golpeFuerte)
+        golpeFuerte: !!(this.st && this.st.golpeFuerte),
+        /* 25/oct: lo que dijo la tribuna en la temporada vuelve al save */
+        tribuna: (this._tribuna && this._tribuna.usados) || null
       };
       /* TANDA 1.0 · AL PITAZO, NO AL TOCAR SEGUIR. El resultado vivía solo en
          el registry y se escribía al tocar el botón: cerrar la pestaña en

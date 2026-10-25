@@ -339,6 +339,11 @@
     ["semanaCerradaEnFecha", "eventoFecha", "enCancha", "resultadoPendiente", "eleccion"].forEach(function (k) {
       if (s[k] != null && !esObjeto(s[k])) { delete s[k]; reparado.push(k); }
     });
+    /* lo que la tribuna ya dijo en la temporada (25/oct): sin forma, se olvida */
+    if (s.tribuna != null && !(esObjeto(s.tribuna) && esNumero(s.tribuna.temporadaN) && esObjeto(s.tribuna.usados) &&
+        Object.keys(s.tribuna.usados).every(function (k) { return Array.isArray(s.tribuna.usados[k]) && s.tribuna.usados[k].every(esNumero); }))) {
+      delete s.tribuna; reparado.push("tribuna");
+    }
     /* el final de la carrera (25/oct, logic/final.js): se validan si están */
     if (s.historial != null) {
       if (!Array.isArray(s.historial)) { s.historial = []; reparado.push("historial"); }

@@ -47,6 +47,14 @@
         dichos: {},          // cuántos dijo cada evento en este partido
         ultimo: {},          // el último intercambio de cada evento
         ronda: {},           // los que ya salieron en esta vuelta de cada evento
+        /* 25/oct, pedido de Rodri: en una temporada no se repite un
+           intercambio. En una fecha de la carrera la memoria viene del save
+           (masterPartido.tribuna, por evento los índices ya dichos) y vuelve
+           con el resultado; lo dicho no sale más hasta la temporada que
+           viene y, si no queda nada nuevo que valga, se callan. Cada evento
+           habla a lo sumo balance.tribuna.tope_por_partido veces por partido */
+        usados: (sc._masterPartido && sc._masterPartido.tribuna) || null,
+        tope: (sc.BAL && sc.BAL.tribuna && sc.BAL.tribuna.tope_por_partido) || null,
         cont: sc.add.container(0, 0),
         globos: []
       };
@@ -102,8 +110,13 @@
       /* 23/oct · LA TRIBUNA MIRA EL MARCADOR: solo los que valen ahora, y
          entre esos el que no salió en esta vuelta (la rueda sigue siendo
          la misma para todos: un intercambio no vuelve antes que los otros) */
-      var aptos = orden.filter(function (k) { return vale(bloque.intercambios[k], sc.st, jugada, !!sc._rapido); });
+      if (t.tope && (t.dichos[evento] || 0) >= t.tope[evento]) return false;
+      var usados = t.usados ? (t.usados[evento] || (t.usados[evento] = [])) : null;
+      var aptos = orden.filter(function (k) {
+        return (!usados || usados.indexOf(k) < 0) && vale(bloque.intercambios[k], sc.st, jugada, !!sc._rapido);
+      });
       if (!aptos.length) return false;
+      if (usados) usados.push(aptos[0]);
       var ronda = t.ronda[evento] || (t.ronda[evento] = []);
       var libres = aptos.filter(function (k) { return ronda.indexOf(k) < 0; });
       if (!libres.length) {

@@ -1,6 +1,6 @@
 {
   "_schema": "N1 · LOS DOS DE LA TRIBUNA",
-  "_doc": "Dos personas hablando entre ellas durante el partido. No es el relator (ese vive en data/relatos.json y es otra voz). Cada evento tiene varios intercambios; el juego no repite el mismo dos veces seguidas. Editable sin tocar codigo: agregar un intercambio es agregar un {a,b} a la lista.",
+  "_doc": "Dos personas hablando entre ellas durante el partido. No es el relator (ese vive en data/relatos.json y es otra voz). Cada evento tiene varios intercambios; en una fecha de la carrera no se repite ninguno en toda la temporada (25/oct, pedido de Rodri: la memoria va en el save y cada evento habla a lo sumo balance.tribuna.tope_por_partido veces por partido; si no queda uno nuevo que valga, se callan); en el partido rápido uno no vuelve hasta que salieron los otros. Editable sin tocar codigo: agregar un intercambio es agregar un {a,b} a la lista.",
   "personajes": [
     {
       "id": "nelda",
@@ -61,6 +61,113 @@
           "si": {
             "va": "perdiendo"
           }
+        },
+        {
+          "a": "Gol. Tocó, se fue y la pidió de vuelta.",
+          "b": "Yo la pedí también, desde acá. Cuenta igual."
+        },
+        {
+          "a": "Eso se entrena. No es suerte.",
+          "b": "Suerte o no, me tiemblan las rodillas."
+        },
+        {
+          "a": "La puso donde el arquero no llega.",
+          "b": "Ni el arquero ni yo, que la miré pasar."
+        },
+        {
+          "a": "Miró antes de recibir. Por eso entró.",
+          "b": "Yo miré el cielo y pedí. También ayuda."
+        },
+        {
+          "a": "Gol. Ahora a la mitad de la cancha, rápido.",
+          "b": "Esperá que me acomodo la campera, Nelda."
+        },
+        {
+          "a": "Bien definido. Abajo y cruzado.",
+          "b": "Se me volcó el termo encima. Valió la pena."
+        },
+        {
+          "a": "Así se termina una jugada. Sin dudar.",
+          "b": "Yo dudé por las dos partes, por las dudas."
+        },
+        {
+          "a": "Golazo. No lo digo seguido.",
+          "b": "Anotalo en la libreta, que no lo repetís."
+        },
+        {
+          "a": "La paciencia paga. Esperó el hueco.",
+          "b": "Mi paciencia no paga ni el alfajor."
+        },
+        {
+          "a": "Le ganó la espalda al central. Limpio.",
+          "b": "Lo grité tan fuerte que el perro se fue."
+        },
+        {
+          "a": "Gol. Sentate, que se te ve la panza.",
+          "b": "Que se me vea. Hoy no me importa nada."
+        },
+        {
+          "a": "Esa la vi venir desde el pase anterior.",
+          "b": "Vos ves todo antes. Yo veo todo después."
+        },
+        {
+          "a": "Gol. Festejá corto, que esto sigue.",
+          "b": "Corto pero gritado, Nelda. Dejame."
+        },
+        {
+          "a": "La pelota fue al palo que tenía que ir.",
+          "b": "Yo le había prometido una vela. Pago mañana."
+        },
+        {
+          "a": "Remate seco. El arquero se quedó plantado.",
+          "b": "Como yo en la cola de la cantina."
+        },
+        {
+          "a": "Entró. Mirá cómo se abraza el equipo.",
+          "b": "Yo me abrazo con el poste del alambrado."
+        },
+        {
+          "a": "Arriba. Ahora la pelota se cuida.",
+          "b": "Yo cuido el mate y el corazón.",
+          "si": {
+            "va": "ganando"
+          }
+        },
+        {
+          "a": "Arriba en el marcador. Ni un paso atrás.",
+          "b": "Un paso atrás no, pero uno al baño sí.",
+          "si": {
+            "va": "ganando"
+          }
+        },
+        {
+          "a": "Igualamos. Ahora el partido es otro.",
+          "b": "Y yo soy otro también, Nelda. Renací.",
+          "si": {
+            "va": "empatando"
+          }
+        },
+        {
+          "a": "Uno menos de diferencia. Seguí mirando.",
+          "b": "Miro, pero con un ojo, por las dudas.",
+          "si": {
+            "va": "perdiendo"
+          }
+        },
+        {
+          "a": "Dos de ventaja. Ahora se juega con la cabeza.",
+          "b": "Con la cabeza no, que me duele de gritar.",
+          "si": {
+            "va": "ganando",
+            "por": 2
+          }
+        },
+        {
+          "a": "Gol temprano. Ahora no se duerman.",
+          "b": "Llegué tarde y ya me perdí uno. Típico.",
+          "si": {
+            "antes_del": 20
+          }
         }
       ]
     },
@@ -82,6 +189,38 @@
         {
           "a": "La mandó {goleador}, el que nadie miraba.",
           "b": "Yo sí lo miraba. Un poco, entre mate y mate."
+        },
+        {
+          "a": "{goleador} apareció donde tenía que aparecer.",
+          "b": "Y yo justo miraba para el otro lado."
+        },
+        {
+          "a": "Bien, {goleador}. Le pegó sin pensarlo.",
+          "b": "Yo lo pienso todo y no la meto nunca."
+        },
+        {
+          "a": "Gol de {goleador}. Le cayó y no perdonó.",
+          "b": "Esa camiseta se la firmo yo, Nelda."
+        },
+        {
+          "a": "{goleador} la empujó. A veces es eso nomás.",
+          "b": "Empujar también es un arte, eh."
+        },
+        {
+          "a": "Ese gol de {goleador} vale doble, por el pase.",
+          "b": "Doble vale el choripán que me debo."
+        },
+        {
+          "a": "Lo de {goleador} fue de memoria.",
+          "b": "Yo me olvido dónde dejé la campera."
+        },
+        {
+          "a": "{goleador} la estaba esperando. Se nota.",
+          "b": "Como yo al colectivo, toda la tarde."
+        },
+        {
+          "a": "Gol de {goleador}. El pase fue la mitad.",
+          "b": "La otra mitad la grité yo, Nelda."
         }
       ]
     },
@@ -132,6 +271,118 @@
           "si": {
             "va": "ganando"
           }
+        },
+        {
+          "a": "Gol del rival. Nadie fue a cerrar.",
+          "b": "Y yo que les grité que cerraran, Nelda."
+        },
+        {
+          "a": "Se veía venir. Nadie salió a presionar.",
+          "b": "Yo lo sentí en el estómago antes que vos."
+        },
+        {
+          "a": "Mal ubicada la línea. Pasa.",
+          "b": "Pasa, pero que no pase seguido, por favor."
+        },
+        {
+          "a": "Hay que levantar la cabeza. Ya.",
+          "b": "La cabeza la levanto. El ánimo, después."
+        },
+        {
+          "a": "Error de marca. Se corrige hablando.",
+          "b": "Hablando no, que yo estoy sin voz."
+        },
+        {
+          "a": "Bien hecho el gol del rival, hay que decirlo.",
+          "b": "Decilo bajito, que acá hay gente sufriendo."
+        },
+        {
+          "a": "Nos agarraron en la salida, sin orden.",
+          "b": "A mí me agarró con el pan en la boca."
+        },
+        {
+          "a": "Un segundo de siesta y lo pagamos.",
+          "b": "Yo duermo la siesta y no le hago mal a nadie."
+        },
+        {
+          "a": "Ahora hay que responder rápido.",
+          "b": "Responder rápido, dice. Me falta el aire."
+        },
+        {
+          "a": "El arquero no tuvo nada que hacer.",
+          "b": "Ni el arquero ni el santito que traje."
+        },
+        {
+          "a": "No miren el marcador. Miren la pelota.",
+          "b": "Yo no miro nada. Me tapé con la bufanda."
+        },
+        {
+          "a": "Gol del rival. Se sigue jugando igual.",
+          "b": "Igual, dice. Yo ya no estoy igual, Nelda."
+        },
+        {
+          "a": "Nos ganaron por arriba. Hay que saltar.",
+          "b": "Yo salto, pero del susto nomás."
+        },
+        {
+          "a": "Sacar del medio y a pensar. Nada más.",
+          "b": "Pensá vos, Nelda. A mí me parte el alma."
+        },
+        {
+          "a": "Que el gol despierte al equipo, por lo menos.",
+          "b": "A mí me despertó, eso seguro."
+        },
+        {
+          "a": "Abajo en el marcador. Ahora a remar.",
+          "b": "Remo con el termo, que es lo que tengo.",
+          "si": {
+            "va": "perdiendo"
+          }
+        },
+        {
+          "a": "Se acercaron en el marcador. Calma atrás.",
+          "b": "Calma tenés vos. Yo tengo taquicardia.",
+          "si": {
+            "va": "ganando"
+          }
+        },
+        {
+          "a": "Igualado otra vez. Paciencia.",
+          "b": "La paciencia se me fue en el primer tiempo.",
+          "si": {
+            "va": "empatando"
+          }
+        },
+        {
+          "a": "Dos abajo. Primero uno, después vemos.",
+          "b": "Primero uno, y después me desmayo.",
+          "si": {
+            "va": "perdiendo",
+            "por": 2
+          }
+        },
+        {
+          "a": "Es el primer tiempo. Hay tiempo de sobra.",
+          "b": "Tiempo de sobra tengo yo para sufrir.",
+          "si": {
+            "antes_del": 45
+          }
+        },
+        {
+          "a": "Gol del rival. Tocaron y tocaron hasta entrar.",
+          "b": "Y yo mirando cómo tocaban, sin poder hacer nada."
+        },
+        {
+          "a": "La pelota quedó picando en el área. Castigo.",
+          "b": "Castigo es lo que siento yo en el estómago."
+        },
+        {
+          "a": "Nadie salió a cortar el centro.",
+          "b": "Yo salía, Nelda, pero estoy en la tribuna."
+        },
+        {
+          "a": "Hay que hablar más atrás. Se nota que no se hablan.",
+          "b": "Que se hablen, que yo con vos me alcanza."
         }
       ]
     },
@@ -161,6 +412,54 @@
         {
           "a": "No la soltó. Con este viento, no es poco.",
           "b": "Menos mal, porque yo ya me paraba."
+        },
+        {
+          "a": "Sacó la mano abajo. Reflejo puro.",
+          "b": "Yo no tengo reflejos ni para el mate."
+        },
+        {
+          "a": "Buena ubicación. Por eso parece fácil.",
+          "b": "Fácil para vos. Yo dejé de respirar."
+        },
+        {
+          "a": "Atajada. Ahora salir jugando, sin revolear.",
+          "b": "Que la revoleen lejos, digo yo."
+        },
+        {
+          "a": "Le adivinó el palo. Lo estudió.",
+          "b": "Yo estudié el fixture y no me sirvió."
+        },
+        {
+          "a": "Esa la sacó con la punta de los dedos.",
+          "b": "Y yo con la punta de la silla, mirá."
+        },
+        {
+          "a": "El arco tiene dueño hoy.",
+          "b": "Que le den de comer después, entonces."
+        },
+        {
+          "a": "Achicó bien. Le tapó todo el arco.",
+          "b": "Me tapé la cara. Somos dos tapando."
+        },
+        {
+          "a": "Se tiró al lado justo. De manual.",
+          "b": "Un manual no sé. Yo traje la cábala puesta."
+        },
+        {
+          "a": "Atajó y ordenó al fondo. Así se ataja.",
+          "b": "Que ordene mi cocina, ya que está."
+        },
+        {
+          "a": "Esa iba adentro. La sacó igual.",
+          "b": "Le debo una medialuna por esa."
+        },
+        {
+          "a": "No dio rebote. Eso vale tanto como atajar.",
+          "b": "Para mí vale más. Me salvó el corazón."
+        },
+        {
+          "a": "Bien el uno. Le salió de memoria.",
+          "b": "Y yo me olvidé hasta de cómo se grita."
         }
       ]
     },
@@ -190,6 +489,54 @@
         {
           "a": "Tiro al arco, por lo menos. Así se empieza.",
           "b": "Para mí entraba. Juro que entraba."
+        },
+        {
+          "a": "Bien pegada. El arquero estuvo mejor.",
+          "b": "Me dejó el grito atragantado, ese arquero."
+        },
+        {
+          "a": "Hay que patear más cruzado.",
+          "b": "Cruzado tengo el estómago ahora."
+        },
+        {
+          "a": "El arquero rival tapa todo hoy.",
+          "b": "Que se tome el día libre, por favor."
+        },
+        {
+          "a": "Por lo menos fue al arco. Eso suma.",
+          "b": "Suma nervios, Nelda. Eso suma."
+        },
+        {
+          "a": "Le pegó fuerte pero al medio.",
+          "b": "Al medio de mi corazón, fue."
+        },
+        {
+          "a": "Hay que seguir probando. Ya va a entrar.",
+          "b": "Que entre antes de que se me enfríe el café."
+        },
+        {
+          "a": "El arquero de enfrente está en su día.",
+          "b": "Pedile la estampita, a ver qué usa."
+        },
+        {
+          "a": "Faltó levantarla un poco.",
+          "b": "Un poco nomás. Siempre es un poco."
+        },
+        {
+          "a": "Tapada. La próxima, de primera.",
+          "b": "La próxima avisen, que me pongo de pie."
+        },
+        {
+          "a": "Remate franco. Esta vez no.",
+          "b": "Esta vez no, y yo ya estaba saltando."
+        },
+        {
+          "a": "Le achicaron bien. No tuvo ángulo.",
+          "b": "Yo tampoco tengo ángulo desde acá."
+        },
+        {
+          "a": "Así se insiste. El gol está cerca.",
+          "b": "Cerca está la cantina, y no voy."
         }
       ]
     },
@@ -199,7 +546,63 @@
         { "a": "Falta. Lo buscó y lo consiguió.", "b": "¡Que le saquen la amarilla, por favor!" },
         { "a": "Bien parada la pelota. Ahora hay que pensar el tiro.", "b": "Yo ya estoy pensando en el grito." },
         { "a": "Le pegaron de atrás. El árbitro estaba ahí.", "b": "Por una vez mira para este lado." },
-        { "a": "Tiro libre. Que patee quien la tiene clara.", "b": "Que patee con el corazón, Nelda." }
+        { "a": "Tiro libre. Que patee quien la tiene clara.", "b": "Que patee con el corazón, Nelda." },
+        {
+          "a": "Falta. Bien ganada con el cuerpo.",
+          "b": "Que no se levante rápido, que descanse."
+        },
+        {
+          "a": "Pelota quieta. Hay que aprovecharla.",
+          "b": "Pelota quieta y yo temblando. Linda mezcla."
+        },
+        {
+          "a": "No había otra forma de pararla. Falta.",
+          "b": "Me pararon el corazón, de paso."
+        },
+        {
+          "a": "Falta. Ahora a ordenarse en el área.",
+          "b": "Yo me ordeno el gorro, que se me voló."
+        },
+        {
+          "a": "Cobró bien. No hubo dudas.",
+          "b": "Por fin una a favor. Anotala, Nelda."
+        },
+        {
+          "a": "La hicieron porque no la podían parar.",
+          "b": "Eso es un elogio, aunque duela."
+        },
+        {
+          "a": "Tiro libre. Que nadie se apure.",
+          "b": "Yo me apuro a buscar un lugar para ver."
+        },
+        {
+          "a": "Falta clara. Ni discutió nadie.",
+          "b": "Discutió el de la gorra de atrás, igual."
+        },
+        {
+          "a": "Esa la buscó con inteligencia.",
+          "b": "Inteligencia la mía, que traje el termo lleno."
+        },
+        {
+          "a": "Falta a favor. Ahora se piensa.",
+          "b": "Pensá vos, Nelda. Yo me encargo de rezar."
+        },
+        {
+          "a": "Falta. Que la patee quien tenga la pierna fresca.",
+          "b": "Fresca no tiene nadie a esta hora, Nelda."
+        },
+        {
+          "a": "Le cortaron la corrida con la mano.",
+          "b": "Con la mano no se vale ni en el truco."
+        },
+        {
+          "a": "Bien protegida la pelota. Le tuvieron que pegar.",
+          "b": "Que le pongan hielo. Yo me pongo el gorro."
+        },
+        {
+          "a": "Falta en buen lugar. A no apurarse.",
+          "b": "Yo ya me apuré a pararme. Me siento de nuevo."
+        }
       ]
     },
     {
@@ -208,7 +611,63 @@
         { "a": "Falta sin necesidad. Ahora hay que armar la barrera.", "b": "Yo no miro. Avisame cuando pase." },
         { "a": "Llegada tarde. Se paga con tiro libre.", "b": "Y con mi presión, que me sube a veinte." },
         { "a": "Calma. Una barrera bien puesta vale un gol.", "b": "Que salten a la vez, como en el baile." },
-        { "a": "El árbitro la cobró rápido, eh.", "b": "Ese árbitro desayunó con el rival, seguro." }
+        { "a": "El árbitro la cobró rápido, eh.", "b": "Ese árbitro desayunó con el rival, seguro." },
+        {
+          "a": "Falta tonta. Hay que llegar antes.",
+          "b": "Llegar antes, como yo a la cancha. Nunca."
+        },
+        {
+          "a": "Barrera de cinco. Y que nadie se agache.",
+          "b": "Yo me agacho desde acá, por las dudas."
+        },
+        {
+          "a": "Se tiró a los pies sin necesidad.",
+          "b": "Ay, no. Esa la vi en cámara lenta."
+        },
+        {
+          "a": "Pelota parada para el rival. Ojo al rebote.",
+          "b": "Ojo tengo uno solo abierto, Nelda."
+        },
+        {
+          "a": "La cobró bien. Hay que aceptarla.",
+          "b": "Aceptar no es lo mío, Nelda. Protestar sí."
+        },
+        {
+          "a": "Agarrón de camiseta. Eso no se hace.",
+          "b": "Que se la devuelva lavada, por lo menos."
+        },
+        {
+          "a": "Falta lejos. No es tan grave.",
+          "b": "Para mi presión todo es grave hoy."
+        },
+        {
+          "a": "Hay que defender sin manos.",
+          "b": "Yo defiendo el choripán con las dos."
+        },
+        {
+          "a": "Falta. A armar la barrera rápido.",
+          "b": "Que se peguen bien, como en la foto del club."
+        },
+        {
+          "a": "Esa fue de atrás. Bien cobrada.",
+          "b": "Bien cobrada, pero no lo digas tan fuerte."
+        },
+        {
+          "a": "Falta innecesaria. Estaba lejos del arco.",
+          "b": "Lejos para vos. Para mí, en la puerta."
+        },
+        {
+          "a": "Se llegó tarde al cruce. Pasa.",
+          "b": "Tarde llego yo a todo, y acá estoy."
+        },
+        {
+          "a": "Barrera bien armada y el arco tapado.",
+          "b": "Tapado tengo el pecho del susto."
+        },
+        {
+          "a": "Nada de hablar con el árbitro. Barrera y a callar.",
+          "b": "Callarme no puedo, pero lo intento."
+        }
       ]
     },
     {
@@ -216,7 +675,27 @@
       "intercambios": [
         { "a": "¡Penal! Ahora que patee con calma.", "b": "Yo no puedo mirar. Contame vos." },
         { "a": "Lo bajaron adentro del área. Clarito.", "b": "Que elija un palo y no lo cambie." },
-        { "a": "Penal. El arquero se va a tirar a un lado, siempre.", "b": "Entonces que la pique al medio, como en el potrero." }
+        { "a": "Penal. El arquero se va a tirar a un lado, siempre.", "b": "Entonces que la pique al medio, como en el potrero." },
+        {
+          "a": "Penal. Que patee quien no tiene miedo.",
+          "b": "Que no patee yo, entonces."
+        },
+        {
+          "a": "Clarísimo. La falta fue adentro.",
+          "b": "Fue en la cancha y me dolió acá, en el pecho."
+        },
+        {
+          "a": "Un penal se patea mirando el arco.",
+          "b": "Yo miro el suelo. Es lo más seguro."
+        },
+        {
+          "a": "Penal. Respirar y elegir un lado.",
+          "b": "Respiro yo por los dos, si hace falta."
+        },
+        {
+          "a": "Penal a favor. Ya estuvimos acá.",
+          "b": "Y me acuerdo cómo terminó. No me hagas acordar."
+        }
       ]
     },
     {
@@ -224,7 +703,27 @@
       "intercambios": [
         { "a": "Penal en contra. Que el arquero lo mire a los ojos.", "b": "Que se tire para algún lado, por lo menos." },
         { "a": "Fijate cómo se para el que patea. Siempre avisa.", "b": "Yo me fijo en los botines, Nelda." },
-        { "a": "Ahora todo depende del uno.", "b": "Dale, que este lo ataja. Lo siento." }
+        { "a": "Ahora todo depende del uno.", "b": "Dale, que este lo ataja. Lo siento." },
+        {
+          "a": "Penal en contra. El uno puede.",
+          "b": "Puede, pero yo no puedo mirar."
+        },
+        {
+          "a": "Fue adentro. No hay nada que discutir.",
+          "b": "Discutir siempre hay, Nelda. Siempre."
+        },
+        {
+          "a": "Que el arquero espere hasta el final.",
+          "b": "Yo espero sentado, con los ojos cerrados."
+        },
+        {
+          "a": "Un penal no es gol todavía.",
+          "b": "Para mi estómago ya es gol, te aviso."
+        },
+        {
+          "a": "Que se agrande en el arco. Que lo achique.",
+          "b": "Achicarme es lo que hago yo en la silla."
+        }
       ]
     },
     {
@@ -253,6 +752,54 @@
         {
           "a": "Esa la ganó con el hombro, no con el pie.",
           "b": "Se me cayó el pan de la mano, mirá."
+        },
+        {
+          "a": "Quite limpio. La pelota y nada más.",
+          "b": "Así me gusta. Sin una patada."
+        },
+        {
+          "a": "Leyó el pase. Se adelantó justo.",
+          "b": "Yo leo el horóscopo y no me sirve."
+        },
+        {
+          "a": "Recuperó y la dio rápido. Eso vale.",
+          "b": "Rápido como mi sobrino con el último alfajor."
+        },
+        {
+          "a": "Se la robó en la mitad. Bien.",
+          "b": "Robó la pelota y mi corazón, de paso."
+        },
+        {
+          "a": "Anticipo. Llegó antes que el rival.",
+          "b": "Yo llego antes solo cuando hay asado."
+        },
+        {
+          "a": "Cerró el pase al medio. Con eso alcanza.",
+          "b": "Me alcanza a mí también. Respiro."
+        },
+        {
+          "a": "Bien la presión. No le dio tiempo de pensar.",
+          "b": "A mí tampoco me dan tiempo de pensar."
+        },
+        {
+          "a": "Recuperada. Ahora, cabeza levantada.",
+          "b": "La cabeza levantada y el mate en la mano."
+        },
+        {
+          "a": "Entró al cruce justo. Medido.",
+          "b": "Medido como el agua en la sequía."
+        },
+        {
+          "a": "Esa pelota estaba perdida y la salvó.",
+          "b": "Como mi abuela con las sobras. Nada se tira."
+        },
+        {
+          "a": "Bloqueó con el cuerpo. Eso es querer.",
+          "b": "Querer, quiero. Correr, ya no tanto."
+        },
+        {
+          "a": "Quite y salida. Así se empieza.",
+          "b": "Así empiezo yo el día, con ganas y sin aire."
         }
       ]
     },
@@ -316,6 +863,117 @@
               "gambeta_lose"
             ]
           }
+        },
+        {
+          "a": "Se equivocó. Pasa. Ahora a corregir.",
+          "b": "Corregir es fácil desde acá, Nelda."
+        },
+        {
+          "a": "No era por ahí. La próxima, simple.",
+          "b": "Simple como un mate, decía mi abuelo."
+        },
+        {
+          "a": "Error. Que no se le caiga la cabeza.",
+          "b": "La mía se cae sola, ya ni la sostengo."
+        },
+        {
+          "a": "Mala decisión. Les pasa a los mejores equipos.",
+          "b": "En mi casa pasa cada domingo, Nelda."
+        },
+        {
+          "a": "Se apuró. Había tiempo.",
+          "b": "Siempre hay tiempo, menos para mí."
+        },
+        {
+          "a": "Esa no salió. La intención estaba.",
+          "b": "La intención no se grita, Nelda."
+        },
+        {
+          "a": "Error. Que lo olvide rápido.",
+          "b": "Yo lo olvido en cuanto llegue el choripán."
+        },
+        {
+          "a": "Le pegó mal. Salió torcida.",
+          "b": "Torcida como la tranquera del campo.",
+          "si": {
+            "jugada": [
+              "afuera"
+            ]
+          }
+        },
+        {
+          "a": "Apuró el remate. Tenía más tiempo.",
+          "b": "Apurado vivo yo, y mirá cómo me va.",
+          "si": {
+            "jugada": [
+              "afuera"
+            ]
+          }
+        },
+        {
+          "a": "Desviado. Hay que acomodar el cuerpo.",
+          "b": "Yo acomodo el cuerpo y me cruje todo.",
+          "si": {
+            "jugada": [
+              "afuera"
+            ]
+          }
+        },
+        {
+          "a": "Pase largo sin marca. Se lo comieron.",
+          "b": "Comieron más que yo, y eso es mucho.",
+          "si": {
+            "jugada": [
+              "corte",
+              "pared_lose"
+            ]
+          }
+        },
+        {
+          "a": "Pase al pie del rival. Hay que mirar antes.",
+          "b": "Mirar antes, como cruzar la ruta.",
+          "si": {
+            "jugada": [
+              "corte",
+              "pared_lose"
+            ]
+          }
+        },
+        {
+          "a": "Encaró de más. Había que pasarla.",
+          "b": "Yo la hubiera pasado. O me la comía igual.",
+          "si": {
+            "jugada": [
+              "gambeta_lose"
+            ]
+          }
+        },
+        {
+          "a": "Le cerraron el camino y siguió igual.",
+          "b": "Como yo con la dieta. Siempre igual.",
+          "si": {
+            "jugada": [
+              "gambeta_lose"
+            ]
+          }
+        },
+        {
+          "a": "Perdió el uno contra uno. Se tiró antes.",
+          "b": "Tirarme antes es lo mío con el asado.",
+          "si": {
+            "jugada": [
+              "defensa_lose"
+            ]
+          }
+        },
+        {
+          "a": "Le ganaron en velocidad. Hay que perfilarse.",
+          "b": "Perfilarme no. Yo me siento de costado.",
+          "si": {
+            "jugada": [
+              "defensa_lose"
+            ]
+          }
         }
       ]
     },
@@ -345,6 +1003,54 @@
         {
           "a": "Aguantan porque son de acá. Nada más.",
           "b": "De acá se aguanta hasta la sequía."
+        },
+        {
+          "a": "Las piernas ya no responden. Se nota.",
+          "b": "Las mías no responden desde el desayuno."
+        },
+        {
+          "a": "Hay que dosificar. No correr de gusto.",
+          "b": "Correr de gusto. Eso no existe, Nelda."
+        },
+        {
+          "a": "Le pesa la camiseta. El sol no ayuda.",
+          "b": "Ni el sol ni la humedad. Ni yo, que grito."
+        },
+        {
+          "a": "Que pidan agua. El partido es largo.",
+          "b": "Agua y una torta frita, ya que estamos."
+        },
+        {
+          "a": "Se juega caminando un rato. Está bien.",
+          "b": "Caminando juego yo, y llego igual de tarde."
+        },
+        {
+          "a": "Mirá la cara. Le falta el aire.",
+          "b": "A mí me falta desde la primera fecha."
+        },
+        {
+          "a": "Ahora vale más un pase que una corrida.",
+          "b": "Una corrida mía hoy es una ambulancia."
+        },
+        {
+          "a": "Que no se agache. Que respire de pie.",
+          "b": "De pie y respirando, como en la misa."
+        },
+        {
+          "a": "Se le acortó el paso. El rival lo vio.",
+          "b": "El rival ve todo. Yo no veo ni el reloj."
+        },
+        {
+          "a": "Con el cuerpo así, cabeza fría.",
+          "b": "Cabeza fría y pies calientes, decía mi tía."
+        },
+        {
+          "a": "El esfuerzo de hoy se paga el lunes.",
+          "b": "El lunes lo pago yo con la espalda."
+        },
+        {
+          "a": "Aguante. Eso es lo que queda.",
+          "b": "Aguante y un sánguche de milanesa."
         }
       ]
     },
@@ -374,6 +1080,54 @@
         {
           "a": "Cuando termine gritamos. Ahora, callados.",
           "b": "Yo ya tengo el grito acá guardado."
+        },
+        {
+          "a": "Pelota en campo rival y que pase el reloj.",
+          "b": "Que pase volando, que no aguanto."
+        },
+        {
+          "a": "No hay que regalar un tiro libre ahora.",
+          "b": "Ni uno. Ni un lateral, si se puede."
+        },
+        {
+          "a": "Quedan minutos. Concentración.",
+          "b": "Me concentro en no desmayarme."
+        },
+        {
+          "a": "Ahora se defiende con la pelota.",
+          "b": "Que la escondan. Yo la escondería en la chata."
+        },
+        {
+          "a": "Los cambios ya hicieron su parte. Aguanten.",
+          "b": "Aguanto yo, Nelda. Más o menos."
+        },
+        {
+          "a": "Que no haya apuro. El apuro es del rival.",
+          "b": "El apuro también es mío. Quiero gritar."
+        },
+        {
+          "a": "Nada de lujos. Pelota simple.",
+          "b": "Lo único lujoso acá es mi bufanda."
+        },
+        {
+          "a": "Cada pelota dividida vale oro ahora.",
+          "b": "Oro y mi presión, que vale más."
+        },
+        {
+          "a": "Bien parado el fondo. Que siga así.",
+          "b": "Que siga así hasta que suene el silbato."
+        },
+        {
+          "a": "Ahora van a tirar centros. A cabecear.",
+          "b": "Yo cabeceo el aire desde acá."
+        },
+        {
+          "a": "Faltan dos. Que no se distraiga nadie.",
+          "b": "Me distraje y casi me pierdo el final."
+        },
+        {
+          "a": "Esto se cierra con orden. Nada más.",
+          "b": "Orden pido yo en la cola del baño."
         }
       ]
     },
@@ -409,6 +1163,60 @@
         {
           "a": "Nos falta un centro bien puesto.",
           "b": "Y a mí me falta el corazón, mirá."
+        },
+        {
+          "a": "Hay que tirar centros. No queda otra.",
+          "b": "Yo tiro centros de esperanza desde acá."
+        },
+        {
+          "a": "Jugar rápido. Cada segundo cuenta.",
+          "b": "Cada segundo me cuesta un año de vida."
+        },
+        {
+          "a": "Hay que meterla en el área como sea.",
+          "b": "Como sea, pero sin que lo vea el árbitro."
+        },
+        {
+          "a": "No es momento de reclamar. Hay que jugar.",
+          "b": "Yo reclamo igual. Me sale solo."
+        },
+        {
+          "a": "Quedan pocos minutos y mucho por hacer.",
+          "b": "Mucho por hacer y yo sin uñas ya."
+        },
+        {
+          "a": "Un gol y estamos igual. Uno solo.",
+          "b": "Uno solo, Nelda. Te lo pido de rodillas.",
+          "si": {
+            "por": 1
+          }
+        },
+        {
+          "a": "Hay que arriesgar. Ya no hay nada que cuidar.",
+          "b": "Arriesgá nomás. Yo ya arriesgué el corazón."
+        },
+        {
+          "a": "La pelota al área y que pase algo.",
+          "b": "Que pase algo bueno, por una vez."
+        },
+        {
+          "a": "El rival hace tiempo. Hay que apurar.",
+          "b": "Que el árbitro le agregue, por lo menos."
+        },
+        {
+          "a": "Que nadie baje los brazos. Hasta el final.",
+          "b": "Yo los tengo arriba de tanto rezar."
+        },
+        {
+          "a": "Un empate acá vale como una victoria.",
+          "b": "Un empate y me voy cantando por la ruta.",
+          "si": {
+            "por": 1
+          }
+        },
+        {
+          "a": "Que se note que se quiso, pase lo que pase.",
+          "b": "Pase lo que pase, me quedo hasta el final."
         }
       ]
     },
@@ -441,6 +1249,60 @@
         {
           "a": "Si sigue así, lo firmo.",
           "b": "Yo lo firmo, lo sello y me voy."
+        },
+        {
+          "a": "Igualdad. El próximo gol lo define.",
+          "b": "Que sea nuestro, que no tengo más uñas."
+        },
+        {
+          "a": "Ni ganar ni perder. Se juega a no equivocarse.",
+          "b": "Equivocarse es lo que mejor sé hacer."
+        },
+        {
+          "a": "Es el momento de pensar, no de correr.",
+          "b": "Yo pienso en la cena y nada más."
+        },
+        {
+          "a": "Un empate no es poco. Pero se puede más.",
+          "b": "Más se puede, menos se sufre, decía mi tío."
+        },
+        {
+          "a": "Paridad total. Que nadie se apure.",
+          "b": "Apurado está mi corazón, Nelda."
+        },
+        {
+          "a": "Se puede ganar. Hay que animarse.",
+          "b": "Animate vos, que yo no puedo ni pararme."
+        },
+        {
+          "a": "Si llega una, hay que estar.",
+          "b": "Yo estoy, con el grito en la garganta."
+        },
+        {
+          "a": "El rival también tiene miedo. Se nota.",
+          "b": "Que tenga miedo, que yo ya tengo de sobra."
+        },
+        {
+          "a": "Una pelota parada puede cambiar la tarde.",
+          "b": "Que la pare el viento, si quiere ayudar."
+        },
+        {
+          "a": "Ojo con la contra. Siempre llega cuando empatás.",
+          "b": "La contra es como mi cuñada. Siempre llega."
+        },
+        {
+          "a": "Ida y vuelta. Va a ganar quien tenga aire.",
+          "b": "Aire tengo poco. Ganas, todas.",
+          "si": {
+            "hicimos": true
+          }
+        },
+        {
+          "a": "Sin goles. Está para quien se anime.",
+          "b": "Me animo a mirar, y ya es mucho.",
+          "si": {
+            "hicimos": false
+          }
         }
       ]
     },
@@ -479,6 +1341,68 @@
         {
           "a": "Vamos, que hay que volver por la ruta.",
           "b": "Dejame un minuto más, mirando la cancha."
+        },
+        {
+          "a": "Ganamos. Bien jugado del primer minuto al último.",
+          "b": "Del primer minuto al último sufrí yo, Nelda."
+        },
+        {
+          "a": "Victoria. Se trabajó la tarde entera.",
+          "b": "Yo también trabajé: grité como loco."
+        },
+        {
+          "a": "Ganamos. Ahora a casa, sin festejar de más.",
+          "b": "De más no, pero un poquito sí."
+        },
+        {
+          "a": "Así se gana: con paciencia.",
+          "b": "Con paciencia y las medias al revés, como yo."
+        },
+        {
+          "a": "Partido ganado. Y bien ganado.",
+          "b": "Ganado y llorado, Nelda. Las dos cosas."
+        },
+        {
+          "a": "Ganamos y el equipo terminó jugando.",
+          "b": "Yo terminé ronco. Cada cual con lo suyo."
+        },
+        {
+          "a": "Bien. Se ganó en la mitad de la cancha.",
+          "b": "Y en la tribuna, que empujamos."
+        },
+        {
+          "a": "Victoria. El domingo, a repetir.",
+          "b": "A repetir el asado, también."
+        },
+        {
+          "a": "Tres más a la tabla. Se mira para arriba.",
+          "b": "Para arriba miro yo, que es donde está la copa.",
+          "si": {
+            "carrera": true
+          }
+        },
+        {
+          "a": "Por uno, pero ganado. Eso es lo que vale.",
+          "b": "Lo que vale es mi corazón, que sigue andando.",
+          "si": {
+            "por": 1
+          }
+        },
+        {
+          "a": "Se ganó con la cabeza fría.",
+          "b": "La cabeza fría y los pies helados, mirá."
+        },
+        {
+          "a": "Ganamos. Ni una queja.",
+          "b": "Una queja tengo: el choripán estaba frío."
+        },
+        {
+          "a": "Victoria. Me voy con buena cara.",
+          "b": "Vos con buena cara, yo con la voz rota."
+        },
+        {
+          "a": "Le ganamos a un rival duro. No es poco.",
+          "b": "No es poco. Es muchísimo, Nelda."
         }
       ]
     },
@@ -517,6 +1441,57 @@
           "si": {
             "hicimos": true
           }
+        },
+        {
+          "a": "Empate. Justo, para mí.",
+          "b": "Justo para vos. Yo quería ganar."
+        },
+        {
+          "a": "Igualdad. Se jugó parejo.",
+          "b": "Parejo y largo, como la ruta 35."
+        },
+        {
+          "a": "No se perdió. A veces es lo que hay.",
+          "b": "Lo que hay es hambre. Vamos a comer."
+        },
+        {
+          "a": "Repartido. Los dos tuvieron lo suyo.",
+          "b": "Yo tuve lo mío: tres sustos y un mate."
+        },
+        {
+          "a": "Empate. Hay que mirarlo con calma.",
+          "b": "Con calma lo miro mañana. Hoy no."
+        },
+        {
+          "a": "Faltó un poco de puntería.",
+          "b": "Y a mí me faltó un poco de aire."
+        },
+        {
+          "a": "Algo es algo. Se vuelve con algo.",
+          "b": "Con algo y con hambre, como siempre."
+        },
+        {
+          "a": "El arquero rival nos sacó el triunfo.",
+          "b": "Que se lo guarde. El domingo lo cobramos."
+        },
+        {
+          "a": "Empate. No sobra ni falta nada.",
+          "b": "Me sobra el frío y me falta la campera."
+        },
+        {
+          "a": "Goles de los dos lados. Lindo partido.",
+          "b": "Lindo para la radio. Para mí, una tortura.",
+          "si": {
+            "hicimos": true
+          }
+        },
+        {
+          "a": "Empatamos y el equipo dejó la piel.",
+          "b": "Yo también dejé la garganta, Nelda."
+        },
+        {
+          "a": "Igualdad. De estos también se aprende.",
+          "b": "Yo aprendí a no comer antes del partido."
         }
       ]
     },
@@ -552,6 +1527,60 @@
         {
           "a": "Vamos, que se enfría el mate.",
           "b": "El mate y todo lo demás."
+        },
+        {
+          "a": "Perdimos. Se aprende más que ganando.",
+          "b": "Prefiero aprender menos, la verdad."
+        },
+        {
+          "a": "Derrota. No hay que buscar culpables.",
+          "b": "Yo culpo al viento, que siempre está."
+        },
+        {
+          "a": "Hoy el rival fue mejor. Pasa.",
+          "b": "Mejor, pero no tanto. No exageres, Nelda."
+        },
+        {
+          "a": "Perdimos. El domingo hay revancha.",
+          "b": "La revancha la juego yo con el asado."
+        },
+        {
+          "a": "Faltó gol. El juego estuvo.",
+          "b": "El juego estuvo, el gol se fue de viaje."
+        },
+        {
+          "a": "Se perdió jugando. Eso me deja algo.",
+          "b": "A mí me deja la garganta seca."
+        },
+        {
+          "a": "Derrota. Hay que hablar menos y entrenar más.",
+          "b": "Yo hablo menos desde ya. Ni una palabra."
+        },
+        {
+          "a": "El equipo no bajó los brazos. Eso se ve.",
+          "b": "Se ve. Igual hoy ceno callado."
+        },
+        {
+          "a": "Perdimos. Mañana se mira el partido otra vez.",
+          "b": "Mañana. Hoy me voy a dormir temprano."
+        },
+        {
+          "a": "No alcanzó. Cabeza arriba igual.",
+          "b": "La levanto despacito, que me duele."
+        },
+        {
+          "a": "Por uno. Estuvo ahí.",
+          "b": "Ahí, a un paso. Como el colectivo que se va.",
+          "si": {
+            "por": 1
+          }
+        },
+        {
+          "a": "Se hicieron goles. Faltó cerrar atrás.",
+          "b": "Atrás cerraba yo, con candado.",
+          "si": {
+            "hicimos": true
+          }
         }
       ]
     }

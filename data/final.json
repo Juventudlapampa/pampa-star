@@ -1,6 +1,6 @@
 {
   "_schema": "EL FINAL DE LA CARRERA (25/oct, pedido de Rodri): las ceremonias de fin de temporada, la segunda entrevista de Nito después del Mundial y los créditos. Puro texto editable; la lógica está en phaser/logic/final.js y la puesta en escena en phaser/scenes/ceremonia_ui.js.",
-  "_doc": "Marcadores: {club}, {pueblo}, {posicion}, {titulos}, {defendidos}, {respuesta} y los de cada división: {div} (la Primera B), {div_de} (de la Primera B), {div_en} (en la Primera B), {prox}, {prox_de}, {prox_a} (a la Primera A). En cada ceremonia, relator y tribuna son listas: se elige una por temporada, en rueda.",
+  "_doc": "Marcadores: {club}, {pueblo}, {posicion}, {titulos}, {defendidos}, {respuesta} y los de cada división: {div} (la Primera B), {div_de} (de la Primera B), {div_en} (en la Primera B), {prox}, {prox_de}, {prox_a} (a la Primera A). En cada ceremonia, relator y tribuna son listas que se dicen en orden: la primera ceremonia de cada tipo en la carrera dice la primera frase, la segunda la segunda (logic/final.js, vueltaDeCeremonia), así que en una carrera no se repiten hasta que se acaba la lista.",
   "divisiones": {
     "primera_b": { "n": "la Primera B", "de": "de la Primera B", "en": "en la Primera B", "a": "a la Primera B" },
     "primera_a": { "n": "la Primera A", "de": "de la Primera A", "en": "en la Primera A", "a": "a la Primera A" },
@@ -20,14 +20,24 @@
         "¡Campeón! ¡Se terminó {div} y se viene {prox}! ¡Que se vayan haciendo a la idea!",
         "¡Vuelta olímpica en {pueblo}! ¡{club} campeón {div_de}, y el año que viene a jugar {prox_en}!",
         "¡Levantó la copa {club}! ¡Que vayan poniendo otra silla {prox_en}, que ahí llega!",
-        "¡Campeón {div_de}! ¡Cierren la tranquera, que este equipo se va {prox_a}!"
+        "¡Campeón {div_de}! ¡Cierren la tranquera, que este equipo se va {prox_a}!",
+        "¡{club} campeón {div_de}! ¡Esta copa se va derechito a la vitrina de {pueblo}!",
+        "¡Se terminó la discusión! ¡El mejor equipo {div_en} es {club}, y se va {prox_a}!",
+        "¡Campeón! ¡En {pueblo} esta noche no duerme nadie!",
+        "¡Título para {club}! ¡Que se prepare {prox}, que llega con hambre!",
+        "¡Campeón {div_de}! ¡Esta temporada se va a contar en {pueblo} durante años!"
       ],
       "tribuna": [
         [{ "quien": "nelda", "texto": "Yo lo dije en la primera fecha." }, { "quien": "tuli", "texto": "En la primera fecha dijiste que bajábamos, Nelda." }],
         [{ "quien": "nelda", "texto": "Ahora viene lo difícil." }, { "quien": "tuli", "texto": "Dejame festejar un rato y después me contás." }],
         [{ "quien": "nelda", "texto": "Le mando un audio a mi hermana, que no me cree." }, { "quien": "tuli", "texto": "Mandale una foto, Nelda. Tus audios duran diez minutos." }],
         [{ "quien": "tuli", "texto": "¿Y ahora quién nos para?" }, { "quien": "nelda", "texto": "El de la boletería, si no pagás la entrada." }],
-        [{ "quien": "nelda", "texto": "Mañana hago pastelitos para toda la cuadra." }, { "quien": "tuli", "texto": "Para toda la cuadra no. Para mí primero." }]
+        [{ "quien": "nelda", "texto": "Mañana hago pastelitos para toda la cuadra." }, { "quien": "tuli", "texto": "Para toda la cuadra no. Para mí primero." }],
+        [{ "quien": "tuli", "texto": "Nelda, me temblaron las piernas la temporada entera." }, { "quien": "nelda", "texto": "Y ahora te tiemblan de festejar. Es distinto." }],
+        [{ "quien": "nelda", "texto": "Campeón. Ni un partido regalado." }, { "quien": "tuli", "texto": "Regalado no, pero sufrido, cada uno." }],
+        [{ "quien": "tuli", "texto": "¿Viste la vuelta? Yo la di desde la tribuna." }, { "quien": "nelda", "texto": "Diste media, Tuli. La otra mitad la caminaste." }],
+        [{ "quien": "nelda", "texto": "Guardá la entrada. Esta la vas a querer mostrar." }, { "quien": "tuli", "texto": "La plastifico, Nelda. La plastifico." }],
+        [{ "quien": "tuli", "texto": "Voy a llamar a mi tía de Ingeniero Luiggi." }, { "quien": "nelda", "texto": "Llamala mañana, que hoy no te va a entender nada." }]
       ],
       "lista": "LO QUE CAMBIA {prox_en}"
     },
@@ -39,11 +49,23 @@
       "relator": "profe",
       "dice": [
         "Terminaste {posicion}º y toca bajar {prox_a}. La pelota es la misma y la cancha mide lo mismo.",
-        "Se baja {prox_a}. Hay temporadas así, y lo que sabés hacer no se fue a ningún lado."
+        "Se baja {prox_a}. Hay temporadas así, y lo que sabés hacer no se fue a ningún lado.",
+        "Terminaste {posicion}º {div_en}. Toca bajar {prox_a}, y desde ahí se vuelve a subir.",
+        "Bajar duele. Lo que aprendiste esta temporada viaja con vos {prox_a}.",
+        "Se cierra {div} con descenso. El año que viene, {prox_en}, se arranca de cero.",
+        "No fue la temporada. El equipo va a jugar {prox_en}, y vos con el equipo.",
+        "Toca bajar {prox_a}. Ahí se juega igual de en serio, y se gana igual de lindo.",
+        "Descenso. La camiseta sigue siendo la misma, y la cancha también."
       ],
       "tribuna": [
         [{ "quien": "nelda", "texto": "Bajamos con el equipo. El domingo voy igual." }, { "quien": "tuli", "texto": "Yo llevo el mate." }],
-        [{ "quien": "tuli", "texto": "Una temporada mala la tiene cualquiera." }, { "quien": "nelda", "texto": "Dos no, Tuli. Dos no." }]
+        [{ "quien": "tuli", "texto": "Una temporada mala la tiene cualquiera." }, { "quien": "nelda", "texto": "Dos no, Tuli. Dos no." }],
+        [{ "quien": "tuli", "texto": "Nelda, ¿y ahora qué hacemos?" }, { "quien": "nelda", "texto": "Lo mismo. Venir el domingo." }],
+        [{ "quien": "nelda", "texto": "Se baja con la frente alta o no se baja." }, { "quien": "tuli", "texto": "Yo bajo con la frente alta y los ojos rojos." }],
+        [{ "quien": "tuli", "texto": "Esto me pasa por no usar la campera de la suerte." }, { "quien": "nelda", "texto": "La campera tiene un agujero, Tuli. Tirala." }],
+        [{ "quien": "nelda", "texto": "El año que viene volvemos a subir." }, { "quien": "tuli", "texto": "Anotalo en la heladera, al lado del fixture." }],
+        [{ "quien": "tuli", "texto": "No pienso llorar. Bueno, un poco." }, { "quien": "nelda", "texto": "Llorá lo que haga falta. Después se trabaja." }],
+        [{ "quien": "nelda", "texto": "Bajamos, pero el equipo jugó hasta el final." }, { "quien": "tuli", "texto": "Eso sí. Hasta el final, como yo con el mate." }]
       ],
       "lista": "LO QUE CAMBIA {prox_en}",
       "conservas": "Lo que destrabaste se queda: el súper tiro no baja con vos."
@@ -55,10 +77,14 @@
       "pose": "celebracion",
       "relator": "pichi",
       "dice": [
-        "¡CAMPEÓN DEL MUNDO! ¡De la cancha de {pueblo} a la copa del mundo! ¡Se escucha hasta en la ruta 35!"
+        "¡CAMPEÓN DEL MUNDO! ¡De la cancha de {pueblo} a la copa del mundo! ¡Se escucha hasta en la ruta 35!",
+        "¡CAMPEÓN DEL MUNDO! ¡Una carrera que arrancó en {pueblo} termina con la copa en alto!",
+        "¡CAMPEÓN DEL MUNDO! ¡Que lo sepa La Pampa entera: la copa tiene la tonada de {pueblo}!"
       ],
       "tribuna": [
-        [{ "quien": "tuli", "texto": "Nelda, ¿estás llorando?" }, { "quien": "nelda", "texto": "Es el viento, Tuli. Es el viento." }]
+        [{ "quien": "tuli", "texto": "Nelda, ¿estás llorando?" }, { "quien": "nelda", "texto": "Es el viento, Tuli. Es el viento." }],
+        [{ "quien": "nelda", "texto": "Te dije que iba a llegar." }, { "quien": "tuli", "texto": "Me lo dijiste en la Primera B, y yo no te creí." }],
+        [{ "quien": "tuli", "texto": "Nelda, ¿esto es verdad?" }, { "quien": "nelda", "texto": "Es verdad, Tuli. Pellizcate si querés." }]
       ],
       "lista": "LO QUE SIGUE",
       "sigue": "Nito Carrizo te espera en la radio de la tarde."
@@ -71,10 +97,27 @@
       "relator": "pichi",
       "dice": [
         "¡Otra vez! ¡La copa no se va de {pueblo}! ¡Títulos defendidos: {defendidos}!",
-        "¡Lo defendió de nuevo! ¡Que alguien le avise al resto del mundo!"
+        "¡Lo defendió de nuevo! ¡Que alguien le avise al resto del mundo!",
+        "¡Defendió la corona! ¡En {pueblo} ya no saben dónde poner tantas copas!",
+        "¡Otro título! ¡La leyenda suma y sigue, y van {defendidos} defendidos!",
+        "¡Campeón otra vez! ¡El mundo ya sabe dónde queda {pueblo}!",
+        "¡No la suelta! ¡La copa ya conoce el camino a {pueblo}!",
+        "¡Una vez más! ¡Que el resto vaya pensando en el segundo puesto!",
+        "¡Defendido! ¡Ganar cuando el mundo te quiere ganar: eso es una leyenda!",
+        "¡Título defendido! ¡La cuenta ya va por {defendidos}, y no hay quién la frene!",
+        "¡Otra vuelta olímpica! ¡A esta altura la tribuna se sabe la canción de memoria!"
       ],
       "tribuna": [
-        [{ "quien": "tuli", "texto": "Ya perdí la cuenta." }, { "quien": "nelda", "texto": "Yo no. La tengo anotada en la heladera." }]
+        [{ "quien": "tuli", "texto": "Ya perdí la cuenta." }, { "quien": "nelda", "texto": "Yo no. La tengo anotada en la heladera." }],
+        [{ "quien": "nelda", "texto": "Uno más para la heladera." }, { "quien": "tuli", "texto": "La heladera ya no cierra, Nelda." }],
+        [{ "quien": "tuli", "texto": "¿Y si un año perdemos?" }, { "quien": "nelda", "texto": "Ese año vengo igual. Este, festejo." }],
+        [{ "quien": "nelda", "texto": "Ganar una vez puede ser suerte. Tantas veces, no." }, { "quien": "tuli", "texto": "Suerte y mis cábalas, no te olvides." }],
+        [{ "quien": "tuli", "texto": "Mi sobrino ya pide la camiseta con el número." }, { "quien": "nelda", "texto": "Que la gane en la canchita, como corresponde." }],
+        [{ "quien": "nelda", "texto": "Hoy no digo nada. Miro y ya." }, { "quien": "tuli", "texto": "Primera vez que te veo sin decir nada, Nelda." }],
+        [{ "quien": "tuli", "texto": "Traje dos choripanes. Uno por cada título." }, { "quien": "nelda", "texto": "Vas a tener que traer una parrilla, entonces." }],
+        [{ "quien": "nelda", "texto": "Cada año es otro. Que nadie se acostumbre." }, { "quien": "tuli", "texto": "Yo ya me acostumbré, Nelda. Y me encanta." }],
+        [{ "quien": "tuli", "texto": "Me compré otra bufanda. La de la suerte se gastó." }, { "quien": "nelda", "texto": "Lavala y listo, Tuli. El que gana es el equipo." }],
+        [{ "quien": "nelda", "texto": "Le saco una foto a la copa. Otra." }, { "quien": "tuli", "texto": "Tenés más fotos de la copa que de tus nietos." }]
       ],
       "lista": "LA LEYENDA SIGUE",
       "sigue": "Otra temporada {div_en}, defendiendo el título."

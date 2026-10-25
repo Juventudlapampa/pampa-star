@@ -312,6 +312,8 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       /* 25/oct · TU CARRERA cuenta tus goles. Una temporada que empezó antes
          de que se contaran no tiene el campo y queda sin anotar */
       if (typeof this.save.golesTuyosTemporada === "number") this.save.golesTuyosTemporada += res.golesVos | 0;
+      /* 25/oct: lo que la tribuna ya dijo en esta temporada (tribuna_ui.js) */
+      if (res.tribuna) this.save.tribuna = { temporadaN: res.temporadaN, usados: res.tribuna };
       this._ultimo = res;
       /* ============ LA VIDA v2 · EL LUNES DESPUÉS ============
          Se recupera energía según lo que costó el partido, el ánimo sube o
@@ -2914,7 +2916,11 @@ window.PampaMasterScene = class PampaMasterScene extends Phaser.Scene {
       mejoras: this.save.mejoras || null,
       tempo: window.PampaSaveMaster.tempoDe(this.save, this.game.registry.get("balance")),
       /* 20/oct · la estrella que nombró la previa juega de verdad (match.js armarPlanteles) */
-      estrella: this.estrellaDeLaFecha(rival)
+      estrella: this.estrellaDeLaFecha(rival),
+      /* 25/oct · lo que la tribuna ya dijo en ESTA temporada (una copia: el
+         partido la llena y vuelve con el resultado) */
+      tribuna: this.save.tribuna && this.save.tribuna.temporadaN === c.temporadaN
+        ? JSON.parse(JSON.stringify(this.save.tribuna.usados)) : {}
     });
     this.save.enCancha = { temporadaN: c.temporadaN, fecha: c.fecha, rival };
     this.guardar();
