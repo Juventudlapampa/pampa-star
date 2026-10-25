@@ -1089,6 +1089,7 @@
   }
   function prepararRemateAereo(st, id, rng) {
     var acc = accionesAereas(st).find(function (a) { return a.id === id; });
+    st.remateDesde = { x: st.mios[st.ctrl].x, y: st.mios[st.ctrl].y };
     var P = st.bal.partido;
     var poder = (acc ? acc.poder : 50) + bonusAguante(st);
     var vendido = st._vendidoHasta && st._t < st._vendidoHasta;
@@ -1115,6 +1116,7 @@
      (23/oct, pedido de Rodri, balance.semana.cuatro) */
   function prepararRemate(st, esCalden, rng, grande) {
     var j = st.mios[st.ctrl], P = st.bal.partido, C = P.calden;
+    st.remateDesde = { x: j.x, y: j.y };   // 25/oct: el viaje del cine sale de acá (perspectiva.lugarDelRemate)
     var mega = (esCalden && typeof esCalden === "object") ? esCalden : null;
     var especial = !!esCalden;
     var poder = (j.stats.tiro || 50) + (j.stats.caracter || 50) * 0.12 + bonusAguante(st);

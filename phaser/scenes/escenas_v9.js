@@ -467,6 +467,8 @@
       }
       /* la toca y no alcanza: no llega al arco y sigue siendo del rival */
       var frena = lectura.bloqueado || lectura.salida === "queda_atacante";
+      /* 25/oct: el viaje del cine sale de donde pateó (match.js, lugarDelViaje) */
+      st.remateDesde = { x: tirador.x, y: tirador.y, rival: true };
       /* 25/oct, Rodri: EL ARQUERO ELIGE. Si nadie la bloquea, antes del cine
          elegís con tu arquero (preguntarArquero, más abajo); la elección
          vuelve dentro de la lectura y el duelo juega el mismo % del botón */

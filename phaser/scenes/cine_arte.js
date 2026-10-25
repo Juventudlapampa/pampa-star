@@ -543,6 +543,11 @@
     profunda: function (c, pal, r, o) {
       o = o || {};
       var vp = o.vp || { x: W / 2, y: H * 0.24 }, nearY = o.nearY || H * 0.96, k = o.k || 2.2;
+      /* 25/oct, Rodri: el viaje desde donde se pateó (perspectiva.lugarDelRemate).
+         Se pinta del lado derecho; el izquierdo es este mismo en espejo */
+      var LG = o.lugar || null;
+      if (LG && LG.espejo) vp = { x: W - vp.x, y: vp.y };
+      var giro = LG ? LG.giro : 0, aW = LG ? LG.arcoW : 1, aH = LG ? LG.arcoH : 1;
       var Pp = window.PampaPersp, yHor = vp.y;
       var cv = lienzo(W, H), f = cv.getContext("2d");
       P.cielo(f, yHor + 30, pal, r);
@@ -561,15 +566,19 @@
         c.lineWidth = ancho; linea(c, a.x, a.y, b.x, b.y);
       }
       var L = 1.3;
+      /* de costado la cancha gira alrededor del arco: la línea de gol baja
+         del lado de quien patea */
+      c.save(); c.translate(vp.x, vp.y); c.rotate(giro); c.translate(-vp.x, -vp.y);
       /* la línea de gol, de lado a lado */
-      c.lineWidth = 2; linea(c, 0, yDe(1) + 1, W, yDe(1) + 1);
+      c.lineWidth = 2; linea(c, -W, yDe(1) + 1, 2 * W, yDe(1) + 1);
       /* el área grande y el área chica */
       tramo(-5.5, 1, -5.5, 0.34, 2 * L); tramo(5.5, 1, 5.5, 0.34, 2 * L); tramo(-5.5, 0.34, 5.5, 0.34, 2.4 * L);
       tramo(-2.5, 1, -2.5, 0.8, 1.6 * L); tramo(2.5, 1, 2.5, 0.8, 1.6 * L); tramo(-2.5, 0.8, 2.5, 0.8, 1.8 * L);
       var pen = pt(0, 0.56);
       c.fillStyle = rgba("#f4fff0", 0.7); elipse(c, pen.x, pen.y, 4, 1.8);
+      c.restore();   // los palos quedan derechos
       /* el arco al fondo: red con fondo, palos con sombra */
-      var gw = 78, gh = 34, gx = vp.x - gw / 2, gy = vp.y - gh;
+      var gw = Math.round(78 * aW), gh = Math.round(34 * aH), gx = vp.x - gw / 2, gy = vp.y - gh;
       c.fillStyle = rgba("#000000", 0.22); c.fillRect(gx, gy, gw, gh);
       c.strokeStyle = rgba("#e8f2f6", 0.5); c.lineWidth = 1;
       for (var x = 0; x <= gw; x += 6) linea(c, gx + x, gy, gx + x, gy + gh);
@@ -1132,6 +1141,7 @@
       try { key = this.texturaDeFondo(tipo, o); } catch (e) { key = null; }
       if (!key) { this.cineFondo.setVisible(false); return false; }
       this.cineFondo.setTexture(key).setPosition(W / 2, H / 2).setScale(1).setAlpha(1).clearTint().setVisible(true);
+      this.cineFondo.setFlipX(!!(o && o.lugar && o.lugar.espejo));
       if (o && o.tinte != null) this.cineFondo.setTint(o.tinte);
       return true;
     },

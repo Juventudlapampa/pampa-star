@@ -3914,8 +3914,10 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     this.musicaDuck(tVuela + this.msV(C.plano_arquero_ms));
     this.SFX && this.SFX.riserRemate(tVuela);
     const cfg = { k: C.persp.k, vpX: vp.x, vpY: vp.y, nearY, driftX: (this.zona.gy || 0) * C.drift_mult };
-    this.viajeState = { activo: true, elapsed: 0, dur: this.msV(C.plano_viaje_ms), ball, trail, cfg, vp, zoomed: false };
-    this._cineTimer = this.time.delayedCall(this.msV(C.plano_viaje_ms), () => {
+    /* 25/oct, Rodri: de cerca el viaje es corto y de lejos largo */
+    const LG = this.lugarDelViaje(), tViaje = this.msV(C.plano_viaje_ms * (LG ? LG.viaje : 1));
+    this.viajeState = { activo: true, elapsed: 0, dur: tViaje, ball, trail, cfg, vp, zoomed: false };
+    this._cineTimer = this.time.delayedCall(tViaje, () => {
       if (trail && trail.stop) trail.stop();
       if (this.viajeState) this.viajeState.activo = false;
       this.uiCam.setZoom(1); this.uiCam.centerOn(480, 270);
@@ -3988,8 +3990,19 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
      el MISMO (la clave de la pintura no lo lleva: la primera que se pinta
      queda para todas) */
   fugaDelViaje() {
-    const W = 960, H = 540;
-    return { vp: { x: W / 2, y: H * 0.24 }, nearY: H * 0.96 };
+    const W = 960, H = 540, LG = this.lugarDelViaje();
+    return { vp: { x: W * (LG ? LG.vpX : 0.5), y: H * (LG ? LG.vpY : 0.24) }, nearY: H * 0.96, lugar: LG };
+  }
+  /* 25/oct, Rodri: "le pegué desde un ángulo de abajo, casi lateral, y me
+     mostró la animación como si le pegara de mitad de cancha". El viaje sale
+     de donde se pateó (st.remateDesde, que guarda prepararRemate; el del
+     rival, escenaRemateRival, girado porque ataca el otro arco) */
+  lugarDelViaje() {
+    const d = this.st && this.st.remateDesde;
+    if (!d) return null;
+    const st = this.st, L = this.BAL.cine.lugares;
+    if (!L || !L.activo) return null;
+    return window.PampaPersp.lugarDelRemate(d.rival ? st.W - d.x : d.x, d.rival ? st.H - d.y : d.y, st.W, st.H, L);
   }
   dibujarCanchaProfunda(vp, nearY) {
     const W = 960, H = 540, g = this.cineBG;
@@ -3997,7 +4010,9 @@ window.PampaMatch = class PampaMatch extends Phaser.Scene {
     /* ARTE: la cancha pintada, con la misma fuga y el mismo pasillo que usa
        la pelota (el pintor recibe vp, nearY y k). Antes: un cielo liso, un
        trapecio verde y los costados en negro. */
-    if (this.fondoCine && this.fondoCine("profunda", { vp: vp, nearY: nearY, k: this.BAL.cine.persp.k })) return;
+    const opP = { vp: vp, nearY: nearY, k: this.BAL.cine.persp.k }, LG = this.lugarDelViaje();
+    if (LG) opP.lugar = LG;
+    if (this.fondoCine && this.fondoCine("profunda", opP)) return;
     g.fillStyle(0x123a5a, 1); g.fillRect(0, 0, W, vp.y);
     g.fillStyle(0x2a9d4f, 1);
     g.fillPoints([{ x: 0, y: H }, { x: W, y: H }, { x: vp.x + 34, y: vp.y }, { x: vp.x - 34, y: vp.y }], true);

@@ -101,6 +101,8 @@
       return clave("golpe", "golpe", (o.bando || "mio") + "_" + cx + "_" + cy);
     }
     if (tipo === "cancha_alta") return clave(tipo, ambId, String(o.y0 || "") + (o.tierra ? String(o.tierra).replace("#", "") : ""));
+    /* 25/oct: el viaje desde donde se pateó, una pintura por vista (la izquierda es el espejo) */
+    if (tipo === "profunda" && o.lugar) return clave(tipo, ambId, o.lugar.pintura);
     return clave(tipo, ambId, "");
   }
   /* qué pinturas hay que soltar al cambiar de ambiente. El registro es exacto

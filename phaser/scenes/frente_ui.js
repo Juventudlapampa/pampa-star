@@ -217,6 +217,8 @@
       }
       var gol = pn.resultado === "gol";
       var arqM = st.mios.find(function (x) { return x.pos === "ARQ"; });
+      var tp = st.rivales[tiradorIdx] || st.rivales[st.portadorRival];
+      st.remateDesde = { x: tp.x, y: tp.y, rival: true };   // 25/oct: el viaje sale de donde pateó
       P.resolverAtajada(st, "atajar", null, 0, gol);
       var porque = "Penal · te tiraste " + this.penalLado(pn.dir) + " y la pateó " + this.penalAdonde(pn.zona);
       this.res = { outcome: gol ? "gol" : "atajada" };

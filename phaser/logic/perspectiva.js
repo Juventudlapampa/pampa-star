@@ -128,8 +128,40 @@
     return accion === "tiro" || accion === "megacorrida" ? Math.round(base * 1.6) : base;
   }
 
+  /* 25/oct, Rodri: "le pegué desde un ángulo de abajo, casi lateral, y me
+     mostró la animación como si le pegara de mitad de cancha". El lugar del
+     remate sale de dónde estaba quien patea: x, y en la cancha, atacando el
+     arco de x = W, y = H/2 (el remate rival se pasa girado: W - x, H - y).
+     lado -1 = a la izquierda de quien patea (y chica), 1 = a la derecha.
+       angulo_*  pegado a la línea de fondo (a menos de angulo_dx) y afuera
+                 de los palos (más de palo_px del medio)
+       lateral_* el ángulo contra el eje del arco pasa lateral_grados
+       frente_cerca / frente_lejos  de frente, según cerca_px
+     La vista (cfg.vistas): giro = cuánto se inclina la línea de gol (rad,
+     la parte cercana baja del lado de quien patea), corrido = cuánto se corre
+     el arco del centro, vpY = la altura del arco, arco = ancho y alto del arco
+     al fondo (de costado se ve angosto), viaje = cuánto dura el viaje. La
+     pintura se hace del lado derecho y el izquierdo es su espejo. */
+  function lugarDelRemate(x, y, W, H, cfg) {
+    var dx = Math.max(1, W - x), dy = y - H / 2, ady = Math.abs(dy);
+    var grados = Math.atan2(ady, dx) * 180 / Math.PI, dist = Math.sqrt(dx * dx + dy * dy);
+    var lado = dy < 0 ? -1 : 1, base;
+    if (dx < cfg.angulo_dx && ady > cfg.palo_px) base = "angulo";
+    else if (grados > cfg.lateral_grados) base = "lateral";
+    else base = dist < cfg.cerca_px ? "frente_cerca" : "frente_lejos";
+    var de = base === "angulo" || base === "lateral";
+    var s = de ? lado : 0, v = cfg.vistas[base];
+    return {
+      id: de ? base + (lado < 0 ? "_izq" : "_der") : base, pintura: base, lado: s,
+      grados: Math.round(grados), dist: Math.round(dist),
+      giro: v.giro, espejo: s < 0, vpX: 0.5 - s * v.corrido, vpY: v.vpY,
+      arcoW: v.arco[0], arcoH: v.arco[1], viaje: v.viaje
+    };
+  }
+
   return {
     clamp: clamp, proyectar: proyectar, aPantalla: aPantalla,
-    esProfundo: esProfundo, viajeProfundo: viajeProfundo, frenoDelCorte: frenoDelCorte
+    esProfundo: esProfundo, viajeProfundo: viajeProfundo, frenoDelCorte: frenoDelCorte,
+    lugarDelRemate: lugarDelRemate
   };
 });
