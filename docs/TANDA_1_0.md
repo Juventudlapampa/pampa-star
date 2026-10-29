@@ -6981,3 +6981,17 @@ Tests nuevos: musica_sigue (4 bloques) y titulo [6] (TE GUSTAN).
 La ceremonia ya no dice "+16% en todo; el arquero, de 40 a 50". Ahora dice "Los rivales juegan un 16% mejor y los arqueros atajan más" (o peor y menos, si bajás), con un solo número (logic/final.js, cambiosDeDivision; carrera_final.test.js actualizado por su pedido). El Profe tiene en LA PREVIA el retrato de DT de .claude/nuevos/arte/25oct (gorra, silbato, planilla, sin auriculares), copiado a assets/retratos/retrato_profe.webp y declarado en portraits_manifest.json (relator.retratos, con el cuadrado de la cara). Se probó en PC con la previa forzada a El Profe. En el teléfono no se miró: el armado de la previa es el mismo y solo cambió la imagen.
 
 No llegaron por el tope: LA SEMANA más simple, los momentos de la semana con tu pinta, los colores de cada club en la ilustración, los retratos y el minimapa, y la práctica de tiros libres, penales y EL TOQUE.
+
+## 29/oct, 20:37 a 20:56: sesión corta por el tope semanal (95% al arrancar)
+
+Entró lo que cabía en veinte minutos sin tocar pantallas a ciegas. El Profe sigue conectado: assets/retratos/retrato_profe.webp declarado en data/portraits_manifest.json (relator.retratos.profe, cara 230, 20, 760), cargado en scenes/master.js como textura relator_profe y en la lista del sw.js. No se volvió a mirar en pantalla en esta sesión: el navegador no entraba en el tiempo y la previa no cambió desde que se probó el 25/oct.
+
+Lo que quedó para la sesión que sigue, con dónde está cada cosa:
+
+LA SEMANA MÁS SIMPLE y LOS MOMENTOS (pedido del 25/oct, "no se entiende eso" y "quedó feo"). La semana se arma en scenes/semana_ui.js y las tarjetas con sus textos en scenes/master.js desde la línea 2527 (lo de cada tarjeta) y 2548 (momentoDeAccion, la vista del momento, cierre con balance.semana.momento_ms en 2771). Lo pedido: una sola línea arriba con AGUANTE y ÁNIMO con su barra, cuatro opciones grandes con dibujo y UNA línea en palabras, los números solo al elegir, las teclas discretas; el momento con la pinta propia teñida por zonas (pelo, piel, camiseta del club) y el fondo dentro de su mitad, sin cajas sueltas. Medir con getBounds en 960x540 y 740x360.
+
+LOS TRES ESTILOS AL CREAR LA CARRERA. La fila de chips TE GUSTAN ya existe en scenes/titulo.js, filasDeOpciones (multi: true, guarda op.gustos con PampaOpciones). En la pantalla del mapa de scenes/master.js, el helper fila() de la línea 1164 dibuja la duración y el largo de carrera en yT 362 y elige de a uno; falta una fila de varios marcados a la vez, debajo o al lado, que escriba op.gustos y lo guarde con la misma lógica de titulo.js. Hay que mirarla en 960x540 y 740x360 porque comparte el lugar con el mapa y ARRANCAR.
+
+LOS COLORES POR CLUB (ilustración grande del rival, retratos de la cruz, fichas del minimapa y HUD) con logic/vestir.js y data/divisiones.json; la visita con la alternativa si chocan; forma y número siguen distinguiendo sin el color.
+
+TRANSPONER A SOL los cinco temas lejos de la tonalidad (lista en .claude/nuevos/musica/25oct/LEEME.txt: rap_partido, rap_semana, rock_derrota, Last_Ten_Seconds, Low_Light_Protocol), medidos por croma antes y después, a -16 LUFS, Opus 48 kHz.
